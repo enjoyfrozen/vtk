@@ -48,6 +48,8 @@
 #include "vtkStreamingDemandDrivenPipeline.h"
 #include "vtkUnsignedCharArray.h"
 #include "vtkZLibDataCompressor.h"
+#include "vtkZfpDataCompressor.h"
+#include "vtkXMLImageDataWriter.h" /* For Zfp downcasting */
 #define vtkXMLOffsetsManager_DoNotInclude
 #include "vtkXMLOffsetsManager.h"
 #undef  vtkXMLOffsetsManager_DoNotInclude
@@ -554,6 +556,15 @@ void vtkXMLWriter::SetCompressorType(int compressorType)
     this->Compressor->SetCompressionLevel(this->CompressionLevel);
     this->Modified();
   }
+  else if (compressorType == ZFP)
+  {
+    if (this->Compressor &&
+        !this->Compressor->IsTypeOf("vtkZfpDataCompressor")) {
+      this->Compressor->Delete();
+    }
+    this->Compressor = vtkZfpDataCompressor::New();
+    this->Modified();
+  }
   else
   {
     vtkWarningMacro("Invalid compressorType:" << compressorType);
@@ -855,6 +866,15 @@ int vtkXMLWriter::Write()
     return 0;
   }
 
+  if (this->Compressor)
+  {
+    /* Only for ZFP, set blocksize to data size */
+    if (strcmp(this->Compressor->GetClassName(), "vtkZfpDataCompressor") == 0)
+    {   /*Don't do it in blocks for zfp, so set to final size */
+      this->BlockSize = this->Compressor->Nx*this->Compressor->Ny*this->Compressor->Nz*sizeof(float)*this->Compressor->GetNumComponents();
+    }
+  }
+
   // always write even if the data hasn't changed
   this->Modified();
 
@@ -1107,6 +1127,11 @@ void vtkXMLWriter::WriteFileAttributes()
   if (this->Compressor)
   {
     os << " compressor=\"" << this->Compressor->GetClassName() << "\"";
+    if (!strcmp(this->Compressor->GetClassName(), "vtkZfpDataCompressor"))
+    {
+      // Additional metadata for Zfp compression
+      os << " tolerance=\"" << vtkZfpDataCompressor::SafeDownCast(this->Compressor)->GetTolerance() << "\"";
+    }
   }
 }
 
@@ -1118,6 +1143,17 @@ int vtkXMLWriter::EndFile()
   // Close the document-level element.
   os << "</VTKFile>\n";
 
+  if (this->Compressor && !strcmp(this->Compressor->GetClassName(), "vtkZfpDataCompressor"))
+  {
+    if (this->Compressor->GetNumComponents() == 3)
+    {
+       int Sx = vtkZfpDataCompressor::SafeDownCast(this->Compressor)->GetSx();
+       int Sy = vtkZfpDataCompressor::SafeDownCast(this->Compressor)->GetSy();
+       int Sz = vtkZfpDataCompressor::SafeDownCast(this->Compressor)->GetSz();
+       this->Stream->seekp(this->AppendedDataPosition-70);
+       os << "components=\"" << Sx << " " << Sy << " " << Sz <<"\"";
+    }
+  }
   os.flush();
   if (os.fail())
   {
@@ -1148,8 +1184,16 @@ void vtkXMLWriter::StartAppendedData()
 {
   ostream& os = *(this->Stream);
   os << "  <AppendedData encoding=\""
-     << (this->EncodeAppendedData? "base64" : "raw")
-     << "\">\n";
+     << (this->EncodeAppendedData? "base64" : "raw");
+  if (!strcmp(this->Compressor->GetClassName(), "vtkZfpDataCompressor"))
+  {
+    /* For zfp and 3 elements reserve space. */
+    os << "\"                                                                     >\n";
+  }
+  else
+  {
+    os << "\">\n";
+  }
   os << "   _";
   this->AppendedDataPosition = os.tellp();
 

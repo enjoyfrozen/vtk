@@ -17,6 +17,7 @@ PRIVATE_DEPENDS
   VTK::lzma
   VTK::utf8
   VTK::vtksys
+  VTK::zfp
   VTK::zlib
 TEST_DEPENDS
   VTK::TestingCore

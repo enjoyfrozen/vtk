@@ -48,6 +48,16 @@ public:
   vtkTypeMacro(vtkDataCompressor,vtkObject);
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
+  /* Parameters required for Zfp */
+  vtkSetClampMacro(Nx, int, 0, 4096);
+  vtkGetMacro(Nx, int);
+  vtkSetClampMacro(Ny, int, 0, 4096);
+  vtkGetMacro(Ny, int);
+  vtkSetClampMacro(Nz, int, 0, 4096);
+  vtkGetMacro(Nz, int);
+  vtkSetClampMacro(NumComponents, int, 1, 3);
+  vtkGetMacro(NumComponents, int);
+
   /**
    * Get the maximum space that may be needed to store data of the
    * given uncompressed size after compression.  This is the minimum
@@ -108,6 +118,9 @@ public:
 protected:
   vtkDataCompressor();
   ~vtkDataCompressor() override;
+
+  int NumComponents;
+  int Nx, Ny, Nz;
 
   // Actual compression method.  This must be provided by a subclass.
   // Must return the size of the compressed data, or zero on error.

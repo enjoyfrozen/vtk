@@ -245,7 +245,7 @@ protected:
   virtual void CloseVTKString();
   virtual void CreateXMLParser();
   virtual void DestroyXMLParser();
-  void SetupCompressor(const char* type);
+  void SetupCompressor(const char* type, vtkXMLDataElement* eVTKFile);
   int CanReadFileVersionString(const char* version);
 
   /**

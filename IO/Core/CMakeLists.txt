@@ -24,7 +24,8 @@ set(classes
   vtkUTF16TextCodec
   vtkUTF8TextCodec
   vtkWriter
-  vtkZLibDataCompressor)
+  vtkZLibDataCompressor
+  vtkZfpDataCompressor)
 
 vtk_module_add_module(VTK::IOCore
   CLASSES ${classes})

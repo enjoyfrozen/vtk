@@ -154,7 +154,8 @@ public:
     NONE,
     ZLIB,
     LZ4,
-    LZMA
+    LZMA,
+    ZFP
   };
 
   //@{
@@ -177,6 +178,10 @@ public:
   void SetCompressorTypeToLZMA()
   {
     this->SetCompressorType(LZMA);
+  }
+  void SetCompressorTypeToZfp()
+  {
+    this->SetCompressorType(ZFP);
   }
 
   void SetCompressionLevel(int compressorLevel);

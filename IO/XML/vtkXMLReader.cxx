@@ -35,6 +35,7 @@
 #include "vtkInformationVector.h"
 #include "vtkLZ4DataCompressor.h"
 #include "vtkLZMADataCompressor.h"
+#include "vtkZfpDataCompressor.h"
 #include "vtkObjectFactory.h"
 #include "vtkQuadratureSchemeDefinition.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
@@ -431,7 +432,7 @@ void vtkXMLReader::DestroyXMLParser()
 }
 
 //----------------------------------------------------------------------------
-void vtkXMLReader::SetupCompressor(const char* type)
+void vtkXMLReader::SetupCompressor(const char* type, vtkXMLDataElement* eVTKFile)
 {
   // Instantiate a compressor of the given type.
   if (!type)
@@ -455,6 +456,39 @@ void vtkXMLReader::SetupCompressor(const char* type)
     else if (strcmp(type, "vtkLZMADataCompressor") == 0)
     {
       compressor = vtkLZMADataCompressor::New();
+    }
+    else if (!compressor && (strcmp(type, "vtkZfpDataCompressor") == 0))
+    {
+      compressor = vtkZfpDataCompressor::New();
+      compressor->SetNx(1);
+      compressor->SetNy(1);
+      compressor->SetNz(1);
+      int extent[6];
+      if (eVTKFile->GetNestedElement(0)->GetVectorAttribute("WholeExtent", 6, extent) == 6)
+      {
+        compressor->SetNx(extent[1]-extent[0]+1);
+        compressor->SetNy(extent[3]-extent[2]+1);
+        compressor->SetNz(extent[5]-extent[4]+1);
+      }
+      else
+      {
+        vtkWarningMacro("Failed to set ZFP dimensions");
+        return;
+      }
+      int numcomponents;
+      eVTKFile->GetNestedElement(0)->GetNestedElement(0)->GetNestedElement(0)->GetNestedElement(0)->GetScalarAttribute("NumberOfComponents", numcomponents);
+      double tolerance;
+      eVTKFile->GetScalarAttribute("tolerance", tolerance);
+      vtkZfpDataCompressor::SafeDownCast(compressor)->SetTolerance(tolerance);
+      compressor->SetNumComponents(numcomponents);
+      if (numcomponents == 3)
+      {
+        int c[3];
+        eVTKFile->GetNestedElement(1)->GetVectorAttribute("components", 3, c);
+        vtkZfpDataCompressor::SafeDownCast(compressor)->SetSx(c[0]);
+        vtkZfpDataCompressor::SafeDownCast(compressor)->SetSy(c[1]);
+        vtkZfpDataCompressor::SafeDownCast(compressor)->SetSz(c[2]);
+      }
     }
   }
 
@@ -925,7 +959,7 @@ int vtkXMLReader::ReadVTKFile(vtkXMLDataElement* eVTKFile)
   const char* compressor = eVTKFile->GetAttribute("compressor");
   if (compressor)
   {
-    this->SetupCompressor(compressor);
+    this->SetupCompressor(compressor, eVTKFile);
   }
 
   // Get the primary element.
