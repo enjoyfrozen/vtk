@@ -67,8 +67,8 @@ public:
   double Bounds[6];
   double H[3];
   double hX, hY, hZ;
-  double fX, fY, fZ, bX, bY, bZ;
-  vtkIdType xD, yD, zD, xyD;
+  double fX, fY, fZ, bX, bY, bZ, lX, lY, lZ;
+  vtkIdType xD, xyD;
 
   // Construction
   vtkBucketList(vtkStaticPointLocator *loc, vtkIdType numPts, int numBuckets)
@@ -93,10 +93,11 @@ public:
       this->Bounds[3] = loc->Bounds[3];
       this->bZ = this->Bounds[4] = loc->Bounds[4];
       this->Bounds[5] = loc->Bounds[5];
+      this->lX = this->Divisions[0] - 1;
+      this->lY = this->Divisions[1] - 1;
+      this->lZ = this->Divisions[2] - 1;
       this->xD = this->Divisions[0];
-      this->yD = this->Divisions[1];
-      this->zD = this->Divisions[2];
-      this->xyD = this->Divisions[0] * this->Divisions[1];
+      this->xyD = this->xD * this->Divisions[1];
   }
 
   // Virtuals for templated subclasses
@@ -116,14 +117,20 @@ public:
   // BuildLocator() is invoked, otherwise the output is indeterminate.
   void GetBucketIndices(const double *x, int ijk[3]) const
   {
-    // Compute point index. Make sure it lies within range of locator.
-    vtkIdType tmp0 = static_cast<vtkIdType>(((x[0] - bX) * fX));
-    vtkIdType tmp1 = static_cast<vtkIdType>(((x[1] - bY) * fY));
-    vtkIdType tmp2 = static_cast<vtkIdType>(((x[2] - bZ) * fZ));
+    // Compute point index.
+    double xt = (x[0] - this->bX) * this->fX;
+    double yt = (x[1] - this->bY) * this->fY;
+    double zt = (x[2] - this->bZ) * this->fZ;
 
-    ijk[0] = tmp0 < 0 ? 0 : (tmp0 >= xD ? xD-1 : tmp0);
-    ijk[1] = tmp1 < 0 ? 0 : (tmp1 >= yD ? yD-1 : tmp1);
-    ijk[2] = tmp2 < 0 ? 0 : (tmp2 >= zD ? zD-1 : tmp2);
+    // Make sure it lies within range of locator.
+    xt = (xt < 0.0 ? 0.0 : (xt > this->lX ? this->lX : xt));
+    yt = (yt < 0.0 ? 0.0 : (yt > this->lY ? this->lY : yt));
+    zt = (zt < 0.0 ? 0.0 : (zt > this->lZ ? this->lZ : zt));
+
+    // Cast to int (truncation)
+    ijk[0] = static_cast<int>(xt);
+    ijk[1] = static_cast<int>(yt);
+    ijk[2] = static_cast<int>(zt);
   }
 
   //-----------------------------------------------------------------------------

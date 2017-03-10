@@ -162,10 +162,11 @@ void vtkPointLocator::ComputePerformanceFactors()
   this->BX = this->Bounds[0];
   this->BY = this->Bounds[2];
   this->BZ = this->Bounds[4];
-  this->XD = this->Divisions[0];
-  this->YD = this->Divisions[1];
-  this->ZD = this->Divisions[2];
-  this->SliceSize = this->Divisions[0] * this->Divisions[1];
+  this->LX = this->Divisions[0] - 1;
+  this->LY = this->Divisions[1] - 1;
+  this->LZ = this->Divisions[2] - 1;
+  this->RowSize = this->Divisions[0];
+  this->SliceSize = this->RowSize * this->Divisions[1];
 }
 
 //-----------------------------------------------------------------------------
@@ -208,7 +209,7 @@ vtkIdType vtkPointLocator::FindClosestPoint(const double x[3])
     for (i=0; i<buckets.GetNumberOfNeighbors(); i++)
     {
       nei = buckets.GetPoint(i);
-      cno = nei[0] + nei[1]*this->XD + nei[2]*this->SliceSize;
+      cno = nei[0] + nei[1]*this->RowSize + nei[2]*this->SliceSize;
 
       if ( (ptIds = this->HashTable[cno]) != NULL )
       {
@@ -237,7 +238,7 @@ vtkIdType vtkPointLocator::FindClosestPoint(const double x[3])
     for (i=0; i<buckets.GetNumberOfNeighbors(); i++)
     {
       nei = buckets.GetPoint(i);
-      cno = nei[0] + nei[1]*this->XD + nei[2]*this->SliceSize;
+      cno = nei[0] + nei[1]*this->RowSize + nei[2]*this->SliceSize;
 
       if ( (ptIds = this->HashTable[cno]) != NULL )
       {
@@ -304,7 +305,7 @@ vtkIdType vtkPointLocator::FindClosestPointWithinRadius(double radius,
 
   // Start by searching the bucket that the point is in.
   //
-  if ( (ptIds = this->HashTable[ijk[0] + ijk[1]*this->XD +
+  if ( (ptIds = this->HashTable[ijk[0] + ijk[1]*this->RowSize +
                                 ijk[2]*this->SliceSize]) != NULL )
   {
     nids = ptIds->GetNumberOfIds();
@@ -396,7 +397,7 @@ vtkIdType vtkPointLocator::FindClosestPointWithinRadius(double radius,
       // do we still need to test this bucket?
       if (this->Distance2ToBucket(x, nei) < refinedRadius2)
       {
-        ptIds = this->HashTable[nei[0] + nei[1]*this->XD +
+        ptIds = this->HashTable[nei[0] + nei[1]*this->RowSize +
           nei[2]*this->SliceSize];
 
         nids = ptIds->GetNumberOfIds();
@@ -590,7 +591,7 @@ void vtkPointLocator::FindDistributedPoints(int N, const double x[3],
     for (i=0; i<buckets.GetNumberOfNeighbors(); i++)
     {
       nei = buckets.GetPoint(i);
-      cno = nei[0] + nei[1]*this->XD + nei[2]*this->SliceSize;
+      cno = nei[0] + nei[1]*this->RowSize + nei[2]*this->SliceSize;
 
       if ( (ptIds = this->HashTable[cno]) != NULL )
       {
@@ -645,7 +646,7 @@ void vtkPointLocator::FindDistributedPoints(int N, const double x[3],
   for (i=0; pointsChecked < M && i<buckets.GetNumberOfNeighbors(); i++)
   {
     nei = buckets.GetPoint(i);
-    cno = nei[0] + nei[1]*this->XD + nei[2]*this->SliceSize;
+    cno = nei[0] + nei[1]*this->RowSize + nei[2]*this->SliceSize;
 
     if ( (ptIds = this->HashTable[cno]) != NULL )
     {
@@ -716,7 +717,7 @@ void vtkPointLocator::FindClosestNPoints(int N, const double x[3],
     for (i=0; i<buckets.GetNumberOfNeighbors(); i++)
     {
       nei = buckets.GetPoint(i);
-      cno = nei[0] + nei[1]*this->XD + nei[2]*this->SliceSize;
+      cno = nei[0] + nei[1]*this->RowSize + nei[2]*this->SliceSize;
 
       if ( (ptIds = this->HashTable[cno]) != NULL )
       {
@@ -763,7 +764,7 @@ void vtkPointLocator::FindClosestNPoints(int N, const double x[3],
   for (i=0; i<buckets.GetNumberOfNeighbors(); i++)
   {
     nei = buckets.GetPoint(i);
-    cno = nei[0] + nei[1]*this->XD + nei[2]*this->SliceSize;
+    cno = nei[0] + nei[1]*this->RowSize + nei[2]*this->SliceSize;
 
     if ( (ptIds = this->HashTable[cno]) != NULL )
     {
@@ -824,7 +825,7 @@ void vtkPointLocator::FindPointsWithinRadius(double R, const double x[3],
   for (i=0; i<buckets.GetNumberOfNeighbors(); i++)
   {
     nei = buckets.GetPoint(i);
-    cno = nei[0] + nei[1]*this->XD + nei[2]*this->SliceSize;
+    cno = nei[0] + nei[1]*this->RowSize + nei[2]*this->SliceSize;
 
     if ( (ptIds = this->HashTable[cno]) != NULL )
     {
@@ -1114,7 +1115,7 @@ void vtkPointLocator::GetOverlappingBuckets(vtkNeighborPoints* buckets,
       {
         jkSkipFlag = 0;
       }
-      jFactor = j * this->XD;
+      jFactor = j * this->RowSize;
       for ( i= minLevel[0]; i <= maxLevel[0]; i++ )
       {
         if ( jkSkipFlag && i == prevMinLevel[0] )
@@ -1332,7 +1333,7 @@ vtkIdType vtkPointLocator::IsInsertedPoint(const double x[3])
     for ( i=0; i < buckets.GetNumberOfNeighbors(); i++ )
     {
       nei = buckets.GetPoint(i);
-      cno = nei[0] + nei[1]*this->XD + nei[2]*this->SliceSize;
+      cno = nei[0] + nei[1]*this->RowSize + nei[2]*this->SliceSize;
 
       if ( (ptIds = this->HashTable[cno]) != NULL )
       {
@@ -1419,7 +1420,7 @@ vtkIdType vtkPointLocator::FindClosestInsertedPoint(const double x[3])
     for (i=0; i<buckets.GetNumberOfNeighbors(); i++)
     {
       nei = buckets.GetPoint(i);
-      cno = nei[0] + nei[1]*this->XD + nei[2]*this->SliceSize;
+      cno = nei[0] + nei[1]*this->RowSize + nei[2]*this->SliceSize;
 
       if ( (ptIds = this->HashTable[cno]) != NULL )
       {
@@ -1463,7 +1464,7 @@ vtkIdType vtkPointLocator::FindClosestInsertedPoint(const double x[3])
 
       if ( dist2 < minDist2 )
       {
-        cno = nei[0] + nei[1]*this->XD + nei[2]*this->SliceSize;
+        cno = nei[0] + nei[1]*this->RowSize + nei[2]*this->SliceSize;
 
         if ( (ptIds = this->HashTable[cno]) )
         {

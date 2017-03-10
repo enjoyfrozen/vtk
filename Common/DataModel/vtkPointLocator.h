@@ -273,26 +273,32 @@ protected:
 
   // These are inlined methods and data members for performance reasons
   double HX, HY, HZ;
-  double FX, FY, FZ, BX, BY, BZ;
-  vtkIdType XD, YD, ZD, SliceSize;
+  double FX, FY, FZ, BX, BY, BZ, LX, LY, LZ;
+  vtkIdType RowSize, SliceSize;
 
   void GetBucketIndices(const double *x, int ijk[3]) const
   {
-    // Compute point index. Make sure it lies within range of locator.
-    vtkIdType tmp0 = static_cast<vtkIdType>(((x[0] - this->BX) * this->FX));
-    vtkIdType tmp1 = static_cast<vtkIdType>(((x[1] - this->BY) * this->FY));
-    vtkIdType tmp2 = static_cast<vtkIdType>(((x[2] - this->BZ) * this->FZ));
+    // Compute point index.
+    double xt = (x[0] - this->BX) * this->FX;
+    double yt = (x[1] - this->BY) * this->FY;
+    double zt = (x[2] - this->BZ) * this->FZ;
 
-    ijk[0] = tmp0 < 0 ? 0 : (tmp0 >= this->XD ? this->XD-1 : tmp0);
-    ijk[1] = tmp1 < 0 ? 0 : (tmp1 >= this->YD ? this->YD-1 : tmp1);
-    ijk[2] = tmp2 < 0 ? 0 : (tmp2 >= this->ZD ? this->ZD-1 : tmp2);
+    // Make sure it lies within range of locator.
+    xt = (xt < 0.0 ? 0.0 : (xt > this->LX ? this->LX : xt));
+    yt = (yt < 0.0 ? 0.0 : (yt > this->LY ? this->LY : yt));
+    zt = (zt < 0.0 ? 0.0 : (zt > this->LZ ? this->LZ : zt));
+
+    // Cast to int (truncation)
+    ijk[0] = static_cast<int>(xt);
+    ijk[1] = static_cast<int>(yt);
+    ijk[2] = static_cast<int>(zt);
   }
 
   vtkIdType GetBucketIndex(const double *x) const
   {
     int ijk[3];
     this->GetBucketIndices(x, ijk);
-    return ijk[0] + ijk[1]*this->XD + ijk[2]*this->SliceSize;
+    return ijk[0] + ijk[1]*this->RowSize + ijk[2]*this->SliceSize;
   }
 
   void ComputePerformanceFactors();
