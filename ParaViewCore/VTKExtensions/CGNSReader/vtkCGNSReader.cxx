@@ -1567,7 +1567,7 @@ int vtkCGNSReader::GetUnstructuredZone(
       hasElemDefinition = true;
     }
   }
-  if (hasNFace and !hasNGon)
+  if (hasNFace && !hasNGon)
   {
     vtkErrorMacro("NFace_n requires NGon_n definition");
     return 1;
@@ -1664,7 +1664,8 @@ int vtkCGNSReader::GetUnstructuredZone(
 
     faceElementsIdx[0] = 0;
 
-    for (vtkIdType idxFace = 0; idxFace < faceElementsIdx.size() - 1; idxFace++)
+    for (vtkIdType idxFace = 0; idxFace < static_cast<vtkIdType>(faceElementsIdx.size() - 1);
+         ++idxFace)
     {
       vtkIdType nVertexOnCurFace = faceElements[curFace];
 
