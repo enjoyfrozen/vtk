@@ -42,6 +42,71 @@ void vtkZfpDataCompressor::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "NumComponents: " << this->NumComponents << endl;
 }
 
+namespace
+{
+
+struct vtkZfpField
+{
+  vtkZfpField(zfp_field* field)
+  {
+    this->Field = field;
+  }
+
+  ~vtkZfpField()
+  {
+    zfp_field_free(this->Field);
+  }
+
+  operator zfp_field* () const
+  {
+    return this->Field;
+  }
+
+  zfp_field* Field;
+};
+
+struct vtkZfpStream
+{
+  vtkZfpStream(zfp_stream* stream)
+  {
+    this->Stream = stream;
+  }
+
+  ~vtkZfpStream()
+  {
+    zfp_stream_close(this->Stream);
+  }
+
+  operator zfp_stream* () const
+  {
+    return this->Stream;
+  }
+
+  zfp_stream* Stream;
+};
+
+struct vtkZfpBitstream
+{
+  vtkZfpBitstream(bitstream* bitstream)
+  {
+    this->Bitstream = bitstream;
+  }
+
+  ~vtkZfpBitstream()
+  {
+    stream_close(this->Bitstream);
+  }
+
+  operator bitstream* () const
+  {
+    return this->Bitstream;
+  }
+
+  bitstream* Bitstream;
+};
+
+}
+
 //----------------------------------------------------------------------------
 size_t
 vtkZfpDataCompressor::CompressBuffer(unsigned char const* uncompressedData,
@@ -49,13 +114,9 @@ vtkZfpDataCompressor::CompressBuffer(unsigned char const* uncompressedData,
                                       unsigned char* compressedData,
                                       size_t compressionSpace)
 {
-  zfp_stream* zfp_stream;
+  vtkZfpStream stream(zfp_stream_open(NULL));
   size_t outsize;
-  bitstream* outstream;
-  bitstream* tempstream;
-  zfp_field* field, *fieldx, *fieldy, *fieldz;
   zfp_type type = zfp_type_none;
-  zfp_stream = zfp_stream_open(NULL);
 
   /*Use single precision for now.  Not sure if we need double or not*/
   type = zfp_type_float;
@@ -64,17 +125,17 @@ vtkZfpDataCompressor::CompressBuffer(unsigned char const* uncompressedData,
     vtkErrorMacro("Error! Please update zfp dimesnions (Nx, Ny, Nz)!");
     return 0;
   }
-  field = zfp_field_3d(NULL, type, this->Nx, this->Ny, this->Nz);
+  vtkZfpField field(zfp_field_3d(NULL, type, this->Nx, this->Ny, this->Nz));
   //Setup ZFP Stream
-  zfp_stream_set_accuracy(zfp_stream, this->Tolerance, type);
-  zfp_stream_maximum_size(zfp_stream, field);
+  zfp_stream_set_accuracy(stream, this->Tolerance, type);
+  zfp_stream_maximum_size(stream, field);
   zfp_field_set_pointer(field, (char *)(uncompressedData ));
   /*compress using zfp */
   if (this->NumComponents == 3)
   {
-    fieldx = zfp_field_3d(NULL, type, this->Nx, this->Ny, this->Nz);
-    fieldy = zfp_field_3d(NULL, type, this->Nx, this->Ny, this->Nz);
-    fieldz = zfp_field_3d(NULL, type, this->Nx, this->Ny, this->Nz);
+    vtkZfpField fieldx(zfp_field_3d(NULL, type, this->Nx, this->Ny, this->Nz));
+    vtkZfpField fieldy(zfp_field_3d(NULL, type, this->Nx, this->Ny, this->Nz));
+    vtkZfpField fieldz(zfp_field_3d(NULL, type, this->Nx, this->Ny, this->Nz));
 
     zfp_field_set_stride_3d(fieldx, 3,this->Nx*3, this->Nx*this->Ny*3);
     zfp_field_set_stride_3d(fieldy, 3,this->Nx*3, this->Nx*this->Ny*3);
@@ -85,36 +146,36 @@ vtkZfpDataCompressor::CompressBuffer(unsigned char const* uncompressedData,
     zfp_field_set_pointer(fieldz, (char *)(uncompressedData + 2*sizeof(float)));
     int position = 0;
     /*Associate the output data with the zfp stream*/
-    outstream = stream_open(compressedData, compressionSpace);
-    zfp_stream_set_bit_stream(zfp_stream, outstream);
-    outsize = zfp_compress(zfp_stream, fieldx);
-    position = position + (int)outsize;
-    stream_close(outstream);
+    {
+      vtkZfpBitstream outstream(stream_open(compressedData, compressionSpace));
+      zfp_stream_set_bit_stream(stream, outstream);
+      outsize = zfp_compress(stream, fieldx);
+      position = position + (int)outsize;
+    }
     /*Copy compressed stream to output and set size of X*/
-    this->SetSx(outsize);
-    outstream = stream_open(compressedData+position, compressionSpace-position);
-    zfp_stream_set_bit_stream(zfp_stream, outstream);
-    outsize = zfp_compress(zfp_stream, fieldy);
-    stream_close(outstream);
-    this->SetSy(outsize);
-    position = (int)outsize + position;
-    outstream = stream_open(compressedData + position, compressionSpace-position);
-    zfp_stream_set_bit_stream(zfp_stream, outstream);
-    outsize = zfp_compress(zfp_stream, fieldz);
-    stream_close(outstream);
+    {
+      this->SetSx(outsize);
+      vtkZfpBitstream outstream(stream_open(compressedData + position, compressionSpace - position));
+      zfp_stream_set_bit_stream(stream, outstream);
+      outsize = zfp_compress(stream, fieldy);
+    }
+    {
+      position = (int)outsize + position;
+      vtkZfpBitstream outstream(stream_open(compressedData + position, compressionSpace - position));
+      zfp_stream_set_bit_stream(stream, outstream);
+      outsize = zfp_compress(stream, fieldz);
+    }
     this->SetSz(outsize);
     outsize = (int)position + outsize;
   }
   else
   {
     /*Associate the output data with the zfp stream*/
-    outstream = stream_open(compressedData, compressionSpace);
+    vtkZfpBitstream outstream(stream_open(compressedData, compressionSpace));
     /* associate bit stream with compressed stream */
 
-    zfp_stream_set_bit_stream(zfp_stream, outstream);
-    outsize = zfp_compress(zfp_stream, field);
-    //vtkWarningMacro("Single component.  Compressed output size: " << outsize);
-    stream_close(outstream);
+    zfp_stream_set_bit_stream(stream, outstream);
+    outsize = zfp_compress(stream, field);
   }
   if (outsize == 0)
   {
@@ -131,12 +192,10 @@ vtkZfpDataCompressor::UncompressBuffer(unsigned char const* compressedData,
                                         unsigned char* uncompressedData,
                                         size_t vtkNotUsed(uncompressedSize))
 {
-  zfp_stream* zfp_stream;
-  zfp_stream = zfp_stream_open(NULL);
-  bitstream* compstream;
+  vtkZfpStream stream(zfp_stream_open(NULL));
   zfp_type type = zfp_type_float;
-  zfp_field* field =zfp_field_3d(NULL, type, this->Nx, this->Ny, this->Nz);
-  zfp_stream_set_accuracy(zfp_stream, this->Tolerance, type);
+  vtkZfpField field(zfp_field_3d(NULL, type, this->Nx, this->Ny, this->Nz));
+  zfp_stream_set_accuracy(stream, this->Tolerance, type);
   int result;
   /*Uncompress*/
   if (this->NumComponents == 3)
@@ -144,49 +203,52 @@ vtkZfpDataCompressor::UncompressBuffer(unsigned char const* compressedData,
     zfp_field_set_pointer(field, uncompressedData);
     zfp_field_set_stride_3d(field, 3,this->Nx*3, this->Nx*this->Ny*3); //1st part
     /*Associate the compressed data with the zfp stream*/
-    compstream = stream_open((char *)compressedData, this->GetSx());
-    zfp_stream_set_bit_stream(zfp_stream, compstream);
-    result = zfp_decompress(zfp_stream, field);
-    if (!result)
     {
-      vtkErrorMacro("Zfp error while decompressing data.");
-      return 0;
+      vtkZfpBitstream compstream(stream_open((char *)compressedData, this->GetSx()));
+      zfp_stream_set_bit_stream(stream, compstream);
+      result = zfp_decompress(stream, field);
+      if (!result)
+      {
+         vtkErrorMacro("Zfp error while decompressing data.");
+         return 0;
+      }
     }
-    stream_close(compstream);
-    compstream = stream_open((char *)(compressedData+this->GetSx()), this->GetSy());
-    zfp_stream_set_bit_stream(zfp_stream, compstream);
-    zfp_field_set_pointer(field, (char *)(uncompressedData + 1* sizeof(float))); //2nd part
-    result = zfp_decompress(zfp_stream, field);
-    if (!result)
     {
-      vtkErrorMacro("Zfp error while decompressing data.");
-      return 0;
+      vtkZfpBitstream compstream(stream_open((char *)(compressedData+this->GetSx()), this->GetSy()));
+      zfp_stream_set_bit_stream(stream, compstream);
+      zfp_field_set_pointer(field, (char *)(uncompressedData + 1* sizeof(float))); //2nd part
+      result = zfp_decompress(stream, field);
+      if (!result)
+      {
+        vtkErrorMacro("Zfp error while decompressing data.");
+        return 0;
+      }
+      zfp_field_set_pointer(field, (char *)(uncompressedData + 2*sizeof(float))); //3rd part
     }
-    zfp_field_set_pointer(field, (char *)(uncompressedData + 2*sizeof(float))); //3rd part
-    compstream = stream_open((char *)(compressedData+this->GetSx()+this->GetSy()), this->GetSz());
-    zfp_stream_set_bit_stream(zfp_stream, compstream);
-    result = zfp_decompress(zfp_stream, field);
-    if (!result)
     {
-      vtkErrorMacro("Zfp error while decompressing data.");
-      return 0;
+      vtkZfpBitstream compstream(stream_open((char *)(compressedData+this->GetSx()+this->GetSy()), this->GetSz()));
+      zfp_stream_set_bit_stream(stream, compstream);
+      result = zfp_decompress(stream, field);
+      if (!result)
+      {
+        vtkErrorMacro("Zfp error while decompressing data.");
+        return 0;
+      }
     }
   }
   else
   {
     /*Associate the compressed data with the zfp stream*/
-    compstream = stream_open((char *)compressedData, compressedSize);
-    zfp_stream_set_bit_stream(zfp_stream, compstream);
+    vtkZfpBitstream compstream(stream_open((char *)compressedData, compressedSize));
+    zfp_stream_set_bit_stream(stream, compstream);
     zfp_field_set_pointer(field, uncompressedData);
-    result = zfp_decompress(zfp_stream, field);
+    result = zfp_decompress(stream, field);
     if (!result)
     {
       vtkErrorMacro("Zfp error while decompressing data.");
       return 0;
     }
   }
-  zfp_field_free(field);
-  zfp_stream_close(zfp_stream);
   return result;
 }
 
