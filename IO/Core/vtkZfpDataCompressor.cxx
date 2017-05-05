@@ -45,13 +45,12 @@ void vtkZfpDataCompressor::PrintSelf(ostream& os, vtkIndent indent)
 //----------------------------------------------------------------------------
 size_t
 vtkZfpDataCompressor::CompressBuffer(unsigned char const* uncompressedData,
-                                      size_t uncompressedSize,
+                                      size_t vtkNotUsed(uncompressedSize),
                                       unsigned char* compressedData,
                                       size_t compressionSpace)
 {
-  zfp_stream* zfp_stream, *zfp_streamx, *zfp_streamy, *zfp_streamz;
+  zfp_stream* zfp_stream;
   size_t outsize;
-  bitstream* stream;
   bitstream* outstream;
   bitstream* tempstream;
   zfp_field* field, *fieldx, *fieldy, *fieldz;
@@ -59,7 +58,6 @@ vtkZfpDataCompressor::CompressBuffer(unsigned char const* uncompressedData,
   zfp_stream = zfp_stream_open(NULL);
 
   /*Use single precision for now.  Not sure if we need double or not*/
-  int typesize=sizeof(float);
   type = zfp_type_float;
   if ((this->Nx == 0) && (this->Ny == 0) && (this->Nz == 0))
   {
@@ -68,8 +66,8 @@ vtkZfpDataCompressor::CompressBuffer(unsigned char const* uncompressedData,
   }
   field = zfp_field_3d(NULL, type, this->Nx, this->Ny, this->Nz);
   //Setup ZFP Stream
-  double prec = zfp_stream_set_accuracy(zfp_stream, this->Tolerance, type);
-  size_t cs = zfp_stream_maximum_size(zfp_stream, field);
+  zfp_stream_set_accuracy(zfp_stream, this->Tolerance, type);
+  zfp_stream_maximum_size(zfp_stream, field);
   zfp_field_set_pointer(field, (char *)(uncompressedData ));
   /*compress using zfp */
   if (this->NumComponents == 3)
@@ -118,7 +116,6 @@ vtkZfpDataCompressor::CompressBuffer(unsigned char const* uncompressedData,
     //vtkWarningMacro("Single component.  Compressed output size: " << outsize);
     stream_close(outstream);
   }
-  int position = 0;
   if (outsize == 0)
   {
     vtkErrorMacro("Zfp error while compressing data.");
@@ -132,16 +129,14 @@ size_t
 vtkZfpDataCompressor::UncompressBuffer(unsigned char const* compressedData,
                                         size_t compressedSize,
                                         unsigned char* uncompressedData,
-                                        size_t uncompressedSize)
+                                        size_t vtkNotUsed(uncompressedSize))
 {
-  //vtkWarningMacro("Beginning decompression.  usize: " << uncompressedSize << " Compressed size = " << compressedSize);
   zfp_stream* zfp_stream;
   zfp_stream = zfp_stream_open(NULL);
   bitstream* compstream;
-  bitstream* uncompstream;
   zfp_type type = zfp_type_float;
   zfp_field* field =zfp_field_3d(NULL, type, this->Nx, this->Ny, this->Nz);
-  double prec = zfp_stream_set_accuracy(zfp_stream, this->Tolerance, type);
+  zfp_stream_set_accuracy(zfp_stream, this->Tolerance, type);
   int result;
   /*Uncompress*/
   if (this->NumComponents == 3)
