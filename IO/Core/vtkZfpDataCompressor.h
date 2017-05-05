@@ -50,12 +50,12 @@ public:
   vtkGetMacro(Tolerance, double);
 
   // Get/Set 3 component sizes (zfp compresses each component separately)
-  vtkSetMacro(Sx, int);
-  vtkGetMacro(Sx, int);
-  vtkSetMacro(Sy, int);
-  vtkGetMacro(Sy, int);
-  vtkSetMacro(Sz, int);
-  vtkGetMacro(Sz, int);
+  vtkSetMacro(Sx, size_t);
+  vtkGetMacro(Sx, size_t);
+  vtkSetMacro(Sy, size_t);
+  vtkGetMacro(Sy, size_t);
+  vtkSetMacro(Sz, size_t);
+  vtkGetMacro(Sz, size_t);
 
 protected:
   vtkZfpDataCompressor();
@@ -63,7 +63,7 @@ protected:
 
   int CompressionLevel;
   double Tolerance;
-  int Sx, Sy, Sz;
+  size_t Sx, Sy, Sz;
 
   // Compression method required by vtkDataCompressor.
   size_t CompressBuffer(unsigned char const* uncompressedData,

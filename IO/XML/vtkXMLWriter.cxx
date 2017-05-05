@@ -1147,11 +1147,12 @@ int vtkXMLWriter::EndFile()
   {
     if (this->Compressor->GetNumComponents() == 3)
     {
-       int Sx = vtkZfpDataCompressor::SafeDownCast(this->Compressor)->GetSx();
-       int Sy = vtkZfpDataCompressor::SafeDownCast(this->Compressor)->GetSy();
-       int Sz = vtkZfpDataCompressor::SafeDownCast(this->Compressor)->GetSz();
-       this->Stream->seekp(this->AppendedDataPosition-70);
-       os << "components=\"" << Sx << " " << Sy << " " << Sz <<"\"";
+      vtkZfpDataCompressor *zfpCompressor = vtkZfpDataCompressor::SafeDownCast(this->Compressor);
+      size_t Sx = zfpCompressor->GetSx();
+      size_t Sy = zfpCompressor->GetSy();
+      size_t Sz = zfpCompressor->GetSz();
+      this->Stream->seekp(this->AppendedDataPosition-70);
+      os << "components=\"" << Sx << " " << Sy << " " << Sz <<"\"";
     }
   }
   os.flush();
