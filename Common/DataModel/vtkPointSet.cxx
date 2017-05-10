@@ -15,6 +15,7 @@
 #include "vtkPointSet.h"
 
 #include "vtkCell.h"
+#include "vtkCellLocator.h"
 #include "vtkGarbageCollector.h"
 #include "vtkGenericCell.h"
 #include "vtkInformation.h"
@@ -35,6 +36,7 @@ vtkPointSet::vtkPointSet ()
 {
   this->Points = NULL;
   this->Locator = NULL;
+  this->CellLocator = NULL;
 }
 
 //----------------------------------------------------------------------------
@@ -46,6 +48,11 @@ vtkPointSet::~vtkPointSet ()
   {
     this->Locator->UnRegister(this);
     this->Locator = NULL;
+  }
+  if ( this->CellLocator )
+  {
+    this->CellLocator->UnRegister(this);
+    this->CellLocator = NULL;
   }
 }
 
@@ -317,7 +324,42 @@ vtkIdType vtkPointSet::FindCell(double x[3], vtkCell *cell,
     foundCell = FindCellWalk(this, x, gencell, cellIds,
                              tol2, subId, pcoords, weights,
                              visitedCells, ptIds, neighbors);
-    if (foundCell >= 0) return foundCell;
+    if (foundCell >= 0)
+    {
+      return foundCell;
+    }
+  }
+
+  // talk with Ken before changing this
+  if ( !this->CellLocator )
+  {
+    this->CellLocator = vtkCellLocator::New();
+    this->CellLocator->Register(this);
+    this->CellLocator->Delete();
+    this->CellLocator->SetDataSet(this);
+    this->CellLocator->BuildLocator();
+  }
+
+  if ( this->GetMTime() > this->CellLocator->GetBuildTime() ||
+       this->Points->GetMTime() > this->CellLocator->GetBuildTime() )
+  {
+    this->CellLocator->SetDataSet(this);
+    this->CellLocator->BuildLocator();
+  }
+
+  if (gencell)
+  {
+    foundCell = this->CellLocator->FindCell(x, tol2, gencell, pcoords, weights);
+  }
+  else
+  {
+    vtkNew<vtkGenericCell> tmpgc; // could be an ivar
+    foundCell = this->CellLocator->FindCell(x, tol2, tmpgc.Get(), pcoords, weights);
+  }
+
+  if (foundCell >= 0)
+  {
+    return foundCell;
   }
 
   // Could not find the cell.
@@ -359,6 +401,7 @@ void vtkPointSet::ReportReferences(vtkGarbageCollector* collector)
 {
   this->Superclass::ReportReferences(collector);
   vtkGarbageCollectorReport(collector, this->Locator, "Locator");
+  vtkGarbageCollectorReport(collector, this->CellLocator, "CellLocator");
 }
 
 //----------------------------------------------------------------------------

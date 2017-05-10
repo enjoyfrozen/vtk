@@ -34,6 +34,7 @@
 
 #include "vtkPoints.h" // Needed for inline methods
 
+class vtkCellLocator;
 class vtkPointLocator;
 
 class VTKCOMMONDATAMODEL_EXPORT vtkPointSet : public vtkDataSet
@@ -148,6 +149,7 @@ protected:
 
   vtkPoints *Points;
   vtkPointLocator *Locator;
+  vtkCellLocator *CellLocator;
 
   void ReportReferences(vtkGarbageCollector*) VTK_OVERRIDE;
 private:
