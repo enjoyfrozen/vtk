@@ -948,16 +948,14 @@ bool vtkMomentsHelper::isEdge(int dimension, int ptId, vtkImageData* field)
 }
 
 //----------------------------------------------------------------------------------
-vtkIdType vtkMomentsHelper::getArrayIndex(
-  std::vector<int> coord, std::vector<int> dimensions)
+vtkIdType vtkMomentsHelper::getArrayIndex(std::vector<int> coord, std::vector<int> dimensions)
 {
   // std::cout << "Coord: " << coord[0] << ", " << coord[1] << ", " << coord[2] << std::endl;
   return coord[0] + coord[1] * dimensions[0] + coord[2] * dimensions[0] * dimensions[1];
 }
 
 //----------------------------------------------------------------------------------
-std::vector<int> vtkMomentsHelper::getCoord(
-  vtkIdType index, std::vector<int> dimensions)
+std::vector<int> vtkMomentsHelper::getCoord(vtkIdType index, std::vector<int> dimensions)
 {
   int z = 0;
   if (dimensions[2] > 1)

@@ -1012,8 +1012,7 @@ void vtkMomentInvariants::HandlePattern(
       this->NameOfPointData);
     // normalize the moments of the pattern w.r.t translation
     this->MomentsPatternTNormal =
-      this->NormalizeT(
-        this->MomentsPattern, this->RadiusPattern, this->IsTranslation, pattern);
+      this->NormalizeT(this->MomentsPattern, this->RadiusPattern, this->IsTranslation, pattern);
   }
   else
   {
@@ -1035,14 +1034,12 @@ void vtkMomentInvariants::HandlePattern(
       this->NameOfPointData);
     // normalize the moments of the pattern w.r.t translation
     this->MomentsPatternTNormal =
-      this->NormalizeT(
-        this->MomentsPattern, this->RadiusPattern, this->IsTranslation, stencil);
+      this->NormalizeT(this->MomentsPattern, this->RadiusPattern, this->IsTranslation, stencil);
     stencil->Delete();
   }
 
   this->MomentsPatternTSNormal =
-    this->NormalizeS(
-      this->MomentsPatternTNormal, this->IsScaling, this->RadiusPattern);
+    this->NormalizeS(this->MomentsPatternTNormal, this->IsScaling, this->RadiusPattern);
 
   if (this->IsRotation || this->IsReflection)
   {
@@ -1051,16 +1048,14 @@ void vtkMomentInvariants::HandlePattern(
     // no dominant contraction cound be found?
     if (dominantContractions.size() == 0)
     {
-      this->LookEverywhere(
-        this->MomentsPatternNormal, this->MomentsPatternTSNormal);
+      this->LookEverywhere(this->MomentsPatternNormal, this->MomentsPatternTSNormal);
     }
     else
     {
       for (size_t i = 0; i < dominantContractions.size(); ++i)
       {
         std::vector<vtkMomentsTensor> reproducedContractions =
-          this->ReproduceContractions(
-            dominantContractions.at(i), this->MomentsPatternTSNormal);
+          this->ReproduceContractions(dominantContractions.at(i), this->MomentsPatternTSNormal);
         for (size_t j = 0; j < dominantContractions.at(i).size(); ++j)
         {
           reproducedContractions.at(j).rotate(getRotMat(reproducedContractions, this->Dimension));
@@ -1070,11 +1065,10 @@ void vtkMomentInvariants::HandlePattern(
       // normalization of the pattern
       for (size_t i = 0; i < dominantContractions.size(); ++i)
       {
-        this->MomentsPatternNormal.push_back(
-          this->NormalizeR(dominantContractions.at(i),
-            this->IsRotation,
-            this->IsReflection,
-            this->MomentsPatternTSNormal));
+        this->MomentsPatternNormal.push_back(this->NormalizeR(dominantContractions.at(i),
+          this->IsRotation,
+          this->IsReflection,
+          this->MomentsPatternTSNormal));
       }
       // 3D and only one dominant contraction cound be found
       if (this->Dimension == 3 && dominantContractions.at(0).size() == 1)
@@ -1090,7 +1084,8 @@ void vtkMomentInvariants::HandlePattern(
             for (size_t j = 0; j < this->MomentsPatternNormal.back().at(k).size(); ++j)
             {
               this->MomentsPatternNormal.back().at(k).set(j,
-                pow(-1, this->MomentsPatternNormal.back().at(k).getIndexSum(j).at(this->Dimension - 1)) *
+                pow(-1,
+                  this->MomentsPatternNormal.back().at(k).getIndexSum(j).at(this->Dimension - 1)) *
                   this->MomentsPatternNormal.back().at(k).get(j));
             }
           }
@@ -1103,7 +1098,8 @@ void vtkMomentInvariants::HandlePattern(
             for (size_t j = 0; j < MomentsPatternNormal.back().at(k).size(); ++j)
             {
               this->MomentsPatternNormal.back().at(k).set(j,
-                pow(-1, this->MomentsPatternNormal.back().at(k).getIndexSum(j).at(this->Dimension - 1)) *
+                pow(-1,
+                  this->MomentsPatternNormal.back().at(k).getIndexSum(j).at(this->Dimension - 1)) *
                   this->MomentsPatternNormal.back().at(k).get(j));
             }
           }
@@ -1247,7 +1243,6 @@ void vtkMomentInvariants::HandleField(
       // normalize the moment vector
       std::vector<vtkMomentsTensor> tensorVectorTNormal =
         this->NormalizeT(tensorVector, r, this->IsTranslation);
-
 
       std::vector<vtkMomentsTensor> tensorVectorTSNormal =
         this->NormalizeS(tensorVectorTNormal, this->IsScaling, this->Radii.at(r));
