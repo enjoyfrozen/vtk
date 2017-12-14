@@ -308,7 +308,7 @@ private:
   /**
    * Maximal order up to which the moments are calculated
    */
-  int Order;
+  unsigned int Order;
 
   /**
    * Integration radius
