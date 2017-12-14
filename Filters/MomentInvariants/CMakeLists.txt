@@ -7,14 +7,6 @@ set(Module_SRCS
   vtkReconstructFromMoments.cxx
   )
 
-set_source_files_properties(
-  vtkMomentsHelper
-  vtkMomentsTensor
-  PROPERTIES
-    WRAP_EXCLUDE 1
-    WRAP_EXCLUDE_PYTHON 1
-  )
-
 vtk_module_library(vtkFiltersMomentInvariants ${Module_SRCS})
 
 find_package (Eigen3 REQUIRED)

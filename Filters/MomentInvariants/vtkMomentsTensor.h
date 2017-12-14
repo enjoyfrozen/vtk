@@ -74,6 +74,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef vtkMomentsTensor_h
 #define vtkMomentsTensor_h
+#ifndef __VTK_WRAP__
+#ifndef VTK_WRAPPING_CXX
 
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues>
@@ -991,5 +993,7 @@ public:
   }
 };
 
+#endif // VTK_WRAPPING_CXX
+#endif // __VTK_WRAP__
 #endif // vtkMomentsTensor_h
 // VTK-HeaderTest-Exclude: vtkMomentsTensor.h

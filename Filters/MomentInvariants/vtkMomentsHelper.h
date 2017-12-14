@@ -70,6 +70,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef vtkMomentsHelper_h
 #define vtkMomentsHelper_h
+#ifndef __VTK_WRAP__
 
 #include "vtkFiltersMomentInvariantsModule.h" // For export macro
 #include <vector>                             // Needed for internal API
@@ -334,5 +335,6 @@ struct VTKFILTERSMOMENTINVARIANTS_EXPORT vtkMomentsHelper
   static vtkImageData* padKernel(vtkImageData* kernel, vtkImageData* paddedField);
 };
 
+#endif // __VTK_WRAP__
 #endif
 // VTK-HeaderTest-Exclude: vtkMomentsHelper.h
