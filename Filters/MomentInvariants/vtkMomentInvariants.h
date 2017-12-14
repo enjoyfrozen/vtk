@@ -134,8 +134,8 @@ public:
   /**
    * Set/Get the maximal order up to which the moments are computed.
    */
-  vtkSetMacro(Order, int);
-  vtkGetMacro(Order, int);
+  vtkSetMacro(Order, unsigned int);
+  vtkGetMacro(Order, unsigned int);
   //@}
 
   //@{

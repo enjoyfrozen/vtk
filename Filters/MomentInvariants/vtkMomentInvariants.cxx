@@ -1127,7 +1127,7 @@ void vtkMomentInvariants::HandlePattern(
     originalMomentsPattern->GetPointData()->AddArray(array);
     array->Delete();
   }
-  for (int k = 0; k < this->Order + 1; ++k)
+  for (unsigned int k = 0; k < this->Order + 1; ++k)
   {
     for (size_t i = 0; i < this->MomentsPattern.at(k).size(); ++i)
     {
@@ -1155,7 +1155,7 @@ void vtkMomentInvariants::HandlePattern(
     array->Delete();
   }
 
-  for (int k = 0; k < this->Order + 1; ++k)
+  for (unsigned int k = 0; k < this->Order + 1; ++k)
   {
     for (size_t i = 0; i < this->MomentsPatternNormal.at(0).at(k).size(); ++i)
     {
@@ -1224,7 +1224,7 @@ void vtkMomentInvariants::HandleField(
     {
       // read the moment vector
       std::vector<vtkMomentsTensor> tensorVector(this->Order + 1);
-      for (int k = 0; k < this->Order + 1; ++k)
+      for (unsigned int k = 0; k < this->Order + 1; ++k)
       {
         tensorVector.at(k) =
           vtkMomentsTensor(this->Dimension, k + this->FieldRank, this->FieldRank);
@@ -1265,7 +1265,7 @@ void vtkMomentInvariants::HandleField(
         for (size_t i = 0; i < this->MomentsPatternNormal.size(); ++i)
         {
           double distanceTemp = 0;
-          for (int k = 0; k < this->Order + 1; ++k)
+          for (unsigned int k = 0; k < this->Order + 1; ++k)
           {
             distanceTemp += vtkMomentsTensor::tensorDistance(
               this->MomentsPatternNormal.at(i).at(k), tensorVectorNormal.at(k));
@@ -1277,7 +1277,7 @@ void vtkMomentInvariants::HandleField(
           ->SetTuple1(j, 1. / distance);
       }
       // store normalized moments in the output
-      for (int k = 0; k < this->Order + 1; ++k)
+      for (unsigned int k = 0; k < this->Order + 1; ++k)
       {
         for (size_t i = 0; i < tensorVectorNormal.at(k).size(); ++i)
         {
@@ -1323,7 +1323,7 @@ void vtkMomentInvariants::BuildTranslationalFactorArray(vtkImageData* pattern)
   {
     this->TranslationFactor = new double[this->Radii.size() *
       int(pow((this->Order + 1) + this->FieldRank, this->Dimension))];
-    for (int radiusIndex = 0; radiusIndex < this->Radii.size(); ++radiusIndex)
+    for (size_t radiusIndex = 0; radiusIndex < this->Radii.size(); ++radiusIndex)
     {
       // prepare stencil
       vtkImageData* stencil = vtkImageData::New();
