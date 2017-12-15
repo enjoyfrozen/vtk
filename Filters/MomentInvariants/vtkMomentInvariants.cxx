@@ -193,11 +193,12 @@ vtkMomentInvariants::vtkMomentInvariants()
   this->IsScaling = 0;
   this->IsRotation = 1;
   this->IsReflection = 0;
+  this->TranslationFactor = nullptr;
 }
 
 vtkMomentInvariants::~vtkMomentInvariants()
 {
-  delete this->TranslationFactor;
+  delete[] this->TranslationFactor;
 }
 
 /**
@@ -586,7 +587,7 @@ void vtkMomentInvariants::InterpretPattern(vtkImageData* pattern)
 
   // numberOfBasisFunctions
   this->NumberOfBasisFunctions = 0;
-  for (int k = 0; k < this->Order + 1; ++k)
+  for (size_t k = 0; k < this->Order + 1; ++k)
   {
     this->NumberOfBasisFunctions += pow(this->Dimension, k + this->FieldRank);
   }
@@ -1321,6 +1322,7 @@ void vtkMomentInvariants::BuildTranslationalFactorArray(vtkImageData* pattern)
 {
   if (this->IsTranslation)
   {
+    delete[] this->TranslationFactor;
     this->TranslationFactor = new double[this->Radii.size() *
       int(pow((this->Order + 1) + this->FieldRank, this->Dimension))];
     for (size_t radiusIndex = 0; radiusIndex < this->Radii.size(); ++radiusIndex)
