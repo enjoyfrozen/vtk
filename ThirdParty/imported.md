@@ -7,6 +7,7 @@
   * [kwsys](../Utilities/KWSys/update.sh)
   * [libproj4](libproj4/update.sh)
   * [libharu](libharu/update.sh)
+  * [libxml2](libxml2/update.sh)
   * [lz4](lz4/update.sh)
   * [metaio](../Utilities/MetaIO/update.sh)
   * [png](png/update.sh)
