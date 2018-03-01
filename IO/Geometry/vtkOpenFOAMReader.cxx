@@ -561,8 +561,12 @@ private:
   bool ListTimeDirectoriesByInstances();
 
   // read mesh files
+  vtkFloatArray* ReadPointsFileInternal(vtkFoamIOobject& io);
   vtkFloatArray* ReadPointsFile();
+  vtkFoamLabelVectorVector* ReadFacesFileInternal(vtkFoamIOobject& io);
   vtkFoamLabelVectorVector* ReadFacesFile (const vtkStdString &);
+  int CellDictInternal(vtkFoamIOobject& io, vtkFoamEntryValue& cellDict, bool use64BitLabels);
+  vtkFoamLabelVectorVector* CellDictInternal(vtkFoamIOobject& io, vtkFoamLabelVectorVector *facePoints, bool use64BitLabels);
   vtkFoamLabelVectorVector* ReadOwnerNeighborFiles(const vtkStdString &,
       vtkFoamLabelVectorVector *);
   bool CheckFacePoints(vtkFoamLabelVectorVector *);
@@ -592,6 +596,7 @@ private:
 
   // read and create cell/point fields
   void ConstructDimensions(vtkStdString *, vtkFoamDict *);
+  bool ReadFieldFileInternal(vtkFoamDict *dictPtr, vtkFoamIOobject &io);
   bool ReadFieldFile(vtkFoamIOobject *, vtkFoamDict *, const vtkStdString &,
       vtkDataArraySelection *);
   vtkFloatArray *FillField(vtkFoamEntry *, vtkIdType, vtkFoamIOobject *,
@@ -5879,20 +5884,8 @@ void vtkOpenFOAMReaderPrivate::PopulatePolyMeshDirArrays()
 }
 
 //-----------------------------------------------------------------------------
-// read the points file into a vtkFloatArray
-vtkFloatArray* vtkOpenFOAMReaderPrivate::ReadPointsFile()
+vtkFloatArray* vtkOpenFOAMReaderPrivate::ReadPointsFileInternal(vtkFoamIOobject& io)
 {
-  // path to points file
-  const vtkStdString pointPath =
-      this->CurrentTimeRegionMeshPath(this->PolyMeshPointsDir) + "points";
-
-  vtkFoamIOobject io(this->CasePath, this->Parent);
-  if (!(io.Open(pointPath) || io.Open(pointPath + ".gz")))
-  {
-    vtkErrorMacro(<<"Error opening " << io.GetFileName().c_str() << ": "
-        << io.GetError().c_str());
-    return nullptr;
-  }
 
   vtkFloatArray *pointArray = nullptr;
 
@@ -5930,22 +5923,72 @@ vtkFloatArray* vtkOpenFOAMReaderPrivate::ReadPointsFile()
   return pointArray;
 }
 
-//-----------------------------------------------------------------------------
-// read the faces into a vtkFoamLabelVectorVector
-vtkFoamLabelVectorVector*
-vtkOpenFOAMReaderPrivate::ReadFacesFile(const vtkStdString &facePathIn)
+// read the points file into a vtkFloatArray
+vtkFloatArray* vtkOpenFOAMReaderPrivate::ReadPointsFile()
 {
-  const vtkStdString facePath(facePathIn + "faces");
+  // path to points file
+  const vtkStdString pointPath =
+      this->CurrentTimeRegionMeshPath(this->PolyMeshPointsDir) + "points";
 
   vtkFoamIOobject io(this->CasePath, this->Parent);
-  if (!(io.Open(facePath) || io.Open(facePath + ".gz")))
+  if (!(io.Open(pointPath) || io.Open(pointPath + ".gz")))
   {
     vtkErrorMacro(<<"Error opening " << io.GetFileName().c_str() << ": "
-        << io.GetError().c_str() << ". If you are trying to read a parallel "
-        "decomposed case, set Case Type to Decomposed Case.");
+        << io.GetError().c_str());
     return nullptr;
   }
 
+  if (io.GetClassName() == "decomposedBlockData")
+  {
+    vtkFoamDict dictFile;
+    dictFile.Read(io);
+    int count = 0;
+    vtkStdString className;
+    for (auto iter = dictFile.begin(); iter != dictFile.end(); ++iter)
+    {
+      std::vector<char>& byteList = (*iter)->ByteList();
+      uiliststream is(byteList.data(), byteList.size());
+
+      // iterate through each entry in the boundary file
+      bool skipHeader = false;
+
+      vtkFoamIOobject decomposedBlockDataIO(this->CasePath, this->Parent);
+      vtkFoamIOobject::fileFormat format;
+      if(iter == dictFile.begin())
+      {
+        decomposedBlockDataIO.Open(is, skipHeader);
+        className = decomposedBlockDataIO.GetClassName();
+        format = decomposedBlockDataIO.GetFormat();
+
+        if(count == this->ProcNo)
+        {
+          return ReadPointsFileInternal(decomposedBlockDataIO);
+        }
+      }
+      else
+      {
+        if(count == this->ProcNo)
+        {
+          skipHeader = true;
+          decomposedBlockDataIO.Open(is, skipHeader);
+          decomposedBlockDataIO.SetFormat(format);
+          className = decomposedBlockDataIO.GetClassName();
+
+          return ReadPointsFileInternal(decomposedBlockDataIO);
+        }
+      }
+      ++count;
+    }
+  }
+  else
+  {
+    return ReadPointsFileInternal(io);
+  }
+}
+
+//-----------------------------------------------------------------------------
+vtkFoamLabelVectorVector* vtkOpenFOAMReaderPrivate::ReadFacesFileInternal(vtkFoamIOobject& io)
+{
   vtkFoamEntryValue dict(nullptr);
   dict.SetLabelType(this->Parent->Use64BitLabels ? vtkFoamToken::INT64
                                                  : vtkFoamToken::INT32);
@@ -5969,7 +6012,172 @@ vtkOpenFOAMReaderPrivate::ReadFacesFile(const vtkStdString &facePathIn)
   return static_cast<vtkFoamLabelVectorVector *>(dict.Ptr());
 }
 
+// read the faces into a vtkFoamLabelVectorVector
+vtkFoamLabelVectorVector*
+vtkOpenFOAMReaderPrivate::ReadFacesFile(const vtkStdString &facePathIn)
+{
+  const vtkStdString facePath(facePathIn + "faces");
+
+  vtkFoamIOobject io(this->CasePath, this->Parent);
+  if (!(io.Open(facePath) || io.Open(facePath + ".gz")))
+  {
+    vtkErrorMacro(<<"Error opening " << io.GetFileName().c_str() << ": "
+        << io.GetError().c_str() << ". If you are trying to read a parallel "
+        "decomposed case, set Case Type to Decomposed Case.");
+    return nullptr;
+  }
+
+  if (io.GetClassName() == "decomposedBlockData")
+  {
+    vtkFoamDict dictFile;
+    dictFile.Read(io);
+    int count = 0;
+    vtkStdString className;
+    // each entry stores in dictFile is decompoedBlockData
+    // which is the real dict file contents should be interpreted properly.
+    for (auto iter = dictFile.begin(); iter != dictFile.end(); ++iter)
+    {
+      std::vector<char>& byteList = (*iter)->ByteList();
+      uiliststream is(byteList.data(), byteList.size());
+
+      // iterate through each entry in the faces file
+      bool skipHeader = false;
+
+      vtkFoamIOobject::fileFormat format;
+      if(iter == dictFile.begin())
+      {
+        vtkFoamIOobject decomposedBlockDataIO(this->CasePath, this->Parent);
+        decomposedBlockDataIO.Open(is, skipHeader);
+        className = decomposedBlockDataIO.GetClassName();
+        format = decomposedBlockDataIO.GetFormat();
+        if (count == this->ProcNo)
+        {
+            return ReadFacesFileInternal(decomposedBlockDataIO);
+        }
+      }
+      else
+      {
+        if (count == this->ProcNo)
+        {
+          skipHeader = true;
+          vtkFoamIOobject decomposedBlockDataIO(this->CasePath, this->Parent);
+          decomposedBlockDataIO.Open(is, skipHeader);
+          decomposedBlockDataIO.SetFormat(format);
+          return ReadFacesFileInternal(decomposedBlockDataIO);
+        }
+      }
+      ++count;
+    }
+  }
+  else
+  {
+    return ReadFacesFileInternal(io);
+  }
+}
+
 //-----------------------------------------------------------------------------
+int vtkOpenFOAMReaderPrivate::CellDictInternal(vtkFoamIOobject& io, vtkFoamEntryValue& cellDict, bool use64BitLabels)
+{
+  try
+  {
+    if (use64BitLabels)
+    {
+      cellDict.ReadNonuniformList<
+        vtkFoamEntryValue::LABELLIST,
+        vtkFoamEntryValue::listTraits<vtkTypeInt64Array, vtkTypeInt64>
+        >(io);
+    }
+    else
+    {
+      cellDict.ReadNonuniformList<
+        vtkFoamEntryValue::LABELLIST,
+        vtkFoamEntryValue::listTraits<vtkTypeInt32Array, vtkTypeInt32>
+        >(io);
+    }
+  }
+  catch(vtkFoamError& e)
+  {
+    vtkErrorMacro(<<"Error reading line " << io.GetLineNumber()
+        << " of " << io.GetFileName().c_str() << ": " << e.c_str());
+    return 0;
+  }
+  return 1;
+}
+
+vtkFoamLabelVectorVector* vtkOpenFOAMReaderPrivate::CellDictInternal(vtkFoamIOobject& io, vtkFoamLabelVectorVector *facePoints, bool use64BitLabels)
+{
+  vtkFoamEntryValue cellsDict(nullptr);
+  cellsDict.SetLabelType(use64BitLabels ? vtkFoamToken::INT64
+    : vtkFoamToken::INT32);
+  try
+  {
+    cellsDict.ReadLabelListList(io);
+  }
+  catch(vtkFoamError& e)
+  {
+    vtkErrorMacro(<<"Error reading line " << io.GetLineNumber()
+        << " of " << io.GetFileName().c_str() << ": " << e.c_str());
+    return nullptr;
+  }
+
+  vtkFoamLabelVectorVector *cells =
+  static_cast<vtkFoamLabelVectorVector *>(cellsDict.Ptr());
+  this->NumCells = cells->GetNumberOfElements();
+  vtkIdType nFaces = facePoints->GetNumberOfElements();
+
+  // create face owner list
+  if (use64BitLabels)
+  {
+    this->FaceOwner = vtkTypeInt64Array::New();
+  }
+  else
+  {
+    this->FaceOwner = vtkTypeInt32Array::New();
+  }
+
+  this->FaceOwner->SetNumberOfTuples(nFaces);
+  this->FaceOwner->FillComponent(0, -1);
+
+  vtkFoamLabelVectorVector::CellType cellFaces;
+  for (vtkIdType cellI = 0; cellI < this->NumCells; cellI++)
+  {
+    cells->GetCell(cellI, cellFaces);
+    for (size_t faceI = 0; faceI < cellFaces.size(); faceI++)
+    {
+      vtkTypeInt64 f = cellFaces[faceI];
+      if (f < 0 || f >= nFaces) // make sure the face number is valid
+      {
+        vtkErrorMacro("Face number " << f << " in cell " << cellI
+          << " exceeds the number of faces " << nFaces);
+        this->FaceOwner->Delete();
+        this->FaceOwner = nullptr;
+        delete cells;
+        return nullptr;
+      }
+
+      vtkTypeInt64 owner = GetLabelValue(this->FaceOwner, f, use64BitLabels);
+      if (owner == -1 || owner > cellI)
+      {
+        SetLabelValue(this->FaceOwner, f, cellI, use64BitLabels);
+      }
+    }
+  }
+
+  // check for unused faces
+  for (int faceI = 0; faceI < nFaces; faceI++)
+  {
+    vtkTypeInt64 f = GetLabelValue(this->FaceOwner, faceI, use64BitLabels);
+    if (f == -1)
+    {
+      vtkErrorMacro(<<"Face " << faceI << " is not used");
+      this->FaceOwner->Delete();
+      this->FaceOwner = nullptr;
+      delete cells;
+      return nullptr;
+    }
+  }
+  return cells;
+}
 // read the owner and neighbor file and create cellFaces
 vtkFoamLabelVectorVector *
 vtkOpenFOAMReaderPrivate::ReadOwnerNeighborFiles(
@@ -5979,72 +6187,158 @@ vtkOpenFOAMReaderPrivate::ReadOwnerNeighborFiles(
 
   vtkFoamIOobject io(this->CasePath, this->Parent);
   vtkStdString ownerPath(ownerNeighborPath + "owner");
+  vtkFoamIOobject::fileFormat format;
   if (io.Open(ownerPath) || io.Open(ownerPath + ".gz"))
   {
-    vtkFoamEntryValue ownerDict(nullptr);
-    ownerDict.SetLabelType(use64BitLabels ? vtkFoamToken::INT64
-                                          : vtkFoamToken::INT32);
-    try
-    {
-      if (use64BitLabels)
-      {
-        ownerDict.ReadNonuniformList<
-            vtkFoamEntryValue::LABELLIST,
-            vtkFoamEntryValue::listTraits<vtkTypeInt64Array, vtkTypeInt64>
-            >(io);
-      }
-      else
-      {
-        ownerDict.ReadNonuniformList<
-            vtkFoamEntryValue::LABELLIST,
-            vtkFoamEntryValue::listTraits<vtkTypeInt32Array, vtkTypeInt32>
-            >(io);
-      }
-    }
-    catch(vtkFoamError& e)
-    {
-      vtkErrorMacro(<<"Error reading line " << io.GetLineNumber()
-          << " of " << io.GetFileName().c_str() << ": " << e.c_str());
-      return nullptr;
-    }
-
-    io.Close();
-
-    const vtkStdString neighborPath(ownerNeighborPath + "neighbour");
-    if (!(io.Open(neighborPath) || io.Open(neighborPath + ".gz")))
-    {
-      vtkErrorMacro(<<"Error opening " << io.GetFileName().c_str() << ": "
-          << io.GetError().c_str());
-      return nullptr;
-    }
-
     vtkFoamEntryValue neighborDict(nullptr);
-    neighborDict.SetLabelType(use64BitLabels ? vtkFoamToken::INT64
-                                             : vtkFoamToken::INT32);
-    try
+    vtkFoamEntryValue ownerDict(nullptr);
+    if (io.GetClassName() == "decomposedBlockData")
     {
-      if (use64BitLabels)
-      {
-        neighborDict.ReadNonuniformList<
-            vtkFoamEntryValue::LABELLIST,
-            vtkFoamEntryValue::listTraits<vtkTypeInt64Array, vtkTypeInt64>
-            >(io);
-      }
-      else
-      {
-        neighborDict.ReadNonuniformList<
-            vtkFoamEntryValue::LABELLIST,
-            vtkFoamEntryValue::listTraits<vtkTypeInt32Array, vtkTypeInt32>
-            >(io);
-      }
-    }
-    catch(vtkFoamError& e)
-    {
-      vtkErrorMacro(<<"Error reading line " << io.GetLineNumber()
-          << " of " << io.GetFileName().c_str() << ": " << e.c_str());
-      return nullptr;
-    }
+      vtkFoamDict ownerDictFile;
+      ownerDictFile.Read(io);
 
+      int count = 0;
+      vtkStdString className;
+      bool use64BitLabels = this->Parent->Use64BitLabels;
+      // owner cell
+      for (auto iter = ownerDictFile.begin(); iter != ownerDictFile.end(); ++iter)
+      {
+        std::vector<char>& byteList = (*iter)->ByteList();
+        uiliststream is(byteList.data(), byteList.size());
+
+        // iterate through each entry in the boundary file
+        bool skipHeader = false;
+
+        if(iter == ownerDictFile.begin())
+        {
+          vtkFoamIOobject ownerDecomposedBlockDataIO(this->CasePath, this->Parent);
+          ownerDecomposedBlockDataIO.Open(is, skipHeader);
+          className = ownerDecomposedBlockDataIO.GetClassName();
+          format = ownerDecomposedBlockDataIO.GetFormat();
+          if(count == this->ProcNo)
+          {
+            ownerDict.SetLabelType(this->Parent->Use64BitLabels ? vtkFoamToken::INT64
+                                                                : vtkFoamToken::INT32);
+            if (!CellDictInternal(ownerDecomposedBlockDataIO, ownerDict, use64BitLabels))
+            {
+              return nullptr;
+            }
+            break;
+          }
+        }
+        else
+        {
+          if (count == this->ProcNo)
+          {
+            skipHeader = true;
+            vtkFoamIOobject ownerDecomposedBlockDataIO(this->CasePath, this->Parent);
+            ownerDecomposedBlockDataIO.Open(is, skipHeader);
+            ownerDecomposedBlockDataIO.SetFormat(format);
+            className = ownerDecomposedBlockDataIO.GetClassName();
+            ownerDict.SetLabelType(this->Parent->Use64BitLabels ? vtkFoamToken::INT64
+                                                                : vtkFoamToken::INT32);
+
+            if (!CellDictInternal(ownerDecomposedBlockDataIO, ownerDict, use64BitLabels))
+            {
+              return nullptr;
+            }
+            break;
+          }
+        }
+        ++count;
+      }
+      io.Close();
+
+      // neighbour cell
+      const vtkStdString neighborPath(ownerNeighborPath + "neighbour");
+
+      if (!(io.Open(neighborPath) || io.Open(neighborPath + ".gz")))
+      {
+        vtkErrorMacro(<<"Error opening " << io.GetFileName().c_str() << ": "
+            << io.GetError().c_str());
+        return NULL;
+      }
+
+      // reset count for neighbor counting
+      count = 0;
+      vtkFoamDict neighbourDictFile;
+      neighbourDictFile.Read(io);
+      for (auto iter = neighbourDictFile.begin(); iter != neighbourDictFile.end(); ++iter)
+      {
+        if(count == this->GetProcNo())
+        {
+          std::vector<char>& byteList = (*iter)->ByteList();
+          uiliststream is(byteList.data(), byteList.size());
+
+          // iterate through each entry in the boundary file
+          bool skipHeader = false;
+          if(iter == neighbourDictFile.begin())
+          {
+            vtkFoamIOobject neighbourDecomposedBlockDataIO(this->CasePath, this->Parent);
+            neighbourDecomposedBlockDataIO.Open(is, skipHeader);
+            format = neighbourDecomposedBlockDataIO.GetFormat();
+            className = neighbourDecomposedBlockDataIO.GetClassName();
+            if(count == this->ProcNo)
+            {
+              neighborDict.SetLabelType(this->Parent->Use64BitLabels ? vtkFoamToken::INT64
+                                                                     : vtkFoamToken::INT32);
+              if (!CellDictInternal(neighbourDecomposedBlockDataIO, neighborDict, use64BitLabels))
+              {
+                return nullptr;
+              }
+              break;
+            }
+          }
+          else
+          {
+            if(count == this->ProcNo)
+            {
+              skipHeader = true;
+              vtkFoamIOobject neighbourDecomposedBlockDataIO(this->CasePath, this->Parent);
+              neighbourDecomposedBlockDataIO.Open(is, skipHeader);
+              neighbourDecomposedBlockDataIO.SetFormat(format);
+              className = neighbourDecomposedBlockDataIO.GetClassName();
+
+              neighborDict.SetLabelType(this->Parent->Use64BitLabels ? vtkFoamToken::INT64
+                                                                     : vtkFoamToken::INT32);
+              if (!CellDictInternal(neighbourDecomposedBlockDataIO, neighborDict, use64BitLabels))
+              {
+                return nullptr;
+              }
+              break;
+            }
+          }
+        }
+        ++count;
+      }
+    }
+    else
+    {
+        ownerDict.SetLabelType(use64BitLabels ? vtkFoamToken::INT64
+                                              : vtkFoamToken::INT32);
+
+
+        if (!CellDictInternal(io, ownerDict, use64BitLabels))
+        {
+          return nullptr;
+        }
+        io.Close();
+
+        const vtkStdString neighborPath(ownerNeighborPath + "neighbour");
+        if (!(io.Open(neighborPath) || io.Open(neighborPath + ".gz")))
+        {
+          vtkErrorMacro(<<"Error opening " << io.GetFileName().c_str() << ": "
+            << io.GetError().c_str());
+          return nullptr;
+        }
+
+        neighborDict.SetLabelType(use64BitLabels ? vtkFoamToken::INT64
+                                                 : vtkFoamToken::INT32);
+        if(!CellDictInternal(io, neighborDict, use64BitLabels))
+        {
+          return nullptr;
+        }
+    }
     this->FaceOwner = static_cast<vtkDataArray *>(ownerDict.Ptr());
     vtkDataArray &faceOwner = *this->FaceOwner;
     vtkDataArray &faceNeighbor = neighborDict.LabelList();
@@ -6251,77 +6545,54 @@ vtkOpenFOAMReaderPrivate::ReadOwnerNeighborFiles(
       return nullptr;
     }
 
-    vtkFoamEntryValue cellsDict(nullptr);
-    cellsDict.SetLabelType(use64BitLabels ? vtkFoamToken::INT64
-                                          : vtkFoamToken::INT32);
-    try
+    if (io.GetClassName() == "decomposedBlockData")
     {
-      cellsDict.ReadLabelListList(io);
-    }
-    catch(vtkFoamError& e)
-    {
-      vtkErrorMacro(<<"Error reading line " << io.GetLineNumber()
-          << " of " << io.GetFileName().c_str() << ": " << e.c_str());
-      return nullptr;
+      vtkFoamDict cellsDictFile;
+      cellsDictFile.Read(io);
+      vtkStdString className;
+
+      bool use64BitLabels = this->Parent->Use64BitLabels;
+      int count = 0;
+      // owner cell
+      for (auto iter = cellsDictFile.begin(); iter != cellsDictFile.end(); ++iter)
+      {
+        std::vector<char>& byteList = (*iter)->ByteList();
+        uiliststream is(byteList.data(), byteList.size());
+
+        // iterate through each entry in the boundary file
+        bool skipHeader = false;
+
+        vtkFoamIOobject decomposedBlockDataIO(this->CasePath, this->Parent);
+        if(iter == cellsDictFile.begin())
+        {
+          decomposedBlockDataIO.Open(is, skipHeader);
+          className = decomposedBlockDataIO.GetClassName();
+          format = decomposedBlockDataIO.GetFormat();
+          if(count == this->ProcNo)
+          {
+            return CellDictInternal(decomposedBlockDataIO, facePoints, use64BitLabels);
+          }
+        }
+
+        else
+        {
+          if(count == this->ProcNo)
+          {
+            skipHeader = true;
+            decomposedBlockDataIO.Open(is, skipHeader);
+            decomposedBlockDataIO.SetFormat(format);
+            className = decomposedBlockDataIO.GetClassName();
+            return CellDictInternal(decomposedBlockDataIO, facePoints, use64BitLabels);
+          }
+        }
+        ++count;
+      }
     }
 
-    vtkFoamLabelVectorVector *cells =
-        static_cast<vtkFoamLabelVectorVector *>(cellsDict.Ptr());
-    this->NumCells = cells->GetNumberOfElements();
-    vtkIdType nFaces = facePoints->GetNumberOfElements();
-
-    // create face owner list
-    if (use64BitLabels)
-    {
-      this->FaceOwner = vtkTypeInt64Array::New();
-    }
     else
     {
-      this->FaceOwner = vtkTypeInt32Array::New();
+      return CellDictInternal(io, facePoints, use64BitLabels);
     }
-
-    this->FaceOwner->SetNumberOfTuples(nFaces);
-    this->FaceOwner->FillComponent(0, -1);
-
-    vtkFoamLabelVectorVector::CellType cellFaces;
-    for (vtkIdType cellI = 0; cellI < this->NumCells; cellI++)
-    {
-      cells->GetCell(cellI, cellFaces);
-      for (size_t faceI = 0; faceI < cellFaces.size(); faceI++)
-      {
-        vtkTypeInt64 f = cellFaces[faceI];
-        if (f < 0 || f >= nFaces) // make sure the face number is valid
-        {
-          vtkErrorMacro("Face number " << f << " in cell " << cellI
-              << " exceeds the number of faces " << nFaces);
-          this->FaceOwner->Delete();
-          this->FaceOwner = nullptr;
-          delete cells;
-          return nullptr;
-        }
-
-        vtkTypeInt64 owner = GetLabelValue(this->FaceOwner, f, use64BitLabels);
-        if (owner == -1 || owner > cellI)
-        {
-          SetLabelValue(this->FaceOwner, f, cellI, use64BitLabels);
-        }
-      }
-    }
-
-    // check for unused faces
-    for (int faceI = 0; faceI < nFaces; faceI++)
-    {
-      vtkTypeInt64 f = GetLabelValue(this->FaceOwner, faceI, use64BitLabels);
-      if (f == -1)
-      {
-        vtkErrorMacro(<<"Face " << faceI << " is not used");
-        this->FaceOwner->Delete();
-        this->FaceOwner = nullptr;
-        delete cells;
-        return nullptr;
-      }
-    }
-    return cells;
   }
 }
 
@@ -6846,36 +7117,36 @@ void vtkOpenFOAMReaderPrivate::InsertCellsToGrid(
       vtkIdType apexPointI = adjacentFacePoints[0];
       for (size_t ptI = 0; ptI < adjacentFacePoints.size(); ++ptI)
       {
-          apexPointI = adjacentFacePoints[ptI];
-          bool foundDup = false;
-          for (size_t baseI = 0; baseI < baseFacePoints.size(); ++baseI)
-          {
-            foundDup = (apexPointI == baseFacePoints[baseI]);
-            if (foundDup)
-            {
-              break;
-            }
-          }
-
-          if (!foundDup)
+        apexPointI = adjacentFacePoints[ptI];
+        bool foundDup = false;
+        for (size_t baseI = 0; baseI < baseFacePoints.size(); ++baseI)
+        {
+          foundDup = (apexPointI == baseFacePoints[baseI]);
+          if (foundDup)
           {
             break;
           }
+        }
+
+        if (!foundDup)
+        {
+          break;
+        }
       }
 
       // Add base-face points (in order) to cell points
       if
       (
-          GetLabelValue(this->FaceOwner, cellBaseFaceId, use64BitLabels)
-       == cellId
+        GetLabelValue(this->FaceOwner, cellBaseFaceId, use64BitLabels)
+          == cellId
       )
       {
         // if it is an owner face, flip the points (to point inwards)
         for
         (
-            vtkIdType j = 0;
-            j < static_cast<vtkIdType>(baseFacePoints.size());
-            ++j
+          vtkIdType j = 0;
+          j < static_cast<vtkIdType>(baseFacePoints.size());
+          ++j
         )
         {
           cellPoints->SetId(j, baseFacePoints[baseFacePoints.size() - 1 - j]);
@@ -6885,9 +7156,9 @@ void vtkOpenFOAMReaderPrivate::InsertCellsToGrid(
       {
         for
         (
-            vtkIdType j = 0;
-            j < static_cast<vtkIdType>(baseFacePoints.size());
-            ++j
+          vtkIdType j = 0;
+          j < static_cast<vtkIdType>(baseFacePoints.size());
+          ++j
         )
         {
           cellPoints->SetId(j, baseFacePoints[j]);
@@ -7729,7 +8000,7 @@ void vtkOpenFOAMReaderPrivate::TruncateFaceOwner()
 {
   vtkIdType boundaryStartFace =
       !this->BoundaryDict.empty() ? this->BoundaryDict[0].StartFace
-          : this->FaceOwner->GetNumberOfTuples();
+                                  : this->FaceOwner->GetNumberOfTuples();
   // all the boundary faces
   vtkIdType nBoundaryFaces = this->FaceOwner->GetNumberOfTuples()
       - boundaryStartFace;
@@ -7980,6 +8251,26 @@ void vtkOpenFOAMReaderPrivate::InterpolateCellToPoint(vtkFloatArray *pData,
 }
 
 //-----------------------------------------------------------------------------
+bool vtkOpenFOAMReaderPrivate::ReadFieldFileInternal(vtkFoamDict *dictPtr, vtkFoamIOobject &io)
+{
+    // read the field file into dictionary
+    vtkFoamDict &dict = *dictPtr;
+    if (!dict.Read(io))
+    {
+      vtkErrorMacro(<<"Error reading line " << io.GetLineNumber()
+          << " of " << io.GetFileName().c_str() << ": " << io.GetError().c_str());
+      return false;
+    }
+
+    if (dict.GetType() != vtkFoamToken::DICTIONARY)
+    {
+      vtkErrorMacro(<<"File " << io.GetFileName().c_str()
+          << "is not valid as a field file");
+      return false;
+    }
+    return true;
+}
+
 bool vtkOpenFOAMReaderPrivate::ReadFieldFile(vtkFoamIOobject *ioPtr,
     vtkFoamDict *dictPtr, const vtkStdString &varName,
     vtkDataArraySelection *selection)
@@ -8001,20 +8292,62 @@ bool vtkOpenFOAMReaderPrivate::ReadFieldFile(vtkFoamIOobject *ioPtr,
     return false;
   }
 
-  // read the field file into dictionary
-  vtkFoamDict &dict = *dictPtr;
-  if (!dict.Read(io))
+  if (io.GetClassName() == "decomposedBlockData")
   {
-    vtkErrorMacro(<<"Error reading line " << io.GetLineNumber()
-        << " of " << io.GetFileName().c_str() << ": " << io.GetError().c_str());
-    return false;
-  }
+    vtkFoamDict dictFile;
+    dictFile.Read(io);
+    int count = 0;
+    vtkStdString className;
+    // each entry stores in dictFile is decompoedBlockData
+    // which is the real dict file contents should be interpreted properly.
+    for (auto iter = dictFile.begin(); iter != dictFile.end(); ++iter)
+    {
+      std::vector<char>& byteList = (*iter)->ByteList();
+      uiliststream is(byteList.data(), byteList.size());
 
-  if (dict.GetType() != vtkFoamToken::DICTIONARY)
+      // iterate through each entry in the faces file
+      bool skipHeader = false;
+
+      vtkFoamIOobject::fileFormat format;
+      if(iter == dictFile.begin())
+      {
+        vtkFoamIOobject decomposedBlockDataIO(this->CasePath, this->Parent);
+        decomposedBlockDataIO.Open(is, skipHeader);
+        className = decomposedBlockDataIO.GetClassName();
+        // trick the GetVolFieldAtTimeStep treat the returned DictPtr as if normal class other than decomposedBlockData
+        // it is safe because ioPtr is not reused outside of GetVolFieldAtTimeStep member function.
+        io.SetClassName(className);
+        format = decomposedBlockDataIO.GetFormat();
+        if (count == this->ProcNo)
+        {
+          vtkFoamEntryValue entryValue(NULL);
+          entryValue.SetLabelType(this->Parent->Use64BitLabels ? vtkFoamToken::INT64
+                                                               : vtkFoamToken::INT32);
+
+          return ReadFieldFileInternal(dictPtr, decomposedBlockDataIO);
+        }
+      }
+      else
+      {
+        if (count == this->ProcNo)
+        {
+          skipHeader = true;
+          vtkFoamIOobject decomposedBlockDataIO(this->CasePath, this->Parent);
+          decomposedBlockDataIO.Open(is, skipHeader);
+          decomposedBlockDataIO.SetFormat(format);
+          vtkFoamEntryValue entryValue(NULL);
+          entryValue.SetLabelType(this->Parent->Use64BitLabels ? vtkFoamToken::INT64
+                                                               : vtkFoamToken::INT32);
+
+          return ReadFieldFileInternal(dictPtr, decomposedBlockDataIO);
+        }
+      }
+      ++count;
+    }
+  }
+  else
   {
-    vtkErrorMacro(<<"File " << io.GetFileName().c_str()
-        << "is not valid as a field file");
-    return false;
+    return ReadFieldFileInternal(dictPtr, io);
   }
   return true;
 }
@@ -10240,7 +10573,7 @@ int vtkOpenFOAMReader::MakeMetaDataAtTimeStep(const bool listNextTimeStep)
       = vtkOpenFOAMReaderPrivate::SafeDownCast(this->Readers->GetNextItemAsObject()))
       != nullptr)
   {
-    ret *= reader->MakeMetaDataAtTimeStep(cellSelectionNames,
+    ret *= reader->MakeMetaDataAtTimeStep(this->GetProcNo(), cellSelectionNames,
         pointSelectionNames, lagrangianSelectionNames, listNextTimeStep);
   }
   this->AddSelectionNames(this->Parent->CellDataArraySelection,
