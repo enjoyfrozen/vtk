@@ -547,6 +547,10 @@ private:
   void PopulatePolyMeshDirArrays();
 
   // search a time directory for field objects
+  void GetFieldNamesInternal(const vtkFoamIOobject& io,
+      const vtkStdString& className, const vtkStdString& fieldFile,
+      const bool isLagrangian, vtkStringArray *cellObjectNames,
+      vtkStringArray *pointObjectNames);
   void GetFieldNames(const vtkStdString &, const bool, vtkStringArray *,
       vtkStringArray *);
   void SortFieldFiles(vtkStringArray *, vtkStringArray *, vtkStringArray *);
@@ -4746,6 +4750,47 @@ void vtkOpenFOAMReaderPrivate::SetupInformation(const vtkStdString &casePath,
 }
 
 //-----------------------------------------------------------------------------
+void vtkOpenFOAMReaderPrivate::GetFieldNamesInternal(const vtkFoamIOobject& io,
+    const vtkStdString& className, const vtkStdString& fieldFile,
+    const bool isLagrangian, vtkStringArray *cellObjectNames,
+    vtkStringArray *pointObjectNames)
+{
+  if (isLagrangian)
+  {
+    if (className == "labelField" || className == "scalarField" || className == "vectorField"
+      || className == "sphericalTensorField" || className == "symmTensorField" || className
+      == "tensorField")
+    {
+      // real file name
+      this->LagrangianFieldFiles->InsertNextValue(fieldFile);
+      // object name
+      pointObjectNames->InsertNextValue(io.GetObjectName());
+    }
+  }
+  else
+  {
+    if (className == "volScalarField" || className == "pointScalarField" || className
+      == "volVectorField" || className == "pointVectorField" || className
+      == "volSphericalTensorField" || className == "pointSphericalTensorField"
+      || className == "volSymmTensorField" || className == "pointSymmTensorField"
+      || className == "volTensorField" || className == "pointTensorField")
+    {
+      if (className.substr(0, 3) == "vol")
+      {
+        // real file name
+        this->VolFieldFiles->InsertNextValue(fieldFile);
+        // object name
+        cellObjectNames->InsertNextValue(io.GetObjectName());
+      }
+      else
+      {
+        this->PointFieldFiles->InsertNextValue(fieldFile);
+        pointObjectNames->InsertNextValue(io.GetObjectName());
+      }
+    }
+  }
+}
+
 void vtkOpenFOAMReaderPrivate::GetFieldNames(const vtkStdString &tempPath,
     const bool isLagrangian, vtkStringArray *cellObjectNames,
     vtkStringArray *pointObjectNames)
