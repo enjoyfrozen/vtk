@@ -40,6 +40,9 @@
  *
  * Misc cleanup, bugfixes, improvements
  * Mark Olesen (OpenCFD Ltd.)
+ *
+ * Support of collated format introduced in OpenFOAM 5.x by
+ * SeongMo Yeon, South Korea (seongmo.yeon@gmail.com)
 */
 
 #ifndef vtkOpenFOAMReader_h
@@ -77,6 +80,14 @@ public:
   vtkGetStringMacro(FileName);
   //@}
 
+  int GetProcNo()
+  {
+      return ProcNo;
+  }
+  void SetProcNo(int procNo)
+  {
+      this->ProcNo = procNo;
+  }
   /**
    * Get the number of cell arrays available in the input.
    */
@@ -349,6 +360,7 @@ protected:
   char *FileName;
   vtkCharArray *CasePath;
   vtkCollection *Readers;
+  int ProcNo;
 
   // DataArraySelection for Patch / Region Data
   vtkDataArraySelection *PatchDataArraySelection;

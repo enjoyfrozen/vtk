@@ -227,6 +227,144 @@ vtkTypeInt64 GetLabelValue(const void *array, size_t idx, bool use64BitLabels)
   }
 }
 
+//- A streambuf for memory
+class memorybuf : public std::streambuf
+{
+protected:
+
+  //- Get sequence of characters
+  virtual std::streamsize xsgetn(char* s, std::streamsize n)
+  {
+    std::streamsize count = 0;
+
+    while (count < n && gptr() < egptr())
+    {
+      *(s + count++) = *(gptr());
+      gbump(1);
+    }
+
+    return count;
+  }
+  //- Set position pointer to relative position
+  virtual std::streampos seekoff
+  (
+    std::streamoff off,
+      std::ios_base::seekdir way,
+      std::ios_base::openmode which = std::ios_base::in|std::ios_base::out
+  )
+  {
+    const bool testin  = which & std::ios_base::in;
+    const bool testout = which & std::ios_base::out;
+
+    if (way == std::ios_base::beg)
+    {
+      if (testin)
+      {
+        setg(eback(), eback(), egptr());
+        gbump(off);
+      }
+      if (testout)
+      {
+        setp(pbase(), epptr());
+        pbump(off);
+      }
+    }
+    else if (way == std::ios_base::cur)
+    {
+      if (testin)
+      {
+        gbump(off);
+      }
+      if (testout)
+      {
+        pbump(off);
+      }
+    }
+    else if (way == std::ios_base::end)
+    {
+      if (testin)
+      {
+        setg(eback(), eback(), egptr());
+        gbump(egptr() - eback() - off);
+      }
+      if (testout)
+      {
+        setp(pbase(), epptr());
+        pbump(epptr() - pbase() - off);
+      }
+    }
+
+    if (testin)
+    {
+      return (gptr() - eback()); // tellg()
+    }
+    if (testout)
+    {
+      return (pptr() - pbase()); // tellp()
+    }
+
+    return -1;
+  }
+
+
+  //- Set position pointer to absolute position
+  virtual std::streampos seekpos
+  (
+    std::streampos pos,
+      std::ios_base::openmode which = std::ios_base::in|std::ios_base::out
+  )
+  {
+    return seekoff(pos, std::ios_base::beg, which);
+  }
+
+
+  //- The buffer get position
+  inline std::streamsize tellg() const
+  {
+    return (gptr() - eback());
+  }
+
+  //- The buffer put position
+  inline std::streamsize tellp() const
+  {
+    return (pptr() - pbase());
+  }
+
+public:
+
+  //- Construct for character array and number of bytes
+  memorybuf(char* s, std::streamsize n)
+  {
+    resetg(s, n);
+  }
+
+  //- Reset for character array and number of bytes
+  inline void resetg(char* s, std::streamsize n)
+  {
+    setg(s, s, s + n);
+  }
+
+};
+
+//- Trivial input stream for calculating byte counts
+class uiliststream : virtual public std::ios, protected memorybuf, public std::istream
+{
+public:
+
+  //- Construct using specified buffer and number of bytes
+  uiliststream(const char* buffer, size_t nbytes)
+    : memorybuf(const_cast<char*>(buffer), nbytes),
+      std::istream(static_cast<memorybuf*>(this))
+  {}
+
+  //- Rewind the stream, clearing any old errors
+  void rewind()
+  {
+    this->pubseekpos(0, std::ios_base::in);
+    clear(); // for safety, clear any old errors
+  }
+};
+
 } // end anon namespace
 
 // forward declarations
