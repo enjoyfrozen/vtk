@@ -815,7 +815,7 @@ public:
     // atomic types
     PUNCTUATION, LABEL, SCALAR, STRING, IDENTIFIER,
     // vtkObject-derived list types
-    STRINGLIST, LABELLIST, SCALARLIST, VECTORLIST,
+    STRINGLIST, LABELLIST, SCALARLIST, VECTORLIST, BYTELIST,
     // original list types
     LABELLISTLIST, ENTRYVALUELIST, BOOLLIST, EMPTYLIST, DICTIONARY,
     // error state
@@ -844,6 +844,7 @@ protected:
     vtkDataArray *LabelListPtr;
     vtkFloatArray *ScalarListPtr, *VectorListPtr;
     vtkStringArray *StringListPtr;
+    std::vector<char> *ByteListPtr;
     // original list types
     vtkFoamLabelVectorVector *LabelListListPtr;
     std::vector<vtkFoamEntryValue*> *EntryValuePtrs;
@@ -880,6 +881,7 @@ protected:
       case LABELLIST:
       case SCALARLIST:
       case VECTORLIST:
+      case BYTELIST:
       case LABELLISTLIST:
       case ENTRYVALUELIST:
       case BOOLLIST:
@@ -1168,8 +1170,9 @@ struct vtkFoamFileStack
 protected:
   vtkOpenFOAMReader *Reader;
   vtkStdString FileName;
-  FILE *File;
+  std::istream* File;
   bool IsCompressed;
+  bool IsStringStream;
   z_stream Z;
   int ZStatus;
   int LineNumber;
@@ -1188,6 +1191,7 @@ protected:
       FileName(),
       File(nullptr),
       IsCompressed(false),
+      IsStringStream(false),
       ZStatus(Z_OK),
       LineNumber(0),
 #if VTK_FOAMFILE_RECOGNIZE_LINEHEAD
@@ -1208,6 +1212,7 @@ protected:
     // this->FileName = "";
     this->File = nullptr;
     this->IsCompressed = false;
+    this->IsStringStream = false;
     // this->ZStatus = Z_OK;
     this->Z.zalloc = Z_NULL;
     this->Z.zfree = Z_NULL;
@@ -1286,6 +1291,7 @@ private:
     *this->Superclass::BufPtr = static_cast<unsigned char>(c);
   }
 
+public:
   // get a character
   int Getc()
   {
@@ -1293,6 +1299,7 @@ private:
         : *this->Superclass::BufPtr++;
   }
 
+private:
   vtkFoamError StackString()
   {
     std::ostringstream os;
@@ -1337,7 +1344,10 @@ private:
 
     if (this->Superclass::File)
     {
-      fclose(this->Superclass::File);
+      if(!IsStringStream)
+      {
+        static_cast<std::fstream*>(this->Superclass::File)->close();
+      }
       this->Superclass::File = nullptr;
     }
     // don't reset the line number so that the last line number is
@@ -1915,14 +1925,19 @@ public:
       throw this->StackString() << "File already opened within this object";
     }
 
-    if ((this->Superclass::File = fopen(this->Superclass::FileName.c_str(),
-        "rb")) == nullptr)
+    this->Superclass::File = new std::fstream();
+    static_cast<std::fstream*>(this->Superclass::File)->open(this->Superclass::FileName.c_str(),
+        std::ios::binary|std::ios::in);
+    if (this->Superclass::File->fail())
     {
+      this->Clear();
+      std::cerr << "Error: " << strerror(errno);
       throw this->StackString() << "Can't open";
     }
 
     unsigned char zMagic[2];
-    if (fread(zMagic, 1, 2, this->Superclass::File) == 2 && zMagic[0] == 0x1f
+    this->Superclass::File->read((char*)zMagic, 2);
+    if (this->Superclass::File->gcount() == 2 && zMagic[0] == 0x1f
         && zMagic[1] == 0x8b)
     {
       // gzip-compressed format
@@ -1936,7 +1951,7 @@ public:
       }
       else
       {
-        fclose(this->Superclass::File);
+        static_cast<std::fstream*>(this->Superclass::File)->close();
         this->Superclass::File = nullptr;
         throw this->StackString() << "Can't init zstream "
         << (this->Superclass::Z.msg ? this->Superclass::Z.msg : "");
@@ -1947,7 +1962,52 @@ public:
       // uncompressed format
       this->Superclass::IsCompressed = false;
     }
-    rewind(this->Superclass::File);
+    this->Superclass::File->seekg (0, std::ios_base::beg);
+
+    this->Superclass::ZStatus = Z_OK;
+    this->Superclass::Outbuf = new unsigned char[VTK_FOAMFILE_OUTBUFSIZE + 1];
+    this->Superclass::BufPtr = this->Superclass::Outbuf + 1;
+    this->Superclass::BufEndPtr = this->Superclass::BufPtr;
+    this->Superclass::LineNumber = 1;
+  }
+
+  void Open(std::istream& is)
+  {
+    // reset line number to indicate the beginning of the file when an
+    // exception is thrown
+    this->Superclass::LineNumber = 0;
+    this->Superclass::FileName = ""; // no need
+    this->Superclass::IsStringStream = true;
+    this->Superclass::File = &is;
+
+    unsigned char zMagic[2];
+    this->Superclass::File->read((char*)zMagic, 2);
+    if (this->Superclass::File->gcount() == 2 && zMagic[0] == 0x1f
+        && zMagic[1] == 0x8b)
+    {
+      // gzip-compressed format
+      this->Superclass::Z.avail_in = 0;
+      this->Superclass::Z.next_in = Z_NULL;
+      // + 32 to automatically recognize gzip format
+      if (inflateInit2(&this->Superclass::Z, 15 + 32) == Z_OK)
+      {
+        this->Superclass::IsCompressed = true;
+        this->Superclass::Inbuf = new unsigned char[VTK_FOAMFILE_INBUFSIZE];
+      }
+      else
+      {
+        static_cast<std::fstream*>(this->Superclass::File)->close();
+        this->Superclass::File = nullptr;
+        throw this->StackString() << "Can't init zstream "
+        << (this->Superclass::Z.msg ? this->Superclass::Z.msg : "");
+      }
+    }
+    else
+    {
+      // uncompressed format
+      this->Superclass::IsCompressed = false;
+    }
+    this->Superclass::File->seekg (0, std::ios_base::beg);
 
     this->Superclass::ZStatus = Z_OK;
     this->Superclass::Outbuf = new unsigned char[VTK_FOAMFILE_OUTBUFSIZE + 1];
@@ -2311,9 +2371,9 @@ bool vtkFoamFile::InflateNext(unsigned char *buf,
       if (this->Superclass::Z.avail_in == 0)
       {
         this->Superclass::Z.next_in = this->Superclass::Inbuf;
-        this->Superclass::Z.avail_in = static_cast<uInt>(fread(this->Superclass::Inbuf, 1,
-          VTK_FOAMFILE_INBUFSIZE, this->Superclass::File));
-        if (ferror(this->Superclass::File))
+        this->Superclass::File->read((char*)this->Superclass::Inbuf, VTK_FOAMFILE_INBUFSIZE);
+        this->Superclass::Z.avail_in = static_cast<uInt>(this->Superclass::File->gcount());
+        if(this->Superclass::File->fail())
         {
           throw this->StackString() << "Fread failed";
         }
@@ -2341,7 +2401,8 @@ bool vtkFoamFile::InflateNext(unsigned char *buf,
   else
   {
     // not compressed
-    size = fread(buf, 1, requestSize, this->Superclass::File);
+    this->Superclass::File->read((char*)buf, requestSize);
+    size = this->Superclass::File->gcount();
   }
 
   if (size <= 0)
@@ -2448,6 +2509,7 @@ private:
   vtkStdString ObjectName;
   vtkStdString HeaderClassName;
   vtkFoamError E;
+  int ProcNo;
 
   bool Use64BitLabels;
   bool Use64BitFloats;
@@ -2500,6 +2562,38 @@ public:
     return true;
   }
 
+  bool Open(std::istream& is, bool skipHeader)
+  {
+    try
+    {
+      this->Superclass::Open(is);
+    }
+    catch(vtkFoamError& e)
+    {
+      this->E = e;
+      return false;
+    }
+
+    if (!skipHeader)
+    {
+      try
+      {
+        this->ReadHeader();
+      }
+      catch(vtkFoamError& e)
+      {
+        this->Superclass::Close();
+        this->E = e;
+        return false;
+      }
+    }
+    else
+    {
+      this->HeaderClassName = "decomposeBlockData";
+    }
+    return true;
+  }
+
   void Close()
   {
     this->Superclass::Close();
@@ -2514,9 +2608,17 @@ public:
   {
     return this->Format;
   }
+  void SetFormat(fileFormat format)
+  {
+    this->Format = format;
+  }
   const vtkStdString& GetClassName() const
   {
     return this->HeaderClassName;
+  }
+  void SetClassName(const vtkStdString& className)
+  {
+    this->HeaderClassName = className;
   }
   const vtkStdString& GetObjectName() const
   {
@@ -2541,6 +2643,14 @@ public:
   bool GetLagrangianPositionsExtraData() const
   {
     return this->LagrangianPositionsExtraData;
+  }
+  int GetProcNo() const
+  {
+    return this->ProcNo;
+  }
+  void SetProcNo(int procNo)
+  {
+    this->ProcNo = procNo;
   }
 };
 
@@ -2825,9 +2935,57 @@ public:
   {
     return *this->Superclass::LabelListPtr;
   }
+  void ReadByteList(vtkFoamIOobject& io, const int size)
+  {
+    this->LabelType = io.GetUse64BitLabels() ? vtkFoamToken::INT64 : vtkFoamToken::INT32;
+    assert("Label type not set!" && this->GetLabelType() != NO_LABEL_TYPE);
+    vtkFoamToken currToken;
+    currToken.SetLabelType(this->LabelType);
+    this->Superclass::Type = vtkFoamToken::tokenType::BYTELIST;
+    this->Superclass::ByteListPtr = new std::vector<char>();
+
+    this->Superclass::ByteListPtr->reserve(1048576); // default size is set to 10 MB
+    for(auto i=0; i < size; ++i)
+    {
+      this->Superclass::ByteListPtr->push_back((char)(io.Getc()));
+    }
+
+    // expanded the outermost loop in nextTokenHead() for performance
+    int c;
+    while (isspace(c = io.Getc())) // isspace() accepts -1 as EOF
+    {}
+  }
+
+  void ReadByteListSkip(vtkFoamIOobject& io, const int size)
+  {
+    this->LabelType = io.GetUse64BitLabels() ? vtkFoamToken::INT64 : vtkFoamToken::INT32;
+    assert("Label type not set!" && this->GetLabelType() != NO_LABEL_TYPE);
+    vtkFoamToken currToken;
+    currToken.SetLabelType(this->LabelType);
+    this->Superclass::Type = vtkFoamToken::tokenType::BYTELIST;
+
+    // maybe seekg is more effective but leave it for now.
+    for(auto i=0; i < size; ++i)
+    {
+      io.Getc();
+    }
+
+    // expanded the outermost loop in nextTokenHead() for performance
+    int c;
+    while (isspace(c = io.Getc())) // isspace() accepts -1 as EOF
+    {}
+  }
   vtkDataArray& LabelList()
   {
     return *this->Superclass::LabelListPtr;
+  }
+  const std::vector<char>& ByteList() const
+  {
+    return *this->Superclass::ByteListPtr;
+  }
+  std::vector<char>& ByteList()
+  {
+    return *this->Superclass::ByteListPtr;
   }
   const vtkFoamLabelVectorVector& LabelListList() const
   {
@@ -3376,6 +3534,14 @@ public:
   {
     return this->FirstValue().LabelList();
   }
+  const std::vector<char>& ByteList() const
+  {
+    return this->FirstValue().ByteList();
+  }
+  std::vector<char>& ByteList()
+  {
+    return this->FirstValue().ByteList();
+  }
   const vtkFoamLabelVectorVector& LabelListList() const
   {
     return this->FirstValue().LabelListList();
@@ -3528,71 +3694,122 @@ public:
       vtkFoamToken currToken;
       if(firstToken.GetType() == vtkFoamToken::UNDEFINED)
       {
-        // read the first token
-        if(!io.Read(currToken))
+        if(io.GetClassName() == "decomposedBlockData")
         {
-          throw vtkFoamError() << "Unexpected EOF";
-        }
-
-        if(isSubDictionary)
-        {
-          // the following if clause is for an exceptional expression
-          // of `LABEL{LABELorSCALAR}' without type prefix
-          // (e. g. `2{-0}' in mixedRhoE B.C. in
-          // rhopSonicFoam/shockTube)
-          if(currToken.GetType() == vtkFoamToken::LABEL
-              || currToken.GetType() == vtkFoamToken::SCALAR)
+          // following entry is all list data of byte
+          // so read it as a vector<char>
+          bool foundEOF = false;
+          while(1)
           {
-            this->Token = currToken;
-            io.ReadExpecting('}');
-            return true;
-          }
-          // return as empty dictionary
+            // read the first token
+            foundEOF = !io.Read(currToken);
+            if(foundEOF)
+            {
+              break;
+            }
 
-          else if(currToken == '}')
+            // list of dictionaries is read as a usual dictionary
+            // polyMesh/boundary, point/face/cell-Zones
+            if(currToken.GetType() == vtkFoamToken::LABEL)
+            {
+              io.ReadExpecting('(');
+              if(currToken.To<vtkTypeInt64>() > 0)
+              {
+                //read in chars of bytes. no need any parsing
+                std::stringstream ss;
+                ss << "processor" << this->Superclass::size();
+                vtkStdString keyword = ss.str();
+                this->Superclass::push_back(new vtkFoamEntry(this));
+                this->Superclass::back()->SetKeyword(keyword);
+                this->Superclass::back()->push_back(new vtkFoamEntryValue(this->Superclass::back()));
+                this->Superclass::back()->back()->ReadByteList(io, currToken.ToInt());
+              }
+              else // return as empty dictionary
+
+              {
+                io.ReadExpecting(')');
+                return true;
+              }
+            }
+            // decomposedBlockData don't need any further parsing so just return
+            if(currToken == ')')
+            {
+              continue;
+            }
+          }
+          if(foundEOF)
           {
             return true;
           }
         }
         else
         {
-          // list of dictionaries is read as a usual dictionary
-          // polyMesh/boundary, point/face/cell-Zones
-          if(currToken.GetType() == vtkFoamToken::LABEL)
+          // read the first token
+          if(!io.Read(currToken))
           {
-            io.ReadExpecting('(');
-            if(currToken.To<vtkTypeInt64>() > 0)
-            {
-              if(!io.Read(currToken))
-              {
-                throw vtkFoamError() << "Unexpected EOF";
-              }
-              // continue to read as a usual dictionary
-            }
-            else // return as empty dictionary
+            throw vtkFoamError() << "Unexpected EOF";
+          }
 
+          if(isSubDictionary)
+          {
+            // the following if clause is for an exceptional expression
+            // of `LABEL{LABELorSCALAR}' without type prefix
+            // (e. g. `2{-0}' in mixedRhoE B.C. in
+            // rhopSonicFoam/shockTube)
+            if(currToken.GetType() == vtkFoamToken::LABEL
+              || currToken.GetType() == vtkFoamToken::SCALAR)
             {
-              io.ReadExpecting(')');
+              this->Token = currToken;
+              io.ReadExpecting('}');
+              return true;
+            }
+            // return as empty dictionary
+
+            else if(currToken == '}')
+            {
               return true;
             }
           }
-          // some boundary files does not have the number of boundary
-          // patches (e.g. settlingFoam/tank3D). in this case we need to
-          // explicitly read the file as a dictionary.
+          else
+          {
+            // list of dictionaries is read as a usual dictionary
+            // polyMesh/boundary, point/face/cell-Zones
+            if(currToken.GetType() == vtkFoamToken::LABEL)
+            {
+              io.ReadExpecting('(');
+              if(currToken.To<vtkTypeInt64>() > 0)
+              {
+                if(!io.Read(currToken))
+                {
+                  throw vtkFoamError() << "Unexpected EOF";
+                }
+                // continue to read as a usual dictionary
+              }
+              else // return as empty dictionary
 
-          else if(currToken == '('
+              {
+                io.ReadExpecting(')');
+                return true;
+              }
+            }
+            // some boundary files does not have the number of boundary
+            // patches (e.g. settlingFoam/tank3D). in this case we need to
+            // explicitly read the file as a dictionary.
+
+            else if(currToken == '('
               && io.GetClassName() == "polyBoundaryMesh") // polyMesh/boundary
 
-          {
-            if(!io.Read(currToken)) // read the first keyword
-
             {
-              throw vtkFoamError() << "Unexpected EOF";
-            }
-            if(currToken == ')') // return as empty dictionary
+              if(!io.Read(currToken)) // read the first keyword
 
-            {
-              return true;
+              {
+                throw vtkFoamError() << "Unexpected EOF";
+              }
+              if(currToken == ')') // return as empty dictionary
+
+              {
+                return true;
+              }
             }
           }
         }
@@ -3860,6 +4077,10 @@ vtkFoamEntryValue::vtkFoamEntryValue(
             new vtkFoamLabel64VectorVector(*value.LabelListListPtr);
       }
       break;
+    case BYTELIST:
+    {
+      this->ByteListPtr = new std::vector<char>();
+    }
     case ENTRYVALUELIST:
     {
       const size_t nValues = value.EntryValuePtrs->size();
@@ -4822,39 +5043,63 @@ void vtkOpenFOAMReaderPrivate::GetFieldNames(const vtkStdString &tempPath,
       if (io.Open(tempPath + "/" + fieldFile)) // file exists and readable
       {
         const vtkStdString& cn = io.GetClassName();
-        if (isLagrangian)
+        if(cn == "decomposedBlockData")
         {
-          if (cn == "labelField" || cn == "scalarField" || cn == "vectorField"
-              || cn == "sphericalTensorField" || cn == "symmTensorField" || cn
-              == "tensorField")
+          vtkFoamDict dictFile;
+          dictFile.Read(io);
+          int count = 0;
+          vtkStdString className;
+
+          // each entry stores in dictFile is decompoedBlockData
+          // which is the real dict file contents should be interpreted properly.
+          for (auto iter = dictFile.begin(); iter != dictFile.end(); ++iter)
           {
-            // real file name
-            this->LagrangianFieldFiles->InsertNextValue(fieldFile);
-            // object name
-            pointObjectNames->InsertNextValue(io.GetObjectName());
+            std::vector<char>& byteList = (*iter)->ByteList();
+            uiliststream is(byteList.data(), byteList.size());
+
+            // iterate through each entry in the faces file
+            bool skipHeader = false;
+
+            vtkFoamIOobject::fileFormat format;
+            if(iter == dictFile.begin())
+            {
+              vtkFoamIOobject decomposedBlockDataIO(this->CasePath, this->Parent);
+              decomposedBlockDataIO.Open(is, skipHeader);
+              className = decomposedBlockDataIO.GetClassName();
+              format = decomposedBlockDataIO.GetFormat();
+              if (count == this->ProcNo)
+              {
+                vtkFoamEntryValue entryValue(NULL);
+                entryValue.SetLabelType(this->Parent->Use64BitLabels ? vtkFoamToken::INT64
+                : vtkFoamToken::INT32);
+                GetFieldNamesInternal(io, className, fieldFile, isLagrangian,
+                    cellObjectNames, pointObjectNames);
+                break;
+              }
+            }
+            else
+            {
+              if (count == this->ProcNo)
+              {
+                skipHeader = true;
+                vtkFoamIOobject decomposedBlockDataIO(this->CasePath, this->Parent);
+                decomposedBlockDataIO.Open(is, skipHeader);
+                decomposedBlockDataIO.SetFormat(format);
+                vtkFoamEntryValue entryValue(NULL);
+                entryValue.SetLabelType(this->Parent->Use64BitLabels ? vtkFoamToken::INT64
+                : vtkFoamToken::INT32);
+                GetFieldNamesInternal(io, className, fieldFile, isLagrangian,
+                    cellObjectNames, pointObjectNames);
+                break;
+              }
+            }
+            ++count;
           }
         }
         else
         {
-          if (cn == "volScalarField" || cn == "pointScalarField" || cn
-              == "volVectorField" || cn == "pointVectorField" || cn
-              == "volSphericalTensorField" || cn == "pointSphericalTensorField"
-              || cn == "volSymmTensorField" || cn == "pointSymmTensorField"
-              || cn == "volTensorField" || cn == "pointTensorField")
-          {
-            if (cn.substr(0, 3) == "vol")
-            {
-              // real file name
-              this->VolFieldFiles->InsertNextValue(fieldFile);
-              // object name
-              cellObjectNames->InsertNextValue(io.GetObjectName());
-            }
-            else
-            {
-              this->PointFieldFiles->InsertNextValue(fieldFile);
-              pointObjectNames->InsertNextValue(io.GetObjectName());
-            }
-          }
+                GetFieldNamesInternal(io, cn, fieldFile, isLagrangian,
+                    cellObjectNames, pointObjectNames);
         }
         io.Close();
       }
