@@ -547,6 +547,10 @@ private:
   void PopulatePolyMeshDirArrays();
 
   // search a time directory for field objects
+  void GetFieldNamesInternal(const vtkFoamIOobject& io,
+      const vtkStdString& className, const vtkStdString& fieldFile,
+      const bool isLagrangian, vtkStringArray *cellObjectNames,
+      vtkStringArray *pointObjectNames);
   void GetFieldNames(const vtkStdString &, const bool, vtkStringArray *,
       vtkStringArray *);
   void SortFieldFiles(vtkStringArray *, vtkStringArray *, vtkStringArray *);
@@ -4746,6 +4750,47 @@ void vtkOpenFOAMReaderPrivate::SetupInformation(const vtkStdString &casePath,
 }
 
 //-----------------------------------------------------------------------------
+void vtkOpenFOAMReaderPrivate::GetFieldNamesInternal(const vtkFoamIOobject& io,
+    const vtkStdString& className, const vtkStdString& fieldFile,
+    const bool isLagrangian, vtkStringArray *cellObjectNames,
+    vtkStringArray *pointObjectNames)
+{
+  if (isLagrangian)
+  {
+    if (className == "labelField" || className == "scalarField" || className == "vectorField"
+      || className == "sphericalTensorField" || className == "symmTensorField" || className
+      == "tensorField")
+    {
+      // real file name
+      this->LagrangianFieldFiles->InsertNextValue(fieldFile);
+      // object name
+      pointObjectNames->InsertNextValue(io.GetObjectName());
+    }
+  }
+  else
+  {
+    if (className == "volScalarField" || className == "pointScalarField" || className
+      == "volVectorField" || className == "pointVectorField" || className
+      == "volSphericalTensorField" || className == "pointSphericalTensorField"
+      || className == "volSymmTensorField" || className == "pointSymmTensorField"
+      || className == "volTensorField" || className == "pointTensorField")
+    {
+      if (className.substr(0, 3) == "vol")
+      {
+        // real file name
+        this->VolFieldFiles->InsertNextValue(fieldFile);
+        // object name
+        cellObjectNames->InsertNextValue(io.GetObjectName());
+      }
+      else
+      {
+        this->PointFieldFiles->InsertNextValue(fieldFile);
+        pointObjectNames->InsertNextValue(io.GetObjectName());
+      }
+    }
+  }
+}
+
 void vtkOpenFOAMReaderPrivate::GetFieldNames(const vtkStdString &tempPath,
     const bool isLagrangian, vtkStringArray *cellObjectNames,
     vtkStringArray *pointObjectNames)
@@ -4776,39 +4821,63 @@ void vtkOpenFOAMReaderPrivate::GetFieldNames(const vtkStdString &tempPath,
       if (io.Open(tempPath + "/" + fieldFile)) // file exists and readable
       {
         const vtkStdString& cn = io.GetClassName();
-        if (isLagrangian)
+        if(cn == "decomposedBlockData")
         {
-          if (cn == "labelField" || cn == "scalarField" || cn == "vectorField"
-              || cn == "sphericalTensorField" || cn == "symmTensorField" || cn
-              == "tensorField")
+          vtkFoamDict dictFile;
+          dictFile.Read(io);
+          int count = 0;
+          vtkStdString className;
+
+          // each entry stores in dictFile is decompoedBlockData
+          // which is the real dict file contents should be interpreted properly.
+          for (auto iter = dictFile.begin(); iter != dictFile.end(); ++iter)
           {
-            // real file name
-            this->LagrangianFieldFiles->InsertNextValue(fieldFile);
-            // object name
-            pointObjectNames->InsertNextValue(io.GetObjectName());
+            std::vector<char>& byteList = (*iter)->ByteList();
+            uiliststream is(byteList.data(), byteList.size());
+
+            // iterate through each entry in the faces file
+            bool skipHeader = false;
+
+            vtkFoamIOobject::fileFormat format;
+            if(iter == dictFile.begin())
+            {
+              vtkFoamIOobject decomposedBlockDataIO(this->CasePath, this->Parent);
+              decomposedBlockDataIO.Open(is, skipHeader);
+              className = decomposedBlockDataIO.GetClassName();
+              format = decomposedBlockDataIO.GetFormat();
+              if (count == this->ProcNo)
+              {
+                vtkFoamEntryValue entryValue(NULL);
+                entryValue.SetLabelType(this->Parent->Use64BitLabels ? vtkFoamToken::INT64
+                : vtkFoamToken::INT32);
+                GetFieldNamesInternal(io, className, fieldFile, isLagrangian,
+                    cellObjectNames, pointObjectNames);
+                break;
+              }
+            }
+            else
+            {
+              if (count == this->ProcNo)
+              {
+                skipHeader = true;
+                vtkFoamIOobject decomposedBlockDataIO(this->CasePath, this->Parent);
+                decomposedBlockDataIO.Open(is, skipHeader);
+                decomposedBlockDataIO.SetFormat(format);
+                vtkFoamEntryValue entryValue(NULL);
+                entryValue.SetLabelType(this->Parent->Use64BitLabels ? vtkFoamToken::INT64
+                : vtkFoamToken::INT32);
+                GetFieldNamesInternal(io, className, fieldFile, isLagrangian,
+                    cellObjectNames, pointObjectNames);
+                break;
+              }
+            }
+            ++count;
           }
         }
         else
         {
-          if (cn == "volScalarField" || cn == "pointScalarField" || cn
-              == "volVectorField" || cn == "pointVectorField" || cn
-              == "volSphericalTensorField" || cn == "pointSphericalTensorField"
-              || cn == "volSymmTensorField" || cn == "pointSymmTensorField"
-              || cn == "volTensorField" || cn == "pointTensorField")
-          {
-            if (cn.substr(0, 3) == "vol")
-            {
-              // real file name
-              this->VolFieldFiles->InsertNextValue(fieldFile);
-              // object name
-              cellObjectNames->InsertNextValue(io.GetObjectName());
-            }
-            else
-            {
-              this->PointFieldFiles->InsertNextValue(fieldFile);
-              pointObjectNames->InsertNextValue(io.GetObjectName());
-            }
-          }
+                GetFieldNamesInternal(io, cn, fieldFile, isLagrangian,
+                    cellObjectNames, pointObjectNames);
         }
         io.Close();
       }
