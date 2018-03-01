@@ -608,6 +608,7 @@ private:
 
   // create point/face/cell zones
   vtkFoamDict *GatherBlocks(const char *, bool);
+  vtkFoamDict *GatherBlocks(std::istream& is, bool, bool skipHeader=false);
   bool GetPointZoneMesh(vtkMultiBlockDataSet *, vtkPoints *);
   bool GetFaceZoneMesh(vtkMultiBlockDataSet *, const vtkFoamLabelVectorVector *,
       vtkPoints *);
@@ -8689,6 +8690,39 @@ vtkFoamDict* vtkOpenFOAMReaderPrivate::GatherBlocks(const char* typeIn, bool mus
         << " is not a dictionary");
     delete dictPtr;
     return nullptr;
+  }
+  return dictPtr;
+}
+
+// returns a dictionary of block names for a specified domain
+vtkFoamDict* vtkOpenFOAMReaderPrivate::GatherBlocks(std::istream& is, bool mustRead, bool skipHeader)
+{
+  vtkFoamIOobject io(this->CasePath, this->Parent);
+  if (!(io.Open(is, skipHeader)))
+  {
+    if (mustRead)
+    {
+      vtkErrorMacro(<<"Error opening " << io.GetFileName().c_str() << ": "
+          << io.GetError().c_str());
+    }
+    return NULL;
+  }
+
+  vtkFoamDict* dictPtr = new vtkFoamDict;
+  vtkFoamDict& dict = *dictPtr;
+  if (!dict.Read(io))
+  {
+    vtkErrorMacro(<<"Error reading line " << io.GetLineNumber()
+        << " of " << io.GetFileName().c_str() << ": " << io.GetError().c_str());
+    delete dictPtr;
+    return NULL;
+  }
+  if (dict.GetType() != vtkFoamToken::DICTIONARY)
+  {
+    vtkErrorMacro(<<"The file type of " << io.GetFileName().c_str()
+        << " is not a dictionary");
+    delete dictPtr;
+    return NULL;
   }
   return dictPtr;
 }
