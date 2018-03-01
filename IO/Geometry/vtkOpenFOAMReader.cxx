@@ -428,11 +428,20 @@ public:
   // read mesh/fields and create dataset
   int RequestData(vtkMultiBlockDataSet *, bool, bool, bool);
   void SetTimeValue(const double);
-  int MakeMetaDataAtTimeStep(vtkStringArray *, vtkStringArray *,
+  int MakeMetaDataAtTimeStepInternal(vtkFoamDict *boundaryDict, vtkTypeInt64& allBoundariesNextStartFace);
+  int MakeMetaDataAtTimeStep(int, vtkStringArray *, vtkStringArray *,
       vtkStringArray *, const bool);
   void SetupInformation(const vtkStdString &, const vtkStdString &,
       const vtkStdString &, vtkOpenFOAMReaderPrivate *);
 
+  int GetProcNo() const
+  {
+    return this->ProcNo;
+  }
+  void SetProcNo(int procNo)
+  {
+    this->ProcNo = procNo;
+  }
 private:
   struct vtkFoamBoundaryEntry
   {
@@ -462,6 +471,7 @@ private:
   vtkStdString CasePath;
   vtkStdString RegionName;
   vtkStdString ProcessorName;
+  int ProcNo;
 
   // time information
   vtkDoubleArray *TimeValues;
@@ -4891,9 +4901,96 @@ void vtkOpenFOAMReaderPrivate::SortFieldFiles(vtkStringArray *selections,
 }
 
 //-----------------------------------------------------------------------------
+int vtkOpenFOAMReaderPrivate::MakeMetaDataAtTimeStepInternal(vtkFoamDict *boundaryDict,
+  vtkTypeInt64& allBoundariesNextStartFace)
+{
+  for (size_t i = 0; i < boundaryDict->size(); i++)
+  {
+    vtkFoamEntry *boundaryEntryI = boundaryDict->operator[](i);
+    const vtkFoamEntry *nFacesEntry = boundaryEntryI->Dictionary().Lookup("nFaces");
+    if (nFacesEntry == nullptr)
+    {
+      vtkErrorMacro(<< "nFaces entry not found in boundary entry "
+        << boundaryEntryI->GetKeyword().c_str());
+      delete boundaryDict;
+      return 0;
+    }
+    vtkTypeInt64 nFaces = nFacesEntry->ToInt();
+
+    // extract name of the current patch for insertion
+    const vtkStdString &boundaryNameI = boundaryEntryI->GetKeyword();
+
+    // create BoundaryDict entry
+    vtkFoamBoundaryEntry &BoundaryEntryI = this->BoundaryDict[i];
+    BoundaryEntryI.NFaces = nFaces;
+    BoundaryEntryI.BoundaryName = boundaryNameI;
+    const vtkFoamEntry *startFaceEntry = boundaryEntryI->Dictionary().Lookup("startFace");
+    if (startFaceEntry == nullptr)
+    {
+      vtkErrorMacro(<< "startFace entry not found in boundary entry "
+        << boundaryEntryI->GetKeyword().c_str());
+      delete boundaryDict;
+      return 0;
+    }
+    BoundaryEntryI.StartFace = startFaceEntry->ToInt();
+    const vtkFoamEntry *typeEntry = boundaryEntryI->Dictionary().Lookup("type");
+    if (typeEntry == nullptr)
+    {
+      vtkErrorMacro(<< "type entry not found in boundary entry "
+        << boundaryEntryI->GetKeyword().c_str());
+      delete boundaryDict;
+      return 0;
+    }
+    BoundaryEntryI.AllBoundariesStartFace = allBoundariesNextStartFace;
+    const vtkStdString typeNameI(typeEntry->ToString());
+    // if the basic type of the patch is one of the followings the
+    // point-filtered values at patches are overridden by patch values
+    if (typeNameI == "patch" || typeNameI == "wall")
+    {
+      BoundaryEntryI.BoundaryType = vtkFoamBoundaryEntry::PHYSICAL;
+      allBoundariesNextStartFace += nFaces;
+    }
+    else if (typeNameI == "processor")
+    {
+      BoundaryEntryI.BoundaryType = vtkFoamBoundaryEntry::PROCESSOR;
+      allBoundariesNextStartFace += nFaces;
+    }
+    else
+    {
+      BoundaryEntryI.BoundaryType = vtkFoamBoundaryEntry::GEOMETRICAL;
+    }
+    BoundaryEntryI.IsActive = false;
+
+    // always hide processor patches for decomposed cases to keep
+    // vtkAppendCompositeDataLeaves happy
+    if (!this->ProcessorName.empty() && BoundaryEntryI.BoundaryType
+      == vtkFoamBoundaryEntry::PROCESSOR)
+    {
+      continue;
+    }
+    const vtkStdString selectionName(this->RegionPrefix() + boundaryNameI);
+    if (this->Parent->PatchDataArraySelection->
+      ArrayExists(selectionName.c_str()))
+    {
+      // Mark boundary if selected for display
+      if (this->Parent->GetPatchArrayStatus(selectionName.c_str()))
+      {
+        BoundaryEntryI.IsActive = true;
+      }
+    }
+    else
+    {
+      // add patch to list with selection status turned off:
+      // the patch is added to list even if its size is zero
+      this->Parent->PatchDataArraySelection->DisableArray(selectionName.c_str());
+    }
+  }
+  return 1;
+}
+
 // create field data lists and cell/point array selection lists
 int vtkOpenFOAMReaderPrivate::MakeMetaDataAtTimeStep(
-    vtkStringArray *cellSelectionNames, vtkStringArray *pointSelectionNames,
+    int procNo, vtkStringArray *cellSelectionNames, vtkStringArray *pointSelectionNames,
     vtkStringArray *lagrangianSelectionNames, const bool listNextTimeStep)
 {
   // Read the patches from the boundary file into selection array
@@ -4906,110 +5003,107 @@ int vtkOpenFOAMReaderPrivate::MakeMetaDataAtTimeStep(
     this->BoundaryDict.TimeDir
         = this->PolyMeshFacesDir->GetValue(this->TimeStep);
 
-    const bool isSubRegion = !this->RegionName.empty();
-    vtkFoamDict *boundaryDict = this->GatherBlocks("boundary", isSubRegion);
-    if (boundaryDict == nullptr)
+    vtkStdString type("boundary");
+    vtkStdString blockPath =
+    this->CurrentTimeRegionMeshPath(this->PolyMeshFacesDir) + type;
+    vtkFoamIOobject io(this->CasePath, this->Parent);
+    this->SetProcNo(procNo);
+    // open and check if controlDict is readable
+    if (!io.Open(blockPath))
     {
-      if (isSubRegion)
+      vtkErrorMacro(<<"Error opening " << io.GetFileName().c_str() << ": "
+          << io.GetError().c_str());
+      return false;
+    }
+    vtkStdString className(io.GetClassName());
+    io.Close();
+
+    if(className == "decomposedBlockData")
+    {
+      const bool isSubRegion = this->RegionName != "";
+      vtkFoamDict *boundaryDict = this->GatherBlocks("boundary", isSubRegion);
+
+      if (boundaryDict == NULL)
       {
-        return 0;
+        if (isSubRegion)
+        {
+          return 0;
+        }
+      }
+      else
+      {
+        // Add the internal mesh by default always
+        const vtkStdString
+        internalMeshName(this->RegionPrefix() + "internalMesh");
+        this->Parent->PatchDataArraySelection->AddArray(internalMeshName.c_str());
+        this->InternalMeshSelectionStatus
+            = this->Parent->GetPatchArrayStatus(internalMeshName.c_str());
+
+        // processors
+        int count = 0;
+        for (auto iter = boundaryDict->begin(); iter != boundaryDict->end(); ++iter)
+        {
+          if (count == this->ProcNo)
+          {
+            std::vector<char>& byteList = (*iter)->ByteList();
+            uiliststream is(byteList.data(), byteList.size());
+
+            // iterate through each entry in the boundary file
+            vtkTypeInt64 allBoundariesNextStartFace = 0;
+            vtkFoamDict *decomposedBlockDataDict = nullptr;
+            bool skipHeader = false;
+            if(iter == boundaryDict->begin())
+            {
+              decomposedBlockDataDict = this->GatherBlocks(is, isSubRegion, skipHeader);
+            }
+            else
+            {
+              skipHeader = true;
+              decomposedBlockDataDict = this->GatherBlocks(is, isSubRegion, skipHeader);
+            }
+            this->BoundaryDict.resize(decomposedBlockDataDict->size());
+            if (!MakeMetaDataAtTimeStepInternal(decomposedBlockDataDict, allBoundariesNextStartFace))
+            {
+              return 0;
+            }
+            delete decomposedBlockDataDict;
+            break;
+          }
+          count++;
+        }
+        delete boundaryDict;
       }
     }
     else
     {
-      // Add the internal mesh by default always
-      const vtkStdString
-          internalMeshName(this->RegionPrefix() + "internalMesh");
-      this->Parent->PatchDataArraySelection->AddArray(internalMeshName.c_str());
-      this->InternalMeshSelectionStatus
-          = this->Parent->GetPatchArrayStatus(internalMeshName.c_str());
-
-      // iterate through each entry in the boundary file
-      vtkTypeInt64 allBoundariesNextStartFace = 0;
-      this->BoundaryDict.resize(boundaryDict->size());
-      for (size_t i = 0; i < boundaryDict->size(); i++)
+      const bool isSubRegion = !this->RegionName.empty();
+      vtkFoamDict *boundaryDict = this->GatherBlocks("boundary", isSubRegion);
+      if (boundaryDict == nullptr)
       {
-        vtkFoamEntry *boundaryEntryI = boundaryDict->operator[](i);
-        const vtkFoamEntry *nFacesEntry = boundaryEntryI->Dictionary().Lookup("nFaces");
-        if (nFacesEntry == nullptr)
+        if (isSubRegion)
         {
-          vtkErrorMacro(<< "nFaces entry not found in boundary entry "
-              << boundaryEntryI->GetKeyword().c_str());
-          delete boundaryDict;
           return 0;
-        }
-        vtkTypeInt64 nFaces = nFacesEntry->ToInt();
-
-        // extract name of the current patch for insertion
-        const vtkStdString &boundaryNameI = boundaryEntryI->GetKeyword();
-
-        // create BoundaryDict entry
-        vtkFoamBoundaryEntry &BoundaryEntryI = this->BoundaryDict[i];
-        BoundaryEntryI.NFaces = nFaces;
-        BoundaryEntryI.BoundaryName = boundaryNameI;
-        const vtkFoamEntry *startFaceEntry = boundaryEntryI->Dictionary().Lookup("startFace");
-        if (startFaceEntry == nullptr)
-        {
-          vtkErrorMacro(<< "startFace entry not found in boundary entry "
-              << boundaryEntryI->GetKeyword().c_str());
-          delete boundaryDict;
-          return 0;
-        }
-        BoundaryEntryI.StartFace = startFaceEntry->ToInt();
-        const vtkFoamEntry *typeEntry = boundaryEntryI->Dictionary().Lookup("type");
-        if (typeEntry == nullptr)
-        {
-          vtkErrorMacro(<< "type entry not found in boundary entry "
-              << boundaryEntryI->GetKeyword().c_str());
-          delete boundaryDict;
-          return 0;
-        }
-        BoundaryEntryI.AllBoundariesStartFace = allBoundariesNextStartFace;
-        const vtkStdString typeNameI(typeEntry->ToString());
-        // if the basic type of the patch is one of the followings the
-        // point-filtered values at patches are overridden by patch values
-        if (typeNameI == "patch" || typeNameI == "wall")
-        {
-          BoundaryEntryI.BoundaryType = vtkFoamBoundaryEntry::PHYSICAL;
-          allBoundariesNextStartFace += nFaces;
-        }
-        else if (typeNameI == "processor")
-        {
-          BoundaryEntryI.BoundaryType = vtkFoamBoundaryEntry::PROCESSOR;
-          allBoundariesNextStartFace += nFaces;
-        }
-        else
-        {
-          BoundaryEntryI.BoundaryType = vtkFoamBoundaryEntry::GEOMETRICAL;
-        }
-        BoundaryEntryI.IsActive = false;
-
-        // always hide processor patches for decomposed cases to keep
-        // vtkAppendCompositeDataLeaves happy
-        if (!this->ProcessorName.empty() && BoundaryEntryI.BoundaryType
-            == vtkFoamBoundaryEntry::PROCESSOR)
-        {
-          continue;
-        }
-        const vtkStdString selectionName(this->RegionPrefix() + boundaryNameI);
-        if (this->Parent->PatchDataArraySelection->
-        ArrayExists(selectionName.c_str()))
-        {
-          // Mark boundary if selected for display
-          if (this->Parent->GetPatchArrayStatus(selectionName.c_str()))
-          {
-            BoundaryEntryI.IsActive = true;
-          }
-        }
-        else
-        {
-          // add patch to list with selection status turned off:
-          // the patch is added to list even if its size is zero
-          this->Parent->PatchDataArraySelection->DisableArray(selectionName.c_str());
         }
       }
+      else
+      {
+        // Add the internal mesh by default always
+        const vtkStdString
+            internalMeshName(this->RegionPrefix() + "internalMesh");
+        this->Parent->PatchDataArraySelection->AddArray(internalMeshName.c_str());
+        this->InternalMeshSelectionStatus
+            = this->Parent->GetPatchArrayStatus(internalMeshName.c_str());
 
-      delete boundaryDict;
+      // iterate through each entry in the boundary file
+        vtkTypeInt64 allBoundariesNextStartFace = 0;
+        this->BoundaryDict.resize(boundaryDict->size());
+        if(!MakeMetaDataAtTimeStepInternal(boundaryDict, allBoundariesNextStartFace))
+        {
+          return 0;
+        }
+
+        delete boundaryDict;
+      }
     }
   }
 
