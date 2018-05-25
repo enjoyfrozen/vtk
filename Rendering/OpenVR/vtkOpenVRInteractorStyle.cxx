@@ -121,6 +121,10 @@ vtkOpenVRInteractorStyle::vtkOpenVRInteractorStyle()
     "grabmode",
     "Grab Mode",
     this->MenuCommand);
+  this->Menu->PushFrontMenuItem(
+    "tronmode",
+    "Toggle Tron Mode",
+    this->MenuCommand);
 
   vtkNew<vtkPolyDataMapper> pdm;
   this->PickActor->SetMapper(pdm);
@@ -130,6 +134,7 @@ vtkOpenVRInteractorStyle::vtkOpenVRInteractorStyle()
   this->PickActor->DragableOff();
 
   this->HoverPickOff();
+  this->TronModeOff();
 }
 
 //----------------------------------------------------------------------------
@@ -181,6 +186,10 @@ void vtkOpenVRInteractorStyle::MenuCallback(vtkObject* vtkNotUsed(object),
   {
     if (self->Interactor)
     {
+      if (self != nullptr && self->GetTronMode())
+      {
+        self->ToggleDrawTrackedCameraTronMode();
+      }
       self->Interactor->ExitCallback();
     }
   }
@@ -202,6 +211,10 @@ void vtkOpenVRInteractorStyle::MenuCallback(vtkObject* vtkNotUsed(object),
   {
     self->MapInputToAction(vtkEventDataDevice::RightController,
       vtkEventDataDeviceInput::Trigger, VTKIS_PICK);
+  }
+  if (name == "tronmode")
+  {
+    self->ToggleDrawTrackedCameraTronMode();
   }
 }
 
@@ -487,6 +500,26 @@ void vtkOpenVRInteractorStyle::ToggleDrawControls()
           !this->ControlsHelpers[d][i]->GetEnabled());
       }
     }
+  }
+}
+
+//----------------------------------------------------------------------------
+void vtkOpenVRInteractorStyle::ToggleDrawTrackedCameraTronMode()
+{
+  //We should just check the state of the TronMode at running time but how
+  this->TronMode = !this->TronMode;
+
+  vr::EVRSettingsError nSettingsError = vr::VRSettingsError_None;
+  vr::IVRSettings *VRSettings = vr::VRSettings();
+  VRSettings->SetBool(vr::k_pch_Camera_Section,
+    vr::k_pch_Camera_EnableCameraForCollisionBounds_Bool,
+    this->TronMode, &nSettingsError);
+  VRSettings->Sync(true, &nSettingsError);
+
+  if (nSettingsError != vr::VRSettingsError_None)
+  {
+    vtkDebugMacro(<< "Error with Tracked Camera " << VRSettings->GetSettingsErrorNameFromEnum(nSettingsError));
+    return;
   }
 }
 
@@ -804,6 +837,10 @@ void vtkOpenVRInteractorStyle::EndAction(int state, vtkEventDataDevice3D *edata)
     case VTKIS_EXIT:
       if (this->Interactor)
       {
+        if (this != nullptr && this->GetTronMode())
+        {
+          this->ToggleDrawTrackedCameraTronMode();
+        }
         this->Interactor->ExitCallback();
       }
       break;

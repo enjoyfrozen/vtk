@@ -109,6 +109,10 @@ public:
   vtkGetMacro(HoverPick, int);
   vtkBooleanMacro(HoverPick, int);
 
+  vtkSetClampMacro(TronMode, int, 0, 1);
+  vtkGetMacro(TronMode, int);
+  vtkBooleanMacro(TronMode, int);
+
   int GetInteractionState(vtkEventDataDevice device) {
     return this->InteractionState[static_cast<int>(device)]; }
 
@@ -123,6 +127,8 @@ public:
   void HidePickActor();
 
   void ToggleDrawControls();
+
+  void ToggleDrawTrackedCameraTronMode();
 
   void SetInteractor(vtkRenderWindowInteractor* iren) override;
 
@@ -165,6 +171,13 @@ protected:
   * Default is set to off.
   */
   int HoverPick;
+
+  /**
+  * Indicates whether tron mode is enabled.
+  * Enabling Tron mode overlays the actual room view while highlightning object edges .
+  * Default is set to Off
+  */
+  int TronMode;
 
   /**
   * Store required controllers information when performing action
