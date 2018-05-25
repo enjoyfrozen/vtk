@@ -124,6 +124,9 @@ public:
 
   void ToggleDrawControls();
 
+  //Draw the camera texture in a quad in front of the user, following him
+  void ToggleDrawTrackedCameraVideoMode();
+
   void SetInteractor(vtkRenderWindowInteractor* iren) override;
 
   // allow the user to add options to the menu

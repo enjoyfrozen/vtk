@@ -43,6 +43,7 @@ https://github.com/ValveSoftware/openvr/blob/master/LICENSE
 #include "vtkRenderWindowInteractor.h"
 #include "vtkShaderProgram.h"
 #include "vtkTextureObject.h"
+#include "vtkOpenVRTrackedCamera.h"
 #include "vtkTransform.h"
 
 #include <cmath>
@@ -100,6 +101,8 @@ vtkOpenVRRenderWindow::vtkOpenVRRenderWindow()
 #endif
 
   this->DashboardOverlay = vtkOpenVRDefaultOverlay::New();
+
+  this->TrackedCamera = vtkOpenVRTrackedCamera::New();
 }
 
 vtkOpenVRRenderWindow::~vtkOpenVRRenderWindow()
@@ -125,6 +128,12 @@ vtkOpenVRRenderWindow::~vtkOpenVRRenderWindow()
   {
     this->HelperWindow->Delete();
     this->HelperWindow = 0;
+  }
+
+  if (this->TrackedCamera)
+  {
+    this->TrackedCamera->Delete();
+    this->TrackedCamera = 0;
   }
 }
 
@@ -668,6 +677,8 @@ void vtkOpenVRRenderWindow::Initialize (void)
   }
 
   this->DashboardOverlay->Create(this);
+
+  this->TrackedCamera->Initialize(this);
 }
 
 void vtkOpenVRRenderWindow::Finalize (void)

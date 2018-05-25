@@ -37,10 +37,12 @@ PURPOSE.  See the above copyright notice for more information.
 #include "vtkOpenVRCamera.h"
 #include "vtkOpenVRControlsHelper.h"
 #include "vtkOpenVRHardwarePicker.h"
+#include "vtkOpenVRRenderer.h"
 #include "vtkOpenVRRenderWindow.h"
 #include "vtkOpenVRRenderWindowInteractor.h"
 #include "vtkOpenVRModel.h"
 #include "vtkOpenVROverlay.h"
+#include "vtkOpenVRTrackedCamera.h"
 #include "vtkPlane.h"
 #include "vtkPolyData.h"
 #include "vtkPolyDataMapper.h"
@@ -120,6 +122,10 @@ vtkOpenVRInteractorStyle::vtkOpenVRInteractorStyle()
   this->Menu->PushFrontMenuItem(
     "grabmode",
     "Grab Mode",
+    this->MenuCommand);
+  this->Menu->PushFrontMenuItem(
+    "videomode",
+    "Toggle Video Mode",
     this->MenuCommand);
 
   vtkNew<vtkPolyDataMapper> pdm;
@@ -202,6 +208,10 @@ void vtkOpenVRInteractorStyle::MenuCallback(vtkObject* vtkNotUsed(object),
   {
     self->MapInputToAction(vtkEventDataDevice::RightController,
       vtkEventDataDeviceInput::Trigger, VTKIS_PICK);
+  }
+  if (name == "videomode")
+  {
+    self->ToggleDrawTrackedCameraVideoMode();
   }
 }
 
@@ -488,6 +498,44 @@ void vtkOpenVRInteractorStyle::ToggleDrawControls()
       }
     }
   }
+}
+
+//----------------------------------------------------------------------------
+void vtkOpenVRInteractorStyle::ToggleDrawTrackedCameraVideoMode()
+{
+  vtkOpenVRRenderWindow *renWin =
+    vtkOpenVRRenderWindow::SafeDownCast(this->Interactor->GetRenderWindow());
+  if (renWin == nullptr)
+  {
+    return;
+  }
+
+  vtkOpenVRTrackedCamera *trackedCamera = renWin->GetTrackedCamera();
+  if (trackedCamera == nullptr)
+  {
+    return;
+  }
+
+  //Toggle drawing of the camera
+  trackedCamera->SetDrawingEnabled(!trackedCamera->GetDrawingEnabled());
+  if ( !trackedCamera->GetDrawingEnabled() )
+  {
+    return;
+  }
+  //Set the renderer to the current one ,if tracked camera's
+  //renderer is not already the current one
+  if (trackedCamera->GetRenderer() != this->CurrentRenderer)
+  {
+    vtkOpenVRRenderer *ren = vtkOpenVRRenderer::SafeDownCast(trackedCamera->GetRenderer());
+    if (ren)
+    {
+      ren->RemoveViewProp(trackedCamera);
+    }
+    trackedCamera->SetRenderer(this->CurrentRenderer);
+    this->CurrentRenderer->AddViewProp(trackedCamera);
+  }
+  //build tracked camera representation in the scene
+  trackedCamera->BuildRepresentation();
 }
 
 //----------------------------------------------------------------------------

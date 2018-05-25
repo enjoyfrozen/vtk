@@ -27,6 +27,7 @@ set(Module_SRCS
   vtkOpenVRRenderer.cxx
   vtkOpenVRRenderWindow.cxx
   vtkOpenVRRenderWindowInteractor.cxx
+  vtkOpenVRTrackedCamera.cxx
   )
 
 list(APPEND ${vtk-module}_SYSTEM_INCLUDE_DIRS ${OPENVR_INCLUDE_DIRS})

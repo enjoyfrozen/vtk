@@ -52,6 +52,7 @@ class vtkCamera;
 class vtkOpenVRModel;
 class vtkOpenVROverlay;
 class vtkOpenGLVertexBufferObject;
+class vtkOpenVRTrackedCamera;
 class vtkTransform;
 
 class VTKRENDERINGOPENVR_EXPORT vtkOpenVRRenderWindow : public vtkOpenGLRenderWindow
@@ -77,6 +78,14 @@ public:
    */
   vtkGetObjectMacro(DashboardOverlay, vtkOpenVROverlay);
   void SetDashboardOverlay(vtkOpenVROverlay *);
+  //@}
+
+  //@{
+  /**
+  * Set/Get the Tracked Camera
+  */
+  vtkGetObjectMacro(TrackedCamera, vtkOpenVRTrackedCamera);
+  void SetTrackedCamera(vtkOpenVRTrackedCamera *);
   //@}
 
   /**
@@ -358,6 +367,7 @@ protected:
 
   vtkOpenGLRenderWindow *HelperWindow;
 
+  vtkOpenVRTrackedCamera *TrackedCamera;
 
 private:
   vtkOpenVRRenderWindow(const vtkOpenVRRenderWindow&) = delete;
