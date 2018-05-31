@@ -105,13 +105,13 @@ public:
     vtkEventDataDeviceInput input, const std::string &text);
   //@}
 
-  vtkSetClampMacro(HoverPick, int, 0, 1);
-  vtkGetMacro(HoverPick, int);
-  vtkBooleanMacro(HoverPick, int);
+  vtkSetMacro(HoverPick, bool);
+  vtkGetMacro(HoverPick, bool);
+  vtkBooleanMacro(HoverPick, bool);
 
-  vtkSetClampMacro(TronMode, int, 0, 1);
-  vtkGetMacro(TronMode, int);
-  vtkBooleanMacro(TronMode, int);
+  vtkSetMacro(TronMode, bool);
+  vtkGetMacro(TronMode, bool);
+  vtkBooleanMacro(TronMode, bool);
 
   int GetInteractionState(vtkEventDataDevice device) {
     return this->InteractionState[static_cast<int>(device)]; }
@@ -170,14 +170,14 @@ protected:
   * picker will try to pick a prop and rays will be updated accordingly.
   * Default is set to off.
   */
-  int HoverPick;
+  bool HoverPick;
 
   /**
   * Indicates whether tron mode is enabled.
   * Enabling Tron mode overlays the actual room view while highlightning object edges .
   * Default is set to Off
   */
-  int TronMode;
+  bool TronMode;
 
   /**
   * Store required controllers information when performing action
