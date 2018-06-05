@@ -70,7 +70,6 @@ public:
   int Triangulate(int index, vtkIdList *ptIds, vtkPoints *pts) override;
   void Derivatives(int subId, const double pcoords[3], const double *values,
                    int dim, double *derivs) override;
-  double *GetParametricCoords() override;
   //@}
 
   /**
@@ -132,6 +131,8 @@ protected:
 
   vtkLine *Line;
   vtkDoubleArray *Scalars; //used to avoid New/Delete in contouring/clipping
+
+  double *InternalGetParametricCoords() override;
 
 private:
   vtkCubicLine(const vtkCubicLine&) = delete;

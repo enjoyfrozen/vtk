@@ -69,7 +69,6 @@ public:
   int Triangulate(int index, vtkIdList *ptIds, vtkPoints *pts) override;
   void Derivatives(int subId, const double pcoords[3], const double *values,
                    int dim, double *derivs) override;
-  double *GetParametricCoords() override;
 
   /**
    * Clip this edge using scalar value provided. Like contouring, except
@@ -122,6 +121,8 @@ protected:
 
   vtkLine *Line;
   vtkDoubleArray *Scalars; //used to avoid New/Delete in contouring/clipping
+
+  double *InternalGetParametricCoords() override;
 
 private:
   vtkQuadraticEdge(const vtkQuadraticEdge&) = delete;

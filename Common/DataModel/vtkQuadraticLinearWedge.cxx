@@ -75,12 +75,12 @@ static int LinearWedges[4][6] = {
 };
 
 // We use 2 quadratic triangles and 3 quadratic-linear quads
-static int WedgeFaces[5][6] = {
-    {0, 1, 2, 6,  7,  8},   // first quad triangle
-    {3, 5, 4, 11, 10, 9},   // second quad triangle
-    {1, 0, 3, 4, 6, 9},   // 1. quad-linear quad
-    {2, 1, 4, 5, 7,10},   // 2. quad-linear quad
-    {0, 2, 5, 3, 8,11}    // 3. quad-linear quad
+static int WedgeFaces[5][7] = {
+    {0, 1, 2, 6,  7,  8, -1 },   // first quad triangle
+    {3, 5, 4, 11, 10, 9, -1 },   // second quad triangle
+    {1, 0, 3, 4, 6, 9, -1 },   // 1. quad-linear quad
+    {2, 1, 4, 5, 7, 10, -1 },   // 2. quad-linear quad
+    {0, 2, 5, 3, 8,11, -1 }    // 3. quad-linear quad
 };
 
 // We have 6 quadratic and 3 linear edges
@@ -652,7 +652,7 @@ static double vtkQWedgeCellPCoords[36] = {
   0.5, 0.0, 1.0, 0.5, 0.5, 1.0, 0.0, 0.5, 1.0
 };
 
-double * vtkQuadraticLinearWedge::GetParametricCoords ()
+double * vtkQuadraticLinearWedge::InternalGetParametricCoords ()
 {
   return vtkQWedgeCellPCoords;
 }

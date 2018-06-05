@@ -51,14 +51,6 @@ public:
 
   //@{
   /**
-   * See vtkCell3D API for description of these methods.
-   */
-  void GetEdgePoints(int edgeId, int* &pts) override;
-  void GetFacePoints(int faceId, int* &pts) override;
-  //@}
-
-  //@{
-  /**
    * See the vtkCell API for descriptions of these methods.
    */
   int GetCellType() override {return VTK_HEXAGONAL_PRISM;};
@@ -80,7 +72,6 @@ public:
   int Triangulate(int index, vtkIdList *ptIds, vtkPoints *pts) override;
   void Derivatives(int subId, const double pcoords[3], const double *values,
                    int dim, double *derivs) override;
-  double *GetParametricCoords() override;
 
   /**
    * Return the center of the wedge in parametric coordinates.
@@ -115,8 +106,8 @@ public:
    * Return the ids of the vertices defining edge/face (`edgeId`/`faceId').
    * Ids are related to the cell, not to the dataset.
    */
-  static int *GetEdgeArray(int edgeId);
-  static int *GetFaceArray(int faceId);
+  static int *GetEdgeArray(int edgeId) VTK_SIZEHINT(2);
+  static int *GetFaceArray(int faceId) VTK_SIZEHINT(6);
   //@}
 
   /**
@@ -133,6 +124,18 @@ protected:
   vtkLine          *Line;
   vtkQuad          *Quad;
   vtkPolygon       *Polygon;
+
+  //@{
+  /**
+  * See vtkCell3D API for description of these methods.
+  */
+  void InternalGetEdgePoints(int edgeId, int* &pts) override;
+  void InternalGetFacePoints(int faceId, int* &pts) override;
+  //@}
+
+  double *InternalGetParametricCoords() override;
+  int InternalGetNumberOfPointsOnEdge(vtkIdType edgeId) override { return (edgeId < GetNumberOfEdges()) ? 2 : 0; };
+  int InternalGetNumberOfPointsOnFace(vtkIdType faceId) override { return (faceId < GetNumberOfFaces()) ? 6 : 0; };
 
 private:
   vtkHexagonalPrism(const vtkHexagonalPrism&) = delete;

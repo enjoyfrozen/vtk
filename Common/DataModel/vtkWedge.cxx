@@ -797,13 +797,13 @@ int vtkWedge::JacobianInverse(const double pcoords[3], double **inverse,
 }
 
 //----------------------------------------------------------------------------
-void vtkWedge::GetEdgePoints(int edgeId, int* &pts)
+void vtkWedge::InternalGetEdgePoints(int edgeId, int* &pts)
 {
   pts = this->GetEdgeArray(edgeId);
 }
 
 //----------------------------------------------------------------------------
-void vtkWedge::GetFacePoints(int faceId, int* &pts)
+void vtkWedge::InternalGetFacePoints(int faceId, int* &pts)
 {
   pts = this->GetFaceArray(faceId);
 }
@@ -812,7 +812,7 @@ static double vtkWedgeCellPCoords[18] = {0.0,0.0,0.0, 1.0,0.0,0.0, 0.0,1.0,0.0,
                                          0.0,0.0,1.0, 1.0,0.0,1.0, 0.0,1.0,1.0};
 
 //----------------------------------------------------------------------------
-double *vtkWedge::GetParametricCoords()
+double *vtkWedge::InternalGetParametricCoords()
 {
   return vtkWedgeCellPCoords;
 }

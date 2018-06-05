@@ -44,15 +44,6 @@ public:
 
   //@{
   /**
-   * See vtkCell3D API for description of these methods.
-   */
-  void GetEdgePoints(int edgeId, int* &pts) override;
-  void GetFacePoints(int faceId, int* &pts) override;
-  double *GetParametricCoords() override;
-  //@}
-
-  //@{
-  /**
    * See the vtkCell API for descriptions of these methods.
    */
   int GetCellType() override {return VTK_VOXEL;}
@@ -126,6 +117,18 @@ public:
 protected:
   vtkVoxel();
   ~vtkVoxel() override;
+
+  //@{
+  /**
+  * See vtkCell3D API for description of these methods.
+  */
+  void InternalGetEdgePoints(int edgeId, int* &pts) override;
+  void InternalGetFacePoints(int faceId, int* &pts) override;
+  //@}
+
+  double *InternalGetParametricCoords() override;
+  int InternalGetNumberOfPointsOnEdge(vtkIdType edgeId) override { return (edgeId < GetNumberOfEdges()) ? 2 : 0; };
+  int InternalGetNumberOfPointsOnFace(vtkIdType faceId) override { return (faceId < GetNumberOfFaces()) ? 4 : 0; };
 
 private:
   vtkVoxel(const vtkVoxel&) = delete;

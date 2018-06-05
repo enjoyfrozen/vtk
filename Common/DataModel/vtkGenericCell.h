@@ -98,7 +98,6 @@ public:
   void Derivatives(int subId, const double pcoords[3], const double *values,
                    int dim, double *derivs) override;
   int GetParametricCenter(double pcoords[3]) override;
-  double *GetParametricCoords() override;
   int IsPrimaryCell() override;
   //@}
 
@@ -183,6 +182,8 @@ protected:
 
   vtkCell *Cell;
   vtkCell* CellStore[VTK_NUMBER_OF_CELL_TYPES];
+  double *InternalGetParametricCoords() override;
+
 private:
   vtkGenericCell(const vtkGenericCell&) = delete;
   void operator=(const vtkGenericCell&) = delete;

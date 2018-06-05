@@ -647,7 +647,7 @@ double SevenPointTriangleCoords[7*3] = {0.,0.,0.,
 }
 #endif
 
-double* vtkLagrangeTriangle::GetParametricCoords()
+double* vtkLagrangeTriangle::InternalGetParametricCoords()
 {
 #ifdef SEVEN_POINT_TRIANGLE
   if (this->Points->GetNumberOfPoints() == 7)

@@ -70,13 +70,13 @@ static int LinearHexs[8][8] = {
     {20, 26, 23, 19, 15, 25, 14,  7},
     {26, 21, 18, 23, 25, 13,  6, 14} };
 
-static int HexFaces[6][9] = {
-    {0, 4, 7, 3, 16, 15, 19, 11, 20},
-    {1, 2, 6, 5,  9, 18, 13, 17, 21},
-    {0, 1, 5, 4,  8, 17, 12, 16, 22},
-    {3, 7, 6, 2, 19, 14, 18, 10, 23},
-    {0, 3, 2, 1, 11, 10,  9,  8, 24},
-    {4, 5, 6, 7, 12, 13, 14, 15, 25} };
+static int HexFaces[6][10] = {
+    {0, 4, 7, 3, 16, 15, 19, 11, 20, -1},
+    {1, 2, 6, 5,  9, 18, 13, 17, 21, -1},
+    {0, 1, 5, 4,  8, 17, 12, 16, 22, -1},
+    {3, 7, 6, 2, 19, 14, 18, 10, 23, -1},
+    {0, 3, 2, 1, 11, 10,  9,  8, 24, -1},
+    {4, 5, 6, 7, 12, 13, 14, 15, 25, -1} };
 
 static int HexEdges[12][3] = {
     {0, 1,  8}, {1, 2,  9}, {3, 2, 10}, {0, 3, 11},
@@ -732,7 +732,7 @@ static double vtkQHexCellPCoords[81] = {
   0.5, 0.5, 0.5  // 26
 };
 
-double *vtkTriQuadraticHexahedron::GetParametricCoords ()
+double *vtkTriQuadraticHexahedron::InternalGetParametricCoords ()
 {
   return vtkQHexCellPCoords;
 }

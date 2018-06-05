@@ -444,7 +444,7 @@ void vtkQuadraticTriangle::InterpolationDerivs(const double pcoords[3],
 static double vtkQTriangleCellPCoords[18] = {
   0.0,0.0,0.0, 1.0,0.0,0.0, 0.0,1.0,0.0,
   0.5,0.0,0.0, 0.5,0.5,0.0, 0.0,0.5,0.0};
-double *vtkQuadraticTriangle::GetParametricCoords()
+double *vtkQuadraticTriangle::InternalGetParametricCoords()
 {
   return vtkQTriangleCellPCoords;
 }

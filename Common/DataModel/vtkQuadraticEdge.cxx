@@ -279,7 +279,7 @@ void vtkQuadraticEdge::InterpolationDerivs(const double pcoords[3], double deriv
 
 //----------------------------------------------------------------------------
 static double vtkQEdgeCellPCoords[9] = {0.0,0.0,0.0, 1.0,0.0,0.0, 0.5,0.0,0.0};
-double *vtkQuadraticEdge::GetParametricCoords()
+double *vtkQuadraticEdge::InternalGetParametricCoords()
 {
   return vtkQEdgeCellPCoords;
 }

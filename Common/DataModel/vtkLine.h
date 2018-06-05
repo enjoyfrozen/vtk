@@ -57,7 +57,6 @@ public:
   int Triangulate(int index, vtkIdList *ptIds, vtkPoints *pts) override;
   void Derivatives(int subId, const double pcoords[3], const double *values,
                    int dim, double *derivs) override;
-  double *GetParametricCoords() override;
   //@}
 
   /**
@@ -185,6 +184,8 @@ public:
 protected:
   vtkLine();
   ~vtkLine() override {}
+
+  double *InternalGetParametricCoords() override;
 
 private:
   vtkLine(const vtkLine&) = delete;

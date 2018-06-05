@@ -92,7 +92,6 @@ public:
   void JacobianInverse(const double pcoords[3], double** inverse, double* derivs);
   void Derivatives(int subId, const double pcoords[3], const double *values,
                    int dim, double *derivs) override;
-  double* GetParametricCoords() override;
   static void ComputeParametricCoords(double*,vtkIdType);
 
   int GetParametricCenter(double pcoords[3]) override;
@@ -139,6 +138,8 @@ protected:
   vtkIdType IndexMap[(VTK_LAGRANGE_TRIANGLE_MAX_ORDER + 1) *
                      (VTK_LAGRANGE_TRIANGLE_MAX_ORDER + 1)];
   vtkIdType SubtriangleIndexMap[9*MAX_SUBTRIANGLES];
+
+  double* InternalGetParametricCoords() override;
 
 private:
   vtkLagrangeTriangle(const vtkLagrangeTriangle&) = delete;

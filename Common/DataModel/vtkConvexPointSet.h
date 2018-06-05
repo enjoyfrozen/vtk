@@ -188,6 +188,13 @@ protected:
   vtkTriangle    *Triangle;
   vtkDoubleArray *ParametricCoords;
 
+  void InternalGetEdgePoints(int vtkNotUsed(edgeId), int* &vtkNotUsed(pts)) override {}
+  void InternalGetFacePoints(int vtkNotUsed(faceId), int* &vtkNotUsed(pts)) override {}
+
+  double *InternalGetParametricCoords() override;
+  int InternalGetNumberOfPointsOnEdge(vtkIdType edgeId) override { return 0 * edgeId; }
+  int InternalGetNumberOfPointsOnFace(vtkIdType faceId) override { return 0 * faceId; }
+
 private:
   vtkConvexPointSet(const vtkConvexPointSet&) = delete;
   void operator=(const vtkConvexPointSet&) = delete;

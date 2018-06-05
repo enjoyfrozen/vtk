@@ -450,7 +450,7 @@ static double vtkQLinQuadCellPCoords[18] = { 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
                                              1.0, 1.0, 0.0, 0.0, 1.0, 0.0,
                                              0.5, 0.0, 0.0, 0.5, 1.0, 0.0 };
 
-double *vtkQuadraticLinearQuad::GetParametricCoords ()
+double *vtkQuadraticLinearQuad::InternalGetParametricCoords ()
 {
   return vtkQLinQuadCellPCoords;
 }

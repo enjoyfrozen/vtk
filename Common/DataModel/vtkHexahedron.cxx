@@ -741,13 +741,13 @@ void vtkHexahedron::JacobianInverse(const double pcoords[3], double **inverse,
 }
 
 //----------------------------------------------------------------------------
-void vtkHexahedron::GetEdgePoints(int edgeId, int* &pts)
+void vtkHexahedron::InternalGetEdgePoints(int edgeId, int* &pts)
 {
   pts = this->GetEdgeArray(edgeId);
 }
 
 //----------------------------------------------------------------------------
-void vtkHexahedron::GetFacePoints(int faceId, int* &pts)
+void vtkHexahedron::InternalGetFacePoints(int faceId, int* &pts)
 {
   pts = this->GetFaceArray(faceId);
 }
@@ -758,7 +758,7 @@ static double vtkHexahedronCellPCoords[24] = {0.0,0.0,0.0, 1.0,0.0,0.0,
                                              0.0,0.0,1.0, 1.0,0.0,1.0,
                                              1.0,1.0,1.0, 0.0,1.0,1.0};
 
-double *vtkHexahedron::GetParametricCoords()
+double *vtkHexahedron::InternalGetParametricCoords()
 {
   return vtkHexahedronCellPCoords;
 }

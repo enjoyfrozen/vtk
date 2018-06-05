@@ -40,7 +40,7 @@ class vtkQuadraticEdge;
 class vtkQuad;
 class vtkDoubleArray;
 
-class VTKCOMMONDATAMODEL_EXPORT vtkQuadraticQuad : public vtkNonLinearCell
+class VTKCOMMONDATAMODEL_EXPORT vtkQuadraticQuad : public vtkNonLinearCell, vtkCellWithEdges
 {
 public:
   static vtkQuadraticQuad *New();
@@ -74,7 +74,6 @@ public:
   int Triangulate(int index, vtkIdList *ptIds, vtkPoints *pts) override;
   void Derivatives(int subId, const double pcoords[3], const double *values,
                    int dim, double *derivs) override;
-  double *GetParametricCoords() override;
 
   /**
    * Clip this quadratic quad using scalar value provided. Like contouring,
@@ -136,6 +135,10 @@ protected:
   // cells
   vtkCellData      *CellData;
   vtkDoubleArray   *CellScalars;
+
+  double *InternalGetParametricCoords() override;
+  int InternalGetNumberOfPointsOnEdge(vtkIdType edgeId) override { return (edgeId < GetNumberOfEdges()) ? 3 : 0; };
+
   void Subdivide(double *weights);
   void InterpolateAttributes(vtkPointData *inPd, vtkCellData *inCd, vtkIdType cellId,
     vtkDataArray *cellScalars);

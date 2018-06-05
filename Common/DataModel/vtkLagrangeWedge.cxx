@@ -642,7 +642,7 @@ void vtkLagrangeWedge::Derivatives(
   this->Interp->WedgeEvaluateDerivative(this->Order, pcoords, this->GetPoints(), values, dim, derivs);
 }
 
-double* vtkLagrangeWedge::GetParametricCoords()
+double* vtkLagrangeWedge::InternalGetParametricCoords()
 {
   const int* order = this->GetOrder();
 #ifdef VTK_21_POINT_WEDGE

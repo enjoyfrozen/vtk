@@ -602,13 +602,13 @@ void vtkVoxel::Derivatives(int vtkNotUsed(subId), const double pcoords[3],
 }
 
 //----------------------------------------------------------------------------
-void vtkVoxel::GetEdgePoints(int edgeId, int* &pts)
+void vtkVoxel::InternalGetEdgePoints(int edgeId, int* &pts)
 {
   pts = this->GetEdgeArray(edgeId);
 }
 
 //----------------------------------------------------------------------------
-void vtkVoxel::GetFacePoints(int faceId, int* &pts)
+void vtkVoxel::InternalGetFacePoints(int faceId, int* &pts)
 {
   pts = this->GetFaceArray(faceId);
 }
@@ -619,7 +619,7 @@ static double vtkVoxelCellPCoords[24] = {0.0,0.0,0.0, 1.0,0.0,0.0,
                                         0.0,1.0,1.0, 1.0,1.0,1.0};
 
 //----------------------------------------------------------------------------
-double *vtkVoxel::GetParametricCoords()
+double *vtkVoxel::InternalGetParametricCoords()
 {
   return vtkVoxelCellPCoords;
 }

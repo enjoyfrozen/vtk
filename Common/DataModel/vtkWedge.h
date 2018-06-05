@@ -49,14 +49,6 @@ public:
 
   //@{
   /**
-   * See vtkCell3D API for description of these methods.
-   */
-  void GetEdgePoints(int edgeId, int* &pts) override;
-  void GetFacePoints(int faceId, int* &pts) override;
-  //@}
-
-  //@{
-  /**
    * See the vtkCell API for descriptions of these methods.
    */
   int GetCellType() override {return VTK_WEDGE;}
@@ -81,7 +73,6 @@ public:
   int Triangulate(int index, vtkIdList *ptIds, vtkPoints *pts) override;
   void Derivatives(int subId, const double pcoords[3], const double *values,
                    int dim, double *derivs) override;
-  double *GetParametricCoords() override;
   //@}
 
   /**
@@ -138,6 +129,18 @@ protected:
   vtkLine *Line;
   vtkTriangle *Triangle;
   vtkQuad *Quad;
+
+  //@{
+  /**
+  * See vtkCell3D API for description of these methods.
+  */
+  void InternalGetEdgePoints(int edgeId, int* &pts) override;
+  void InternalGetFacePoints(int faceId, int* &pts) override;
+  //@}
+
+  double *InternalGetParametricCoords() override;
+  int InternalGetNumberOfPointsOnEdge(vtkIdType edgeId) override { return (edgeId < GetNumberOfEdges()) ? 2 : 0; };
+  int InternalGetNumberOfPointsOnFace(vtkIdType faceId) override { return (faceId < 2) ? 3 : (faceId < GetNumberOfFaces()) ? 4 : 0; };
 
 private:
   vtkWedge(const vtkWedge&) = delete;

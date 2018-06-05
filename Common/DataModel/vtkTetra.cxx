@@ -786,13 +786,13 @@ int vtkTetra::JacobianInverse(double **inverse, double derivs[12])
 }
 
 //----------------------------------------------------------------------------
-void vtkTetra::GetEdgePoints(int edgeId, int* &pts)
+void vtkTetra::InternalGetEdgePoints(int edgeId, int* &pts)
 {
   pts = this->GetEdgeArray(edgeId);
 }
 
 //----------------------------------------------------------------------------
-void vtkTetra::GetFacePoints(int faceId, int* &pts)
+void vtkTetra::InternalGetFacePoints(int faceId, int* &pts)
 {
   pts = this->GetFaceArray(faceId);
 }
@@ -960,7 +960,7 @@ void vtkTetra::Clip(double value, vtkDataArray *cellScalars,
 static double vtkTetraCellPCoords[12] = {0.0,0.0,0.0, 1.0,0.0,0.0,
                                         0.0,1.0,0.0, 0.0,0.0,1.0};
 
-double *vtkTetra::GetParametricCoords()
+double *vtkTetra::InternalGetParametricCoords()
 {
   return vtkTetraCellPCoords;
 }

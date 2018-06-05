@@ -35,7 +35,7 @@ class vtkTetra;
 class vtkCellArray;
 class vtkDoubleArray;
 
-class VTKCOMMONDATAMODEL_EXPORT vtkCell3D : public vtkCell
+class VTKCOMMONDATAMODEL_EXPORT vtkCell3D : public vtkCell, vtkCellWithEdges, vtkCellWithFaces
 {
 public:
   vtkTypeMacro(vtkCell3D,vtkCell);
@@ -48,7 +48,10 @@ public:
    * the point ids of the mesh that the cell belongs to. The edgeId must
    * range between 0<=edgeId<this->GetNumberOfEdges().
    */
-  virtual void GetEdgePoints(int edgeId, int* &pts) = 0;
+  void GetEdgePoints(int edgeId, int* &pts) VTK_SIZEHINT(pts, GetNumberOfPointsOnEdge(edgeId))
+  {
+    return InternalGetEdgePoints(edgeId, pts);
+  }
 
   /**
    * Get the list of vertices that define a face.  The list is terminated
@@ -57,7 +60,10 @@ public:
    * the cell belongs to. The faceId must range between
    * 0<=faceId<this->GetNumberOfFaces().
    */
-  virtual void GetFacePoints(int faceId, int* &pts) = 0;
+  void GetFacePoints(int faceId, int* &pts) VTK_SIZEHINT(pts, GetNumberOfPointsOnFace(faceId))
+  {
+    return InternalGetFacePoints(faceId, pts);
+  }
 
   void Contour(double value, vtkDataArray *cellScalars,
                vtkIncrementalPointLocator *locator, vtkCellArray *verts,
@@ -109,6 +115,9 @@ protected:
   //used to support clipping
   vtkTetra               *ClipTetra;
   vtkDoubleArray         *ClipScalars;
+
+  virtual void InternalGetEdgePoints(int edgeId, int* &pts) = 0;
+  virtual void InternalGetFacePoints(int faceId, int* &pts) = 0;
 
 private:
   vtkCell3D(const vtkCell3D&) = delete;

@@ -86,7 +86,6 @@ public:
   void Derivatives(
     int subId, const double pcoords[3], const double* values,
     int dim, double* derivs) override;
-  double* GetParametricCoords() override;
   int GetParametricCenter(double center[3]) override;
 
   double GetParametricDistance(const double pcoords[3]) override;
@@ -125,6 +124,8 @@ protected:
   vtkNew<vtkLagrangeQuadrilateral> FaceCell;
   vtkNew<vtkLagrangeCurve> EdgeCell;
   vtkNew<vtkLagrangeInterpolation> Interp;
+
+  double* InternalGetParametricCoords() override;
 
 private:
   vtkLagrangeHexahedron(const vtkLagrangeHexahedron&) = delete;

@@ -294,7 +294,7 @@ void vtkLagrangeCurve::Derivatives(
   // TODO: Fill me in?
 }
 
-double* vtkLagrangeCurve::GetParametricCoords()
+double* vtkLagrangeCurve::InternalGetParametricCoords()
 {
   if (!this->PointParametricCoordinates)
     {

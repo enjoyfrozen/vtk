@@ -818,13 +818,13 @@ int vtkPyramid::JacobianInverse(const double pcoords[3], double **inverse, doubl
 }
 
 //----------------------------------------------------------------------------
-void vtkPyramid::GetEdgePoints(int edgeId, int* &pts)
+void vtkPyramid::InternalGetEdgePoints(int edgeId, int* &pts)
 {
   pts = this->GetEdgeArray(edgeId);
 }
 
 //----------------------------------------------------------------------------
-void vtkPyramid::GetFacePoints(int faceId, int* &pts)
+void vtkPyramid::InternalGetFacePoints(int faceId, int* &pts)
 {
   pts = this->GetFaceArray(faceId);
 }
@@ -834,7 +834,7 @@ static double vtkPyramidCellPCoords[15] = {0.0,0.0,0.0, 1.0,0.0,0.0,
                                            0.0,0.0,1.0};
 
 //----------------------------------------------------------------------------
-double *vtkPyramid::GetParametricCoords()
+double *vtkPyramid::InternalGetParametricCoords()
 {
   return vtkPyramidCellPCoords;
 }

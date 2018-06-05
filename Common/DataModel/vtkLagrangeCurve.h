@@ -77,7 +77,6 @@ public:
   void Derivatives(
     int subId, const double pcoords[3], const double* values,
     int dim, double* derivs) override;
-  double* GetParametricCoords() override;
   int GetParametricCenter(double center[3]) override;
 
   double GetParametricDistance(const double pcoords[3]) override;
@@ -111,6 +110,8 @@ protected:
   vtkNew<vtkDoubleArray> Scalars;
   vtkNew<vtkPoints> TmpPts;
   vtkNew<vtkIdList> TmpIds;
+
+  double* InternalGetParametricCoords() override;
 
 private:
   vtkLagrangeCurve(const vtkLagrangeCurve&) = delete;

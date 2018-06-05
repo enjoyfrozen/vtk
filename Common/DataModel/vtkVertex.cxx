@@ -260,7 +260,7 @@ void vtkVertex::InterpolationDerivs(const double [3], double derivs[3])
 
 //----------------------------------------------------------------------------
 static double vtkVertexCellPCoords[3] = {0.0,0.0,0.0};
-double *vtkVertex::GetParametricCoords()
+double *vtkVertex::InternalGetParametricCoords()
 {
   return vtkVertexCellPCoords;
 }

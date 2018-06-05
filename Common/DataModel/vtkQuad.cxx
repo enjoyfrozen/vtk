@@ -938,7 +938,7 @@ void vtkQuad::Clip(double value, vtkDataArray *cellScalars,
 //----------------------------------------------------------------------------
 static double vtkQuadCellPCoords[12] = {0.0,0.0,0.0, 1.0,0.0,0.0,
                                        1.0,1.0,0.0, 0.0,1.0,0.0};
-double *vtkQuad::GetParametricCoords()
+double *vtkQuad::InternalGetParametricCoords()
 {
   return vtkQuadCellPCoords;
 }

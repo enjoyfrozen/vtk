@@ -580,7 +580,7 @@ static double vtkQQuadCellPCoords[24] = {0.0,0.0,0.0, 1.0,0.0,0.0,
                                         1.0,1.0,0.0, 0.0,1.0,0.0,
                                         0.5,0.0,0.0, 1.0,0.5,0.0,
                                         0.5,1.0,0.0, 0.0,0.5,0.0};
-double *vtkQuadraticQuad::GetParametricCoords()
+double *vtkQuadraticQuad::InternalGetParametricCoords()
 {
   return vtkQQuadCellPCoords;
 }

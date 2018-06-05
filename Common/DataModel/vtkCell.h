@@ -344,7 +344,10 @@ public:
    * 3D parametric coordinates are returned no matter what the topological
    * dimension of the cell.
    */
-  virtual double *GetParametricCoords() VTK_SIZEHINT(3*GetNumberOfPoints());
+  double *GetParametricCoords() VTK_SIZEHINT(3 * GetNumberOfPoints())
+  {
+    return InternalGetParametricCoords();
+  }
 
   /**
    * Compute the interpolation functions/derivatives
@@ -368,9 +371,36 @@ protected:
 
   double Bounds[6];
 
+  virtual double *InternalGetParametricCoords();
+
 private:
   vtkCell(const vtkCell&) = delete;
   void operator=(const vtkCell&) = delete;
+};
+
+
+class VTKCOMMONDATAMODEL_EXPORT vtkCellWithEdges
+{
+public:
+  /**
+  * Get the point count from the edgeId of the cell
+  */
+  int GetNumberOfPointsOnEdge(int edgeId) { return (edgeId < 0) ? 0 : InternalGetNumberOfPointsOnEdge(edgeId); }
+
+protected:
+  virtual int InternalGetNumberOfPointsOnEdge(vtkIdType edgeId) = 0;
+};
+
+class VTKCOMMONDATAMODEL_EXPORT vtkCellWithFaces
+{
+public:
+  /**
+  * Get the point count from the faceId of the cell
+  */
+  int GetNumberOfPointsOnFace(int faceId) { return (faceId < 0) ? 0 : InternalGetNumberOfPointsOnFace(faceId); }
+
+protected:
+  virtual int InternalGetNumberOfPointsOnFace(vtkIdType faceId) = 0;
 };
 
 #endif

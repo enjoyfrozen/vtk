@@ -44,7 +44,7 @@ class vtkLine;
 class vtkQuad;
 class vtkDoubleArray;
 
-class VTKCOMMONDATAMODEL_EXPORT vtkQuadraticLinearQuad : public vtkNonLinearCell
+class VTKCOMMONDATAMODEL_EXPORT vtkQuadraticLinearQuad : public vtkNonLinearCell, vtkCellWithEdges
 {
 public:
   static vtkQuadraticLinearQuad *New();
@@ -77,7 +77,6 @@ public:
   int Triangulate (int index, vtkIdList * ptIds, vtkPoints * pts) override;
   void Derivatives(int subId, const double pcoords[3], const double *values, int dim,
     double *derivs) override;
-  double *GetParametricCoords () override;
 
   /**
    * Clip this quadratic linear quad using scalar value provided. Like
@@ -127,7 +126,7 @@ public:
    * Return the ids of the vertices defining edge (`edgeId`).
    * Ids are related to the cell, not to the dataset.
    */
-  static int *GetEdgeArray(int edgeId);
+  static int *GetEdgeArray(int edgeId) VTK_SIZEHINT(3);
 
 protected:
   vtkQuadraticLinearQuad ();
@@ -137,6 +136,9 @@ protected:
   vtkLine *LinEdge;
   vtkQuad *Quad;
   vtkDoubleArray *Scalars;
+
+  double *InternalGetParametricCoords() override;
+  int InternalGetNumberOfPointsOnEdge(vtkIdType edgeId) override { return (edgeId < GetNumberOfEdges()) ? (((edgeId + 1) % 2 == 0) ? 3 : 2) : 0; };
 
 private:
   vtkQuadraticLinearQuad (const vtkQuadraticLinearQuad &) = delete;

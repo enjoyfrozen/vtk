@@ -88,13 +88,13 @@ static int LinearHexs[8][8] = {
     {20, 26, 23, 19, 15, 25, 14,  7},
     {26, 21, 18, 23, 25, 13,  6, 14} };
 
-static int HexFaces[6][9] = {
-    {0,4,7,3,16,15,19,11, 20},//BiQuadQuad
-    {1,2,6,5,9,18,13,17,21},//BiQuadQuad
-    {0,1,5,4,8,17,12,16,22}, //BiQuadQuad
-    {3,7,6,2,19,14,18,10,23},//BiQuadQuad
-    {0,3,2,1,11,10,9,8, 0},//QuadQuad
-    {4,5,6,7,12,13,14,15, 0} };//QuadQuad
+static int HexFaces[6][10] = {
+    {0,4,7,3,16,15,19,11, 20,-1},//BiQuadQuad
+    {1,2,6,5,9,18,13,17,21,-1},//BiQuadQuad
+    {0,1,5,4,8,17,12,16,22,-1}, //BiQuadQuad
+    {3,7,6,2,19,14,18,10,23,-1},//BiQuadQuad
+    {0,3,2,1,11,10,9,8,-1,0},//QuadQuad
+    {4,5,6,7,12,13,14,15,-1,0} };//QuadQuad
 
 static int HexEdges[12][3] = { {0,1,8}, {1,2,9}, {3,2,10}, {0,3,11},
                                {4,5,12}, {5,6,13}, {7,6,14}, {4,7,15},
@@ -760,7 +760,7 @@ static double vtkQHexCellPCoords[72] ={0.0,0.0,0.0, 1.0,0.0,0.0, 1.0,1.0,0.0,
                                        0.5,0.0,0.5,  // 22
                                        0.5,1.0,0.5}; // 23
 
-double *vtkBiQuadraticQuadraticHexahedron::GetParametricCoords()
+double *vtkBiQuadraticQuadraticHexahedron::InternalGetParametricCoords()
 {
   return vtkQHexCellPCoords;
 }

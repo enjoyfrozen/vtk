@@ -1591,7 +1591,7 @@ void vtkTriangle::ComputeQuadric(const double x1[3], const double x2[3], const d
 //----------------------------------------------------------------------------
 static double vtkTriangleCellPCoords[9] =
 {0.0,0.0,0.0, 1.0,0.0,0.0, 0.0,1.0,0.0};
-double *vtkTriangle::GetParametricCoords()
+double *vtkTriangle::InternalGetParametricCoords()
 {
   return vtkTriangleCellPCoords;
 }

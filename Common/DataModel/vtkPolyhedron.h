@@ -298,6 +298,13 @@ protected:
   vtkIdList      *CellIds;
   vtkGenericCell *Cell;
 
+  void InternalGetEdgePoints(int vtkNotUsed(edgeId), int* &vtkNotUsed(pts)) override {}
+  void InternalGetFacePoints(int vtkNotUsed(faceId), int* &vtkNotUsed(pts)) override {}
+
+  double *InternalGetParametricCoords() override;
+  int InternalGetNumberOfPointsOnEdge(vtkIdType edgeId) override { return 0 * edgeId; }
+  int InternalGetNumberOfPointsOnFace(vtkIdType faceId) override { return 0 * faceId; }
+
 private:
   vtkPolyhedron(const vtkPolyhedron&) = delete;
   void operator=(const vtkPolyhedron&) = delete;

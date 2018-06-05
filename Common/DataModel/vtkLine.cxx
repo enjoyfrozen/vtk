@@ -864,7 +864,7 @@ void vtkLine::InterpolationDerivs(const double vtkNotUsed(pcoords)[3], double de
 
 //----------------------------------------------------------------------------
 static double vtkLineCellPCoords[6] = {0.0,0.0,0.0, 1.0,0.0,0.0};
-double *vtkLine::GetParametricCoords()
+double *vtkLine::InternalGetParametricCoords()
 {
   return vtkLineCellPCoords;
 }

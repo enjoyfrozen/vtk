@@ -811,7 +811,7 @@ void vtkLagrangeTetra::Derivatives(int vtkNotUsed(subId),
 
 //----------------------------------------------------------------------------
 
-double* vtkLagrangeTetra::GetParametricCoords()
+double* vtkLagrangeTetra::InternalGetParametricCoords()
 {
 #ifdef FIFTEEN_POINT_TETRA
   if (this->Points->GetNumberOfPoints() == 15)

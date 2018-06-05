@@ -1163,7 +1163,7 @@ void vtkPolyhedron::Derivatives(int vtkNotUsed(subId), const double pcoords[3],
 }
 
 //----------------------------------------------------------------------------
-double *vtkPolyhedron::GetParametricCoords()
+double *vtkPolyhedron::InternalGetParametricCoords()
 {
   return nullptr;
 }

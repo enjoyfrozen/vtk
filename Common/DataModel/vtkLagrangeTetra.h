@@ -100,7 +100,6 @@ public:
   void JacobianInverse(const double pcoords[3], double** inverse, double* derivs);
   void Derivatives(int subId, const double pcoords[3], const double *values,
                    int dim, double *derivs) override;
-  double* GetParametricCoords() override;
 
   int GetParametricCenter(double pcoords[3]) override;
   double GetParametricDistance(const double pcoords[3]) override;
@@ -148,6 +147,8 @@ protected:
                      (VTK_LAGRANGE_TETRAHEDRON_MAX_ORDER + 1) *
                      (VTK_LAGRANGE_TETRAHEDRON_MAX_ORDER + 1)];
   vtkIdType SubtetraIndexMap[16*MAX_SUBTETRAHEDRA];
+
+  double* InternalGetParametricCoords() override;
 
 private:
   vtkLagrangeTetra(const vtkLagrangeTetra&) = delete;

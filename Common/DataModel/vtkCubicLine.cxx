@@ -455,7 +455,7 @@ void vtkCubicLine::InterpolationDerivs(const double pcoords[3], double derivs[4]
 
 //----------------------------------------------------------------------------
 static double vtkCubicLineCellPCoords[12] = {-1.0,0.0,0.0, 1.0,0.0,0.0, -(1.0/3.0),0.0,0.0, (1.0/3.0),0.0,0.0};
-double *vtkCubicLine::GetParametricCoords()
+double *vtkCubicLine::InternalGetParametricCoords()
 {
   return vtkCubicLineCellPCoords;
 }

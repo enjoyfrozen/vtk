@@ -703,13 +703,13 @@ void vtkHexagonalPrism::JacobianInverse(const double pcoords[3], double **invers
 }
 
 //----------------------------------------------------------------------------
-void vtkHexagonalPrism::GetEdgePoints(int edgeId, int* &pts)
+void vtkHexagonalPrism::InternalGetEdgePoints(int edgeId, int* &pts)
 {
   pts = this->GetEdgeArray(edgeId);
 }
 
 //----------------------------------------------------------------------------
-void vtkHexagonalPrism::GetFacePoints(int faceId, int* &pts)
+void vtkHexagonalPrism::InternalGetFacePoints(int faceId, int* &pts)
 {
   pts = this->GetFaceArray(faceId);
 }
@@ -730,7 +730,7 @@ static double vtkHexagonalPrismCellPCoords[36] = {
 };
 
 //----------------------------------------------------------------------------
-double *vtkHexagonalPrism::GetParametricCoords()
+double *vtkHexagonalPrism::InternalGetParametricCoords()
 {
   return vtkHexagonalPrismCellPCoords;
 }

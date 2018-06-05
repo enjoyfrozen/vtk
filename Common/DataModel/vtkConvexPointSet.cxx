@@ -362,7 +362,7 @@ void vtkConvexPointSet::Derivatives(int subId, const double pcoords[3],
 }
 
 //----------------------------------------------------------------------------
-double *vtkConvexPointSet::GetParametricCoords()
+double *vtkConvexPointSet::InternalGetParametricCoords()
 {
   int numPts = this->PointIds->GetNumberOfIds();
   if ( ! this->ParametricCoords )

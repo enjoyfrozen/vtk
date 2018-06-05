@@ -48,7 +48,7 @@ class vtkQuad;
 class vtkTriangle;
 class vtkDoubleArray;
 
-class VTKCOMMONDATAMODEL_EXPORT vtkBiQuadraticQuad : public vtkNonLinearCell
+class VTKCOMMONDATAMODEL_EXPORT vtkBiQuadraticQuad : public vtkNonLinearCell, vtkCellWithEdges
 {
 public:
   static vtkBiQuadraticQuad *New ();
@@ -75,7 +75,6 @@ public:
   int Triangulate (int index, vtkIdList * ptIds, vtkPoints * pts) override;
   void Derivatives(int subId, const double pcoords[3], const double *values,
                     int dim, double *derivs) override;
-  double *GetParametricCoords() override;
 
   void Contour (double value, vtkDataArray * cellScalars,
                 vtkIncrementalPointLocator * locator, vtkCellArray * verts,
@@ -124,6 +123,9 @@ protected:
   vtkQuad          *Quad;
   vtkTriangle      *Triangle;
   vtkDoubleArray   *Scalars;
+
+  double *InternalGetParametricCoords() override;
+  int InternalGetNumberOfPointsOnEdge(vtkIdType edgeId) override { return (edgeId < GetNumberOfEdges()) ? 3 : 0; };
 
 private:
   vtkBiQuadraticQuad(const vtkBiQuadraticQuad&) = delete;

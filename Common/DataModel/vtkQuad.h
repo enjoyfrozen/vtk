@@ -32,7 +32,7 @@ class vtkLine;
 class vtkTriangle;
 class vtkIncrementalPointLocator;
 
-class VTKCOMMONDATAMODEL_EXPORT vtkQuad : public vtkCell
+class VTKCOMMONDATAMODEL_EXPORT vtkQuad : public vtkCell, vtkCellWithEdges
 {
 public:
   static vtkQuad *New();
@@ -65,7 +65,6 @@ public:
   int Triangulate(int index, vtkIdList *ptIds, vtkPoints *pts) override;
   void Derivatives(int subId, const double pcoords[3], const double *values,
                    int dim, double *derivs) override;
-  double *GetParametricCoords() override;
   //@}
 
   /**
@@ -118,6 +117,9 @@ protected:
 
   vtkLine     *Line;
   vtkTriangle *Triangle;
+
+  double *InternalGetParametricCoords() override;
+  int InternalGetNumberOfPointsOnEdge(vtkIdType edgeId) override { return (edgeId < GetNumberOfEdges()) ? 2 : 0; };
 
 private:
   vtkQuad(const vtkQuad&) = delete;

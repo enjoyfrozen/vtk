@@ -42,7 +42,7 @@ class vtkQuadraticQuad;
 class vtkHexahedron;
 class vtkDoubleArray;
 
-class VTKCOMMONDATAMODEL_EXPORT vtkQuadraticHexahedron : public vtkNonLinearCell
+class VTKCOMMONDATAMODEL_EXPORT vtkQuadraticHexahedron : public vtkNonLinearCell, vtkCellWithEdges, vtkCellWithFaces
 {
 public:
   static vtkQuadraticHexahedron *New();
@@ -76,7 +76,6 @@ public:
   int Triangulate(int index, vtkIdList *ptIds, vtkPoints *pts) override;
   void Derivatives(int subId, const double pcoords[3], const double *values,
                    int dim, double *derivs) override;
-  double *GetParametricCoords() override;
 
   /**
    * Clip this quadratic hexahedron using scalar value provided. Like
@@ -124,8 +123,8 @@ public:
    * Return the ids of the vertices defining edge/face (`edgeId`/`faceId').
    * Ids are related to the cell, not to the dataset.
    */
-  static int *GetEdgeArray(int edgeId);
-  static int *GetFaceArray(int faceId);
+  static int *GetEdgeArray(int edgeId) VTK_SIZEHINT(3);
+  static int *GetFaceArray(int faceId) VTK_SIZEHINT(8);
   //@}
 
   /**
@@ -146,6 +145,10 @@ protected:
   vtkCellData      *CellData;
   vtkDoubleArray   *CellScalars;
   vtkDoubleArray   *Scalars;
+
+  double *InternalGetParametricCoords() override;
+  int InternalGetNumberOfPointsOnEdge(vtkIdType edgeId) override { return (edgeId < GetNumberOfEdges()) ? 3 : 0; };
+  int InternalGetNumberOfPointsOnFace(vtkIdType faceId) override { return (faceId < GetNumberOfFaces()) ? 8 : 0; };
 
   void Subdivide(vtkPointData *inPd, vtkCellData *inCd, vtkIdType cellId,
     vtkDataArray *cellScalars);

@@ -58,7 +58,6 @@ public:
                        double& dist2, double weights[]) override;
   void EvaluateLocation(int& subId, const double pcoords[3], double x[3],
                         double *weights) override;
-  double *GetParametricCoords() override;
   //@}
 
   /**
@@ -134,6 +133,8 @@ public:
 protected:
   vtkVertex();
   ~vtkVertex() override {}
+
+  double *InternalGetParametricCoords() override;
 
 private:
   vtkVertex(const vtkVertex&) = delete;

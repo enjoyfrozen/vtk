@@ -250,7 +250,7 @@ int vtkGenericCell::GetParametricCenter(double pcoords[3])
 }
 
 //----------------------------------------------------------------------------
-double *vtkGenericCell::GetParametricCoords()
+double *vtkGenericCell::InternalGetParametricCoords()
 {
   return this->Cell->GetParametricCoords();
 }

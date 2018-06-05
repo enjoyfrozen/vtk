@@ -50,7 +50,7 @@ class vtkQuadraticTriangle;
 class vtkWedge;
 class vtkDoubleArray;
 
-class VTKCOMMONDATAMODEL_EXPORT vtkBiQuadraticQuadraticWedge : public vtkNonLinearCell
+class VTKCOMMONDATAMODEL_EXPORT vtkBiQuadraticQuadraticWedge : public vtkNonLinearCell, vtkCellWithEdges, vtkCellWithFaces
 {
 public:
   static vtkBiQuadraticQuadraticWedge *New ();
@@ -84,7 +84,6 @@ public:
   int Triangulate (int index, vtkIdList * ptIds, vtkPoints * pts) override;
   void Derivatives(int subId, const double pcoords[3], const double *values, int dim,
     double *derivs) override;
-  double *GetParametricCoords () override;
 
   /**
    * Clip this quadratic Wedge using scalar value provided. Like
@@ -137,8 +136,8 @@ public:
    * Return the ids of the vertices defining edge/face (`edgeId`/`faceId').
    * Ids are related to the cell, not to the dataset.
    */
-  static int *GetEdgeArray(int edgeId);
-  static int *GetFaceArray(int faceId);
+  static int *GetEdgeArray(int edgeId) VTK_SIZEHINT(3);
+  static int *GetFaceArray(int faceId) VTK_SIZEHINT(9);
   //@}
 
   /**
@@ -157,6 +156,10 @@ protected:
   vtkBiQuadraticQuad *Face;
   vtkWedge *Wedge;
   vtkDoubleArray *Scalars;  //used to avoid New/Delete in contouring/clipping
+
+  double *InternalGetParametricCoords() override;
+  int InternalGetNumberOfPointsOnEdge(vtkIdType edgeId) override { return (edgeId < GetNumberOfEdges()) ? 3 : 0; };
+  int InternalGetNumberOfPointsOnFace(vtkIdType faceId) override { return (faceId < 2) ? 6 : (faceId < GetNumberOfFaces()) ? 9 : 0; };
 
 private:
   vtkBiQuadraticQuadraticWedge (const vtkBiQuadraticQuadraticWedge &) = delete;

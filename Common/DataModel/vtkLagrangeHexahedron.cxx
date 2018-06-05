@@ -534,7 +534,7 @@ void vtkLagrangeHexahedron::Derivatives(
   this->Interp->Tensor3EvaluateDerivative(this->Order, pcoords, this->GetPoints(), values, dim, derivs);
 }
 
-double* vtkLagrangeHexahedron::GetParametricCoords()
+double* vtkLagrangeHexahedron::InternalGetParametricCoords()
 {
   if (!this->PointParametricCoordinates)
     {

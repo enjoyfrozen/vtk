@@ -86,11 +86,11 @@ static int LinearPyramids[10][5] = { {0,5,13,8,9},
                                      {7,13,11,12,0},
                                      {8,13,12,9,0} }; // 4 tets
 
-static int PyramidFaces[5][8] = { {0,3,2,1,8,7,6,5},
-                                  {0,1,4,5,10,9,0,0},
-                                  {1,2,4,6,11,10,0,0},
-                                  {2,3,4,7,12,11,0,0},
-                                  {3,0,4,8,9,12,0,0}};
+static int PyramidFaces[5][9] = { {0,3,2,1,8,7,6,5,-1},
+                                  {0,1,4,5,10,9,-1,-1,-1},
+                                  {1,2,4,6,11,10,-1,-1,-1},
+                                  {2,3,4,7,12,11,-1,-1,-1},
+                                  {3,0,4,8,9,12,-1,-1,-1} };
 
 static int PyramidEdges[8][3] = { {0,1,5}, {1,2,6}, {2,3,7},
                                   {3,0,8},{0,4,9},{1,4,10},
@@ -846,7 +846,7 @@ static double vtkQPyramidCellPCoords[39] = {0.0,0.0,0.0, 1.0,0.0,0.0, 1.0,1.0,0.
                                             1.0,1.0,0.5, 0.0,1.0,0.5 };
 
 //----------------------------------------------------------------------------
-double *vtkQuadraticPyramid::GetParametricCoords()
+double *vtkQuadraticPyramid::InternalGetParametricCoords()
 {
   return vtkQPyramidCellPCoords;
 }
