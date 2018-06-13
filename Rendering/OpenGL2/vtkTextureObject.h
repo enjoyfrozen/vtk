@@ -207,6 +207,10 @@ public:
   bool Create2DFromRaw(unsigned int width, unsigned int height,
                        int numComps,  int dataType, void *data);
 
+
+  bool Create2DFromHandle(unsigned int width, unsigned int height,
+    int numComps, int dataType, unsigned int handle);
+
   /**
    * Create a 2D depth texture using a raw pointer.
    * This is a blocking call. If you can, use PBO instead.
@@ -742,6 +746,15 @@ public:
   vtkBooleanMacro(UseSRGBColorSpace, bool);
   //@}
 
+  //@{
+  /**
+  * Is this texture has been created using a handle
+  * Only use is when texture has been created with Create2DFromHandle
+  */
+  vtkGetMacro(OwnTexture, bool);
+  vtkSetMacro(OwnTexture, bool);
+  vtkBooleanMacro(OwnTexture, bool);
+  //@}
 
 protected:
   vtkTextureObject();
@@ -806,6 +819,10 @@ protected:
 
   // for texturebuffers we hold on to the Buffer
   vtkOpenGLBufferObject *BufferObject;
+
+  /**ivar indicating if the texture has already
+  * been created using an handle*/
+  bool OwnTexture;
 
 private:
   vtkTextureObject(const vtkTextureObject&) = delete;

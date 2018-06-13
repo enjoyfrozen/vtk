@@ -510,12 +510,18 @@ void vtkOpenVRInteractorStyle::ToggleDrawTrackedCameraVideoMode()
     return;
   }
 
-  vtkOpenVRTrackedCamera *trackedCamera = renWin->GetTrackedCamera();
+  vtkOpenVRTrackedCamera *trackedCamera =
+    vtkOpenVRTrackedCamera::SafeDownCast(renWin->GetTrackedCamera());
   if (trackedCamera == nullptr)
   {
     return;
   }
-
+  //Choice to enable it once, but we could switch enable/disable each time
+  //for memory if it's not needed further
+  if (!trackedCamera->GetEnabled())
+  {
+    trackedCamera->EnabledOn();
+  }
   //Toggle drawing of the camera
   trackedCamera->SetDrawingEnabled(!trackedCamera->GetDrawingEnabled());
   if ( !trackedCamera->GetDrawingEnabled() )
@@ -534,8 +540,6 @@ void vtkOpenVRInteractorStyle::ToggleDrawTrackedCameraVideoMode()
     trackedCamera->SetRenderer(this->CurrentRenderer);
     this->CurrentRenderer->AddViewProp(trackedCamera);
   }
-  //build tracked camera representation in the scene
-  trackedCamera->BuildRepresentation();
 }
 
 //----------------------------------------------------------------------------

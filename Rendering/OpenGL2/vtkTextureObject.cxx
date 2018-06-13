@@ -230,6 +230,8 @@ vtkTextureObject::vtkTextureObject()
   this->BufferObject = nullptr;
   this->UseSRGBColorSpace = false;
 
+  this->OwnTexture = false;
+
   this->ResourceCallback = new vtkOpenGLResourceFreeCallback<vtkTextureObject>(this,
     &vtkTextureObject::ReleaseGraphicsResources);
 
@@ -295,7 +297,7 @@ void vtkTextureObject::DestroyTexture()
   // destroyed. In fact it may be destroyed before
   // we are(eg smart pointers), in which case we should
   // do nothing.
-  if (this->Context && this->Handle)
+  if (this->Context && this->Handle && this->OwnTexture)
   {
     GLuint tex = this->Handle;
     glDeleteTextures(1, &tex);
@@ -319,10 +321,11 @@ void vtkTextureObject::CreateTexture()
   // reuse the existing handle if we have one
   if (!this->Handle)
   {
-    GLuint tex=0;
+    GLuint tex = 0;
     glGenTextures(1, &tex);
     vtkOpenGLCheckErrorMacro("failed at glGenTextures");
-    this->Handle=tex;
+    this->Handle = tex;
+    this->OwnTexture = true;
 
 #if defined(GL_TEXTURE_BUFFER)
     if (this->Target && this->Target != GL_TEXTURE_BUFFER)
@@ -1479,15 +1482,15 @@ bool vtkTextureObject::Create2DFromRaw(unsigned int width, unsigned int height,
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
   glTexImage2D(
-        this->Target,
-        0,
-        this->InternalFormat,
-        static_cast<GLsizei>(this->Width),
-        static_cast<GLsizei>(this->Height),
-        0,
-        this->Format,
-        this->Type,
-        static_cast<const GLvoid *>(data));
+    this->Target,
+    0,
+    this->InternalFormat,
+    static_cast<GLsizei>(this->Width),
+    static_cast<GLsizei>(this->Height),
+    0,
+    this->Format,
+    this->Type,
+    static_cast<const GLvoid *>(data));
 
   vtkOpenGLCheckErrorMacro("failed at glTexImage2D");
 
@@ -1496,8 +1499,40 @@ bool vtkTextureObject::Create2DFromRaw(unsigned int width, unsigned int height,
 }
 
 //----------------------------------------------------------------------------
+bool vtkTextureObject::Create2DFromHandle(unsigned int width, unsigned int height,
+  int numComps, int dataType, unsigned int handle)
+{
+  assert(this->Context);
+
+  // Now determine the texture parameters using the arguments.
+  this->GetDataType(dataType);
+  this->GetInternalFormat(dataType, numComps, false);
+  this->GetFormat(dataType, numComps, false);
+
+  if (!this->InternalFormat || !this->Format || !this->Type)
+  {
+    vtkErrorMacro("Failed to determine texture parameters. IF="
+      << this->InternalFormat << " F=" << this->Format << " T=" << this->Type);
+    return false;
+  }
+
+  GLenum target = GL_TEXTURE_2D;
+  this->Target = target;
+  this->Components = numComps;
+  this->Width = width;
+  this->Height = height;
+  this->Depth = 1;
+  this->NumberOfDimensions = 2;
+  this->Handle = handle;
+  this->OwnTexture = false;
+  this->AutoParameters = 0;
+
+  return true;
+}
+
+//----------------------------------------------------------------------------
 bool vtkTextureObject::CreateCubeFromRaw(unsigned int width, unsigned int height,
-                                         int numComps, int dataType, void *data[6])
+  int numComps, int dataType, void *data[6])
 {
   assert(this->Context);
 
@@ -1520,7 +1555,6 @@ bool vtkTextureObject::CreateCubeFromRaw(unsigned int width, unsigned int height
   this->Height = height;
   this->Depth = 1;
   this->NumberOfDimensions = 2;
-  this->Context->ActivateTexture(this);
   this->CreateTexture();
   this->Bind();
 

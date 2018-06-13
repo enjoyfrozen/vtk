@@ -12,10 +12,11 @@
 
 =========================================================================*/
 
+#include "vtkActor.h"
 #include "vtkCamera.h"
+#include "vtkImageActor.h"
 #include "vtkRenderer.h"
 #include "vtkOpenGLRenderWindow.h"
-#include "vtkActor.h"
 #include "vtkOpenGLPolyDataMapper.h"
 #include "vtkOpenGLVertexBufferObject.h"
 #include "vtkPLYReader.h"
@@ -43,6 +44,7 @@
 #include "vtkOpenVRCamera.h"
 #include "vtkOpenVRRenderWindow.h"
 #include "vtkOpenVRRenderWindowInteractor.h"
+#include "vtkOpenVRTrackedCamera.h"
 
 #include "vtkWin32RenderWindowInteractor.h"
 #include "vtkWin32OpenGLRenderWindow.h"
@@ -54,7 +56,7 @@ int TestDragon(int argc, char *argv[])
   vtkNew<vtkOpenVRRenderWindow> renderWindow;
   vtkNew<vtkOpenVRRenderWindowInteractor>  iren;
   vtkNew<vtkOpenVRCamera> cam;
-  renderer->SetShowFloor(true);
+  renderer->SetShowFloor(false);
 
   vtkNew<vtkActor> actor;
   renderer->SetBackground(0.2, 0.3, 0.4);
@@ -79,12 +81,12 @@ int TestDragon(int argc, char *argv[])
   renderer->AddLight(light);
 
   const char* fileName = vtkTestUtilities::ExpandDataFileName(argc, argv,
-                                                               "Data/dragon.ply");
+    "Data/dragon.ply");
   vtkNew<vtkPLYReader> reader;
   reader->SetFileName(fileName);
 
   vtkNew<vtkTransform> trans;
-  trans->Translate(10.0,20.0,30.0);
+  trans->Translate(10.0, 20.0, 30.0);
   //trans->Scale(10.0,10.0,10.0);
   vtkNew<vtkTransformPolyDataFilter> tf;
   tf->SetTransform(trans);
@@ -110,13 +112,13 @@ int TestDragon(int argc, char *argv[])
   {
     renderer->ResetCamera();
     renderWindow->Render();
-
-    int retVal = vtkRegressionTestImage( renderWindow.Get() );
-    if ( retVal == vtkRegressionTester::DO_INTERACTOR)
+    int retVal = vtkRegressionTestImage(renderWindow.Get());
+    if (retVal == vtkRegressionTester::DO_INTERACTOR)
     {
       iren->Start();
     }
     return !retVal;
   }
+
   return 0;
 }

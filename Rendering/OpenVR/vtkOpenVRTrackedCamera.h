@@ -37,7 +37,6 @@ PURPOSE.  See the above copyright notice for more information.
 #include "vtkFloatArray.h" //for texture coordinates
 #include "vtkImageData.h"
 #include "vtkOpenVRCamera.h" //To differentiate background camera when rendering video mode
-#include "vtkPassThrough.h" //Connect vtk Image data to the texture
 #include "vtkPointData.h" //texture coordinates
 #include "vtkPolyData.h" //representation of the video mode
 #include "vtkPolyDataMapper.h"
@@ -53,14 +52,14 @@ public:
   void PrintSelf(ostream& os, vtkIndent indent) override { this->Superclass::PrintSelf(os, indent); }
 
   /**
-  * Initialize the tracked camera
-  */
+   * Initialize the tracked camera
+   */
   virtual void Initialize(vtkOpenVRRenderWindow *rw);
 
   /**
-  * Start Video Preview
-  * Should only be used internaly
-  */
+ * Start Video Preview
+ * Should only be used internaly
+ */
   void StartVideoPreview();
 
   /**
@@ -75,18 +74,13 @@ public:
   */
   void UpdateDisplayPosition();
 
-  /**
-  * Refresh the texture/screen displaying what sees the camera after Timeout
-  */
-  void DisplayRefreshTimeout();
-
   //@{
-  /**
-  * Set / get the state of the tracked camera.
-  * This defines if the tracked camera is enabled.
-  * SetEnabled is not defined with vtkSetMacro cause
-  * it's calling to stopVideoPreview for memory use reason.
-  */
+ /**
+ * Set / get the state of the tracked camera.
+ * This defines if the tracked camera is enabled.
+ * SetEnabled is not defined with vtkSetMacro cause
+ * it's calling to stopVideoPreview for memory use reason.
+ */
   void SetEnabled(bool enabled);
   vtkGetMacro(Enabled, bool);
   vtkBooleanMacro(Enabled, bool);
@@ -97,12 +91,26 @@ public:
   * This defines if the tracked camera is enabled to be
   * drawn with the video mode (square in front of the user).
   */
-  void SetDrawingEnabled(bool enabled);
+  //void SetDrawingEnabled(bool enabled);
+  vtkSetMacro(DrawingEnabled, bool);
   vtkGetMacro(DrawingEnabled, bool);
   vtkBooleanMacro(DrawingEnabled, bool);
 
+  //@{
   /**
-  * Build representation of the video mode for tracked camera
+  * Set / get enable acquisition of the video mode tracked
+  * camera as an imageData.
+  */
+  //void SetImageData(const uint8_t *pFrameImage, uint32_t nFrameWidth, uint32_t nFrameHeight);
+  vtkSetMacro(AcquireImageData, bool);
+  vtkGetMacro(AcquireImageData, bool);
+  vtkBooleanMacro(AcquireImageData, bool);
+
+  /*Accessor to Camera texture as image data*/
+  vtkGetMacro(FrameImageData, vtkImageData*);
+
+  /**
+  * Build representation of the video mode for tracked camera as a textured quad
   */
   void BuildRepresentation();
 
@@ -127,43 +135,77 @@ public:
   * For more indications about the differences, check OpenVR API Documentation
   */
   void SetFrameType(int type);
-  int GetFrameType();
+  int GetFrameType() const;
 
   /**
   *Return frame type as a string for user understanding
   *The type must be furnished as int
   */
-  std::string GetFrameTypeAsString(int type);
+  std::string GetFrameTypeAsString(int type) const;
+
   /**
   * Return the current frame type as a string for user understanding
   */
-  std::string GetFrameTypeAsString();
+  std::string GetFrameTypeAsString() const;
 
   /**
-  * Initialization of the preview, allocate dimensions to the SourceImage
+  * Helper to access the texture as an imageData
   */
-  void InitPreview(uint32_t nFrameWidth, uint32_t nFrameHeight);
-
-  /**
-  * Get the source image computed from the source buffer
-  */
-  vtkGetMacro(SourceImage, vtkImageData*);
-
-  /**
-  * Fill the vtkImageData with the Current framebuffer of the tracked camera
-  */
-  void SetFrameImage(const uint8_t *pFrameImage, uint32_t nFrameWidth, uint32_t nFrameHeight, const vr::CameraVideoStreamFrameHeader_t *pFrameHeader);
-
+  void AcquireFrameAsImageData();
 
 protected:
-  vtkOpenVRTrackedCamera();;
+  vtkOpenVRTrackedCamera();
   ~vtkOpenVRTrackedCamera();
+
+  /** Render event - used to update position of the TrackedCameraActor */
+  static void RenderEvent(vtkObject* object, unsigned long event, void* clientdata, void* calldata);
+
+  /*Callback command triggering render of TrackedCamera*/
+  vtkCallbackCommand* RenderCallbackCommand;
+  unsigned long ObserverTag;
 
   /** Vive System */
   vr::IVRSystem *pHMD;
 
+  /** Pointer to the parent vtkOpenVRRenderWindow */
+  vtkSmartPointer<vtkOpenVRRenderWindow> RenderWindow;
+
+  /** The principal Scene renderer*/
+  vtkOpenVRRenderer* Renderer;
+  /** The background renderer to display tracked camera*/
+  vtkOpenVRRenderer* BackgroundRenderer;
+
   /** Tracked Camera (or front camera) */
   vr::IVRTrackedCamera *VRTrackedCamera;
+
+  /*Video Stream Texture Frame Width*/
+  uint32_t				TextureFrameWidth;
+  /*Video Stream Texture Frame Height*/
+  uint32_t				TextureFrameHeight;
+  /*Video Stream Texture Bounds (uMin,uMax,vMin,vMax)*/
+  vr::VRTextureBounds_t TextureBounds;
+
+  /*Camera Frame Width*/
+  uint32_t				CameraFrameWidth;
+  /*Camera Frame Height*/
+  uint32_t				CameraFrameHeight;
+  /*Camera Frame Buffer Size*/
+  uint32_t        CameraFrameBufferSize;
+  /*Frame BufferFor copy and storage in image data*/
+  uint8_t					*CameraFrameBuffer;
+  /*Store number of last frame sequence from the frame header*/
+  uint32_t				LastFrameSequence;
+  /*Texture handle*/
+  vr::glUInt_t TextureGLId;
+  /*Tracked Camera frame header*/
+  vr::CameraVideoStreamFrameHeader_t FrameHeaderTextureGL;
+
+  /**Number of components in the texture returned by OpenVR
+  * - Distorted Frame Type has no alpha channel (3 components)
+  * - Undistorted and MaximumUndistorted has a alpha channel (4 components)*/
+  int NumberOfComponents;
+  /** Type of frame from the Tracked Camera : distorted/Undistorted/MaximumUndistorted*/
+  vr::EVRTrackedCameraFrameType FrameType;
 
   /** The tracked Camera has a unique TrackedCameraHandle_t
   * This handle is used to set attributes, receive events, (and render?).
@@ -171,49 +213,26 @@ protected:
   * In those case the handle will be equal to INVALID_TRACKED_CAMERA_HANDLE */
   vr::TrackedCameraHandle_t VRTrackedCameraHandle;
 
-  /** Camera frame parameters */
-  uint32_t				CameraFrameWidth;
-  uint32_t				CameraFrameHeight;
-  uint32_t				CameraFrameBufferSize;
-  uint8_t					*CameraFrameBuffer;
+  /** The actor representing the tracked camera*/
+  vtkActor* TrackedCameraActor;
+  /** Texture object to handle creation of vtk Texture from the openvr StreamTextureGL */
+  vtkTextureObject* CameraTexture;
+  /**Texture linking the texture object (openvr/opengl) to the actor*/
+  vtkOpenGLTexture* TextureMap;
 
-  uint32_t				LastFrameSequence;
+  /*Enable storage of the texture within an image data
+  * Imply a GPU to CPU copy - Not efficient but a way to access to the
+  * visual information*/
+  bool AcquireImageData;
 
-  /** Pointer to the parent vtkOpenVRRenderWindow */
-  vtkSmartPointer<vtkOpenVRRenderWindow> RenderWindow;
-
-  /** Container for the preview image to render */
-  //vtkOpenVRTrackedCameraPreview *CameraPreviewImage;
-
-  /** Render event - used to update position of the TrackedCameraActor */
-  static void RenderEvent(vtkObject* object, unsigned long event, void* clientdata, void* calldata);
-  vtkCallbackCommand* RenderCallbackCommand;
-  unsigned long ObserverTag;
+  /*Storage of the TrackedCamera Texture on the CPU*/
+  vtkImageData* FrameImageData;
 
   /** Is the tracked camera is enabled */
   bool Enabled;
 
   /** The camera should be drawn into the HMD - Option for the user that may want to activate the camera but not to respresent it */
   bool DrawingEnabled;
-
-  /** Type of frame from the Tracked Camera : distorted/Undistorted/MaximumUndistorted*/
-  vr::EVRTrackedCameraFrameType FrameType;
-
-  /** Filter to get a port on the vtkImageData to feed the Mapper*/
-  vtkPassThrough *Pass;
-
-  /** The principal Scene renderer*/
-  vtkOpenVRRenderer* Renderer;
-  /** The background renderer to display tracked camera*/
-  vtkOpenVRRenderer* BackgroundRenderer;
-  /** The actor representing the tracked camera*/
-  vtkActor* TrackedCameraActor;
-
-  /** Image source to fill and return for display  */
-  vtkImageData *SourceImage;
-
-  /** Current Frame Header from the camera */
-  vr::CameraVideoStreamFrameHeader_t CurrentFrameHeader;
 
 private:
   vtkOpenVRTrackedCamera(const vtkOpenVRTrackedCamera&) = delete;
