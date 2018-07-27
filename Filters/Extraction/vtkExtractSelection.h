@@ -51,18 +51,31 @@ class vtkTable;
 class VTKFILTERSEXTRACTION_EXPORT vtkExtractSelection : public vtkDataObjectAlgorithm
 {
 public:
+  //@{
+  /**
+   * Standard methods for instantiation, type information, and printing.
+   */
   static vtkExtractSelection *New();
   vtkTypeMacro(vtkExtractSelection, vtkDataObjectAlgorithm);
   void PrintSelf(ostream& os, vtkIndent indent) override;
+  //@}
 
   /**
-   * Convenience method to specify the selection connection (2nd input
-   * port)
+   * Specify the selection connection (2nd input port)
    */
   void SetSelectionConnection(vtkAlgorithmOutput* algOutput)
   {
     this->SetInputConnection(1, algOutput);
   }
+
+  //@{
+  /**
+   * Specify and retrieve the selection data directly (without a pipeline
+   * connection).
+   */
+  void SetSelectionData(vtkSelection* selection);
+  vtkSelection *GetSelection();
+  //@}
 
   //@{
   /**
@@ -74,7 +87,6 @@ public:
   vtkGetMacro(PreserveTopology, bool);
   vtkBooleanMacro(PreserveTopology, bool);
   //@}
-
 
   //@{
   /**

@@ -24,6 +24,7 @@
 #include "vtkDataSet.h"
 #include "vtkFrustumSelector.h"
 #include "vtkIdTypeArray.h"
+#include "vtkExecutive.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
 #include "vtkLocationSelector.h"
@@ -54,6 +55,22 @@ vtkExtractSelection::vtkExtractSelection()
 //----------------------------------------------------------------------------
 vtkExtractSelection::~vtkExtractSelection()
 {
+}
+
+//----------------------------------------------------------------------------
+// Specify the selection data.
+void vtkExtractSelection::
+SetSelectionData(vtkSelection *s)
+{
+  this->SetInputData(1, s);
+}
+
+//----------------------------------------------------------------------------
+// Get a pointer to a selection object from the second input.
+vtkSelection *vtkExtractSelection::GetSelection()
+{
+  return vtkSelection::SafeDownCast(
+    this->GetExecutive()->GetInputData(1, 0));
 }
 
 //----------------------------------------------------------------------------

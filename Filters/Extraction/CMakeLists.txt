@@ -29,6 +29,7 @@ set(Module_SRCS
   vtkHierarchicalDataExtractDataSets.cxx
   vtkHierarchicalDataExtractLevel.cxx
   vtkLocationSelector.cxx
+  vtkMassFlowFilter.cxx
   vtkProbeSelectedLocations.cxx
   vtkSelector.cxx
   vtkValueSelector.cxx
