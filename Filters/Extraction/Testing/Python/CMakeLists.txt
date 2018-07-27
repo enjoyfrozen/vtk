@@ -7,5 +7,5 @@ vtk_add_test_python(
   ExtractTensors.py
   extractUGrid.py
   extractVectors.py
-  TestMassFlowFilter.py
+  TestMassFlowFilter.py,NO_VALID
   )
