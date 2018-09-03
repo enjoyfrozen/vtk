@@ -878,7 +878,6 @@ const char* vtkWrapText_PythonSignature(FunctionInfo* currentFunction)
   result->len = 0;
 
   /* print out the name of the method */
-  vtkWPString_Append(result, "V.");
   vtkWPString_Append(result, currentFunction->Name);
 
   /* print the arg list */
@@ -899,18 +898,45 @@ const char* vtkWrapText_PythonSignature(FunctionInfo* currentFunction)
       delims = braces;
     }
 
+    if (arg->Name)
+    {
+      vtkWPString_Append(result, arg->Name);
+    }
+    else
+    {
+      /* PEP 484 recommends underscores for position-only arguments */
+      char argname[4];
+      argname[0] = '_';
+      argname[1] = '_';
+      argname[2] = 'a' + (i % 26);
+      argname[3] = '\0';
+      vtkWPString_Append(result, argname);
+    }
+
+    vtkWPString_Append(result, ":");
+
     vtkWrapText_PythonTypeSignature(result, delims, arg);
+    if (arg->Name && arg->Value)
+    {
+      vtkWPString_Append(result, "=");
+      if (vtkWrap_IsScalar(arg))
+      {
+        vtkWPString_Append(result, arg->Value);
+      }
+      else
+      {
+        vtkWPString_Append(result, "...");
+      }
+    }
   }
 
   vtkWPString_Append(result, ")");
 
-  /* if this is a void method, we are finished */
-  /* otherwise, print "->" and the return type */
+  /* print "->" and the return type */
   ret = currentFunction->ReturnValue;
   if (ret && (ret->Type & VTK_PARSE_UNQUALIFIED_TYPE) != VTK_PARSE_VOID)
   {
     vtkWPString_Append(result, " -> ");
-
     vtkWrapText_PythonTypeSignature(result, parens, ret);
   }
 
@@ -932,23 +958,19 @@ static void vtkWrapText_PythonTypeSignature(
 
   if (vtkWrap_IsVoid(arg))
   {
-    classname = "void";
+    classname = "any";
   }
   else if (vtkWrap_IsFunction(arg))
   {
-    classname = "function";
+    classname = "callable";
   }
   else if (vtkWrap_IsString(arg) || vtkWrap_IsCharPointer(arg))
   {
-    classname = "string";
-    if ((arg->Type & VTK_PARSE_BASE_TYPE) == VTK_PARSE_UNICODE_STRING)
-    {
-      classname = "unicode";
-    }
+    classname = "str";
   }
   else if (vtkWrap_IsChar(arg))
   {
-    classname = "char";
+    classname = "str";
   }
   else if (vtkWrap_IsBool(arg))
   {
