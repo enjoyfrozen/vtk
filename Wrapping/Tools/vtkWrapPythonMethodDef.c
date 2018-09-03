@@ -394,19 +394,23 @@ static void vtkWrapPython_ClassMethodDef(FILE* fp, const char* classname, ClassI
   {
     fprintf(fp,
       "  {\"AddObserver\",  Py%s_AddObserver, 1,\n"
-      "   \"V.AddObserver(int, function) -> int\\nC++: unsigned long AddObserver(const char "
+      "   \"AddObserver(event:int, command:callable, priority:float=0.0) -> int\\nC++: unsigned "
+      "long AddObserver(const char "
       "*event,\\n    vtkCommand *command, float priority=0.0f)\\n\\nAdd an event callback "
-      "function(vtkObject, int) for an event type.\\nReturns a handle that can be used with "
-      "RemoveEvent(int).\"},\n",
+      "callable(o:vtkObject, event:int) for an event type.\\nReturns a handle that can be used "
+      "with "
+      "RemoveEvent(event:int).\"},\n",
       classname);
 
     /* vtkObject needs a special entry for InvokeEvent */
     fprintf(fp,
       "{\"InvokeEvent\", PyvtkObject_InvokeEvent, METH_VARARGS,\n"
-      "   \"V.InvokeEvent(int, void) -> int\\nC++: int InvokeEvent(unsigned long event, void "
-      "*callData)\\nV.InvokeEvent(string, void) -> int\\nC++: int InvokeEvent(const char *event, "
-      "void *callData)\\nV.InvokeEvent(int) -> int\\nC++: int InvokeEvent(unsigned long "
-      "event)\\nV.InvokeEvent(string) -> int\\nC++: int InvokeEvent(const char *event)\\n\\nThis "
+      "   \"InvokeEvent(event:int, callData:any) -> int\\nC++: int InvokeEvent(unsigned long "
+      "event, void "
+      "*callData)\\nInvokeEvent(event:str, callData:any) -> int\\nC++: int InvokeEvent(const char "
+      "*event, "
+      "void *callData)\\nInvokeEvent(event:int) -> int\\nC++: int InvokeEvent(unsigned long "
+      "event)\\nInvokeEvent(event:str) -> int\\nC++: int InvokeEvent(const char *event)\\n\\nThis "
       "method invokes an event and return whether the event was\\naborted or not. If the event was "
       "aborted, the return value is 1,\\notherwise it is 0.\"\n},\n");
   }
@@ -416,16 +420,17 @@ static void vtkWrapPython_ClassMethodDef(FILE* fp, const char* classname, ClassI
   {
     fprintf(fp,
       "  {\"GetAddressAsString\",  Py%s_GetAddressAsString, 1,\n"
-      "   \"V.GetAddressAsString(string) -> string\\nC++: const char "
-      "*GetAddressAsString()\\n\\nGet address of C++ object in format 'Addr=%%p' after casting "
-      "to\\nthe specified type.  You can get the same information from o.__this__.\"},\n",
+      "   \"GetAddressAsString(classname:str) -> str\\n\\nGet address of C++ object in format "
+      "'Addr=%%p' after casting "
+      "to\\nthe specified type.  This method is obsolete, you can get the\\nsame information from "
+      "o.__this__.\"},\n",
       classname);
     fprintf(fp,
       "  {\"Register\", Py%s_Register, 1,\n"
-      "   \"V.Register(vtkObjectBase)\\nC++: virtual void Register(vtkObjectBase *o)\\n\\nIncrease "
+      "   \"Register(o:vtkObjectBase)\\nC++: virtual void Register(vtkObjectBase *o)\\n\\nIncrease "
       "the reference count by 1.\\n\"},\n"
       "  {\"UnRegister\", Py%s_UnRegister, 1,\n"
-      "   \"V.UnRegister(vtkObjectBase)\\nC++: virtual void UnRegister(vtkObjectBase "
+      "   \"UnRegister(o:vtkObjectBase)\\nC++: virtual void UnRegister(vtkObjectBase "
       "*o)\\n\\nDecrease the reference count (release by another object). This\\nhas the same "
       "effect as invoking Delete() (i.e., it reduces the\\nreference count by 1).\\n\"},\n",
       classname, classname);
