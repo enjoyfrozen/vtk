@@ -43,6 +43,7 @@
 
 class vtkDijkstraImageGeodesicPath;
 class vtkImageData;
+class vtkMatrix4x4;
 
 class VTKINTERACTIONWIDGETS_EXPORT vtkDijkstraImageContourLineInterpolator
                        : public vtkContourLineInterpolator
@@ -78,6 +79,12 @@ public:
   vtkGetObjectMacro( CostImage, vtkImageData );
   //@}
 
+  // Description:
+  // Set the vtkMatrix4x4 that maps the CostImage to the oblique slice
+  // that the point placer is using
+  virtual void SetCostImageToObliqueMatrix( vtkMatrix4x4* );
+  vtkGetObjectMacro( CostImageToObliquePlaneMatrix, vtkMatrix4x4 );
+
   //@{
   /**
    * access to the internal dijkstra path
@@ -91,6 +98,10 @@ protected:
 
   vtkImageData *CostImage;
   vtkDijkstraImageGeodesicPath *DijkstraImageGeodesicPath;
+
+  vtkMatrix4x4 *CostImageToObliquePlaneMatrix;
+  vtkMatrix4x4 *ObliquePlaneToCostImageMatrix;
+
 
 private:
   vtkDijkstraImageContourLineInterpolator(
