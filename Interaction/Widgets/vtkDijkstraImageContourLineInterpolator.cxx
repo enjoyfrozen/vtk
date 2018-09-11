@@ -36,8 +36,8 @@ vtkDijkstraImageContourLineInterpolator
 {
   this->DijkstraImageGeodesicPath = vtkDijkstraImageGeodesicPath::New();
   this->CostImage = nullptr;
-  this->CostImageToObliquePlaneMatrix = NULL;
-  this->ObliquePlaneToCostImageMatrix = NULL;
+  this->CostImageToObliquePlaneMatrix = nullptr;
+  this->ObliquePlaneToCostImageMatrix = nullptr;
 }
 
 //----------------------------------------------------------------------
@@ -46,8 +46,14 @@ vtkDijkstraImageContourLineInterpolator
 {
   this->DijkstraImageGeodesicPath->Delete();
   this->CostImage = nullptr;
-  this->CostImageToObliquePlaneMatrix->Delete();
-  this->ObliquePlaneToCostImageMatrix->Delete();
+  if ( this->CostImageToObliquePlaneMatrix )
+  {
+    this->CostImageToObliquePlaneMatrix->Delete();
+  }
+  if ( this->ObliquePlaneToCostImageMatrix )
+  {
+    this->ObliquePlaneToCostImageMatrix->Delete();
+  }
 }
 
 //----------------------------------------------------------------------------
