@@ -870,19 +870,24 @@ bool vtkPlotPoints::UpdateTableCache(vtkTable *table)
       this->YErrors = vtkFloatArray::New();
     }
     vtkDataArray *xErr = array[2];
-    switch (xErr->GetDataType())
+    if (xErr)
     {
-      vtkTemplateMacro(CopyToXErrors(
-          this->XErrors, static_cast<VTK_TT *>(xErr->GetVoidPointer(0)),
-          xErr->GetNumberOfTuples(), this->ShiftScale));
+      switch (xErr->GetDataType())
+      {
+        vtkTemplateMacro(CopyToXErrors(
+            this->XErrors, static_cast<VTK_TT *>(xErr->GetVoidPointer(0)),
+            xErr->GetNumberOfTuples(), this->ShiftScale));
+      }
     }
-
     vtkDataArray *yErr = array[3];
-    switch (yErr->GetDataType())
+    if (yErr)
     {
-      vtkTemplateMacro(CopyToYErrors(
-          this->YErrors, static_cast<VTK_TT *>(yErr->GetVoidPointer(0)),
-          yErr->GetNumberOfTuples(), this->ShiftScale));
+      switch (yErr->GetDataType())
+      {
+        vtkTemplateMacro(CopyToYErrors(
+            this->YErrors, static_cast<VTK_TT *>(yErr->GetVoidPointer(0)),
+            yErr->GetNumberOfTuples(), this->ShiftScale));
+      }
     }
   }
 
