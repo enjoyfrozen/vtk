@@ -355,16 +355,14 @@ void vtkPlotPoints::PaintErrorBars(vtkContext2D *painter,
   errorPen->SetOpacity(255);
   painter->ApplyPen(errorPen);
 
+  float capLengthX = (this->GetXAxis()->GetMaximum() -
+                      this->GetXAxis()->GetMinimum()) / 100,
+        capLengthY = (this->GetYAxis()->GetMaximum() -
+                      this->GetYAxis()->GetMinimum()) / 100;
+
   for (int i = 0; i < n; ++i)
   {
     float thisX = points[2 * i], thisY = points[2 * i + 1];
-    float capLengthX = (this->GetXAxis()->GetMaximum() -
-                        this->GetXAxis()->GetMinimum()) /
-                       100,
-          capLengthY = (this->GetYAxis()->GetMaximum() -
-                        this->GetYAxis()->GetMinimum()) /
-                       100;
-
     if (XErrors && XErrors->GetNumberOfValues() > i)
     {
       float thisError = XErrors->GetValue(i);
