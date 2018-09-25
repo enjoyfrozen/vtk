@@ -2388,8 +2388,14 @@ int vtkMultiBlockPLOT3DReader::ReadArrays(
         vtkDataArray* functionArray = this->NewFloatArray();
         functionArray->SetNumberOfTuples(npts);
         std::ostringstream stream;
-        (j < static_cast<int>(this->FunctionNames.size()))
-            ? stream << this->FunctionNames[j] : stream << "Function" << j;
+        if (auto fname = this->GetFunctionName(j))
+        {
+          stream << fname;
+        }
+        else
+        {
+          stream << "Function" << j;
+        }
         const std::string functionName = stream.str();
         functionArray->SetName(functionName.c_str());
         if (this->ReadScalar(fFp2, extent, wextent, functionArray, offset, record) == 0)
@@ -3588,6 +3594,51 @@ int vtkMultiBlockPLOT3DReader::FillOutputPortInformation(
   info->Set(vtkDataObject::DATA_TYPE_NAME(), "vtkMultiBlockDataSet");
   return 1;
 }
+
+void vtkMultiBlockPLOT3DReader::SetFunctionName(int index, const char* name)
+{
+  if (static_cast<int>(this->FunctionNames.size()) <= index)
+  {
+    this->FunctionNames.resize(index + 1);
+  }
+
+  const std::string sname(name ? name : "");
+  if (this->FunctionNames[index] != sname)
+  {
+    this->FunctionNames[index] = sname;
+    this->Modified();
+  }
+}
+
+const char* vtkMultiBlockPLOT3DReader::GetFunctionName(int index) const
+{
+  if (static_cast<int>(this->FunctionNames.size()) > index)
+  {
+    const auto& name = this->FunctionNames[index];
+    return name.empty() ? nullptr : name.c_str();
+  }
+  return nullptr;
+}
+
+void vtkMultiBlockPLOT3DReader::ClearAllFunctionNames()
+{
+  if (this->FunctionNames.size() > 0)
+  {
+    this->FunctionNames.clear();
+    this->Modified();
+  }
+}
+
+#if !defined(VTK_LEGACY_REMOVE)
+void vtkMultiBlockPLOT3DReader::AddFunctionName(const std::string& name)
+{
+  VTK_LEGACY_REPLACED_BODY(vtkMultiBlockPLOT3DReader::AddFunctionName,
+    "VTK 8.3",
+    vtkMultiBlockPLOT3DReader::SetFunctionName);
+  this->SetFunctionName(
+    static_cast<int>(this->FunctionNames.size()), name.empty() ? nullptr : name.c_str());
+}
+#endif
 
 void vtkMultiBlockPLOT3DReader::PrintSelf(ostream& os, vtkIndent indent)
 {
