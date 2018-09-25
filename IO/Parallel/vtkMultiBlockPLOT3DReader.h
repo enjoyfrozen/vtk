@@ -87,13 +87,14 @@
 #ifndef vtkMultiBlockPLOT3DReader_h
 #define vtkMultiBlockPLOT3DReader_h
 
-#include <vector>  // For holding function-names
 #include "vtkIOParallelModule.h" // For export macro
 #include "vtkParallelReader.h"
 
+#include <set>    // For holding function-list (q-file)
+#include <vector> // For holding function-names (function-file)
+
 class vtkDataArray;
 class vtkDataSetAttributes;
-class vtkIntArray;
 class vtkMultiBlockPLOT3DReaderRecord;
 class vtkMultiProcessController;
 class vtkStructuredGrid;
@@ -543,7 +544,7 @@ protected:
   std::vector<std::string> FunctionNames;
 
   //functions to read that are not scalars or vectors
-  vtkIntArray *FunctionList;
+  std::set<int> FunctionList;
 
   int ScalarFunctionNumber;
   int VectorFunctionNumber;

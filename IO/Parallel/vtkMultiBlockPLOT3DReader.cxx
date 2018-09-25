@@ -1310,8 +1310,6 @@ vtkMultiBlockPLOT3DReader::vtkMultiBlockPLOT3DReader()
 
   this->PreserveIntermediateFunctions = true;
 
-  this->FunctionList = vtkIntArray::New();
-
   this->ScalarFunctionNumber = -1;
   this->SetScalarFunctionNumber(100);
   this->VectorFunctionNumber = -1;
@@ -1329,7 +1327,6 @@ vtkMultiBlockPLOT3DReader::~vtkMultiBlockPLOT3DReader()
 {
   delete [] this->XYZFileName;
   delete [] this->FunctionFileName;
-  this->FunctionList->Delete();
   this->ClearGeometryCache();
 
   delete this->Internal;
@@ -2274,17 +2271,14 @@ int vtkMultiBlockPLOT3DReader::ReadArrays(
         vtk_fseek(qFp, offset, SEEK_SET);
       }
 
-      if ( this->FunctionList->GetNumberOfTuples() > 0 )
+      for (const int& fnum : this->FunctionList)
       {
-        int fnum;
-        for (int tup=0; tup < this->FunctionList->GetNumberOfTuples(); tup++)
+        if (fnum >= 0)
         {
-          if ( (fnum=this->FunctionList->GetValue(tup)) >= 0 )
-          {
-            this->MapFunction(fnum, nthOutput);
-          }
+          this->MapFunction(fnum, nthOutput);
         }
       }
+
       // Remove intermediate results, if requested.
       if (this->PreserveIntermediateFunctions == false)
       {
@@ -3180,18 +3174,7 @@ void vtkMultiBlockPLOT3DReader::SetScalarFunctionNumber(int num)
   if (num >= 0)
   {
     // If this function is not in the list, add it.
-    int found=0;
-    for (int i=0; i < this->FunctionList->GetNumberOfTuples(); i++ )
-    {
-      if ( this->FunctionList->GetValue(i) == num )
-      {
-        found=1;
-      }
-    }
-    if (!found)
-    {
-      this->AddFunction(num);
-    }
+    this->AddFunction(num);
   }
   this->ScalarFunctionNumber = num;
 }
@@ -3205,31 +3188,16 @@ void vtkMultiBlockPLOT3DReader::SetVectorFunctionNumber(int num)
   if (num >= 0)
   {
     // If this function is not in the list, add it.
-    int found=0;
-    for (int i=0; i < this->FunctionList->GetNumberOfTuples(); i++ )
-    {
-      if ( this->FunctionList->GetValue(i) == num )
-      {
-        found=1;
-      }
-    }
-    if (!found)
-    {
-      this->AddFunction(num);
-    }
+    this->AddFunction(num);
   }
   this->VectorFunctionNumber = num;
 }
 
 void vtkMultiBlockPLOT3DReader::RemoveFunction(int fnum)
 {
-  for (int i=0; i < this->FunctionList->GetNumberOfTuples(); i++ )
+  if (this->FunctionList.erase(fnum) > 0)
   {
-    if ( this->FunctionList->GetValue(i) == fnum )
-    {
-      this->FunctionList->SetValue(i,-1);
-      this->Modified();
-    }
+    this->Modified();
   }
 }
 
@@ -3578,14 +3546,19 @@ const char *vtkMultiBlockPLOT3DReader::GetByteOrderAsString()
 
 void vtkMultiBlockPLOT3DReader::AddFunction(int functionNumber)
 {
-  this->FunctionList->InsertNextValue(functionNumber);
-  this->Modified();
+  if (this->FunctionList.insert(functionNumber).second)
+  {
+    this->Modified();
+  }
 }
 
 void vtkMultiBlockPLOT3DReader::RemoveAllFunctions()
 {
-  this->FunctionList->Reset();
-  this->Modified();
+  if (this->FunctionList.size() > 0)
+  {
+    this->FunctionList.clear();
+    this->Modified();
+  }
 }
 
 int vtkMultiBlockPLOT3DReader::FillOutputPortInformation(
