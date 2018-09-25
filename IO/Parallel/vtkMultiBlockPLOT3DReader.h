@@ -368,7 +368,20 @@ public:
   vtkGetObjectMacro(Controller, vtkMultiProcessController);
   //@}
 
-  void AddFunctionName(const std::string &name) {FunctionNames.push_back(name);}
+  //@{
+  /**
+   * API to get/set names for functions read from function file specified using
+   * `SetFunctionFileName`.
+   */
+  void SetFunctionName(int index, const char* name);
+  const char* GetFunctionName(int index) const;
+  void ClearAllFunctionNames();
+  //@}
+
+  /**
+   * @deprecated Replaced by `SetFunctionName` as of VTK 8.3
+   */
+  VTK_LEGACY(void AddFunctionName(const std::string& name));
 
   enum
   {
