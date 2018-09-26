@@ -91,16 +91,16 @@
 #include "vtkParallelReader.h"
 
 #include <set>    // For holding function-list (q-file)
-#include <vector> // For holding function-names (function-file)
+#include <vector>    // For holding function-names (function-file)
 
 class vtkDataArray;
 class vtkDataSetAttributes;
+class vtkMultiBlockDataSet;
 class vtkMultiBlockPLOT3DReaderRecord;
 class vtkMultiProcessController;
 class vtkStructuredGrid;
 class vtkUnsignedCharArray;
 struct vtkMultiBlockPLOT3DReaderInternals;
-class vtkMultiBlockDataSet;
 
 namespace Functors
 {
@@ -348,6 +348,9 @@ public:
    * Specify additional functions to read. These are placed into the
    * point data as data arrays. Later on they can be used by labeling
    * them as scalars, etc.
+   *
+   * These are either read from Q file or computed using other functions read
+   * from the Q file.
    */
   void AddFunction(int functionNumber);
   void RemoveFunction(int);
@@ -377,6 +380,30 @@ public:
   void SetFunctionName(int index, const char* name);
   const char* GetFunctionName(int index) const;
   void ClearAllFunctionNames();
+  //@}
+
+  //@{
+  /**
+   * Enable/disable functions read from function file set using
+   * `SetFunctionFileName`. Note, this is different from functions reads from
+   * the Q file (or solution file). Those must be enabled/disabled using
+   * `AddFunction`/`RemoveFunction` API.
+   */
+  void EnableFunction(int index);
+  void DisableFunction(int index);
+  void ResetFunctionsEnableState();
+  bool IsFunctionEnabled(int index) const;
+  //@}
+
+  //@{
+  /**
+   * If no override is specified for any function using EnableFunction or
+   * DisableFunction, then this is default function enable state. Defaults to
+   * true.
+   */
+  vtkSetMacro(DefaultFunctionEnableState, bool);
+  vtkGetMacro(DefaultFunctionEnableState, bool);
+  vtkBooleanMacro(DefaultFunctionEnableState, bool);
   //@}
 
   /**
@@ -469,6 +496,7 @@ protected:
 
   int GetNumberOfBlocksInternal(FILE* xyzFp, int allocate);
 
+  int ReadFunctionFileMetaData();
   int ReadGeometryHeader(FILE* fp);
   int ReadQHeader(FILE* fp, bool checkGrid, int& nq, int& nqc, int& overflow);
   int ReadFunctionHeader(FILE* fp, int* nFunctions);
@@ -530,6 +558,7 @@ protected:
   vtkTypeBool AutoDetectFormat;
 
   int ExecutedGhostLevels;
+  bool DefaultFunctionEnableState;
 
   size_t FileSize;
 
