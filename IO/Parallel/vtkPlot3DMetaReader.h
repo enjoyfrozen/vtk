@@ -33,7 +33,7 @@
  * that describe the format. Note that the PLOT3D file names are relative
  * to the location of the meta-file unless they start with a leading /.
  *
- * \verbatim
+ * @code{.js}
  * {
  * "auto-detect-format" : true // Tells the reader to try to figure out the format automatically. Only works
  *                             // with binary file. This is on by default, negating the need for most other
@@ -60,10 +60,17 @@
  *  { "time" : 3.5, "xyz" : "combxyz.bin", "q" : "combq.1.bin", "function" : "combf.1.bin" },
  *  { "time" : 4.5, "xyz" : "combxyz.bin", "q" : "combq.2.bin", "function" : "combf.2.bin" }
  * ],
- * "function-names" : ["density", "velocity_x", "temperature"]
- *                   // list of names of functions in function files
+ * "function-names" : ["density", "velocity_x", {}, null, "temperature"]
+ *                   // list of names of functions in function files.
+ *                   // To skip loading any particular function, simply give it
+ *                   // a `null` as the name.
+ *                   // To let the reader use a default name for the function,
+ *                   // use `{}`.
+ *                   // In this example, the 3rd variable gets the default name
+ *                   // `Function2` while the 4th variable is not read in at
+ *                   // all.
  * }
- * \endverbatim
+ * @endcode
  *
  * This reader leverages vtkMultiBlockPLOT3DReader to do the actual
  * reading so you may want to refer to the documentation of
