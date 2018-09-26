@@ -1321,6 +1321,7 @@ vtkMultiBlockPLOT3DReader::vtkMultiBlockPLOT3DReader()
   this->SetController(vtkMultiProcessController::GetGlobalController());
 
   this->ExecutedGhostLevels = 0;
+  this->DefaultFunctionEnableState = true;
 }
 
 vtkMultiBlockPLOT3DReader::~vtkMultiBlockPLOT3DReader()
@@ -2379,31 +2380,34 @@ int vtkMultiBlockPLOT3DReader::ReadArrays(
 
       for (int j=0; j<nFunctions[i]; j++)
       {
-        vtkDataArray* functionArray = this->NewFloatArray();
-        functionArray->SetNumberOfTuples(npts);
-        std::ostringstream stream;
-        if (auto fname = this->GetFunctionName(j))
+        if (this->IsFunctionEnabled(j))
         {
-          stream << fname;
-        }
-        else
-        {
-          stream << "Function" << j;
-        }
-        const std::string functionName = stream.str();
-        functionArray->SetName(functionName.c_str());
-        if (this->ReadScalar(fFp2, extent, wextent, functionArray, offset, record) == 0)
-        {
-          vtkErrorMacro("Encountered premature end-of-file while reading "
-                        "the function file (or the file is corrupt).");
-          this->CloseFile(fFp2);
+          vtkDataArray* functionArray = this->NewFloatArray();
+          functionArray->SetNumberOfTuples(npts);
+          std::ostringstream stream;
+          if (auto fname = this->GetFunctionName(j))
+          {
+            stream << fname;
+          }
+          else
+          {
+            stream << "Function" << j;
+          }
+          const std::string functionName = stream.str();
+          functionArray->SetName(functionName.c_str());
+          if (this->ReadScalar(fFp2, extent, wextent, functionArray, offset, record) == 0)
+          {
+            vtkErrorMacro("Encountered premature end-of-file while reading "
+                "the function file (or the file is corrupt).");
+            this->CloseFile(fFp2);
+            functionArray->Delete();
+            this->ClearGeometryCache();
+            return 0;
+          }
+          nthOutput->GetPointData()->AddArray(functionArray);
           functionArray->Delete();
-          this->ClearGeometryCache();
-          return 0;
         }
         offset += record.GetLengthWithSeparators(offset, nTotalPts*this->Internal->Settings.Precision);
-        nthOutput->GetPointData()->AddArray(functionArray);
-        functionArray->Delete();
       }
 
       offset += this->GetByteCountSize();
@@ -3613,6 +3617,44 @@ void vtkMultiBlockPLOT3DReader::AddFunctionName(const std::string& name)
 }
 #endif
 
+void vtkMultiBlockPLOT3DReader::EnableFunction(int index)
+{
+  auto iter = this->Internal->FunctionSelection.find(index);
+  if (iter == this->Internal->FunctionSelection.end() ||
+      iter->second != true)
+  {
+    this->Internal->FunctionSelection[index] = true;
+    this->Modified();
+  }
+}
+
+void vtkMultiBlockPLOT3DReader::DisableFunction(int index)
+{
+  auto iter = this->Internal->FunctionSelection.find(index);
+  if (iter == this->Internal->FunctionSelection.end() ||
+      iter->second != false)
+  {
+    this->Internal->FunctionSelection[index] = false;
+    this->Modified();
+  }
+}
+
+void vtkMultiBlockPLOT3DReader::ResetFunctionsEnableState()
+{
+  if (this->Internal->FunctionSelection.size() > 0)
+  {
+    this->Internal->FunctionSelection.clear();
+    this->Modified();
+  }
+}
+
+bool vtkMultiBlockPLOT3DReader::IsFunctionEnabled(int index) const
+{
+  auto iter = this->Internal->FunctionSelection.find(index);
+  return iter != this->Internal->FunctionSelection.end() ?
+    iter->second : this->DefaultFunctionEnableState;
+}
+
 void vtkMultiBlockPLOT3DReader::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os,indent);
@@ -3639,5 +3681,7 @@ void vtkMultiBlockPLOT3DReader::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "Auto Detect Format: " << this->AutoDetectFormat << endl;
   os << indent
      << "PreserveIntermediateFunctions: " << (this->PreserveIntermediateFunctions ? "on" : "off")
+     << endl;
+  os << indent << "DefaultFunctionEnableState: " << (this->DefaultFunctionEnableState ? "on" : "off")
      << endl;
 }

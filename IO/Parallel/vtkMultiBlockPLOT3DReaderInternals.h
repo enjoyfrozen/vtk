@@ -24,6 +24,7 @@
 
 #include <exception>
 #include <vector>
+#include <map>
 
 class vtkMultiProcessController;
 
@@ -52,6 +53,10 @@ struct vtkMultiBlockPLOT3DReaderInternals
 
   std::vector<Dims> Dimensions;
   std::vector<vtkSmartPointer<vtkStructuredGrid> > Blocks;
+
+  // this map is used to determine which functions from FunctionFile
+  // have been explicitly enabled or disabled.
+  std::map<int, bool> FunctionSelection;
 
   struct InternalSettings
   {
