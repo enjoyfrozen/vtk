@@ -112,10 +112,12 @@ public:
   /**
    * Rounds a float to the nearest integer.
    */
+#if 1
   static int Round(float f) {
     return static_cast<int>( f + ( f >= 0.0 ? 0.5 : -0.5 ) ); }
   static int Round(double f) {
     return static_cast<int>( f + ( f >= 0.0 ? 0.5 : -0.5 ) ); }
+#endif
 
   /**
    * Round a double to type OutT if OutT is integral, otherwise simply clamp
