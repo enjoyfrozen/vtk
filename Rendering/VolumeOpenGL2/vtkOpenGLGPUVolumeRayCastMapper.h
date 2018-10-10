@@ -188,6 +188,9 @@ public:
   vtkGetStringMacro(FragmentShaderCode);
   //@}
 
+  std::string GetLastUsedVertexShaderCode();
+  std::string GetLastUsedFragmentShaderCode();
+
   //@{
   /**
    * The Uniforms object allows to set custom uniform variables

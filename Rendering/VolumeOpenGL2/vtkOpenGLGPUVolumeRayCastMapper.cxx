@@ -2396,6 +2396,32 @@ void vtkOpenGLGPUVolumeRayCastMapper::ClearAllShaderReplacements()
 }
 
 //-----------------------------------------------------------------------------
+std::string vtkOpenGLGPUVolumeRayCastMapper::GetLastUsedVertexShaderCode()
+{
+    std::string code;
+    if( this->Impl->ShaderProgram )
+    {
+        vtkShader * s = this->Impl->ShaderProgram->GetVertexShader();
+        if( s )
+            code = s->GetSource();
+    }
+    return code;
+}
+
+//-----------------------------------------------------------------------------
+std::string vtkOpenGLGPUVolumeRayCastMapper::GetLastUsedFragmentShaderCode()
+{
+    std::string code;
+    if( this->Impl->ShaderProgram )
+    {
+        vtkShader * s = this->Impl->ShaderProgram->GetFragmentShader();
+        if( s )
+            code = s->GetSource();
+    }
+    return code;
+}
+
+//-----------------------------------------------------------------------------
 void vtkOpenGLGPUVolumeRayCastMapper::GetShaderTemplate(
   std::map<vtkShader::Type, vtkShader*>& shaders)
 {
