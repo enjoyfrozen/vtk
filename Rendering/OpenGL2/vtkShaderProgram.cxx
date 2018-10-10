@@ -126,14 +126,23 @@ bool vtkShaderProgram::Substitute(std::string &source, const std::string &search
 {
   std::string::size_type pos = 0;
   bool replaced = false;
+  std::string taggedReplace(replace);
+  if(search.substr(0,7) == std::string("//VTK::"))
+  {
+      // We have a regular tag, extract the tag and but gards on replace
+      std::string tag( search.substr(2,search.size()-2) );
+      std::ostringstream stm;
+      stm << "// BEGIN " << tag << std::endl << replace << std::endl << "// END " << tag << std::endl;
+      taggedReplace = stm.str();
+  }
   while ((pos = source.find(search, pos)) != std::string::npos)
   {
-    source.replace(pos, search.length(), replace);
+    source.replace(pos, search.length(), taggedReplace);
     if (!all)
     {
       return true;
     }
-    pos += replace.length();
+    pos += taggedReplace.length();
     replaced = true;
   }
   return replaced;
