@@ -28,28 +28,21 @@ extern void xmlCheckVersion(int version);
  *
  * the version string like "1.2.3"
  */
-#define LIBXML_DOTTED_VERSION "@VERSION@"
+#define LIBXML_DOTTED_VERSION "2.4.26"
 
 /**
  * LIBXML_VERSION:
  *
  * the version number: 1.2.3 value is 1002003
  */
-#define LIBXML_VERSION @LIBXML_VERSION_NUMBER@
+#define LIBXML_VERSION 20426
 
 /**
  * LIBXML_VERSION_STRING:
  *
  * the version number string, 1.2.3 value is "1002003"
  */
-#define LIBXML_VERSION_STRING "@LIBXML_VERSION_NUMBER@"
-
-/**
- * LIBXML_VERSION_EXTRA:
- *
- * extra version information, used to show a CVS compilation
- */
-#define LIBXML_VERSION_EXTRA "-win32"
+#define LIBXML_VERSION_STRING "20426"
 
 /**
  * LIBXML_TEST_VERSION:
@@ -57,7 +50,7 @@ extern void xmlCheckVersion(int version);
  * Macro to check that the libxml version in use is compatible with
  * the version the software has been compiled against
  */
-#define LIBXML_TEST_VERSION xmlCheckVersion(@LIBXML_VERSION_NUMBER@);
+#define LIBXML_TEST_VERSION xmlCheckVersion(20426);
 
 #if 0
 /**
@@ -166,30 +159,12 @@ extern void xmlCheckVersion(int version);
 #endif
 
 /**
- * LIBXML_SCHEMATRON_ENABLED:
- *
- * Whether the Schematron validation interfaces are compiled in
- */
-#if 1
-#define LIBXML_SCHEMATRON_ENABLED
-#endif
-
-/**
  * LIBXML_ICONV_ENABLED:
  *
  * Whether iconv support is available
  */
 #if 0
 #define LIBXML_ICONV_ENABLED
-#endif
-
-/**
- * LIBXML_ISO8859X_ENABLED:
- *
- * Whether ISO-8859-* support is made available in case iconv is not
- */
-#if 1
-#define LIBXML_ISO8859X_ENABLED
 #endif
 
 /**
@@ -211,18 +186,9 @@ extern void xmlCheckVersion(int version);
 #endif
 
 /**
- * LIBXML_DEBUG_RUNTIME:
- *
- * Whether the runtime debugging is configured in
- */
-#if 0
-#define LIBXML_DEBUG_RUNTIME
-#endif
-
-/**
  * LIBXML_DLL_IMPORT:
  *
- * Used on Windows (MS C compiler only) to declare a variable as 
+ * Used on Windows (MS C compiler only) to declare a variable as
  * imported from the library. This macro should be empty when compiling
  * libxml itself. It should expand to __declspec(dllimport)
  * when the client code includes this header, and that only if the client
@@ -230,9 +196,9 @@ extern void xmlCheckVersion(int version);
  * For this to work, we need three macros. One tells us which compiler is
  * being used and luckily the compiler defines such a thing: _MSC_VER. The
  * second macro tells us if we are compiling libxml or the client code and
- * we define the macro IN_LIBXML on the compiler's command line for this 
- * purpose. The third macro, LIBXML_STATIC, must be defined by any client 
- * code which links against libxml statically. 
+ * we define the macro IN_LIBXML on the compiler's command line for this
+ * purpose. The third macro, LIBXML_STATIC, must be defined by any client
+ * code which links against libxml statically.
  */
 #ifndef LIBXML_DLL_IMPORT
 #if defined(_MSC_VER) && !defined(IN_LIBXML) && !defined(LIBXML_STATIC)
@@ -267,18 +233,6 @@ extern void xmlCheckVersion(int version);
 #ifdef _MSC_VER
 #if defined LIBXML_ICONV_ENABLED && !defined LIBXML2_COMPILING_MSCCDEF
 #pragma comment(lib, "iconv.lib")
-#endif
-#endif
-
-/*
- * #pragma comment(lib, "kernel32.lib")
- *
- * pragma understood my MS compiler which enables a conditional link with
- * kernel32.
- */
-#ifdef _MSC_VER
-#if defined LIBXML_MODULES_ENABLED
-#pragma comment(lib, "kernel32.lib")
 #endif
 #endif
 
