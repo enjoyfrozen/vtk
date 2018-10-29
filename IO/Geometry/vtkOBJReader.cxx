@@ -32,15 +32,12 @@ vtkStandardNewMacro(vtkOBJReader);
 //----------------------------------------------------------------------------
 vtkOBJReader::vtkOBJReader()
 {
-  this->FileName = nullptr;
-  this->SetNumberOfInputPorts(0);
   this->Comment = nullptr;
 }
 
 //----------------------------------------------------------------------------
 vtkOBJReader::~vtkOBJReader()
 {
-  this->SetFileName(nullptr);
   this->SetComment(nullptr);
 }
 

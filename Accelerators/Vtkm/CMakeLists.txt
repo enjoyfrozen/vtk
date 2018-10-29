@@ -36,6 +36,7 @@ set(headers
   vtkmCleanGrid.h
   vtkmClip.h
   vtkmContour.h
+  vtkmCoordinateSystemTransform.h
   vtkmExternalFaces.h
   vtkmExtractVOI.h
   vtkmGradient.h
@@ -43,6 +44,7 @@ set(headers
   vtkmLevelOfDetail.h
   vtkmNDHistogram.h
   vtkmPointElevation.h
+  vtkmPointTransform.h
   vtkmPolyDataNormals.h
   vtkmProbe.h
   vtkmThreshold.h
@@ -61,6 +63,7 @@ set(cpu_accelerator_srcs
   vtkmClip.cxx
   vtkmConnectivityExec.cxx
   vtkmContour.cxx
+  vtkmCoordinateSystemTransform.cxx
   vtkmExternalFaces.cxx
   vtkmExtractVOI.cxx
   vtkmGradient.cxx
@@ -68,6 +71,7 @@ set(cpu_accelerator_srcs
   vtkmLevelOfDetail.cxx
   vtkmNDHistogram.cxx
   vtkmPointElevation.cxx
+  vtkmPointTransform.cxx
   vtkmPolyDataNormals.cxx
   vtkmProbe.cxx
   vtkmThreshold.cxx
@@ -89,6 +93,7 @@ set(cuda_accelerator_srcs
   vtkmClip.cu
   vtkmConnectivityExec.cu
   vtkmContour.cu
+  vtkmCoordinateSystemTransform.cu
   vtkmExternalFaces.cu
   vtkmExtractVOI.cu
   vtkmGradient.cu
@@ -96,6 +101,7 @@ set(cuda_accelerator_srcs
   vtkmLevelOfDetail.cu
   vtkmNDHistogram.cu
   vtkmPointElevation.cu
+  vtkmPointTransform.cu
   vtkmPolyDataNormals.cu
   vtkmProbe.cu
   vtkmThreshold.cu

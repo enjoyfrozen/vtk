@@ -25,6 +25,7 @@
 
 #include "vtkRenderingOpenGL2Module.h" // For export macro
 #include "vtkRenderer.h"
+#include "vtkSmartPointer.h" // For vtkSmartPointer
 #include <vector>  // STL Header
 #include <string> // Ivars
 
@@ -127,6 +128,12 @@ public:
   // get the number of lights turned on
   vtkGetMacro(LightingCount, int);
 
+  /**
+   * Set the user light transform applied after the camera transform.
+   * Can be null to disable it.
+   */
+  void SetUserLightTransform(vtkTransform* transform);
+
 protected:
   vtkOpenGLRenderer();
   ~vtkOpenGLRenderer() override;
@@ -145,6 +152,13 @@ protected:
    * Returns the number of props that rendered geometry.
    */
   int UpdateGeometry() override;
+
+  /**
+   * Check and return the textured background for the current state
+   * If monocular or stereo left eye, check BackgroundTexture
+   * If stereo right eye, check RightBackgroundTexture
+   */
+  vtkTexture* GetCurrentTexturedBackground();
 
   friend class vtkOpenGLProperty;
   friend class vtkOpenGLTexture;
@@ -186,6 +200,11 @@ protected:
   int LightingComplexity;
   int LightingCount;
   vtkMTimeType LightingUpdateTime;
+
+  /**
+   * Optional user transform for lights
+   */
+  vtkSmartPointer<vtkTransform> UserLightTransform;
 
 private:
   vtkOpenGLRenderer(const vtkOpenGLRenderer&) = delete;

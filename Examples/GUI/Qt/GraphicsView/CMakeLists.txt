@@ -54,12 +54,14 @@ set( QRCs
 # Instruct CMake to run moc automatically when needed.
 set(CMAKE_AUTOMOC ON)
 
-find_package(Qt5 COMPONENTS WebKitWidgets REQUIRED QUIET)
+find_package(Qt5 COMPONENTS WebKitWidgets OpenGLExtensions QUIET)
+
 
 qt5_add_resources(QRC_Srcs ${QRCs} )
 
 add_executable(qtgraphicsview MACOSX_BUNDLE
   ${Srcs} ${Hdrs} ${MOC_Hdrs} ${QRC_Srcs})
-qt5_use_modules(qtgraphicsview Core Gui Widgets
-                WebKit WebKitWidgets OpenGL OpenGLExtensions)
+target_link_libraries(qtgraphicsview Qt5::Core Qt5::Gui Qt5::Widgets
+                      Qt5::WebKit Qt5::WebKitWidgets
+                      Qt5::OpenGL Qt5::OpenGLExtensions)
 target_link_libraries(qtgraphicsview ${VTK_LIBRARIES})

@@ -61,7 +61,7 @@ PURPOSE.  See the above copyright notice for more information.
 #include <sstream>
 #include <string>
 
-#ifdef __APPLE__
+#if defined(__APPLE__) && ! defined(VTK_OPENGL_HAS_OSMESA)
 #include <CoreFoundation/CoreFoundation.h>
 #endif
 
@@ -75,7 +75,6 @@ vtkOpenGLRenderer::vtkOpenGLRenderer()
   this->ShadowMapPass = nullptr;
   this->DepthPeelingHigherLayer=0;
 
-  this->BackgroundTexture = nullptr;
   this->HaveApplePrimitiveIdBugValue = false;
   this->HaveApplePrimitiveIdBugChecked = false;
 
@@ -359,7 +358,9 @@ int vtkOpenGLRenderer::UpdateGeometry()
 
   // loop through props and give them a chance to
   // render themselves as volumetric geometry.
-  if (hasTranslucentPolygonalGeometry == 0 || !this->UseDepthPeelingForVolumes)
+  if (hasTranslucentPolygonalGeometry == 0 ||
+      !this->UseDepthPeeling ||
+      !this->UseDepthPeelingForVolumes)
   {
     timer->MarkStartEvent("Volumes");
     for ( i = 0; i < this->PropArrayCount; i++ )
@@ -386,6 +387,27 @@ int vtkOpenGLRenderer::UpdateGeometry()
                     this->NumberOfPropsRendered << " actors" );
 
   return  this->NumberOfPropsRendered;
+}
+
+//----------------------------------------------------------------------------
+vtkTexture* vtkOpenGLRenderer::GetCurrentTexturedBackground()
+{
+  if (!this->GetRenderWindow()->GetStereoRender() && this->BackgroundTexture)
+  {
+    return this->BackgroundTexture;
+  }
+  else if (this->GetRenderWindow()->GetStereoRender() && this->GetActiveCamera()->GetLeftEye() == 1 && this->BackgroundTexture)
+  {
+    return this->BackgroundTexture;
+  }
+  else if (this->GetRenderWindow()->GetStereoRender() && this->RightBackgroundTexture)
+  {
+    return this->RightBackgroundTexture;
+  }
+  else
+  {
+    return nullptr;
+  }
 }
 
 // ----------------------------------------------------------------------------
@@ -596,10 +618,10 @@ void vtkOpenGLRenderer::Clear(void)
     mapper->SetInputConnection(prod->GetOutputPort());
     actor->SetMapper(mapper);
 
-    if(this->TexturedBackground && this->BackgroundTexture)
+    if(this->TexturedBackground && this->GetCurrentTexturedBackground())
     {
-      this->BackgroundTexture->InterpolateOn();
-      actor->SetTexture(this->BackgroundTexture);
+      this->GetCurrentTexturedBackground()->InterpolateOn();
+      actor->SetTexture(this->GetCurrentTexturedBackground());
 
       vtkNew<vtkFloatArray> tcoords;
       float tmp[2];
@@ -710,7 +732,7 @@ bool vtkOpenGLRenderer::HaveApplePrimitiveIdBug()
     return this->HaveApplePrimitiveIdBugValue;
   }
 
-#ifdef __APPLE__
+#if defined(__APPLE__) && ! defined(VTK_OPENGL_HAS_OSMESA)
   // Known working Apple+AMD systems:
   // OpenGL vendor string:  ATI Technologies Inc.
   // OpenGL version string:   4.1 ATI-1.38.3
@@ -796,9 +818,7 @@ bool vtkOpenGLRenderer::HaveApplePrimitiveIdBug()
 //------------------------------------------------------------------------------
 bool vtkOpenGLRenderer::HaveAppleQueryAllocationBug()
 {
-#ifndef __APPLE__ // Bug only applies to apple
-  return false;
-#else
+#if defined(__APPLE__) && ! defined(VTK_OPENGL_HAS_OSMESA)
   enum class QueryAllocStatus { NotChecked, Yes, No };
   static QueryAllocStatus hasBug = QueryAllocStatus::NotChecked;
 
@@ -813,6 +833,8 @@ bool vtkOpenGLRenderer::HaveAppleQueryAllocationBug()
   }
 
   return hasBug == QueryAllocStatus::Yes;
+#else
+  return false;
 #endif
 }
 
@@ -983,10 +1005,22 @@ void vtkOpenGLRenderer::UpdateLightingUniforms(vtkShaderProgram *program)
         double lightDir[3];
         vtkMath::Subtract(lfp,lp,lightDir);
         vtkMath::Normalize(lightDir);
-        double *tDir = viewTF->TransformNormal(lightDir);
-        lightDirection[0] = tDir[0];
-        lightDirection[1] = tDir[1];
-        lightDirection[2] = tDir[2];
+        double tDirView[3];
+        viewTF->TransformNormal(lightDir, tDirView);
+
+        if (!light->LightTypeIsSceneLight() && this->UserLightTransform.GetPointer() != nullptr)
+        {
+          double *tDir = this->UserLightTransform->TransformNormal(tDirView);
+          lightDirection[0] = tDir[0];
+          lightDirection[1] = tDir[1];
+          lightDirection[2] = tDir[2];
+        }
+        else
+        {
+          lightDirection[0] = tDirView[0];
+          lightDirection[1] = tDirView[1];
+          lightDirection[2] = tDirView[2];
+        }
 
         program->SetUniform3f((ldir + count).c_str(), lightDirection);
 
@@ -1000,10 +1034,21 @@ void vtkOpenGLRenderer::UpdateLightingUniforms(vtkShaderProgram *program)
           lightAttenuation[0] = attn[0];
           lightAttenuation[1] = attn[1];
           lightAttenuation[2] = attn[2];
-          double *tlp = viewTF->TransformPoint(lp);
-          lightPosition[0] = tlp[0];
-          lightPosition[1] = tlp[1];
-          lightPosition[2] = tlp[2];
+          double tlpView[3];
+          viewTF->TransformPoint(lp, tlpView);
+          if (!light->LightTypeIsSceneLight() && this->UserLightTransform.GetPointer() != nullptr)
+          {
+            double *tlp = this->UserLightTransform->TransformPoint(tlpView);
+            lightPosition[0] = tlp[0];
+            lightPosition[1] = tlp[1];
+            lightPosition[2] = tlp[2];
+          }
+          else
+          {
+            lightPosition[0] = tlpView[0];
+            lightPosition[1] = tlpView[1];
+            lightPosition[2] = tlpView[2];
+          }
 
           program->SetUniform3f((latten + count).c_str(), lightAttenuation);
           program->SetUniformi((lpositional + count).c_str(), light->GetPositional());
@@ -1017,4 +1062,9 @@ void vtkOpenGLRenderer::UpdateLightingUniforms(vtkShaderProgram *program)
   }
 
   program->SetUniformGroupUpdateTime(vtkShaderProgram::LightingGroup, ltime);
+}
+
+void vtkOpenGLRenderer::SetUserLightTransform(vtkTransform* transform)
+{
+  this->UserLightTransform = transform;
 }

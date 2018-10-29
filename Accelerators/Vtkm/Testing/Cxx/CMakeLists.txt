@@ -1,5 +1,6 @@
 vtk_add_test_cxx(vtkAcceleratorsVtkmCxxTests tests
   TestVTKMCleanGrid.cxx
+  TestVTKMCoordinateSystemTransform.cxx,NO_VALID
   TestVTKMClip.cxx
   TestVTKMClipWithImplicitFunction.cxx
   TestVTKMExternalFaces.cxx
@@ -12,6 +13,7 @@ vtk_add_test_cxx(vtkAcceleratorsVtkmCxxTests tests
   TestVTKMMarchingCubes2.cxx
   TestVTKMNDHistogram.cxx,NO_VALID
   TestVTKMPointElevation.cxx
+  TestVTKMPointTransform.cxx
   TestVTKMProbe.cxx,NO_VALID
   TestVTKMPolyDataNormals.cxx
   TestVTKMThreshold.cxx
