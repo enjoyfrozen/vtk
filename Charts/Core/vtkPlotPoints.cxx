@@ -220,7 +220,8 @@ bool vtkPlotPoints::Paint(vtkContext2D *painter)
     else
     {
       // draw all of the error bars
-      PaintErrorBars(painter, points, this->Points->GetNumberOfPoints());
+      this->PaintErrorBars(painter, points,
+                           this->Points->GetNumberOfPoints());
     }
   }
 
@@ -363,9 +364,9 @@ void vtkPlotPoints::PaintErrorBars(vtkContext2D *painter,
   for (int i = 0; i < n; ++i)
   {
     float thisX = points[2 * i], thisY = points[2 * i + 1];
-    if (XErrors && XErrors->GetNumberOfValues() > i)
+    if (this->XErrors && this->XErrors->GetNumberOfValues() > i)
     {
-      float thisError = XErrors->GetValue(i);
+      float thisError = this->XErrors->GetValue(i);
 
       if (thisError > 0)
       {
@@ -377,9 +378,9 @@ void vtkPlotPoints::PaintErrorBars(vtkContext2D *painter,
                           thisX + thisError, thisY + capLengthY);
       }
     }
-    if (YErrors && YErrors->GetNumberOfValues() > i)
+    if (this->YErrors && this->YErrors->GetNumberOfValues() > i)
     {
-      float thisError = YErrors->GetValue(i);
+      float thisError = this->YErrors->GetValue(i);
 
       if (thisError > 0)
       {

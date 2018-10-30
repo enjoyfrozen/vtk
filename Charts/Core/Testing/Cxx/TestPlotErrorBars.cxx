@@ -13,6 +13,9 @@
 
 =========================================================================*/
 
+// This test verifies that error bar functionality in vtkPlotPoints and
+// vtkPlotLine works.
+
 #include "vtkRenderWindow.h"
 #include "vtkChartXY.h"
 #include "vtkPlot.h"
@@ -27,7 +30,7 @@
 #include "vtkNew.h"
 
 //----------------------------------------------------------------------------
-int TestPointsPlot(int, char * [])
+int TestPlotErrorBars(int, char * [])
 {
   // Set up a 2D scene, add an XY chart to it
   vtkNew<vtkContextView> view;
@@ -88,14 +91,14 @@ int TestPointsPlot(int, char * [])
   }
 
   // Add a line plot without errors (sin)
-  vtkPlotLine* sinPlot = vtkPlotLine::New();
+  auto sinPlot = vtkSmartPointer<vtkPlotLine>::New();
   chart->AddPlot(sinPlot);
   sinPlot->SetInputData(table, 0, 1);
   sinPlot->SetColor(0, 0, 0, 255);
   sinPlot->SetWidth(1.0);
 
    // Add a points plot with errors (cos)
-   vtkPlotPoints* cosPlot = vtkPlotPoints::New();
+   auto cosPlot = vtkSmartPointer<vtkPlotPoints>::New();
    chart->AddPlot(cosPlot);
    cosPlot->SetInputData(table, 0, 2, 6, 7);
    cosPlot->SetPlotErrorBars(1);
@@ -103,7 +106,7 @@ int TestPointsPlot(int, char * [])
    cosPlot->SetWidth(2.0);
 
    // Add a points plot with errors, but don't plot the errors (sum)
-   vtkPlotPoints* sumPlot = vtkPlotPoints::New();
+   auto sumPlot = vtkSmartPointer<vtkPlotPoints>::New();
    chart->AddPlot(sumPlot);
    sumPlot->SetInputData(table, 0, 3, 6, 8);
    sumPlot->SetPlotErrorBars(0);
@@ -111,7 +114,7 @@ int TestPointsPlot(int, char * [])
    sumPlot->SetWidth(2.0);
 
    // Add a line plot with errors (subtract)
-   vtkPlotLine* subPlot = vtkPlotLine::New();
+   auto subPlot = vtkSmartPointer<vtkPlotLine>::New();
    chart->AddPlot(subPlot);
    subPlot->SetInputData(table, 0, 4, 6, 9);
    subPlot->SetPlotErrorBars(1);
@@ -120,7 +123,7 @@ int TestPointsPlot(int, char * [])
 
   // Add a points plot without errors, but set PlotErrorBars = true (multiply)
   // (no error bars should be plotted)
-   vtkPlotPoints* multPlot = vtkPlotPoints::New();
+   auto multPlot = vtkSmartPointer<vtkPlotPoints>::New();
    chart->AddPlot(multPlot);
    multPlot->SetInputData(table, 0, 5);
    multPlot->SetPlotErrorBars(1);

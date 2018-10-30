@@ -90,8 +90,8 @@ vtk_add_test_cxx(vtkChartsCoreCxxTests tests
   TestParallelCoordinates.cxx
   TestParallelCoordinatesDouble.cxx
   TestPieChart.cxx
+  TestPlotErrorBars.cxx
   TestPlotMatrix.cxx
-  TestPointsPlot.cxx
   TestPropItem.cxx
   TestScalarsToColors.cxx
   TestScatterPlot.cxx

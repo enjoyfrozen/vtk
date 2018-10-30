@@ -80,8 +80,8 @@ public:
                            int legendIndex) override;
 
   /**
-   * Pain event for the XY plot error bars, called whenever the chart needs to
-   * be drawn and PlotErrorBars is true
+   * Paint event for the XY plot error bars, called whenever the chart needs
+   * to be drawn and PlotErrorBars is true
    */
   void PaintErrorBars(vtkContext2D *painter, float *points, int n);
 
@@ -136,7 +136,8 @@ public:
 
   //@{
   /**
-   * Turn on/off flag to control whether error bars are plotted
+   * Turn on/off flag to control whether error bars are plotted.
+   * The default is off.
    */
   vtkSetMacro(PlotErrorBars, vtkTypeBool);
   vtkGetMacro(PlotErrorBars, vtkTypeBool);
