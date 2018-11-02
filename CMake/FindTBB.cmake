@@ -274,14 +274,21 @@ get_debug_names(TBB_LIBRARY_NAMES)
 
 find_path(TBB_INCLUDE_DIR
           NAMES tbb/tbb.h
-          PATHS ${TBB_INC_SEARCH_PATH})
+          PATHS ${TBB_INC_SEARCH_PATH}
+          NO_CMAKE_FIND_ROOT_PATH
+        )
 
 find_library(TBB_LIBRARY_RELEASE
              NAMES ${TBB_LIBRARY_NAMES}
-             PATHS ${TBB_LIB_SEARCH_PATH})
+             PATHS ${TBB_LIB_SEARCH_PATH}
+             NO_CMAKE_FIND_ROOT_PATH
+           )
 find_library(TBB_LIBRARY_DEBUG
              NAMES ${TBB_LIBRARY_NAMES_DEBUG}
-             PATHS ${TBB_LIB_SEARCH_PATH})
+             PATHS ${TBB_LIB_SEARCH_PATH}
+             NO_CMAKE_FIND_ROOT_PATH
+           )
+
 make_library_set(TBB_LIBRARY)
 
 findpkg_finish(TBB)
