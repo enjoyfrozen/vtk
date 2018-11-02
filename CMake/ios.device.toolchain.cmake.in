@@ -98,6 +98,9 @@ if (NOT CMAKE_OSX_SYSROOT)
       iPhoneOS9.4.sdk  # guess
       iPhoneOS10.0.sdk # guess
       iPhoneOS10.1.sdk # guess
+      iPhoneOS11.2.sdk
+      iPhoneOS11.3.sdk
+      iPhoneOS12.0.sdk
       )
       if (EXISTS ${sdk_root}/${sdk} AND IS_DIRECTORY ${sdk_root}/${sdk})
         set(CMAKE_OSX_SYSROOT ${sdk_root}/${sdk})
