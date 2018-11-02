@@ -159,8 +159,8 @@ set(ios_cmake_flags
   -DModule_vtkFiltersCore:BOOL=${Module_vtkFiltersCore}
   -DModule_vtkFiltersModeling:BOOL=${Module_vtkFiltersModeling}
   -DModule_vtkFiltersSources:BOOL=${Module_vtkFiltersSources}
-  -DModule_vtkFiltersGeometry=${Module_vtkFiltersGeometry}
-  -DModule_vtkFiltersPoints=${Module_vtkFiltersPoints}
+  -DModule_vtkFiltersGeometry:BOOL=${Module_vtkFiltersGeometry}
+  -DModule_vtkFiltersPoints:BOOL=${Module_vtkFiltersPoints}
   -DModule_vtkIOGeometry:BOOL=${Module_vtkIOGeometry}
   -DModule_vtkIOLegacy:BOOL=${Module_vtkIOLegacy}
   -DModule_vtkIOImage:BOOL=${Module_vtkIOImage}
