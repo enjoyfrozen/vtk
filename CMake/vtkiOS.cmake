@@ -18,9 +18,15 @@ set(IOS_DEVICE_ARCHITECTURES "arm64"
 list(REMOVE_DUPLICATES IOS_SIMULATOR_ARCHITECTURES)
 list(REMOVE_DUPLICATES IOS_DEVICE_ARCHITECTURES)
 
-# Check that at least one architure is defined
-list(LENGTH IOS_SIMULATOR_ARCHITECTURES SIMULATOR_ARCHS_NBR)
+# Only set the number to length if its there
+if(IOS_SIMULATOR_ARCHITECTURES)
+  # NOTE: OFF and "" still result in length 1 when using LENGTH
+  list(LENGTH IOS_SIMULATOR_ARCHITECTURES SIMULATOR_ARCHS_NBR)
+else()
+  set(SIMULATOR_ARCHS_NBR 0)
+endif()
 list(LENGTH IOS_DEVICE_ARCHITECTURES DEVICE_ARCHS_NBR)
+# Check that at least one architure is defined
 math(EXPR IOS_ARCHS_NBR ${DEVICE_ARCHS_NBR}+${SIMULATOR_ARCHS_NBR})
 if(NOT ${IOS_ARCHS_NBR})
   message(FATAL_ERROR "No IOS simulator or device architecture to compile for. Populate IOS_DEVICE_ARCHITECTURES and/or IOS_SIMULATOR_ARCHITECTURES.")
@@ -112,22 +118,21 @@ option(Module_vtkInteractionStyle "Include InteractionStyle module" ON)
 option(Module_vtkInteractionWidgets "Include InteractionWidgets module" OFF)
 option(Module_vtkIOXML "Include IO/XML Module" OFF)
 option(Module_vtkDICOM "Turn on or off this module" OFF)
+option(Module_vtkFiltersCore "Turn on or off this module" OFF)
 option(Module_vtkFiltersModeling "Turn on or off this module" OFF)
 option(Module_vtkFiltersSources "Turn on or off this module" OFF)
+option(Module_vtkFiltersGeometry "Turn on or off this module" OFF)
+option(Module_vtkFiltersPoints "Turn on or off this module" OFF)
 option(Module_vtkIOGeometry "Turn on or off this module" OFF)
 option(Module_vtkIOLegacy "Turn on or off this module" OFF)
 option(Module_vtkIOImage "Turn on or off this module" OFF)
 option(Module_vtkIOPLY "Turn on or off this module" OFF)
 option(Module_vtkIOInfovis "Turn on or off this module" OFF)
+option(Module_vtkImagingHybrid "Turn on or off this module" OFF)
 option(Module_vtkRenderingFreeType "Turn on or off this module" OFF)
 option(Module_vtkRenderingImage "Turn on or off this module" OFF)
 option(Module_vtkRenderingVolumeOpenGL2 "Include Volume Rendering Support" ON)
 option(Module_vtkRenderingLOD "Include LOD Rendering Support" OFF)
-
-
-if (Module_vtkDICOM)
-  set(DICOM_OPTION -DModule_vtkDICOM:BOOL=ON)
-endif()
 
 mark_as_advanced(Module_${vtk-module})
 
@@ -145,18 +150,23 @@ set(ios_cmake_flags
   -DVTK_Group_Qt:BOOL=OFF
   -DVTK_Group_Tk:BOOL=OFF
   -DVTK_Group_Web:BOOL=OFF
+  -DVTK_SMP_IMPLEMENTATION_TYPE:STRING=${VTK_SMP_IMPLEMENTATION_TYPE}
   -DModule_vtkRenderingOpenGL2:BOOL=${Module_vtkRenderingOpenGL2}
   -DModule_vtkInteractionStyle:BOOL=${Module_vtkInteractionStyle}
   -DModule_vtkInteractionWidgets:BOOL=${Module_vtkInteractionWidgets}
   -DModule_vtkIOXML:BOOL=${Module_vtkIOXML}
-  ${DICOM_OPTION}
+  -DModule_vtkDICOM:BOOL=${Module_vtkDICOM}
+  -DModule_vtkFiltersCore:BOOL=${Module_vtkFiltersCore}
   -DModule_vtkFiltersModeling:BOOL=${Module_vtkFiltersModeling}
   -DModule_vtkFiltersSources:BOOL=${Module_vtkFiltersSources}
+  -DModule_vtkFiltersGeometry=${Module_vtkFiltersGeometry}
+  -DModule_vtkFiltersPoints=${Module_vtkFiltersPoints}
   -DModule_vtkIOGeometry:BOOL=${Module_vtkIOGeometry}
   -DModule_vtkIOLegacy:BOOL=${Module_vtkIOLegacy}
   -DModule_vtkIOImage:BOOL=${Module_vtkIOImage}
   -DModule_vtkIOPLY:BOOL=${Module_vtkIOPLY}
   -DModule_vtkIOInfovis:BOOL=${Module_vtkIOInfovis}
+  -DModule_vtkImagingHybrid:BOOL=${Module_vtkImagingHybrid}
   -DModule_vtkRenderingFreeType:BOOL=${Module_vtkRenderingFreeType}
   -DModule_vtkRenderingImage:BOOL=${Module_vtkRenderingImage}
   -DModule_vtkRenderingVolumeOpenGL2:BOOL=${Module_vtkRenderingVolumeOpenGL2}
