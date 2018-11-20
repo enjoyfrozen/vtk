@@ -121,18 +121,15 @@ void vtkOBBTree::ComputeOBB(vtkPoints *pts, double corner[3], double max[3],
   //
   numPts = pts->GetNumberOfPoints();
   mean[0] = mean[1] = mean[2] = 0.0;
-  for (pointId=0; pointId < numPts; pointId++ )
+  for (pointId = 0; pointId < numPts; ++pointId)
   {
     pts->GetPoint(pointId, x);
-    for (i=0; i < 3; i++)
+    for (i = 0; i < 3; ++i)
     {
-      mean[i] += x[i];
+      mean[i] += (x[i] - mean[i]) / (pointId + 1);
     }
   }
-  for (i=0; i < 3; i++)
-  {
-    mean[i] /= numPts;
-  }
+
 
   //
   // Compute covariance matrix
@@ -143,24 +140,20 @@ void vtkOBBTree::ComputeOBB(vtkPoints *pts, double corner[3], double max[3],
     a0[i] = a1[i] = a2[i] = 0.0;
   }
 
-  for (pointId=0; pointId < numPts; pointId++ )
+  for (pointId = 0; pointId < numPts; ++pointId)
   {
     pts->GetPoint(pointId, x);
-    xp[0] = x[0] - mean[0]; xp[1] = x[1] - mean[1]; xp[2] = x[2] - mean[2];
-    for (i=0; i < 3; i++)
+    xp[0] = x[0] - mean[0];
+    xp[1] = x[1] - mean[1];
+    xp[2] = x[2] - mean[2];
+    for (i = 0; i < 3; ++i)
     {
-      a0[i] += xp[0] * xp[i];
-      a1[i] += xp[1] * xp[i];
-      a2[i] += xp[2] * xp[i];
+      a0[i] += (xp[0] * xp[i] - a0[i])/(pointId+1);
+      a1[i] += (xp[1] * xp[i] - a1[i])/(pointId+1);
+      a2[i] += (xp[2] * xp[i] - a2[i])/(pointId+1);
     }
-  }//for all points
-
-  for (i=0; i < 3; i++)
-  {
-    a0[i] /= numPts;
-    a1[i] /= numPts;
-    a2[i] /= numPts;
   }
+
 
   //
   // Extract axes (i.e., eigenvectors) from covariance matrix.
