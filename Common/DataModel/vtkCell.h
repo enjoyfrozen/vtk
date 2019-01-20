@@ -364,12 +364,12 @@ public:
   /**
 * Get the point count from the edgeId of the cell
 */
-  int GetNumberOfPointsOnEdge(int edgeId) { return (edgeId < 0) ? 0 : InternalGetNumberOfPointsOnEdge(edgeId); }
+  int GetNumberOfPointsOnEdge(vtkIdType edgeId) { return (edgeId < 0) ? 0 : InternalGetNumberOfPointsOnEdge(edgeId); }
 
   /**
   * Get the point count from the faceId of the cell
   */
-  int GetNumberOfPointsOnFace(int faceId) { return (faceId < 0) ? 0 : InternalGetNumberOfPointsOnFace(faceId); }
+  int GetNumberOfPointsOnFace(vtkIdType faceId) { return (faceId < 0) ? 0 : InternalGetNumberOfPointsOnFace(faceId); }
 
   // left public for quick computational access
   vtkPoints *Points;
