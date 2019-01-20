@@ -32,7 +32,7 @@ class vtkLine;
 class vtkQuadric;
 class vtkIncrementalPointLocator;
 
-class VTKCOMMONDATAMODEL_EXPORT vtkTriangle : public vtkCell, vtkCellWithEdges
+class VTKCOMMONDATAMODEL_EXPORT vtkTriangle : public vtkCell
 {
 public:
   static vtkTriangle *New();

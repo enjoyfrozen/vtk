@@ -50,7 +50,7 @@ class vtkQuadraticTriangle;
 class vtkWedge;
 class vtkDoubleArray;
 
-class VTKCOMMONDATAMODEL_EXPORT vtkBiQuadraticQuadraticWedge : public vtkNonLinearCell, vtkCellWithEdges, vtkCellWithFaces
+class VTKCOMMONDATAMODEL_EXPORT vtkBiQuadraticQuadraticWedge : public vtkNonLinearCell
 {
 public:
   static vtkBiQuadraticQuadraticWedge *New ();

@@ -77,7 +77,7 @@ class vtkBiQuadraticQuad;
 class vtkHexahedron;
 class vtkDoubleArray;
 
-class VTKCOMMONDATAMODEL_EXPORT vtkBiQuadraticQuadraticHexahedron : public vtkNonLinearCell, vtkCellWithEdges, vtkCellWithFaces
+class VTKCOMMONDATAMODEL_EXPORT vtkBiQuadraticQuadraticHexahedron : public vtkNonLinearCell
 {
 public:
   static vtkBiQuadraticQuadraticHexahedron *New();

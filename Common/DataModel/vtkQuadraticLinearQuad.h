@@ -44,7 +44,7 @@ class vtkLine;
 class vtkQuad;
 class vtkDoubleArray;
 
-class VTKCOMMONDATAMODEL_EXPORT vtkQuadraticLinearQuad : public vtkNonLinearCell, vtkCellWithEdges
+class VTKCOMMONDATAMODEL_EXPORT vtkQuadraticLinearQuad : public vtkNonLinearCell
 {
 public:
   static vtkQuadraticLinearQuad *New();

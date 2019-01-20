@@ -49,7 +49,7 @@ class vtkTetra;
 class vtkPyramid;
 class vtkDoubleArray;
 
-class VTKCOMMONDATAMODEL_EXPORT vtkQuadraticPyramid : public vtkNonLinearCell, vtkCellWithEdges, vtkCellWithFaces
+class VTKCOMMONDATAMODEL_EXPORT vtkQuadraticPyramid : public vtkNonLinearCell
 {
 public:
   static vtkQuadraticPyramid *New();

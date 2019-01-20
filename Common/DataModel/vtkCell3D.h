@@ -35,7 +35,7 @@ class vtkTetra;
 class vtkCellArray;
 class vtkDoubleArray;
 
-class VTKCOMMONDATAMODEL_EXPORT vtkCell3D : public vtkCell, vtkCellWithEdges, vtkCellWithFaces
+class VTKCOMMONDATAMODEL_EXPORT vtkCell3D : public vtkCell
 {
 public:
   vtkTypeMacro(vtkCell3D,vtkCell);

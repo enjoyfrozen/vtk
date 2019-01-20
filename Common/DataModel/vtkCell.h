@@ -361,6 +361,16 @@ public:
   {
   }
 
+  /**
+* Get the point count from the edgeId of the cell
+*/
+  int GetNumberOfPointsOnEdge(int edgeId) { return (edgeId < 0) ? 0 : InternalGetNumberOfPointsOnEdge(edgeId); }
+
+  /**
+  * Get the point count from the faceId of the cell
+  */
+  int GetNumberOfPointsOnFace(int faceId) { return (faceId < 0) ? 0 : InternalGetNumberOfPointsOnFace(faceId); }
+
   // left public for quick computational access
   vtkPoints *Points;
   vtkIdList *PointIds;
@@ -373,34 +383,12 @@ protected:
 
   virtual double *InternalGetParametricCoords();
 
+  virtual int InternalGetNumberOfPointsOnEdge(vtkIdType edgeId) { return (edgeId < 0) ? -1 : 0; }
+  virtual int InternalGetNumberOfPointsOnFace(vtkIdType faceId) { return (faceId < 0) ? -1 : 0; }
+
 private:
   vtkCell(const vtkCell&) = delete;
   void operator=(const vtkCell&) = delete;
-};
-
-
-class VTKCOMMONDATAMODEL_EXPORT vtkCellWithEdges
-{
-public:
-  /**
-  * Get the point count from the edgeId of the cell
-  */
-  int GetNumberOfPointsOnEdge(int edgeId) { return (edgeId < 0) ? 0 : InternalGetNumberOfPointsOnEdge(edgeId); }
-
-protected:
-  virtual int InternalGetNumberOfPointsOnEdge(vtkIdType edgeId) = 0;
-};
-
-class VTKCOMMONDATAMODEL_EXPORT vtkCellWithFaces
-{
-public:
-  /**
-  * Get the point count from the faceId of the cell
-  */
-  int GetNumberOfPointsOnFace(int faceId) { return (faceId < 0) ? 0 : InternalGetNumberOfPointsOnFace(faceId); }
-
-protected:
-  virtual int InternalGetNumberOfPointsOnFace(vtkIdType faceId) = 0;
 };
 
 #endif

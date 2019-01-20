@@ -40,7 +40,7 @@ class vtkQuadraticEdge;
 class vtkTriangle;
 class vtkDoubleArray;
 
-class VTKCOMMONDATAMODEL_EXPORT vtkQuadraticTriangle : public vtkNonLinearCell, vtkCellWithEdges
+class VTKCOMMONDATAMODEL_EXPORT vtkQuadraticTriangle : public vtkNonLinearCell
 {
 public:
   static vtkQuadraticTriangle *New();
