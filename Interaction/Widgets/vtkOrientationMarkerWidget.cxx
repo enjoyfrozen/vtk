@@ -63,6 +63,7 @@ vtkOrientationMarkerWidget::vtkOrientationMarkerWidget()
   this->Observer->OrientationMarkerWidget = this;
 
   this->Tolerance = 7;
+  this->Zoom = 1.0;
   this->Moving = 0;
 
   this->Viewport[0] = 0.0;
@@ -256,6 +257,7 @@ void vtkOrientationMarkerWidget::ExecuteCameraUpdateEvent(
   cam->SetFocalPoint(fp);
   cam->SetViewUp(viewup);
   this->Renderer->ResetCamera();
+  cam->Zoom(this->Zoom);
 
   this->UpdateOutline();
 }
@@ -971,6 +973,7 @@ void vtkOrientationMarkerWidget::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "OrientationMarker: " << this->OrientationMarker << endl;
   os << indent << "Interactive: " << this->Interactive << endl;
   os << indent << "Tolerance: " << this->Tolerance << endl;
+  os << indent << "Zoom: " << this->Zoom << endl;
   os << indent << "Viewport: (" << this->Viewport[0] << ", " << this->Viewport[1] << ", "
      << this->Viewport[2] << ", " << this->Viewport[3] << ")\n";
 }

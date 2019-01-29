@@ -153,6 +153,14 @@ public:
 
   //@{
   /**
+   * The zoom factor to modify the size of the marker within the widget
+   */
+  vtkSetClampMacro(Zoom, double, 0.1, 10.0);
+  vtkGetMacro(Zoom, double);
+  //@}
+
+  //@{
+  /**
    * Need to reimplement this->Modified() because of the
    * vtkSetVector4Macro/vtkGetVector4Macro use
    */
@@ -184,6 +192,7 @@ protected:
   vtkTypeBool Interactive;
   int Tolerance;
   int Moving;
+  double Zoom;
 
   // viewport to position/size this widget
   double Viewport[4];
