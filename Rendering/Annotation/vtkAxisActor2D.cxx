@@ -295,7 +295,7 @@ void vtkAxisActor2D::PrintSelf(ostream& os, vtkIndent indent)
 //----------------------------------------------------------------------------
 void vtkAxisActor2D::BuildAxis(vtkViewport *viewport)
 {
-  int i, *x, viewportSizeHasChanged, positionsHaveChanged;
+  int i, *x1, *x2, viewportSizeHasChanged, positionsHaveChanged;
   vtkIdType ptIds[2];
   double p1[3], p2[3], offset;
   double interval, deltaX, deltaY;
@@ -371,19 +371,42 @@ void vtkAxisActor2D::BuildAxis(vtkViewport *viewport)
   // Generate the axis and tick marks.
   // We'll do our computation in viewport coordinates. First determine the
   // location of the endpoints.
-  x = this->PositionCoordinate->GetComputedViewportValue(viewport);
-  p1[0] = x[0];
-  p1[1] = x[1];
-  p1[2] = 0.0;
-  this->LastPosition[0] = x[0];
-  this->LastPosition[1] = x[1];
+  x1 = this->PositionCoordinate->GetComputedViewportValue(viewport);
+  x2 = this->Position2Coordinate->GetComputedViewportValue(viewport);
 
-  x = this->Position2Coordinate->GetComputedViewportValue(viewport);
-  p2[0] = x[0];
-  p2[1] = x[1];
+  if ( this->AdjustLabels )
+  {
+    // we have to adjust the line to cover the nice text ranges
+    // otherwise we draw the new text on the wrong places within the old line segment
+    double x1p[2], x2p[2];
+    double dx = x2[0]-x1[0];
+    double dy = x2[1]-x1[1];
+    double dv = this->Range[1]-this->Range[0];
+    double rate[2] = {dv==0?0:dx/dv, dv==0?0:dy/dv};
+
+    x1p[0] = x1[0] - (this->Range[0]-this->AdjustedRange[0])*rate[0];
+    x1p[1] = x1[1] - (this->Range[0]-this->AdjustedRange[0])*rate[1];
+    x2p[0] = x2[0] - (this->Range[1]-this->AdjustedRange[1])*rate[0];
+    x2p[1] = x2[1] - (this->Range[1]-this->AdjustedRange[1])*rate[1];
+
+    x1[0] = x1p[0];
+    x1[1] = x1p[1];
+    x2[0] = x2p[0];
+    x2[1] = x2p[1];
+  }
+
+  p1[0] = x1[0];
+  p1[1] = x1[1];
+  p1[2] = 0.0;
+  this->LastPosition[0] = x1[0];
+  this->LastPosition[1] = x1[1];
+
+
+  p2[0] = x2[0];
+  p2[1] = x2[1];
   p2[2] = 0.0;
-  this->LastPosition2[0] = x[0];
-  this->LastPosition2[1] = x[1];
+  this->LastPosition2[0] = x2[0];
+  this->LastPosition2[1] = x2[1];
 
   double *xp1, *xp2, len=0.0;
   if ( this->SizeFontRelativeToAxis )
