@@ -75,6 +75,7 @@ int TestOSPRayVolumeRenderer(int argc, char *argv[])
   vtkProperty* property = dssActor->GetProperty();
   property->SetDiffuseColor(0.5, 0.5, 0.5);
 
+  reader->Update();
   volumeMapper->GetInput()->GetScalarRange(scalarRange);
   volumeMapper->SetBlendModeToComposite();
 
@@ -105,6 +106,8 @@ int TestOSPRayVolumeRenderer(int argc, char *argv[])
   colorTransferFunction->RemoveAllPoints();
   colorTransferFunction->AddRGBPoint(scalarRange[0], 0.0, 0.8, 0.1);
   colorTransferFunction->AddRGBPoint(scalarRange[1], 0.0, 0.8, 0.1);
+  //colorTransferFunction->SetRange(scalarRange[0], scalarRange[1]);
+  cerr << scalarRange[0] << " to " << scalarRange[1] << endl;
 
   vtkNew<vtkVolume> volume;
   volume->SetMapper(volumeMapper);
