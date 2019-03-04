@@ -37,6 +37,7 @@ vtkBorderRepresentation::vtkBorderRepresentation()
 
   this->ShowVerticalBorder = BORDER_ON;
   this->ShowHorizontalBorder = BORDER_ON;
+  this->EnforceNormalizedViewportBounds = 0;
   this->ProportionalResize = 0;
   this->Tolerance = 3;
   this->SelectionPoint[0] = this->SelectionPoint[1] = 0.0;
@@ -86,6 +87,8 @@ vtkBorderRepresentation::vtkBorderRepresentation()
   this->BorderProperty = vtkProperty2D::New();
   this->BWActor->SetProperty(this->BorderProperty);
 
+  this->MinimumNormalizedViewportSize[0] = 0.0;
+  this->MinimumNormalizedViewportSize[1] = 0.0;
   this->MinimumSize[0] = 1;
   this->MinimumSize[1] = 1;
   this->MaximumSize[0] = 100000;
@@ -271,6 +274,84 @@ void vtkBorderRepresentation::WidgetInteraction(double eventPos[2])
         par2[1] = par2[1] + delY;
       }
       break;
+  }
+
+  // Enforce bounds to keep the widget on screen and bigger than minimum size
+  if (!this->ProportionalResize && this->EnforceNormalizedViewportBounds)
+  {
+    switch (this->InteractionState)
+    {
+      case vtkBorderRepresentation::AdjustingP0:
+        par1[0] =
+          std::min(std::max(par1[0] /*+ delX*/, 0.0), par2[0] - MinimumNormalizedViewportSize[0]);
+        par1[1] =
+          std::min(std::max(par1[1] /*+ delY*/, 0.0), par2[1] - MinimumNormalizedViewportSize[1]);
+        break;
+      case vtkBorderRepresentation::AdjustingP1:
+        par2[0] =
+          std::min(std::max(par2[0] /*+ delX2*/, par1[0] + MinimumNormalizedViewportSize[0]), 1.0);
+        par1[1] =
+          std::min(std::max(par1[1] /*+ delY2*/, 0.0), par2[1] - MinimumNormalizedViewportSize[1]);
+        break;
+      case vtkBorderRepresentation::AdjustingP2:
+        par2[0] =
+          std::min(std::max(par2[0] /*+ delX*/, par1[0] + MinimumNormalizedViewportSize[0]), 1.0);
+        par2[1] =
+          std::min(std::max(par2[1] /*+ delY*/, par1[1] + MinimumNormalizedViewportSize[1]), 1.0);
+        break;
+      case vtkBorderRepresentation::AdjustingP3:
+        par1[0] =
+          std::min(std::max(par1[0] /*+ delX2*/, 0.0), par2[0] - MinimumNormalizedViewportSize[0]);
+        par2[1] =
+          std::min(std::max(par2[1] /*+ delY2*/, par1[1] + MinimumNormalizedViewportSize[1]), 1.0);
+        break;
+      case vtkBorderRepresentation::AdjustingE0:
+        par1[1] =
+          std::min(std::max(par1[1] /*+ delY*/, 0.0), par2[1] - MinimumNormalizedViewportSize[1]);
+        break;
+      case vtkBorderRepresentation::AdjustingE1:
+        par2[0] =
+          std::min(std::max(par2[0] /*+ delX*/, par1[0] + MinimumNormalizedViewportSize[0]), 1.0);
+        break;
+      case vtkBorderRepresentation::AdjustingE2:
+        par2[1] =
+          std::min(std::max(par2[1] /*+ delY*/, par1[1] + MinimumNormalizedViewportSize[1]), 1.0);
+        break;
+      case vtkBorderRepresentation::AdjustingE3:
+        par1[0] =
+          std::min(std::max(par1[0] /*+ delX*/, 0.0), par2[0] - MinimumNormalizedViewportSize[0]);
+        break;
+      case vtkBorderRepresentation::Inside:
+        if (this->Moving)
+        {
+          // Keep border from moving off normalized screen
+          if (par1[0] < 0.0)
+          {
+            auto delta = -par1[0];
+            par1[0] += delta;
+            par2[0] += delta;
+          }
+          if (par1[1] < 0.0)
+          {
+            auto delta = -par1[1];
+            par1[1] += delta;
+            par2[1] += delta;
+          }
+          if (par2[0] > 1.0)
+          {
+            auto delta = par2[0] - 1.0;
+            par1[0] -= delta;
+            par2[0] -= delta;
+          }
+          if (par2[1] > 1.0)
+          {
+            auto delta = par2[1] - 1.0;
+            par1[1] -= delta;
+            par2[1] -= delta;
+          }
+        }
+        break;
+    }
   }
 
   // Modify the representation
@@ -620,7 +701,11 @@ void vtkBorderRepresentation::PrintSelf(ostream& os, vtkIndent indent)
     os << indent << "Border Property: (none)\n";
   }
 
+  os << indent << "Enforce Normalized Viewport Bounds: "
+     << (this->EnforceNormalizedViewportBounds ? "On\n" : "Off\n");
   os << indent << "Proportional Resize: " << (this->ProportionalResize ? "On\n" : "Off\n");
+  os << indent << "Minimum NVP Size: " << this->MinimumNormalizedViewportSize[0] << " "
+     << this->MinimumNormalizedViewportSize[1] << endl;
   os << indent << "Minimum Size: " << this->MinimumSize[0] << " " << this->MinimumSize[1] << endl;
   os << indent << "Maximum Size: " << this->MaximumSize[0] << " " << this->MaximumSize[1] << endl;
 

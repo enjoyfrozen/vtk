@@ -136,6 +136,20 @@ public:
 
   //@{
   /**
+   * Whether to enforce the minimum normalized viewport size and limit
+   * the normalized viewport coordinates to [0.0 -> 1.0]. This keeps
+   * widgets from being moved offscreen or being scaled down past their
+   * minimum viewport size.
+   *
+   * Note: ProportionalResize must be off for this function to take effect.
+   */
+  vtkSetMacro(EnforceNormalizedViewportBounds, vtkTypeBool);
+  vtkGetMacro(EnforceNormalizedViewportBounds, vtkTypeBool);
+  vtkBooleanMacro(EnforceNormalizedViewportBounds, vtkTypeBool);
+  //@}
+
+  //@{
+  /**
    * Indicate whether resizing operations should keep the x-y directions
    * proportional to one another. Also, if ProportionalResize is on, then
    * the rectangle (Position,Position2) is a bounding rectangle, and the
@@ -145,6 +159,16 @@ public:
   vtkSetMacro(ProportionalResize, vtkTypeBool);
   vtkGetMacro(ProportionalResize, vtkTypeBool);
   vtkBooleanMacro(ProportionalResize, vtkTypeBool);
+  //@}
+
+  //@{
+  /**
+   * Specify a minimum and/or maximum size [0.0 -> 1.0] that this representation
+   * can take. These methods require two values: size values in the x and y
+   * directions, respectively.
+   */
+  vtkSetVector2Macro(MinimumNormalizedViewportSize, double);
+  vtkGetVector2Macro(MinimumNormalizedViewportSize, double);
   //@}
 
   //@{
@@ -248,6 +272,8 @@ protected:
   int ShowVerticalBorder;
   int ShowHorizontalBorder;
   vtkProperty2D* BorderProperty;
+
+  vtkTypeBool EnforceNormalizedViewportBounds;
   vtkTypeBool ProportionalResize;
   int Tolerance;
   vtkTypeBool Moving;
@@ -280,6 +306,7 @@ protected:
   vtkActor2D* BWActor;
 
   // Constraints on size
+  double MinimumNormalizedViewportSize[2];
   int MinimumSize[2];
   int MaximumSize[2];
 
