@@ -174,6 +174,7 @@ namespace ospray {
       OSPTexture2D depthTexture = ospNewTexture2D((osp::vec2i&)texSize,
                                                   OSP_TEXTURE_R32F, ospDepthBuffer,
                                                   OSP_TEXTURE_FILTER_NEAREST);
+      ospCommit(depthTexture);
 
       return depthTexture;
     }
