@@ -39,6 +39,7 @@ vtk_add_test_cxx(vtkCommonDataModelCxxTests tests
   TestPolyhedron3.cxx
   TestPolyhedronCombinatorialContouring.cxx
   TestPolyhedronConvexity.cxx
+  TestProgrammableFunction.cxx
   TestQuadraticPolygon.cxx
   TestRect.cxx
   TestSelectionExpression.cxx

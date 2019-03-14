@@ -158,6 +158,7 @@ set(classes
   vtkPolyVertex
   vtkPolygon
   vtkPolyhedron
+  vtkProgrammableFunction
   vtkPyramid
   vtkQuad
   vtkQuadraticEdge
