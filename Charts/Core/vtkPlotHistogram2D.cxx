@@ -256,11 +256,12 @@ void vtkPlotHistogram2D::GenerateHistogram()
   const int inputType = this->Input->GetScalarType();
   unsigned char *output =
     reinterpret_cast<unsigned char*>(this->Output->GetScalarPointer());
+  const int inputIncrement = this->Input->GetNumberOfScalarComponents();
 
   if (this->TransferFunction)
   {
-    this->TransferFunction->MapScalarsThroughTable2(input, output, inputType,
-                                                    dimension, 1, 4);
+    this->TransferFunction->MapVectorsThroughTable(input, output, inputType,
+                                                   dimension, inputIncrement, 4);
   }
 }
 
