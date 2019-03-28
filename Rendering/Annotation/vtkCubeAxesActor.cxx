@@ -2222,6 +2222,7 @@ void vtkCubeAxesActor::BuildLabels(vtkAxisActor *axes[NUMBER_OF_ALIGNED_AXIS])
   double axis[3] = { p2[0]-p1[0], p2[1]-p1[1], p2[2]-p1[2] };
   double axisLength = vtkMath::Norm(axis);
   double extents = range[1] - range[0];
+  double tol = extents*1e-6; // Calculate a relative tolerance based on the extent to compare to 0.
   bool mustAdjustValue = 0;
   int lastPow = 0;
   int axisIndex = 0;
@@ -2284,7 +2285,7 @@ void vtkCubeAxesActor::BuildLabels(vtkAxisActor *axes[NUMBER_OF_ALIGNED_AXIS])
 
     for (int i = 0; i < labelCount; i++)
     {
-      if (fabs(val) < 0.01 && extents > 1)
+      if (fabs(val) < tol)
       {
         // We just happened to fall at something near zero and the range is
         // large, so set it to zero to avoid ugliness.
@@ -2298,7 +2299,7 @@ void vtkCubeAxesActor::BuildLabels(vtkAxisActor *axes[NUMBER_OF_ALIGNED_AXIS])
       {
         snprintf(label, sizeof(label), format, val);
       }
-      if (fabs(val) < 0.01)
+      if (fabs(val) < tol)
       {
         //
         // Ensure that -0.0 is never a label
