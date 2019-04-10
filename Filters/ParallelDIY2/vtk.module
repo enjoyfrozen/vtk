@@ -24,6 +24,8 @@ TEST_DEPENDS
   VTK::FiltersGeometry
   VTK::FiltersParallelMPI
   VTK::InteractionStyle
+  VTK::IOExodus
+  VTK::IOXML
   VTK::ParallelMPI
   VTK::RenderingOpenGL2
   VTK::RenderingParallel
