@@ -11,15 +11,19 @@ DEPENDS
   VTK::CommonDataModel
   VTK::CommonExecutionModel
   VTK::RenderingCore
+  VTK::RenderingOpenGL2
   VTK::RenderingFreeType
 PRIVATE_DEPENDS
   VTK::CommonMath
   VTK::CommonSystem
   VTK::CommonTransforms
   VTK::FiltersGeneral
+  VTK::ImagingCore
+  VTK::IOImage
   VTK::octree
 TEST_DEPENDS
   VTK::FiltersGeneral
+  VTK::FiltersExtraction
   VTK::FiltersSources
   VTK::IOXML
   VTK::InteractionStyle
