@@ -18,7 +18,6 @@
 #include "vtkDataArray.h"
 #include "vtkImageData.h"
 #include "vtkMultiThreader.h"
-#include "vtkMutexLock.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
 #include "vtkObjectFactory.h"
@@ -486,9 +485,9 @@ static int vtkThreadSleep(vtkMultiThreader::ThreadInfo *data, double time)
     }
 
     // check to see if we are being told to quit
-    data->ActiveFlagLock->Lock();
+    data->ActiveFlagLock->lock();
     int activeFlag = *(data->ActiveFlag);
-    data->ActiveFlagLock->Unlock();
+    data->ActiveFlagLock->unlock();
 
     if (activeFlag == 0)
     {
