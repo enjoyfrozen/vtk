@@ -1308,8 +1308,6 @@ vtkMultiBlockPLOT3DReader::vtkMultiBlockPLOT3DReader()
 
   this->PreserveIntermediateFunctions = true;
 
-  this->FunctionList = vtkIntArray::New();
-
   this->ScalarFunctionNumber = -1;
   this->SetScalarFunctionNumber(100);
   this->VectorFunctionNumber = -1;
@@ -1321,13 +1319,13 @@ vtkMultiBlockPLOT3DReader::vtkMultiBlockPLOT3DReader()
   this->SetController(vtkMultiProcessController::GetGlobalController());
 
   this->ExecutedGhostLevels = 0;
+  this->DefaultFunctionEnableState = true;
 }
 
 vtkMultiBlockPLOT3DReader::~vtkMultiBlockPLOT3DReader()
 {
   delete [] this->XYZFileName;
   delete [] this->FunctionFileName;
-  this->FunctionList->Delete();
   this->ClearGeometryCache();
 
   delete this->Internal;
@@ -2267,17 +2265,14 @@ int vtkMultiBlockPLOT3DReader::ReadArrays(
         vtk_fseek(qFp, offset, SEEK_SET);
       }
 
-      if ( this->FunctionList->GetNumberOfTuples() > 0 )
+      for (const int& fnum : this->FunctionList)
       {
-        int fnum;
-        for (int tup=0; tup < this->FunctionList->GetNumberOfTuples(); tup++)
+        if (fnum >= 0)
         {
-          if ( (fnum=this->FunctionList->GetValue(tup)) >= 0 )
-          {
-            this->MapFunction(fnum, nthOutput);
-          }
+          this->MapFunction(fnum, nthOutput);
         }
       }
+
       // Remove intermediate results, if requested.
       if (this->PreserveIntermediateFunctions == false)
       {
@@ -2378,25 +2373,34 @@ int vtkMultiBlockPLOT3DReader::ReadArrays(
 
       for (int j=0; j<nFunctions[i]; j++)
       {
-        vtkDataArray* functionArray = this->NewFloatArray();
-        functionArray->SetNumberOfTuples(npts);
-        std::ostringstream stream;
-        (j < static_cast<int>(this->FunctionNames.size()))
-            ? stream << this->FunctionNames[j] : stream << "Function" << j;
-        const std::string functionName = stream.str();
-        functionArray->SetName(functionName.c_str());
-        if (this->ReadScalar(fFp2, extent, wextent, functionArray, offset, record) == 0)
+        if (this->IsFunctionEnabled(j))
         {
-          vtkErrorMacro("Encountered premature end-of-file while reading "
-                        "the function file (or the file is corrupt).");
-          this->CloseFile(fFp2);
+          vtkDataArray* functionArray = this->NewFloatArray();
+          functionArray->SetNumberOfTuples(npts);
+          std::ostringstream stream;
+          if (auto fname = this->GetFunctionName(j))
+          {
+            stream << fname;
+          }
+          else
+          {
+            stream << "Function" << j;
+          }
+          const std::string functionName = stream.str();
+          functionArray->SetName(functionName.c_str());
+          if (this->ReadScalar(fFp2, extent, wextent, functionArray, offset, record) == 0)
+          {
+            vtkErrorMacro("Encountered premature end-of-file while reading "
+                "the function file (or the file is corrupt).");
+            this->CloseFile(fFp2);
+            functionArray->Delete();
+            this->ClearGeometryCache();
+            return 0;
+          }
+          nthOutput->GetPointData()->AddArray(functionArray);
           functionArray->Delete();
-          this->ClearGeometryCache();
-          return 0;
         }
         offset += record.GetLengthWithSeparators(offset, nTotalPts*this->Internal->Settings.Precision);
-        nthOutput->GetPointData()->AddArray(functionArray);
-        functionArray->Delete();
       }
 
       offset += this->GetByteCountSize();
@@ -3167,18 +3171,7 @@ void vtkMultiBlockPLOT3DReader::SetScalarFunctionNumber(int num)
   if (num >= 0)
   {
     // If this function is not in the list, add it.
-    int found=0;
-    for (int i=0; i < this->FunctionList->GetNumberOfTuples(); i++ )
-    {
-      if ( this->FunctionList->GetValue(i) == num )
-      {
-        found=1;
-      }
-    }
-    if (!found)
-    {
-      this->AddFunction(num);
-    }
+    this->AddFunction(num);
   }
   this->ScalarFunctionNumber = num;
 }
@@ -3192,31 +3185,16 @@ void vtkMultiBlockPLOT3DReader::SetVectorFunctionNumber(int num)
   if (num >= 0)
   {
     // If this function is not in the list, add it.
-    int found=0;
-    for (int i=0; i < this->FunctionList->GetNumberOfTuples(); i++ )
-    {
-      if ( this->FunctionList->GetValue(i) == num )
-      {
-        found=1;
-      }
-    }
-    if (!found)
-    {
-      this->AddFunction(num);
-    }
+    this->AddFunction(num);
   }
   this->VectorFunctionNumber = num;
 }
 
 void vtkMultiBlockPLOT3DReader::RemoveFunction(int fnum)
 {
-  for (int i=0; i < this->FunctionList->GetNumberOfTuples(); i++ )
+  if (this->FunctionList.erase(fnum) > 0)
   {
-    if ( this->FunctionList->GetValue(i) == fnum )
-    {
-      this->FunctionList->SetValue(i,-1);
-      this->Modified();
-    }
+    this->Modified();
   }
 }
 
@@ -3565,14 +3543,19 @@ const char *vtkMultiBlockPLOT3DReader::GetByteOrderAsString()
 
 void vtkMultiBlockPLOT3DReader::AddFunction(int functionNumber)
 {
-  this->FunctionList->InsertNextValue(functionNumber);
-  this->Modified();
+  if (this->FunctionList.insert(functionNumber).second)
+  {
+    this->Modified();
+  }
 }
 
 void vtkMultiBlockPLOT3DReader::RemoveAllFunctions()
 {
-  this->FunctionList->Reset();
-  this->Modified();
+  if (this->FunctionList.size() > 0)
+  {
+    this->FunctionList.clear();
+    this->Modified();
+  }
 }
 
 int vtkMultiBlockPLOT3DReader::FillOutputPortInformation(
@@ -3580,6 +3563,89 @@ int vtkMultiBlockPLOT3DReader::FillOutputPortInformation(
 {
   info->Set(vtkDataObject::DATA_TYPE_NAME(), "vtkMultiBlockDataSet");
   return 1;
+}
+
+void vtkMultiBlockPLOT3DReader::SetFunctionName(int index, const char* name)
+{
+  if (static_cast<int>(this->FunctionNames.size()) <= index)
+  {
+    this->FunctionNames.resize(index + 1);
+  }
+
+  const std::string sname(name ? name : "");
+  if (this->FunctionNames[index] != sname)
+  {
+    this->FunctionNames[index] = sname;
+    this->Modified();
+  }
+}
+
+const char* vtkMultiBlockPLOT3DReader::GetFunctionName(int index) const
+{
+  if (static_cast<int>(this->FunctionNames.size()) > index)
+  {
+    const auto& name = this->FunctionNames[index];
+    return name.empty() ? nullptr : name.c_str();
+  }
+  return nullptr;
+}
+
+void vtkMultiBlockPLOT3DReader::ClearAllFunctionNames()
+{
+  if (this->FunctionNames.size() > 0)
+  {
+    this->FunctionNames.clear();
+    this->Modified();
+  }
+}
+
+#if !defined(VTK_LEGACY_REMOVE)
+void vtkMultiBlockPLOT3DReader::AddFunctionName(const std::string& name)
+{
+  VTK_LEGACY_REPLACED_BODY(vtkMultiBlockPLOT3DReader::AddFunctionName,
+    "VTK 8.3",
+    vtkMultiBlockPLOT3DReader::SetFunctionName);
+  this->SetFunctionName(
+    static_cast<int>(this->FunctionNames.size()), name.empty() ? nullptr : name.c_str());
+}
+#endif
+
+void vtkMultiBlockPLOT3DReader::EnableFunction(int index)
+{
+  auto iter = this->Internal->FunctionSelection.find(index);
+  if (iter == this->Internal->FunctionSelection.end() ||
+      iter->second != true)
+  {
+    this->Internal->FunctionSelection[index] = true;
+    this->Modified();
+  }
+}
+
+void vtkMultiBlockPLOT3DReader::DisableFunction(int index)
+{
+  auto iter = this->Internal->FunctionSelection.find(index);
+  if (iter == this->Internal->FunctionSelection.end() ||
+      iter->second != false)
+  {
+    this->Internal->FunctionSelection[index] = false;
+    this->Modified();
+  }
+}
+
+void vtkMultiBlockPLOT3DReader::ResetFunctionsEnableState()
+{
+  if (this->Internal->FunctionSelection.size() > 0)
+  {
+    this->Internal->FunctionSelection.clear();
+    this->Modified();
+  }
+}
+
+bool vtkMultiBlockPLOT3DReader::IsFunctionEnabled(int index) const
+{
+  auto iter = this->Internal->FunctionSelection.find(index);
+  return iter != this->Internal->FunctionSelection.end() ?
+    iter->second : this->DefaultFunctionEnableState;
 }
 
 void vtkMultiBlockPLOT3DReader::PrintSelf(ostream& os, vtkIndent indent)
@@ -3608,5 +3674,7 @@ void vtkMultiBlockPLOT3DReader::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "Auto Detect Format: " << this->AutoDetectFormat << endl;
   os << indent
      << "PreserveIntermediateFunctions: " << (this->PreserveIntermediateFunctions ? "on" : "off")
+     << endl;
+  os << indent << "DefaultFunctionEnableState: " << (this->DefaultFunctionEnableState ? "on" : "off")
      << endl;
 }

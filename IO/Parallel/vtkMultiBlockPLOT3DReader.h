@@ -87,19 +87,20 @@
 #ifndef vtkMultiBlockPLOT3DReader_h
 #define vtkMultiBlockPLOT3DReader_h
 
-#include <vector>  // For holding function-names
 #include "vtkIOParallelModule.h" // For export macro
 #include "vtkParallelReader.h"
 
+#include <set>    // For holding function-list (q-file)
+#include <vector>    // For holding function-names (function-file)
+
 class vtkDataArray;
 class vtkDataSetAttributes;
-class vtkIntArray;
+class vtkMultiBlockDataSet;
 class vtkMultiBlockPLOT3DReaderRecord;
 class vtkMultiProcessController;
 class vtkStructuredGrid;
 class vtkUnsignedCharArray;
 struct vtkMultiBlockPLOT3DReaderInternals;
-class vtkMultiBlockDataSet;
 
 namespace Functors
 {
@@ -347,6 +348,9 @@ public:
    * Specify additional functions to read. These are placed into the
    * point data as data arrays. Later on they can be used by labeling
    * them as scalars, etc.
+   *
+   * These are either read from Q file or computed using other functions read
+   * from the Q file.
    */
   void AddFunction(int functionNumber);
   void RemoveFunction(int);
@@ -368,7 +372,44 @@ public:
   vtkGetObjectMacro(Controller, vtkMultiProcessController);
   //@}
 
-  void AddFunctionName(const std::string &name) {FunctionNames.push_back(name);}
+  //@{
+  /**
+   * API to get/set names for functions read from function file specified using
+   * `SetFunctionFileName`.
+   */
+  void SetFunctionName(int index, const char* name);
+  const char* GetFunctionName(int index) const;
+  void ClearAllFunctionNames();
+  //@}
+
+  //@{
+  /**
+   * Enable/disable functions read from function file set using
+   * `SetFunctionFileName`. Note, this is different from functions reads from
+   * the Q file (or solution file). Those must be enabled/disabled using
+   * `AddFunction`/`RemoveFunction` API.
+   */
+  void EnableFunction(int index);
+  void DisableFunction(int index);
+  void ResetFunctionsEnableState();
+  bool IsFunctionEnabled(int index) const;
+  //@}
+
+  //@{
+  /**
+   * If no override is specified for any function using EnableFunction or
+   * DisableFunction, then this is default function enable state. Defaults to
+   * true.
+   */
+  vtkSetMacro(DefaultFunctionEnableState, bool);
+  vtkGetMacro(DefaultFunctionEnableState, bool);
+  vtkBooleanMacro(DefaultFunctionEnableState, bool);
+  //@}
+
+  /**
+   * @deprecated Replaced by `SetFunctionName` as of VTK 8.3
+   */
+  VTK_LEGACY(void AddFunctionName(const std::string& name));
 
   enum
   {
@@ -455,6 +496,7 @@ protected:
 
   int GetNumberOfBlocksInternal(FILE* xyzFp, int allocate);
 
+  int ReadFunctionFileMetaData();
   int ReadGeometryHeader(FILE* fp);
   int ReadQHeader(FILE* fp, bool checkGrid, int& nq, int& nqc, int& overflow);
   int ReadFunctionHeader(FILE* fp, int* nFunctions);
@@ -516,6 +558,7 @@ protected:
   vtkTypeBool AutoDetectFormat;
 
   int ExecutedGhostLevels;
+  bool DefaultFunctionEnableState;
 
   size_t FileSize;
 
@@ -530,7 +573,7 @@ protected:
   std::vector<std::string> FunctionNames;
 
   //functions to read that are not scalars or vectors
-  vtkIntArray *FunctionList;
+  std::set<int> FunctionList;
 
   int ScalarFunctionNumber;
   int VectorFunctionNumber;

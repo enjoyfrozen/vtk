@@ -338,9 +338,30 @@ void vtkPlot3DMetaReader::SetFileNames(Json::Value* val)
 void vtkPlot3DMetaReader::SetFunctionNames(Json::Value* val)
 {
   const Json::Value& functionNames = *val;
-  for ( size_t index = 0; index < functionNames.size(); ++index )
+  using size_type = decltype(functionNames.size());
+  for (size_type index = 0, max = functionNames.size(); index < max; ++index)
   {
-    this->Reader->AddFunctionName(functionNames[(int)index].asString());
+    const auto& value = functionNames[index];
+    if (value.type() == Json::nullValue)
+    {
+      // let the reader use default function name (not necessary, but why not!)
+      this->Reader->SetFunctionName(static_cast<int>(index), nullptr);
+      // disable reading the function.
+      this->Reader->DisableFunction(static_cast<int>(index));
+    }
+    else if (value.type() == Json::stringValue)
+    {
+      this->Reader->SetFunctionName(static_cast<int>(index), value.asString().c_str());
+      // ensure the function is enabled.
+      this->Reader->EnableFunction(static_cast<int>(index));
+    }
+    else if (value.type() == Json::objectValue)
+    {
+      // let the reader use default function name.
+      this->Reader->SetFunctionName(static_cast<int>(index), nullptr);
+      // ensure the function is enabled.
+      this->Reader->EnableFunction(static_cast<int>(index));
+    }
   }
 }
 

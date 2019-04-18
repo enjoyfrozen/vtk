@@ -63,9 +63,18 @@ class TestPlot3D(Testing.vtkTest):
 
     def testMetaReader(self):
         r = vtk.vtkPlot3DMetaReader()
+        print("Testing ", "multi.p3d")
         r.SetFileName(str(VTK_DATA_ROOT) + "/Data/multi.p3d")
         r.Update()
         self.assertTrue(r.GetOutput().GetBlock(0).GetPointData().GetArray("Function0"))
+
+        print("Testing ", "multi-fnames.p3d")
+        r = vtk.vtkPlot3DMetaReader()
+        r.SetFileName(str(VTK_DATA_ROOT) + "/Data/multi-fnames.p3d")
+        r.Update()
+        self.assertFalse(r.GetOutput().GetBlock(0).GetPointData().GetArray("Function0"))
+        self.assertFalse(r.GetOutput().GetBlock(0).GetPointData().GetArray("Function1"))
+        self.assertTrue(r.GetOutput().GetBlock(0).GetPointData().GetArray("two"))
 
 if __name__ == "__main__":
     Testing.main([(TestPlot3D, 'test')])
