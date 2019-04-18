@@ -398,6 +398,9 @@ int vtkQuadricDecimation::RequestData(
   output->Reset();
   output->Allocate(this->Mesh, outputCellList->GetNumberOfIds());
   output->GetPointData()->CopyAllocate(this->Mesh->GetPointData(),1);
+  vtkPoints* _pts = vtkPoints::New(this->Mesh->GetPoints()->GetDataType());
+  output->SetPoints(_pts); // use same datatype for points
+  _pts->Delete();
   output->CopyCells(this->Mesh, outputCellList);
 
   this->Mesh->DeleteLinks();
