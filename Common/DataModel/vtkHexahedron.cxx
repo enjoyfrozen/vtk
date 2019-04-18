@@ -581,86 +581,17 @@ int vtkHexahedron::IntersectWithLine(const double p1[3], const double p2[3], dou
 //----------------------------------------------------------------------------
 int vtkHexahedron::Triangulate(int index, vtkIdList *ptIds, vtkPoints *pts)
 {
-  int p[4], i;
-
-  ptIds->Reset();
-  pts->Reset();
-
+  ptIds->SetNumberOfIds(20);
+  pts->SetNumberOfPoints(20);
+  static const int p0[] = {0,1,3,4,1,4,5,6,1,4,6,3,1,3,6,2,3,6,7,4};
+  static const int p1[] = {2,1,5,0,0,2,3,7,2,5,6,7,0,7,4,5,0,2,7,5};
   // Create five tetrahedron. Triangulation varies depending upon index. This
   // is necessary to insure compatible voxel triangulations.
-  if ( (index % 2) )
+  const int *p = index % 2 ? p0 : p1;
+  for (int i = 0; i < 20; ++i)
   {
-    p[0] = 0; p[1] = 1; p[2] = 3; p[3] = 4;
-    for ( i=0; i < 4; i++ )
-    {
-      ptIds->InsertNextId(this->PointIds->GetId(p[i]));
-      pts->InsertNextPoint(this->Points->GetPoint(p[i]));
-    }
-
-    p[0] = 1; p[1] = 4; p[2] = 5; p[3] = 6;
-    for ( i=0; i < 4; i++ )
-    {
-      ptIds->InsertNextId(this->PointIds->GetId(p[i]));
-      pts->InsertNextPoint(this->Points->GetPoint(p[i]));
-    }
-
-    p[0] = 1; p[1] = 4; p[2] = 6; p[3] = 3;
-    for ( i=0; i < 4; i++ )
-    {
-      ptIds->InsertNextId(this->PointIds->GetId(p[i]));
-      pts->InsertNextPoint(this->Points->GetPoint(p[i]));
-    }
-
-    p[0] = 1; p[1] = 3; p[2] = 6; p[3] = 2;
-    for ( i=0; i < 4; i++ )
-    {
-      ptIds->InsertNextId(this->PointIds->GetId(p[i]));
-      pts->InsertNextPoint(this->Points->GetPoint(p[i]));
-    }
-
-    p[0] = 3; p[1] = 6; p[2] = 7; p[3] = 4;
-    for ( i=0; i < 4; i++ )
-    {
-      ptIds->InsertNextId(this->PointIds->GetId(p[i]));
-      pts->InsertNextPoint(this->Points->GetPoint(p[i]));
-    }
-  }
-  else
-  {
-    p[0] = 2; p[1] = 1; p[2] = 5; p[3] = 0;
-    for ( i=0; i < 4; i++ )
-    {
-      ptIds->InsertNextId(this->PointIds->GetId(p[i]));
-      pts->InsertNextPoint(this->Points->GetPoint(p[i]));
-    }
-
-    p[0] = 0; p[1] = 2; p[2] = 3; p[3] = 7;
-    for ( i=0; i < 4; i++ )
-    {
-      ptIds->InsertNextId(this->PointIds->GetId(p[i]));
-      pts->InsertNextPoint(this->Points->GetPoint(p[i]));
-    }
-
-    p[0] = 2; p[1] = 5; p[2] = 6; p[3] = 7;
-    for ( i=0; i < 4; i++ )
-    {
-      ptIds->InsertNextId(this->PointIds->GetId(p[i]));
-      pts->InsertNextPoint(this->Points->GetPoint(p[i]));
-    }
-
-    p[0] = 0; p[1] = 7; p[2] = 4; p[3] = 5;
-    for ( i=0; i < 4; i++ )
-    {
-      ptIds->InsertNextId(this->PointIds->GetId(p[i]));
-      pts->InsertNextPoint(this->Points->GetPoint(p[i]));
-    }
-
-    p[0] = 0; p[1] = 2; p[2] = 7; p[3] = 5;
-    for ( i=0; i < 4; i++ )
-    {
-      ptIds->InsertNextId(this->PointIds->GetId(p[i]));
-      pts->InsertNextPoint(this->Points->GetPoint(p[i]));
-    }
+    ptIds->SetId(i, this->PointIds->GetId(p[i]));
+    pts->InsertPoint(i, this->Points->GetPoint(p[i]));
   }
 
   return 1;

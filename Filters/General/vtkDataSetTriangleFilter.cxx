@@ -21,6 +21,7 @@
 #include "vtkImageData.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
+#include "vtkNew.h"
 #include "vtkObjectFactory.h"
 #include "vtkOrderedTriangulator.h"
 #include "vtkPointData.h"
@@ -81,23 +82,28 @@ int vtkDataSetTriangleFilter::RequestData(
 void vtkDataSetTriangleFilter::StructuredExecute(vtkDataSet *input,
                                                  vtkUnstructuredGrid *output)
 {
-  int dimensions[3], i, j, k, l, m;
-  vtkIdType newCellId, inId;
+  int dimensions[3];
   vtkCellData *inCD = input->GetCellData();
   vtkCellData *outCD = output->GetCellData();
   vtkPoints *cellPts = vtkPoints::New();
-  vtkPoints *newPoints = vtkPoints::New();
   vtkIdList *cellPtIds = vtkIdList::New();
-  int numSimplices, numPts, dim, type;
-  vtkIdType pts[4], num;
 
-  // Create an array of points. This does an explicit creation
-  // of each point.
-  num = input->GetNumberOfPoints();
-  newPoints->SetNumberOfPoints(num);
-  for (i = 0; i < num; ++i)
+  // Create an array of points.
+  vtkPoints *newPoints = vtkPoints::New();
+  if(auto sgInput = vtkStructuredGrid::SafeDownCast(input))
   {
-    newPoints->SetPoint(i,input->GetPoint(i));
+    //vtkStructuredGrid contains an array of points;
+    newPoints->ShallowCopy(sgInput->GetPoints());
+  }
+  else
+  {
+    //This does an explicit creation of each point.
+    vtkIdType num = input->GetNumberOfPoints();
+    newPoints->SetNumberOfPoints(num);
+    for (vtkIdType i = 0; i < num; ++i)
+    {
+      newPoints->SetPoint(i, input->GetPoint(i));
+    }
   }
 
   outCD->CopyAllocate(inCD,input->GetNumberOfCells()*5);
@@ -134,57 +140,53 @@ void vtkDataSetTriangleFilter::StructuredExecute(vtkDataSet *input,
   dimensions[1] = dimensions[1] - 1;
   dimensions[2] = dimensions[2] - 1;
 
+  vtkNew<vtkIdList> inIds, newCellIds;
+
   vtkIdType numSlices = ( dimensions[2] > 0 ? dimensions[2] : 1 );
+  vtkIdType inId = 0;
   int abort=0;
-  for (k = 0; k < numSlices && !abort; k++)
+  for (int k = 0; k < numSlices && !abort; ++k)
   {
     this->UpdateProgress(static_cast<double>(k) / numSlices);
     abort = this->GetAbortExecute();
-
-    for (j = 0; j < dimensions[1]; j++)
+    for (int j = 0; j < dimensions[1]; ++j)
     {
-      for (i = 0; i < dimensions[0]; i++)
+      for (int i = 0; i < dimensions[0]; ++i)
       {
-        inId = i+(j+(k*dimensions[1]))*dimensions[0];
         vtkCell *cell = input->GetCell(i, j, k);
-        if ((i+j+k)%2 == 0)
-        {
-          cell->Triangulate(0, cellPtIds, cellPts);
-        }
-        else
-        {
-          cell->Triangulate(1, cellPtIds, cellPts);
-        }
-
-        dim = cell->GetCellDimension() + 1;
-
-        numPts = cellPtIds->GetNumberOfIds();
-        numSimplices = numPts / dim;
-        type = 0;
+        int type = 0;
+        int dim = cell->GetCellDimension() + 1;
         switch (dim)
         {
           case 1:
-            type = VTK_VERTEX;    break;
+            type = VTK_VERTEX;
+            break;
           case 2:
-            type = VTK_LINE;      break;
+            type = VTK_LINE;
+            break;
           case 3:
-            type = VTK_TRIANGLE;  break;
+            type = VTK_TRIANGLE;
+            break;
           case 4:
-            type = VTK_TETRA;     break;
+            type = VTK_TETRA;
+            break;
         }
         if (!this->TetrahedraOnly || type == VTK_TETRA)
         {
-          for (l = 0; l < numSimplices; l++ )
+          cell->Triangulate(i + j + k, cellPtIds, cellPts);
+          int numPts = cellPtIds->GetNumberOfIds();
+          int numSimplices = numPts / dim;
+          inIds->SetNumberOfIds(numSimplices);
+          newCellIds->SetNumberOfIds(numSimplices);
+          for (int l = 0; l < numSimplices; ++l)
           {
-            for (m = 0; m < dim; m++)
-            {
-              pts[m] = cellPtIds->GetId(dim*l+m);
-            }
-            // copy cell data
-            newCellId = output->InsertNextCell(type, dim, pts);
-            outCD->CopyData(inCD, inId, newCellId);
-          }//for all simplices
+            newCellIds->SetId(l, output->InsertNextCell(type, dim, cellPtIds->GetPointer(dim*l)));
+            inIds->SetId(l, inId);
+          }
+          // copy cell data
+          outCD->CopyData(inCD, inIds.Get(), newCellIds.Get());
         }
+        inId++;
       }//i dimension
     }//j dimension
   }//k dimension
