@@ -466,15 +466,13 @@ int vtkMultiThreader::SpawnThread( vtkThreadFunctionType f, void *userdata )
     {
       this->SpawnedThreadActiveFlagLock[id] = new std::mutex;
     }
-    this->SpawnedThreadActiveFlagLock[id]->lock();
+    std::lock_guard<std::mutex>(*this->SpawnedThreadActiveFlagLock[id]);
     if (this->SpawnedThreadActiveFlag[id] == 0)
     {
       // We've got a usable thread id, so grab it
       this->SpawnedThreadActiveFlag[id] = 1;
-      this->SpawnedThreadActiveFlagLock[id]->unlock();
       break;
     }
-    this->SpawnedThreadActiveFlagLock[id]->unlock();
   }
 
   if ( id >= VTK_MAX_THREADS )
@@ -548,9 +546,11 @@ void vtkMultiThreader::TerminateThread( int threadID )
   }
 
   // If we do have a lock, use it and find out the status of the active flag
-  this->SpawnedThreadActiveFlagLock[threadID]->lock();
-  int val = this->SpawnedThreadActiveFlag[threadID];
-  this->SpawnedThreadActiveFlagLock[threadID]->unlock();
+  int val = 0;
+  {
+    std::lock_guard<std::mutex>(*this->SpawnedThreadActiveFlagLock[threadID]);
+    val = this->SpawnedThreadActiveFlag[threadID];
+  }
 
   // If the active flag is 0, return since this thread is not active
   if ( val == 0 )
@@ -560,9 +560,10 @@ void vtkMultiThreader::TerminateThread( int threadID )
 
   // OK - now we know we have an active thread - set the active flag to 0
   // to indicate to the thread that it should terminate itself
-  this->SpawnedThreadActiveFlagLock[threadID]->lock();
-  this->SpawnedThreadActiveFlag[threadID] = 0;
-  this->SpawnedThreadActiveFlagLock[threadID]->unlock();
+  {
+    std::lock_guard<std::mutex>(*this->SpawnedThreadActiveFlagLock[threadID]);
+    this->SpawnedThreadActiveFlag[threadID] = 0;
+  }
 
 #ifdef VTK_USE_WIN32_THREADS
   WaitForSingleObject(this->SpawnedThreadProcessID[threadID], INFINITE);
@@ -616,9 +617,11 @@ vtkTypeBool vtkMultiThreader::IsThreadActive( int threadID )
   }
 
   // We have a lock - use it to get the active flag value
-  this->SpawnedThreadActiveFlagLock[threadID]->lock();
-  int val = this->SpawnedThreadActiveFlag[threadID];
-  this->SpawnedThreadActiveFlagLock[threadID]->unlock();
+  int val = 0;
+  {
+    std::lock_guard<std::mutex>(*this->SpawnedThreadActiveFlagLock[threadID]);
+    val = this->SpawnedThreadActiveFlag[threadID];
+  }
 
   // now return that value
   return val;
