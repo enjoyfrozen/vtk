@@ -27,6 +27,7 @@ extern "C" {
 #if defined(LIBAVFORMAT_VERSION_MAJOR) && LIBAVFORMAT_VERSION_MAJOR >= 57
 extern "C" {
 #include <libavutil/imgutils.h>
+#include <libavutil/opt.h>
 }
 #endif
 
@@ -35,16 +36,21 @@ class vtkFFMPEGWriterInternal
 {
 public:
   vtkFFMPEGWriterInternal(vtkFFMPEGWriter *creator);
+
   ~vtkFFMPEGWriterInternal();
 
   int Start();
+
   int Write(vtkImageData *id);
+
   void End();
 
   int Dim[2];
   int FrameRate;
 
 private:
+
+  int encodeAndWriteFrame();
 
   vtkFFMPEGWriter *Writer;
 
@@ -74,7 +80,7 @@ vtkFFMPEGWriterInternal::vtkFFMPEGWriterInternal(vtkFFMPEGWriter *creator)
 
   this->avOutputFormat = nullptr;
 
-  this->avStream = nullptr;
+//  this->avStream = nullptr;
 
   this->rgbInput = nullptr;
   this->yuvOutput = nullptr;
@@ -99,6 +105,57 @@ vtkFFMPEGWriterInternal::~vtkFFMPEGWriterInternal()
 #if defined(LIBAVFORMAT_VERSION_MAJOR) && LIBAVFORMAT_VERSION_MAJOR >= 57
 
 //---------------------------------------------------------------------------
+int vtkFFMPEGWriterInternal::encodeAndWriteFrame()
+{
+  int ret;
+  ret = avcodec_send_frame(this->avCodecContext, this->yuvOutput);
+  if (this->yuvOutput != nullptr)
+  {
+    this->yuvOutput->pts++;
+  }
+
+  if (ret < 0)
+  {
+    vtkGenericWarningMacro(<< "Error sending packet to the encoder");
+    return 0;
+  }
+
+  //run the encoder
+  AVPacket pkt;
+  av_init_packet(&pkt);
+  pkt.data = nullptr;
+  pkt.size = 0;
+
+  while (ret >= 0)
+  {
+    //dump the compressed result to file
+    ret = avcodec_receive_packet(this->avCodecContext, &pkt);
+    if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
+    {
+      break;
+    }
+    else if (ret < 0)
+    {
+      vtkGenericWarningMacro(<< "Problem encoding frame.");
+      return 0;
+    }
+    if (!ret)
+    {
+      av_packet_rescale_ts(&pkt, this->avCodecContext->time_base, avStream->time_base);
+      pkt.stream_index = this->avStream->index;
+      int wret = av_write_frame(this->avFormatContext, &pkt);
+      if (wret < 0)
+      {
+        vtkGenericWarningMacro (<< "Problem writing frame.");
+        return 0;
+      }
+    }
+  }
+
+  return 1;
+}
+
+//---------------------------------------------------------------------------
 int vtkFFMPEGWriterInternal::Start()
 {
   this->closedFile = 0;
@@ -108,17 +165,26 @@ int vtkFFMPEGWriterInternal::Start()
 #endif
 
   //choose avi media file format
-  this->avOutputFormat = av_guess_format("avi", nullptr, nullptr);
+
+  this->avOutputFormat = av_guess_format(
+    this->Writer->GetOutputFormat().c_str(), nullptr, nullptr);
   if (!this->avOutputFormat)
   {
-    vtkGenericWarningMacro (<< "Could not open the avi media file format.");
+    vtkGenericWarningMacro (<< "Could not open the media file format.");
     return 0;
   }
 
   if (this->Writer->GetCompression())
   {
     //choose a codec that is easily playable on windows
-    this->avOutputFormat->video_codec = AV_CODEC_ID_MJPEG;
+    if (this->Writer->GetEncodingMethod() == "mjpeg")
+    {
+      this->avOutputFormat->video_codec = AV_CODEC_ID_MJPEG;
+    }
+    else if (this->Writer->GetEncodingMethod() == "h264")
+    {
+      this->avOutputFormat->video_codec = AV_CODEC_ID_H264;
+    }
   }
   else
   {
@@ -127,20 +193,34 @@ int vtkFFMPEGWriterInternal::Start()
 
   //create the format context that wraps all of the media output structures
   if (avformat_alloc_output_context2(&this->avFormatContext,
-    this->avOutputFormat, nullptr, this->Writer->GetFileName()) < 0)
+                                     this->avOutputFormat, nullptr,
+                                     this->Writer->GetFileName()) < 0)
   {
     vtkGenericWarningMacro (<< "Could not open the format context.");
     return 0;
   }
 
   AVCodec *codec;
-  if (!(codec = avcodec_find_encoder(this->avOutputFormat->video_codec)))
+  if (this->Writer->GetCodecName().empty())
   {
-    vtkGenericWarningMacro (<< "Failed to get video codec.");
-    return 0;
+    if (!(codec = avcodec_find_encoder(this->avOutputFormat->video_codec)))
+    {
+      vtkGenericWarningMacro (<< "Failed to get video codec.");
+      return 0;
+    }
+  }
+  else
+  {
+    if (!(codec = avcodec_find_encoder_by_name(
+      this->Writer->GetCodecName().c_str())))
+    {
+      vtkGenericWarningMacro (<< "Failed to get video codec.");
+      return 0;
+    }
   }
 
-  //create a stream for that file
+
+//  create a stream for that file
   this->avStream = avformat_new_stream(this->avFormatContext, codec);
   if (!this->avStream)
   {
@@ -155,55 +235,56 @@ int vtkFFMPEGWriterInternal::Start()
     return 0;
   }
 
-  this->avStream->codecpar->codec_id = static_cast<AVCodecID>(this->avOutputFormat->video_codec);
-  this->avStream->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
-  this->avStream->codecpar->width = this->Dim[0];
-  this->avStream->codecpar->height = this->Dim[1];
-  if (this->Writer->GetCompression())
+  this->avCodecContext->codec_id = static_cast<AVCodecID>(this->avOutputFormat->video_codec);
+  this->avCodecContext->codec_type = AVMEDIA_TYPE_VIDEO;
+  this->avCodecContext->width = this->Dim[0];
+  this->avCodecContext->height = this->Dim[1];
+  if (this->avCodecContext->codec_id == AV_CODEC_ID_MJPEG)
   {
-    this->avStream->codecpar->format = AV_PIX_FMT_YUVJ420P;
+    this->avCodecContext->pix_fmt = AV_PIX_FMT_YUVJ420P;
   }
   else
   {
-    this->avStream->codecpar->format = AV_PIX_FMT_BGR24;
+    this->avCodecContext->pix_fmt = AV_PIX_FMT_YUV420P;
   }
-  this->avStream->time_base.den = this->FrameRate;
-  this->avStream->time_base.num = 1;
 
-  if( !this->Writer->GetBitRate() )
+  if (!this->Writer->GetBitRate())
   {
     //allow a variable quality/size tradeoff
     switch (this->Writer->GetQuality())
     {
       case 0:
-        this->avStream->codecpar->bit_rate = 3*1024*1024;
+        this->avCodecContext->bit_rate = 3 * 1024 * 1024;
         break;
       case 1:
-        this->avStream->codecpar->bit_rate = 6*1024*1024;
+        this->avCodecContext->bit_rate = 6 * 1024 * 1024;
         break;
       default:
-        this->avStream->codecpar->bit_rate = 12*1024*1024;
+        this->avCodecContext->bit_rate = 12 * 1024 * 1024;
         break;
     }
   }
   else
   {
-    this->avStream->codecpar->bit_rate = this->Writer->GetBitRate();
+    this->avCodecContext->bit_rate = this->Writer->GetBitRate();
   }
 
 
   //to do playback at actual recorded rate, this will need more work see also below
-  avcodec_parameters_to_context(this->avCodecContext, this->avStream->codecpar);
+//  avcodec_parameters_to_context(this->avCodecContext, this->avStream->codecpar);
   this->avCodecContext->time_base.den = this->FrameRate;
   this->avCodecContext->time_base.num = 1;
-  // this->avCodecContext->max_b_frames = 2;
+  if (this->avCodecContext->codec_id == AV_CODEC_ID_H264)
+  {
+    this->avCodecContext->max_b_frames = 2;
+  }
   //about one full frame per second
   this->avCodecContext->gop_size = this->FrameRate;
-  if (this->avFormatContext->oformat->flags & AVFMT_GLOBALHEADER)
-  {
-      this->avCodecContext->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
-  }
-  if(!this->Writer->GetBitRateTolerance())
+//  if (this->avFormatContext->oformat->flags & AVFMT_GLOBALHEADER)
+//  {
+//    this->avCodecContext->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+//  }
+  if (!this->Writer->GetBitRateTolerance())
   {
     this->avCodecContext->bit_rate_tolerance = this->avCodecContext->bit_rate; //ffmpeg won't create a codec if brt<br
   }
@@ -211,7 +292,22 @@ int vtkFFMPEGWriterInternal::Start()
   {
     this->avCodecContext->bit_rate_tolerance = this->Writer->GetBitRateTolerance();
   }
-  avcodec_parameters_from_context(this->avStream->codecpar, this->avCodecContext);
+  avcodec_parameters_from_context(this->avStream->codecpar,
+                                  this->avCodecContext);
+  this->avStream->time_base.den = this->FrameRate;
+  this->avStream->time_base.num = 1;
+
+  if (avCodecContext->codec_id == AV_CODEC_ID_H264)
+  {
+    if (this->Writer->GetCodecName() == "libopenh264")
+    {
+      av_opt_set(avCodecContext->priv_data, "allow_skip_frames", "1", 0);
+    }
+    else
+    {
+      av_opt_set(avCodecContext->priv_data, "preset", "slow", 0);
+    }
+  }
 
   if (avcodec_open2(this->avCodecContext, codec, nullptr) < 0)
   {
@@ -223,7 +319,7 @@ int vtkFFMPEGWriterInternal::Start()
   this->rgbInput = av_frame_alloc();
   if (!this->rgbInput)
   {
-    vtkGenericWarningMacro (<< "Could not make rgbInput avframe." );
+    vtkGenericWarningMacro (<< "Could not make rgbInput avframe.");
     return 0;
   }
   this->rgbInput->format = AV_PIX_FMT_RGB24;
@@ -235,7 +331,7 @@ int vtkFFMPEGWriterInternal::Start()
   this->yuvOutput = av_frame_alloc();
   if (!this->yuvOutput)
   {
-    vtkGenericWarningMacro (<< "Could not make yuvOutput avframe." );
+    vtkGenericWarningMacro (<< "Could not make yuvOutput avframe.");
     return 0;
   }
   this->yuvOutput->format = this->avCodecContext->pix_fmt;
@@ -247,9 +343,11 @@ int vtkFFMPEGWriterInternal::Start()
   //Finally, open the file and start it off.
   if (!(this->avOutputFormat->flags & AVFMT_NOFILE))
   {
-    if (avio_open(&this->avFormatContext->pb, this->Writer->GetFileName(), AVIO_FLAG_WRITE) < 0)
+    if (avio_open(&this->avFormatContext->pb, this->Writer->GetFileName(),
+                  AVIO_FLAG_WRITE) < 0)
     {
-      vtkGenericWarningMacro (<< "Could not open " << this->Writer->GetFileName() << "." );
+      vtkGenericWarningMacro (
+        << "Could not open " << this->Writer->GetFileName() << ".");
       return 0;
     }
   }
@@ -269,80 +367,53 @@ int vtkFFMPEGWriterInternal::Write(vtkImageData *id)
   this->Writer->GetInputAlgorithm(0, 0)->UpdateWholeExtent();
 
   //copy the image from the input to the RGB buffer while flipping Y
-  unsigned char *rgb = (unsigned char*)id->GetScalarPointer();
+  unsigned char *rgb = (unsigned char *) id->GetScalarPointer();
   unsigned char *src;
   for (int y = 0; y < this->avCodecContext->height; y++)
   {
-    src = rgb + (this->avCodecContext->height-y-1) * this->avCodecContext->width * 3; //flip Y
+    src = rgb +
+          (this->avCodecContext->height - y - 1) * this->avCodecContext->width *
+          3; //flip Y
     unsigned char *dest =
-      &this->rgbInput->data[0][y*this->rgbInput->linesize[0]];
-    memcpy((void*)dest, (void*)src, this->avCodecContext->width*3);
+      &this->rgbInput->data[0][y * this->rgbInput->linesize[0]];
+    memcpy((void *) dest, (void *) src, this->avCodecContext->width * 3);
   }
 
   //convert that to YUV for input to the codec
-  SwsContext* convert_ctx = sws_getContext(
+  SwsContext *convert_ctx = sws_getContext(
     this->avCodecContext->width,
     this->avCodecContext->height, AV_PIX_FMT_RGB24,
     this->avCodecContext->width, this->avCodecContext->height,
     this->avCodecContext->pix_fmt,
     SWS_BICUBIC, nullptr, nullptr, nullptr);
 
-  if(convert_ctx == nullptr)
+  if (convert_ctx == nullptr)
   {
     vtkGenericWarningMacro(<< "swscale context initialization failed");
     return 0;
   }
 
   int result = sws_scale(convert_ctx,
-    this->rgbInput->data, this->rgbInput->linesize,
-    0, this->avCodecContext->height,
-    this->yuvOutput->data, this->yuvOutput->linesize
-    );
+                         this->rgbInput->data, this->rgbInput->linesize,
+                         0, this->avCodecContext->height,
+                         this->yuvOutput->data, this->yuvOutput->linesize
+  );
 
   sws_freeContext(convert_ctx);
 
-  if(!result)
+  if (!result)
   {
     vtkGenericWarningMacro(<< "sws_scale() failed");
     return 0;
   }
 
-  int ret = avcodec_send_frame(this->avCodecContext, this->yuvOutput);
-  this->yuvOutput->pts++;
-
-  if (ret < 0)
-  {
-    return 1;
-  }
-
-  //run the encoder
-  AVPacket pkt;
-  av_init_packet(&pkt);
-  pkt.data = nullptr;
-  pkt.size = 0;
-
-  while (!ret)
-  {
-    //dump the compressed result to file
-    ret = avcodec_receive_packet(this->avCodecContext, &pkt);
-    if (!ret)
-    {
-      pkt.stream_index = this->avStream->index;
-      int wret = av_write_frame(this->avFormatContext, &pkt);
-      if (wret < 0)
-      {
-        vtkGenericWarningMacro (<< "Problem encoding frame." );
-        return 0;
-      }
-    }
-  }
-
-  return 1;
+  return encodeAndWriteFrame();
 }
 
 //---------------------------------------------------------------------------
 void vtkFFMPEGWriterInternal::End()
 {
+
   if (this->yuvOutput)
   {
     av_frame_free(&this->yuvOutput);
@@ -353,6 +424,12 @@ void vtkFFMPEGWriterInternal::End()
   {
     av_frame_free(&this->rgbInput);
     this->rgbInput = nullptr;
+  }
+
+  // flush the encoder
+  if (!encodeAndWriteFrame())
+  {
+    vtkGenericWarningMacro(<< "Error flushing encoder.");
   }
 
   if (this->avFormatContext)
@@ -687,6 +764,9 @@ vtkFFMPEGWriter::vtkFFMPEGWriter()
   this->Rate = 25;
   this->BitRate = 0;
   this->BitRateTolerance = 0;
+  this->CodecName = "";
+  this->EncodingMethod = "h264";
+  this->OutputFormat = "mp4";
 }
 
 //---------------------------------------------------------------------------
@@ -700,13 +780,13 @@ void vtkFFMPEGWriter::Start()
 {
   this->Error = 1;
 
-  if ( this->Internals )
+  if (this->Internals)
   {
     vtkErrorMacro("Movie already started.");
     this->SetErrorCode(vtkGenericMovieWriter::InitError);
     return;
   }
-  if ( this->GetInput() == nullptr )
+  if (this->GetInput() == nullptr)
   {
     vtkErrorMacro("Please specify an input.");
     this->SetErrorCode(vtkGenericMovieWriter::NoInputError);
@@ -734,7 +814,7 @@ void vtkFFMPEGWriter::Write()
     return;
   }
 
-  if ( !this->Internals )
+  if (!this->Internals)
   {
     vtkErrorMacro("Movie not started.");
     this->Error = 1;
@@ -743,18 +823,18 @@ void vtkFFMPEGWriter::Write()
   }
 
   // get the data
-  vtkImageData* input = this->GetImageDataInput(0);
+  vtkImageData *input = this->GetImageDataInput(0);
   this->GetInputAlgorithm(0, 0)->UpdateWholeExtent();
 
   int dim[4];
   input->GetDimensions(dim);
-  if ( this->Internals->Dim[0] == 0 && this->Internals->Dim[1] == 0 )
+  if (this->Internals->Dim[0] == 0 && this->Internals->Dim[1] == 0)
   {
     this->Internals->Dim[0] = dim[0];
     this->Internals->Dim[1] = dim[1];
   }
 
-  if (this->Internals->Dim[0]!= dim[0] || this->Internals->Dim[1]!= dim[1])
+  if (this->Internals->Dim[0] != dim[0] || this->Internals->Dim[1] != dim[1])
   {
     vtkErrorMacro("Image not of the same size.");
     this->Error = 1;
@@ -762,7 +842,7 @@ void vtkFFMPEGWriter::Write()
     return;
   }
 
-  if ( !this->Initialized )
+  if (!this->Initialized)
   {
     this->Internals->FrameRate = this->Rate;
     if (!this->Internals->Start())
@@ -793,11 +873,15 @@ void vtkFFMPEGWriter::End()
 }
 
 //---------------------------------------------------------------------------
-void vtkFFMPEGWriter::PrintSelf(ostream& os, vtkIndent indent)
+void vtkFFMPEGWriter::PrintSelf(ostream &os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
+  os << indent << "EncodingMethod: " << this->EncodingMethod << endl;
+  os << indent << "CodecName: " << this->CodecName << endl;
+  os << indent << "OutputFormat: " << this->OutputFormat << endl;
   os << indent << "Quality: " << this->Quality << endl;
-  os << indent << "Compression: " << (this->Compression?"true":"false") << endl;
+  os << indent << "Compression: " << (this->Compression ? "true" : "false")
+     << endl;
   os << indent << "Rate: " << this->Rate << endl;
   os << indent << "BitRate: " << this->BitRate << endl;
   os << indent << "BitRateTolerance: " << this->BitRateTolerance << endl;
