@@ -164,7 +164,7 @@ int vtkFFMPEGWriterInternal::Start()
   av_log_set_level(AV_LOG_ERROR);
 #endif
 
-  //choose avi media file format
+  //choose media file format
 
   this->avOutputFormat = av_guess_format(
     this->Writer->GetOutputFormat().c_str(), nullptr, nullptr);
@@ -176,7 +176,7 @@ int vtkFFMPEGWriterInternal::Start()
 
   if (this->Writer->GetCompression())
   {
-    //choose a codec that is easily playable on windows
+    //choose a codec
     if (this->Writer->GetEncodingMethod() == "mjpeg")
     {
       this->avOutputFormat->video_codec = AV_CODEC_ID_MJPEG;
