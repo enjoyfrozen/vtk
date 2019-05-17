@@ -19,8 +19,8 @@
  * vtkFFMPEGWriter is an adapter that allows VTK to use the LGPL'd FFMPEG
  * library to write movie files. FFMPEG can create a variety of multimedia
  * file formats and can use a variety of encoding algorithms (codecs).
- * This class creates .avi files containing MP43 encoded video without
- * audio.
+ * This class creates .avi or .mp4 files containing MP43 or H264 encoded video
+ * without audio.
  *
  * The FFMPEG multimedia library source code can be obtained from
  * the sourceforge web site at http://ffmpeg.sourceforge.net/download.php
