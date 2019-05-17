@@ -80,7 +80,7 @@ vtkFFMPEGWriterInternal::vtkFFMPEGWriterInternal(vtkFFMPEGWriter *creator)
 
   this->avOutputFormat = nullptr;
 
-//  this->avStream = nullptr;
+  this->avStream = nullptr;
 
   this->rgbInput = nullptr;
   this->yuvOutput = nullptr;
