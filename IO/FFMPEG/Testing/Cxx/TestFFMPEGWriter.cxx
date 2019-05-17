@@ -56,10 +56,12 @@ int TestFFMPEGWriter(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 
   vtkFFMPEGWriter *w = vtkFFMPEGWriter::New();
   w->SetInputConnection(colorize->GetOutputPort());
-  w->SetFileName("TestFFMPEGWriter.avi");
-  cout << "Writing file TestFFMPEGWriter.avi..." << endl;
+  w->SetFileName("TestFFMPEGWriterAvi.avi");
+  cout << "Writing file TestFFMPEGWriterAvi.avi..." << endl;
   w->SetBitRate(1024*1024*30);
   w->SetBitRateTolerance(1024*1024*3);
+  w->SetEncodingMethod("mjpeg");
+  w->SetOutputFormat("avi");
   w->Start();
   for ( cc = 2; cc < 99; cc ++ )
   {
@@ -73,26 +75,68 @@ int TestFFMPEGWriter(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
   }
   w->End();
   cout << endl;
-  cout << "Done writing file TestFFMPEGWriter.avi..." << endl;
+  cout << "Done writing file TestFFMPEGWriterAvi.avi..." << endl;
+
+  w->SetFileName("TestFFMPEGWriterMp4.mp4");
+  cout << "Writing file TestFFMPEGWriterMp4.mp4..." << endl;
+  w->SetBitRate(1024*1024*30);
+  w->SetBitRateTolerance(1024*1024*3);
+  w->SetEncodingMethod("h264");
+  w->SetCodecName("libopenh264");
+  w->SetOutputFormat("mp4");
+  w->Start();
+  for ( cc = 2; cc < 99; cc ++ )
+  {
+    cout << ".";
+    Fractal0->SetMaximumNumberOfIterations(cc);
+    table->SetTableRange(0, cc);
+    table->SetNumberOfColors(cc);
+    table->ForceBuild();
+    table->SetTableValue(cc-1, 0, 0, 0);
+    w->Write();
+  }
+  w->End();
+  cout << endl;
+  cout << "Done writing file TestFFMPEGWriterMp4.mp4..." << endl;
+
   w->Delete();
 
-  exists = (int) vtksys::SystemTools::FileExists("TestFFMPEGWriter.avi");
-  length = vtksys::SystemTools::FileLength("TestFFMPEGWriter.avi");
-  cout << "TestFFMPEGWriter.avi file exists: " << exists << endl;
-  cout << "TestFFMPEGWriter.avi file length: " << length << endl;
+  exists = (int) vtksys::SystemTools::FileExists("TestFFMPEGWriterAvi.avi");
+  length = vtksys::SystemTools::FileLength("TestFFMPEGWriterAvi.avi");
+  cout << "TestFFMPEGWriterAvi.avi file exists: " << exists << endl;
+  cout << "TestFFMPEGWriterAvi.avi file length: " << length << endl;
   if (!exists)
   {
     err = 1;
-    cerr << "ERROR: 1 - Test failing because TestFFMPEGWriter.avi file doesn't exist..." << endl;
+    cerr << "ERROR: 1 - Test failing because TestFFMPEGWriterAvi.avi file doesn't exist..." << endl;
   }
   else
   {
-    vtksys::SystemTools::RemoveFile("TestFFMPEGWriter.avi");
+    vtksys::SystemTools::RemoveFile("TestFFMPEGWriterAvi.avi");
   }
   if (0==length)
   {
     err = 2;
-    cerr << "ERROR: 2 - Test failing because TestFFMPEGWriter.avi file has zero length..." << endl;
+    cerr << "ERROR: 2 - Test failing because TestFFMPEGWriterAvi.avi file has zero length..." << endl;
+  }
+
+  exists = (int) vtksys::SystemTools::FileExists("TestFFMPEGWriterMp4.mp4");
+  length = vtksys::SystemTools::FileLength("TestFFMPEGWriterMp4.mp4");
+  cout << "TestFFMPEGWriterMp4.mp4 file exists: " << exists << endl;
+  cout << "TestFFMPEGWriterMp4.mp4 file length: " << length << endl;
+  if (!exists)
+  {
+    err = 3;
+    cerr << "ERROR: 3 - Test failing because TestFFMPEGWriterMp4.mp4 file doesn't exist..." << endl;
+  }
+  else
+  {
+    vtksys::SystemTools::RemoveFile("TestFFMPEGWriterMp4.mp4");
+  }
+  if (0==length)
+  {
+    err = 4;
+    cerr << "ERROR: 4 - Test failing because TestFFMPEGWriterMp4.mp4 file has zero length..." << endl;
   }
 
   colorize->Delete();
