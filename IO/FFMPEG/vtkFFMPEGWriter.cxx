@@ -177,13 +177,25 @@ int vtkFFMPEGWriterInternal::Start()
   if (this->Writer->GetCompression())
   {
     //choose a codec
-    if (this->Writer->GetEncodingMethod() == "mjpeg")
-    {
-      this->avOutputFormat->video_codec = AV_CODEC_ID_MJPEG;
+    if (this->Writer->GetEncodingMethod().empty()) {
+      //choose based on output file format. Default h264 for mp4, mjpeg for avi.
+      if (this->Writer->GetOutputFormat() == "avi") {
+        this->avOutputFormat->video_codec = AV_CODEC_ID_MJPEG;
+      }
+      else if (this->Writer->GetOutputFormat() == "mp4") {
+        this->avOutputFormat->video_codec = AV_CODEC_ID_H264;
+      }
     }
-    else if (this->Writer->GetEncodingMethod() == "h264")
+    else
     {
-      this->avOutputFormat->video_codec = AV_CODEC_ID_H264;
+      if (this->Writer->GetEncodingMethod() == "mjpeg")
+      {
+        this->avOutputFormat->video_codec = AV_CODEC_ID_MJPEG;
+      }
+      else if (this->Writer->GetEncodingMethod() == "h264")
+      {
+        this->avOutputFormat->video_codec = AV_CODEC_ID_H264;
+      }
     }
   }
   else
@@ -200,13 +212,20 @@ int vtkFFMPEGWriterInternal::Start()
     return 0;
   }
 
-  AVCodec *codec;
+  AVCodec *codec = nullptr;
   if (this->Writer->GetCodecName().empty())
   {
-    if (!(codec = avcodec_find_encoder(this->avOutputFormat->video_codec)))
+    //default libopenh264 for h264 encoding
+    if (avOutputFormat->video_codec == AV_CODEC_ID_H264) {
+      codec = avcodec_find_encoder_by_name("libopenh264");
+    }
+    if (!codec)
     {
-      vtkGenericWarningMacro (<< "Failed to get video codec.");
-      return 0;
+      if (!(codec = avcodec_find_encoder(this->avOutputFormat->video_codec)))
+      {
+        vtkGenericWarningMacro (<< "Failed to get video codec.");
+        return 0;
+      }
     }
   }
   else
@@ -299,7 +318,7 @@ int vtkFFMPEGWriterInternal::Start()
 
   if (avCodecContext->codec_id == AV_CODEC_ID_H264)
   {
-    if (this->Writer->GetCodecName() == "libopenh264")
+    if (!strcmp(this->avCodecContext->codec->name, "libopenh264"))
     {
       av_opt_set(avCodecContext->priv_data, "allow_skip_frames", "1", 0);
     }
@@ -765,7 +784,7 @@ vtkFFMPEGWriter::vtkFFMPEGWriter()
   this->BitRate = 0;
   this->BitRateTolerance = 0;
   this->CodecName = "";
-  this->EncodingMethod = "h264";
+  this->EncodingMethod = "";
   this->OutputFormat = "mp4";
 }
 
