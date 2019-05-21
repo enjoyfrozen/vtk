@@ -27,70 +27,24 @@
  * or is a tarball along with installation instructions at
  * http://www.vtk.org/files/support/ffmpeg_source.tar.gz
  *
-*/
+ */
 
 #ifndef vtkFFMPEGWriter_h
 #define vtkFFMPEGWriter_h
 
-#include "vtkIOFFMPEGModule.h" // For export macro
 #include "vtkGenericMovieWriter.h"
+#include "vtkIOFFMPEGModule.h" // For export macro
 
 class vtkFFMPEGWriterInternal;
-
-//enum class OutputFormats
-//{
-//  OUTPUT_FORMAT_AVI,
-//  OUTPUT_FORMAT_MP4
-//};
-//VTK_GENERATE_BITFLAG_OPS(OutputFormats);
-//
-//std::ostream &operator<<(std::ostream &os, const OutputFormats &format)
-//{
-//  switch (format)
-//  {
-//    case OutputFormats::OUTPUT_FORMAT_AVI:
-//      os << "avi";
-//      return os;
-//    case OutputFormats::OUTPUT_FORMAT_MP4:
-//      os << "mp4";
-//      return os;
-//    default:
-//      os << "Unsupported format.";
-//      return os;
-//  }
-//}
-//
-//enum class EncodingMethods
-//{
-//  ENCODING_METHOD_H264,
-//  ENCODING_METHOD_MJPEG
-//};
-//VTK_GENERATE_BITFLAG_OPS(EncodingMethods);
-//
-//std::ostream &operator<<(std::ostream &os, const EncodingMethods &method)
-//{
-//  switch (method)
-//  {
-//    case EncodingMethods::ENCODING_METHOD_H264:
-//      os << "h264";
-//      return os;
-//    case EncodingMethods::ENCODING_METHOD_MJPEG:
-//      os << "mjpeg";
-//      return os;
-//    default:
-//      os << "Unsupported encoding method.";
-//      return os;
-//  }
-//}
 
 class VTKIOFFMPEG_EXPORT vtkFFMPEGWriter : public vtkGenericMovieWriter
 {
 public:
-  static vtkFFMPEGWriter *New();
+  static vtkFFMPEGWriter* New();
 
-vtkTypeMacro(vtkFFMPEGWriter, vtkGenericMovieWriter);
+  vtkTypeMacro(vtkFFMPEGWriter, vtkGenericMovieWriter);
 
-  void PrintSelf(ostream &os, vtkIndent indent) override;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   //@{
   /**
@@ -154,31 +108,49 @@ vtkTypeMacro(vtkFFMPEGWriter, vtkGenericMovieWriter);
   vtkGetMacro(BitRateTolerance, int);
   //@}
 
+  enum EncodingMethods
+  {
+    ENCODING_METHOD_H264,
+    ENCODING_METHOD_MJPEG
+  };
+
   //@{
   /**
    * Set/Get the encoding format. e.g h264
    */
-  vtkSetMacro(EncodingMethod, std::string);
+  vtkSetMacro(EncodingMethod, EncodingMethods);
 
-  vtkGetMacro(EncodingMethod, std::string);
+  vtkGetMacro(EncodingMethod, EncodingMethods);
   //@}
+
+  enum H264Codecs
+  {
+    H264_CODEC_LIBOPENH264,
+    H264_CODEC_LIBX264
+  };
 
   //@{
   /**
    * Set/Get the name of the encoder. e.g. libopenh264
    */
-  vtkSetMacro(CodecName, std::string);
+  vtkSetMacro(h264Codec, H264Codecs);
 
-  vtkGetMacro(CodecName, std::string);
+  vtkGetMacro(h264Codec, H264Codecs);
   //@}
+
+  enum OutputFormats
+  {
+    OUTPUT_FORMAT_AVI,
+    OUTPUT_FORMAT_MP4
+  };
 
   //@{
   /**
    * Set/Get the output file format. e.g. mp4
    */
-  vtkSetMacro(OutputFormat, std::string);
+  vtkSetMacro(OutputFormat, OutputFormats);
 
-  vtkGetMacro(OutputFormat, std::string);
+  vtkGetMacro(OutputFormat, OutputFormats);
   //@}
 
 protected:
@@ -186,7 +158,7 @@ protected:
 
   ~vtkFFMPEGWriter();
 
-  vtkFFMPEGWriterInternal *Internals;
+  vtkFFMPEGWriterInternal* Internals;
 
   int Initialized;
   int Quality;
@@ -194,14 +166,14 @@ protected:
   int BitRate;
   int BitRateTolerance;
   bool Compression;
-  std::string EncodingMethod;
-  std::string CodecName;
-  std::string OutputFormat;
+  EncodingMethods EncodingMethod;
+  H264Codecs h264Codec;
+  OutputFormats OutputFormat;
 
 private:
-  vtkFFMPEGWriter(const vtkFFMPEGWriter &) = delete;
+  vtkFFMPEGWriter(const vtkFFMPEGWriter&) = delete;
 
-  void operator=(const vtkFFMPEGWriter &) = delete;
+  void operator=(const vtkFFMPEGWriter&) = delete;
 };
 
 #endif
