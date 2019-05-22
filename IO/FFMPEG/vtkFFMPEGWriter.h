@@ -118,9 +118,9 @@ public:
   /**
    * Set/Get the encoding format. e.g h264
    */
-  vtkSetMacro(EncodingMethod, EncodingMethods);
+  vtkSetMacro(EncodingMethod, int);
 
-  vtkGetMacro(EncodingMethod, EncodingMethods);
+  vtkGetMacro(EncodingMethod, int);
   //@}
 
   enum H264Codecs
@@ -133,9 +133,9 @@ public:
   /**
    * Set/Get the name of the encoder. e.g. libopenh264
    */
-  vtkSetMacro(h264Codec, H264Codecs);
+  vtkSetMacro(h264Codec, int);
 
-  vtkGetMacro(h264Codec, H264Codecs);
+  vtkGetMacro(h264Codec, int);
   //@}
 
   enum OutputFormats
@@ -148,9 +148,9 @@ public:
   /**
    * Set/Get the output file format. e.g. mp4
    */
-  vtkSetMacro(OutputFormat, OutputFormats);
+  vtkSetMacro(OutputFormat, int);
 
-  vtkGetMacro(OutputFormat, OutputFormats);
+  vtkGetMacro(OutputFormat, int);
   //@}
 
 protected:
@@ -166,9 +166,9 @@ protected:
   int BitRate;
   int BitRateTolerance;
   bool Compression;
-  EncodingMethods EncodingMethod;
-  H264Codecs h264Codec;
-  OutputFormats OutputFormat;
+  int EncodingMethod;
+  int h264Codec;
+  int OutputFormat;
 
 private:
   vtkFFMPEGWriter(const vtkFFMPEGWriter&) = delete;

@@ -981,12 +981,17 @@ void vtkFFMPEGWriter::End()
 void vtkFFMPEGWriter::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
-  os << indent << "EncodingMethod: " << this->EncodingMethod << endl;
+  os << indent
+     << "EncodingMethod: " << static_cast<EncodingMethods>(this->EncodingMethod)
+     << endl;
   if (this->EncodingMethod == ENCODING_METHOD_H264)
   {
-    os << indent << "CodecName: " << this->h264Codec << endl;
+    os << indent << "CodecName: " << static_cast<H264Codecs>(this->h264Codec)
+       << endl;
   }
-  os << indent << "OutputFormat: " << this->OutputFormat << endl;
+  os << indent
+     << "OutputFormat: " << static_cast<OutputFormats>(this->OutputFormat)
+     << endl;
   os << indent << "Quality: " << this->Quality << endl;
   os << indent << "Compression: " << (this->Compression ? "true" : "false")
      << endl;
