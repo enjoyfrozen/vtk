@@ -95,11 +95,11 @@ void MaurerPropagateEuclideanDistance(const T **inputImage, T **outputImage, con
     T maxDist2 = maxDist*maxDist;                                           // AND SQUARED MAX DISTANCE
 
 /* Scan along z */
-#pragma omp parallel
+// #pragma omp parallel
     {
     T *buffer = new T[size[2]];
     T newd;
-#pragma omp for
+// #pragma omp for
     for(int y=0;y<size[1];y++)
         for(int x=0,xy=y*size[0];x<size[0];x++,xy++)					// FOR EACH PIXEL COLUMN (x,y)
         {
@@ -132,7 +132,7 @@ void MaurerPropagateEuclideanDistance(const T **inputImage, T **outputImage, con
     double *g= new double[bSize];
     int *h= new int[bSize];
 
-#pragma omp for
+// #pragma omp for
     for(int z=0;z<size[2];z++)
         for(int x=0;x<size[0];x++)										// FOR EACH PIXEL COLUMN (x,z)
         {
@@ -182,7 +182,7 @@ void MaurerPropagateEuclideanDistance(const T **inputImage, T **outputImage, con
 
     /* Scan along x */
 
-#pragma omp for
+// #pragma omp for
     for(int z=0;z<size[2];z++)
         for(int y=0;y<size[1];y++)
         {
@@ -307,7 +307,7 @@ void vtkFastImplicitModellerExecute(vtkFastImplicitModeller *self,
     if (!outBuffer)
         vtkErrorWithObjectMacro(self, "Distance map allocation failed.");
 
-#pragma omp parallel for
+// #pragma omp parallel for
     for( int elemCnt = 0; elemCnt < vsVoxelCount; ++elemCnt )
             outBuffer[ elemCnt ] = maxDistance;
 
@@ -337,7 +337,7 @@ void vtkFastImplicitModellerExecute(vtkFastImplicitModeller *self,
                                       1.0 / vsVoxelDimensions.GetZ());
 
     // loop over triangles
-#pragma omp parallel for
+// #pragma omp parallel for
     for (int t = 0; t < pointTriplets.size() / 3; t ++) {
         // store the current triangle vertices
         vtkVector3d Vertices[3];
@@ -404,7 +404,7 @@ void vtkFastImplicitModellerExecute(vtkFastImplicitModeller *self,
     }
 
     // loop over triangles
-#pragma omp parallel for
+// #pragma omp parallel for
     for (int t = 0; t < pointTriplets.size() / 3; t ++){
         // init triangle bounds (min = biggest)
         vtkVector3d minV = vsEnd;
@@ -552,7 +552,7 @@ void vtkFastImplicitModellerExecute(vtkFastImplicitModeller *self,
     }
 
     // propagate signs
-#pragma omp parallel for
+// #pragma omp parallel for
     for (int z = 0; z < vsSize[2]; z++){
         for (int y = 0; y < vsSize[1]; y++){
             int idx = vsSize[0] * (y + vsSize[1] * z);
@@ -570,7 +570,7 @@ void vtkFastImplicitModellerExecute(vtkFastImplicitModeller *self,
     }
 
     // propagate distances -- Maurer euclidean distance transform
-#pragma omp parallel for
+// #pragma omp parallel for
     for(int xyz=0;xyz<vsVoxelCount;xyz++){
         if(outBuffer[xyz]!=maxDistance)
             outBuffer[ xyz ] = sqrt(outBuffer[xyz]);
@@ -581,13 +581,13 @@ void vtkFastImplicitModellerExecute(vtkFastImplicitModeller *self,
     // fill output
     OT* voxelspace = static_cast<OT *> (outData->GetScalarPointer());
     if (self->GetComputeSigned()){
-#pragma omp parallel for
+// #pragma omp parallel for
         for( int elemCnt = 0; elemCnt < vsVoxelCount; ++elemCnt ){
              SetOutputDistance<OT> (sqrt(outBuffer[elemCnt]) * double(signs[elemCnt]), &voxelspace [elemCnt], capValue, scaleFactor);
         }
     }
     else {
-#pragma omp parallel for
+// #pragma omp parallel for
         for( int elemCnt = 0; elemCnt < vsVoxelCount; ++elemCnt ){
              SetOutputDistance<OT> (sqrt(outBuffer[elemCnt]) * double(signs[elemCnt] == -1), &voxelspace [elemCnt], capValue, scaleFactor);
         }
