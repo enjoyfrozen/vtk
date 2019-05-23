@@ -2,7 +2,7 @@
 
   Program:   Visualization Toolkit
   Module:    vtkFastImplicitModeller.cxx
-  Author:    L.Cantelli @ HEIG-VD
+  Author:    L.Cantelli & O.Cuisenaire @ HEIG-VD
 
 =========================================================================*/
 
