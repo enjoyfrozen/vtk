@@ -25,6 +25,7 @@
 #include "vtkPointData.h"
 #include "vtkPolyData.h"
 #include "vtkFloatArray.h"
+#include "vtkImageTransform.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
 #include "vtkMarchingCubesTriangleCases.h"
 #include "vtkSMPTools.h"
@@ -1469,6 +1470,9 @@ int vtkFlyingEdges3D::RequestData(
     output->GetPointData()->SetActiveAttribute(idx, vtkDataSetAttributes::VECTORS);
     newGradients->Delete();
   }
+
+  // TODO: Transform output if image orientation is not axis aligned
+  vtkImageTransform::TransformPointSet(input,output);
 
   return 1;
 }
