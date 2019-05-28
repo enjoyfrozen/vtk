@@ -899,7 +899,7 @@ void vtkTIFFReader::ReadVolume(T* buffer)
         return;
       }
 
-      const bool flip = this->InternalImage->Orientation != ORIENTATION_TOPLEFT;
+      const bool flip = this->InternalImage->Orientation == ORIENTATION_TOPLEFT;
       T* fimage = buffer;
       fimage += width * height * 4 * slice;
       for (int yy = 0; yy < height; ++yy)
@@ -967,7 +967,7 @@ void vtkTIFFReader::ReadTiles(void* buffer)
   const unsigned int pixelSize = this->InternalImage->SamplesPerPixel;
   const bool rowMultiple = (height % tileHeight == 0 ) ? true : false;
   const bool colMultiple = (width % tileWidth == 0 ) ? true : false;
-  const bool flip = this->InternalImage->Orientation != ORIENTATION_TOPLEFT;
+  const bool flip = this->InternalImage->Orientation == ORIENTATION_TOPLEFT;
 
   for (unsigned int slice = 0; slice < this->InternalImage->NumberOfPages;
        ++slice)
@@ -1252,7 +1252,7 @@ void vtkTIFFReader::ReadGenericImage(T* out, unsigned int, unsigned int height)
   {
     if (this->InternalImage->Orientation == ORIENTATION_TOPLEFT)
     {
-      FlipFalse flip;
+      FlipTrue flip;
       if (!ReadTemplatedImage(out, flip,
                               this->OutputExtent[0], this->OutputExtent[1],
                               this->OutputExtent[2], this->OutputExtent[3],
@@ -1264,7 +1264,7 @@ void vtkTIFFReader::ReadGenericImage(T* out, unsigned int, unsigned int height)
     }
     else
     {
-      FlipTrue flip;
+      FlipFalse flip;
       if (!ReadTemplatedImage(out, flip,
                               this->OutputExtent[0], this->OutputExtent[1],
                               this->OutputExtent[2], this->OutputExtent[3],
@@ -1293,7 +1293,7 @@ void vtkTIFFReader::ReadGenericImage(T* out, unsigned int, unsigned int height)
     int fileRow = 0;
     for (int row = this->OutputExtent[2]; row <= this->OutputExtent[3]; ++row)
     {
-      // Flip from lower left origin to upper left if necessary.
+      // Flip from upper left origin to lower left if necessary.
       if (this->InternalImage->Orientation == ORIENTATION_TOPLEFT)
       {
         fileRow = row;
