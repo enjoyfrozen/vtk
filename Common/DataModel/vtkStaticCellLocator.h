@@ -23,7 +23,10 @@
  *
  * vtkStaticCellLocator is an accelerated version of vtkCellLocator. It is
  * threaded (via vtkSMPTools), and supports one-time static construction
- * (i.e., incremental cell insertion is not supported).
+ * (i.e., incremental cell insertion is not supported). vtkStaticCellLocator
+ * is thread-safe, i.e. the query functions like FindCell can be called from
+ * different threads, as long as the locator is built first in a single
+ * thread.
  *
  * @warning
  * This class is templated. It may run slower than serial execution if the code
@@ -204,10 +207,6 @@ protected:
   // Support PIMPLd implementation
   vtkCellBinner *Binner; // Does the binning
   vtkCellProcessor *Processor; // Invokes methods (templated subclasses)
-
-  // Support query operations
-  unsigned char *CellHasBeenVisited;
-  unsigned char QueryNumber;
 
 private:
   vtkStaticCellLocator(const vtkStaticCellLocator&) = delete;
