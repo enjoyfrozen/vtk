@@ -18,12 +18,14 @@
 
 #include "vtkMetaImageReader.h"
 
+#include "vtkAnatomicalOrientation.h"
 #include "vtkDataArray.h"
 #include "vtkObjectFactory.h"
 #include "vtkPointData.h"
 #include "vtkImageData.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
+#include "vtkMatrix3x3.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
 
 #include <string>
@@ -59,7 +61,6 @@ vtkMetaImageReader::vtkMetaImageReader()
   RescaleOffset = 0;
   BitsAllocated = 0;
   strcpy(DistanceUnits, "mm");
-  strcpy(AnatomicalOrientation, "RAS");
   this->MetaImagePtr = new vtkmetaio::MetaImage;
   this->FileLowerLeft = 1;
 }
@@ -95,7 +96,7 @@ void vtkMetaImageReader::ExecuteInformation()
   }
   vtkDebugMacro(<< "* This image has " << FileDimensionality << " dimensions");
 
-  int i;
+  int i, j;
 
   switch(this->MetaImagePtr->ElementType())
   {
@@ -157,18 +158,44 @@ void vtkMetaImageReader::ExecuteInformation()
   int extent[6]={0,0,0,0,0,0};
   double spacing[3]={1.0, 1.0, 1.0};
   double origin[3]={0.0, 0.0, 0.0};
+  double direction[9]={0.0};
   for(i=0; i<FileDimensionality; i++)
   {
     extent[2*i] = 0;
     extent[2*i+1] = this->MetaImagePtr->DimSize(i)-1;
     spacing[i] = fabs(this->MetaImagePtr->ElementSpacing(i));
     origin[i] = this->MetaImagePtr->Position(i);
+
+    for(j=0; j<FileDimensionality; j++)
+    {
+      direction[i * FileDimensionality + j] = this->MetaImagePtr->Orientation(i, j);
+    }
   }
+
+  // Adjust the origin and the direction matrix to be in LPS coordinates
+  const char *acronym = this->MetaImagePtr->AnatomicalOrientationAcronym();
+  vtkAnatomicalOrientation fileOrientation(acronym);
+  if (fileOrientation.IsValid())
+  {
+    if (fileOrientation != vtkAnatomicalOrientation::LPS)
+    {
+      double transform[9]={0.0};
+      fileOrientation.GetTransformTo(vtkAnatomicalOrientation::LPS, transform);
+      vtkMatrix3x3::Multiply3x3(transform, direction, direction);
+      vtkMatrix3x3::MultiplyPoint(transform, origin, origin);
+    }
+  }
+  else
+  {
+    vtkWarningMacro("Invalid anatomical orientation read from file (" + std::string(acronym) + "), defaulting to LPS.")
+  }
+
   this->SetNumberOfScalarComponents(
                          this->MetaImagePtr->ElementNumberOfChannels());
   this->SetDataExtent(extent);
   this->SetDataSpacing(spacing);
   this->SetDataOrigin(origin);
+  this->SetDataDirection(direction);
   this->SetHeaderSize(this->MetaImagePtr->HeaderSize());
   this->FileLowerLeftOn();
 
@@ -192,9 +219,6 @@ void vtkMetaImageReader::ExecuteInformation()
       break;
     }
   }
-
-  strcpy(AnatomicalOrientation,
-         this->MetaImagePtr->AnatomicalOrientationAcronym());
 
   vtkmetaio::MET_SizeOfType(this->MetaImagePtr->ElementType(), &BitsAllocated);
 
@@ -255,6 +279,7 @@ int vtkMetaImageReader::RequestInformation(vtkInformation *,
                this->DataExtent, 6);
   outInfo->Set(vtkDataObject::SPACING(), this->DataSpacing, 3);
   outInfo->Set(vtkDataObject::ORIGIN(),  this->DataOrigin, 3);
+  outInfo->Set(vtkDataObject::DIRECTION(),  this->DataDirection, 9);
 
   vtkDataObject::SetPointDataActiveScalarInfo(
                     outInfo,
@@ -389,5 +414,4 @@ void vtkMetaImageReader::PrintSelf(ostream& os, vtkIndent indent)
 
   os << indent << "BitsAllocated: " << this->BitsAllocated << endl;
   os << indent << "DistanceUnits: " << this->DistanceUnits << endl;
-  os << indent << "AnatomicalOrientation: " << this->AnatomicalOrientation << endl;
 }

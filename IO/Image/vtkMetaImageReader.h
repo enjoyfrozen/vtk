@@ -101,7 +101,6 @@ public:
   vtkGetMacro(RescaleOffset, double);
   vtkGetMacro(BitsAllocated, int);
   vtkGetStringMacro(DistanceUnits);
-  vtkGetStringMacro(AnatomicalOrientation);
   vtkGetMacro(GantryAngle, double);
   vtkGetStringMacro(PatientName);
   vtkGetStringMacro(PatientID);
@@ -201,7 +200,6 @@ private:
   double RescaleOffset;
   int BitsAllocated;
   char DistanceUnits[255];
-  char AnatomicalOrientation[255];
 };
 
 #endif
