@@ -1,6 +1,7 @@
 vtk_add_test_cxx(vtkCommonMathCxxTests tests
   NO_DATA NO_VALID NO_OUTPUT
   TestAmoebaMinimizer.cxx
+  TestAnatomicalOrientation.cxx
   TestMatrix3x3.cxx
   TestPolynomialSolversUnivariate.cxx
   TestQuaternion.cxx
