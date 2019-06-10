@@ -14,15 +14,15 @@
 =========================================================================*/
 
 #include "vtkNIFTIImageWriter.h"
+#include "vtkAnatomicalOrientation.h"
 #include "vtkObjectFactory.h"
-#include "vtkNIFTIImageReader.h"
 #include "vtkImageData.h"
 #include "vtkPointData.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
 #include "vtkErrorCode.h"
-#include "vtkMatrix4x4.h"
+#include "vtkMatrix3x3.h"
 #include "vtkMath.h"
 #include "vtkCommand.h"
 #include "vtkVersion.h"
@@ -43,8 +43,6 @@
 #include <cmath>
 
 vtkStandardNewMacro(vtkNIFTIImageWriter);
-vtkCxxSetObjectMacro(vtkNIFTIImageWriter,QFormMatrix,vtkMatrix4x4);
-vtkCxxSetObjectMacro(vtkNIFTIImageWriter,SFormMatrix,vtkMatrix4x4);
 vtkCxxSetObjectMacro(vtkNIFTIImageWriter,NIFTIHeader,vtkNIFTIImageHeader);
 
 //----------------------------------------------------------------------------
@@ -58,8 +56,6 @@ vtkNIFTIImageWriter::vtkNIFTIImageWriter()
   this->RescaleSlope = 0.0;
   this->RescaleIntercept = 0.0;
   this->QFac = 0.0;
-  this->QFormMatrix = nullptr;
-  this->SFormMatrix = nullptr;
   this->OwnHeader = nullptr;
   this->NIFTIHeader = nullptr;
   this->NIFTIVersion = 0;
@@ -76,14 +72,6 @@ vtkNIFTIImageWriter::vtkNIFTIImageWriter()
 //----------------------------------------------------------------------------
 vtkNIFTIImageWriter::~vtkNIFTIImageWriter()
 {
-  if (this->QFormMatrix)
-  {
-    this->QFormMatrix->Delete();
-  }
-  if (this->SFormMatrix)
-  {
-    this->SFormMatrix->Delete();
-  }
   if (this->OwnHeader)
   {
     this->OwnHeader->Delete();
@@ -116,39 +104,6 @@ void vtkNIFTIImageWriter::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "RescaleSlope: " << this->RescaleSlope << "\n";
   os << indent << "RescaleIntercept: " << this->RescaleIntercept << "\n";
   os << indent << "QFac: " << this->QFac << "\n";
-
-  os << indent << "QFormMatrix:";
-  if (this->QFormMatrix)
-  {
-    double mat[16];
-    vtkMatrix4x4::DeepCopy(mat, this->QFormMatrix);
-    for (int i = 0; i < 16; i++)
-    {
-      os << " " << mat[i];
-    }
-    os << "\n";
-  }
-  else
-  {
-    os << " (none)\n";
-  }
-
-  os << indent << "SFormMatrix:";
-  if (this->SFormMatrix)
-  {
-    double mat[16];
-    vtkMatrix4x4::DeepCopy(mat, this->SFormMatrix);
-    for (int i = 0; i < 16; i++)
-    {
-      os << " " << mat[i];
-    }
-    os << "\n";
-  }
-  else
-  {
-    os << " (none)\n";
-  }
-
   os << indent << "NIFTIHeader: ";
   if (this->NIFTIHeader)
   {
@@ -315,21 +270,25 @@ void vtkNIFTIImageWriterSetInformation(
   hdr->pixdim[7] = 1.0;
 }
 
-// Set the QForm from a 4x4 matrix
+// Set the QForm
 void vtkNIFTIImageWriterSetQForm(
-  nifti_2_header *hdr, double mmat[16], double qfac)
+  nifti_2_header *hdr, double rotation[9], double origin[3], double qfac)
 {
-  double rmat[3][3];
-  rmat[0][0] = mmat[0];
-  rmat[0][1] = mmat[1];
-  rmat[0][2] = mmat[2];
-  rmat[1][0] = mmat[4];
-  rmat[1][1] = mmat[5];
-  rmat[1][2] = mmat[6];
-  rmat[2][0] = mmat[8];
-  rmat[2][1] = mmat[9];
-  rmat[2][2] = mmat[10];
+  qfac = ( qfac == -1.0 ) ? -1.0 : 1.0;
 
+  // Compensate for qfac
+  double rmat[3][3];
+  rmat[0][0] = rotation[0];
+  rmat[0][1] = rotation[1];
+  rmat[0][2] = rotation[2] / qfac;
+  rmat[1][0] = rotation[3];
+  rmat[1][1] = rotation[4];
+  rmat[1][2] = rotation[5] / qfac;
+  rmat[2][0] = rotation[6];
+  rmat[2][1] = rotation[7];
+  rmat[2][2] = rotation[8] / qfac;
+
+  // Get quaternion
   double quat[4];
   vtkMath::Matrix3x3ToQuaternion(rmat, quat);
   if (quat[0] < 0)
@@ -340,88 +299,37 @@ void vtkNIFTIImageWriterSetQForm(
     quat[3] = -quat[3];
   }
 
-  if (qfac < 0)
-  {
-    // We will be reversing the order of the slices, so the first VTK
-    // slice will be at the position of the last NIfTI slice, and we
-    // must adjust the offset to compensate for this.
-    mmat[3] += rmat[0][2] * hdr->pixdim[3] * (hdr->dim[3] - 1);
-    mmat[7] += rmat[1][2] * hdr->pixdim[3] * (hdr->dim[3] - 1);
-    mmat[11] += rmat[2][2] * hdr->pixdim[3] * (hdr->dim[3] - 1);
-  }
-
+  // Store qfac, quaternion, and offset
   hdr->pixdim[0] = qfac;
   hdr->quatern_b = quat[1];
   hdr->quatern_c = quat[2];
   hdr->quatern_d = quat[3];
-  hdr->qoffset_x = mmat[3];
-  hdr->qoffset_y = mmat[7];
-  hdr->qoffset_z = mmat[11];
+  hdr->qoffset_x = origin[0];
+  hdr->qoffset_y = origin[1];
+  hdr->qoffset_z = origin[2];
 }
 
-// Set the SForm from a 4x4 matrix
+// Set the SForm
 void vtkNIFTIImageWriterSetSForm(
-  nifti_2_header *hdr, double mmat[16], double qfac)
+  nifti_2_header *hdr, double rotation[9], double origin[3])
 {
-  if (qfac < 0)
-  {
-    // If QFac is set to -1 (which only occurs if qform_code was set)
-    // then the slices will be reversed, and we must reverse the slice
-    // orientation vector (the third column of the matrix) to compensate.
-
-    // adjust the offset to compensate for changed slice ordering
-    mmat[3] += mmat[2] * hdr->pixdim[3] * (hdr->dim[3] - 1);
-    mmat[7] += mmat[6] * hdr->pixdim[3] * (hdr->dim[3] - 1);
-    mmat[11] += mmat[10] * hdr->pixdim[3] * (hdr->dim[3] - 1);
-
-    // reverse the slice orientation vector
-    mmat[2] = -mmat[2];
-    mmat[6] = -mmat[6];
-    mmat[10] = -mmat[10];
-  }
-
   // first row
-  hdr->srow_x[0] = mmat[0] * hdr->pixdim[1];
-  hdr->srow_x[1] = mmat[1] * hdr->pixdim[2];
-  hdr->srow_x[2] = mmat[2] * hdr->pixdim[3];
-  hdr->srow_x[3] = mmat[3];
+  hdr->srow_x[0] = rotation[0] * hdr->pixdim[1];
+  hdr->srow_x[1] = rotation[1] * hdr->pixdim[2];
+  hdr->srow_x[2] = rotation[2] * hdr->pixdim[3];
+  hdr->srow_x[3] = origin[0];
 
   // second row
-  hdr->srow_y[0] = mmat[4] * hdr->pixdim[1];
-  hdr->srow_y[1] = mmat[5] * hdr->pixdim[2];
-  hdr->srow_y[2] = mmat[6] * hdr->pixdim[3];
-  hdr->srow_y[3] = mmat[7];
+  hdr->srow_y[0] = rotation[3] * hdr->pixdim[1];
+  hdr->srow_y[1] = rotation[4] * hdr->pixdim[2];
+  hdr->srow_y[2] = rotation[5] * hdr->pixdim[3];
+  hdr->srow_y[3] = origin[1];
 
   // third row
-  hdr->srow_z[0] = mmat[8] * hdr->pixdim[1];
-  hdr->srow_z[1] = mmat[9] * hdr->pixdim[2];
-  hdr->srow_z[2] = mmat[10] * hdr->pixdim[3];
-  hdr->srow_z[3] = mmat[11];
-}
-
-void vtkNIFTIImageWriterMatrix(
-  double mmat[16], vtkMatrix4x4 *matrix, const double origin[3])
-{
-  // find new offset by multiplying the origin by the matrix
-  double offset[4];
-  offset[0] = origin[0];
-  offset[1] = origin[1];
-  offset[2] = origin[2];
-  offset[3] = 1.0;
-
-  if (matrix)
-  {
-    matrix->MultiplyPoint(offset, offset);
-    vtkMatrix4x4::DeepCopy(mmat, matrix);
-  }
-  else
-  {
-    vtkMatrix4x4::Identity(mmat);
-  }
-
-  mmat[3] = offset[0];
-  mmat[7] = offset[1];
-  mmat[11] = offset[2];
+  hdr->srow_z[0] = rotation[6] * hdr->pixdim[1];
+  hdr->srow_z[1] = rotation[7] * hdr->pixdim[2];
+  hdr->srow_z[2] = rotation[8] * hdr->pixdim[3];
+  hdr->srow_z[3] = origin[2];
 }
 
 } // end anonymous namespace
@@ -507,28 +415,28 @@ int vtkNIFTIImageWriter::GenerateHeader(vtkInformation *info, bool singleFile)
     hdr.descrip[sizeof(hdr.descrip) - 1] = '\0';
   }
 
-  // qfac dictates the slice ordering in the file
-  double qfac = (this->QFac < 0 ? -1.0 : 1.0);
-
-  // origin must be incorporated into qform and sform
+  // origin and orientation/direction
   double origin[3];
+  double direction[9];
   info->Get(vtkDataObject::ORIGIN(), origin);
+  info->Get(vtkDataObject::DIRECTION(), direction);
 
-  if (this->QFormMatrix ||
-      (origin[0] != 0 || origin[1] != 0 || origin[2] != 0))
+  // Revert transform from LPS (VTK) to RAS (NIFTI)
+  double transform[9];
+  vtkAnatomicalOrientation::LPS.GetTransformTo(vtkAnatomicalOrientation::RAS, transform);
+  vtkMatrix3x3::Multiply3x3(transform, direction, direction);
+  vtkMatrix3x3::MultiplyPoint(transform, origin, origin);
+
+  // TODO: do we need to write both sform and qform? And what value do we set?
+  if (direction[0] != 1 || direction[1] != 0 || direction[2] != 0 ||
+      direction[3] != 0 || direction[4] != 1 || direction[5] != 0 ||
+      direction[6] != 0 || direction[7] != 0 || direction[8] != 1 ||
+      origin[0] != 0 || origin[1] != 0 || origin[2] != 0)
   {
     hdr.qform_code = 1; // SCANNER_ANAT
-    double mat16[16];
-    vtkNIFTIImageWriterMatrix(mat16, this->QFormMatrix, origin);
-    vtkNIFTIImageWriterSetQForm(&hdr, mat16, qfac);
-  }
-
-  if (this->SFormMatrix)
-  {
+    vtkNIFTIImageWriterSetQForm(&hdr, direction, origin, this->QFac);
     hdr.sform_code = 2; // ALIGNED_ANAT
-    double mat16[16];
-    vtkNIFTIImageWriterMatrix(mat16, this->SFormMatrix, origin);
-    vtkNIFTIImageWriterSetSForm(&hdr, mat16, qfac);
+    vtkNIFTIImageWriterSetSForm(&hdr, direction, origin);
   }
 
   // base dimension not counting vector dimension
@@ -803,18 +711,6 @@ int vtkNIFTIImageWriter::RequestData(
     rowBuffer = new unsigned char[outSizeX*fileVoxelIncr];
   }
 
-  // special increment to reverse the slices if needed
-  vtkIdType sliceOffset = 0;
-
-  if (this->QFac < 0)
-  {
-    // put slices in reverse order
-    sliceOffset = scalarSize*numComponents;
-    sliceOffset *= outSizeX;
-    sliceOffset *= outSizeY;
-    dataPtr += sliceOffset*(outSizeZ - 1);
-  }
-
   // special increment to handle planar RGB
   vtkIdType planarOffset = 0;
   vtkIdType planarEndOffset = 0;
@@ -895,7 +791,6 @@ int vtkNIFTIImageWriter::RequestData(
       {
         p = 0;
         ptr += planarEndOffset; // advance to start of next slice
-        ptr -= 2*sliceOffset; // for reverse slice order
         if (++k == outSizeZ)
         {
           k = 0;

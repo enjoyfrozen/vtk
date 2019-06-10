@@ -160,15 +160,6 @@ static double TestReadWriteRead(
   writer->SetTimeSpacing(reader->GetTimeSpacing());
   writer->SetRescaleSlope(reader->GetRescaleSlope());
   writer->SetRescaleIntercept(reader->GetRescaleIntercept());
-  writer->SetQFormMatrix(reader->GetQFormMatrix());
-  if (reader->GetSFormMatrix())
-  {
-    writer->SetSFormMatrix(reader->GetSFormMatrix());
-  }
-  else
-  {
-    writer->SetSFormMatrix(reader->GetQFormMatrix());
-  }
   if (planarRGB)
   {
     writer->PlanarRGBOn();
@@ -201,52 +192,26 @@ static double TestReadWriteRead(
   double differr = diffrange[0]*diffrange[0] + diffrange[1]*diffrange[1];
 
   // the matrices should be within tolerance
-  if (writer->GetQFormMatrix())
+  vtkNew<vtkMatrix4x4> m;
+  m->DeepCopy(reader->GetOutput()->GetPhysicalToIndexMatrix());
+  vtkMatrix4x4::Multiply4x4(m, reader2->GetOutput()->GetIndexToPhysicalMatrix(), m);
+  double sqdiff = 0.0;
+  for (int i = 0; i < 4; i++)
   {
-    vtkNew<vtkMatrix4x4> m;
-    m->DeepCopy(writer->GetQFormMatrix());
-    m->Invert();
-    vtkMatrix4x4::Multiply4x4(m, reader2->GetQFormMatrix(),
-                              m);
-    double sqdiff = 0.0;
-    for (int i = 0; i < 4; i++)
+    for (int j = 0; j < 4; j++)
     {
-      for (int j = 0; j < 4; j++)
-      {
-        double d = (m->GetElement(i, j) - (i == j));
-        sqdiff += d*d;
-      }
-    }
-    if (sqdiff > 1e-10)
-    {
-      cerr << "Mismatched read/write QFormMatrix:\n";
-      m->Print(cerr);
-      differr = 1.0;
+      double d = (m->GetElement(i, j) - (i == j));
+      sqdiff += d*d;
     }
   }
-
-  if (writer->GetSFormMatrix())
+  if (sqdiff > 1e-10)
   {
-    vtkNew<vtkMatrix4x4> m;
-    m->DeepCopy(writer->GetSFormMatrix());
-    m->Invert();
-    vtkMatrix4x4::Multiply4x4(m, reader2->GetSFormMatrix(),
-                              m);
-    double sqdiff = 0.0;
-    for (int i = 0; i < 4; i++)
-    {
-      for (int j = 0; j < 4; j++)
-      {
-        double d = (m->GetElement(i, j) - (i == j));
-        sqdiff += d*d;
-      }
-    }
-    if (sqdiff > 1e-10)
-    {
-      cerr << "Mismatched read/write SFormMatrix:\n";
-      m->Print(cerr);
-      differr = 1.0;
-    }
+    cerr << "Mismatched read/write IndexToPhysicalMatrix:\n";
+    cerr << "Reader 1: ";
+    reader->GetOutput()->GetIndexToPhysicalMatrix()->Print(cerr);
+    cerr << "Reader 2: ";
+    reader2->GetOutput()->GetIndexToPhysicalMatrix()->Print(cerr);
+    differr = 1.0;
   }
 
   return differr;
@@ -318,6 +283,7 @@ static int TestNIFTIHeader()
   header2->GetSRowY(matrix + 4);
   header2->GetSRowZ(matrix + 8);
   success &= (matrix[0] == 1.0 && matrix[5] == 1.0 && matrix[10] == 1.0);
+  success &= (header2->GetSFormCode() == vtkNIFTIImageHeader::XFormAlignedAnat);
 
   return success;
 }

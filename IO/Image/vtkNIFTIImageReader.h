@@ -120,46 +120,12 @@ public:
   //@}
 
   /**
-   * QFac gives the slice order in the NIFTI file versus the VTK image.
+   * QFac gives the slice order along the K axis in the NIFTI file.
    * If QFac is -1, then the VTK slice index K is related to the NIFTI
-   * slice index k by the equation K = (num_slices - k - 1).  VTK requires
-   * the slices to be ordered so that the voxel indices (I,J,K) provide a
-   * right-handed coordinate system, whereas NIFTI does not.  Instead,
-   * NIFTI stores a factor called "qfac" in the header to signal when the
-   * (i,j,k) indices form a left-handed coordinate system.  QFac will only
-   * ever have values of +1 or -1.
+   * slice index k by the equation K = (num_slices - k - 1). This value
+   * gets factored in the vtkImageData::DirectionMatrix.
    */
   double GetQFac() { return this->QFac; }
-
-  /**
-   * Get a matrix that gives the "qform" orientation and offset for the data.
-   * If no qform matrix was stored in the file, the return value is nullptr.
-   * This matrix will transform VTK data coordinates into the NIFTI oriented
-   * data coordinates, where +X points right, +Y points anterior (toward the
-   * front), and +Z points superior (toward the head). The qform matrix will
-   * always have a positive determinant. The offset that is stored in the
-   * matrix gives the position of the first pixel in the first slice of the
-   * VTK image data.  Note that if QFac is -1, then the first slice in the
-   * VTK image data is the last slice in the NIFTI file, and the Z offset
-   * will automatically be adjusted to compensate for this.
-   */
-  vtkMatrix4x4 *GetQFormMatrix() { return this->QFormMatrix; }
-
-  /**
-   * Get a matrix that gives the "sform" orientation and offset for the data.
-   * If no sform matrix was stored in the file, the return value is nullptr.
-   * Like the qform matrix, this matrix will transform VTK data coordinates
-   * into a NIFTI coordinate system.  Unlike the qform matrix, the sform
-   * matrix can contain scaling information and can even (rarely) have
-   * a negative determinant, i.e. a flip.  This matrix is modified slightly
-   * as compared to the sform matrix stored in the NIFTI header: the pixdim
-   * pixel spacing is factored out.  Also, if QFac is -1, then the VTK slices
-   * are in reverse order as compared to the NIFTI slices, hence as compared
-   * to the sform matrix stored in the header, the third column of this matrix
-   * is multiplied by -1 and the Z offset is shifted to compensate for the
-   * fact that the last slice has become the first.
-   */
-  vtkMatrix4x4 *GetSFormMatrix() { return this->SFormMatrix; }
 
   /**
    * Get the raw header information from the NIfTI file.
@@ -227,16 +193,9 @@ protected:
 
   /**
    * Is -1 if VTK slice order is opposite to NIFTI slice order, +1 otherwise.
+   * This value gets factored in the vtkImageData::DirectionMatrix.
    */
   double QFac;
-
-  //@{
-  /**
-   * The orientation matrices for the NIFTI file.
-   */
-  vtkMatrix4x4 *QFormMatrix;
-  vtkMatrix4x4 *SFormMatrix;
-  //@}
 
   /**
    * The dimensions of the NIFTI file.

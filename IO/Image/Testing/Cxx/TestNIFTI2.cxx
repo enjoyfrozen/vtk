@@ -59,7 +59,6 @@ static void TestDisplay(
   writer->SetInputConnection(reader1->GetOutputPort());
   writer->SetFileName(outpath.c_str());
   writer->SetNIFTIHeader(reader1->GetNIFTIHeader());
-  writer->SetSFormMatrix(reader1->GetSFormMatrix());
   writer->SetNIFTIVersion(2);
   writer->Update();
 

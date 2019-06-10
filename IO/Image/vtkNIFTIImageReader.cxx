@@ -14,12 +14,13 @@
 =========================================================================*/
 
 #include "vtkNIFTIImageReader.h"
+#include "vtkAnatomicalOrientation.h"
 #include "vtkObjectFactory.h"
 #include "vtkImageData.h"
 #include "vtkPointData.h"
 #include "vtkDataArray.h"
 #include "vtkByteSwap.h"
-#include "vtkMatrix4x4.h"
+#include "vtkMatrix3x3.h"
 #include "vtkMath.h"
 #include "vtkCommand.h"
 #include "vtkErrorCode.h"
@@ -60,8 +61,6 @@ vtkNIFTIImageReader::vtkNIFTIImageReader()
   this->RescaleSlope = 1.0;
   this->RescaleIntercept = 0.0;
   this->QFac = 1.0;
-  this->QFormMatrix = nullptr;
-  this->SFormMatrix = nullptr;
   this->NIFTIHeader = nullptr;
   this->PlanarRGB = false;
 }
@@ -69,14 +68,6 @@ vtkNIFTIImageReader::vtkNIFTIImageReader()
 //----------------------------------------------------------------------------
 vtkNIFTIImageReader::~vtkNIFTIImageReader()
 {
-  if (this->QFormMatrix)
-  {
-    this->QFormMatrix->Delete();
-  }
-  if (this->SFormMatrix)
-  {
-    this->SFormMatrix->Delete();
-  }
   if (this->NIFTIHeader)
   {
     this->NIFTIHeader->Delete();
@@ -189,39 +180,6 @@ void vtkNIFTIImageReader::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "RescaleSlope: " << this->RescaleSlope << "\n";
   os << indent << "RescaleIntercept: " << this->RescaleIntercept << "\n";
   os << indent << "QFac: " << this->QFac << "\n";
-
-  os << indent << "QFormMatrix:";
-  if (this->QFormMatrix)
-  {
-    double mat[16];
-    vtkMatrix4x4::DeepCopy(mat, this->QFormMatrix);
-    for (int i = 0; i < 16; i++)
-    {
-      os << " " << mat[i];
-    }
-    os << "\n";
-  }
-  else
-  {
-    os << " (none)\n";
-  }
-
-  os << indent << "SFormMatrix:";
-  if (this->SFormMatrix)
-  {
-    double mat[16];
-    vtkMatrix4x4::DeepCopy(mat, this->SFormMatrix);
-    for (int i = 0; i < 16; i++)
-    {
-      os << " " << mat[i];
-    }
-    os << "\n";
-  }
-  else
-  {
-    os << " (none)\n";
-  }
-
   os << indent << "NIFTIHeader:" << (this->NIFTIHeader ? "\n" : " (none)\n");
   os << indent << "PlanarRGB: " << (this->PlanarRGB ? "On\n" : "Off\n");
 }
@@ -656,13 +614,184 @@ int vtkNIFTIImageReader::RequestInformation(
                       0, hdr2->dim[2]-1,
                       0, hdr2->dim[3]-1);
 
-  // pixdim
+  // spacing
   this->SetDataSpacing(hdr2->pixdim[1],
                        hdr2->pixdim[2],
                        hdr2->pixdim[3]);
 
-  // offset is part of the transform, so set origin to zero
-  this->SetDataOrigin(0.0, 0.0, 0.0);
+  // === Image Orientation in NIfTI files ===
+  // https://brainder.org/2012/09/23/the-nifti-file-format/
+  //
+  // The vtkImageData now provides a way of storing image orientation: when
+  // we read a NIFTI file, we can define the image data direction, origin,
+  // and spacing to ensure that we can transform the image data coordinates
+  // into NIFTI's intended coordinate system for the image.
+  //
+  // NIFTI defines its coordinate systems as:
+  // 1) NIFTI_XFORM_SCANNER_ANAT - coordinate system of the imaging device
+  // 2) NIFTI_XFORM_ALIGNED_ANAT - result of registration to another image
+  // 3) NIFTI_XFORM_TALAIRACH - a brain-specific coordinate system
+  // 4) NIFTI_XFORM_MNI_152 - a similar brain-specific coordinate system
+  //
+  // The world coordinate system of NIFTI is assumed to be RAS.
+  //
+  // NIFTI images can store orientation in two ways:
+  // 1) via a quaternion (orientation and offset, i.e. rigid-body)
+  // 2) via a matrix (used to store e.g. the results of registration)
+  //
+  // A NIFTI file can have both a quaternion (qform) and matrix (sform)
+  // stored in the same file.  The NIFTI documentation recommends that
+  // the qform be used to record the "scanner anatomical" coordinates
+  // and that the sform, if present, be used to define a secondary
+  // coordinate system, e.g. a coordinate system derived through
+  // registration to a template.
+  //
+  // -- Quaternion Representation --
+  //
+  // If the "quaternion" form is used, then the following equation
+  // defines the transformation from voxel indices to NIFTI's world
+  // coordinates, where R is the rotation matrix computed from the
+  // quaternion components:
+  //
+  //   [ x ]   [ R11 R12 R13 ] [ pixdim[1] * i        ]   [ qoffset_x ]
+  //   [ y ] = [ R21 R22 R23 ] [ pixdim[2] * j        ] + [ qoffset_y ]
+  //   [ z ]   [ R31 R32 R33 ] [ pixdim[3] * k * qfac ]   [ qoffset_z ]
+  //
+  // qfac is stored in pixdim[0], if it is equal to -1 then the slices
+  // are stacked in reverse: we can simply multiply that factor to the
+  // third column of our final rotation matrix, and obtain an equation
+  // of the form xyz = R . ijk o Spacing + Orientation, where:
+  //
+  //        [ R11 R12 R13 * pixdim[0] ]
+  //    R = [ R21 R22 R23 * pixdim[0] ]
+  //        [ R31 R32 R33 * pixdim[0] ]
+  //
+  //    Spacing[0] = pixdim[1]
+  //    Spacing[1] = pixdim[2]
+  //    Spacing[2] = pixdim[3]
+  //
+  //    Origin[0] = qoffset_x
+  //    Origin[1] = qoffset_y
+  //    Origin[2] = qoffset_z
+  //
+  // -- Matrix Representation --
+  //
+  // In the "matrix" form, the rotation, matrix and origin are all stored
+  // in the fields srow_*[4] to directly map voxel to world coordinates:
+  //
+  //   [ x ]   [ srow_x[0] srow_x[1] srow_x[2] srow_x[3] ] [ i ]
+  //   [ y ] = [ srow_y[0] srow_y[1] srow_y[2] srow_y[3] ] [ j ]
+  //   [ z ]   [ srow_z[0] srow_z[1] srow_z[2] srow_z[3] ] [ k ]
+  //   [ 1 ]   [ 0         0         0         1         ] [ 1 ]
+  //
+  // We can deconstruct this equation to one that matches the image data
+  // properties: xyz = R . ijk o Spacing + Orientation, where:
+  //
+  //        [ srow_x[0]/pixdim[1] srow_x[1]/pixdim[2] srow_x[2]/pixdim[3] ]
+  //    R = [ srow_y[0]/pixdim[1] srow_y[1]/pixdim[2] srow_y[2]/pixdim[3] ]
+  //        [ srow_z[0]/pixdim[1] srow_z[1]/pixdim[2] srow_y[2]/pixdim[3] ]
+  //
+  //    Spacing[0] = pixdim[1]
+  //    Spacing[1] = pixdim[2]
+  //    Spacing[2] = pixdim[3]
+  //
+  //    Origin[0] = srow_x[3]
+  //    Origin[1] = srow_y[3]
+  //    Origin[2] = srow_z[3]
+  //
+  // -- Analyze 7.5 Orientation --
+  //
+  // This reader provides only bare-bones backwards compatibility with
+  // the Analyze 7.5 file header. The world coordinate system of Analyze
+  // is assumed to be LAS.
+
+  if (niftiVersion == 0)
+  {
+    // reorient from LAS (Analyze) to LPS (VTK)
+    double transform[9];
+    vtkAnatomicalOrientation::LAS.GetTransformTo(vtkAnatomicalOrientation::LPS, transform);
+    this->SetDataDirection(transform);
+  }
+  else
+  {
+    double rmat[3][3] = { { 1, 0, 0 }, { 0, 1, 0 }, { 0, 0, 1 } };
+    double origin[3] = { 0, 0, 0 };
+
+    // qform: from quaternion
+    if (hdr2->qform_code > 0)
+    {
+      double quat[4];
+      quat[1] = hdr2->quatern_b;
+      quat[2] = hdr2->quatern_c;
+      quat[3] = hdr2->quatern_d;
+      quat[0] = 1.0 - quat[1]*quat[1] - quat[2]*quat[2] - quat[3]*quat[3];
+      if (quat[0] > 0.0)
+      {
+        quat[0] = sqrt(quat[0]);
+      }
+      else
+      {
+        quat[0] = 0.0;
+      }
+      vtkMath::QuaternionToMatrix3x3(quat, rmat);
+
+      // Compensate for qfac
+      this->QFac = (hdr2->pixdim[0] == -1) ? -1.0 : 1.0;
+      rmat[0][2] *= this->QFac;
+      rmat[1][2] *= this->QFac;
+      rmat[2][2] *= this->QFac;
+
+      // If any matrix values are close to zero, then they should actually
+      // be zero but aren't due to limited numerical precision in the
+      // quaternion-to-matrix conversion.
+      const double tol = 2.384185791015625e-07; // 2**-22
+      for (int i = 0; i < 3; i++)
+      {
+        for (int j = 0; j < 3; j++)
+        {
+          if (fabs(rmat[i][j]) < tol)
+          {
+            rmat[i][j] = 0.0;
+          }
+        }
+        vtkMath::Normalize(rmat[i]);
+      }
+
+      // Get origin from offset
+      origin[0] = hdr2->qoffset_x;
+      origin[1] = hdr2->qoffset_y;
+      origin[2] = hdr2->qoffset_z;
+    }
+
+    // TODO: `else if` or `if`? What do we do if we have both?
+    // sform: from matrix
+    else if (hdr2->sform_code > 0)
+    {
+      rmat[0][0] = hdr2->srow_x[0] / hdr2->pixdim[1];
+      rmat[0][1] = hdr2->srow_x[1] / hdr2->pixdim[2];
+      rmat[0][2] = hdr2->srow_x[2] / hdr2->pixdim[3];
+      rmat[1][0] = hdr2->srow_y[0] / hdr2->pixdim[1];
+      rmat[1][1] = hdr2->srow_y[1] / hdr2->pixdim[2];
+      rmat[1][2] = hdr2->srow_y[2] / hdr2->pixdim[3];
+      rmat[2][0] = hdr2->srow_z[0] / hdr2->pixdim[1];
+      rmat[2][1] = hdr2->srow_z[1] / hdr2->pixdim[2];
+      rmat[2][2] = hdr2->srow_z[2] / hdr2->pixdim[3];
+
+      // Get origin from last column
+      origin[0] = hdr2->srow_x[3];
+      origin[1] = hdr2->srow_y[3];
+      origin[2] = hdr2->srow_z[3];
+    }
+
+    // Append transform from RAS (NIFTI) to LPS (VTK)
+    // to the direction matrix and origin
+    double transform[9];
+    vtkAnatomicalOrientation::RAS.GetTransformTo(vtkAnatomicalOrientation::LPS, transform);
+    vtkMatrix3x3::Multiply3x3(transform, *rmat, *rmat);
+    vtkMatrix3x3::MultiplyPoint(transform, origin, origin);
+    this->SetDataDirection(*rmat);
+    this->SetDataOrigin(origin);
+  }
 
   // map the NIFTI type to a VTK type and number of components
   static const int typeMap[][3] = {
@@ -724,6 +853,7 @@ int vtkNIFTIImageReader::RequestInformation(
 
   outInfo->Set(vtkDataObject::SPACING(), this->DataSpacing, 3);
   outInfo->Set(vtkDataObject::ORIGIN(),  this->DataOrigin, 3);
+  outInfo->Set(vtkDataObject::DIRECTION(), this->DataDirection, 9);
 
   outInfo->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),
                this->DataExtent, 6);
@@ -733,315 +863,6 @@ int vtkNIFTIImageReader::RequestInformation(
   {
     this->Dim[j] = hdr2->dim[j];
     this->PixDim[j] = hdr2->pixdim[j];
-  }
-
-  // === Image Orientation in NIfTI files ===
-  //
-  // The vtkImageData class does not provide a way of storing image
-  // orientation.  So when we read a NIFTI file, we should also provide
-  // the user with a 4x4 matrix that can transform VTK's data coordinates
-  // into NIFTI's intended coordinate system for the image.  NIFTI defines
-  // these coordinate systems as:
-  // 1) NIFTI_XFORM_SCANNER_ANAT - coordinate system of the imaging device
-  // 2) NIFTI_XFORM_ALIGNED_ANAT - result of registration to another image
-  // 3) NIFTI_XFORM_TALAIRACH - a brain-specific coordinate system
-  // 4) NIFTI_XFORM_MNI_152 - a similar brain-specific coordinate system
-  //
-  // NIFTI images can store orientation in two ways:
-  // 1) via a quaternion (orientation and offset, i.e. rigid-body)
-  // 2) via a matrix (used to store e.g. the results of registration)
-  //
-  // A NIFTI file can have both a quaternion (qform) and matrix (sform)
-  // stored in the same file.  The NIFTI documentation recommends that
-  // the qform be used to record the "scanner anatomical" coordinates
-  // and that the sform, if present, be used to define a secondary
-  // coordinate system, e.g. a coordinate system derived through
-  // registration to a template.
-  //
-  // -- Quaternion Representation --
-  //
-  // If the "quaternion" form is used, then the following equation
-  // defines the transformation from voxel indices to NIFTI's world
-  // coordinates, where R is the rotation matrix computed from the
-  // quaternion components:
-  //
-  //   [ x ]   [ R11 R12 R13 ] [ pixdim[1] * i        ]   [ qoffset_x ]
-  //   [ y ] = [ R21 R22 R23 ] [ pixdim[2] * j        ] + [ qoffset_y ]
-  //   [ z ]   [ R31 R32 R33 ] [ pixdim[3] * k * qfac ]   [ qoffset_z ]
-  //
-  // qfac is stored in pixdim[0], if it is equal to -1 then the slices
-  // are stacked in reverse: VTK will have to reorder the slices in order
-  // to maintain a right-handed coordinate transformation between indices
-  // and coordinates.
-  //
-  // Let's call VTK data coordinates X,Y,Z to distinguish them from
-  // the NIFTI coordinates x,y,z.  The relationship between X,Y,Z and
-  // x,y,z is expressed by a 4x4 matrix M:
-  //
-  //   [ x ]   [ M11 M12 M13 M14 ] [ X ]
-  //   [ y ] = [ M21 M22 M23 M24 ] [ Y ]
-  //   [ z ]   [ M31 M32 M33 M34 ] [ Z ]
-  //   [ 1 ]   [ 0   0   0   1   ] [ 1 ]
-  //
-  // where the VTK data coordinates X,Y,Z are related to the
-  // VTK structured coordinates IJK (i.e. point indices) by:
-  //
-  //   X = I*Spacing[0] + Origin[0]
-  //   Y = J*Spacing[1] + Origin[1]
-  //   Z = K*Spacing[2] + Origin[2]
-  //
-  // Now let's consider: when we read a NIFTI image, how should we set
-  // the Spacing, the Origin, and the matrix M?  Let's consider the
-  // cases:
-  //
-  // 1) If there is no qform, then R is identity and qoffset is zero,
-  //    and qfac will be 1 (never -1).  So:
-  //      I,J,K = i,j,k, Spacing = pixdim, Origin = 0, M = Identity
-  //
-  // 2) If there is a qform, and qfac is 1, then:
-  //
-  //    I,J,K = i,j,k (i.e. voxel order in VTK same as in NIFTI)
-  //
-  //    Spacing[0] = pixdim[1]
-  //    Spacing[1] = pixdim[2]
-  //    Spacing[2] = pixdim[3]
-  //
-  //    Origin[0] = 0.0
-  //    Origin[1] = 0.0
-  //    Origin[2] = 0.0
-  //
-  //        [ R11 R12 R13 qoffset_x ]
-  //    M = [ R21 R22 R23 qoffset_y ]
-  //        [ R31 R32 R33 qoffset_z ]
-  //        [ 0   0   0   1         ]
-  //
-  //    Note that we cannot store qoffset in the origin.  That would
-  //    be mathematically incorrect.  It would only give us the right
-  //    offset when R is the identity matrix.
-  //
-  // 3) If there is a qform and qfac is -1, then the situation is more
-  //    compilcated.  We have three choices, each of which is a compromise:
-  //    a) we can use Spacing[2] = qfac*pixdim[3], i.e. use a negative
-  //       slice spacing, which might cause some VTK algorithms to
-  //       misbehave (the VTK tests only use images with positive spacing).
-  //    b) we can use M13 = -R13, M23 = -R23, M33 = -R33 i.e. introduce
-  //       a flip into the matrix, which is very bad for VTK rendering
-  //       algorithms and should definitely be avoided.
-  //    c) we can reverse the order of the slices in VTK relative to
-  //       NIFTI, which allows us to preserve positive spacing and retain
-  //       a well-behaved rotation matrix, by using these equations:
-  //
-  //         K = number_of_slices - k - 1
-  //
-  //         M14 = qoffset_x - (number_of_slices - 1)*pixdim[3]*R13
-  //         M24 = qoffset_y - (number_of_slices - 1)*pixdim[3]*R23
-  //         M34 = qoffset_z - (number_of_slices - 1)*pixdim[3]*R33
-  //
-  //       This will give us data that will be well-behaved in VTK, at
-  //       the expense of making VTK slice numbers not match with
-  //       the original NIFTI slice numbers.  NIFTI slice 0 will become
-  //       VTK slice N-1, and the order will be reversed.
-  //
-  // -- Matrix Representation --
-  //
-  // If the "matrix" form is used, then pixdim[] is ignored, and the
-  // voxel spacing is implicitly stored in the matrix.  In addition,
-  // the matrix may have a negative determinant, there is no "qfac"
-  // flip-factor as there is in the quaternion representation.
-  //
-  // Let S be the matrix stored in the NIFTI header, and let M be our
-  // desired coordinate transformation from VTK data coordinates X,Y,Z
-  // to NIFTI data coordinates x,y,z (see discussion above for more
-  // information).  Let's consider the cases where the determinant
-  // is positive, or negative.
-  //
-  // 1) If the determinant is positive, we will factor the spacing
-  //    (but not the origin) out of the matrix.
-  //
-  //    Spacing[0] = pixdim[1]
-  //    Spacing[1] = pixdim[2]
-  //    Spacing[2] = pixdim[3]
-  //
-  //    Origin[0] = 0.0
-  //    Origin[1] = 0.0
-  //    Origin[2] = 0.0
-  //
-  //         [ S11/pixdim[1] S12/pixdim[2] S13/pixdim[3] S14 ]
-  //    M  = [ S21/pixdim[1] S22/pixdim[2] S23/pixdim[3] S24 ]
-  //         [ S31/pixdim[1] S32/pixdim[2] S33/pixdim[3] S34 ]
-  //         [ 0             0             0             1   ]
-  //
-  // 2) If the determinant is negative, then we face the same choices
-  //    as when qfac is -1 for the quaternion transformation.  We can:
-  //    a) use a negative Z spacing and multiply the 3rd column of M by -1
-  //    b) keep the matrix as is (with a negative determinant)
-  //    c) reorder the slices, multiply the 3rd column by -1, and adjust
-  //       the 4th column of the matrix:
-  //
-  //         M14 = S14 + (number_of_slices - 1)*S13
-  //         M24 = S24 + (number_of_slices - 1)*S23
-  //         M34 = S34 + (number_of_slices - 1)*S33
-  //
-  //       The third choice will provide a VTK image that has positive
-  //       spacing and a matrix with a positive determinant.
-  //
-  // -- Analyze 7.5 Orientation --
-  //
-  // This reader provides only bare-bones backwards compatibility with
-  // the Analyze 7.5 file header.  We do not orient these files.
-
-  // Initialize
-  this->QFac = 1.0;
-  if (this->QFormMatrix)
-  {
-    this->QFormMatrix->Delete();
-    this->QFormMatrix = nullptr;
-  }
-  if (this->SFormMatrix)
-  {
-    this->SFormMatrix->Delete();
-    this->SFormMatrix = nullptr;
-  }
-
-  // Set the QFormMatrix from the quaternion data in the header.
-  // See the long discussion above for more information.
-  if (niftiVersion > 0 && hdr2->qform_code > 0)
-  {
-    double mmat[16];
-    double rmat[3][3];
-    double quat[4];
-
-    quat[1] = hdr2->quatern_b;
-    quat[2] = hdr2->quatern_c;
-    quat[3] = hdr2->quatern_d;
-
-    quat[0] = 1.0 - quat[1]*quat[1] - quat[2]*quat[2] - quat[3]*quat[3];
-    if (quat[0] > 0.0)
-    {
-      quat[0] = sqrt(quat[0]);
-    }
-    else
-    {
-      quat[0] = 0.0;
-    }
-
-    vtkMath::QuaternionToMatrix3x3(quat, rmat);
-
-    // If any matrix values are close to zero, then they should actually
-    // be zero but aren't due to limited numerical precision in the
-    // quaternion-to-matrix conversion.
-    const double tol = 2.384185791015625e-07; // 2**-22
-    for (int i = 0; i < 3; i++)
-    {
-      for (int j = 0; j < 3; j++)
-      {
-        if (fabs(rmat[i][j]) < tol)
-        {
-          rmat[i][j] = 0.0;
-        }
-      }
-      vtkMath::Normalize(rmat[i]);
-    }
-
-    // first row
-    mmat[0] = rmat[0][0];
-    mmat[1] = rmat[0][1];
-    mmat[2] = rmat[0][2];
-    mmat[3] = hdr2->qoffset_x;
-
-    // second row
-    mmat[4] = rmat[1][0];
-    mmat[5] = rmat[1][1];
-    mmat[6] = rmat[1][2];
-    mmat[7] = hdr2->qoffset_y;
-
-    // third row
-    mmat[8] = rmat[2][0];
-    mmat[9] = rmat[2][1];
-    mmat[10] = rmat[2][2];
-    mmat[11] = hdr2->qoffset_z;
-
-    mmat[12] = 0.0;
-    mmat[13] = 0.0;
-    mmat[14] = 0.0;
-    mmat[15] = 1.0;
-
-    this->QFac = ((hdr2->pixdim[0] < 0) ? -1.0 : 1.0);
-
-    if (this->QFac < 0)
-    {
-      // We will be reversing the order of the slices, so the first VTK
-      // slice will be at the position of the last NIfTI slice, and we
-      // must adjust the offset to compensate for this.
-      mmat[3] -= rmat[0][2]*hdr2->pixdim[3]*(hdr2->dim[3] - 1);
-      mmat[7] -= rmat[1][2]*hdr2->pixdim[3]*(hdr2->dim[3] - 1);
-      mmat[11] -= rmat[2][2]*hdr2->pixdim[3]*(hdr2->dim[3] - 1);
-    }
-
-    this->QFormMatrix = vtkMatrix4x4::New();
-    this->QFormMatrix->DeepCopy(mmat);
-  }
-
-  // Set the SFormMatrix from the matrix information in the header.
-  // See the long discussion above for more information.
-  if (niftiVersion > 0 && hdr2->sform_code > 0)
-  {
-    double mmat[16];
-
-    // first row
-    mmat[0] = hdr2->srow_x[0]/hdr2->pixdim[1];
-    mmat[1] = hdr2->srow_x[1]/hdr2->pixdim[2];
-    mmat[2] = hdr2->srow_x[2]/hdr2->pixdim[3];
-    mmat[3] = hdr2->srow_x[3];
-
-    // second row
-    mmat[4] = hdr2->srow_y[0]/hdr2->pixdim[1];
-    mmat[5] = hdr2->srow_y[1]/hdr2->pixdim[2];
-    mmat[6] = hdr2->srow_y[2]/hdr2->pixdim[3];
-    mmat[7] = hdr2->srow_y[3];
-
-    // third row
-    mmat[8] = hdr2->srow_z[0]/hdr2->pixdim[1];
-    mmat[9] = hdr2->srow_z[1]/hdr2->pixdim[2];
-    mmat[10] = hdr2->srow_z[2]/hdr2->pixdim[3];
-    mmat[11] = hdr2->srow_z[3];
-
-    mmat[12] = 0.0;
-    mmat[13] = 0.0;
-    mmat[14] = 0.0;
-    mmat[15] = 1.0;
-
-    // Set QFac to -1 if the determinant is negative, unless QFac
-    // has already been set by the qform information.
-    if (vtkMatrix4x4::Determinant(mmat) < 0 && hdr2->qform_code == 0)
-    {
-      this->QFac = -1.0;
-    }
-
-    if (this->QFac < 0)
-    {
-      // If QFac is set to -1 then the slices will be reversed, and we must
-      // reverse the slice orientation vector (the third column of the matrix)
-      // to compensate.
-
-      // reverse the slice orientation vector
-      mmat[2] = -mmat[2];
-      mmat[6] = -mmat[6];
-      mmat[10] = -mmat[10];
-
-      // adjust the offset to compensate for changed slice ordering
-      mmat[3] += hdr2->srow_x[2]*(hdr2->dim[3] - 1);
-      mmat[7] += hdr2->srow_y[2]*(hdr2->dim[3] - 1);
-      mmat[11] += hdr2->srow_z[2]*(hdr2->dim[3] - 1);
-    }
-
-    this->SFormMatrix = vtkMatrix4x4::New();
-    this->SFormMatrix->DeepCopy(mmat);
-
-    if (this->SFormMatrix->Determinant() < 0)
-    {
-      vtkWarningMacro("SFormMatrix is flipped compared to QFormMatrix");
-    }
   }
 
   return 1;
@@ -1198,18 +1019,6 @@ int vtkNIFTIImageReader::RequestData(
     rowBuffer = new unsigned char[outSizeX*fileVoxelIncr];
   }
 
-  // special increment to reverse the slices if needed
-  vtkIdType sliceOffset = 0;
-
-  if (this->GetQFac() < 0)
-  {
-    // put slices in reverse order
-    sliceOffset = scalarSize*numComponents;
-    sliceOffset *= outSizeX;
-    sliceOffset *= outSizeY;
-    dataPtr += sliceOffset*(outSizeZ - 1);
-  }
-
   // special increment to handle planar RGB
   vtkIdType planarOffset = 0;
   vtkIdType planarEndOffset = 0;
@@ -1324,7 +1133,6 @@ int vtkNIFTIImageReader::RequestData(
       {
         p = 0;
         ptr += planarEndOffset; // advance to start of next slice
-        ptr -= 2*sliceOffset; // for reverse slice order
         if (++k == outSizeZ)
         {
           k = 0;
