@@ -207,33 +207,6 @@ public:
   //@}
   virtual SizesContainer GetAdjustedSizes() {return AdjustedSizes;}
 
-#define SetStdContainerMacro(name,container) \
-  virtual void Set##name(container arg)        \
-  { \
-    bool changed = false; \
-    if (arg.size() !=  name.size()) \
-      { \
-        changed = true; \
-      } \
-    else \
-    { \
-      auto a = arg.begin(); \
-      for (auto r : name) \
-      { \
-        if (*a != r) \
-        { \
-          changed = true; \
-        } \
-        a++; \
-      } \
-    } \
-    if (changed) \
-    { \
-      name = arg; \
-      this->Modified(); \
-    } \
-  }
-
   //@{
   /**
    * Set/Get the vtkNamedColors name for the background(MidNightBlue).
@@ -415,8 +388,18 @@ public:
     * 1.0), if WordColorName is empty.
     */
   //@}
-  SetStdContainerMacro(ColorDistribution,ColorDistributionContainer);
+  virtual void SetColorDistribution(ColorDistributionContainer);
   virtual ColorDistributionContainer GetColorDistribution() {return ColorDistribution;}
+
+  //@{
+  /**
+    * Set/Get ColorDistribution for Wrapping
+    */
+  //@}
+  void SetColorDistribution(double, double);
+  void GetColorDistribution(double c[2])
+    VTK_SIZEHINT(2)
+  { c[0] = ColorDistribution[0]; c[1] = ColorDistribution[1]; }
 
   //@{
   /**
@@ -425,8 +408,18 @@ public:
     * are offsets from the generated path for word layout.
     */
   //@}
-  SetStdContainerMacro(OffsetDistribution,OffsetDistributionContainer);
+  virtual void SetOffsetDistribution(OffsetDistributionContainer);
   virtual OffsetDistributionContainer GetOffsetDistribution() {return OffsetDistribution;}
+
+  //@{
+  /**
+    * Set/Get OffsetDistribution for Wrapping
+    */
+  //@}
+  void SetOffsetDistribution(int, int);
+  void GetOffsetDistribution(int o[2])
+    VTK_SIZEHINT(2)
+  { o[0] = OffsetDistribution[0]; o[1] = OffsetDistribution[1]; }
 
   //@{
   /**
@@ -435,8 +428,18 @@ public:
     * these orientations will be generated.
     */
   //@}
-  SetStdContainerMacro(OrientationDistribution,OrientationDistributionContainer);
+  virtual void SetOrientationDistribution(OrientationDistributionContainer);
   virtual OrientationDistributionContainer GetOrientationDistribution() {return OrientationDistribution;}
+
+  //@{
+  /**
+    * Set/Get OrientationDistribution for Wrapping
+    */
+  //@}
+  void SetOrientationDistribution(double, double);
+  void GetOrientationDistribution(double o[2])
+    VTK_SIZEHINT(2)
+  { o[0] = OrientationDistribution[0]; o[1] = OrientationDistribution[1]; }
 
   //@{
   /**
@@ -445,13 +448,23 @@ public:
     * distribution").
     */
   //@}
-  SetStdContainerMacro(Orientations,OrientationsContainer);
+  virtual void SetOrientations(OrientationsContainer);
+  void SetOrientation(double arg)
+  {
+    Orientations.resize(0);
+    Orientations.push_back(arg);
+    this->Modified();
+  }
   void AddOrientation(double arg)
   {
     Orientations.push_back(arg);
     this->Modified();
   }
   virtual OrientationsContainer GetOrientations() {return Orientations;}
+  virtual void GetOrientations(std::vector<double> &o)
+  {
+    o = Orientations;
+  }
 
   //@{
   /**
@@ -460,13 +473,18 @@ public:
     * added to the StopList.
     */
   //@}
-  SetStdContainerMacro(ReplacementPairs,ReplacementPairsContainer);
+  virtual void SetReplacementPairs(ReplacementPairsContainer);
   void AddReplacementPair(PairType arg)
   {
     ReplacementPairs.push_back(arg);
     this->Modified();
   }
-
+  void AddReplacementPair(std::string s1, std::string s2)
+  {
+    auto p = std::make_pair(s1, s2);
+    ReplacementPairs.push_back(p);
+    this->Modified();
+  }
   virtual   ReplacementPairsContainer GetReplacementPairs() {return ReplacementPairs;}
 
   //@{
@@ -474,8 +492,23 @@ public:
     * Set/Get Sizes, the size of the output image(640 480).
     */
   //@}
-  SetStdContainerMacro(Sizes,SizesContainer);
-  virtual   SizesContainer GetSizes () {return Sizes;}
+  virtual void SetSizes(SizesContainer);
+  virtual SizesContainer GetSizes () {return Sizes;}
+
+  //@{
+  /**
+    * Set/Get Sizes for Wrapping
+    */
+  //@}
+  void SetSizes(int, int);
+  virtual void GetSizes(std::vector<int> &s)
+  {
+    s.push_back(Sizes[0]);
+    s.push_back(Sizes[1]);
+  }
+  void GetSizes(int s[2])
+    VTK_SIZEHINT(2)
+  { s[0] = Sizes[0]; s[1] = Sizes[1]; }
 
   //@{
   /**
@@ -484,7 +517,7 @@ public:
     * stop words are added to the built-in list.
     */
   //@}
-  SetStdContainerMacro(StopWords,StopWordsContainer);
+  virtual void SetStopWords(StopWordsContainer);
   void AddStopWord(std::string word)
   {
     StopWords.insert(word);
@@ -495,7 +528,14 @@ public:
     StopWords.clear();
     this->Modified();
   }
-  virtual   StopWordsContainer GetStopWords () {return StopWords;}
+  virtual StopWordsContainer GetStopWords () {return StopWords;}
+  virtual void GetStopWords(std::vector<std::string> &sw)
+  {
+    for (auto s : StopWords)
+    {
+      sw.push_back(s);
+    }
+  }
 
   //@{
   /**

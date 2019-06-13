@@ -417,6 +417,75 @@ void vtkWordCloud::PrintSelf(ostream& os, vtkIndent indent)
   os << "  WordColorName: " << GetWordColorName() << std::endl;
 }
 
+#undef SetStdContainerMacro
+#define SetStdContainerMacro(name,container) \
+  void vtkWordCloud::Set##name(container arg)   \
+  { \
+    bool changed = false; \
+    if (arg.size() !=  name.size()) \
+      { \
+        changed = true; \
+      } \
+    else \
+    { \
+      auto a = arg.begin(); \
+      for (auto r : name) \
+      { \
+        if (*a != r) \
+        { \
+          changed = true; \
+        } \
+        a++; \
+      } \
+    } \
+    if (changed) \
+    { \
+      name = arg; \
+      this->Modified(); \
+    } \
+  }
+SetStdContainerMacro(ColorDistribution,ColorDistributionContainer);
+void vtkWordCloud::SetColorDistribution(double arg1, double arg2)
+{
+  ColorDistributionContainer arg;
+  arg[0] = arg1;
+  arg[1] = arg2;
+  SetColorDistribution(arg);
+}
+
+SetStdContainerMacro(OffsetDistribution,OffsetDistributionContainer);
+void vtkWordCloud::SetOffsetDistribution(int arg1, int arg2)
+{
+  OffsetDistributionContainer arg;
+  arg[0] = arg1;
+  arg[1] = arg2;
+  SetOffsetDistribution(arg);
+}
+
+SetStdContainerMacro(OrientationDistribution,OrientationDistributionContainer);
+void vtkWordCloud::SetOrientationDistribution(double arg1, double arg2)
+{
+  OrientationDistributionContainer arg;
+  arg[0] = arg1;
+  arg[1] = arg2;
+  SetOrientationDistribution(arg);
+}
+
+SetStdContainerMacro(Sizes,SizesContainer);
+void vtkWordCloud::SetSizes(int arg1, int arg2)
+{
+  SizesContainer arg;
+  arg[0] = arg1;
+  arg[1] = arg2;
+  SetSizes(arg);
+}
+
+SetStdContainerMacro(Orientations,OrientationsContainer);
+
+SetStdContainerMacro(ReplacementPairs, ReplacementPairsContainer);
+
+SetStdContainerMacro(StopWords,StopWordsContainer);
+
 namespace
 {
 std::multiset<std::pair<std::string, int>, Comparator > FindWordsSortedByFrequency(std::string &s, vtkWordCloud *wordCloud)
