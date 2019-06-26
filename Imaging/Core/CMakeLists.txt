@@ -10,6 +10,7 @@ set(classes
   vtkImageCast
   vtkImageChangeInformation
   vtkImageClip
+  vtkImageCompare
   vtkImageConstantPad
   vtkImageDataStreamer
   vtkImageDecomposeFilter
