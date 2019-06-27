@@ -14,6 +14,10 @@ DEPENDS
   VTK::FiltersGeometry
   VTK::ImagingCore
   VTK::vtkm
+OPTIONAL_DEPENDS
+  VTK::ParallelMPI
+  VTK::diy2
+  VTK::ParallelCore
 TEST_DEPENDS
   VTK::CommonSystem
   VTK::FiltersSources

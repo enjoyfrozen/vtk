@@ -37,6 +37,7 @@ set(impl_classes
   vtkmCleanGrid
   vtkmClip
   vtkmContour
+  vtkmContourTree
   vtkmCoordinateSystemTransform
   vtkmDataArray
   vtkmDataSet
