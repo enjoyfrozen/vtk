@@ -26,8 +26,33 @@ public:
   vtkTypeMacro(vtkImageCompare, vtkImageAlgorithm);
   void PrintSelf(ostream& os, vtkIndent indent) override {}
 
-  vtkSetClampMacro(FuzzyThreshold, double, 0., 1000.);
+  //@{
+  /**
+   * Specify the Image to compare the input to.
+   */
+  void SetImageConnection(vtkAlgorithmOutput* output)
+  {
+    this->SetInputConnection(1, output);
+  }
+  void SetImageData(vtkDataObject* image) { this->SetInputData(1, image); }
+  vtkImageData* GetImage();
+  //@}
+
+  /**
+   * Return the total error in comparing the two images.
+   */
+  double GetError() { return this->Error; }
+  void GetError(double* e) { *e = this->GetError(); };
+
   vtkGetMacro(FuzzyThreshold, double);
+  vtkSetClampMacro(FuzzyThreshold, double, 0., 1.);
+
+  vtkGetMacro(ErrorMetric, int);
+  vtkSetClampMacro(ErrorMetric, int, MeanSquaredErrorMetric,
+    PeakSignalToNoiseRatioErrorMetric);
+
+  vtkGetMacro(ErrorThreshold, double);
+  vtkSetClampMacro(ErrorThreshold, double, 0., 1000.);
 
 protected:
   vtkImageCompare();
@@ -35,20 +60,22 @@ protected:
 
   enum MetricType
   {
-    UndefinedErrorMetric,
-    AbsoluteErrorMetric,
-    FuzzErrorMetric,
-    MeanAbsoluteErrorMetric,
-    MeanErrorPerPixelErrorMetric,
-    MeanSquaredErrorMetric,
-    NormalizedCrossCorrelationErrorMetric,
-    PeakAbsoluteErrorMetric,
-    PeakSignalToNoiseRatioErrorMetric,
-    PerceptualHashErrorMetric,
-    RootMeanSquaredErrorMetric,
-    StructuralSimilarityErrorMetric,
-    StructuralDissimilarityErrorMetric
+
+    MeanSquaredErrorMetric,                // implemented
+    PeakSignalToNoiseRatioErrorMetric,     // implemented
+    AbsoluteErrorMetric,                   // not implemented
+    FuzzErrorMetric,                       // not implemented
+    MeanAbsoluteErrorMetric,               // not implemented
+    MeanErrorPerPixelErrorMetric,          // not implemented
+    NormalizedCrossCorrelationErrorMetric, // not implemented
+    PeakAbsoluteErrorMetric,               // not implemented
+    PerceptualHashErrorMetric,             // not implemented
+    RootMeanSquaredErrorMetric,            // not implemented
+    StructuralSimilarityErrorMetric,       // not implemented
+    StructuralDissimilarityErrorMetric     // not implemented
   };
+
+  // Parameters
   double ErrorThreshold;
   double FuzzyThreshold;
   int ErrorMetric;
@@ -57,7 +84,8 @@ protected:
   double Error;
   bool isEqual;
 
-  int RequestInformation(vtkInformation* request, vtkInformationVector** inputVector,
+  int RequestInformation(vtkInformation* request,
+    vtkInformationVector** inputVector,
     vtkInformationVector* outputVector) override;
   int RequestData(vtkInformation* request, vtkInformationVector** inputVector,
     vtkInformationVector* outputVector) override;
@@ -65,6 +93,13 @@ protected:
 private:
   vtkImageCompare(const vtkImageCompare&) = delete;
   void operator=(const vtkImageCompare&) = delete;
+  void ComputeError(unsigned char* in1Pixels, unsigned char* in2Pixels,
+    int* extent, vtkIdType* in1Incs, vtkIdType* in2Incs);
+
+  class ComputeDifferenceImage;
+  class ComputeErrorFunctor;
+  class ComputeMeanSquaredError;
+  class ComputePeakSignalToNoiseRatioError;
 };
 
 #endif // VTKIMAGECOMPARE_H

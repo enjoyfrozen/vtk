@@ -9,7 +9,7 @@
 
 vtkStandardNewMacro(vtkImageCompare);
 
-class ComputeDifferenceImage
+class vtkImageCompare::ComputeDifferenceImage
 {
 public:
   unsigned char* in1Pixels;
@@ -17,11 +17,11 @@ public:
   unsigned char* outPixels;
   int* extent;
   vtkIdType *in1Incs, *in2Incs, *outIncs;
-  vtkImageCompare* compare;
+  double fuzzyThreshold;
 
   ComputeDifferenceImage(unsigned char* in1Pixels, unsigned char* in2Pixels,
-    unsigned char* outPixels, int* extent, vtkIdType* in1Incs, vtkIdType* in2Incs,
-    vtkIdType* outIncs, vtkImageCompare* compare)
+    unsigned char* outPixels, int* extent, vtkIdType* in1Incs,
+    vtkIdType* in2Incs, vtkIdType* outIncs, double fuzzyThreshold)
     : in1Pixels(in1Pixels)
     , in2Pixels(in2Pixels)
     , outPixels(outPixels)
@@ -29,31 +29,33 @@ public:
     , in1Incs(in1Incs)
     , in2Incs(in2Incs)
     , outIncs(outIncs)
-    , compare(compare)
+    , fuzzyThreshold(fuzzyThreshold)
   {
   }
   void operator()(vtkIdType row, vtkIdType endRow)
   {
-    std::cerr << "starting multithread progress: " << row << ' ' << endRow << std::endl;
     for (; row < endRow; row++)
     {
       for (int col = extent[0]; col <= extent[1]; col++)
       {
-        unsigned char* in1Pixel = in1Pixels + row * in1Incs[1] + col * in1Incs[0];
-        unsigned char* in2Pixel = in2Pixels + row * in2Incs[1] + col * in2Incs[0];
+        unsigned char* in1Pixel =
+          in1Pixels + row * in1Incs[1] + col * in1Incs[0];
+        unsigned char* in2Pixel =
+          in2Pixels + row * in2Incs[1] + col * in2Incs[0];
         bool different = false;
         for (int channel = 0; channel < 3; channel++)
         {
           double in1Color = static_cast<int>(in1Pixel[channel]) / 255.;
           double in2Color = static_cast<int>(in2Pixel[channel]) / 255.;
           double distance = in1Color - in2Color;
-          if (distance * distance > compare->GetFuzzyThreshold())
+          if (distance * distance > fuzzyThreshold)
           {
             different = true;
             break;
           }
         }
-        unsigned char* outPixel = outPixels + row * outIncs[1] + col * outIncs[0];
+        unsigned char* outPixel =
+          outPixels + row * outIncs[1] + col * outIncs[0];
         if (different)
         {
           outPixel[0] = static_cast<unsigned char>(0xf1);
@@ -71,6 +73,130 @@ public:
   }
 };
 
+class vtkImageCompare::ComputeErrorFunctor
+{
+public:
+  unsigned char* in1Pixels;
+  unsigned char* in2Pixels;
+  int* extent;
+  vtkIdType *in1Incs, *in2Incs;
+  double* error;
+  vtkSMPThreadLocal<double> localError;
+
+  ComputeErrorFunctor(unsigned char* in1Pixels, unsigned char* in2Pixels,
+    int* extent, vtkIdType* in1Incs, vtkIdType* in2Incs, double* error)
+    : in1Pixels(in1Pixels)
+    , in2Pixels(in2Pixels)
+    , extent(extent)
+    , in1Incs(in1Incs)
+    , in2Incs(in2Incs)
+    , error(error)
+  {
+  }
+
+  void Initialize()
+  {
+    double& e = localError.Local();
+    e = 0.;
+  }
+
+  virtual void Reduce() = 0;
+
+  virtual void operator()(vtkIdType row, vtkIdType endRow) = 0;
+};
+
+class vtkImageCompare::ComputeMeanSquaredError
+  : public vtkImageCompare::ComputeErrorFunctor
+{
+public:
+  ComputeMeanSquaredError(unsigned char* in1Pixels, unsigned char* in2Pixels,
+    int* extent, vtkIdType* in1Incs, vtkIdType* in2Incs, double* error)
+    : vtkImageCompare::ComputeErrorFunctor(
+        in1Pixels, in2Pixels, extent, in1Incs, in2Incs, error)
+  {
+  }
+
+  void Reduce() override
+  {
+    for (auto it = localError.begin(); it != localError.end(); it++)
+    {
+      *error += *it;
+    }
+    *error /= static_cast<double>((extent[1] + 1) * (extent[3] + 1));
+  }
+
+  void operator()(vtkIdType row, vtkIdType endRow) override
+  {
+    double& e = localError.Local();
+    for (; row < endRow; row++)
+    {
+      double rowError = 0.;
+      for (int col = extent[0]; col <= extent[1]; col++)
+      {
+        unsigned char* in1Pixel =
+          in1Pixels + row * in1Incs[1] + col * in1Incs[0];
+        unsigned char* in2Pixel =
+          in2Pixels + row * in2Incs[1] + col * in2Incs[0];
+        for (int channel = 0; channel < 3; channel++)
+        {
+          double in1Color = static_cast<double>(in1Pixel[channel]);
+          double in2Color = static_cast<double>(in2Pixel[channel]);
+          double distance = in1Color - in2Color;
+          rowError += distance * distance;
+        }
+      }
+      e += rowError;
+    }
+  }
+};
+
+class vtkImageCompare::ComputePeakSignalToNoiseRatioError
+  : public vtkImageCompare::ComputeErrorFunctor
+{
+public:
+  ComputePeakSignalToNoiseRatioError(unsigned char* in1Pixels,
+    unsigned char* in2Pixels, int* extent, vtkIdType* in1Incs,
+    vtkIdType* in2Incs, double* error)
+    : vtkImageCompare::ComputeErrorFunctor(
+        in1Pixels, in2Pixels, extent, in1Incs, in2Incs, error)
+  {
+  }
+
+  void Reduce() override
+  {
+    for (auto it = localError.begin(); it != localError.end(); it++)
+    {
+      *error += *it;
+    }
+    *error /= static_cast<double>((extent[1] + 1) * (extent[3] + 1));
+    *error = -10. * std::log10(*error / (255. * 255.));
+  }
+
+  void operator()(vtkIdType row, vtkIdType endRow) override
+  {
+    double& e = localError.Local();
+    for (; row < endRow; row++)
+    {
+      double rowError = 0.;
+      for (int col = extent[0]; col <= extent[1]; col++)
+      {
+        unsigned char* in1Pixel =
+          in1Pixels + row * in1Incs[1] + col * in1Incs[0];
+        unsigned char* in2Pixel =
+          in2Pixels + row * in2Incs[1] + col * in2Incs[0];
+        for (int channel = 0; channel < 3; channel++)
+        {
+          double in1Color = static_cast<double>(in1Pixel[channel]);
+          double in2Color = static_cast<double>(in2Pixel[channel]);
+          double distance = in1Color - in2Color;
+          rowError += distance * distance;
+        }
+      }
+      e += rowError;
+    }
+  }
+};
+
 vtkImageCompare::vtkImageCompare()
 {
   ErrorThreshold = 0.;
@@ -79,6 +205,29 @@ vtkImageCompare::vtkImageCompare()
   Error = 0.;
   isEqual = false;
   this->SetNumberOfInputPorts(2);
+}
+
+void vtkImageCompare::ComputeError(unsigned char* in1Pixels,
+  unsigned char* in2Pixels, int* extent, vtkIdType* in1Incs, vtkIdType* in2Incs)
+{
+  Error = 0.;
+  vtkImageCompare::ComputeErrorFunctor* errorFunctor = nullptr;
+  switch (this->ErrorMetric)
+  {
+    case MeanSquaredErrorMetric:
+      errorFunctor = new vtkImageCompare::ComputeMeanSquaredError(
+        in1Pixels, in2Pixels, extent, in1Incs, in2Incs, &Error);
+      break;
+    case PeakAbsoluteErrorMetric:
+    default:
+      errorFunctor = new vtkImageCompare::ComputePeakSignalToNoiseRatioError(
+        in1Pixels, in2Pixels, extent, in1Incs, in2Incs, &Error);
+  }
+  if (errorFunctor)
+  {
+    vtkSMPTools::For(extent[2], extent[3] + 1, *errorFunctor);
+    delete errorFunctor;
+  }
 }
 
 int vtkImageCompare::RequestInformation(vtkInformation* vtkNotUsed(request),
@@ -93,16 +242,17 @@ int vtkImageCompare::RequestInformation(vtkInformation* vtkNotUsed(request),
   int* in2Ext = inInfo2->Get(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT());
 
   int i;
-  if (in1Ext[0] != in2Ext[0] || in1Ext[1] != in2Ext[1] || in1Ext[2] != in2Ext[2] ||
-    in1Ext[3] != in2Ext[3] || in1Ext[4] != in2Ext[4] || in1Ext[5] != in2Ext[5])
+  if (in1Ext[0] != in2Ext[0] || in1Ext[1] != in2Ext[1] ||
+    in1Ext[2] != in2Ext[2] || in1Ext[3] != in2Ext[3] ||
+    in1Ext[4] != in2Ext[4] || in1Ext[5] != in2Ext[5])
   {
     this->Error = 1000.0;
 
     vtkErrorMacro("ExecuteInformation: Input are not the same size.\n"
-      << " Input1 is: " << in1Ext[0] << "," << in1Ext[1] << "," << in1Ext[2] << "," << in1Ext[3]
-      << "," << in1Ext[4] << "," << in1Ext[5] << "\n"
-      << " Input2 is: " << in2Ext[0] << "," << in2Ext[1] << "," << in2Ext[2] << "," << in2Ext[3]
-      << "," << in2Ext[4] << "," << in2Ext[5]);
+      << " Input1 is: " << in1Ext[0] << "," << in1Ext[1] << "," << in1Ext[2]
+      << "," << in1Ext[3] << "," << in1Ext[4] << "," << in1Ext[5] << "\n"
+      << " Input2 is: " << in2Ext[0] << "," << in2Ext[1] << "," << in2Ext[2]
+      << "," << in2Ext[3] << "," << in2Ext[4] << "," << in2Ext[5]);
   }
 
   // We still need to set the whole extent to be the intersection.
@@ -135,18 +285,18 @@ int vtkImageCompare::RequestData(vtkInformation* vtkNotUsed(request),
   // prepare input and output data
   vtkInformation* info = outputVector->GetInformationObject(0);
   outData = vtkImageData::SafeDownCast(info->Get(vtkDataObject::DATA_OBJECT()));
-  outData->SetExtent(info->Get(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT()));
+  outData->SetExtent(
+    info->Get(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT()));
   outData->AllocateScalars(info);
   for (int i = 0; i < 2; i++)
   {
     info = inputVector[i]->GetInformationObject(0);
-    inData[i] = vtkImageData::SafeDownCast(info->Get(vtkDataObject::DATA_OBJECT()));
+    inData[i] =
+      vtkImageData::SafeDownCast(info->Get(vtkDataObject::DATA_OBJECT()));
   }
-  std::cerr << inData[0]->GetNumberOfScalarComponents() << std::endl;
-  std::cerr << inData[1]->GetNumberOfScalarComponents() << std::endl;
-  std::cerr << outData->GetNumberOfScalarComponents() << std::endl;
   if (inData[0]->GetNumberOfScalarComponents() < 3 ||
-    inData[1]->GetNumberOfScalarComponents() < 3 || outData->GetNumberOfScalarComponents() < 3)
+    inData[1]->GetNumberOfScalarComponents() < 3 ||
+    outData->GetNumberOfScalarComponents() < 3)
   {
     vtkErrorMacro("Expecting at least 3 components (RGB or RGBA)");
     return 0;
@@ -168,54 +318,39 @@ int vtkImageCompare::RequestData(vtkInformation* vtkNotUsed(request),
   }
   std::cerr << std::endl;
 
-  auto in1ptr = static_cast<unsigned char*>(inData[0]->GetScalarPointer());
-  auto in2ptr = static_cast<unsigned char*>(inData[1]->GetScalarPointer());
-  auto outptr = static_cast<unsigned char*>(outData->GetScalarPointerForExtent(extent));
+  auto in1ptr =
+    static_cast<unsigned char*>(inData[0]->GetScalarPointerForExtent(extent));
+  auto in2ptr =
+    static_cast<unsigned char*>(inData[1]->GetScalarPointerForExtent(extent));
+  auto outptr =
+    static_cast<unsigned char*>(outData->GetScalarPointerForExtent(extent));
 
   vtkIdType in1Incs[3];
   inData[0]->GetIncrements(in1Incs);
-  std::cerr << in1Incs[0] << ' ' << in1Incs[1] << ' ' << in1Incs[2] << std::endl;
 
   vtkIdType in2Incs[3];
   inData[1]->GetIncrements(in2Incs);
-  std::cerr << in2Incs[0] << ' ' << in2Incs[1] << ' ' << in2Incs[2] << std::endl;
 
   vtkIdType outIncs[3];
   outData->GetIncrements(outIncs);
-  std::cerr << outIncs[0] << ' ' << outIncs[1] << ' ' << outIncs[2] << std::endl;
 
-  ComputeDifferenceImage diff(in1ptr, in2ptr, outptr, extent, in1Incs, in2Incs, outIncs, this);
+  ComputeError(in1ptr, in2ptr, extent, in1Incs, in2Incs);
+
+  ComputeDifferenceImage diff(in1ptr, in2ptr, outptr, extent, in1Incs, in2Incs,
+    outIncs, this->FuzzyThreshold);
 
   vtkSMPTools::For(extent[2], extent[3] + 1, diff);
 
-  for (int i = 0; i < 3; i++)
-  {
-    for (int j = 0; j < 3; j++)
-    {
-      for (int k = 0; k < outData->GetNumberOfScalarComponents(); k++)
-      {
-        std::cerr << static_cast<int>(outptr[k]) << ' ';
-      }
-      std::cerr << ',';
-      outptr += 3;
-    }
-    std::cerr << std::endl;
-  }
-
-  //  auto in2ptr = static_cast<unsigned char*>(inData[1]->GetScalarPointer());
-  //  for (int i = 0; i < 3; i++)
-  //  {
-  //    for (int j = 0; j < 3; j++)
-  //    {
-  //      for (int k = 0; k < inData[1]->GetNumberOfScalarComponents(); k++)
-  //      {
-  //        std::cerr << static_cast<int>(in2ptr[k]) << ' ';
-  //      }
-  //      std::cerr << ',';
-  //      in2ptr += in2Incs[0];
-  //    }
-  //    std::cerr << std::endl;
-  //  }
+  isEqual = Error > ErrorThreshold;
 
   return 1;
+}
+
+vtkImageData* vtkImageCompare::GetImage()
+{
+  if (this->GetNumberOfInputConnections(1) < 1)
+  {
+    return nullptr;
+  }
+  return vtkImageData::SafeDownCast(this->GetExecutive()->GetInputData(1, 0));
 }
