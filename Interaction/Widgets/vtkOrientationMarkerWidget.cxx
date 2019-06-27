@@ -80,6 +80,10 @@ vtkOrientationMarkerWidget::vtkOrientationMarkerWidget()
   this->State = vtkOrientationMarkerWidget::Outside;
   this->Interactive = 1;
 
+  this->ShouldConstrainSize = 0;
+  this->MinDimensionSize = 20;
+  this->MaxDimensionSize = 500;
+
   this->Outline = vtkPolyData::New();
   this->Outline->AllocateExact(128, 128);
   vtkPoints* points = vtkPoints::New();
@@ -662,6 +666,10 @@ void vtkOrientationMarkerWidget::ResizeTopLeft(int X, int Y)
   int dy = Y - this->StartPosition[1];
   int delta = (abs(dx) + abs(dy)) / 2;
 
+  // If the size of this widget is constrained, then the minimum dimension size
+  // should be used instead of the default Tolerance.
+  int actualMinDimensionSize = ShouldConstrainSize ? MinDimensionSize : Tolerance;
+
   if (dx <= 0 && dy >= 0) // make bigger
   {
     dx = -delta;
@@ -693,17 +701,29 @@ void vtkOrientationMarkerWidget::ResizeTopLeft(int X, int Y)
   {
     newPos[0] = currentViewport[0];
   }
-  if (newPos[0] > newPos[2] - this->Tolerance) // keep from making it too small
+  // Constrain the widget width to the minimum size.
+  if (newPos[0] > newPos[2] - actualMinDimensionSize)
   {
-    newPos[0] = newPos[2] - this->Tolerance;
+    newPos[0] = newPos[2] - actualMinDimensionSize;
+  }
+  // Constrain the widget width to the maximum size if required.
+  else if (ShouldConstrainSize && newPos[0] < newPos[2] - MaxDimensionSize)
+  {
+    newPos[0] = newPos[2] - MaxDimensionSize;
   }
   if (newPos[3] > currentViewport[3])
   {
     newPos[3] = currentViewport[3];
   }
-  if (newPos[3] < newPos[1] + this->Tolerance)
+  // Constrain the widget height to the minimum size.
+  if (newPos[3] < newPos[1] + actualMinDimensionSize)
   {
-    newPos[3] = newPos[1] + this->Tolerance;
+    newPos[3] = newPos[1] + actualMinDimensionSize;
+  }
+  // Constrain the widget height to the maximum size if required.
+  else if (ShouldConstrainSize && newPos[3] > newPos[1] + MaxDimensionSize)
+  {
+    newPos[3] = newPos[1] + MaxDimensionSize;
   }
 
   this->StartPosition[0] = static_cast<int>(newPos[0]);
@@ -722,6 +742,10 @@ void vtkOrientationMarkerWidget::ResizeTopRight(int X, int Y)
   int dx = X - this->StartPosition[0];
   int dy = Y - this->StartPosition[1];
   int delta = (abs(dx) + abs(dy)) / 2;
+
+  // If the size of this widget is constrained, then the minimum dimension size
+  // should be used instead of the default Tolerance.
+  int actualMinDimensionSize = ShouldConstrainSize ? MinDimensionSize : Tolerance;
 
   if (dx >= 0 && dy >= 0) // make bigger
   {
@@ -754,17 +778,29 @@ void vtkOrientationMarkerWidget::ResizeTopRight(int X, int Y)
   {
     newPos[2] = currentViewport[2];
   }
-  if (newPos[2] < newPos[0] + this->Tolerance) // keep from making it too small
+  // Constrain the widget width to the minimum size.
+  if (newPos[2] < newPos[0] + actualMinDimensionSize)
   {
-    newPos[2] = newPos[0] + this->Tolerance;
+    newPos[2] = newPos[0] + actualMinDimensionSize;
+  }
+  // Constrain the widget width to the maximum size if required.
+  else if (ShouldConstrainSize && newPos[2] > newPos[0] + MaxDimensionSize)
+  {
+    newPos[2] = newPos[0] + MaxDimensionSize;
   }
   if (newPos[3] > currentViewport[3])
   {
     newPos[3] = currentViewport[3];
   }
-  if (newPos[3] < newPos[1] + this->Tolerance)
+  // Constrain the widget height to the minimum size.
+  if (newPos[3] < newPos[1] + actualMinDimensionSize)
   {
-    newPos[3] = newPos[1] + this->Tolerance;
+    newPos[3] = newPos[1] + actualMinDimensionSize;
+  }
+  // Constrain the widget height to the maximum size if required.
+  else if (ShouldConstrainSize && newPos[3] > newPos[1] + MaxDimensionSize)
+  {
+    newPos[3] = newPos[1] + MaxDimensionSize;
   }
 
   this->StartPosition[0] = static_cast<int>(newPos[2]);
@@ -783,6 +819,10 @@ void vtkOrientationMarkerWidget::ResizeBottomRight(int X, int Y)
   int dx = X - this->StartPosition[0];
   int dy = Y - this->StartPosition[1];
   int delta = (abs(dx) + abs(dy)) / 2;
+
+  // If the size of this widget is constrained, then the minimum dimension size
+  // should be used instead of the default Tolerance.
+  int actualMinDimensionSize = ShouldConstrainSize ? MinDimensionSize : Tolerance;
 
   if (dx >= 0 && dy <= 0) // make bigger
   {
@@ -815,17 +855,29 @@ void vtkOrientationMarkerWidget::ResizeBottomRight(int X, int Y)
   {
     newPos[2] = currentViewport[2];
   }
-  if (newPos[2] < newPos[0] + this->Tolerance) // keep from making it too small
+  // Constrain the widget width to the minimum size.
+  if (newPos[2] < newPos[0] + actualMinDimensionSize)
   {
-    newPos[2] = newPos[0] + this->Tolerance;
+    newPos[2] = newPos[0] + actualMinDimensionSize;
+  }
+  // Constrain the widget width to the maximum size if required.
+  else if (ShouldConstrainSize && newPos[2] > newPos[0] + MaxDimensionSize)
+  {
+    newPos[2] = newPos[0] + MaxDimensionSize;
   }
   if (newPos[1] < currentViewport[1])
   {
     newPos[1] = currentViewport[1];
   }
-  if (newPos[1] > newPos[3] - this->Tolerance)
+  // Constrain the widget height to the minimum size.
+  if (newPos[1] > newPos[3] - actualMinDimensionSize)
   {
-    newPos[1] = newPos[3] - this->Tolerance;
+    newPos[1] = newPos[3] - actualMinDimensionSize;
+  }
+  // Constrain the widget height to the maximum size if required.
+  else if (ShouldConstrainSize && newPos[1] < newPos[3] - MaxDimensionSize)
+  {
+    newPos[1] = newPos[3] - MaxDimensionSize;
   }
 
   this->StartPosition[0] = static_cast<int>(newPos[2]);
@@ -844,6 +896,10 @@ void vtkOrientationMarkerWidget::ResizeBottomLeft(int X, int Y)
   int dx = X - this->StartPosition[0];
   int dy = Y - this->StartPosition[1];
   int delta = (abs(dx) + abs(dy)) / 2;
+
+  // If the size of this widget is constrained, then the minimum dimension size
+  // should be used instead of the default Tolerance.
+  int actualMinDimensionSize = ShouldConstrainSize ? MinDimensionSize : Tolerance;
 
   if (dx <= 0 && dy <= 0) // make bigger
   {
@@ -876,17 +932,29 @@ void vtkOrientationMarkerWidget::ResizeBottomLeft(int X, int Y)
   {
     newPos[0] = currentViewport[0];
   }
-  if (newPos[0] > newPos[2] - this->Tolerance) // keep from making it too small
+  // Constrain the widget width to the minimum size.
+  if (newPos[0] > newPos[2] - actualMinDimensionSize)
   {
-    newPos[0] = newPos[2] - this->Tolerance;
+    newPos[0] = newPos[2] - actualMinDimensionSize;
+  }
+  // Constrain the widget width to the maximum size if required.
+  else if (ShouldConstrainSize && newPos[0] < newPos[2] - MaxDimensionSize)
+  {
+    newPos[0] = newPos[2] - MaxDimensionSize;
   }
   if (newPos[1] < currentViewport[1])
   {
     newPos[1] = currentViewport[1];
   }
-  if (newPos[1] > newPos[3] - this->Tolerance)
+  // Constrain the widget height to the minimum size.
+  if (newPos[1] > newPos[3] - actualMinDimensionSize)
   {
-    newPos[1] = newPos[3] - this->Tolerance;
+    newPos[1] = newPos[3] - actualMinDimensionSize;
+  }
+  // Constrain the widget height to the maximum size if required.
+  else if (ShouldConstrainSize && newPos[1] < newPos[3] - MaxDimensionSize)
+  {
+    newPos[1] = newPos[3] - MaxDimensionSize;
   }
 
   this->StartPosition[0] = static_cast<int>(newPos[0]);
@@ -976,4 +1044,86 @@ void vtkOrientationMarkerWidget::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "Zoom: " << this->Zoom << endl;
   os << indent << "Viewport: (" << this->Viewport[0] << ", " << this->Viewport[1] << ", "
      << this->Viewport[2] << ", " << this->Viewport[3] << ")\n";
+}
+
+void vtkOrientationMarkerWidget::SetShouldConstrainSize(vtkTypeBool shouldConstrainSize)
+{
+  ShouldConstrainSize = shouldConstrainSize;
+
+  if (ShouldConstrainSize)
+  {
+    ResizeToFitSizeConstraints();
+  }
+}
+
+void vtkOrientationMarkerWidget::SetSizeConstraints(int minDimensionSize, int maxDimensionSize)
+{
+  if (minDimensionSize < Tolerance || maxDimensionSize < Tolerance ||
+    minDimensionSize > maxDimensionSize)
+  {
+    return;
+  }
+
+  MinDimensionSize = minDimensionSize;
+  MaxDimensionSize = maxDimensionSize;
+
+  if (ShouldConstrainSize)
+  {
+    ResizeToFitSizeConstraints();
+  }
+}
+
+void vtkOrientationMarkerWidget::ResizeToFitSizeConstraints()
+{
+  if (!ShouldConstrainSize)
+  {
+    return;
+  }
+
+  double vp[4];
+  this->Renderer->GetViewport(vp);
+  this->Renderer->NormalizedDisplayToDisplay(vp[0], vp[1]);
+  this->Renderer->NormalizedDisplayToDisplay(vp[2], vp[3]);
+
+  double dx = vp[2] - vp[0];
+  double dy = vp[3] - vp[1];
+  double delta = 0.0;
+
+  // Check if widget is smaller than min size constraint.
+  if (dx < MinDimensionSize || dy < MinDimensionSize)
+  {
+    delta = MinDimensionSize;
+  }
+  // Check if widget is larger than max size constraint.
+  else if (dx > MaxDimensionSize || dy > MaxDimensionSize)
+  {
+    delta = MaxDimensionSize;
+  }
+  // Check if widget is not square.
+  else if (dx != dy)
+  {
+    delta = dx < dy ? dx : dy;
+  }
+
+  // If widget size is outside of current size constraints or is not square,
+  // then resize the widget.
+  if (delta > 0.0)
+  {
+    // NOTE: As the user is not triggering this resize by dragging a corner
+    //       of the widget, there is no information on which corners should
+    //       remain unchanged and which should be modified.  Therefore this
+    //       resize of the widget is based on the Translating state code in
+    //       SquareRenderer, which changes all 4 corner coordinates. Modify
+    //       this functionality if we want to add the ability to specify a
+    //       corner that should remain unchanged.
+    vp[0] = ((vp[0] + vp[2]) - delta) * 0.5;
+    vp[1] = ((vp[1] + vp[3]) - delta) * 0.5;
+    vp[2] = vp[0] + delta;
+    vp[3] = vp[1] + delta;
+    this->Renderer->DisplayToNormalizedDisplay(vp[0], vp[1]);
+    this->Renderer->DisplayToNormalizedDisplay(vp[2], vp[3]);
+    this->Renderer->SetViewport(vp);
+    this->UpdateViewport();
+    this->UpdateOutline();
+  }
 }

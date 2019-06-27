@@ -167,6 +167,35 @@ public:
   void Modified() override;
   //@}
 
+  //@{
+  /**
+   * Set/get whether the widget should constrain the size to be within the min and max limits.
+   */
+  void SetShouldConstrainSize(vtkTypeBool shouldConstrainSize);
+  vtkGetMacro(ShouldConstrainSize, vtkTypeBool);
+  //@}
+
+  //@{
+  /**
+   * Sets the minimum and maximum dimension (width and height) size limits for the widget.
+   */
+  void SetSizeConstraints(int minDimensionSize, int maxDimensionSize);
+  //@}
+
+  //@{
+  /**
+   * Returns the minimum dimension (width and height) size limit in pixels for the widget.
+   */
+  vtkGetMacro(MinDimensionSize, int);
+  //@}
+
+  //@{
+  /**
+   * Returns the maximum dimension (width and height) size limit in pixels for the widget.
+   */
+  vtkGetMacro(MaxDimensionSize, int);
+  //@}
+
 protected:
   vtkOrientationMarkerWidget();
   ~vtkOrientationMarkerWidget() override;
@@ -213,6 +242,14 @@ protected:
     AdjustingP4
   };
 
+  // Whether the min/max size constraints should be applied.
+  vtkTypeBool ShouldConstrainSize;
+
+  // The minimum dimension size to be allowed for width and height.
+  int MinDimensionSize;
+
+  // The maximum dimension size to be allowed for width and height.
+  int MaxDimensionSize;
   // use to determine what state the mouse is over, edge1 p1, etc.
   // returns a state from the WidgetState enum above
   virtual int ComputeStateBasedOnPosition(int X, int Y, int* pos1, int* pos2);
@@ -237,6 +274,10 @@ protected:
   // Viewport ivar. The computed viewport will be with respect to the whole
   // render window
   void UpdateInternalViewport();
+
+  // Resize the widget if it is outside of the current size constraints,
+  // or if the widget is not square.
+  void ResizeToFitSizeConstraints();
 
 private:
   vtkOrientationMarkerWidget(const vtkOrientationMarkerWidget&) = delete;
