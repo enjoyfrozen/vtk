@@ -264,7 +264,7 @@ public:
 
 vtkImageCompare::vtkImageCompare()
 {
-  ErrorThreshold = 50.;
+  ErrorThreshold = 200.;
   FuzzyThreshold = 0.;
   ErrorMetric = MeanSquaredErrorMetric;
   Error = 0.;
@@ -272,12 +272,18 @@ vtkImageCompare::vtkImageCompare()
   this->SetNumberOfInputPorts(2);
   SmoothBeforeCompare = true;
   KernelSize = 5;
-  Kernel = new double[5];
-  Kernel[0] = 0.06136;
-  Kernel[1] = 0.24477;
-  Kernel[2] = 0.38774;
-  Kernel[3] = 0.24477;
-  Kernel[4] = 0.06136;
+  Kernel = new double[KernelSize];
+  // default sigma = 1.0
+  Kernel[0] = 0.090404;
+  Kernel[1] = 0.241812;
+  Kernel[2] = 0.335568;
+  Kernel[3] = 0.241812;
+  Kernel[4] = 0.090404;
+}
+
+vtkImageCompare::~vtkImageCompare()
+{
+  delete[] Kernel;
 }
 
 void vtkImageCompare::ComputeError(unsigned char* in1Pixels,
@@ -411,20 +417,23 @@ int vtkImageCompare::RequestData(vtkInformation* vtkNotUsed(request),
   int extent[6];
   outData->GetExtent(extent);
 
-  unsigned char *in1Pixels, *in2Pixels, *outPixels;
+  unsigned char *inPixels[2], *outPixels;
 
-  in1Pixels =
-    static_cast<unsigned char*>(inData[0]->GetScalarPointerForExtent(extent));
-  in2Pixels =
-    static_cast<unsigned char*>(inData[1]->GetScalarPointerForExtent(extent));
+  for (int i = 0; i < 2; i++)
+  {
+    inPixels[i] =
+      static_cast<unsigned char*>(inData[i]->GetScalarPointerForExtent(extent));
+  }
   outPixels =
     static_cast<unsigned char*>(outData->GetScalarPointerForExtent(extent));
 
-  vtkIdType* in1Incs = new vtkIdType[3];
-  inData[0]->GetIncrements(in1Incs);
+  vtkIdType* inIncs[2];
 
-  vtkIdType* in2Incs = new vtkIdType[3];
-  inData[1]->GetIncrements(in2Incs);
+  for (int i = 0; i < 2; i++)
+  {
+    inIncs[i] = new vtkIdType[3];
+    inData[i]->GetIncrements(inIncs[i]);
+  }
 
   vtkIdType* outIncs = new vtkIdType[3];
   outData->GetIncrements(outIncs);
@@ -432,32 +441,24 @@ int vtkImageCompare::RequestData(vtkInformation* vtkNotUsed(request),
   vtkImageData* inDataSmoothed[2];
   if (this->SmoothBeforeCompare)
   {
+    unsigned char* inSmoothedPixels[2];
+    vtkIdType* inSmoothedIncs[2];
 
     for (int i = 0; i < 2; i++)
     {
       inDataSmoothed[i] = vtkImageData::New();
       inDataSmoothed[i]->DeepCopy(inData[i]);
+      inSmoothedPixels[i] = static_cast<unsigned char*>(
+        inDataSmoothed[i]->GetScalarPointerForExtent(extent));
+      inSmoothedIncs[i] = new vtkIdType[3];
+      inDataSmoothed[i]->GetIncrements(inSmoothedIncs[i]);
+      GaussianSmooth(inSmoothedPixels[i], extent, inSmoothedIncs[i]);
+      inPixels[i] = inSmoothedPixels[i];
+      inIncs[i] = inSmoothedIncs[i];
     }
-
-    auto in1SmoothedPixels = static_cast<unsigned char*>(
-      inDataSmoothed[0]->GetScalarPointerForExtent(extent));
-    vtkIdType* in1SmoothedIncs = new vtkIdType[3];
-    inDataSmoothed[0]->GetIncrements(in1SmoothedIncs);
-    GaussianSmooth(in1SmoothedPixels, extent, in1SmoothedIncs);
-
-    auto in2SmoothedPixels = static_cast<unsigned char*>(
-      inDataSmoothed[1]->GetScalarPointerForExtent(extent));
-    vtkIdType* in2SmoothedIncs = new vtkIdType[3];
-    inDataSmoothed[1]->GetIncrements(in2SmoothedIncs);
-    GaussianSmooth(in2SmoothedPixels, extent, in2SmoothedIncs);
-
-    in1Pixels = in1SmoothedPixels;
-    in1Incs = in1SmoothedIncs;
-    in2Pixels = in2SmoothedPixels;
-    in2Incs = in2SmoothedIncs;
   }
 
-  ComputeError(in1Pixels, in2Pixels, extent, in1Incs, in2Incs);
+  ComputeError(inPixels[0], inPixels[1], extent, inIncs[0], inIncs[1]);
 
   ThresholdedError = Error - ErrorThreshold;
   if (ThresholdedError < 0.)
@@ -465,8 +466,8 @@ int vtkImageCompare::RequestData(vtkInformation* vtkNotUsed(request),
     ThresholdedError = 0.;
   }
 
-  ComputeDifferenceImageFunctor diff(in1Pixels, in2Pixels, outPixels, extent,
-    in1Incs, in2Incs, outIncs, this->FuzzyThreshold);
+  ComputeDifferenceImageFunctor diff(inPixels[0], inPixels[1], outPixels,
+    extent, inIncs[0], inIncs[1], outIncs, this->FuzzyThreshold);
 
   vtkSMPTools::For(extent[2], extent[3] + 1, diff);
 

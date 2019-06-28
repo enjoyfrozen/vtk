@@ -46,8 +46,8 @@ public:
 
   /**
    * Return the total thresholded error in comparing the two images.
-   * The thresholded error is the error for a given pixel minus the
-   * threshold and clamped at a minimum of zero.
+   * The thresholded error is the error minus the threshold and clamped at a
+   * minimum of zero.
    */
   double GetThresholdedError() { return this->ThresholdedError; }
   void GetThresholdedError(double* e) { *e = this->GetThresholdedError(); }
@@ -65,9 +65,12 @@ public:
   vtkGetMacro(SmoothBeforeCompare, bool);
   vtkSetMacro(SmoothBeforeCompare, bool);
 
+  vtkGetMacro(KernelSize, int);
+  vtkSetClampMacro(KernelSize, int, 3, 9);
+
 protected:
   vtkImageCompare();
-  ~vtkImageCompare() override {}
+  ~vtkImageCompare() override;
 
   enum MetricType
   {
