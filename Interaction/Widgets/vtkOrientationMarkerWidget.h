@@ -169,6 +169,13 @@ public:
 
   //@{
   /**
+   * Ends any in progress interaction and resets border visibility
+   */
+  void EndInteraction();
+  //@}
+
+  //@{
+  /**
    * Set/get whether the widget should constrain the size to be within the min and max limits.
    */
   void SetShouldConstrainSize(vtkTypeBool shouldConstrainSize);

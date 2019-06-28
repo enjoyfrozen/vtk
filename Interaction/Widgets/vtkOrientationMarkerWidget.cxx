@@ -384,6 +384,17 @@ void vtkOrientationMarkerWidget::ProcessEvents(
 }
 
 //------------------------------------------------------------------------------
+void vtkOrientationMarkerWidget::EndInteraction()
+{
+  OnLeftButtonUp();
+
+  int NOWHERE =
+    -1000000; // A number large enough to always be offscreen to signal an end to interaction
+  this->Interactor->SetEventPosition(NOWHERE, NOWHERE);
+  OnMouseMove();
+}
+
+//-------------------------------------------------------------------------
 void vtkOrientationMarkerWidget::OnLeftButtonDown()
 {
   // We're only here if we are enabled
