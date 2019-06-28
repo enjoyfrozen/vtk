@@ -42,7 +42,15 @@ public:
    * Return the total error in comparing the two images.
    */
   double GetError() { return this->Error; }
-  void GetError(double* e) { *e = this->GetError(); };
+  void GetError(double* e) { *e = this->GetError(); }
+
+  /**
+   * Return the total thresholded error in comparing the two images.
+   * The thresholded error is the error for a given pixel minus the
+   * threshold and clamped at a minimum of zero.
+   */
+  double GetThresholdedError() { return this->ThresholdedError; }
+  void GetThresholdedError(double* e) { *e = this->GetThresholdedError(); }
 
   vtkGetMacro(FuzzyThreshold, double);
   vtkSetClampMacro(FuzzyThreshold, double, 0., 1.);
@@ -53,6 +61,9 @@ public:
 
   vtkGetMacro(ErrorThreshold, double);
   vtkSetClampMacro(ErrorThreshold, double, 0., 1000.);
+
+  vtkGetMacro(SmoothBeforeCompare, bool);
+  vtkSetMacro(SmoothBeforeCompare, bool);
 
 protected:
   vtkImageCompare();
@@ -79,9 +90,13 @@ protected:
   double ErrorThreshold;
   double FuzzyThreshold;
   int ErrorMetric;
+  bool SmoothBeforeCompare;
+  int KernelSize;
+  double* Kernel;
 
   // Outputs
   double Error;
+  double ThresholdedError;
   bool isEqual;
 
   int RequestInformation(vtkInformation* request,
@@ -91,12 +106,26 @@ protected:
     vtkInformationVector* outputVector) override;
 
 private:
+  enum GaussianSmoothDirection
+  {
+    X = 0,
+    Y = 1
+  };
+  enum GaussianSmoothChannel
+  {
+    R = 0,
+    G = 1,
+    B = 2
+  };
+
   vtkImageCompare(const vtkImageCompare&) = delete;
   void operator=(const vtkImageCompare&) = delete;
   void ComputeError(unsigned char* in1Pixels, unsigned char* in2Pixels,
     int* extent, vtkIdType* in1Incs, vtkIdType* in2Incs);
+  void GaussianSmooth(unsigned char* inPixels, int* extent, vtkIdType* inIncs);
 
-  class ComputeDifferenceImage;
+  class GaussianSmooth1D1CFunctor;
+  class ComputeDifferenceImageFunctor;
   class ComputeErrorFunctor;
   class ComputeMeanSquaredError;
   class ComputePeakSignalToNoiseRatioError;

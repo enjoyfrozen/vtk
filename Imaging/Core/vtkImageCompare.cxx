@@ -9,7 +9,71 @@
 
 vtkStandardNewMacro(vtkImageCompare);
 
-class vtkImageCompare::ComputeDifferenceImage
+class vtkImageCompare::GaussianSmooth1D1CFunctor
+{
+public:
+  unsigned char* inPixels;
+  int* extent;
+  vtkIdType* inIncs;
+  int kernelSize;
+  double* kernel;
+  int direction;
+  int channel;
+
+  GaussianSmooth1D1CFunctor(unsigned char* inPixels, int* extent,
+    vtkIdType* inIncs, int kernelSize, double* kernel, int direction,
+    int channel)
+    : inPixels(inPixels)
+    , extent(extent)
+    , inIncs(inIncs)
+    , kernelSize(kernelSize)
+    , kernel(kernel)
+    , direction(direction)
+    , channel(channel)
+  {
+  }
+
+  void operator()(vtkIdType i, vtkIdType endI)
+  {
+    int minJ = direction ? extent[2] : extent[0];
+    int maxJ = direction ? extent[3] + 1 : extent[1] + 1;
+    for (; i < endI; i++)
+    {
+      double tempNew[maxJ - minJ];
+      for (int j = minJ; j < maxJ; j++)
+      {
+        double sum = 0.;
+        for (int k = 0; k < kernelSize; k++)
+        {
+          int pos = j + (k - kernelSize / 2);
+          // Padding
+          if (pos < minJ)
+          {
+            pos = maxJ - (minJ - pos) - 1;
+          }
+          if (pos >= maxJ)
+          {
+            pos = minJ + (pos - maxJ);
+          }
+          unsigned char* pixel =
+            inPixels + inIncs[1 - direction] * i + inIncs[direction] * pos;
+          double color = static_cast<double>(pixel[channel]) / 255.;
+          sum += color * kernel[k];
+        }
+        tempNew[j] = sum;
+      }
+      for (int j = minJ; j < maxJ; j++)
+      {
+        unsigned char* pixel =
+          inPixels + inIncs[1 - direction] * i + inIncs[direction] * j;
+        pixel[channel] =
+          static_cast<unsigned char>(std::floor(tempNew[j] * 255.));
+      }
+    }
+  }
+};
+
+class vtkImageCompare::ComputeDifferenceImageFunctor
 {
 public:
   unsigned char* in1Pixels;
@@ -19,9 +83,10 @@ public:
   vtkIdType *in1Incs, *in2Incs, *outIncs;
   double fuzzyThreshold;
 
-  ComputeDifferenceImage(unsigned char* in1Pixels, unsigned char* in2Pixels,
-    unsigned char* outPixels, int* extent, vtkIdType* in1Incs,
-    vtkIdType* in2Incs, vtkIdType* outIncs, double fuzzyThreshold)
+  ComputeDifferenceImageFunctor(unsigned char* in1Pixels,
+    unsigned char* in2Pixels, unsigned char* outPixels, int* extent,
+    vtkIdType* in1Incs, vtkIdType* in2Incs, vtkIdType* outIncs,
+    double fuzzyThreshold)
     : in1Pixels(in1Pixels)
     , in2Pixels(in2Pixels)
     , outPixels(outPixels)
@@ -199,12 +264,20 @@ public:
 
 vtkImageCompare::vtkImageCompare()
 {
-  ErrorThreshold = 0.;
+  ErrorThreshold = 50.;
   FuzzyThreshold = 0.;
   ErrorMetric = MeanSquaredErrorMetric;
   Error = 0.;
   isEqual = false;
   this->SetNumberOfInputPorts(2);
+  SmoothBeforeCompare = true;
+  KernelSize = 5;
+  Kernel = new double[5];
+  Kernel[0] = 0.06136;
+  Kernel[1] = 0.24477;
+  Kernel[2] = 0.38774;
+  Kernel[3] = 0.24477;
+  Kernel[4] = 0.06136;
 }
 
 void vtkImageCompare::ComputeError(unsigned char* in1Pixels,
@@ -228,6 +301,31 @@ void vtkImageCompare::ComputeError(unsigned char* in1Pixels,
     vtkSMPTools::For(extent[2], extent[3] + 1, *errorFunctor);
     delete errorFunctor;
   }
+}
+
+void vtkImageCompare::GaussianSmooth(
+  unsigned char* inPixels, int* extent, vtkIdType* inIncs)
+{
+  GaussianSmooth1D1CFunctor gaussianXR(inPixels, extent, inIncs, KernelSize,
+    Kernel, GaussianSmoothDirection::X, GaussianSmoothChannel::R);
+  GaussianSmooth1D1CFunctor gaussianXG(inPixels, extent, inIncs, KernelSize,
+    Kernel, GaussianSmoothDirection::X, GaussianSmoothChannel::G);
+  GaussianSmooth1D1CFunctor gaussianXB(inPixels, extent, inIncs, KernelSize,
+    Kernel, GaussianSmoothDirection::X, GaussianSmoothChannel::B);
+  GaussianSmooth1D1CFunctor gaussianYR(inPixels, extent, inIncs, KernelSize,
+    Kernel, GaussianSmoothDirection::Y, GaussianSmoothChannel::R);
+  GaussianSmooth1D1CFunctor gaussianYG(inPixels, extent, inIncs, KernelSize,
+    Kernel, GaussianSmoothDirection::Y, GaussianSmoothChannel::G);
+  GaussianSmooth1D1CFunctor gaussianYB(inPixels, extent, inIncs, KernelSize,
+    Kernel, GaussianSmoothDirection::Y, GaussianSmoothChannel::B);
+
+  vtkSMPTools::For(extent[2], extent[3] + 1, gaussianXR);
+  vtkSMPTools::For(extent[2], extent[3] + 1, gaussianXG);
+  vtkSMPTools::For(extent[2], extent[3] + 1, gaussianXB);
+
+  vtkSMPTools::For(extent[0], extent[1] + 1, gaussianYR);
+  vtkSMPTools::For(extent[0], extent[1] + 1, gaussianYG);
+  vtkSMPTools::For(extent[0], extent[1] + 1, gaussianYB);
 }
 
 int vtkImageCompare::RequestInformation(vtkInformation* vtkNotUsed(request),
@@ -312,36 +410,75 @@ int vtkImageCompare::RequestData(vtkInformation* vtkNotUsed(request),
 
   int extent[6];
   outData->GetExtent(extent);
-  for (int i = 0; i < 6; i++)
-  {
-    std::cerr << extent[i] << ' ';
-  }
-  std::cerr << std::endl;
 
-  auto in1ptr =
+  unsigned char *in1Pixels, *in2Pixels, *outPixels;
+
+  in1Pixels =
     static_cast<unsigned char*>(inData[0]->GetScalarPointerForExtent(extent));
-  auto in2ptr =
+  in2Pixels =
     static_cast<unsigned char*>(inData[1]->GetScalarPointerForExtent(extent));
-  auto outptr =
+  outPixels =
     static_cast<unsigned char*>(outData->GetScalarPointerForExtent(extent));
 
-  vtkIdType in1Incs[3];
+  vtkIdType* in1Incs = new vtkIdType[3];
   inData[0]->GetIncrements(in1Incs);
 
-  vtkIdType in2Incs[3];
+  vtkIdType* in2Incs = new vtkIdType[3];
   inData[1]->GetIncrements(in2Incs);
 
-  vtkIdType outIncs[3];
+  vtkIdType* outIncs = new vtkIdType[3];
   outData->GetIncrements(outIncs);
 
-  ComputeError(in1ptr, in2ptr, extent, in1Incs, in2Incs);
+  vtkImageData* inDataSmoothed[2];
+  if (this->SmoothBeforeCompare)
+  {
 
-  ComputeDifferenceImage diff(in1ptr, in2ptr, outptr, extent, in1Incs, in2Incs,
-    outIncs, this->FuzzyThreshold);
+    for (int i = 0; i < 2; i++)
+    {
+      inDataSmoothed[i] = vtkImageData::New();
+      inDataSmoothed[i]->DeepCopy(inData[i]);
+    }
+
+    auto in1SmoothedPixels = static_cast<unsigned char*>(
+      inDataSmoothed[0]->GetScalarPointerForExtent(extent));
+    vtkIdType* in1SmoothedIncs = new vtkIdType[3];
+    inDataSmoothed[0]->GetIncrements(in1SmoothedIncs);
+    GaussianSmooth(in1SmoothedPixels, extent, in1SmoothedIncs);
+
+    auto in2SmoothedPixels = static_cast<unsigned char*>(
+      inDataSmoothed[1]->GetScalarPointerForExtent(extent));
+    vtkIdType* in2SmoothedIncs = new vtkIdType[3];
+    inDataSmoothed[1]->GetIncrements(in2SmoothedIncs);
+    GaussianSmooth(in2SmoothedPixels, extent, in2SmoothedIncs);
+
+    in1Pixels = in1SmoothedPixels;
+    in1Incs = in1SmoothedIncs;
+    in2Pixels = in2SmoothedPixels;
+    in2Incs = in2SmoothedIncs;
+  }
+
+  ComputeError(in1Pixels, in2Pixels, extent, in1Incs, in2Incs);
+
+  ThresholdedError = Error - ErrorThreshold;
+  if (ThresholdedError < 0.)
+  {
+    ThresholdedError = 0.;
+  }
+
+  ComputeDifferenceImageFunctor diff(in1Pixels, in2Pixels, outPixels, extent,
+    in1Incs, in2Incs, outIncs, this->FuzzyThreshold);
 
   vtkSMPTools::For(extent[2], extent[3] + 1, diff);
 
   isEqual = Error > ErrorThreshold;
+
+  if (SmoothBeforeCompare)
+  {
+    for (int i = 0; i < 2; i++)
+    {
+      inDataSmoothed[i]->Delete();
+    }
+  }
 
   return 1;
 }
