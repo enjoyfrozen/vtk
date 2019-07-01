@@ -268,7 +268,8 @@ vtkImageCompare::vtkImageCompare()
   FuzzyThreshold = 0.;
   ErrorMetric = MeanSquaredErrorMetric;
   Error = 0.;
-  isEqual = false;
+  ThresholdedError = 0.;
+  IsEqual = false;
   this->SetNumberOfInputPorts(2);
   SmoothBeforeCompare = true;
   KernelSize = 5;
@@ -284,6 +285,32 @@ vtkImageCompare::vtkImageCompare()
 vtkImageCompare::~vtkImageCompare()
 {
   delete[] Kernel;
+}
+
+void vtkImageCompare::PrintSelf(ostream& os, vtkIndent indent)
+{
+  this->Superclass::PrintSelf(os, indent);
+
+  os << indent << "Error Threshold: " << this->ErrorThreshold;
+  os << indent << "Fuzzy Threshold: " << this->FuzzyThreshold;
+  switch (this->ErrorMetric)
+  {
+    case MeanSquaredErrorMetric:
+      os << indent << "Error Metric: "
+         << "Mean Squared Error";
+      break;
+    case PeakSignalToNoiseRatioErrorMetric:
+      os << indent << "Error Metric: "
+         << "Peak Signal to Noise Ratio";
+    default:
+      os << indent << "Error Metric: "
+         << "Unsupported error metric";
+      break;
+  }
+  os << indent << "Smooth before compare: " << this->SmoothBeforeCompare;
+  os << indent << "Error: " << this->Error;
+  os << indent << "Thresholded Error: " << this->ThresholdedError;
+  os << indent << "Is Equal: " << this->IsEqual;
 }
 
 void vtkImageCompare::ComputeError(unsigned char* in1Pixels,
@@ -351,6 +378,8 @@ int vtkImageCompare::RequestInformation(vtkInformation* vtkNotUsed(request),
     in1Ext[4] != in2Ext[4] || in1Ext[5] != in2Ext[5])
   {
     this->Error = 1000.0;
+    this->ThresholdedError = 1000.0;
+    this->IsEqual = false;
 
     vtkErrorMacro("ExecuteInformation: Input are not the same size.\n"
       << " Input1 is: " << in1Ext[0] << "," << in1Ext[1] << "," << in1Ext[2]
@@ -471,7 +500,7 @@ int vtkImageCompare::RequestData(vtkInformation* vtkNotUsed(request),
 
   vtkSMPTools::For(extent[2], extent[3] + 1, diff);
 
-  isEqual = Error > ErrorThreshold;
+  IsEqual = Error > ErrorThreshold;
 
   if (SmoothBeforeCompare)
   {

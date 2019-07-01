@@ -19,12 +19,30 @@
 #include "vtkImageAlgorithm.h"
 #include "vtkImagingCoreModule.h" // For export macro
 
+/**
+ * @class   vtkImageCompare
+ * @brief   Compares images for regression tests.
+ *
+ * vtkImageCompare takes two rgb unsigned char images and compares them.
+ * It computes pixel-channel-wise difference between the images using a
+ * selected metric, by default Mean Squared Error (MSE). It also generates
+ * a difference image indicating which pixels are different between the two
+ * images.
+ *
+ * The filter also has an option to apply a Gaussian smooth filter before
+ * comparing the difference. Currently the Gaussian smooth kernel is fixed
+ * and hard coded.
+ *
+ * This is a symmetric filter and the difference computed is symmetric.
+ * The resulting value is the maximum error of the two directions
+ * A->B and B->A
+ */
 class VTKIMAGINGCORE_EXPORT vtkImageCompare : public vtkImageAlgorithm
 {
 public:
   static vtkImageCompare* New();
   vtkTypeMacro(vtkImageCompare, vtkImageAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) override {}
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   //@{
   /**
@@ -115,7 +133,7 @@ protected:
   // Outputs
   double Error;
   double ThresholdedError;
-  bool isEqual;
+  bool IsEqual;
 
   int RequestInformation(vtkInformation* request,
     vtkInformationVector** inputVector,
