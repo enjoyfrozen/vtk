@@ -52,21 +52,36 @@ public:
   double GetThresholdedError() { return this->ThresholdedError; }
   void GetThresholdedError(double* e) { *e = this->GetThresholdedError(); }
 
+  /**
+   * This threshold allows difference tolerated at each channel of each pixel.
+   * Note that when computing difference, color values are divided by 255 so the
+   * range would be [0...1.]
+   */
   vtkGetMacro(FuzzyThreshold, double);
   vtkSetClampMacro(FuzzyThreshold, double, 0., 1.);
 
+  /**
+   * Choose the error metric. The default is Mean Squared Error (MSE). Another
+   * option is Peak Signal to Noise Ratio (PSNR). MSE should be fine with most
+   * cases.
+   */
   vtkGetMacro(ErrorMetric, int);
   vtkSetClampMacro(ErrorMetric, int, MeanSquaredErrorMetric,
     PeakSignalToNoiseRatioErrorMetric);
 
+  /**
+   * Sets the error threshold. This will affect the ThresholdedError and isEqual
+   * flag.
+   */
   vtkGetMacro(ErrorThreshold, double);
   vtkSetClampMacro(ErrorThreshold, double, 0., 1000.);
 
+  /**
+   * Apply a Gaussian smooth filter to both images before comparing. The
+   * Gaussian kernel is currently hard coded.
+   */
   vtkGetMacro(SmoothBeforeCompare, bool);
   vtkSetMacro(SmoothBeforeCompare, bool);
-
-  vtkGetMacro(KernelSize, int);
-  vtkSetClampMacro(KernelSize, int, 3, 9);
 
 protected:
   vtkImageCompare();
