@@ -871,31 +871,36 @@ bool vtkGLTFDocumentLoader::LoadSkinMatrixData()
   {
     if (skin.InverseBindMatricesAccessorId < 0)
     {
-      // Default is an identity matrix
-      vtkNew<vtkMatrix4x4> id;
-      id->Identity();
-      skin.InverseBindMatrices.push_back(id);
-      continue;
+      for (unsigned int matrixId = 0; matrixId < skin.Joints.size(); matrixId++)
+      {
+        // Default is an identity matrix
+        vtkNew<vtkMatrix4x4> id;
+        id->Identity();
+        skin.InverseBindMatrices.push_back(id);
+      }
     }
-    vtkNew<vtkFloatArray> matrixValues;
-    worker.Setup(skin.InverseBindMatricesAccessorId, AccessorType::MAT4);
-    vtkArrayDispatch::DispatchByArray<AttributeArrayTypes>::Execute(matrixValues, worker);
-
-    size_t totalNumberOfComponents =
-      skin.Joints.size() * this->GetNumberOfComponentsForType(AccessorType::MAT4);
-    if (!worker.Result ||
-      static_cast<size_t>(matrixValues->GetNumberOfValues()) != totalNumberOfComponents)
+    else
     {
-      vtkErrorMacro("Error loading skin.invertBindMatrices data");
-      return false;
-    }
+      vtkNew<vtkFloatArray> matrixValues;
+      worker.Setup(skin.InverseBindMatricesAccessorId, AccessorType::MAT4);
+      vtkArrayDispatch::DispatchByArray<AttributeArrayTypes>::Execute(matrixValues, worker);
 
-    for (unsigned int matrixId = 0; matrixId < skin.Joints.size(); matrixId++)
-    {
-      vtkNew<vtkMatrix4x4> matrix;
-      matrix->DeepCopy(matrixValues->GetTuple(matrixId));
-      matrix->Transpose();
-      skin.InverseBindMatrices.push_back(matrix);
+      size_t totalNumberOfComponents =
+        skin.Joints.size() * this->GetNumberOfComponentsForType(AccessorType::MAT4);
+      if (!worker.Result ||
+        static_cast<size_t>(matrixValues->GetNumberOfValues()) != totalNumberOfComponents)
+      {
+        vtkErrorMacro("Error loading skin.invertBindMatrices data");
+        return false;
+      }
+
+      for (unsigned int matrixId = 0; matrixId < skin.Joints.size(); matrixId++)
+      {
+        vtkNew<vtkMatrix4x4> matrix;
+        matrix->DeepCopy(matrixValues->GetTuple(matrixId));
+        matrix->Transpose();
+        skin.InverseBindMatrices.push_back(matrix);
+      }
     }
   }
   return true;
@@ -1095,7 +1100,7 @@ bool vtkGLTFDocumentLoader::BuildPolyDataFromPrimitive(Primitive& primitive)
   }
   if (primitive.AttributeValues.count("TEXCOORD_1"))
   {
-    primitive.AttributeValues["TEXCOORD_1"]->SetName("texcoord_1");
+    primitive.AttributeValues["TEXCOORD_1"]->SetName("TEXCOORD_1");
     pointData->AddArray(primitive.AttributeValues["TEXCOORD_1"]);
     primitive.AttributeValues.erase("TEXCOORD_1");
   }
@@ -1420,6 +1425,12 @@ void vtkGLTFDocumentLoader::BuildGlobalTransforms(
     return;
   }
   Node& node = this->InternalModel->Nodes[nodeIndex];
+
+  if (node.GlobalTransform != nullptr)
+  {
+    return;
+  }
+
   node.GlobalTransform = vtkSmartPointer<vtkTransform>::New();
   node.GlobalTransform->PostMultiply();
   node.GlobalTransform->Concatenate(node.Transform);
@@ -1431,6 +1442,16 @@ void vtkGLTFDocumentLoader::BuildGlobalTransforms(
   {
     this->BuildGlobalTransforms(childId, node.GlobalTransform);
   }
+
+  if (node.Skin >= 0 && node.Skin < static_cast<int>(this->InternalModel->Skins.size()))
+  {
+    auto skin = this->InternalModel->Skins[node.Skin];
+    for (auto skinChildId : skin.Joints)
+    {
+      this->BuildGlobalTransforms(skinChildId, node.GlobalTransform);
+    }
+  }
+
   return;
 }
 

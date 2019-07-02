@@ -63,4 +63,24 @@ vtk_add_test_cxx(vtkRenderingOpenGL2CxxTests tests
   UnitTestOpenGLUniforms.cxx,NO_DATA,NO_VALID,NO_OUTPUT
   )
 
+vtk_add_test_cxx(vtkRenderingOpenGL2CxxTests tests
+  TestGLTFMapperPBRModel,TestGLTFMapper.cxx 0 DATA{../Data/glTF/Lantern/Lantern.gltf,Lantern.bin,Lantern_baseColor.png,Lantern_emissive.png,Lantern_normal.png,Lantern_roughnessMetallic.png}
+)
+
+vtk_add_test_cxx(vtkRenderingOpenGL2CxxTests tests
+  TestGLTFMapperMorphing,TestGLTFMapper.cxx 200 DATA{../Data/glTF/Morphing/Morphing.glb}
+)
+
+vtk_add_test_cxx(vtkRenderingOpenGL2CxxTests tests
+  TestGLTFMapperSkinning,TestGLTFMapper.cxx 60 DATA{../Data/glTF/Skinning/Skinning.gltf,Skinning.bin}
+)
+
+vtk_add_test_cxx(vtkRenderingOpenGL2CxxTests tests
+  TestGLTFMapperMultipleTextureCoordinates,TestGLTFMapper.cxx 0 DATA{../Data/glTF/MultipleTexCoord/MultipleTexCoord.gltf,MultipleTexCoord.bin,BaseColor_Plane.png,Normal_Plane.png}
+)
+
+vtk_add_test_cxx(vtkRenderingOpenGL2CxxTests tests
+  TestGLTFMapperAlphaMasking,TestGLTFMapper.cxx 0 DATA{../Data/glTF/AlphaMasking/AlphaMasking.gltf,AlphaMasking.bin,BaseColor_Plane.png}
+)
+
 vtk_test_cxx_executable(vtkRenderingOpenGL2CxxTests tests RENDERING_FACTORY)

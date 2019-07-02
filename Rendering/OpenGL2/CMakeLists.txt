@@ -19,6 +19,7 @@ set(classes
   vtkFramebufferPass
   vtkGaussianBlurPass
   vtkGenericOpenGLRenderWindow
+  vtkGLTFMapper
   vtkHiddenLineRemovalPass
   vtkImageProcessingPass
   vtkLightingMapPass

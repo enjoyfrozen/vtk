@@ -26,6 +26,8 @@
 #include "vtkInformationVector.h"
 #include "vtkMultiBlockDataSet.h"
 #include "vtkPointData.h"
+#include "vtkPolyDataNormals.h"
+#include "vtkPolyDataTangents.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
 #include "vtkStringArray.h"
 #include "vtkTransform.h"
@@ -68,6 +70,26 @@ std::string MakeUniqueNonEmptyName(
     duplicateCounters[newName] = 1;
   }
   return newName;
+}
+
+//----------------------------------------------------------------------------
+bool PrimitiveNeedsTangents(
+  const vtkGLTFDocumentLoader::Model& model, const vtkGLTFDocumentLoader::Primitive& primitive)
+{
+  // If we need to morph tangents, we have to generate them
+  if (primitive.Geometry->GetPointData()->HasArray("target0_tangent"))
+  {
+    return true;
+  }
+  // If no material is present, we don't need to generate tangents
+  if (primitive.Material < 0 || primitive.Material >= static_cast<int>(model.Materials.size()))
+  {
+    return false;
+  }
+  const vtkGLTFDocumentLoader::Material& material = model.Materials[primitive.Material];
+  // If a normal map is present, we do need tangents
+  int normalMapIndex = material.NormalTexture.Index;
+  return normalMapIndex >= 0 && normalMapIndex < static_cast<int>(model.Textures.size());
 }
 
 //----------------------------------------------------------------------------
@@ -145,8 +167,9 @@ void AddMaterialToFieldData(int materialId, vtkSmartPointer<vtkFieldData> fieldD
       AddTextureInfoToFieldData("MetallicRoughness", pbr.MetallicRoughnessTexture.Index,
         pbr.MetallicRoughnessTexture.TexCoord, fieldData);
     }
-    multiplier = std::vector<float>{ 0, pbr.MetallicFactor, pbr.RoughnessFactor };
-    AddVecNfToFieldData("MetallicRoughness", multiplier, fieldData);
+    multiplier = std::vector<float>{ static_cast<float>(material.OcclusionTextureStrength),
+      pbr.MetallicFactor, pbr.RoughnessFactor };
+    AddVecNfToFieldData("OcclusionRoughnessMetallic", multiplier, fieldData);
     if (material.NormalTexture.Index >= 0 && material.NormalTexture.Index < nbTextures)
     {
       AddTextureInfoToFieldData("Normal", material.NormalTexture.Index,
@@ -156,8 +179,7 @@ void AddMaterialToFieldData(int materialId, vtkSmartPointer<vtkFieldData> fieldD
     if (material.OcclusionTexture.Index >= 0 && material.OcclusionTexture.Index < nbTextures)
     {
       AddTextureInfoToFieldData("Occlusion", material.OcclusionTexture.Index,
-        material.OcclusionTexture.TexCoord, fieldData,
-        std::vector<float>(3, material.OcclusionTextureStrength));
+        material.OcclusionTexture.TexCoord, fieldData, std::vector<float>());
     }
     if (material.EmissiveTexture.Index >= 0 && material.EmissiveTexture.Index < nbTextures)
     {
@@ -173,6 +195,10 @@ void AddMaterialToFieldData(int materialId, vtkSmartPointer<vtkFieldData> fieldD
     else if (material.AlphaMode == vtkGLTFDocumentLoader::Material::AlphaModeType::OPAQUE)
     {
       AddIntegerToFieldData("ForceOpaque", 1, fieldData);
+    }
+    if (material.DoubleSided)
+    {
+      AddIntegerToFieldData("DoubleSided", 1, fieldData);
     }
   }
   else
@@ -276,9 +302,17 @@ void AddTransformToFieldData(const vtkSmartPointer<vtkTransform> transform,
 void AddJointMatricesToFieldData(const std::vector<vtkSmartPointer<vtkTransform> >& jointMats,
   vtkSmartPointer<vtkFieldData> fieldData)
 {
+  vtkNew<vtkMatrix4x4> jointNormalMatrix;
+  vtkNew<vtkTransform> tempNormalTransform;
   for (unsigned int matId = 0; matId < jointMats.size(); matId++)
   {
     AddTransformToFieldData(jointMats[matId], fieldData, "jointMatrix_" + value_to_string(matId));
+
+    jointMats[matId]->GetTranspose(jointNormalMatrix);
+    jointNormalMatrix->Invert();
+    tempNormalTransform->SetMatrix(jointNormalMatrix);
+    AddTransformToFieldData(
+      tempNormalTransform, fieldData, "jointNormalMatrix_" + value_to_string(matId));
   }
 }
 
@@ -409,6 +443,22 @@ bool BuildMultiBlockDatasetFromMesh(vtkGLTFDocumentLoader::Model& m, unsigned in
   int blockId = 0;
   for (auto& primitive : mesh.Primitives)
   {
+    if (primitive.Geometry->GetPointData()->GetNormals() == nullptr)
+    {
+      vtkNew<vtkPolyDataNormals> normals;
+      normals->SetInputData(primitive.Geometry);
+      normals->Update();
+      primitive.Geometry = normals->GetOutput(0);
+    }
+    if (primitive.Geometry->GetPointData()->GetTangents() == nullptr &&
+      PrimitiveNeedsTangents(m, primitive))
+    {
+      vtkNew<vtkPolyDataTangents> tangents;
+      tangents->SetInputData(primitive.Geometry);
+      tangents->Update();
+      primitive.Geometry = tangents->GetOutput(0);
+    }
+
     vtkSmartPointer<vtkPolyData> meshPolyData;
 
     // Even though no weights are defined in the node, meshes may contain default weights
@@ -481,8 +531,8 @@ bool BuildMultiBlockDatasetFromMesh(vtkGLTFDocumentLoader::Model& m, unsigned in
         meshPolyData = vtkPolyData::SafeDownCast(meshDataSet->GetBlock(blockId));
       }
     }
-    AddInfoToFieldData(morphingWeights, jointMats, globalTransform,
-      vtkPolyData::SafeDownCast(meshDataSet->GetBlock(blockId))->GetFieldData());
+    AddInfoToFieldData(morphingWeights, jointMats, globalTransform, meshPolyData->GetFieldData());
+    blockId++;
   }
   return true;
 }
