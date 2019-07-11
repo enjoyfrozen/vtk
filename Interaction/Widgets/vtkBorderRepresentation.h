@@ -41,6 +41,7 @@
 
 #include "vtkCoordinate.h"               //Because of the viewport coordinate macro
 #include "vtkInteractionWidgetsModule.h" // For export macro
+#include "vtkSmartPointer.h"
 #include "vtkWidgetRepresentation.h"
 
 class vtkPoints;
@@ -132,6 +133,33 @@ public:
    * Specify the properties of the border.
    */
   vtkGetObjectMacro(BorderProperty, vtkProperty2D);
+  //@}
+
+  //@{
+  /**
+   * Turn on/off background.
+   */
+  vtkSetMacro(UseBackground, bool);
+  vtkGetMacro(UseBackground, bool);
+  vtkBooleanMacro(UseBackground, bool);
+  //@}
+
+  //@{
+  /**
+   * Set/Get background color.
+   * Default is: (0.3, 0.3, 0.3).
+   */
+  vtkSetVector3Macro(BackgroundColor, double);
+  vtkGetVector3Macro(BackgroundColor, double);
+  //@}
+
+  //@{
+  /**
+   * Set/Get background opacity.
+   * Default is: 1.0
+   */
+  vtkSetClampMacro(BackgroundOpacity, double, 0.0, 1.0);
+  vtkGetMacro(BackgroundOpacity, double);
   //@}
 
   //@{
@@ -304,6 +332,16 @@ protected:
   vtkTransformPolyDataFilter* BWTransformFilter;
   vtkPolyDataMapper2D* BWMapper;
   vtkActor2D* BWActor;
+
+  bool UseBackground;
+  double BackgroundOpacity;
+  double BackgroundColor[3];
+
+  vtkSmartPointer<vtkProperty2D> BackgroundProperty;
+  vtkSmartPointer<vtkPolyData> BGPolyData;
+  vtkSmartPointer<vtkTransformPolyDataFilter> BGTransformFilter;
+  vtkSmartPointer<vtkPolyDataMapper2D> BGMapper;
+  vtkSmartPointer<vtkActor2D> BGActor;
 
   // Constraints on size
   double MinimumNormalizedViewportSize[2];

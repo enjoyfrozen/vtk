@@ -52,6 +52,10 @@ vtkBorderRepresentation::vtkBorderRepresentation()
   this->Position2Coordinate->SetValue(0.1, 0.1); // may be updated by the subclass
   this->Position2Coordinate->SetReferenceCoordinate(this->PositionCoordinate);
 
+  //
+  // Border
+  //
+
   // Create the geometry in canonical coordinates
   this->BWPoints = vtkPoints::New();
   this->BWPoints->SetDataTypeToDouble();
@@ -86,6 +90,42 @@ vtkBorderRepresentation::vtkBorderRepresentation()
 
   this->BorderProperty = vtkProperty2D::New();
   this->BWActor->SetProperty(this->BorderProperty);
+
+  //
+  // Background
+  //
+
+  this->UseBackground = false;
+  this->BackgroundOpacity = 1.0;
+  this->BackgroundColor[0] = this->BackgroundColor[1] = this->BackgroundColor[2] = 0.3;
+  this->BackgroundProperty = vtkSmartPointer<vtkProperty2D>::New();
+  this->BackgroundProperty->SetColor(
+    this->BackgroundColor[0], this->BackgroundColor[1], this->BackgroundColor[2]);
+
+  this->BGPolyData = vtkSmartPointer<vtkPolyData>::New();
+  this->BGPolyData->SetPoints(this->BWPoints);
+  this->BGPolyData->SetPolys(vtkSmartPointer<vtkCellArray>::New());
+  auto bgPointList = vtkSmartPointer<vtkIdList>::New();
+  bgPointList->InsertNextId(0);
+  bgPointList->InsertNextId(1);
+  bgPointList->InsertNextId(2);
+  bgPointList->InsertNextId(3);
+  this->BGPolyData->InsertNextCell(VTK_QUAD, bgPointList);
+
+  this->BGTransformFilter = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+  this->BGTransformFilter->SetTransform(this->BWTransform);
+  this->BGTransformFilter->SetInputData(this->BGPolyData);
+
+  this->BGMapper = vtkSmartPointer<vtkPolyDataMapper2D>::New();
+  this->BGMapper->SetInputConnection(this->BGTransformFilter->GetOutputPort());
+  this->BGActor = vtkSmartPointer<vtkActor2D>::New();
+  this->BGActor->SetMapper(this->BGMapper);
+  this->BGActor->SetProperty(this->BackgroundProperty);
+  this->BGActor->SetVisibility(this->UseBackground);
+
+  //
+  // Viewport & Settings
+  //
 
   this->MinimumNormalizedViewportSize[0] = 0.0;
   this->MinimumNormalizedViewportSize[1] = 0.0;
@@ -603,12 +643,14 @@ void vtkBorderRepresentation::BuildRepresentation()
 //------------------------------------------------------------------------------
 void vtkBorderRepresentation::GetActors2D(vtkPropCollection* pc)
 {
+  pc->AddItem(this->BGActor);
   pc->AddItem(this->BWActor);
 }
 
 //------------------------------------------------------------------------------
 void vtkBorderRepresentation::ReleaseGraphicsResources(vtkWindow* w)
 {
+  this->BGActor->ReleaseGraphicsResources(w);
   this->BWActor->ReleaseGraphicsResources(w);
 }
 
@@ -616,33 +658,54 @@ void vtkBorderRepresentation::ReleaseGraphicsResources(vtkWindow* w)
 int vtkBorderRepresentation::RenderOverlay(vtkViewport* w)
 {
   this->BuildRepresentation();
-  if (!this->BWActor->GetVisibility())
+
+  int returnValue = 0;
+  if (this->BGActor->GetVisibility())
   {
-    return 0;
+    returnValue += this->BGActor->RenderOverlay(w);
   }
-  return this->BWActor->RenderOverlay(w);
+  if (this->BWActor->GetVisibility())
+  {
+    returnValue += this->BWActor->RenderOverlay(w);
+  }
+  return returnValue;
 }
 
 //------------------------------------------------------------------------------
 int vtkBorderRepresentation::RenderOpaqueGeometry(vtkViewport* w)
 {
   this->BuildRepresentation();
-  if (!this->BWActor->GetVisibility())
+
+  int returnValue = 0;
+  this->BGActor->SetVisibility(this->UseBackground);
+  if (this->BGActor->GetVisibility())
   {
-    return 0;
+    this->BackgroundProperty->SetOpacity(this->BackgroundOpacity);
+    this->BackgroundProperty->SetColor(this->BackgroundColor);
+    returnValue += this->BGActor->RenderOpaqueGeometry(w);
   }
-  return this->BWActor->RenderOpaqueGeometry(w);
+  if (this->BWActor->GetVisibility())
+  {
+    returnValue += this->BWActor->RenderOpaqueGeometry(w);
+  }
+  return returnValue;
 }
 
 //------------------------------------------------------------------------------
 int vtkBorderRepresentation::RenderTranslucentPolygonalGeometry(vtkViewport* w)
 {
   this->BuildRepresentation();
-  if (!this->BWActor->GetVisibility())
+
+  int returnValue = 0;
+  if (this->BGActor->GetVisibility())
   {
-    return 0;
+    returnValue += this->BGActor->RenderTranslucentPolygonalGeometry(w);
   }
-  return this->BWActor->RenderTranslucentPolygonalGeometry(w);
+  if (this->BWActor->GetVisibility())
+  {
+    returnValue += this->BWActor->RenderTranslucentPolygonalGeometry(w);
+  }
+  return returnValue;
 }
 
 //------------------------------------------------------------------------------
@@ -651,11 +714,17 @@ int vtkBorderRepresentation::RenderTranslucentPolygonalGeometry(vtkViewport* w)
 vtkTypeBool vtkBorderRepresentation::HasTranslucentPolygonalGeometry()
 {
   this->BuildRepresentation();
-  if (!this->BWActor->GetVisibility())
+
+  vtkTypeBool returnValue = false;
+  if (this->BGActor->GetVisibility())
   {
-    return 0;
+    returnValue |= this->BGActor->HasTranslucentPolygonalGeometry();
   }
-  return this->BWActor->HasTranslucentPolygonalGeometry();
+  if (this->BWActor->GetVisibility())
+  {
+    returnValue |= this->BWActor->HasTranslucentPolygonalGeometry();
+  }
+  return returnValue;
 }
 
 //------------------------------------------------------------------------------
@@ -700,6 +769,11 @@ void vtkBorderRepresentation::PrintSelf(ostream& os, vtkIndent indent)
   {
     os << indent << "Border Property: (none)\n";
   }
+
+  os << indent << "UseBackground: " << (this->UseBackground ? "On\n" : "Off\n");
+  os << indent << "Background Color: " << this->BackgroundColor[0] << " "
+     << this->BackgroundColor[1] << " " << this->BackgroundColor[2] << endl;
+  os << indent << "Background Opacity: " << this->BackgroundOpacity << endl;
 
   os << indent << "Enforce Normalized Viewport Bounds: "
      << (this->EnforceNormalizedViewportBounds ? "On\n" : "Off\n");
