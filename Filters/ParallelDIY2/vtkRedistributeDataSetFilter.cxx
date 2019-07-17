@@ -19,6 +19,8 @@
 #include "vtkCellCenters.h"
 #include "vtkCellData.h"
 #include "vtkCompositeDataIterator.h"
+#include "vtkDataSet.h"
+#include "vtkDataObject.h"
 #include "vtkDIYKdTreeUtilities.h"
 #include "vtkExtractCells.h"
 #include "vtkFieldData.h"
@@ -37,6 +39,14 @@
 #include "vtkStaticCellLinks.h"
 #include "vtkUnsignedCharArray.h"
 #include "vtkUnstructuredGrid.h"
+
+#include "vtkDataSetAlgorithm.h"
+#include "vtkPlaneClipDataSet.h"
+#include <vtkPlane.h>
+#include <vtkClipDataSet.h>
+
+#include <vector>
+#include <string>
 
 namespace
 {
@@ -589,22 +599,42 @@ bool vtkRedistributeDataSetFilter::RedistributeDataSet(
 }
 
 //----------------------------------------------------------------------------
+// This is the initial implementation that has holes
+// vtkSmartPointer<vtkDataSet> vtkRedistributeDataSetFilter::ClipDataSet(
+//   vtkDataSet* dataset, const vtkBoundingBox& bbox)
+// {
+//   assert(dataset != nullptr);
+
+//   vtkNew<vtkBoxClipDataSet> clipper;
+//   clipper->SetInputDataObject(dataset);
+//   clipper->GenerateClipScalarsOff();
+//   // there seems to be a bug in vtkBoxClipDataSet (or bad documentation) where
+//   // if GenerateClippedOutput is off, then the output clips cells but still
+//   // includes both the inside and outside parts of the cell.
+//   clipper->GenerateClippedOutputOn();
+
+//   double bounds[6];
+//   bbox.GetBounds(bounds);
+//   clipper->SetBoxClip(bounds[0], bounds[1], bounds[2], bounds[3], bounds[4], bounds[5]);
+//   clipper->Update();
+
+//   auto clipperOutput = vtkUnstructuredGrid::SafeDownCast(clipper->GetOutputDataObject(0));
+//   if (clipperOutput &&
+//     (clipperOutput->GetNumberOfCells() > 0 || clipperOutput->GetNumberOfPoints() > 0))
+//   {
+//     return clipperOutput;
+//   }
+//   return nullptr;
+// }
+
+//----------------------------------------------------------------------------
+// new ClipDataSet function that fixes bug of generating holes after split
 vtkSmartPointer<vtkDataSet> vtkRedistributeDataSetFilter::ClipDataSet(
   vtkDataSet* dataset, const vtkBoundingBox& bbox)
 {
-  assert(dataset != nullptr);
-
-  vtkNew<vtkBoxClipDataSet> clipper;
+  vtkNew<vtkPlaneClipDataSet> clipper;
   clipper->SetInputDataObject(dataset);
-  clipper->GenerateClipScalarsOff();
-  // there seems to be a bug in vtkBoxClipDataSet (or bad documentation) where
-  // if GenerateClippedOutput is off, then the output clips cells but still
-  // includes both the inside and outside parts of the cell.
-  clipper->GenerateClippedOutputOn();
-
-  double bounds[6];
-  bbox.GetBounds(bounds);
-  clipper->SetBoxClip(bounds[0], bounds[1], bounds[2], bounds[3], bounds[4], bounds[5]);
+  clipper->SetPlaneClip(bbox);
   clipper->Update();
 
   auto clipperOutput = vtkUnstructuredGrid::SafeDownCast(clipper->GetOutputDataObject(0));

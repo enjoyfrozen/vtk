@@ -280,6 +280,7 @@ private:
     const std::vector<vtkBoundingBox>& cuts);
   bool RedistributeDataSet(
     vtkDataSet* inputDS, vtkPartitionedDataSet* outputPDS, const std::vector<vtkBoundingBox>& cuts);
+
   vtkSmartPointer<vtkDataSet> ClipDataSet(vtkDataSet* dataset, const vtkBoundingBox& bbox);
 
   bool AssignGlobalPointIds(vtkPartitionedDataSet* pieces, const std::vector<vtkBoundingBox>& cuts);
