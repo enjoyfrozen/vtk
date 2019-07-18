@@ -47,14 +47,14 @@
 #include "vtkFiltersGeneralModule.h" // For export macro
 #include "vtkPlane.h"
 #include "vtkSmartPointer.h"
-#include "vtkUnstructuredGridAlgorithm.h"
+#include "vtkTableBasedClipDataSet.h"
 
 #include <vector>
 
-class VTKFILTERSGENERAL_EXPORT vtkPlaneClipDataSet : public vtkUnstructuredGridAlgorithm
+class VTKFILTERSGENERAL_EXPORT vtkPlaneClipDataSet : public vtkTableBasedClipDataSet
 {
 public:
-    vtkTypeMacro(vtkPlaneClipDataSet,vtkUnstructuredGridAlgorithm);
+    vtkTypeMacro(vtkPlaneClipDataSet, vtkTableBasedClipDataSet);
 
     static vtkPlaneClipDataSet *New();
     void SetPlaneClip(const vtkBoundingBox& bbox);
