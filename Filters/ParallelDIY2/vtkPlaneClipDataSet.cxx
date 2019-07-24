@@ -18,7 +18,6 @@
 ----------------------------------------------------------------------------*/
 
 #include "vtkBoundingBox.h"
-#include "vtkClipDataSet.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
 #include "vtkObjectFactory.h"
@@ -26,6 +25,7 @@
 #include "vtkPlaneClipDataSet.h"
 #include "vtkPointData.h"
 #include "vtkSmartPointer.h"
+#include "vtkTableBasedClipDataSet.h"
 #include "vtkUnstructuredGrid.h"
 
 #include <vector>
@@ -35,7 +35,15 @@ vtkStandardNewMacro(vtkPlaneClipDataSet);
 // basic constructor
 vtkPlaneClipDataSet::vtkPlaneClipDataSet()
 {
-    // leave it to be empty
+    // initialize Box to invalid box here
+    vtkBoundingBox bbox;
+    SetBox(bbox);
+}
+
+void vtkPlaneClipDataSet::SetBox(const vtkBoundingBox& bbox)
+{
+    bbox.GetBounds(box);
+    this->SetPlaneClip();
 }
 
 vtkSmartPointer<vtkPlane> setPlane(double center[3], double normal[3])
@@ -48,24 +56,22 @@ vtkSmartPointer<vtkPlane> setPlane(double center[3], double normal[3])
 }
 
 // convert the bounding box to a set of clipping planes
-void vtkPlaneClipDataSet::SetPlaneClip(const vtkBoundingBox& bbox)
+void vtkPlaneClipDataSet::SetPlaneClip()
 {
     // get the xmin, xmax, ymin, ymax, zmin and zmax
-    double bounds[6];
-    bbox.GetBounds(bounds);
     allPlanes.clear();
 
     // three midpoints of eachbound
-    double xMid = (bounds[0] + bounds[1])/2.0;
-    double yMid = (bounds[2] + bounds[3])/2.0;
-    double zMid = (bounds[4] + bounds[5])/2.0;
+    double xMid = (box[0] + box[1])/2.0;
+    double yMid = (box[2] + box[3])/2.0;
+    double zMid = (box[4] + box[5])/2.0;
 
     for (int i = 0; i < 6; i++)
     {
         // xmin and xmax
         if (i < 2)
         {
-            double center[3] = {bounds[i], yMid, zMid};
+            double center[3] = {box[i], yMid, zMid};
             double normal[3] = {1.0-i*2.0, 0.0, 0.0};
             vtkSmartPointer<vtkPlane> plane = setPlane(center, normal);
             allPlanes.push_back(plane);
@@ -73,7 +79,7 @@ void vtkPlaneClipDataSet::SetPlaneClip(const vtkBoundingBox& bbox)
         // ymin and ymax
         else if (i < 4)
         {
-            double center[3] = {xMid, bounds[i], zMid};
+            double center[3] = {xMid, box[i], zMid};
             double normal[3] = {0.0, 5.0-i*2.0, 0.0};
             vtkSmartPointer<vtkPlane> plane = setPlane(center, normal);
             allPlanes.push_back(plane);
@@ -81,7 +87,7 @@ void vtkPlaneClipDataSet::SetPlaneClip(const vtkBoundingBox& bbox)
         // zmin and zmax
         else
         {
-            double center[3] = {xMid, yMid, bounds[i]};
+            double center[3] = {xMid, yMid, box[i]};
             double normal[3] = {0.0, 0.0, 9.0-i*2.0};
             vtkSmartPointer<vtkPlane> plane = setPlane(center, normal);
             allPlanes.push_back(plane);
@@ -90,10 +96,10 @@ void vtkPlaneClipDataSet::SetPlaneClip(const vtkBoundingBox& bbox)
 }
 
 // helper function for generating output
-vtkSmartPointer<vtkDataSet> vtkPlaneClipDataSet::ClipPlane(vtkDataSet* dataset, vtkSmartPointer<vtkPlane> plane)
+vtkSmartPointer<vtkDataSet> ClipPlane(vtkDataSet* dataset, vtkSmartPointer<vtkPlane> plane)
 {
     // make the clip
-    auto clipper = vtkSmartPointer<vtkClipDataSet>::New();
+    auto clipper = vtkSmartPointer<vtkTableBasedClipDataSet>::New();
     clipper->SetInputData(dataset);
     clipper->SetClipFunction(plane);
     clipper->SetValue(0);
@@ -110,7 +116,8 @@ vtkSmartPointer<vtkDataSet> vtkPlaneClipDataSet::ClipPlane(vtkDataSet* dataset, 
 }
 
 // helper function for generating output
-vtkSmartPointer<vtkDataSet> vtkPlaneClipDataSet::ApplyPlaneClip(const vtkSmartPointer<vtkDataSet> dataset)
+vtkSmartPointer<vtkDataSet> ApplyPlaneClip(const vtkSmartPointer<vtkDataSet> dataset,
+                                            std::vector< vtkSmartPointer<vtkPlane> > allPlanes)
 {
     // clip all planes
     auto clipperOutput = ClipPlane(dataset, allPlanes[0]);
@@ -137,7 +144,7 @@ int vtkPlaneClipDataSet::RequestData(vtkInformation *vtkNotUsed(request),
         outInfo->Get(vtkDataObject::DATA_OBJECT()));
 
     // shallow copy the output
-    output->ShallowCopy(ApplyPlaneClip(input));
+    output->ShallowCopy(ApplyPlaneClip(input, allPlanes));
 
     return 1;
 }

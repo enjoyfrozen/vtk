@@ -47,19 +47,19 @@
 #include "vtkFiltersGeneralModule.h" // For export macro
 #include "vtkPlane.h"
 #include "vtkSmartPointer.h"
-#include "vtkTableBasedClipDataSet.h"
+#include "vtkUnstructuredGridAlgorithm.h"
 
 #include <vector>
 
-class VTKFILTERSGENERAL_EXPORT vtkPlaneClipDataSet : public vtkTableBasedClipDataSet
+class VTKFILTERSGENERAL_EXPORT vtkPlaneClipDataSet : public vtkUnstructuredGridAlgorithm
 {
 public:
-    vtkTypeMacro(vtkPlaneClipDataSet, vtkTableBasedClipDataSet);
+    vtkTypeMacro(vtkPlaneClipDataSet, vtkUnstructuredGridAlgorithm);
+    vtkGetVector6Macro(box, double);
 
     static vtkPlaneClipDataSet *New();
-    void SetPlaneClip(const vtkBoundingBox& bbox);
-
-    vtkSmartPointer<vtkDataSet> ApplyPlaneClip(const vtkDataSet* dataset);
+    void SetBox(const vtkBoundingBox& bbox);
+    void SetPlaneClip();
 
 protected:
     vtkPlaneClipDataSet();
@@ -67,13 +67,12 @@ protected:
 
     //generate output data
     int RequestData(vtkInformation *, vtkInformationVector **, vtkInformationVector *) override;
+    double box[6];
     std::vector< vtkSmartPointer<vtkPlane> > allPlanes;
 
 private:
     vtkPlaneClipDataSet(const vtkPlaneClipDataSet&) = delete;
     void operator=(const vtkPlaneClipDataSet&) = delete;
-    vtkSmartPointer<vtkDataSet> ClipPlane(vtkDataSet* dataset, vtkSmartPointer<vtkPlane> plane);
-    vtkSmartPointer<vtkDataSet> ApplyPlaneClip(const vtkSmartPointer<vtkDataSet> dataset);
 };
 
 #endif

@@ -634,7 +634,7 @@ vtkSmartPointer<vtkDataSet> vtkRedistributeDataSetFilter::ClipDataSet(
 {
   vtkNew<vtkPlaneClipDataSet> clipper;
   clipper->SetInputDataObject(dataset);
-  clipper->SetPlaneClip(bbox);
+  clipper->SetBox(bbox);
   clipper->Update();
 
   auto clipperOutput = vtkUnstructuredGrid::SafeDownCast(clipper->GetOutputDataObject(0));
