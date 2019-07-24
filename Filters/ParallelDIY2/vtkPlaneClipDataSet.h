@@ -55,11 +55,10 @@ class VTKFILTERSGENERAL_EXPORT vtkPlaneClipDataSet : public vtkUnstructuredGridA
 {
 public:
     vtkTypeMacro(vtkPlaneClipDataSet, vtkUnstructuredGridAlgorithm);
-    vtkGetVector6Macro(box, double);
+    vtkGetVector6Macro(Box, double);
 
     static vtkPlaneClipDataSet *New();
     void SetBox(const vtkBoundingBox& bbox);
-    void SetPlaneClip();
 
 protected:
     vtkPlaneClipDataSet();
@@ -67,8 +66,7 @@ protected:
 
     //generate output data
     int RequestData(vtkInformation *, vtkInformationVector **, vtkInformationVector *) override;
-    double box[6];
-    std::vector< vtkSmartPointer<vtkPlane> > allPlanes;
+    double Box[6];
 
 private:
     vtkPlaneClipDataSet(const vtkPlaneClipDataSet&) = delete;
