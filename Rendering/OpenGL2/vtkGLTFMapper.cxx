@@ -182,11 +182,6 @@ protected:
   void AddGLTFVertexShaderTags(std::string& VSSource);
 
   /**
-   * Add glTF related tags to vtkOpenGLPolyDataMapper's fragment shader
-   */
-  void AddGLTFFragmentShaderTags(std::string& FSSource);
-
-  /**
    * Adds skinning implementation to the vertex shader
    */
   void AddSkinningToShader(std::string& VSSource);
@@ -466,71 +461,6 @@ void ApplyMaterialTexturesToVTKProperty(vtkSmartPointer<vtkProperty> property,
 }
 
 //-----------------------------------------------------------------------------
-// In the fragment shader, declares functions that return which texture coordinates to use.
-void AddAlternateTexCoordFunctionsToFragmentShader(std::string& FSSource)
-{
-  vtkShaderProgram::Substitute(FSSource, "//VTK::GLTF::AlternateTexCoordFunctions",
-    "vec2 getBaseColorTexCoord()\n"
-    "{\n"
-    "  return baseColorUseSecondTexCoordAttribute ? tcoordVCVSOutput_2 : tcoordVCVSOutput;\n"
-    "}\n"
-    "vec2 getEmissiveTexCoord()\n"
-    "{\n"
-    "  return emissiveUseSecondTexCoordAttribute ? tcoordVCVSOutput_2 : tcoordVCVSOutput;\n"
-    "}\n"
-    "vec2 getMaterialTexCoord()\n"
-    "{\n"
-    "  return materialUseSecondTexCoordAttribute ? tcoordVCVSOutput_2 : tcoordVCVSOutput;\n"
-    "}\n"
-    "vec2 getOcclusionTexCoord()\n"
-    "{\n"
-    "  return occlusionUseSecondTexCoordAttribute ? tcoordVCVSOutput_2 : tcoordVCVSOutput;\n"
-    "}\n"
-    "vec2 getNormalTexCoord()\n"
-    "{\n"
-    "  return normalUseSecondTexCoordAttribute ? tcoordVCVSOutput_2 : tcoordVCVSOutput;\n"
-    "}\n");
-}
-
-//-----------------------------------------------------------------------------
-// In vertex and fragment shaders, replaces texture() calls, and adds declarations to enable the use
-// of a second set of texture coordinates.
-void AddSecondTexCoordToShaders(std::string& VSSource, std::string& FSSource)
-{
-  // Replace sampling calls
-  vtkShaderProgram::Substitute(
-    FSSource, "texture(normalTex, tcoordVCVSOutput)", "texture(normalTex, getNormalTexCoord())");
-  vtkShaderProgram::Substitute(
-    FSSource, "texture(albedoTex, tcoordVCVSOutput)", "texture(albedoTex, getBaseColorTexCoord())");
-  vtkShaderProgram::Substitute(FSSource, "texture(emissiveTex, tcoordVCVSOutput)",
-    "texture(emissiveTex, getEmissiveTexCoord())");
-  vtkShaderProgram::Substitute(FSSource, "texture(materialTex, tcoordVCVSOutput)",
-    "texture(materialTex, getMaterialTexCoord())");
-  vtkShaderProgram::Substitute(FSSource, "texture(occlusionTex, tcoordVCVSOutput)",
-    "texture(occlusionTex, getOcclusionTexCoord())");
-
-  // Declare the alternative set of texture coordinates as vertex shader input, transform it and
-  // pass it to the fragment shader
-  vtkShaderProgram::Substitute(VSSource, "//VTK::GLTF::AlternateTexCoord::Dec",
-    "in vec2 tcoord_2;\n"
-    "out vec2 tcoordVCVSOutput_2;\n");
-  vtkShaderProgram::Substitute(FSSource, "//VTK::GLTF::AlternateTexCoord::Dec",
-    "in vec2 tcoordVCVSOutput_2;\n"
-    "//VTK::GLTF::AlternateTexCoord::Dec\n");
-  vtkShaderProgram::Substitute(VSSource, "//VTK::GLTF::AlternateTexCoord::Impl",
-    "vec4 tcoordTmp_2 = tcMatrix*vec4(tcoord_2, 0.0, 1.0);\n "
-    "tcoordVCVSOutput_2 = tcoordTmp_2.xy / tcoordTmp_2.w;\n");
-
-  // Declare the flags that determine which set of coordinates should be used
-  vtkShaderProgram::Substitute(FSSource, "//VTK::GLTF::AlternateTexCoord::Dec",
-    "uniform bool baseColorUseSecondTexCoordAttribute;\n"
-    "uniform bool emissiveUseSecondTexCoordAttribute;\n"
-    "uniform bool occlusionUseSecondTexCoordAttribute;\n"
-    "uniform bool materialUseSecondTexCoordAttribute;\n"
-    "uniform bool normalUseSecondTexCoordAttribute;\n");
-}
-
-//-----------------------------------------------------------------------------
 int CountNumberOfAttributeTargets(
   vtkSmartPointer<vtkPointData> pointData, const std::string& attributeSuffix)
 {
@@ -659,21 +589,6 @@ void vtkGLTFMapperHelper::SetShaderValues(
     }
   }
 
-  // Second texture coordinates usage flags for each texture
-  if (this->MaterialValues.HasAlternateUVSet())
-  {
-    prog->SetUniformi("baseColorUseSecondTexCoordAttribute",
-      this->MaterialValues.BaseColorUseAlternateUVSet ? 1 : 0);
-    prog->SetUniformi(
-      "emissiveUseSecondTexCoordAttribute", this->MaterialValues.EmissiveUseAlternateUVSet ? 1 : 0);
-    prog->SetUniformi("occlusionUseSecondTexCoordAttribute",
-      this->MaterialValues.OcclusionUseAlternateUVSet ? 1 : 0);
-    prog->SetUniformi(
-      "materialUseSecondTexCoordAttribute", this->MaterialValues.MaterialUseAlternateUVSet ? 1 : 0);
-    prog->SetUniformi(
-      "normalUseSecondTexCoordAttribute", this->MaterialValues.NormalUseAlternateUVSet ? 1 : 0);
-  }
-
   // Fragment shader multipliers and alpha cutoff
   FieldDataToMaterialValues(fieldData, pointData, this->MaterialValues);
   prog->SetUniform3f("diffuseColorUniform", this->MaterialValues.BaseColorFactor.data());
@@ -732,19 +647,6 @@ void vtkGLTFMapperHelper::RenderPieceFinish(vtkRenderer* ren, vtkActor* actor)
 }
 
 //-----------------------------------------------------------------------------
-void vtkGLTFMapperHelper::AddGLTFFragmentShaderTags(std::string& FSSource)
-{
-  std::string FSDec = "//VTK::ValuePass::Dec";
-  if (this->MaterialValues.HasAlternateUVSet())
-  {
-    vtkShaderProgram::Substitute(
-      FSSource, FSDec, "//VTK::GLTF::AlternateTexCoord::Dec\n\n" + FSDec);
-    vtkShaderProgram::Substitute(
-      FSSource, FSDec, "//VTK::GLTF::AlternateTexCoordFunctions\n\n" + FSDec);
-  }
-}
-
-//-----------------------------------------------------------------------------
 void vtkGLTFMapperHelper::AddGLTFVertexShaderTags(std::string& VSSource)
 {
   const std::string VSDec = "//VTK::Picking::Dec";
@@ -768,14 +670,6 @@ void vtkGLTFMapperHelper::AddGLTFVertexShaderTags(std::string& VSSource)
   vtkShaderProgram::Substitute(VSSource, VSDec, "//VTK::GLTF::ComputePosition\n\n" + VSDec);
   vtkShaderProgram::Substitute(VSSource, VSDec, "//VTK::GLTF::ComputeNormal\n\n" + VSDec);
   vtkShaderProgram::Substitute(VSSource, VSDec, "//VTK::GLTF::ComputeTangent\n\n" + VSDec);
-
-  if (this->MaterialValues.HasAlternateUVSet())
-  {
-    vtkShaderProgram::Substitute(
-      VSSource, VSImpl, "//VTK::GLTF::AlternateTexCoord::Impl\n\n" + VSImpl);
-    vtkShaderProgram::Substitute(
-      VSSource, VSDec, "//VTK::GLTF::AlternateTexCoord::Dec\n\n" + VSDec);
-  }
 }
 
 //-----------------------------------------------------------------------------
@@ -865,7 +759,6 @@ void vtkGLTFMapperHelper::ReplaceShaderValues(
 
   auto FSSource = fragmentShader->GetSource();
   VSSource = vertexShader->GetSource();
-  this->AddGLTFFragmentShaderTags(FSSource);
 
   // Multiply opacities
   if (this->MaterialTextures.BaseColorTextureIndex >= 0)
@@ -913,12 +806,6 @@ void vtkGLTFMapperHelper::ReplaceShaderValues(
     }
   }
 
-  // Handle a second set of texture coordinates
-  if (this->MaterialValues.HasAlternateUVSet())
-  {
-    AddAlternateTexCoordFunctionsToFragmentShader(FSSource);
-    AddSecondTexCoordToShaders(VSSource, FSSource);
-  }
   fragmentShader->SetSource(FSSource);
   vertexShader->SetSource(VSSource);
 }
@@ -959,13 +846,6 @@ void vtkGLTFMapperHelper::AppendOneBufferObject(vtkRenderer* ren, vtkActor* act,
         }
       }
     }
-  }
-
-  // Upload the second set of texture coordinates if required
-  if (this->MaterialValues.HasAlternateUVSet())
-  {
-    this->VBOs->AppendDataArray(
-      "tcoord_2", pointData->GetArray("TEXCOORD_1"), vtkTypeTraits<float>::VTK_TYPE_ID);
   }
 
   this->Superclass::AppendOneBufferObject(ren, act, hdata, flat_index, colors, norms);
@@ -1086,6 +966,11 @@ void vtkGLTFMapper::Render(vtkRenderer* ren, vtkActor* actor)
         GLTFMaterialValues materialValues;
         FieldDataToMaterialValues(fieldData, pointData, materialValues);
 
+        if(materialValues.HasAlternateUVSet())
+        {
+          vtkWarningMacro("This mapper does not support more than one set of texture coordinates.");
+        }
+
         std::ostringstream toString;
         toString.str("");
         toString.clear();
@@ -1098,8 +983,7 @@ void vtkGLTFMapper::Render(vtkRenderer* ren, vtkActor* actor)
                  << materialTextures.NormalTextureIndex << materialTextures.OcclusionTextureIndex
                  << (materialValues.HasBlendAlphaMode ? 1 : 0)
                  << (materialValues.HasOpaqueAlphaMode ? 1 : 0)
-                 << (materialValues.HasMaskAlphaMode ? 1 : 0)
-                 << (materialValues.HasAlternateUVSet() ? 1 : 0);
+                 << (materialValues.HasMaskAlphaMode ? 1 : 0);
 
         vtkCompositeMapperHelper2* helper = nullptr;
         helpIter found = this->Helpers.find(toString.str());
