@@ -408,7 +408,8 @@ void ApplyMaterialValuesToVTKPRoperty(
 
 //-----------------------------------------------------------------------------
 void ApplyMaterialTexturesToVTKProperty(vtkSmartPointer<vtkProperty> property,
-  const GLTFMaterialTextures& material, std::vector<vtkSmartPointer<vtkTexture> >& textures)
+  const GLTFMaterialTextures& materialTextures, const GLTFMaterialValues& materialValues,
+  std::vector<vtkSmartPointer<vtkTexture> >& textures)
 {
   if (property == nullptr)
   {
@@ -426,37 +427,42 @@ void ApplyMaterialTexturesToVTKProperty(vtkSmartPointer<vtkProperty> property,
   property->RemoveTexture("normalTex");
   property->RemoveTexture("occlusionTex");
 
-  if (CheckForValidTextureIndex(material.BaseColorTextureIndex, textures))
+  if (CheckForValidTextureIndex(materialTextures.BaseColorTextureIndex, textures) &&
+    !materialValues.BaseColorUseAlternateUVSet)
   {
-    if (!textures[material.BaseColorTextureIndex]->GetUseSRGBColorSpace())
+    if (!textures[materialTextures.BaseColorTextureIndex]->GetUseSRGBColorSpace())
     {
-      textures[material.BaseColorTextureIndex]->SetUseSRGBColorSpace(true);
+      textures[materialTextures.BaseColorTextureIndex]->SetUseSRGBColorSpace(true);
     }
-    property->SetBaseColorTexture(textures[material.BaseColorTextureIndex]);
+    property->SetBaseColorTexture(textures[materialTextures.BaseColorTextureIndex]);
   }
-  if (CheckForValidTextureIndex(material.EmissiveTextureIndex, textures))
+  if (CheckForValidTextureIndex(materialTextures.EmissiveTextureIndex, textures) &&
+    !materialValues.EmissiveUseAlternateUVSet)
   {
-    if (!textures[material.EmissiveTextureIndex]->GetUseSRGBColorSpace())
+    if (!textures[materialTextures.EmissiveTextureIndex]->GetUseSRGBColorSpace())
     {
-      textures[material.EmissiveTextureIndex]->SetUseSRGBColorSpace(true);
+      textures[materialTextures.EmissiveTextureIndex]->SetUseSRGBColorSpace(true);
     }
-    property->SetEmissiveTexture(textures[material.EmissiveTextureIndex]);
+    property->SetEmissiveTexture(textures[materialTextures.EmissiveTextureIndex]);
   }
-  if (CheckForValidTextureIndex(material.MaterialTextureIndex, textures))
+  if (CheckForValidTextureIndex(materialTextures.MaterialTextureIndex, textures) &&
+    !materialValues.MaterialUseAlternateUVSet)
   {
-    property->SetORMTexture(textures[material.MaterialTextureIndex]);
+    property->SetORMTexture(textures[materialTextures.MaterialTextureIndex]);
   }
-  if (CheckForValidTextureIndex(material.NormalTextureIndex, textures))
+  if (CheckForValidTextureIndex(materialTextures.NormalTextureIndex, textures) &&
+    !materialValues.NormalUseAlternateUVSet)
   {
-    property->SetNormalTexture(textures[material.NormalTextureIndex]);
+    property->SetNormalTexture(textures[materialTextures.NormalTextureIndex]);
   }
-  if (CheckForValidTextureIndex(material.OcclusionTextureIndex, textures))
+  if (CheckForValidTextureIndex(materialTextures.OcclusionTextureIndex, textures) &&
+    !materialValues.OcclusionUseAlternateUVSet)
   {
-    property->SetTexture("occlusionTex", textures[material.OcclusionTextureIndex]);
+    property->SetTexture("occlusionTex", textures[materialTextures.OcclusionTextureIndex]);
     // This is necessary for the polyDataMapper to generate occlusion-specific shader code
-    if (material.MaterialTextureIndex < 0)
+    if (materialTextures.MaterialTextureIndex < 0)
     {
-      property->SetORMTexture(textures[material.OcclusionTextureIndex]);
+      property->SetORMTexture(textures[materialTextures.OcclusionTextureIndex]);
     }
   }
 }
@@ -631,7 +637,8 @@ void vtkGLTFMapperHelper::RenderPieceStart(vtkRenderer* ren, vtkActor* actor)
   }
 
   // Set textures and values to vtkProperty
-  ApplyMaterialTexturesToVTKProperty(actor->GetProperty(), this->MaterialTextures, this->Textures);
+  ApplyMaterialTexturesToVTKProperty(
+    actor->GetProperty(), this->MaterialTextures, this->MaterialValues, this->Textures);
   ApplyMaterialValuesToVTKPRoperty(actor->GetProperty(), this->MaterialValues);
   this->Superclass::RenderPieceStart(ren, actor);
   actor->GetProperty()->Render(actor, ren);
