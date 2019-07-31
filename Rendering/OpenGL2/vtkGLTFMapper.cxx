@@ -40,6 +40,7 @@
 #include "vtkProperty.h"
 #include "vtkRenderWindow.h"
 #include "vtkRenderer.h"
+#include "vtkScalarsToColors.h"
 #include "vtkShader.h"
 #include "vtkShaderProgram.h"
 #include "vtkTexture.h"
@@ -966,7 +967,7 @@ void vtkGLTFMapper::Render(vtkRenderer* ren, vtkActor* actor)
         GLTFMaterialValues materialValues;
         FieldDataToMaterialValues(fieldData, pointData, materialValues);
 
-        if(materialValues.HasAlternateUVSet())
+        if (materialValues.HasAlternateUVSet())
         {
           vtkWarningMacro("This mapper does not support more than one set of texture coordinates.");
         }
@@ -1042,12 +1043,22 @@ void vtkGLTFMapper::Render(vtkRenderer* ren, vtkActor* actor)
   }
 
   // rebuild the render values if needed
-  if (this->RenderValuesBuildTime < this->GetMTime() ||
-    this->RenderValuesBuildTime < actor->GetProperty()->GetMTime() ||
-    this->RenderValuesBuildTime < this->VBOBuildTime ||
-    this->RenderValuesBuildTime < this->HelperMTime)
+  this->TempState.Clear();
+  this->TempState.Append(actor->GetProperty()->GetMTime(), "actor mtime");
+  this->TempState.Append(this->GetMTime(), "this mtime");
+  this->TempState.Append(this->HelperMTime, "helper mtime");
+  this->TempState.Append(
+    actor->GetTexture() ? actor->GetTexture()->GetMTime() : 0, "texture mtime");
+  if (this->RenderValuesState != this->TempState)
   {
+    this->RenderValuesState = this->TempState;
     vtkProperty* prop = actor->GetProperty();
+    vtkScalarsToColors* lut = this->GetLookupTable();
+    if (lut)
+    {
+      // Ensure that the lookup table is built
+      lut->Build();
+    }
 
     // Push base-values on the state stack.
     this->BlockState.Visibility.push(true);
@@ -1066,8 +1077,6 @@ void vtkGLTFMapper::Render(vtkRenderer* ren, vtkActor* actor)
     this->BlockState.AmbientColor.pop();
     this->BlockState.DiffuseColor.pop();
     this->BlockState.SpecularColor.pop();
-
-    this->RenderValuesBuildTime.Modified();
   }
 
   this->InitializeHelpersBeforeRendering(ren, actor);
