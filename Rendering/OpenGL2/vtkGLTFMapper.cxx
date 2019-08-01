@@ -430,9 +430,9 @@ void ApplyMaterialTexturesToVTKProperty(vtkSmartPointer<vtkProperty> property,
   property->RemoveTexture("normalTex");
   property->RemoveTexture("occlusionTex");
 
-  bool useMR = CheckForValidTextureIndex(materialTextures.MaterialTextureIndex, textures) &&
+  bool useMR = ::CheckForValidTextureIndex(materialTextures.MaterialTextureIndex, textures) &&
     !materialValues.MaterialUseAlternateUVSet;
-  bool useOcclusion = CheckForValidTextureIndex(materialTextures.OcclusionTextureIndex, textures) &&
+  bool useOcclusion = ::CheckForValidTextureIndex(materialTextures.OcclusionTextureIndex, textures) &&
     !materialValues.OcclusionUseAlternateUVSet;
 
   // While glTF 2.0 uses two different textures for Ambient Occlusion and Metallic/Roughness
@@ -498,13 +498,13 @@ void ApplyMaterialTexturesToVTKProperty(vtkSmartPointer<vtkProperty> property,
     materialValues.IsORMTextureCreated = true;
   }
 
-  if (CheckForValidTextureIndex(materialTextures.BaseColorTextureIndex, textures) &&
+  if (::CheckForValidTextureIndex(materialTextures.BaseColorTextureIndex, textures) &&
     !materialValues.BaseColorUseAlternateUVSet)
   {
     textures[materialTextures.BaseColorTextureIndex]->SetUseSRGBColorSpace(true);
     property->SetBaseColorTexture(textures[materialTextures.BaseColorTextureIndex]);
   }
-  if (CheckForValidTextureIndex(materialTextures.EmissiveTextureIndex, textures) &&
+  if (::CheckForValidTextureIndex(materialTextures.EmissiveTextureIndex, textures) &&
     !materialValues.EmissiveUseAlternateUVSet)
   {
     textures[materialTextures.EmissiveTextureIndex]->SetUseSRGBColorSpace(true);
@@ -518,7 +518,7 @@ void ApplyMaterialTexturesToVTKProperty(vtkSmartPointer<vtkProperty> property,
   {
     property->SetORMTexture(textures[materialTextures.OcclusionTextureIndex]);
   }
-  if (CheckForValidTextureIndex(materialTextures.NormalTextureIndex, textures) &&
+  if (::CheckForValidTextureIndex(materialTextures.NormalTextureIndex, textures) &&
     !materialValues.NormalUseAlternateUVSet)
   {
     property->SetNormalTexture(textures[materialTextures.NormalTextureIndex]);
@@ -535,6 +535,34 @@ int CountNumberOfAttributeTargets(
     ++count;
   }
   return count;
+}
+
+//---------------------------------------------------------------------------
+void AddAttributeMorphingToShader(std::string& VSSource, int numberOfTargets,
+  const std::string& calculationStart, const std::string& calculationEnd,
+  const std::string& attributeName, const std::string& calculationTag)
+{
+  if (numberOfTargets <= 0)
+  {
+    return;
+  }
+
+  std::stringstream calculation;
+  calculation << calculationStart;
+  // Generate the string for the sum of target attributes multiplied by their respective weights
+  for (int i = 0; i < numberOfTargets; i++)
+  {
+    std::string uniformName = "target" + value_to_string(i) + '_' + attributeName;
+    vtkShaderProgram::Substitute(VSSource, "//VTK::GLTF::MorphTargets",
+      "in vec3 " + uniformName + ";\n" + "//VTK::GLTF::MorphTargets");
+    calculation << "morphingWeights[" << i << "] * " << uniformName;
+    if (i < numberOfTargets - 1)
+    {
+      calculation << " + ";
+    }
+  }
+  calculation << calculationEnd;
+  vtkShaderProgram::Substitute(VSSource, calculationTag, calculation.str());
 }
 }
 
@@ -577,7 +605,7 @@ void vtkGLTFMapperHelper::SetShaderValues(
   auto globalTransformArray = fieldData->GetArray("globalTransform");
   if (globalTransformArray)
   {
-    auto globalTransform = Matrix4x4FromVtkDataArrayToFloatVector(globalTransformArray);
+    auto globalTransform = ::Matrix4x4FromVtkDataArrayToFloatVector(globalTransformArray);
     if (!prog->SetUniformMatrix4x4("glTFNodeTransform", globalTransform.data()))
     {
       vtkWarningMacro("Could not set uniform glTFNodeTransform");
@@ -623,7 +651,7 @@ void vtkGLTFMapperHelper::SetShaderValues(
     {
       const std::string arrayName = "jointMatrix_" + value_to_string(i);
       auto jointMatrixArray = fieldData->GetArray(arrayName.c_str());
-      std::vector<float> matrixVector = Matrix4x4FromVtkDataArrayToFloatVector(jointMatrixArray);
+      std::vector<float> matrixVector = ::Matrix4x4FromVtkDataArrayToFloatVector(jointMatrixArray);
       jointMatrixData.insert(jointMatrixData.end(), matrixVector.begin(), matrixVector.end());
     }
 
@@ -641,7 +669,7 @@ void vtkGLTFMapperHelper::SetShaderValues(
         const std::string arrayName = "jointNormalMatrix_" + value_to_string(i);
         auto jointNormalMatrixArray = fieldData->GetArray(arrayName.c_str());
         std::vector<float> matrixVector =
-          Matrix4x4FromVtkDataArrayToFloatVector(jointNormalMatrixArray);
+          ::Matrix4x4FromVtkDataArrayToFloatVector(jointNormalMatrixArray);
         jointNormalMatrixData.insert(
           jointNormalMatrixData.end(), matrixVector.begin(), matrixVector.end());
       }
@@ -655,7 +683,7 @@ void vtkGLTFMapperHelper::SetShaderValues(
   }
 
   // Fragment shader multipliers and alpha cutoff
-  FieldDataToMaterialValues(fieldData, pointData, this->MaterialValues);
+  ::FieldDataToMaterialValues(fieldData, pointData, this->MaterialValues);
   prog->SetUniform3f("diffuseColorUniform", this->MaterialValues.BaseColorFactor.data());
   prog->SetUniform3f("emissiveFactorUniform", this->MaterialValues.EmissiveFactor.data());
   prog->SetUniformf("metallicUniform", this->MaterialValues.MetallicFactor);
@@ -691,9 +719,9 @@ void vtkGLTFMapperHelper::RenderPieceStart(vtkRenderer* ren, vtkActor* actor)
   }
 
   // Set textures and values to vtkProperty
-  ApplyMaterialTexturesToVTKProperty(
+  ::ApplyMaterialTexturesToVTKProperty(
     actor->GetProperty(), this->MaterialTextures, this->MaterialValues, this->Textures);
-  ApplyMaterialValuesToVTKPRoperty(actor->GetProperty(), this->MaterialValues);
+  ::ApplyMaterialValuesToVTKPRoperty(actor->GetProperty(), this->MaterialValues);
   this->Superclass::RenderPieceStart(ren, actor);
   actor->GetProperty()->Render(actor, ren);
 }
@@ -785,7 +813,7 @@ void vtkGLTFMapperHelper::ReplaceShaderValues(
   }
 
   if (this->HasTangents &&
-    CheckForValidTextureIndex(this->MaterialTextures.NormalTextureIndex, this->Textures))
+    ::CheckForValidTextureIndex(this->MaterialTextures.NormalTextureIndex, this->Textures))
   {
     vtkShaderProgram::Substitute(VSSource, "//VTK::GLTF::ComputeTangent",
       // Define ComputeTangent(). The function returns the vertex's tangent after skinning and
@@ -962,18 +990,18 @@ void vtkGLTFMapper::Render(vtkRenderer* ren, vtkActor* actor)
         int numberOfTangentTargets = 0;
         if (hasMorphing)
         {
-          numberOfPositionTargets = CountNumberOfAttributeTargets(pointData, "_position");
-          numberOfNormalTargets = CountNumberOfAttributeTargets(pointData, "_normal");
-          numberOfTangentTargets = CountNumberOfAttributeTargets(pointData, "_tangent");
+          numberOfPositionTargets = ::CountNumberOfAttributeTargets(pointData, "_position");
+          numberOfNormalTargets = ::CountNumberOfAttributeTargets(pointData, "_normal");
+          numberOfTangentTargets = ::CountNumberOfAttributeTargets(pointData, "_tangent");
         }
 
         // Extract texture indices from the polydata's field data
         GLTFMaterialTextures materialTextures;
-        FieldDataToMaterialTextures(fieldData, materialTextures);
+        ::FieldDataToMaterialTextures(fieldData, materialTextures);
 
         // Extract material values from the polydata's field data
         GLTFMaterialValues materialValues;
-        FieldDataToMaterialValues(fieldData, pointData, materialValues);
+        ::FieldDataToMaterialValues(fieldData, pointData, materialValues);
 
         if (materialValues.HasAlternateUVSet())
         {
@@ -1103,47 +1131,19 @@ void vtkGLTFMapper::Render(vtkRenderer* ren, vtkActor* actor)
 }
 
 //---------------------------------------------------------------------------
-void AddAttributeMorphingToShader(std::string& VSSource, int numberOfTargets,
-  const std::string& calculationStart, const std::string& calculationEnd,
-  const std::string& attributeName, const std::string& calculationTag)
-{
-  if (numberOfTargets <= 0)
-  {
-    return;
-  }
-
-  std::stringstream calculation;
-  calculation << calculationStart;
-  // Generate the string for the sum of target attributes multiplied by their respective weights
-  for (int i = 0; i < numberOfTargets; i++)
-  {
-    std::string uniformName = "target" + value_to_string(i) + '_' + attributeName;
-    vtkShaderProgram::Substitute(VSSource, "//VTK::GLTF::MorphTargets",
-      "in vec3 " + uniformName + ";\n" + "//VTK::GLTF::MorphTargets");
-    calculation << "morphingWeights[" << i << "] * " << uniformName;
-    if (i < numberOfTargets - 1)
-    {
-      calculation << " + ";
-    }
-  }
-  calculation << calculationEnd;
-  vtkShaderProgram::Substitute(VSSource, calculationTag, calculation.str());
-}
-
-//---------------------------------------------------------------------------
 void vtkGLTFMapperHelper::AddMorphingToShader(std::string& VSSource)
 {
   // Declare weights as uniform
   vtkShaderProgram::Substitute(
     VSSource, "//VTK::GLTF::MorphingUniforms", "uniform float morphingWeights[8];\n");
   // Position
-  AddAttributeMorphingToShader(VSSource, this->NumberOfPositionTargets, "pos += vec4(", ", 0.0);",
+  ::AddAttributeMorphingToShader(VSSource, this->NumberOfPositionTargets, "pos += vec4(", ", 0.0);",
     "position", "//VTK::GLTF::MorphingPosition");
   // Normal
-  AddAttributeMorphingToShader(
+  ::AddAttributeMorphingToShader(
     VSSource, this->NumberOfNormalTargets, "n += ", ";", "normal", "//VTK::GLTF::MorphingNormal");
   // Tangent
-  AddAttributeMorphingToShader(VSSource, this->NumberOfTangentTargets, "t += ", ";", "tangent",
+  ::AddAttributeMorphingToShader(VSSource, this->NumberOfTangentTargets, "t += ", ";", "tangent",
     "//VTK::GLTF::MorphingTangent");
 }
 
