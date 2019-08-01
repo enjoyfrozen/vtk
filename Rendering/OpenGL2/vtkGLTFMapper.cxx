@@ -669,10 +669,6 @@ void vtkGLTFMapperHelper::SetShaderValues(
   {
     prog->SetUniformf("normalScaleUniform", this->MaterialValues.NormalScale);
   }
-  if (this->MaterialValues.HasMaskAlphaMode)
-  {
-    prog->SetUniformf("alphaCutoffUniform", this->MaterialValues.AlphaCutOff);
-  }
 }
 
 //-----------------------------------------------------------------------------
@@ -743,9 +739,8 @@ void vtkGLTFMapperHelper::ReplaceShaderValues(
   std::map<vtkShader::Type, vtkShader*> shaders, vtkRenderer* ren, vtkActor* actor)
 {
   auto vertexShader = shaders[vtkShader::Vertex];
-  auto fragmentShader = shaders[vtkShader::Fragment];
-
   auto VSSource = vertexShader->GetSource();
+
   this->AddGLTFVertexShaderTags(VSSource);
 
   // Node transform and normal transform declaration as uniforms
@@ -821,39 +816,7 @@ void vtkGLTFMapperHelper::ReplaceShaderValues(
 
   vertexShader->SetSource(VSSource);
 
-  // Get vtkOpenGLPolyDataMapper replacements.
   this->Superclass::ReplaceShaderValues(shaders, ren, actor);
-
-  auto FSSource = fragmentShader->GetSource();
-  VSSource = vertexShader->GetSource();
-
-  // Multiply opacities
-  if (this->MaterialTextures.BaseColorTextureIndex >= 0)
-  {
-    vtkShaderProgram::Substitute(
-      FSSource, "opacity = albedoSample.a;", "opacity *= albedoSample.a;");
-  }
-
-  // Alpha modes
-  if (!this->MaterialValues.HasBlendAlphaMode)
-  {
-    // Disable blending
-    vtkShaderProgram::Substitute(
-      FSSource, "gl_FragData[0] = vec4(color, opacity);", "gl_FragData[0] = vec4(color, 1.0);");
-    // Masking: Discard fragment if opacity < threshold
-    if (this->MaterialValues.HasMaskAlphaMode)
-    {
-      vtkShaderProgram::Substitute(FSSource, "//VTK::Clip::Dec",
-        "//VTK::Clip::Dec\n"
-        "uniform float alphaCutoffUniform;");
-      // Condition for discard
-      vtkShaderProgram::Substitute(
-        FSSource, "if (gl_FragData[0].a <= 0.0)", "if (opacity <= alphaCutoffUniform)\n");
-    }
-  }
-
-  fragmentShader->SetSource(FSSource);
-  vertexShader->SetSource(VSSource);
 }
 
 //-----------------------------------------------------------------------------
