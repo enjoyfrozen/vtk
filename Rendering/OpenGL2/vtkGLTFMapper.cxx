@@ -699,8 +699,9 @@ void vtkGLTFMapperHelper::ReplaceShaderValues(
 
   // Transform and output position
   vtkShaderProgram::Substitute(VSSource, "//VTK::PositionVC::Impl",
-    "vertexVCVSOutput = MCVCMatrix * glTFNodeTransform * computePosition();\n"
-    "  gl_Position = MCDCMatrix * glTFNodeTransform * computePosition();\n");
+    "vec4 glTFPosition = glTFNodeTransform * computePosition();\n"
+    "  vertexVCVSOutput = MCVCMatrix * glTFPosition;\n"
+    "  gl_Position = MCDCMatrix * glTFPosition;\n");
 
   if (this->HasNormals)
   {
