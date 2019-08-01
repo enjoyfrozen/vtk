@@ -833,10 +833,10 @@ void vtkGLTFMapperHelper::AppendOneBufferObject(vtkRenderer* ren, vtkActor* act,
     int maxNumberOfTargets =
       vtkMath::Max(vtkMath::Max(this->NumberOfPositionTargets, this->NumberOfNormalTargets),
         this->NumberOfTangentTargets);
-    static const std::array<std::string, 3> suffixes = { { "_position", "_normal", "_tangent" } };
+
     for (int i = 0; i < maxNumberOfTargets; i++)
     {
-      for (auto suffix : suffixes)
+      for (auto suffix :  { "_position", "_normal", "_tangent" } )
       {
         std::string arrayName = "target" + value_to_string(i) + suffix;
         if (pointData->HasArray(arrayName.c_str()))
