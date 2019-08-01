@@ -416,10 +416,7 @@ void ApplyMaterialTexturesToVTKProperty(vtkSmartPointer<vtkProperty> property,
     return;
   }
 
-  if (property->GetInterpolation() != VTK_PBR)
-  {
-    property->SetInterpolationToPBR();
-  }
+  property->SetInterpolationToPBR();
 
   property->RemoveTexture("albedoTex");
   property->RemoveTexture("emissiveTex");
