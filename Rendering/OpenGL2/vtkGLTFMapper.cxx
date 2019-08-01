@@ -1199,7 +1199,7 @@ void vtkGLTFMapperHelper::AddSkinningToShader(std::string& VSSource)
 
     // Apply skinning to the vertex normal
     vtkShaderProgram::Substitute(VSSource, "//VTK::GLTF::SkinningNormal",
-      "n = (computeNormalSkinningMatrix() * vec4(n, 1.0)).xyz;\n");
+      "n = (computeNormalSkinningMatrix() * vec4(n, 0.0)).xyz;\n");
   }
 
   if (this->HasTangents)
