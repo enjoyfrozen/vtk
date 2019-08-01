@@ -738,8 +738,8 @@ void vtkGLTFMapperHelper::ReplaceShaderValues(
 
     // Transform and output tangents
     vtkShaderProgram::Substitute(VSSource, "//VTK::Tangent::Impl",
-      "  tangentVCVSOutput =  normalMatrix * normalize((glTFNodeNormalTransform * "
-      "vec4(computeTangent(), 1.0)).xyz);");
+      "  tangentVCVSOutput =  normalMatrix * (glTFNodeNormalTransform * "
+      "vec4(computeTangent(), 0.0)).xyz;");
   }
 
   if (this->EnableMorphing)
