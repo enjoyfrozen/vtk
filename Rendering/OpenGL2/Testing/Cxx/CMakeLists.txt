@@ -76,10 +76,6 @@ vtk_add_test_cxx(vtkRenderingOpenGL2CxxTests tests
 )
 
 vtk_add_test_cxx(vtkRenderingOpenGL2CxxTests tests
-  TestGLTFMapperMultipleTextureCoordinates,TestGLTFMapper.cxx 0 DATA{../Data/glTF/MultipleTexCoord/MultipleTexCoord.gltf,MultipleTexCoord.bin,BaseColor_Plane.png,Normal_Plane.png}
-)
-
-vtk_add_test_cxx(vtkRenderingOpenGL2CxxTests tests
   TestGLTFMapperAlphaMasking,TestGLTFMapper.cxx 0 DATA{../Data/glTF/AlphaMasking/AlphaMasking.gltf,AlphaMasking.bin,BaseColor_Plane.png}
 )
 
