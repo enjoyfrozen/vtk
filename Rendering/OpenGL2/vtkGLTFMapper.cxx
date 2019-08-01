@@ -25,6 +25,10 @@
 #include "vtkFieldData.h"
 #include "vtkFloatArray.h"
 #include "vtkHardwareSelector.h"
+#include "vtkImageAppendComponents.h"
+#include "vtkImageData.h"
+#include "vtkImageExtractComponents.h"
+#include "vtkImageResize.h"
 #include "vtkMatrix4x4.h"
 #include "vtkObjectFactory.h"
 #include "vtkOpenGL.h"
@@ -106,6 +110,8 @@ typedef struct GLTFMaterialValues
     return BaseColorUseAlternateUVSet || MaterialUseAlternateUVSet || OcclusionUseAlternateUVSet ||
       EmissiveUseAlternateUVSet || NormalUseAlternateUVSet;
   }
+
+  bool IsORMTextureCreated = false;
 } GLTFMaterialValues;
 
 //-----------------------------------------------------------------------------
@@ -408,7 +414,7 @@ void ApplyMaterialValuesToVTKPRoperty(
 
 //-----------------------------------------------------------------------------
 void ApplyMaterialTexturesToVTKProperty(vtkSmartPointer<vtkProperty> property,
-  const GLTFMaterialTextures& materialTextures, const GLTFMaterialValues& materialValues,
+  const GLTFMaterialTextures& materialTextures, GLTFMaterialValues& materialValues,
   std::vector<vtkSmartPointer<vtkTexture> >& textures)
 {
   if (property == nullptr)
@@ -424,6 +430,74 @@ void ApplyMaterialTexturesToVTKProperty(vtkSmartPointer<vtkProperty> property,
   property->RemoveTexture("normalTex");
   property->RemoveTexture("occlusionTex");
 
+  bool useMR = CheckForValidTextureIndex(materialTextures.MaterialTextureIndex, textures) &&
+    !materialValues.MaterialUseAlternateUVSet;
+  bool useOcclusion = CheckForValidTextureIndex(materialTextures.OcclusionTextureIndex, textures) &&
+    !materialValues.OcclusionUseAlternateUVSet;
+
+  // While glTF 2.0 uses two different textures for Ambient Occlusion and Metallic/Roughness
+  // values, VTK only uses one, so we merge both textures into one.
+  // If an Ambient Occlusion texture is present, we merge its first channel into the
+  // metallic/roughness texture (AO is r, Roughness g and Metallic b) If no Ambient
+  // Occlusion texture is present, we need to fill the metallic/roughness texture's first
+  // channel with 255
+  if (!materialValues.IsORMTextureCreated)
+  {
+
+    if (useOcclusion)
+    {
+      auto aoTex = textures[materialTextures.OcclusionTextureIndex];
+      auto aoImage = vtkImageData::SafeDownCast(aoTex->GetInputDataObject(0, 0));
+      if (useMR)
+      {
+        auto pbrTex = textures[materialTextures.MaterialTextureIndex];
+        auto pbrImage = vtkImageData::SafeDownCast(pbrTex->GetInputDataObject(0, 0));
+        // Fill red channel with AO values
+        vtkNew<vtkImageExtractComponents> redAO;
+        // If sizes are different, resize the AO texture to the R/M texture's size
+        std::array<vtkIdType, 3> aoSize = { { 0 } };
+        std::array<vtkIdType, 3> pbrSize = { { 0 } };
+        aoImage->GetDimensions(aoSize.data());
+        pbrImage->GetDimensions(pbrSize.data());
+        // compare dimensions
+        if (aoSize != pbrSize)
+        {
+          vtkNew<vtkImageResize> resize;
+          resize->SetInputData(aoImage);
+          resize->SetOutputDimensions(pbrSize[0], pbrSize[1], pbrSize[2]);
+          resize->Update();
+          redAO->SetInputConnection(resize->GetOutputPort(0));
+        }
+        else
+        {
+          redAO->SetInputData(aoImage);
+        }
+        redAO->SetComponents(0);
+        vtkNew<vtkImageExtractComponents> gbPbr;
+        gbPbr->SetInputData(pbrImage);
+        gbPbr->SetComponents(1, 2);
+        vtkNew<vtkImageAppendComponents> append;
+        append->AddInputConnection(redAO->GetOutputPort());
+        append->AddInputConnection(gbPbr->GetOutputPort());
+        append->SetOutput(pbrImage);
+        append->Update();
+        pbrTex->SetInputData(pbrImage);
+      }
+      else
+      {
+        aoImage->GetPointData()->GetScalars()->FillComponent(1, 255);
+        aoImage->GetPointData()->GetScalars()->FillComponent(2, 255);
+      }
+    }
+    else if (useMR)
+    {
+      auto pbrTex = textures[materialTextures.MaterialTextureIndex];
+      auto pbrImage = vtkImageData::SafeDownCast(pbrTex->GetInputDataObject(0, 0));
+      pbrImage->GetPointData()->GetScalars()->FillComponent(0, 255);
+    }
+    materialValues.IsORMTextureCreated = true;
+  }
+
   if (CheckForValidTextureIndex(materialTextures.BaseColorTextureIndex, textures) &&
     !materialValues.BaseColorUseAlternateUVSet)
   {
@@ -436,25 +510,18 @@ void ApplyMaterialTexturesToVTKProperty(vtkSmartPointer<vtkProperty> property,
     textures[materialTextures.EmissiveTextureIndex]->SetUseSRGBColorSpace(true);
     property->SetEmissiveTexture(textures[materialTextures.EmissiveTextureIndex]);
   }
-  if (CheckForValidTextureIndex(materialTextures.MaterialTextureIndex, textures) &&
-    !materialValues.MaterialUseAlternateUVSet)
+  if (useMR)
   {
     property->SetORMTexture(textures[materialTextures.MaterialTextureIndex]);
+  }
+  else if (useOcclusion)
+  {
+    property->SetORMTexture(textures[materialTextures.OcclusionTextureIndex]);
   }
   if (CheckForValidTextureIndex(materialTextures.NormalTextureIndex, textures) &&
     !materialValues.NormalUseAlternateUVSet)
   {
     property->SetNormalTexture(textures[materialTextures.NormalTextureIndex]);
-  }
-  if (CheckForValidTextureIndex(materialTextures.OcclusionTextureIndex, textures) &&
-    !materialValues.OcclusionUseAlternateUVSet)
-  {
-    property->SetTexture("occlusionTex", textures[materialTextures.OcclusionTextureIndex]);
-    // This is necessary for the polyDataMapper to generate occlusion-specific shader code
-    if (materialTextures.MaterialTextureIndex < 0)
-    {
-      property->SetORMTexture(textures[materialTextures.OcclusionTextureIndex]);
-    }
   }
 }
 
@@ -767,27 +834,6 @@ void vtkGLTFMapperHelper::ReplaceShaderValues(
       FSSource, "opacity = albedoSample.a;", "opacity *= albedoSample.a;");
   }
 
-  // Whether to use ambient occlusion as separate texture
-  if (this->MaterialTextures.OcclusionTextureIndex >= 0)
-  {
-    vtkShaderProgram::Substitute(
-      FSSource, "float ao = material.r;", "float ao = texture(occlusionTex, tcoordVCVSOutput).x;");
-    if (this->MaterialTextures.MaterialTextureIndex < 0)
-    {
-      // ORM texture was set in order to generate occlusion code. However, it should not be used.
-      vtkShaderProgram::Substitute(
-        FSSource, "vec4 material = texture(materialTex, tcoordVCVSOutput);", "");
-      vtkShaderProgram::Substitute(FSSource, "float roughness = material.g * roughnessUniform;",
-        "float roughness = roughnessUniform;");
-      vtkShaderProgram::Substitute(FSSource, "float metallic = material.b * metallicUniform;",
-        "float metallic = metallicUniform;");
-    }
-  }
-  else
-  {
-    vtkShaderProgram::Substitute(FSSource, "float ao = material.r;", "float ao = 1.0;");
-  }
-
   // Alpha modes
   if (!this->MaterialValues.HasBlendAlphaMode)
   {
@@ -836,7 +882,7 @@ void vtkGLTFMapperHelper::AppendOneBufferObject(vtkRenderer* ren, vtkActor* act,
 
     for (int i = 0; i < maxNumberOfTargets; i++)
     {
-      for (auto suffix :  { "_position", "_normal", "_tangent" } )
+      for (auto suffix : { "_position", "_normal", "_tangent" })
       {
         std::string arrayName = "target" + value_to_string(i) + suffix;
         if (pointData->HasArray(arrayName.c_str()))
@@ -993,15 +1039,14 @@ void vtkGLTFMapper::Render(vtkRenderer* ren, vtkActor* actor)
           helper->SetParent(this);
 
           // Configure the helper
-          vtkSmartPointer<vtkGLTFMapperHelper> glTFHelper = vtkGLTFMapperHelper::SafeDownCast(helper);
+          vtkSmartPointer<vtkGLTFMapperHelper> glTFHelper =
+            vtkGLTFMapperHelper::SafeDownCast(helper);
           glTFHelper->EnableSkinning = hasSkinning;
           glTFHelper->NumberOfJoints = numberOfJoints;
           glTFHelper->EnableMorphing = hasMorphing;
-          glTFHelper->NumberOfPositionTargets =
-            numberOfPositionTargets;
+          glTFHelper->NumberOfPositionTargets = numberOfPositionTargets;
           glTFHelper->NumberOfNormalTargets = numberOfNormalTargets;
-          glTFHelper->NumberOfTangentTargets =
-            numberOfTangentTargets;
+          glTFHelper->NumberOfTangentTargets = numberOfTangentTargets;
           glTFHelper->HasNormals = hasNormals;
           glTFHelper->HasTangents = hasTangents;
           glTFHelper->HasScalars = hasScalars;
