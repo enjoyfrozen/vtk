@@ -739,27 +739,26 @@ void vtkGLTFMapperHelper::RenderPieceFinish(vtkRenderer* ren, vtkActor* actor)
 //-----------------------------------------------------------------------------
 void vtkGLTFMapperHelper::AddGLTFVertexShaderTags(std::string& VSSource)
 {
-  const std::string VSDec = "//VTK::Picking::Dec";
-  const std::string VSImpl = "//VTK::Clip::Impl";
+  const std::string skinningTag = "//VTK::Skinning::Dec";
+  const std::string morphingTag = "//VTK::Morphing::Dec";
 
-  vtkShaderProgram::Substitute(VSSource, VSDec, "//VTK::GLTF::NodeUniforms\n\n" + VSDec);
   if (this->EnableSkinning)
   {
-    vtkShaderProgram::Substitute(VSSource, VSDec, "//VTK::GLTF::SkinningUniforms\n\n" + VSDec);
-    vtkShaderProgram::Substitute(VSSource, VSDec, "//VTK::GLTF::SkinningAttributes\n\n" + VSDec);
-    vtkShaderProgram::Substitute(VSSource, VSDec, "//VTK::GLTF::ComputeSkinningMatrix\n\n" + VSDec);
+    vtkShaderProgram::Substitute(VSSource, skinningTag, "//VTK::GLTF::SkinningUniforms\n\n" + skinningTag);
+    vtkShaderProgram::Substitute(VSSource, skinningTag, "//VTK::GLTF::SkinningAttributes\n\n" + skinningTag);
+    vtkShaderProgram::Substitute(VSSource, skinningTag, "//VTK::GLTF::ComputeSkinningMatrix\n\n" + skinningTag);
     vtkShaderProgram::Substitute(
-      VSSource, VSDec, "//VTK::GLTF::ComputeSkinningNormalMatrix\n\n" + VSDec);
+      VSSource, skinningTag, "//VTK::GLTF::ComputeSkinningNormalMatrix\n\n" + skinningTag);
   }
   if (this->EnableMorphing)
   {
-    vtkShaderProgram::Substitute(VSSource, VSDec, "//VTK::GLTF::MorphingUniforms\n\n" + VSDec);
-    vtkShaderProgram::Substitute(VSSource, VSDec, "//VTK::GLTF::MorphTargets\n\n" + VSDec);
+    vtkShaderProgram::Substitute(VSSource, morphingTag, "//VTK::GLTF::MorphingUniforms\n\n" + morphingTag);
+    vtkShaderProgram::Substitute(VSSource, morphingTag, "//VTK::GLTF::MorphTargets\n\n" + morphingTag);
   }
 
-  vtkShaderProgram::Substitute(VSSource, VSDec, "//VTK::GLTF::ComputePosition\n\n" + VSDec);
-  vtkShaderProgram::Substitute(VSSource, VSDec, "//VTK::GLTF::ComputeNormal\n\n" + VSDec);
-  vtkShaderProgram::Substitute(VSSource, VSDec, "//VTK::GLTF::ComputeTangent\n\n" + VSDec);
+  vtkShaderProgram::Substitute(VSSource, morphingTag, "//VTK::GLTF::ComputePosition\n\n" + morphingTag);
+  vtkShaderProgram::Substitute(VSSource, morphingTag, "//VTK::GLTF::ComputeNormal\n\n" + morphingTag);
+  vtkShaderProgram::Substitute(VSSource, morphingTag, "//VTK::GLTF::ComputeTangent\n\n" + morphingTag);
 }
 
 //-----------------------------------------------------------------------------
@@ -772,7 +771,7 @@ void vtkGLTFMapperHelper::ReplaceShaderValues(
   this->AddGLTFVertexShaderTags(VSSource);
 
   // Node transform and normal transform declaration as uniforms
-  vtkShaderProgram::Substitute(VSSource, "//VTK::GLTF::NodeUniforms",
+  vtkShaderProgram::Substitute(VSSource, "//VTK::CustomUniforms::Dec",
     "\nuniform mat4 glTFNodeTransform = mat4(1);\n"
     "uniform mat4 glTFNodeNormalTransform = mat4(1);\n");
 
@@ -809,7 +808,7 @@ void vtkGLTFMapperHelper::ReplaceShaderValues(
     // Transform and output normals
     vtkShaderProgram::Substitute(VSSource, "//VTK::Normal::Impl",
       "  normalVCVSOutput = normalMatrix * normalize((glTFNodeNormalTransform * "
-      "vec4(computeNormal(), 0.0)).xyz);\n//VTK::Tangent::Impl\n");
+      "vec4(computeNormal(), 0.0)).xyz);\n");
   }
 
   if (this->HasTangents &&

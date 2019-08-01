@@ -49,11 +49,19 @@ in vec4 vertexMC;
 // picking support
 //VTK::Picking::Dec
 
+// vertex skinning
+//VTK::Skinning::Dec
+
+// attribute morphing
+//VTK::Morphing::Dec
+
 void main()
 {
   //VTK::Color::Impl
 
   //VTK::Normal::Impl
+
+  //VTK::Tangent::Impl
 
   //VTK::TCoord::Impl
 
