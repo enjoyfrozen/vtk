@@ -719,7 +719,7 @@ void vtkGLTFMapperHelper::ReplaceShaderValues(
     // Transform and output normals
     vtkShaderProgram::Substitute(VSSource, "//VTK::Normal::Impl",
       "  normalVCVSOutput = normalMatrix * normalize((glTFNodeNormalTransform * "
-      "vec4(computeNormal(), 1.0)).xyz);\n//VTK::Tangent::Impl\n");
+      "vec4(computeNormal(), 0.0)).xyz);\n//VTK::Tangent::Impl\n");
   }
 
   if (this->HasTangents &&
