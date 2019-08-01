@@ -427,19 +427,13 @@ void ApplyMaterialTexturesToVTKProperty(vtkSmartPointer<vtkProperty> property,
   if (CheckForValidTextureIndex(materialTextures.BaseColorTextureIndex, textures) &&
     !materialValues.BaseColorUseAlternateUVSet)
   {
-    if (!textures[materialTextures.BaseColorTextureIndex]->GetUseSRGBColorSpace())
-    {
-      textures[materialTextures.BaseColorTextureIndex]->SetUseSRGBColorSpace(true);
-    }
+    textures[materialTextures.BaseColorTextureIndex]->SetUseSRGBColorSpace(true);
     property->SetBaseColorTexture(textures[materialTextures.BaseColorTextureIndex]);
   }
   if (CheckForValidTextureIndex(materialTextures.EmissiveTextureIndex, textures) &&
     !materialValues.EmissiveUseAlternateUVSet)
   {
-    if (!textures[materialTextures.EmissiveTextureIndex]->GetUseSRGBColorSpace())
-    {
-      textures[materialTextures.EmissiveTextureIndex]->SetUseSRGBColorSpace(true);
-    }
+    textures[materialTextures.EmissiveTextureIndex]->SetUseSRGBColorSpace(true);
     property->SetEmissiveTexture(textures[materialTextures.EmissiveTextureIndex]);
   }
   if (CheckForValidTextureIndex(materialTextures.MaterialTextureIndex, textures) &&
