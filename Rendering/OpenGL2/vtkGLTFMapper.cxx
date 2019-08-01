@@ -1206,6 +1206,6 @@ void vtkGLTFMapperHelper::AddSkinningToShader(std::string& VSSource)
   {
     // Apply skinning to the vertex tangent
     vtkShaderProgram::Substitute(VSSource, "//VTK::GLTF::SkinningTangent",
-      "t = (computeSkinningMatrix() * vec4(t, 1.0)).xyz;\n");
+      "t = (computeSkinningMatrix() * vec4(t, 0.0)).xyz;\n");
   }
 }
