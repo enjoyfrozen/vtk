@@ -993,19 +993,20 @@ void vtkGLTFMapper::Render(vtkRenderer* ren, vtkActor* actor)
           helper->SetParent(this);
 
           // Configure the helper
-          vtkGLTFMapperHelper::SafeDownCast(helper)->EnableSkinning = hasSkinning;
-          vtkGLTFMapperHelper::SafeDownCast(helper)->NumberOfJoints = numberOfJoints;
-          vtkGLTFMapperHelper::SafeDownCast(helper)->EnableMorphing = hasMorphing;
-          vtkGLTFMapperHelper::SafeDownCast(helper)->NumberOfPositionTargets =
+          vtkSmartPointer<vtkGLTFMapperHelper> glTFHelper = vtkGLTFMapperHelper::SafeDownCast(helper);
+          glTFHelper->EnableSkinning = hasSkinning;
+          glTFHelper->NumberOfJoints = numberOfJoints;
+          glTFHelper->EnableMorphing = hasMorphing;
+          glTFHelper->NumberOfPositionTargets =
             numberOfPositionTargets;
-          vtkGLTFMapperHelper::SafeDownCast(helper)->NumberOfNormalTargets = numberOfNormalTargets;
-          vtkGLTFMapperHelper::SafeDownCast(helper)->NumberOfTangentTargets =
+          glTFHelper->NumberOfNormalTargets = numberOfNormalTargets;
+          glTFHelper->NumberOfTangentTargets =
             numberOfTangentTargets;
-          vtkGLTFMapperHelper::SafeDownCast(helper)->HasNormals = hasNormals;
-          vtkGLTFMapperHelper::SafeDownCast(helper)->HasTangents = hasTangents;
-          vtkGLTFMapperHelper::SafeDownCast(helper)->HasScalars = hasScalars;
-          vtkGLTFMapperHelper::SafeDownCast(helper)->MaterialTextures = materialTextures;
-          vtkGLTFMapperHelper::SafeDownCast(helper)->MaterialValues = materialValues;
+          glTFHelper->HasNormals = hasNormals;
+          glTFHelper->HasTangents = hasTangents;
+          glTFHelper->HasScalars = hasScalars;
+          glTFHelper->MaterialTextures = materialTextures;
+          glTFHelper->MaterialValues = materialValues;
           this->Helpers.insert(std::make_pair(toString.str(), helper));
         }
         else
