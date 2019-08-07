@@ -27,6 +27,7 @@
 #include "vtkSmartPointer.h"
 #include "vtkTableBasedClipDataSet.h"
 #include "vtkUnstructuredGrid.h"
+#include "vtkmClip.h"
 
 #include <vector>
 #include <string>
@@ -51,41 +52,41 @@ vtkSmartPointer<vtkPlane> setPlane(double center[3], double normal[3])
 }
 
 // convert the bounding box to a set of clipping planes
-std::vector< vtkSmartPointer<vtkPlane> > SetPlaneClip(const double Box[])
+std::vector<vtkSmartPointer<vtkPlane> > SetPlaneClip(const double Box[])
 {
     // get the xmin, xmax, ymin, ymax, zmin and zmax
-    std::vector< vtkSmartPointer<vtkPlane> > allPlanes;
+    std::vector<vtkSmartPointer<vtkPlane> > allPlanes;
 
     // three midpoints of eachbound
-    double xMid = (Box[0] + Box[1])/2.0;
-    double yMid = (Box[2] + Box[3])/2.0;
-    double zMid = (Box[4] + Box[5])/2.0;
+    double xMid = (Box[0] + Box[1]) / 2.0;
+    double yMid = (Box[2] + Box[3]) / 2.0;
+    double zMid = (Box[4] + Box[5]) / 2.0;
 
     for (int i = 0; i < 6; i++)
     {
         // xmin and xmax
         if (i < 2)
         {
-            double center[3] = {Box[i], yMid, zMid};
-            double normal[3] = {1.0-i*2.0, 0.0, 0.0};
-            vtkSmartPointer<vtkPlane> plane = setPlane(center, normal);
-            allPlanes.push_back(plane);
+          double center[3] = { Box[i], yMid, zMid };
+          double normal[3] = { 1.0 - i * 2.0, 0.0, 0.0 };
+          vtkSmartPointer<vtkPlane> plane = setPlane(center, normal);
+          allPlanes.push_back(plane);
         }
         // ymin and ymax
         else if (i < 4)
         {
-            double center[3] = {xMid, Box[i], zMid};
-            double normal[3] = {0.0, 5.0-i*2.0, 0.0};
-            vtkSmartPointer<vtkPlane> plane = setPlane(center, normal);
-            allPlanes.push_back(plane);
+          double center[3] = { xMid, Box[i], zMid };
+          double normal[3] = { 0.0, 5.0 - i * 2.0, 0.0 };
+          vtkSmartPointer<vtkPlane> plane = setPlane(center, normal);
+          allPlanes.push_back(plane);
         }
         // zmin and zmax
         else
         {
-            double center[3] = {xMid, yMid, Box[i]};
-            double normal[3] = {0.0, 0.0, 9.0-i*2.0};
-            vtkSmartPointer<vtkPlane> plane = setPlane(center, normal);
-            allPlanes.push_back(plane);
+          double center[3] = { xMid, yMid, Box[i] };
+          double normal[3] = { 0.0, 0.0, 9.0 - i * 2.0 };
+          vtkSmartPointer<vtkPlane> plane = setPlane(center, normal);
+          allPlanes.push_back(plane);
         }
     }
 
@@ -96,10 +97,12 @@ std::vector< vtkSmartPointer<vtkPlane> > SetPlaneClip(const double Box[])
 vtkSmartPointer<vtkDataSet> ClipPlane(vtkDataSet* dataset, vtkSmartPointer<vtkPlane> plane)
 {
     // make the clip
-    auto clipper = vtkSmartPointer<vtkTableBasedClipDataSet>::New();
+    auto clipper = vtkSmartPointer<vtkmClip>::New();
+    clipper->SetClipValue(0);
+    // auto clipper = vtkSmartPointer<vtkTableBasedClipDataSet>::New();
+    // clipper->SetValue(0);
     clipper->SetInputData(dataset);
     clipper->SetClipFunction(plane);
-    clipper->SetValue(0);
     clipper->Update();
 
     // obtain the clipped dataset
@@ -130,7 +133,7 @@ vtkSmartPointer<vtkDataSet> ApplyPlaneClip(const vtkSmartPointer<vtkDataSet> dat
 
 void vtkPlaneClipDataSet::SetBox(const vtkBoundingBox& bbox)
 {
-    bbox.GetBounds(this->Box);
+  bbox.GetBounds(this->Box);
 }
 
 int vtkPlaneClipDataSet::RequestData(vtkInformation *vtkNotUsed(request),
@@ -148,7 +151,7 @@ int vtkPlaneClipDataSet::RequestData(vtkInformation *vtkNotUsed(request),
         outInfo->Get(vtkDataObject::DATA_OBJECT()));
 
     // shallow copy the output
-    std::vector< vtkSmartPointer<vtkPlane> > allPlanes;
+    std::vector<vtkSmartPointer<vtkPlane> > allPlanes;
     allPlanes = SetPlaneClip(this->Box);
     output->ShallowCopy(ApplyPlaneClip(input, allPlanes));
 

@@ -68,7 +68,7 @@ protected:
     int RequestData(vtkInformation *, vtkInformationVector **, vtkInformationVector *) override;
     double Box[6];
 
-private:
+  private:
     vtkPlaneClipDataSet(const vtkPlaneClipDataSet&) = delete;
     void operator=(const vtkPlaneClipDataSet&) = delete;
 };

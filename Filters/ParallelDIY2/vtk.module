@@ -10,6 +10,7 @@ IMPLEMENTS
 DEPENDS
   VTK::FiltersCore
   VTK::FiltersParallel
+  VTK::AcceleratorsVTKm
 OPTIONAL_DEPENDS
   VTK::ParallelMPI
 PRIVATE_DEPENDS

@@ -97,6 +97,7 @@ configure_file(
 list(APPEND headers
   "${CMAKE_CURRENT_BINARY_DIR}/vtkmConfig.h")
 
+
 # The VTK-m project uses large amounts of memory to compile as it does lots
 # of template expansion. To reduce the amount of tension on the machine when
 # using generators such as ninja we restrict the number of VTK-m enabled
