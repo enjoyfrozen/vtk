@@ -119,9 +119,10 @@ int vtkmClip::RequestData(vtkInformation *,
   // Find the scalar array:
   int assoc = this->GetInputArrayAssociation(0, inInfoVec);
   vtkDataArray *scalars = this->GetInputArrayToProcess(0, inInfoVec);
-  if (assoc != vtkDataObject::FIELD_ASSOCIATION_POINTS ||
+
+  if (!this->ClipFunction && (assoc != vtkDataObject::FIELD_ASSOCIATION_POINTS ||
       scalars == nullptr || scalars->GetName() == nullptr ||
-      scalars->GetName()[0] == '\0')
+      scalars->GetName()[0] == '\0'))
   {
     vtkErrorMacro("Invalid scalar array; array missing or not a point array.");
     return 0;
@@ -144,6 +145,7 @@ int vtkmClip::RequestData(vtkInformation *,
     // Run filter:
     vtkm::cont::DataSet result;
     vtkmInputFilterPolicy policy;
+
     if (this->ClipFunction)
     {
       vtkm::filter::ClipWithImplicitFunction functionFilter;
@@ -166,7 +168,6 @@ int vtkmClip::RequestData(vtkInformation *,
         fieldFilter.SetFieldsToPass(
           vtkm::filter::FieldSelection(vtkm::filter::FieldSelection::MODE_NONE));
       }
-
       fieldFilter.SetActiveField(scalars->GetName(), vtkm::cont::Field::Association::POINTS);
       fieldFilter.SetClipValue(this->ClipValue);
       result = fieldFilter.Execute(in, policy);
@@ -179,7 +180,7 @@ int vtkmClip::RequestData(vtkInformation *,
       return 0;
     }
 
-    if (this->ComputeScalars)
+    if (!this->ClipFunction && this->ComputeScalars)
     {
       output->GetPointData()->SetActiveScalars(scalars->GetName());
     }
