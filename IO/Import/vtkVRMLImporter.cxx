@@ -918,7 +918,8 @@ void vtkVRMLImporter::exitField()
   // For shininess field, only in material node
   else if (fieldName == "shininess")
   {
-    this->CurrentProperty->SetSpecularPower(this->Parser->yylval.sffloat);
+    this->CurrentProperty->SetSpecularPower(this->Parser->yylval.sffloat * 128.0);
+    this->CurrentProperty->SetSpecular(1.0);
   }
   // For specularcolor field, only in material node
   else if (fieldName == "specularColor")

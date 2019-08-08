@@ -77,9 +77,7 @@ protected:
   void WritePointData(vtkPoints *points, vtkDataArray *normals,
                       vtkDataArray *tcoords, vtkUnsignedCharArray *colors,
                       FILE *fp);
-  void WriteShapeBegin(vtkActor* actor, FILE *fileP,
-                       vtkPolyData *polyData,vtkPointData *pntData,
-                       vtkUnsignedCharArray *color);
+  void WriteShapeBegin(vtkActor* actor, FILE *fileP);
   void WriteShapeEnd( FILE *fileP );
   char *FileName;
   FILE *FilePointer;
@@ -90,4 +88,3 @@ private:
 };
 
 #endif
-

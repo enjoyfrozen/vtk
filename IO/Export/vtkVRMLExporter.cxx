@@ -155,10 +155,6 @@ void vtkVRMLExporter::WriteData()
   {
     fprintf(fp,"      headlight FALSE}\n\n");
   }
-  fprintf(fp,
-    "    DirectionalLight { ambientIntensity 1 intensity 0 # ambient light\n");
-  fprintf(fp,"      color %f %f %f }\n\n", ren->GetAmbient()[0],
-          ren->GetAmbient()[1], ren->GetAmbient()[2]);
 
   // make sure we have a default light
   // if we don't then use a headlight
@@ -359,7 +355,7 @@ void vtkVRMLExporter::WriteAnActor(vtkActor *anActor, FILE *fp)
   // write out polys if any
   if (pd->GetNumberOfPolys() > 0)
   {
-    WriteShapeBegin(anActor,fp, pd, pntData, colors);
+    WriteShapeBegin(anActor,fp);
     fprintf(fp,"          geometry IndexedFaceSet {\n");
     // two sided lighting ? for now assume it is on
     fprintf(fp,"            solid FALSE\n");
@@ -406,7 +402,7 @@ void vtkVRMLExporter::WriteAnActor(vtkActor *anActor, FILE *fp)
   // write out tstrips if any
   if (pd->GetNumberOfStrips() > 0)
   {
-    WriteShapeBegin(anActor,fp, pd, pntData, colors);
+    WriteShapeBegin(anActor,fp);
     fprintf(fp,"          geometry IndexedFaceSet {\n");
     if (!pointDataWritten)
     {
@@ -459,7 +455,7 @@ void vtkVRMLExporter::WriteAnActor(vtkActor *anActor, FILE *fp)
   // write out lines if any
   if (pd->GetNumberOfLines() > 0)
   {
-    WriteShapeBegin(anActor,fp, pd,  pntData, colors);
+    WriteShapeBegin(anActor,fp);
     fprintf(fp,"          geometry IndexedLineSet {\n");
     if (!pointDataWritten)
     {
@@ -496,7 +492,7 @@ void vtkVRMLExporter::WriteAnActor(vtkActor *anActor, FILE *fp)
   // write out verts if any
   if (pd->GetNumberOfVerts() > 0)
   {
-    WriteShapeBegin(anActor,fp, pd, pntData, colors);
+    WriteShapeBegin(anActor,fp);
     fprintf(fp,"          geometry PointSet {\n");
     cells = pd->GetVerts();
     fprintf(fp,"            coord Coordinate {");
@@ -544,10 +540,7 @@ void vtkVRMLExporter::WriteAnActor(vtkActor *anActor, FILE *fp)
   pm->Delete();
 }
 
-void vtkVRMLExporter::WriteShapeBegin( vtkActor* actor, FILE *fileP,
-                                       vtkPolyData* polyData,
-                                       vtkPointData* pntData,
-                                       vtkUnsignedCharArray* color)
+void vtkVRMLExporter::WriteShapeBegin( vtkActor* actor, FILE *fileP)
 {
   double *tempd;
   double tempf2;
@@ -558,19 +551,14 @@ void vtkVRMLExporter::WriteShapeBegin( vtkActor* actor, FILE *fileP,
   fprintf(fileP,"          appearance Appearance {\n");
   fprintf(fileP,"            material Material {\n");
   fprintf(fileP,"              ambientIntensity %.*g\n",
-    max_double_digits, props->GetAmbient());
-  // if we don't have colors and we have only lines & points
-  // use emissive to color them
-  if (!(pntData->GetNormals() || color || polyData->GetNumberOfPolys() ||
-                  polyData->GetNumberOfStrips()))
-  {
-    tempf2 = props->GetAmbient();
-    tempd = props->GetAmbientColor();
-    fprintf(fileP,"              emissiveColor %.*g %.*g %.*g\n",
-      max_double_digits, tempd[0]*tempf2,
-      max_double_digits, tempd[1]*tempf2,
-      max_double_digits, tempd[2]*tempf2);
-  }
+          max_double_digits, props->GetAmbient());
+
+  tempf2 = props->GetAmbient();
+  tempd = props->GetAmbientColor();
+  fprintf(fileP,"              emissiveColor %.*g %.*g %.*g\n",
+          max_double_digits, tempd[0]*tempf2,
+          max_double_digits, tempd[1]*tempf2,
+          max_double_digits, tempd[2]*tempf2);
   tempf2 = props->GetDiffuse();
   tempd = props->GetDiffuseColor();
   fprintf(fileP,"              diffuseColor %.*g %.*g %.*g\n",
