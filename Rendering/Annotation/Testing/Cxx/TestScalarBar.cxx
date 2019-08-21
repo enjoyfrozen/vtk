@@ -71,6 +71,7 @@ int TestScalarBar(int argc, char* argv[])
   vtkNew<vtkRenderWindowInteractor> iren;
   iren->SetRenderWindow(renWin);
 
+  // Scalar Bar 1 --------------------------------------------------------------------------
   vtkNew<vtkScalarBarActor> scalarBar1;
   vtkScalarsToColors* lut = outlineMapper->GetLookupTable();
   lut->SetAnnotation(0.0, "Zed");
@@ -94,6 +95,7 @@ int TestScalarBar(int argc, char* argv[])
   scalarBar1->SetDrawBackground(1);
   scalarBar1->GetBackgroundProperty()->SetColor(1., 1., 1.);
 
+  // Scalar Bar 2 --------------------------------------------------------------------------
   vtkNew<vtkScalarBarActor> scalarBar2;
   scalarBar2->SetTitle("Density");
   scalarBar2->SetLookupTable(lut);
@@ -111,6 +113,7 @@ int TestScalarBar(int argc, char* argv[])
   scalarBar2->SetDrawBackground(1);
   scalarBar2->GetBackgroundProperty()->SetColor(.5, .5, .5);
 
+  // Scalar Bar 3 --------------------------------------------------------------------------
   vtkNew<vtkScalarBarActor> scalarBar3;
   scalarBar3->SetTitle("Density");
   scalarBar3->SetLookupTable(lut);
@@ -126,6 +129,7 @@ int TestScalarBar(int argc, char* argv[])
   scalarBar3->GetFrameProperty()->SetColor(0., 0., 0.);
   scalarBar3->SetDrawBackground(0);
 
+  // Scalar Bar  4 --------------------------------------------------------------------------
   vtkNew<vtkScalarBarActor> scalarBar4;
   scalarBar4->SetTitle("Density");
   scalarBar4->SetLookupTable(lut);
@@ -142,6 +146,7 @@ int TestScalarBar(int argc, char* argv[])
   scalarBar4->GetFrameProperty()->SetColor(1., 1., 1.);
   scalarBar4->SetDrawBackground(0);
 
+  // Scalar Bar 5 --------------------------------------------------------------------------
   vtkNew<vtkScalarBarActor> scalarBar5;
   scalarBar5->SetTitle("Density");
   scalarBar5->SetLookupTable(lut);
@@ -163,6 +168,126 @@ int TestScalarBar(int argc, char* argv[])
   scalarBar5->SetCustomLabels(customLabels);
   scalarBar5->SetUseCustomLabels(true);
 
+  // Scalar Bar 6 --------------------------------------------------------------------------
+  vtkNew<vtkScalarBarActor> scalarBar6;
+  scalarBar6->SetLookupTable(lut);
+
+  // Position
+  scalarBar6->SetWidth(0.1);
+  scalarBar6->SetHeight(0.35);
+  scalarBar6->GetPositionCoordinate()->SetCoordinateSystemToNormalizedViewport();
+  scalarBar6->GetPositionCoordinate()->SetValue(.9, 0.625);
+
+  // General Look
+  scalarBar6->DrawFrameOff();
+  scalarBar6->GetFrameProperty()->SetColor(1., 1., 1.);
+  scalarBar6->DrawBackgroundOff();
+  scalarBar6->UnconstrainedFontSizeOn();
+
+  // Title
+  scalarBar6->GetTitleTextProperty()->SetColor(0., 0., 1.);
+
+  // Color Bar
+  scalarBar6->SetBarRatio(0.15);
+  scalarBar6->DrawColorBarOn();
+  scalarBar6->DrawColorBarBorderOn();
+  scalarBar6->GetColorBarBorderProperty()->SetLineWidth(1.01);
+  scalarBar6->DrawAboveRangeSwatchOff();
+  scalarBar6->DrawBelowRangeSwatchOff();
+  scalarBar6->DrawNanAnnotationOff();
+
+  // Text
+  scalarBar6->SetTextPositionToSucceedScalarBar();
+  scalarBar6->DrawTickLabelsOn();
+  scalarBar6->SetTextPad(5);
+  scalarBar6->GetLabelTextProperty()->SetColor(0., 0., 1.);
+  scalarBar6->GetLabelTextProperty()->SetBackgroundColor(1.0, 1.0, 1.0);
+  scalarBar6->GetLabelTextProperty()->SetBackgroundOpacity(0.8);
+  scalarBar6->GetLabelTextProperty()->ItalicOff();
+  scalarBar6->GetLabelTextProperty()->ShadowOff();
+  scalarBar6->GetLabelTextProperty()->BoldOff();
+
+  // Text Leaders
+  scalarBar6->DrawTickLeadersOn();
+  scalarBar6->SetTickLeaderLabelPadding(2);
+  scalarBar6->DrawTickLeadersAcrossColorBarOff();
+  scalarBar6->GetTickLeaderProperty()->SetLineWidth(2.0f);
+  scalarBar6->GetTickLeaderProperty()->SetColor(0., 0., 1.);
+
+  // Annotations
+  scalarBar6->DrawAnnotationsOn();
+  scalarBar6->AnnotationTextScalingOff();
+  scalarBar6->GetAnnotationTextProperty()->SetBackgroundColor(0.0, 0.0, 0.0);
+  scalarBar6->GetAnnotationTextProperty()->SetBackgroundOpacity(0.75);
+  scalarBar6->GetAnnotationTextProperty()->ItalicOff();
+  scalarBar6->GetAnnotationTextProperty()->ShadowOff();
+  scalarBar6->GetAnnotationTextProperty()->BoldOff();
+
+  scalarBar6->FixedAnnotationLeaderLineColorOn();
+  scalarBar6->SetAnnotationLeaderPadding(6);
+  scalarBar6->GetAnnotationLeaderProperty()->SetLineWidth(2.0f);
+
+  // Scalar Bar 7 --------------------------------------------------------------------------
+  vtkNew<vtkScalarBarActor> scalarBar7;
+  scalarBar7->SetLookupTable(lut);
+
+  // Position
+  scalarBar7->SetWidth(0.1);
+  scalarBar7->SetHeight(0.35);
+  scalarBar7->GetPositionCoordinate()->SetCoordinateSystemToNormalizedViewport();
+  scalarBar7->GetPositionCoordinate()->SetValue(.65, 0.625);
+
+  // General Look
+  scalarBar7->DrawFrameOff();
+  scalarBar7->GetFrameProperty()->SetColor(1., 1., 1.);
+  scalarBar7->DrawBackgroundOff();
+  scalarBar7->UnconstrainedFontSizeOn();
+
+  // Title
+  scalarBar7->GetTitleTextProperty()->SetColor(0., 0., 1.);
+
+  // Color Bar
+  scalarBar7->SetBarRatio(0.15);
+  scalarBar7->DrawColorBarOn();
+  scalarBar7->DrawColorBarBorderOn();
+  scalarBar7->GetColorBarBorderProperty()->SetLineWidth(1.01);
+  scalarBar7->GetColorBarBorderProperty()->SetColor(0.75, 0.0, 0.75);
+  scalarBar7->DrawAboveRangeSwatchOn();
+  scalarBar7->DrawBelowRangeSwatchOn();
+  scalarBar7->DrawNanAnnotationOn();
+
+  // Text
+  scalarBar7->SetTextPositionToSucceedScalarBar();
+  scalarBar7->DrawTickLabelsOn();
+  scalarBar7->SetTextPad(5);
+  scalarBar7->GetLabelTextProperty()->SetColor(1., 1., 1.);
+  scalarBar7->GetLabelTextProperty()->SetBackgroundColor(0.0, 0.0, 0.0);
+  scalarBar7->GetLabelTextProperty()->SetBackgroundOpacity(0.8);
+  scalarBar7->GetLabelTextProperty()->ItalicOff();
+  scalarBar7->GetLabelTextProperty()->ShadowOff();
+  scalarBar7->GetLabelTextProperty()->BoldOff();
+
+  // Text Leaders
+  scalarBar7->DrawTickLeadersOn();
+  scalarBar7->SetTickLeaderLabelPadding(2);
+  scalarBar7->DrawTickLeadersAcrossColorBarOn();
+  scalarBar7->GetTickLeaderProperty()->SetLineWidth(2.0f);
+  scalarBar7->GetTickLeaderProperty()->SetColor(1.0, 1.0, 1.0);
+
+  // Annotations
+  scalarBar7->DrawAnnotationsOn();
+  scalarBar7->AnnotationTextScalingOff();
+  scalarBar7->GetAnnotationTextProperty()->SetBackgroundColor(0.0, 0.0, 0.0);
+  scalarBar7->GetAnnotationTextProperty()->SetBackgroundOpacity(0.75);
+  scalarBar7->GetAnnotationTextProperty()->ItalicOff();
+  scalarBar7->GetAnnotationTextProperty()->ShadowOff();
+  scalarBar7->GetAnnotationTextProperty()->BoldOff();
+
+  scalarBar7->FixedAnnotationLeaderLineColorOn();
+  scalarBar7->SetAnnotationLeaderPadding(6);
+  scalarBar7->GetAnnotationLeaderProperty()->SetLineWidth(2.0f);
+
+  // ---------------------------------------------------------------------------------------
   vtkNew<vtkCamera> camera;
   camera->SetFocalPoint(8, 0, 30);
   camera->SetPosition(6, 0, 50);
@@ -174,6 +299,8 @@ int TestScalarBar(int argc, char* argv[])
   ren1->AddActor(scalarBar3);
   ren1->AddActor(scalarBar4);
   ren1->AddActor(scalarBar5);
+  ren1->AddActor(scalarBar6);
+  ren1->AddActor(scalarBar7);
   ren1->GradientBackgroundOn();
   ren1->SetBackground(.5, .5, .5);
   ren1->SetBackground2(.0, .0, .0);
