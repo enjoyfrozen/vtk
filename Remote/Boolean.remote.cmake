@@ -6,5 +6,5 @@ vtk_fetch_module(Boolean
   "A new boolean operation filter by Ronald Romer"
   GIT_REPOSITORY https://github.com/lorensen/vtkbool
   # 26 August 2019 - linux warnings removed
-  GIT_TAG 8673cd037c8f16ac39dfbff6dbd7e05ea99f677d
+  GIT_TAG a7c7829ffb8c800f1f54a79d895e0d9aceb7b1db
   )
