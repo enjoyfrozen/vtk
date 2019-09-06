@@ -1,50 +1,8 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    vtkPLY.cxx
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
-/*
-
-The interface routines for reading and writing PLY polygon files.
-
-Greg Turk, February 1994
-
----------------------------------------------------------------
-
-A PLY file contains a single polygonal _object_.
-
-An object is composed of lists of _elements_.  Typical elements are
-vertices, faces, edges and materials.
-
-Each type of element for a given object has one or more _properties_
-associated with the element type.  For instance, a vertex element may
-have as properties the floating-point values x,y,z and the three unsigned
-chars representing red, green and blue.
-
----------------------------------------------------------------
-
-Copyright (c) 1994 The Board of Trustees of The Leland Stanford
-Junior University.  All rights reserved.
-
-Permission to use, copy, modify and distribute this software and its
-documentation for any purpose is hereby granted without fee, provided
-that the above copyright notice and this permission notice appear in
-all copies of this software and that you do not sell the software.
-
-THE SOFTWARE IS PROVIDED "AS IS" AND WITHOUT WARRANTY OF ANY KIND,
-EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY
-WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
-
-*/
+/*===========================================================================*/
+/* Distributed under OSI-approved BSD 3-Clause License.                      */
+/* For copyright, see the following accompanying files or https://vtk.org:   */
+/* - VTK-Copyright.txt                                                       */
+/*===========================================================================*/
 
 #include "vtkPLY.h"
 #include "vtkHeap.h"

@@ -1,37 +1,9 @@
-/*=========================================================================
+/*===========================================================================*/
+/* Distributed under OSI-approved BSD 3-Clause License.                      */
+/* For copyright, see the following accompanying files or https://vtk.org:   */
+/* - VTKm-Copyright.txt                                                      */
+/*===========================================================================*/
 
-  Program:   Visualization Toolkit
-  Module:    vtkModifiedBSPTree.h
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
-
-/*=========================================================================
-  This code is derived from an earlier work and is distributed
-  with permission from, and thanks to
-
-  ------------------------------------------
-  Copyright (C) 1997-2000 John Biddiscombe
-  Rutherford Appleton Laboratory,
-  Chilton, Oxon, England
-  ------------------------------------------
-  Copyright (C) 2000-2004 John Biddiscombe
-  Skipping Mouse Software Ltd,
-  Blewbury, England
-  ------------------------------------------
-  Copyright (C) 2004-2009 John Biddiscombe
-  CSCS - Swiss National Supercomputing Centre
-  Galleria 2 - Via Cantonale
-  CH-6928 Manno, Switzerland
-  ------------------------------------
-=========================================================================*/
 /**
  * @class   vtkModifiedBSPTree
  * @brief   Generate axis aligned BBox tree for raycasting and other Locator based searches

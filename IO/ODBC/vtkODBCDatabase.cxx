@@ -1,29 +1,10 @@
-/*=========================================================================
+/*===========================================================================*/
+/* Distributed under OSI-approved BSD 3-Clause License.                      */
+/* For copyright, see the following accompanying files or https://vtk.org:   */
+/* - Sandia-Copyright.txt                                                    */
+/* - VTK-Copyright.txt                                                       */
+/*===========================================================================*/
 
-  Program Toolkit
-  Module:    vtkODBCDatabase.cxx
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-  This software is distributed WITHOUT ANY WARRANTY; without even
-  the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-  PURPOSE.  See the above copyright notice for more information.
-
-  =========================================================================*/
-/*----------------------------------------------------------------------------
-  Copyright (c) Sandia Corporation
-  See Copyright.txt or http://www.paraview.org/HTML/Copyright.html for details.
-  ----------------------------------------------------------------------------
-*/
-
-/*
- * Microsoft's own version of sqltypes.h relies on some typedefs and
- * macros in windows.h.  This next fragment tells VTK to include the
- * whole thing without any of its usual #defines to keep the size
- * manageable.  No WIN32_LEAN_AND_MEAN for us!
- */
 #if defined(_WIN32) && !defined(__CYGWIN__)
 # include <vtkWindows.h>
 #endif

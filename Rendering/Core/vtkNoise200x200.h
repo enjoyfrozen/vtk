@@ -1,27 +1,14 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    vtkNoise200x200.h
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
+/*===========================================================================*/
+/* Distributed under OSI-approved BSD 3-Clause License.                      */
+/* For copyright, see the following accompanying files or https://vtk.org:   */
+/* - VTK-Copyright.txt                                                       */
+/*===========================================================================*/
 #ifndef vtkNoise200x200_h
 #define vtkNoise200x200_h
 
 #ifndef __VTK_WRAP__
 #ifndef VTK_WRAPPING_CXX
 
-/*
- * Resource generated for file:
- *    noise.vtk (base64) (binary file)
- */
 static const unsigned long file_noise200x200_vtk_length         = 106884;
 static const unsigned long file_noise200x200_vtk_decoded_length = 80162;
 

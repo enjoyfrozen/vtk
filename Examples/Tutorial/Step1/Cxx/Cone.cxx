@@ -1,17 +1,8 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    Cone.cxx
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
+/*===========================================================================*/
+/* Distributed under OSI-approved BSD 3-Clause License.                      */
+/* For copyright, see the following accompanying files or https://vtk.org:   */
+/* - VTK-Copyright.txt                                                       */
+/*===========================================================================*/
 //
 // This example creates a polygonal model of a cone, and then renders it to
 // the screen. It will rotate the cone 360 degrees and then exit. The basic

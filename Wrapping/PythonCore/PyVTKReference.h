@@ -1,23 +1,8 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    PyVTKReference.h
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
-/*-----------------------------------------------------------------------
-  The PyVTKReference was created in Sep 2010 by David Gobbi.
-
-  This class is a proxy for python int and float, it allows these objects
-  to be passed to VTK methods that require a ref to a numeric type.
------------------------------------------------------------------------*/
+/*===========================================================================*/
+/* Distributed under OSI-approved BSD 3-Clause License.                      */
+/* For copyright, see the following accompanying files or https://vtk.org:   */
+/* - VTK-Copyright.txt                                                       */
+/*===========================================================================*/
 
 #ifndef PyVTKReference_h
 #define PyVTKReference_h

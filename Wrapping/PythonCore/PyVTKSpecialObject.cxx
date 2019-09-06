@@ -1,33 +1,8 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    PyVTKSpecialObject.cxx
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
-/*-----------------------------------------------------------------------
-  The PyVTKSpecialObject was created in Feb 2001 by David Gobbi.
-  It was substantially updated in April 2010 by David Gobbi.
-
-  A PyVTKSpecialObject is a python object that represents an object
-  that belongs to one of the special classes in VTK, that is, classes
-  that are not derived from vtkObjectBase.  Unlike vtkObjects, these
-  special objects are not reference counted: a PyVTKSpecialObject
-  always contains its own copy of the C++ object.
-
-  The PyVTKSpecialType is a simple structure that contains information
-  about the PyVTKSpecialObject type that cannot be stored in python's
-  PyTypeObject struct.  Each PyVTKSpecialObject contains a pointer to
-  its PyVTKSpecialType. The PyVTKSpecialTypes are also stored in a map
-  in vtkPythonUtil.cxx, so that they can be lookup up by name.
------------------------------------------------------------------------*/
+/*===========================================================================*/
+/* Distributed under OSI-approved BSD 3-Clause License.                      */
+/* For copyright, see the following accompanying files or https://vtk.org:   */
+/* - VTK-Copyright.txt                                                       */
+/*===========================================================================*/
 
 #include "PyVTKSpecialObject.h"
 #include "PyVTKMethodDescriptor.h"

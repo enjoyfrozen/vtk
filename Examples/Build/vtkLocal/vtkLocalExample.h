@@ -1,7 +1,3 @@
-/*=========================================================================
-This source has no copyright.  It is intended to be copied by users
-wishing to create their own VTK classes locally.
-=========================================================================*/
 /**
  * @class   vtkLocalExample
  * @brief   Example class using VTK.

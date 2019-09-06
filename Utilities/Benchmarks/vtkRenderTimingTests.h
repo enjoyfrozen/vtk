@@ -1,27 +1,12 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    vtkRenderTimingTests.h
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
+/*===========================================================================*/
+/* Distributed under OSI-approved BSD 3-Clause License.                      */
+/* For copyright, see the following accompanying files or https://vtk.org:   */
+/* - VTK-Copyright.txt                                                       */
+/*===========================================================================*/
 
 #ifndef vtkRenderTimingTests_h
 #define vtkRenderTimingTests_h
 
-/*
-To add a test you must define a subclass of vtkRTTest and implement the
-pure virtual functions. Then in the main section at the bottom of this
-file add your test to the tests to be run and rebuild. See some of the
-existing tests to get an idea of what to do.
-*/
 
 #include "vtkRenderTimings.h"
 

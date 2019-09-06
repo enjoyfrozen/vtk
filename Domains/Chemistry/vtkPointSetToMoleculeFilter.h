@@ -1,27 +1,8 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    vtkPointSetToMoleculeFilter.h
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
-/*
- * @class vtkPointSetToMoleculeFilter
- * @brief Converts a pointset into a molecule.
- *
- * vtkPointSetToMoleculeFilter is a filter that takes a vtkPointSet as input
- * and generates a vtkMolecule.
- * Each point of the given vtkPointSet will become an atom of the vtkMolecule.
- * The vtkPointSet should provide a point data array (default is scalar one)
- * to specify the atomic number of each atom.
- */
+/*===========================================================================*/
+/* Distributed under OSI-approved BSD 3-Clause License.                      */
+/* For copyright, see the following accompanying files or https://vtk.org:   */
+/* - VTK-Copyright.txt                                                       */
+/*===========================================================================*/
 
 #ifndef vtkPointSetToMoleculeFilter_h
 #define vtkPointSetToMoleculeFilter_h

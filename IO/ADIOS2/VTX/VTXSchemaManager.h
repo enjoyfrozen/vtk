@@ -1,25 +1,9 @@
-/*=========================================================================
+/*===========================================================================*/
+/* Distributed under OSI-approved BSD 3-Clause License.                      */
+/* For copyright, see the following accompanying files or https://vtk.org:   */
+/* - VTK-Copyright.txt                                                       */
+/*===========================================================================*/
 
- Program:   Visualization Toolkit
- Module:    VTXSchemaManager.h
-
- Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
- All rights reserved.
- See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
- This software is distributed WITHOUT ANY WARRANTY; without even
- the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
- PURPOSE.  See the above copyright notice for more information.
-
- =========================================================================*/
-
-/*
- * VTXSchemaManager.h : reusable class that manages a reader that
- *                         is a derived type of VTXSchema
- *
- *  Created on: May 31, 2019
- *      Author: William F Godoy godoywf@ornl.gov
- */
 
 #ifndef VTK_IO_ADIOS2_VTX_VTXSchemaManager_H_
 #define VTK_IO_ADIOS2_VTX_VTXSchemaManager_H_

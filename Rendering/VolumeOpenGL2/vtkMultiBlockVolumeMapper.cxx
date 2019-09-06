@@ -1,17 +1,8 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    vtkMultiBlockVolumeMapper.cxx
-
-  copyright (c) ken martin, will schroeder, bill lorensen
-  all rights reserved.
-  see copyright.txt or http://www.kitware.com/copyright.htm for details.
-
-  this software is distributed without any warranty; without even
-  the implied warranty of merchantability or fitness for a particular
-  purpose.  see the above copyright notice for more information.
-
-=========================================================================*/
+/*===========================================================================*/
+/* Distributed under OSI-approved BSD 3-Clause License.                      */
+/* For copyright, see the following accompanying files or https://vtk.org:   */
+/* - VTKm-Copyright.txt                                                      */
+/*===========================================================================*/
 #include <algorithm>
 
 #include "vtkBlockSortHelper.h"

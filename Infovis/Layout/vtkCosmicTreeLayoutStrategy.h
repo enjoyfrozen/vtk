@@ -1,13 +1,8 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    vtkCosmicTreeLayoutStrategy.h
-
-=========================================================================*/
-/*----------------------------------------------------------------------------
- Copyright (c) Sandia Corporation
- See Copyright.txt or http://www.paraview.org/HTML/Copyright.html for details.
-----------------------------------------------------------------------------*/
+/*===========================================================================*/
+/* Distributed under OSI-approved BSD 3-Clause License.                      */
+/* For copyright, see the following accompanying files or https://vtk.org:   */
+/* - Sandia-Copyright.txt                                                    */
+/*===========================================================================*/
 /**
  * @class   vtkCosmicTreeLayoutStrategy
  * @brief   tree layout strategy reminiscent of astronomical systems

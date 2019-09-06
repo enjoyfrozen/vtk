@@ -1,21 +1,8 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    PyVTKObject.h
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
-/*-----------------------------------------------------------------------
-  The PyVTKObject was created in Oct 2000 by David Gobbi for VTK 3.2.
-  It was rewritten in Jul 2015 to wrap VTK classes as python type objects.
------------------------------------------------------------------------*/
+/*===========================================================================*/
+/* Distributed under OSI-approved BSD 3-Clause License.                      */
+/* For copyright, see the following accompanying files or https://vtk.org:   */
+/* - VTK-Copyright.txt                                                       */
+/*===========================================================================*/
 
 #ifndef PyVTKObject_h
 #define PyVTKObject_h

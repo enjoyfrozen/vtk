@@ -1,22 +1,10 @@
+/*===========================================================================*/
+/* Distributed under OSI-approved BSD 3-Clause License.                      */
+/* For copyright, see the following accompanying files or https://vtk.org:   */
+/* - Sandia-Copyright.txt                                                    */
+/* - VTKm-Copyright.txt                                                      */
+/*===========================================================================*/
 
-/*=========================================================================
-
-  Program:   ParaView
-  Module:    vtkModelMetadata.cxx
-
-  Copyright (c) Kitware, Inc.
-  All rights reserved.
-  See Copyright.txt or http://www.paraview.org/HTML/Copyright.html for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
-/*----------------------------------------------------------------------------
- Copyright (c) Sandia Corporation
- See Copyright.txt or http://www.paraview.org/HTML/Copyright.html for details.
-----------------------------------------------------------------------------*/
 
 #include "vtkModelMetadata.h"
 #include "vtkDataSet.h"

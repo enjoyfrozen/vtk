@@ -1,23 +1,9 @@
-/*=========================================================================
-
-   Program: ParaView
-   Module:    vtkDepthImageProcessingPass.h
-
-  Copyright (c) Sandia Corporation, Kitware Inc.
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
-/*----------------------------------------------------------------------
-Acknowledgement:
-This algorithm is the result of joint work by Electricité de France,
-CNRS, Collège de France and Université J. Fourier as part of the
-Ph.D. thesis of Christian BOUCHENY.
-------------------------------------------------------------------------*/
+/*===========================================================================*/
+/* Distributed under OSI-approved BSD 3-Clause License.                      */
+/* For copyright, see the following accompanying files or https://vtk.org:   */
+/* - VTK-Copyright.txt                                                       */
+/* - Sandia-Copyright.txt                                                    */
+/*===========================================================================*/
 /**
  * @class   vtkDepthImageProcessingPass
  * @brief   Convenient class for post-processing

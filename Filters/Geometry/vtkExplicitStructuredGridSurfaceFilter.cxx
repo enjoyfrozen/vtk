@@ -1,8 +1,8 @@
-/*=========================================================================
- Copyright (c) Kitware SAS 2014
- All rights reserved.
- More information http://www.kitware.fr
-=========================================================================*/
+/*===========================================================================*/
+/* Distributed under OSI-approved BSD 3-Clause License.                      */
+/* For copyright, see the following accompanying files or https://vtk.org:   */
+/* - VTK-Copyright.txt                                                       */
+/*===========================================================================*/
 #include "vtkExplicitStructuredGridSurfaceFilter.h"
 
 #include "vtkCellData.h"

@@ -1,21 +1,8 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    PyVTKSpecialObject.h
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
-/*-----------------------------------------------------------------------
-  The PyVTKSpecialObject was created in Feb 2001 by David Gobbi.
-  The PyVTKSpecialType class was created in April 2010 by David Gobbi.
------------------------------------------------------------------------*/
+/*===========================================================================*/
+/* Distributed under OSI-approved BSD 3-Clause License.                      */
+/* For copyright, see the following accompanying files or https://vtk.org:   */
+/* - VTK-Copyright.txt                                                       */
+/*===========================================================================*/
 
 #ifndef PyVTKSpecialObject_h
 #define PyVTKSpecialObject_h

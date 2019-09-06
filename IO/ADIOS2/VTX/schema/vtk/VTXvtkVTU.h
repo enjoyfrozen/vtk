@@ -1,25 +1,9 @@
-/*=========================================================================
+/*===========================================================================*/
+/* Distributed under OSI-approved BSD 3-Clause License.                      */
+/* For copyright, see the following accompanying files or https://vtk.org:   */
+/* - VTK-Copyright.txt                                                       */
+/*===========================================================================*/
 
- Program:   Visualization Toolkit
- Module:    VTXvtkVTU.h
-
- Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
- All rights reserved.
- See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
- This software is distributed WITHOUT ANY WARRANTY; without even
- the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
- PURPOSE.  See the above copyright notice for more information.
-
- =========================================================================*/
-
-/*
- * VTXvtkVTU.h : class that supports UnstructuredMesh schema in VTK XML
- * format .vtu extends abstract VTXvtkBase
- *
- *  Created on: June 24, 2019
- *      Author: William F Godoy godoywf@ornl.gov
- */
 
 #ifndef VTK_IO_ADIOS2_VTX_SCHEMA_VTK_VTXxmlVTU_h
 #define VTK_IO_ADIOS2_VTX_SCHEMA_VTK_VTXxmlVTU_h

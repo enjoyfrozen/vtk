@@ -21,11 +21,6 @@
       **           Mark Jenkinson (FMRIB, Oxford)                     **
 ******************************************************************************/
 
-/*=================*/
-#ifdef  __cplusplus
-extern "C" {
-#endif
-/*=================*/
 
 /*! \struct nifti_1_header
     \brief Data structure defining the fields in the nifti1 header.
@@ -84,22 +79,6 @@ struct nifti_1_header { /* NIFTI-1 usage         */  /*  offset  */
 
 typedef struct nifti_1_header nifti_1_header;
 
-/*---------------------------------------------------------------------------*/
-/* TYPE OF DATA (acceptable values for datatype field):
-   ---------------------------------------------------
-   Values of datatype smaller than 256 are ANALYZE 7.5 compatible.
-   Larger values are NIFTI-1 additions.  These are all multiples of 256, so
-   that no bits below position 8 are set in datatype.  But there is no need
-   to use only powers-of-2, as the original ANALYZE 7.5 datatype codes do.
-
-   The additional codes are intended to include a complete list of basic
-   scalar types, including signed and unsigned integers from 8 to 64 bits,
-   floats from 32 to 128 bits, and complex (float pairs) from 64 to 256 bits.
-
-   Note that most programs will support only a few of these datatypes!
-   A NIFTI-1 program should fail gracefully (e.g., print a warning message)
-   when it encounters a dataset with a type it doesn't like.
------------------------------------------------------------------------------*/
 
 /*! \defgroup NIFTI1_DATATYPE_ALIASES NIFTI Datatype Aliases
     \brief aliases for the nifti1 datatype codes
@@ -140,9 +119,6 @@ typedef struct nifti_1_header nifti_1_header;
 /* @} */
 
 
-/*---------------------------------------------------------------------------*/
-/* MISCELLANEOUS C MACROS
------------------------------------------------------------------------------*/
 
 /*.................*/
 /*! Given a nifti_1_header struct, check if it has a good magic number.
@@ -168,49 +144,8 @@ typedef struct nifti_1_header nifti_1_header;
 #define NIFTI_NEEDS_SWAP(h) ( (h).dim[0] < 0 || (h).dim[0] > 7 )
 
 
-/*=================*/
-#ifdef  __cplusplus
-}
-#endif
-/*=================*/
 
-/*---------------------------------------------------------------------------*/
-/* Changes to the header from NIFTI-1 to NIFTI-2 are intended to allow for
-   larger and more accurate fields.  The changes are as follows:
 
-      - short dim[8]         -> int64_t dim[8]
-      - float intent_p1,2,3  -> double intent_p1,2,3    (3 fields)
-      - float pixdim[8]      -> double pixdim[8]
-      - float vox_offset     -> int64_t vox_offset
-      - float scl_slope      -> double scl_slope
-      - float scl_inter      -> double scl_inter
-      - float cal_max        -> double cal_max
-      - float cal_min        -> double cal_min
-      - float slice_duration -> double slice_duration
-      - float toffset        -> double toffset
-      - short slice_start    -> int64_t slice_start
-      - short slice_end      -> int64_t slice_end
-      - char slice_code      -> int32_t slice_code
-      - char xyzt_units      -> int32_t xyzt_units
-      - short intent_code    -> int32_t intent_code
-      - short qform_code     -> int32_t qform_code
-      - short sform_code     -> int32_t sform_code
-      - float quatern_b,c,d  -> double quatern_b,c,d    (3 fields)
-      - float srow_x,y,z[4]  -> double srow_x,y,z[4]    (3 fields)
-      - char magic[4]        -> char magic[8]
-      - char unused_str[15]  -> padding added at the end of the header
-
-      - previously unused fields have been removed:
-           data_type, db_name, extents, session_error, regular, glmax, glmin
-
-      - the field ordering has been changed
------------------------------------------------------------------------------*/
-
-/*=================*/
-#ifdef  __cplusplus
-extern "C" {
-#endif
-/*=================*/
 
 /*! \struct nifti_2_header
     \brief Data structure defining the fields in the nifti2 header.
@@ -262,11 +197,6 @@ struct nifti_2_header { /* NIFTI-2 usage         */  /*  offset  */
 
 typedef struct nifti_2_header nifti_2_header;
 
-/*=================*/
-#ifdef  __cplusplus
-}
-#endif
-/*=================*/
 
 #endif /* vtkNIFTIImagePrivate_h */
 // VTK-HeaderTest-Exclude: vtkNIFTIImagePrivate.h

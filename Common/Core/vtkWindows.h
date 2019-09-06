@@ -1,17 +1,8 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    vtkWindows.h
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
+/*===========================================================================*/
+/* Distributed under OSI-approved BSD 3-Clause License.                      */
+/* For copyright, see the following accompanying files or https://vtk.org:   */
+/* - VTK-Copyright.txt                                                       */
+/*===========================================================================*/
 #ifndef vtkWindows_h
 #define vtkWindows_h
 
@@ -20,13 +11,6 @@
    whole thing on this condition.  */
 #if defined(_WIN32) && !defined(VTK_INCLUDE_WINDOWS_H)
 
-/*
-Define some macros to shorten the windows header.  Record which ones
-we defined here so that we can undefine them later.
-
-See this page for details:
-http://msdn.microsoft.com/library/en-us/vccore/html/_core_faster_builds_and_smaller_header_files.asp
-*/
 #if !defined(VTK_WINDOWS_FULL)
 # if !defined(VC_EXTRALEAN)
 #  define VC_EXTRALEAN

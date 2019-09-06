@@ -1,25 +1,9 @@
-/*=========================================================================
+/*===========================================================================*/
+/* Distributed under OSI-approved BSD 3-Clause License.                      */
+/* For copyright, see the following accompanying files or https://vtk.org:   */
+/* - VTK-Copyright.txt                                                       */
+/*===========================================================================*/
 
- Program:   Visualization Toolkit
- Module:    VTXDataArray.h
-
- Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
- All rights reserved.
- See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
- This software is distributed WITHOUT ANY WARRANTY; without even
- the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
- PURPOSE.  See the above copyright notice for more information.
-
- =========================================================================*/
-
-/*
- * VTXDataArray.h : wrapper around vtkDataArray adding adios2 relevant
- * information
- *
- *  Created on: Jun 4, 2019
- *      Author: William F Godoy godoywf@ornl.gov
- */
 
 #ifndef VTK_IO_ADIOS2_VTX_COMMON_VTXDataArray_h
 #define VTK_IO_ADIOS2_VTX_COMMON_VTXDataArray_h

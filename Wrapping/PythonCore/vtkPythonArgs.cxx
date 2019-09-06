@@ -1,25 +1,8 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    vtkPythonArgs.cxx
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
-/*-----------------------------------------------------------------------
-The vtkPythonArgs class was created in Oct 2010 by David Gobbi.
-
-This class provides methods for reading an argument tuple from Python
-and converting it to types that can be used by VTK.  It is meant to be
-more efficient and flexible that the original PyArg_ParseTuple() code,
-resulting in wrapper code that is faster and more compact.
------------------------------------------------------------------------*/
+/*===========================================================================*/
+/* Distributed under OSI-approved BSD 3-Clause License.                      */
+/* For copyright, see the following accompanying files or https://vtk.org:   */
+/* - VTK-Copyright.txt                                                       */
+/*===========================================================================*/
 
 // Keep vtkPythonArgs.h from declaring externs for templates we instantiate
 #define vtkPythonArgs_cxx

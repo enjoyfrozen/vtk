@@ -1,34 +1,9 @@
-/*=========================================================================
+/*===========================================================================*/
+/* Distributed under OSI-approved BSD 3-Clause License.                      */
+/* For copyright, see the following accompanying files or https://vtk.org:   */
+/* - VTK-Copyright.txt                                                       */
+/*===========================================================================*/
 
-  Program:   Visualization Toolkit
-  Module:    TestBSplineTransform.cxx
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
-
-/*
-  This test builds a thin-plate spline transform, and then approximates
-  it with a B-Spline transform.  It applies both the B-Spline transform
-  and the original thin-plate spline transform to a polydata so that they
-  can be compared.
-
-  The output image is displayed as eight separate panels, as follows:
-
-  Top row:
-    1) thin-plate spline applied to a sphere
-    2) B-spline applied to a sphere
-    3) thin-plate spline applied to a sphere with normals
-    4) B-spline applied to a sphere with normals
-  Bottom row:
-    Same as top row, but with inverted transform
-*/
 
 #include <vtkSmartPointer.h>
 #include <vtkProperty.h>

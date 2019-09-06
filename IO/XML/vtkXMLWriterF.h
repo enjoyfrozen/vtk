@@ -1,27 +1,10 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    vtkXMLWriterF.h
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
+/*===========================================================================*/
+/* Distributed under OSI-approved BSD 3-Clause License.                      */
+/* For copyright, see the following accompanying files or https://vtk.org:   */
+/* - VTK-Copyright.txt                                                       */
+/*===========================================================================*/
 #ifndef vtkXMLWriterF_h
 #define vtkXMLWriterF_h
-/*
- * vtkXMLWriterF.h helps fortran programs call the C interface for
- * writing VTK XML files.  A program can use this by writing one
- * vtkXMLWriterF.c file that includes this header.  DO NOT INCLUDE
- * THIS HEADER ELSEWHERE.  The fortran program then compiles
- * vtkXMLWriterF.c using a C compiler and links to the resulting
- * object file.
- */
 
 #if defined(__cplusplus)
 # error "This should be included only by a .c file."

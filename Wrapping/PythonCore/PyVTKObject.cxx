@@ -1,32 +1,8 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    PyVTKObject.cxx
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
-/*-----------------------------------------------------------------------
-  The PyVTKObject was created in Oct 2000 by David Gobbi for VTK 3.2.
-  Support for weakref added in July 2005 by Prabhu Ramachandran.
-  Buffer interface for vtk arrays added in Feb 2008 by Berk Geveci.
-
-  A PyVTKObject is a python object that represents a VTK object.
-  The methods are stored in the __dict__ of the associated type objects.
-  Each PyVTKObject also has a __dict__ of its own that can be used to
-  store arbitrary attributes.
-
-  Memory management is done as follows. Each PyVTKObject has
-  an entry along with a smart pointer to its vtkObjectBase in
-  the vtkPythonUtil::ObjectMap.  When a PyVTKObject is destructed,
-  it is removed along with the smart pointer from the ObjectMap.
------------------------------------------------------------------------*/
+/*===========================================================================*/
+/* Distributed under OSI-approved BSD 3-Clause License.                      */
+/* For copyright, see the following accompanying files or https://vtk.org:   */
+/* - VTK-Copyright.txt                                                       */
+/*===========================================================================*/
 
 #include "PyVTKObject.h"
 #include "PyVTKMethodDescriptor.h"

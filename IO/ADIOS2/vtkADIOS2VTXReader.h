@@ -1,27 +1,9 @@
-/*=========================================================================
+/*===========================================================================*/
+/* Distributed under OSI-approved BSD 3-Clause License.                      */
+/* For copyright, see the following accompanying files or https://vtk.org:   */
+/* - VTK-Copyright.txt                                                       */
+/*===========================================================================*/
 
- Program:   Visualization Toolkit
- Module:    vtkADIOS2VTXReader.h
-
- Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
- All rights reserved.
- See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
- This software is distributed WITHOUT ANY WARRANTY; without even
- the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
- PURPOSE.  See the above copyright notice for more information.
-
- =========================================================================*/
-
-/*
- * vtkADIOS2VTXReader.h  public facing class
- *                     enables reading adios2 bp files using the
- *                     VTK ADIOS2 Readers (VTX) developed
- *                     at Oak Ridge National Laboratory
- *
- *  Created on: May 1, 2019
- *      Author: William F Godoy godoywf@ornl.gov
- */
 
 #ifndef vtkADIOS2VTXReader_h
 #define vtkADIOS2VTXReader_h

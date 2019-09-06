@@ -1,22 +1,9 @@
-//============================================================================
-//  Copyright (c) Kitware, Inc.
-//  All rights reserved.
-//  See LICENSE.txt for details.
-//  This software is distributed WITHOUT ANY WARRANTY; without even
-//  the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-//  PURPOSE.  See the above copyright notice for more information.
-//
-//  Copyright 2019 Sandia Corporation.
-//  Copyright 2019 UT-Battelle, LLC.
-//  Copyright 2019 Los Alamos National Security.
-//
-//  Under the terms of Contract DE-AC04-94AL85000 with Sandia Corporation,
-//  the U.S. Government retains certain rights in this software.
-//
-//  Under the terms of Contract DE-AC52-06NA25396 with Los Alamos National
-//  Laboratory (LANL), the U.S. Government retains certain rights in
-//  this software.
-//============================================================================
+/*===========================================================================*/
+/* Distributed under OSI-approved BSD 3-Clause License.                      */
+/* For copyright, see the following accompanying files or https://vtk.org:   */
+/* - VTKm-Copyright.txt                                                      */
+/* - Sandia-Copyright.txt                                                    */
+/*===========================================================================*/
 #define vtkmDataArray_cxx
 
 #include "vtkmDataArray.h"

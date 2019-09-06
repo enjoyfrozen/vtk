@@ -1,17 +1,3 @@
-/*=========================================================================
-
-  Project:   vtkCSCS
-  Module:    vtkTemporalPathLineFilter.cxx
-
-  Copyright (c) CSCS - Swiss National Supercomputing Centre.
-  You may use modify and and distribute this code freely providing this
-  copyright notice appears on all copies of source code and an
-  acknowledgment appears with any substantial usage of the code.
-
-  This software is distributed WITHOUT ANY WARRANTY; without even the
-  implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-=========================================================================*/
 #include "vtkTemporalPathLineFilter.h"
 #include "vtkPolyData.h"
 #include "vtkPointSet.h"

@@ -1,14 +1,3 @@
-/*=========================================================================
-Program:   Visualization Toolkit
-Module:    vtkAxisActor.h
-Language:  C++
-
-Copyright (c) 1993-2000 Ken Martin, Will Schroeder, Bill Lorensen
-All rights reserved.
-This software is distributed WITHOUT ANY WARRANTY; without even
-the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-PURPOSE.  See the above copyright notice for more information.
-=========================================================================*/
 /**
  * @class   vtkAxisActor
  * @brief   Create an axis with tick marks and labels

@@ -26,33 +26,6 @@ public:
   vtkNew<vtkOpenGLCellToVTKCellMap> CellCellMap;
 };
 
-//===================================================================
-// We define a helper class that is a subclass of vtkOpenGLPolyDataMapper
-class VTKRENDERINGOPENGL2_EXPORT vtkCompositeMapperHelper2 : public vtkOpenGLPolyDataMapper
-{
-public:
-  static vtkCompositeMapperHelper2* New();
-  vtkTypeMacro(vtkCompositeMapperHelper2, vtkOpenGLPolyDataMapper);
-
-  void SetParent(vtkCompositePolyDataMapper2 *p) {
-    this->Parent = p; }
-
-  vtkCompositeMapperHelperData *AddData(vtkPolyData *pd, unsigned int flatIndex);
-
-  // Description:
-  // Implemented by sub classes. Actual rendering is done here.
-  void RenderPiece(vtkRenderer *ren, vtkActor *act) override;
-
-  // keep track of what data is being used as the multiblock
-  // can change
-  void ClearMark();
-  void RemoveUnused();
-  bool GetMarked() { return this->Marked; }
-  void SetMarked(bool v) { this->Marked = v; }
-
-  /**
-   * Accessor to the ordered list of PolyData that we last drew.
-   */
   std::vector<vtkPolyData*> GetRenderedList(){ return this->RenderedList; }
 
   /**

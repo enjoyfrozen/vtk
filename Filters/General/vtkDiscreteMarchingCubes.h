@@ -1,26 +1,8 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    vtkDiscreteMarchingCubes.h
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-// .SECTION Thanks
-// Jim Miller at GE Research implemented the original version of this
-// filter.
-// This work was supported by PHS Research Grant No. 1 P41 RR13218-01
-// from the National Center for Research Resources and supported by a
-// grant from the DARPA, executed by the U.S. Army Medical Research
-// and Materiel Command/TATRC Cooperative Agreement,
-// Contract # W81XWH-04-2-0012.
-
-=========================================================================*/
+/*===========================================================================*/
+/* Distributed under OSI-approved BSD 3-Clause License.                      */
+/* For copyright, see the following accompanying files or https://vtk.org:   */
+/* - VTK-Copyright.txt                                                       */
+/*===========================================================================*/
 /**
  * @class   vtkDiscreteMarchingCubes
  * @brief   generate object boundaries from

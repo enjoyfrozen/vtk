@@ -1,31 +1,10 @@
-/*=========================================================================
+/*===========================================================================*/
+/* Distributed under OSI-approved BSD 3-Clause License.                      */
+/* For copyright, see the following accompanying files or https://vtk.org:   */
+/* - VTK-Copyright.txt                                                       */
+/* - Sandia-Copyright.txt                                                    */
+/*===========================================================================*/
 
-  Program:   Visualization Toolkit
-  Module:    TestIOADIOS2VTX_VTI3D.cxx
-
--------------------------------------------------------------------------
-  Copyright 2008 Sandia Corporation.
-  Under the terms of Contract DE-AC04-94AL85000 with Sandia Corporation,
-  the U.S. Government retains certain rights in this software.
--------------------------------------------------------------------------
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
-
-/*
- * TestIOADIOS2VTX_VTI3D.cxx : pipeline tests for image data reader 1D and 3D
- * vars
- *
- *  Created on: Jun 13, 2019
- *      Author: William F Godoy godoywf@ornl.gov
- */
 
 #include "vtkADIOS2VTXReader.h"
 

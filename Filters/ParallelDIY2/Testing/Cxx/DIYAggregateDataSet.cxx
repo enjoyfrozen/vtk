@@ -1,25 +1,11 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    DIYAggregateDataSet.cxx
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-  This software is distributed WITHOUT ANY WARRANTY; without even
-  the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-  PURPOSE.  See the above copyright notice for more information.
-
-  =========================================================================*/
+/*===========================================================================*/
+/* Distributed under OSI-approved BSD 3-Clause License.                      */
+/* For copyright, see the following accompanying files or https://vtk.org:   */
+/* - VTK-Copyright.txt                                                       */
+/*===========================================================================*/
 
 // Tests vtkDIYAggregateDataSetFilter.
 
-/*
-** This test only builds if MPI is in use. It uses 4 MPI processes to
-** test that the data is aggregated down to two processes. It uses a simple
-** point count to verify results.
-*/
 #include "vtkDIYAggregateDataSetFilter.h"
 #include "vtkDataSet.h"
 #include "vtkIdentityTransform.h"

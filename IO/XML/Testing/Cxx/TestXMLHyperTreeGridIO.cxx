@@ -1,8 +1,3 @@
-/*
-This test does a read write cycle of a known good hypertree grid file,
-comparing the shape of read and written trees, to exercise the reader
-and writer and ensure that they work.
-*/
 
 #include "vtkDataArray.h"
 #include "vtkHyperTreeGrid.h"
