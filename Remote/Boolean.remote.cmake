@@ -6,5 +6,5 @@ vtk_fetch_module(Boolean
   "A new boolean operation filter by Ronald Romer"
   GIT_REPOSITORY https://github.com/lorensen/vtkbool
   # 9 September - fix windows linkage
-  GIT_TAG e74ec80b6074d273bfbc6a481011bcd4a4afe0ce
+  GIT_TAG f18992b270661e00e1418b89fafb57ae339abd31
   )
