@@ -167,12 +167,12 @@ inline unsigned char *vtkLinearLookup(double v,
 // of 8-bit chunks
 template<class T>
 void vtkLookupTableWithEnablingMapData(vtkLookupTableWithEnabling *self, T *input,
-                           unsigned char *output, int length,
+                           unsigned char *output, vtkIdType length,
                            int inIncr, int outFormat)
 {
-  int i = length;
+  vtkIdType i = length;
   double *range = self->GetTableRange();
-  double maxIndex = self->GetNumberOfColors() - 1;
+  double maxIndex = static_cast<double>(self->GetNumberOfColors() - 1);
   double shift, scale;
   unsigned char *table = self->GetPointer(0);
   unsigned char *cptr;
@@ -208,7 +208,7 @@ void vtkLookupTableWithEnablingMapData(vtkLookupTableWithEnabling *self, T *inpu
       {
         while (--i >= 0)
         {
-          val = vtkApplyLogScale(*input, range, logRange);
+          val = vtkApplyLogScale(static_cast<double>(*input), range, logRange);
           cptr = vtkLinearLookup(val, table, maxIndex, shift, scale);
           if(hasEnabledArray &&
             !self->GetEnabledArray()->GetTuple1(length-i-1))
@@ -233,7 +233,7 @@ void vtkLookupTableWithEnablingMapData(vtkLookupTableWithEnabling *self, T *inpu
       {
         while (--i >= 0)
         {
-          val = vtkApplyLogScale(*input, range, logRange);
+          val = vtkApplyLogScale(static_cast<double>(*input), range, logRange);
           cptr = vtkLinearLookup(val, table, maxIndex, shift, scale);
           if(hasEnabledArray &&
              !self->GetEnabledArray()->GetTuple1(length-i-1))
@@ -256,7 +256,7 @@ void vtkLookupTableWithEnablingMapData(vtkLookupTableWithEnabling *self, T *inpu
       {
         while (--i >= 0)
         {
-          val = vtkApplyLogScale(*input, range, logRange);
+          val = vtkApplyLogScale(static_cast<double>(*input), range, logRange);
           cptr = vtkLinearLookup(val, table, maxIndex, shift, scale);
           *output++ = static_cast<unsigned char>(cptr[0]*0.30 + cptr[1]*0.59 +
                                                  cptr[2]*0.11 + 0.5);
@@ -268,7 +268,7 @@ void vtkLookupTableWithEnablingMapData(vtkLookupTableWithEnabling *self, T *inpu
       {
         while (--i >= 0)
         {
-          val = vtkApplyLogScale(*input, range, logRange);
+          val = vtkApplyLogScale(static_cast<double>(*input), range, logRange);
           cptr = vtkLinearLookup(val, table, maxIndex, shift, scale);
           *output++ = static_cast<unsigned char>(cptr[0]*0.30 + cptr[1]*0.59 +
                                                  cptr[2]*0.11 + 0.5);
@@ -295,7 +295,7 @@ void vtkLookupTableWithEnablingMapData(vtkLookupTableWithEnabling *self, T *inpu
       {
         while (--i >= 0)
         {
-          cptr = vtkLinearLookup(*input, table, maxIndex, shift, scale);
+          cptr = vtkLinearLookup(static_cast<double>(*input), table, maxIndex, shift, scale);
           if(hasEnabledArray &&
             !self->GetEnabledArray()->GetTuple1(length-i-1))
           {
@@ -320,7 +320,7 @@ void vtkLookupTableWithEnablingMapData(vtkLookupTableWithEnabling *self, T *inpu
       {
         while (--i >= 0)
         {
-          cptr = vtkLinearLookup(*input, table, maxIndex, shift, scale);
+          cptr = vtkLinearLookup(static_cast<double>(*input), table, maxIndex, shift, scale);
           if(hasEnabledArray &&
              !self->GetEnabledArray()->GetTuple1(length-i-1))
           {
@@ -342,7 +342,7 @@ void vtkLookupTableWithEnablingMapData(vtkLookupTableWithEnabling *self, T *inpu
       {
         while (--i >= 0)
         {
-          cptr = vtkLinearLookup(*input, table, maxIndex, shift, scale);
+          cptr = vtkLinearLookup(static_cast<double>(*input), table, maxIndex, shift, scale);
           *output++ = static_cast<unsigned char>(cptr[0]*0.30 + cptr[1]*0.59 +
                                                  cptr[2]*0.11 + 0.5);
           *output++ = cptr[3];
@@ -353,7 +353,7 @@ void vtkLookupTableWithEnablingMapData(vtkLookupTableWithEnabling *self, T *inpu
       {
         while (--i >= 0)
         {
-          cptr = vtkLinearLookup(*input, table, maxIndex, shift, scale);
+          cptr = vtkLinearLookup(static_cast<double>(*input), table, maxIndex, shift, scale);
           *output++ = static_cast<unsigned char>(cptr[0]*0.30 + cptr[1]*0.59 +
                                                  cptr[2]*0.11 + 0.5);
           input += inIncr;
@@ -384,7 +384,7 @@ void vtkLookupTableWithEnablingMapData(vtkLookupTableWithEnabling *self, T *inpu
       {
         while (--i >= 0)
         {
-          val = vtkApplyLogScale(*input, range, logRange);
+          val = vtkApplyLogScale(static_cast<double>(*input), range, logRange);
           cptr = vtkLinearLookup(val, table, maxIndex, shift, scale);
           if(hasEnabledArray &&
              !self->GetEnabledArray()->GetTuple1(length-i-1))
@@ -409,7 +409,7 @@ void vtkLookupTableWithEnablingMapData(vtkLookupTableWithEnabling *self, T *inpu
       {
         while (--i >= 0)
         {
-          val = vtkApplyLogScale(*input, range, logRange);
+          val = vtkApplyLogScale(static_cast<double>(*input), range, logRange);
           cptr = vtkLinearLookup(val, table, maxIndex, shift, scale);
           if(hasEnabledArray &&
              !self->GetEnabledArray()->GetTuple1(length-i-1))
@@ -432,7 +432,7 @@ void vtkLookupTableWithEnablingMapData(vtkLookupTableWithEnabling *self, T *inpu
       {
         while (--i >= 0)
         {
-          val = vtkApplyLogScale(*input, range, logRange);
+          val = vtkApplyLogScale(static_cast<double>(*input), range, logRange);
           cptr = vtkLinearLookup(val, table, maxIndex, shift, scale);
           *output++ = static_cast<unsigned char>(cptr[0]*0.30 + cptr[1]*0.59 +
                                                  cptr[2]*0.11 + 0.5);
@@ -444,7 +444,7 @@ void vtkLookupTableWithEnablingMapData(vtkLookupTableWithEnabling *self, T *inpu
       {
         while (--i >= 0)
         {
-          val = vtkApplyLogScale(*input, range, logRange);
+          val = vtkApplyLogScale(static_cast<double>(*input), range, logRange);
           cptr = vtkLinearLookup(val, table, maxIndex, shift, scale);
           *output++ = static_cast<unsigned char>(cptr[0]*0.30 + cptr[1]*0.59 +
                                                  cptr[2]*0.11 + 0.5);
@@ -471,7 +471,7 @@ void vtkLookupTableWithEnablingMapData(vtkLookupTableWithEnabling *self, T *inpu
       {
         while (--i >= 0)
         {
-          cptr = vtkLinearLookup(*input, table, maxIndex, shift, scale);
+          cptr = vtkLinearLookup(static_cast<double>(*input), table, maxIndex, shift, scale);
           if(hasEnabledArray &&
              !self->GetEnabledArray()->GetTuple1(length-i-1))
           {
@@ -503,7 +503,7 @@ void vtkLookupTableWithEnablingMapData(vtkLookupTableWithEnabling *self, T *inpu
       {
         while (--i >= 0)
         {
-          cptr = vtkLinearLookup(*input, table, maxIndex, shift, scale);
+          cptr = vtkLinearLookup(static_cast<double>(*input), table, maxIndex, shift, scale);
           if(hasEnabledArray &&
              !self->GetEnabledArray()->GetTuple1(length-i-1))
           {
@@ -525,7 +525,7 @@ void vtkLookupTableWithEnablingMapData(vtkLookupTableWithEnabling *self, T *inpu
       {
         while (--i >= 0)
         {
-          cptr = vtkLinearLookup(*input, table, maxIndex, shift, scale);
+          cptr = vtkLinearLookup(static_cast<double>(*input), table, maxIndex, shift, scale);
           *output++ = static_cast<unsigned char>(cptr[0]*0.30 + cptr[1]*0.59 +
                                                  cptr[2]*0.11 + 0.5);
           *output++ = static_cast<unsigned char>(cptr[3]*alpha);
@@ -536,7 +536,7 @@ void vtkLookupTableWithEnablingMapData(vtkLookupTableWithEnabling *self, T *inpu
       {
         while (--i >= 0)
         {
-          cptr = vtkLinearLookup(*input, table, maxIndex, shift, scale);
+          cptr = vtkLinearLookup(static_cast<double>(*input), table, maxIndex, shift, scale);
           *output++ = static_cast<unsigned char>(cptr[0]*0.30 + cptr[1]*0.59 +
                                                  cptr[2]*0.11 + 0.5);
           input += inIncr;
@@ -550,7 +550,7 @@ void vtkLookupTableWithEnablingMapData(vtkLookupTableWithEnabling *self, T *inpu
 void vtkLookupTableWithEnabling::MapScalarsThroughTable2(void *input,
                                              unsigned char *output,
                                              int inputDataType,
-                                             int numberOfValues,
+                                             vtkIdType numberOfValues,
                                              int inputIncrement,
                                              int outputFormat)
 {
@@ -565,7 +565,7 @@ void vtkLookupTableWithEnabling::MapScalarsThroughTable2(void *input,
       newInput->SetNumberOfValues(numberOfValues);
       for (id=i=0; i<numberOfValues; i++, id+=inputIncrement)
       {
-        newInput->SetValue(i, bitArray->GetValue(id));
+        newInput->SetValue(i, static_cast<unsigned char>(bitArray->GetValue(id)));
       }
       vtkLookupTableWithEnablingMapData(this,
                             static_cast<unsigned char*>(newInput->GetPointer(0)),

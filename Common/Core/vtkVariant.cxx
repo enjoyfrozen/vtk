@@ -332,7 +332,7 @@ vtkVariant::vtkVariant(const vtkVariant &s2, unsigned int type)
     }
   }
 
-  this->Type = (valid ? type : 0);
+  this->Type = static_cast<unsigned char>((valid ? type : 0));
   this->Valid = valid;
 }
 

@@ -213,11 +213,11 @@ public:
    * or VTK_LUMINANCE_ALPHA (2 components)
    */
   void MapVectorsThroughTable(void *input, unsigned char *output,
-                              int inputDataType, int numberOfValues,
+                              int inputDataType, vtkIdType numberOfValues,
                               int inputIncrement, int outputFormat,
                               int vectorComponent, int vectorSize);
   void MapVectorsThroughTable(void *input, unsigned char *output,
-                              int inputDataType, int numberOfValues,
+                              int inputDataType, vtkIdType numberOfValues,
                               int inputIncrement, int outputFormat)
     { this->MapVectorsThroughTable(input, output, inputDataType, numberOfValues,
                                    inputIncrement, outputFormat, -1, -1); }
@@ -237,7 +237,7 @@ public:
                               unsigned char *output)
     {this->MapScalarsThroughTable(scalars,output,VTK_RGBA);}
   void MapScalarsThroughTable(void *input, unsigned char *output,
-                              int inputDataType, int numberOfValues,
+                              int inputDataType, vtkIdType numberOfValues,
                               int inputIncrement,
                               int outputFormat)
     {this->MapScalarsThroughTable2(input, output, inputDataType,
@@ -249,7 +249,7 @@ public:
    * compatibility.  Never call this method directly.
    */
   virtual void MapScalarsThroughTable2(void *input, unsigned char *output,
-                                       int inputDataType, int numberOfValues,
+                                       int inputDataType, vtkIdType numberOfValues,
                                        int inputIncrement,
                                        int outputFormat);
 
@@ -411,7 +411,7 @@ protected:
    * Any components past the fourth component will be ignored.
    */
   void MapColorsToColors(void *input, unsigned char *output,
-                         int inputDataType, int numberOfValues,
+                         int inputDataType, vtkIdType numberOfValues,
                          int numberOfComponents, int vectorSize,
                          int outputFormat);
 
@@ -421,7 +421,7 @@ protected:
    * responsible for managing the memory.
    */
   vtkUnsignedCharArray *ConvertToRGBA(
-    vtkDataArray *colors, int numComp, int numTuples);
+    vtkDataArray *colors, int numComp, vtkIdType numTuples);
 
 
   /**
@@ -429,7 +429,7 @@ protected:
    * a preliminary step before doing magnitude mapping.
    */
   void MapVectorsToMagnitude(void *input, double *output,
-                             int inputDataType, int numberOfValues,
+                             int inputDataType, vtkIdType numberOfValues,
                              int numberOfComponents, int vectorSize);
 
   /**

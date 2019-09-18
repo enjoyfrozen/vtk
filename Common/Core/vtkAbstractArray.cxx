@@ -640,7 +640,7 @@ void SampleProminentValues(
     for (int i = 0; i < numberOfBlocks; ++ i, seq->Next())
     {
       vtkIdType startTuple =
-        static_cast<vtkIdType>(seq->GetValue() * totalBlockCount) * blockSize;
+        static_cast<vtkIdType>(seq->GetValue() * static_cast<double>(totalBlockCount)) * blockSize;
       startTuples.insert(startTuple);
     }
     // Now iterate over the blocks, accumulating unique values and tuples.

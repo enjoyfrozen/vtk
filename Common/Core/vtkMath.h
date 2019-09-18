@@ -629,6 +629,9 @@ public:
   /**
    * Compute determinant of 2x2 matrix. Two columns of matrix are input.
    */
+  static float Determinant2x2(float a, float b, float c, float d) {
+    return a * d - b * c;
+  }
   static float Determinant2x2(const float c1[2], const float c2[2]) {
     return c1[0] * c2[1] - c2[0] * c1[1];
   }
@@ -734,7 +737,7 @@ public:
   /**
    * Return the determinant of a 3x3 matrix.
    */
-  static double Determinant3x3(const float A[3][3]);
+  static float Determinant3x3(const float A[3][3]);
   static double Determinant3x3(const double A[3][3]);
   //@}
 
@@ -1478,7 +1481,7 @@ inline void vtkMath::Cross(const double a[3], const double b[3], double c[3])
 
 //----------------------------------------------------------------------------
 template<class T>
-inline double vtkDeterminant3x3(const T A[3][3])
+inline T vtkDeterminant3x3(const T A[3][3])
 {
   return A[0][0] * A[1][1] * A[2][2] + A[1][0] * A[2][1] * A[0][2] +
          A[2][0] * A[0][1] * A[1][2] - A[0][0] * A[2][1] * A[1][2] -
@@ -1486,7 +1489,7 @@ inline double vtkDeterminant3x3(const T A[3][3])
 }
 
 //----------------------------------------------------------------------------
-inline double vtkMath::Determinant3x3(const float A[3][3])
+inline float vtkMath::Determinant3x3(const float A[3][3])
 {
   return vtkDeterminant3x3( A );
 }

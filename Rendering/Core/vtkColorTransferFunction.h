@@ -168,9 +168,9 @@ public:
 
    * Note that \a GetTable ignores \a IndexedLookup
    */
-  void GetTable(double x1, double x2, int n, double* table);
-  void GetTable(double x1, double x2, int n, float* table);
-  const unsigned char* GetTable(double x1, double x2, int n);
+  void GetTable(double x1, double x2, vtkIdType n, double* table);
+  void GetTable(double x1, double x2, vtkIdType n, float* table);
+  const unsigned char* GetTable(double x1, double x2, vtkIdType n);
   //@}
 
   /**
@@ -331,7 +331,7 @@ public:
   void MapScalarsThroughTable2(void* input,
     unsigned char* output,
     int inputDataType,
-    int numberOfValues,
+    vtkIdType numberOfValues,
     int inputIncrement,
     int outputIncrement) override;
 

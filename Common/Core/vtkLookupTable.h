@@ -345,7 +345,7 @@ public:
    * afterwards to ensure that the special colors (below/above range and NaN
    * value) are up-to-date.
    */
-  unsigned char *WritePointer(vtkIdType id, int number);
+  unsigned char *WritePointer(vtkIdType id, vtkIdType number);
 
   //@{
   /**
@@ -402,7 +402,7 @@ public:
   void MapScalarsThroughTable2(void *input,
                                unsigned char *output,
                                int inputDataType,
-                               int numberOfValues,
+                               vtkIdType numberOfValues,
                                int inputIncrement,
                                int outputIncrement) override;
 
@@ -474,7 +474,7 @@ private:
 
 //----------------------------------------------------------------------------
 inline unsigned char *vtkLookupTable::WritePointer(vtkIdType id,
-                                                   int number)
+                                                   vtkIdType number)
 {
   this->InsertTime.Modified();
   return this->Table->WritePointer(4*id, 4*number);

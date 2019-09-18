@@ -225,7 +225,7 @@ void vtkMersenneTwister::Next(vtkMersenneTwister::SequenceId id)
       value);
     this->Internal->InitializeSequence(id, 0);
   }
-  it->second = this->Internal->Random64(id)*norm;
+  it->second = static_cast<double>(this->Internal->Random64(id))*norm;
 }
 
 

@@ -260,9 +260,9 @@ template<class T1, class T2, class T3>
 inline void vtkMathPerpendiculars(const T1 v1[3], T2 v2[3], T3 v3[3],
                                   double theta)
 {
-  double v1sq = v1[0]*v1[0];
-  double v2sq = v1[1]*v1[1];
-  double v3sq = v1[2]*v1[2];
+  T1 v1sq = v1[0]*v1[0];
+  T1 v2sq = v1[1]*v1[1];
+  T1 v3sq = v1[2]*v1[2];
   double r = std::sqrt(v1sq + v2sq + v3sq);
 
   // transpose the vector to avoid divide-by-zero error
@@ -284,12 +284,12 @@ inline void vtkMathPerpendiculars(const T1 v1[3], T2 v2[3], T3 v3[3],
   double b = v1[dv2]/r;
   double c = v1[dv3]/r;
 
-  double tmp = std::sqrt(a*a+c*c);
+  T1 tmp = std::sqrt(a*a+c*c);
 
   if (theta != 0.0)
   {
-    double sintheta = sin(theta);
-    double costheta = cos(theta);
+    T1 sintheta = sin(static_cast<T1>(theta));
+    T1 costheta = cos(static_cast<T1>(theta));
 
     if (v2)
     {
@@ -1486,12 +1486,12 @@ void vtkMath::LUSolve3x3(const double A[3][3],
 template<class T1, class T2, class T3>
 inline void vtkLinearSolve3x3(const T1 A[3][3], const T2 x[3], T3 y[3])
 {
-  double a1 = A[0][0]; double b1 = A[0][1]; double c1 = A[0][2];
-  double a2 = A[1][0]; double b2 = A[1][1]; double c2 = A[1][2];
-  double a3 = A[2][0]; double b3 = A[2][1]; double c3 = A[2][2];
+  T1 a1 = A[0][0]; T1 b1 = A[0][1]; T1 c1 = A[0][2];
+  T1 a2 = A[1][0]; T1 b2 = A[1][1]; T1 c2 = A[1][2];
+  T1 a3 = A[2][0]; T1 b3 = A[2][1]; T1 c3 = A[2][2];
 
   // Compute the adjoint
-  double d1 =   vtkMath::Determinant2x2( b2, b3, c2, c3);
+  double d1 = vtkMath::Determinant2x2( b2, b3, c2, c3);
   double d2 = - vtkMath::Determinant2x2( a2, a3, c2, c3);
   double d3 =   vtkMath::Determinant2x2( a2, a3, b2, b3);
 
@@ -1662,9 +1662,9 @@ void vtkMath::Transpose3x3(const double A[3][3], double AT[3][3])
 template<class T1, class T2>
 inline void vtkInvert3x3(const T1 A[3][3], T2 AI[3][3])
 {
-  double a1 = A[0][0]; double b1 = A[0][1]; double c1 = A[0][2];
-  double a2 = A[1][0]; double b2 = A[1][1]; double c2 = A[1][2];
-  double a3 = A[2][0]; double b3 = A[2][1]; double c3 = A[2][2];
+  T1 a1 = A[0][0]; T1 b1 = A[0][1]; T1 c1 = A[0][2];
+  T1 a2 = A[1][0]; T1 b2 = A[1][1]; T1 c2 = A[1][2];
+  T1 a3 = A[2][0]; T1 b3 = A[2][1]; T1 c3 = A[2][2];
 
   // Compute the adjoint
   double d1 =   vtkMath::Determinant2x2( b2, b3, c2, c3);
@@ -1682,17 +1682,17 @@ inline void vtkInvert3x3(const T1 A[3][3], T2 AI[3][3])
   // Divide by the determinant
   double det = a1*d1 + b1*d2 + c1*d3;
 
-  AI[0][0]  = d1/det;
-  AI[1][0]  = d2/det;
-  AI[2][0]  = d3/det;
+  AI[0][0]  = static_cast<T2>(d1/det);
+  AI[1][0]  = static_cast<T2>(d2/det);
+  AI[2][0]  = static_cast<T2>(d3/det);
 
-  AI[0][1]  = e1/det;
-  AI[1][1]  = e2/det;
-  AI[2][1]  = e3/det;
+  AI[0][1]  = static_cast<T2>(e1/det);
+  AI[1][1]  = static_cast<T2>(e2/det);
+  AI[2][1]  = static_cast<T2>(e3/det);
 
-  AI[0][2]  = f1/det;
-  AI[1][2]  = f2/det;
-  AI[2][2]  = f3/det;
+  AI[0][2]  = static_cast<T2>(f1/det);
+  AI[1][2]  = static_cast<T2>(f2/det);
+  AI[2][2]  = static_cast<T2>(f3/det);
 }
 
 //----------------------------------------------------------------------------
@@ -1890,7 +1890,7 @@ void vtkMath::RotateVectorByNormalizedQuaternion(const float v[3], const float q
     a[2] = q[3] / f;
 
     // atan2() provides a more accurate angle result than acos()
-    float t = 2.0*atan2(f, q[0]);
+    float t = 2.0f*atan2(f, q[0]);
 
     float cosT = cos(t);
     float sinT = sin(t);
@@ -1898,9 +1898,9 @@ void vtkMath::RotateVectorByNormalizedQuaternion(const float v[3], const float q
     float crossKV[3];
     vtkMath::Cross(a, v, crossKV);
 
-    r[0] = v[0]*cosT + crossKV[0]*sinT + a[0]*dotKV*(1.0 - cosT);
-    r[1] = v[1]*cosT + crossKV[1]*sinT + a[1]*dotKV*(1.0 - cosT);
-    r[2] = v[2]*cosT + crossKV[2]*sinT + a[2]*dotKV*(1.0 - cosT);
+    r[0] = v[0]*cosT + crossKV[0]*sinT + a[0]*dotKV*(1.0f - cosT);
+    r[1] = v[1]*cosT + crossKV[1]*sinT + a[1]*dotKV*(1.0f - cosT);
+    r[2] = v[2]*cosT + crossKV[2]*sinT + a[2]*dotKV*(1.0f- cosT);
   }
   else
   {
@@ -1949,9 +1949,9 @@ void vtkMath::RotateVectorByWXYZ(const float v[3], const float q[4], float r[3])
   float crossKV[3];
   vtkMath::Cross(&(q[1]), v, crossKV);
 
-  r[0] = v[0]*cosT + crossKV[0]*sinT + q[1]*dotKV*(1.0 - cosT);
-  r[1] = v[1]*cosT + crossKV[1]*sinT + q[2]*dotKV*(1.0 - cosT);
-  r[2] = v[2]*cosT + crossKV[2]*sinT + q[3]*dotKV*(1.0 - cosT);
+  r[0] = v[0]*cosT + crossKV[0]*sinT + q[1]*dotKV*(1.0f - cosT);
+  r[1] = v[1]*cosT + crossKV[1]*sinT + q[2]*dotKV*(1.0f - cosT);
+  r[2] = v[2]*cosT + crossKV[2]*sinT + q[3]*dotKV*(1.0f - cosT);
 }
 
 void vtkMath::RotateVectorByWXYZ(const double v[3], const double q[4], double r[3])
@@ -2101,7 +2101,7 @@ float vtkMath::Norm(const float* x, int n)
   double sum=0;
   for (int i=0; i<n; ++i)
   {
-    sum += x[i]*x[i];
+    sum += static_cast<double>(x[i]*x[i]);
   }
 
   return std::sqrt(sum);

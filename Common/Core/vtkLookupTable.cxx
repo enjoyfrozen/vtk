@@ -214,10 +214,10 @@ void vtkLookupTable::ForceBuild()
   double hinc, sinc, vinc, ainc;
   if( maxIndex > 0 )
   {
-    hinc = (this->HueRange[1] - this->HueRange[0])/maxIndex;
-    sinc = (this->SaturationRange[1] - this->SaturationRange[0])/maxIndex;
-    vinc = (this->ValueRange[1] - this->ValueRange[0])/maxIndex;
-    ainc = (this->AlphaRange[1] - this->AlphaRange[0])/maxIndex;
+    hinc = (this->HueRange[1] - this->HueRange[0])/static_cast<double>(maxIndex);
+    sinc = (this->SaturationRange[1] - this->SaturationRange[0])/static_cast<double>(maxIndex);
+    vinc = (this->ValueRange[1] - this->ValueRange[0])/static_cast<double>(maxIndex);
+    ainc = (this->AlphaRange[1] - this->AlphaRange[0])/static_cast<double>(maxIndex);
   }
   else
   {
@@ -227,10 +227,10 @@ void vtkLookupTable::ForceBuild()
   double rgba[4];
   for (vtkIdType i = 0; i <= maxIndex; i++)
   {
-    double hue = this->HueRange[0] + i*hinc;
-    double sat = this->SaturationRange[0] + i*sinc;
-    double val = this->ValueRange[0] + i*vinc;
-    double alpha = this->AlphaRange[0] + i*ainc;
+    double hue = this->HueRange[0] + static_cast<double>(i)*hinc;
+    double sat = this->SaturationRange[0] + static_cast<double>(i)*sinc;
+    double val = this->ValueRange[0] + static_cast<double>(i)*vinc;
+    double alpha = this->AlphaRange[0] + static_cast<double>(i)*ainc;
 
     vtkMath::HSVToRGB(hue, sat, val, &rgba[0], &rgba[1], &rgba[2]);
     rgba[3] = alpha;
@@ -503,7 +503,7 @@ template<class T>
 double vtkApplyLogScale(T v, const double range[2],
                         const double logRange[2])
 {
-  return vtkApplyLogScaleMain(v, range, logRange);
+  return vtkApplyLogScaleMain(static_cast<double>(v), range, logRange);
 }
 
 //----------------------------------------------------------------------------
@@ -609,12 +609,12 @@ inline vtkIdType vtkLinearLookup(float v, const TableParameters & p)
 
 //----------------------------------------------------------------------------
 inline void vtkLookupShiftAndScale(const double range[2],
-                                   double numColors,
+                                   vtkIdType numColors,
                                    double& shift, double& scale)
 {
   shift = -range[0];
   double rangeDelta = range[1] - range[0];
-  if (rangeDelta < VTK_DBL_MIN*numColors)
+  if (rangeDelta < VTK_DBL_MIN*static_cast<double>(numColors))
   {
     // if the range is tiny, anything within the range will map to the bottom
     // of the color scale.
@@ -622,7 +622,7 @@ inline void vtkLookupShiftAndScale(const double range[2],
   }
   else
   {
-    scale = numColors / rangeDelta;
+    scale = static_cast<double>(numColors) / rangeDelta;
   }
   assert(scale >= 0.0);
 }
@@ -794,10 +794,10 @@ namespace {
 //----------------------------------------------------------------------------
 template<class T>
 void vtkLookupTableMapData(vtkLookupTable *self,
-                           T *input, unsigned char *output, int length,
+                           T *input, unsigned char *output, vtkIdType length,
                            int inIncr, int outFormat, TableParameters & p)
 {
-  int i = length;
+  vtkIdType i = length;
   const double *range = self->GetTableRange();
   const unsigned char *cptr;
 
@@ -1056,10 +1056,10 @@ void vtkLookupTableMapData(vtkLookupTable *self,
 //----------------------------------------------------------------------------
 template<class T>
 void vtkLookupTableIndexedMapData(
-  vtkLookupTable* self, const T* input, unsigned char* output, int length,
+  vtkLookupTable* self, const T* input, unsigned char* output, vtkIdType length,
   int inIncr, int outFormat )
 {
-  int i = length;
+  vtkIdType i = length;
   unsigned char* cptr;
 
   unsigned char nanColor[4];
@@ -1185,7 +1185,7 @@ void vtkLookupTableIndexedMapData(
 void vtkLookupTable::MapScalarsThroughTable2(void *input,
                                              unsigned char *output,
                                              int inputDataType,
-                                             int numberOfValues,
+                                             vtkIdType numberOfValues,
                                              int inputIncrement,
                                              int outputFormat)
 {
@@ -1202,7 +1202,7 @@ void vtkLookupTable::MapScalarsThroughTable2(void *input,
         newInput->SetNumberOfValues(numberOfValues);
         for (id=i=0; i<numberOfValues; i++, id+=inputIncrement)
         {
-          newInput->SetValue(i, bitArray->GetValue(id));
+          newInput->SetValue(i, static_cast<unsigned char>(bitArray->GetValue(id)));
         }
         vtkLookupTableIndexedMapData(this,
                                      newInput->GetPointer(0),
@@ -1244,7 +1244,7 @@ void vtkLookupTable::MapScalarsThroughTable2(void *input,
         newInput->SetNumberOfValues(numberOfValues);
         for (id=i=0; i<numberOfValues; i++, id+=inputIncrement)
         {
-          newInput->SetValue(i, bitArray->GetValue(id));
+          newInput->SetValue(i, static_cast<unsigned char>(bitArray->GetValue(id)));
         }
         vtkLookupTableMapData(this, newInput->GetPointer(0),
                               output, numberOfValues,

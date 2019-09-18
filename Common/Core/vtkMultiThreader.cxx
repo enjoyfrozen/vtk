@@ -47,13 +47,13 @@ void vtkMultiThreader::SetGlobalMaximumNumberOfThreads(int val)
   vtkMultiThreaderGlobalMaximumNumberOfThreads = val;
 }
 
-int vtkMultiThreader::GetGlobalMaximumNumberOfThreads()
+vtkIdType vtkMultiThreader::GetGlobalMaximumNumberOfThreads()
 {
   return vtkMultiThreaderGlobalMaximumNumberOfThreads;
 }
 
 // 0 => Not initialized.
-static int vtkMultiThreaderGlobalDefaultNumberOfThreads = 0;
+static vtkIdType vtkMultiThreaderGlobalDefaultNumberOfThreads = 0;
 
 void vtkMultiThreader::SetGlobalDefaultNumberOfThreads(int val)
 {
@@ -64,11 +64,11 @@ void vtkMultiThreader::SetGlobalDefaultNumberOfThreads(int val)
   vtkMultiThreaderGlobalDefaultNumberOfThreads = val;
 }
 
-int vtkMultiThreader::GetGlobalDefaultNumberOfThreads()
+vtkIdType vtkMultiThreader::GetGlobalDefaultNumberOfThreads()
 {
   if (vtkMultiThreaderGlobalDefaultNumberOfThreads == 0)
   {
-    int num = 1; // default is 1
+    vtkIdType num = 1; // default is 1
 
 #ifdef VTK_USE_PTHREADS
     // Default the number of threads to be the number of available
@@ -153,9 +153,9 @@ vtkMultiThreader::~vtkMultiThreader()
 }
 
 //----------------------------------------------------------------------------
-int vtkMultiThreader::GetNumberOfThreads()
+vtkIdType vtkMultiThreader::GetNumberOfThreads()
 {
-  int num = this->NumberOfThreads;
+  vtkIdType num = this->NumberOfThreads;
   if(vtkMultiThreaderGlobalMaximumNumberOfThreads > 0 &&
      num > vtkMultiThreaderGlobalMaximumNumberOfThreads)
   {

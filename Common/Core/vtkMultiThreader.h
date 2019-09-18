@@ -97,8 +97,8 @@ public:
   class ThreadInfo
   {
   public:
-    int                 ThreadID;
-    int                 NumberOfThreads;
+    vtkIdType           ThreadID;
+    vtkIdType           NumberOfThreads;
     int                 *ActiveFlag;
     std::mutex          *ActiveFlagLock;
     void                *UserData;
@@ -111,7 +111,7 @@ public:
    * requested number of threads was accepted.
    */
   vtkSetClampMacro( NumberOfThreads, int, 1, VTK_MAX_THREADS );
-  virtual int GetNumberOfThreads();
+  virtual vtkIdType GetNumberOfThreads();
   //@}
 
   //@{
@@ -121,7 +121,7 @@ public:
    * A value of zero indicates no limit.
    */
   static void SetGlobalMaximumNumberOfThreads(int val);
-  static int  GetGlobalMaximumNumberOfThreads();
+  static vtkIdType  GetGlobalMaximumNumberOfThreads();
   //@}
 
   //@{
@@ -131,7 +131,7 @@ public:
    * processors or VTK_MAX_THREADS (which ever is less).
    */
   static void SetGlobalDefaultNumberOfThreads(int val);
-  static int  GetGlobalDefaultNumberOfThreads();
+  static vtkIdType  GetGlobalDefaultNumberOfThreads();
   //@}
 
   // These methods are excluded from wrapping 1) because the
@@ -199,7 +199,7 @@ protected:
   ~vtkMultiThreader() override;
 
   // The number of threads to use
-  int                        NumberOfThreads;
+  vtkIdType                  NumberOfThreads;
 
   // An array of thread info containing a thread id
   // (0, 1, 2, .. VTK_MAX_THREADS-1), the thread count, and a pointer

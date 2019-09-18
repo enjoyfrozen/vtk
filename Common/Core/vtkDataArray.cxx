@@ -220,8 +220,8 @@ struct InterpolateTupleWorker
 
     for (int c = 0; c < numComps; ++c)
     {
-      val = s1.Get(this->SrcTuple1, c) * oneMinusT +
-            s2.Get(this->SrcTuple2, c) * this->Weight;
+      val = static_cast<double>(s1.Get(this->SrcTuple1, c)) * oneMinusT +
+            static_cast<double>(s2.Get(this->SrcTuple2, c)) * this->Weight;
       vtkMath::RoundDoubleToIntegralIfNecessary(val, &valT);
       d.Insert(this->DstTuple, c, valT);
     }

@@ -727,7 +727,7 @@ double vtkColorTransferFunction::GetBlueValue(double x)
 
 //----------------------------------------------------------------------------
 // Returns a table of RGB colors at regular intervals along the function
-void vtkColorTransferFunction::GetTable(double xStart, double xEnd, int size, double* table)
+void vtkColorTransferFunction::GetTable(double xStart, double xEnd, vtkIdType size, double* table)
 {
   int i, j;
 
@@ -1194,7 +1194,7 @@ void vtkColorTransferFunction::GetTable(double xStart, double xEnd, int size, do
 }
 
 //----------------------------------------------------------------------------
-void vtkColorTransferFunction::GetTable(double xStart, double xEnd, int size, float* table)
+void vtkColorTransferFunction::GetTable(double xStart, double xEnd, vtkIdType size, float* table)
 {
   double* tmpTable = new double[size * 3];
 
@@ -1214,7 +1214,7 @@ void vtkColorTransferFunction::GetTable(double xStart, double xEnd, int size, fl
 }
 
 //----------------------------------------------------------------------------
-const unsigned char* vtkColorTransferFunction::GetTable(double xStart, double xEnd, int size)
+const unsigned char* vtkColorTransferFunction::GetTable(double xStart, double xEnd, vtkIdType size)
 {
   if (this->GetMTime() <= this->BuildTime && this->TableSize == size)
   {
@@ -1753,7 +1753,7 @@ void vtkColorTransferFunctionIndexedMapData(vtkColorTransferFunction* self,
 void vtkColorTransferFunction::MapScalarsThroughTable2(void* input,
   unsigned char* output,
   int inputDataType,
-  int numberOfValues,
+  vtkIdType numberOfValues,
   int inputIncrement,
   int outputFormat)
 {

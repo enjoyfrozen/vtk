@@ -169,7 +169,7 @@ public:
    * from vtkScalarsToColors and should never be called directly.
    */
   void MapScalarsThroughTable2(void *input, unsigned char *output,
-    int inputDataType, int numberOfValues,
+    int inputDataType, vtkIdType numberOfValues,
     int inputIncrement, int outputFormat) override;
 
   /**

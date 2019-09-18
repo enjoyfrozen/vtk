@@ -364,11 +364,11 @@ static void vtkDiscretizableColorTransferFunctionMapOpacity(
   vtkDiscretizableColorTransferFunction* self,
   T* input,
   unsigned char* output,
-  int length, int inIncr,
+  vtkIdType length, int inIncr,
   int outFormat)
 {
   double         x;
-  int            i = length;
+  vtkIdType      i = length;
   unsigned char *optr = output;
   T             *iptr = input;
 
@@ -402,7 +402,7 @@ static void vtkDiscretizableColorTransferFunctionMapOpacity(
 void vtkDiscretizableColorTransferFunction::MapScalarsThroughTable2(void *input,
   unsigned char *output,
   int inputDataType,
-  int numberOfValues,
+  vtkIdType numberOfValues,
   int inputIncrement,
   int outputFormat)
 {
