@@ -43,6 +43,13 @@ if (VTK_ANDROID_BUILD)
   return()
 endif()
 
+option(VTK_ARM_BUILD "Build VTK for ARM" OFF)
+mark_as_advanced(VTK_ARM_BUILD)
+if (VTK_ARM_BUILD)
+  include(vtkArm)
+  return()
+endif()
+
 include(vtkCompilerChecks)
 include(vtkCompilerPlatformFlags)
 include(vtkCompilerExtraFlags)
