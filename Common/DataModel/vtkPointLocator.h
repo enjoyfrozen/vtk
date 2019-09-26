@@ -222,7 +222,7 @@ public:
    * provides an ijk array that is the indices into the locator.
    * This method is thread safe.
    */
-  virtual vtkIdList *GetPointsInBucket(const double x[3], int ijk[3]);
+  virtual vtkIdList *GetPointsInBucket(const double x[3], vtkIdType ijk[3]);
 
   //@{
   /**
@@ -248,15 +248,15 @@ protected:
 
   // place points in appropriate buckets
   void GetBucketNeighbors(vtkNeighborPoints* buckets,
-                          const int ijk[3], const int ndivs[3], int level);
+                          const vtkIdType ijk[3], const int ndivs[3], int level);
   void GetOverlappingBuckets(vtkNeighborPoints* buckets,
-                             const double x[3], const int ijk[3], double dist,
+                             const double x[3], const vtkIdType ijk[3], double dist,
                              int level);
   void GetOverlappingBuckets(vtkNeighborPoints* buckets,
                              const double x[3], double dist,
                              int prevMinLevel[3],
                              int prevMaxLevel[3]);
-  void GenerateFace(int face, int i, int j, int k,
+  void GenerateFace(int face, vtkIdType i, vtkIdType j, vtkIdType k,
                     vtkPoints *pts, vtkCellArray *polys);
   double Distance2ToBucket(const double x[3], const int nei[3]);
   double Distance2ToBounds(const double x[3], const double bounds[6]);
@@ -276,7 +276,7 @@ protected:
   double FX, FY, FZ, BX, BY, BZ;
   vtkIdType XD, YD, ZD, SliceSize;
 
-  void GetBucketIndices(const double *x, int ijk[3]) const
+  void GetBucketIndices(const double *x, vtkIdType ijk[3]) const
   {
     // Compute point index. Make sure it lies within range of locator.
     vtkIdType tmp0 = static_cast<vtkIdType>(((x[0] - this->BX) * this->FX));
@@ -290,7 +290,7 @@ protected:
 
   vtkIdType GetBucketIndex(const double *x) const
   {
-    int ijk[3];
+    vtkIdType ijk[3];
     this->GetBucketIndices(x, ijk);
     return ijk[0] + ijk[1]*this->XD + ijk[2]*this->SliceSize;
   }

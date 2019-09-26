@@ -67,7 +67,7 @@ int vtkCellCenters::RequestData(vtkInformation* vtkNotUsed(request),
     if (!(cellId % progressInterval))
     {
       vtkDebugMacro(<< "Processing #" << cellId);
-      this->UpdateProgress(0.9 * cellId / numCells);
+      this->UpdateProgress(0.9 * static_cast<double>(cellId) / static_cast<double>(numCells));
       abort = this->GetAbortExecute();
     }
 

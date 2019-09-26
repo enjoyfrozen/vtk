@@ -45,14 +45,14 @@ namespace
 // LeftMax and rm defines the bounding planes.
 // start is the location in the cell tree. e.g. for root node start is zero.
 // size is the number of the nodes under the tree
-inline void vtkCellTreeLocator::vtkCellTreeNode::MakeNode( unsigned int left, unsigned int d, float b[2] ) // b is an array containing left max and right min values
+inline void vtkCellTreeLocator::vtkCellTreeNode::MakeNode( vtkIdType left, unsigned int d, double b[2] ) // b is an array containing left max and right min values
 {
   this->Index = (d & 3) | (left << 2);
   this->LeftMax = b[0];
   this->RightMin = b[1];
 }
 //----------------------------------------------------------------------------
-inline void vtkCellTreeLocator::vtkCellTreeNode::SetChildren( unsigned int left )
+inline void vtkCellTreeLocator::vtkCellTreeNode::SetChildren( vtkIdType left )
 {
   this->Index = GetDimension() | (left << 2); // In index 2 LSBs (Least Significant Bits) store the dimension. MSBs store the position
 }
@@ -62,17 +62,17 @@ inline bool vtkCellTreeLocator::vtkCellTreeNode::IsNode() const
   return (this->Index & 3) != 3;    // For a leaf 2 LSBs in index is 3
 }
 //----------------------------------------------------------------------------
-inline unsigned int vtkCellTreeLocator::vtkCellTreeNode::GetLeftChildIndex() const
+inline vtkIdType vtkCellTreeLocator::vtkCellTreeNode::GetLeftChildIndex() const
 {
   return (this->Index >> 2);
 }
 //----------------------------------------------------------------------------
-inline unsigned int vtkCellTreeLocator::vtkCellTreeNode::GetRightChildIndex() const
+inline vtkIdType vtkCellTreeLocator::vtkCellTreeNode::GetRightChildIndex() const
 {
   return (this->Index >> 2) + 1;  // Right child node is adjacent to the Left child node in the data structure
 }
 //----------------------------------------------------------------------------
-inline unsigned int vtkCellTreeLocator::vtkCellTreeNode::GetDimension() const
+inline vtkIdType vtkCellTreeLocator::vtkCellTreeNode::GetDimension() const
 {
   return this->Index & 3;
 }
@@ -87,7 +87,7 @@ inline const float& vtkCellTreeLocator::vtkCellTreeNode::GetRightMinValue() cons
   return this->RightMin;
 }
 //----------------------------------------------------------------------------
-inline void vtkCellTreeLocator::vtkCellTreeNode::MakeLeaf( unsigned int start, unsigned int size )
+inline void vtkCellTreeLocator::vtkCellTreeNode::MakeLeaf( unsigned int start, vtkIdType size )
 {
   this->Index = 3;
   this->Sz = size;
@@ -99,12 +99,12 @@ bool vtkCellTreeLocator::vtkCellTreeNode::IsLeaf() const
   return this->Index == 3;
 }
 //----------------------------------------------------------------------------
-unsigned int vtkCellTreeLocator::vtkCellTreeNode::Start() const
+vtkIdType vtkCellTreeLocator::vtkCellTreeNode::Start() const
 {
   return this->St;
 }
 //----------------------------------------------------------------------------
-unsigned int vtkCellTreeLocator::vtkCellTreeNode::Size() const
+vtkIdType vtkCellTreeLocator::vtkCellTreeNode::Size() const
 {
   return this->Sz;
 }
@@ -117,8 +117,8 @@ class vtkCellPointTraversal
 {
   private:
     const vtkCellTreeLocator::vtkCellTree& m_ct;
-    unsigned int    m_stack[CELLTREE_MAX_DEPTH];
-    unsigned int*   m_sp; // stack pointer
+    vtkIdType    m_stack[CELLTREE_MAX_DEPTH];
+    vtkIdType*   m_sp; // stack pointer
     const float*    m_pos; //3-D coordinates of the points
     vtkCellPointTraversal(const vtkCellPointTraversal&) = delete;
     void operator=(vtkCellPointTraversal&) = delete;
@@ -153,7 +153,7 @@ class vtkCellPointTraversal
             }
 
             const float p = m_pos[n->GetDimension()];
-            const unsigned int left = n->GetLeftChildIndex();
+            const vtkIdType left = n->GetLeftChildIndex();
 
             bool l = p <= n->GetLeftMaxValue(); // Check if the points is within the left sub tree
             bool r = p >= n->GetRightMinValue(); // Check if the point is within the right sub tree
@@ -192,18 +192,18 @@ class vtkCellTreeBuilder
 
     struct Bucket
     {
-      float  Min;
-      float  Max;
-      unsigned int Cnt;
+      double  Min;
+      double  Max;
+      vtkIdType Cnt;
 
       Bucket()
       {
         Cnt = 0;
-        Min =  std::numeric_limits<float>::max();
-        Max = -std::numeric_limits<float>::max();
+        Min =  std::numeric_limits<double>::max();
+        Max = -std::numeric_limits<double>::max();
       }
 
-      void Add( const float _min, const float _max )
+      void Add( const double _min, const double _max )
       {
         ++Cnt;
 
@@ -221,14 +221,14 @@ class vtkCellTreeBuilder
 
     struct PerCell
     {
-      float  Min[3];
-      float  Max[3];
-      unsigned int Ind;
+      double  Min[3];
+      double  Max[3];
+      vtkIdType Ind;
     };
 
     struct CenterOrder
     {
-      unsigned int d;
+      vtkIdType d;
       CenterOrder( unsigned int _d ) : d(_d) {}
 
       bool operator()( const PerCell& pc0, const PerCell& pc1 )
@@ -253,7 +253,7 @@ class vtkCellTreeBuilder
     // -------------------------------------------------------------------------
 
     void FindMinMax( const PerCell* begin, const PerCell* end,
-      float* min, float* max )
+      double* min, double* max )
     {
       if( begin == end )
       {
@@ -279,10 +279,10 @@ class vtkCellTreeBuilder
 
     // -------------------------------------------------------------------------
 
-    void Split( unsigned int index, float min[3], float max[3] )
+    void Split( vtkIdType index, double min[3], double max[3] )
     {
-      unsigned int start = this->m_nodes[index].Start();
-      unsigned int size  = this->m_nodes[index].Size();
+      vtkIdType start = this->m_nodes[index].Start();
+      vtkIdType size  = this->m_nodes[index].Size();
 
       if( size < this->m_leafsize )
       {
@@ -295,8 +295,8 @@ class vtkCellTreeBuilder
 
       const int nbuckets = 6;
 
-      const float ext[3] = { max[0]-min[0], max[1]-min[1], max[2]-min[2] };
-      const float iext[3] = { nbuckets/ext[0], nbuckets/ext[1], nbuckets/ext[2] };
+      const double ext[3] = { max[0]-min[0], max[1]-min[1], max[2]-min[2] };
+      const double iext[3] = { nbuckets/ext[0], nbuckets/ext[1], nbuckets/ext[2] };
 
       Bucket b[3][nbuckets];
 
@@ -304,7 +304,7 @@ class vtkCellTreeBuilder
       {
         for( unsigned int d=0; d<3; ++d )
         {
-          float cen = (pc->Min[d] + pc->Max[d])/2.0f;
+          double cen = (pc->Min[d] + pc->Max[d])/2.0;
           int   ind = (int)( (cen-min[d])*iext[d] );
 
           if( ind<0 )
@@ -321,18 +321,18 @@ class vtkCellTreeBuilder
         }
       }
 
-      float cost = std::numeric_limits<float>::max();
-      float plane = VTK_FLOAT_MIN; // bad value in case it doesn't get setx
+      double cost = std::numeric_limits<double>::max();
+      double plane = VTK_FLOAT_MIN; // bad value in case it doesn't get setx
       unsigned int dim = VTK_INT_MAX; // bad value in case it doesn't get set
 
       for( unsigned int d=0; d<3; ++d )
       {
-        unsigned int sum = 0;
+        vtkIdType sum = 0;
 
         for( unsigned int n=0; n< (unsigned int)nbuckets-1; ++n )
         {
-          float lmax = -std::numeric_limits<float>::max();
-          float rmin =  std::numeric_limits<float>::max();
+          double lmax = -std::numeric_limits<double>::max();
+          double rmin =  std::numeric_limits<double>::max();
 
           for( unsigned int m=0; m<=n; ++m )
           {
@@ -354,15 +354,15 @@ class vtkCellTreeBuilder
           // JB : added if (...) to stop floating point error if rmin is unset
           // this happens when some buckets are empty (bad volume calc)
           //
-          if (lmax != -std::numeric_limits<float>::max() &&
-              rmin !=  std::numeric_limits<float>::max())
+          if (lmax != -std::numeric_limits<double>::max() &&
+              rmin !=  std::numeric_limits<double>::max())
           {
               sum += b[d][n].Cnt;
 
-              float lvol = (lmax-min[d])/ext[d];
-              float rvol = (max[d]-rmin)/ext[d];
+              double lvol = (lmax-min[d])/ext[d];
+              double rvol = (max[d]-rmin)/ext[d];
 
-              float c = lvol*sum + rvol*(size-sum);
+              double c = lvol*sum + rvol*(size-sum);
 
               if( sum > 0 && sum < size && c < cost )
               {
@@ -388,18 +388,18 @@ class vtkCellTreeBuilder
         std::nth_element( begin, mid, end, CenterOrder( dim ) );
       }
 
-      float lmin[3], lmax[3], rmin[3], rmax[3];
+      double lmin[3], lmax[3], rmin[3], rmax[3];
 
       FindMinMax( begin, mid, lmin, lmax );
       FindMinMax( mid,   end, rmin, rmax );
 
-      float clip[2] = { lmax[dim], rmin[dim]};
+      double clip[2] = { lmax[dim], rmin[dim]};
 
       vtkCellTreeLocator::vtkCellTreeNode child[2];
       child[0].MakeLeaf( begin - &(this->m_pc[0]), mid-begin );
       child[1].MakeLeaf( mid   - &(this->m_pc[0]), end-mid );
 
-      this->m_nodes[index].MakeNode( (int)m_nodes.size(), dim, clip );
+      this->m_nodes[index].MakeNode( (vtkIdType)m_nodes.size(), dim, clip );
       this->m_nodes.insert( m_nodes.end(), child, child+2 );
 
       Split( this->m_nodes[index].GetLeftChildIndex(), lmin, lmax );
@@ -420,18 +420,18 @@ class vtkCellTreeBuilder
       double cellBounds[6];
       this->m_pc.resize(size);
 
-      float min[3] =
+      double min[3] =
         {
-        std::numeric_limits<float>::max(),
-        std::numeric_limits<float>::max(),
-        std::numeric_limits<float>::max()
+        std::numeric_limits<double>::max(),
+        std::numeric_limits<double>::max(),
+        std::numeric_limits<double>::max()
         };
 
-      float max[3] =
+      double max[3] =
         {
-        -std::numeric_limits<float>::max(),
-        -std::numeric_limits<float>::max(),
-        -std::numeric_limits<float>::max(),
+        -std::numeric_limits<double>::max(),
+        -std::numeric_limits<double>::max(),
+        -std::numeric_limits<double>::max(),
         };
 
       for( vtkIdType i=0; i<size; ++i )
@@ -501,7 +501,7 @@ class vtkCellTreeBuilder
 
       ct.Leaves.resize( size );
 
-      for( int i=0; i<size; ++i )
+      for( vtkIdType i=0; i<size; ++i )
       {
         ct.Leaves[i] = this->m_pc[i].Ind;
       }
@@ -624,8 +624,8 @@ vtkIdType vtkCellTreeLocator::FindCell( double pos[3], double , vtkGenericCell *
 
   while( const vtkCellTreeNode* n = pt.Next() )
   {
-    const unsigned int* begin = &(this->Tree->Leaves[n->Start()]);
-    const unsigned int* end = begin + n->Size();
+    const vtkIdType* begin = &(this->Tree->Leaves[n->Start()]);
+    const vtkIdType* end = begin + n->Size();
 
     for( ; begin!=end; ++begin )
     {
@@ -1324,7 +1324,7 @@ void vtkCellTreeLocator::GenerateRepresentation(int level, vtkPolyData *pd)
   //
   vtkCellTreeNode *n0 = &this->Tree->Nodes.front();
   // create a box for the root
-  float *DataBBox = this->Tree->DataBBox;
+  double *DataBBox = this->Tree->DataBBox;
   vtkBoundingBox lbox, rbox, rootbox(DataBBox[0], DataBBox[1], DataBBox[2], DataBBox[3], DataBBox[4], DataBBox[5]);
   ns.push(nodeBoxLevel(n0,boxLevel(rootbox,0)));
   while (!ns.empty())
@@ -1373,7 +1373,7 @@ void vtkCellTreeLocator::FindCellsWithinBounds(double *bbox, vtkIdList *cells)
   //
   vtkCellTreeNode *n0 = &this->Tree->Nodes.front();
   // create a box for the root
-  float *DataBBox = this->Tree->DataBBox;
+  double *DataBBox = this->Tree->DataBBox;
   vtkBoundingBox lbox, rbox, rootbox(DataBBox[0], DataBBox[1], DataBBox[2], DataBBox[3], DataBBox[4], DataBBox[5]);
   ns.push(nodeBoxLevel(n0,boxLevel(rootbox,0)));
   while (!ns.empty())

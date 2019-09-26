@@ -146,14 +146,14 @@ class VTKFILTERSGENERAL_EXPORT vtkCellTreeLocator : public vtkAbstractCellLocato
     {
       public:
         std::vector<vtkCellTreeNode>  Nodes;
-        std::vector<unsigned int> Leaves;
+        std::vector<vtkIdType> Leaves;
         friend class vtkCellPointTraversal;
         friend class vtkCellTreeNode;
         friend class vtkCellTreeBuilder;
     //@}
 
       public:
-        float DataBBox[6]; // This store the bounding values of the dataset
+        double DataBBox[6]; // This store the bounding values of the dataset
     };
 
     /**
@@ -171,30 +171,30 @@ class VTKFILTERSGENERAL_EXPORT vtkCellTreeLocator : public vtkAbstractCellLocato
       public:
 
       protected:
-        unsigned int Index;
-        float LeftMax;  // left max value
-        float RightMin;  // right min value
+        vtkIdType Index;
+        double LeftMax;  // left max value
+        double RightMin;  // right min value
 
-        unsigned int Sz; // size
-        unsigned int St; // start
+        vtkIdType Sz; // size
+        vtkIdType St; // start
 
         friend class vtkCellTree;
         friend class vtkCellPointTraversal;
         friend class vtkCellTreeBuilder;
 
       public:
-        void MakeNode( unsigned int left, unsigned int d, float b[2] );
-        void SetChildren( unsigned int left );
+        void MakeNode( vtkIdType left, unsigned int d, double b[2] );
+        void SetChildren( vtkIdType left );
         bool IsNode() const;
-        unsigned int GetLeftChildIndex() const;
-        unsigned int GetRightChildIndex() const;
-        unsigned int GetDimension() const;
+        vtkIdType GetLeftChildIndex() const;
+        vtkIdType GetRightChildIndex() const;
+        vtkIdType GetDimension() const;
         const float& GetLeftMaxValue() const;
         const float& GetRightMinValue() const;
-        void MakeLeaf( unsigned int start, unsigned int size );
+        void MakeLeaf( unsigned int start, vtkIdType size );
         bool IsLeaf() const;
-        unsigned int Start() const;
-        unsigned int Size() const;
+        vtkIdType Start() const;
+        vtkIdType Size() const;
     };
 
 protected:

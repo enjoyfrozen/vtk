@@ -55,7 +55,7 @@ public:
     return (this->Count > i ?  (this->P + 3*i) : nullptr);
   }
 
-  int InsertNextPoint(const int x[3])
+  int InsertNextPoint(const vtkIdType x[3])
   {
       int* tmp;
 
@@ -181,7 +181,8 @@ vtkIdType vtkPointLocator::FindClosestPoint(const double x[3])
   int level;
   vtkIdType ptId, closest, cno, nids;
   vtkIdList *ptIds;
-  int ijk[3], *nei;
+  vtkIdType ijk[3];
+  int *nei;
   vtkNeighborPoints buckets;
 
   if ( !this->DataSet || this->DataSet->GetNumberOfPoints() < 1 )
@@ -280,7 +281,8 @@ vtkIdType vtkPointLocator::FindClosestPointWithinRadius(double radius,
   double pt[3];
   vtkIdType ptId, nids, closest = -1;
   vtkIdList *ptIds;
-  int ijk[3], *nei;
+  vtkIdType ijk[3];
+  int *nei;
   double minDist2;
 
   double refinedRadius, radius2, refinedRadius2;
@@ -538,7 +540,8 @@ void vtkPointLocator::FindDistributedPoints(int N, const double x[3],
   int level;
   vtkIdType ptId, nids, cno;
   vtkIdList *ptIds;
-  int ijk[3], *nei;
+  vtkIdType ijk[3];
+  int *nei;
   int oct;
   int pointsChecked = 0;
   vtkNeighborPoints buckets;
@@ -683,7 +686,8 @@ void vtkPointLocator::FindClosestNPoints(int N, const double x[3],
   int level;
   vtkIdType ptId, nids, cno;
   vtkIdList *ptIds;
-  int ijk[3], *nei;
+  vtkIdType ijk[3];
+  int *nei;
   vtkNeighborPoints buckets;
 
   // clear out the result
@@ -797,7 +801,8 @@ void vtkPointLocator::FindPointsWithinRadius(double R, const double x[3],
   double pt[3];
   vtkIdType ptId, nids, cno;
   vtkIdList *ptIds;
-  int ijk[3], *nei;
+  vtkIdType ijk[3];
+  int *nei;
   double R2 = R*R;
   vtkNeighborPoints buckets;
 
@@ -944,11 +949,11 @@ void vtkPointLocator::BuildLocator()
 //  Internal function to get bucket neighbors at specified level
 //
 void vtkPointLocator::GetBucketNeighbors(vtkNeighborPoints* buckets,
-                                         const int ijk[3], const int ndivs[3],
+                                         const vtkIdType ijk[3], const int ndivs[3],
                                          int level)
 {
-  int i, j, k, min, max, minLevel[3], maxLevel[3];
-  int nei[3];
+  vtkIdType i, j, k, min, max, minLevel[3], maxLevel[3];
+  vtkIdType nei[3];
   //
   //  Initialize
   //
@@ -997,10 +1002,10 @@ void vtkPointLocator::GetBucketNeighbors(vtkNeighborPoints* buckets,
 // only those buckets outside of level radiuses of ijk are returned
 void vtkPointLocator::GetOverlappingBuckets(vtkNeighborPoints* buckets,
                                             const double x[3],
-                                            const int ijk[3],
+                                            const vtkIdType ijk[3],
                                             double dist, int level)
 {
-  int i, j, k, nei[3], minLevel[3], maxLevel[3];
+  vtkIdType i, j, k, nei[3], minLevel[3], maxLevel[3];
   double xMin[3], xMax[3];
 
   // Initialize
@@ -1045,7 +1050,7 @@ void vtkPointLocator::GetOverlappingBuckets(vtkNeighborPoints* buckets,
                                             int prevMinLevel[3],
                                             int prevMaxLevel[3])
 {
-  int i, j, k, nei[3], minLevel[3], maxLevel[3];
+  vtkIdType i, j, k, nei[3], minLevel[3], maxLevel[3];
   vtkIdType kFactor, jFactor;
   int jkSkipFlag, kSkipFlag;
   double xMin[3], xMax[3];
@@ -1276,7 +1281,7 @@ void vtkPointLocator::InsertPoint(vtkIdType ptId, const double x[3])
 // -1.
 vtkIdType vtkPointLocator::IsInsertedPoint(const double x[3])
 {
-  int i, j, ijk[3];
+  vtkIdType i, j, ijk[3];
   vtkNeighborPoints buckets;
   vtkIdType nids;
 
@@ -1355,7 +1360,8 @@ vtkIdType vtkPointLocator::FindClosestInsertedPoint(const double x[3])
   vtkIdType closest, j;
   vtkIdType ptId, nids, cno;
   vtkIdList *ptIds;
-  int ijk[3], *nei;
+  vtkIdType ijk[3];
+  int *nei;
   int MULTIPLES;
   double diff;
   vtkNeighborPoints buckets;
@@ -1457,7 +1463,7 @@ vtkIdType vtkPointLocator::FindClosestInsertedPoint(const double x[3])
 //-----------------------------------------------------------------------------
 // Return the list of points in the bucket containing x.
 vtkIdList *vtkPointLocator::GetPointsInBucket(const double x[3],
-                                              int ijk[3])
+                                              vtkIdType ijk[3])
 {
   int i;
 
@@ -1587,7 +1593,7 @@ void vtkPointLocator::GenerateRepresentation(int vtkNotUsed(level),
 }
 
 //-----------------------------------------------------------------------------
-void vtkPointLocator::GenerateFace(int face, int i, int j, int k,
+void vtkPointLocator::GenerateFace(int face, vtkIdType i, vtkIdType j, vtkIdType k,
                                    vtkPoints *pts, vtkCellArray *polys)
 {
   vtkIdType ids[4];

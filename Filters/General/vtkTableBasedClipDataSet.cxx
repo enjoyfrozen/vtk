@@ -404,7 +404,7 @@ vtkIdType vtkTableBasedClipperEdgeHashTable::AddPoint
     percent = apercent;
   }
 
-  int key = GetKey( p1, p2 );
+  vtkIdType key = GetKey( p1, p2 );
 
   //
   // See if we have any matches in the current hashes.
@@ -1251,7 +1251,7 @@ void vtkTableBasedClipperVolumeFromVolume::
 
         for ( l = 0; l < npts_per_shape; l ++ )
         {
-          int pt = *list;
+          vtkIdType pt = *list;
           list ++;
 
           if ( pt >= 0 && pt < numPrevPts )
@@ -1351,8 +1351,8 @@ void vtkTableBasedClipperVolumeFromVolume::
     {
       const TableBasedClipperPointEntry & pe = pe_list[j];
       double pt[3];
-      int idx1 = pe.ptIds[0];
-      int idx2 = pe.ptIds[1];
+      vtkIdType idx1 = pe.ptIds[0];
+      vtkIdType idx2 = pe.ptIds[1];
 
       // Construct the original points -- this will depend on whether
       // or not we started with a rectilinear grid or a point set.
@@ -1394,7 +1394,7 @@ void vtkTableBasedClipperVolumeFromVolume::
 
       if ( newOrigNodes )
       {
-        int id = ( bp <= 0.5 ? pe.ptIds[0] : pe.ptIds[1] );
+        vtkIdType id = ( bp <= 0.5 ? pe.ptIds[0] : pe.ptIds[1] );
         newOrigNodes->SetTuple(  ptIdx, origNodes->GetTuple( id )  );
       }
       ptIdx ++;
@@ -2416,7 +2416,7 @@ void vtkTableBasedClipDataSet::ClipRectilinearGridData( vtkDataSet * inputGrd,
     }
 
     int             nOutputs;
-    int             intrpIds[4];
+    vtkIdType       intrpIds[4];
     unsigned char * thisCase = nullptr;
 
     if ( isTwoDim )
@@ -2535,12 +2535,12 @@ void vtkTableBasedClipDataSet::ClipRectilinearGridData( vtkDataSet * inputGrd,
           double pt1ToIso = 0.0 - grdDiffs[ pt1Index ];
           double p1Weight = 1.0 - pt1ToIso / pt1ToPt2;
 
-          int    pntIndx1 =
+          vtkIdType    pntIndx1 =
                  (   (  theCellI + shiftLUT[0][ pt1Index ]  ) +
                      (  theCellJ + shiftLUT[1][ pt1Index ]  ) * pyStride +
                      (  theCellK + shiftLUT[2][ pt1Index ]  ) * pzStride
                  );
-          int    pntIndx2 =
+          vtkIdType    pntIndx2 =
                  (   (  theCellI + shiftLUT[0][ pt2Index ]  ) +
                      (  theCellJ + shiftLUT[1][ pt2Index ]  ) * pyStride +
                      (  theCellK + shiftLUT[2][ pt2Index ]  ) * pzStride
@@ -2744,16 +2744,16 @@ void vtkTableBasedClipDataSet::ClipStructuredGridData( vtkDataSet * inputGrd,
   for ( i = 0; i < numCells; i ++ )
   {
     int    caseIndx = 0;
-    int    theCellI = (cellDims[0] > 0 ? i % cellDims[0] : 0);
-    int    theCellJ = (cellDims[1] > 0 ? ( i / cyStride ) % cellDims[1] : 0);
-    int    theCellK = (cellDims[2] > 0 ? ( i / czStride ) : 0);
+    vtkIdType    theCellI = (cellDims[0] > 0 ? i % cellDims[0] : 0);
+    vtkIdType    theCellJ = (cellDims[1] > 0 ? ( i / cyStride ) % cellDims[1] : 0);
+    vtkIdType    theCellK = (cellDims[2] > 0 ? ( i / czStride ) : 0);
     double grdDiffs[8];
 
     numbPnts = isTwoDim ? 4 : 8;
 
     for ( j = numbPnts - 1; j >= 0; j -- )
     {
-      int pntIndex = ( theCellI + shiftLUT[0][j] ) +
+      vtkIdType pntIndex = ( theCellI + shiftLUT[0][j] ) +
                      ( theCellJ + shiftLUT[1][j] ) * pyStride +
                      ( theCellK + shiftLUT[2][j] ) * pzStride;
 
@@ -2882,12 +2882,12 @@ void vtkTableBasedClipDataSet::ClipStructuredGridData( vtkDataSet * inputGrd,
           double pt1ToIso = 0.0 - grdDiffs[ pt1Index ];
           double p1Weight = 1.0 - pt1ToIso / pt1ToPt2;
 
-          int    pntIndx1 =
+          vtkIdType    pntIndx1 =
                  (   (  theCellI + shiftLUT[0][ pt1Index ] ) +
                      (  theCellJ + shiftLUT[1][ pt1Index ]  ) * pyStride +
                      (  theCellK + shiftLUT[2][ pt1Index ]  ) * pzStride
                  );
-          int    pntIndx2 =
+          vtkIdType    pntIndx2 =
                  (   (  theCellI + shiftLUT[0][ pt2Index ]  ) +
                      (  theCellJ + shiftLUT[1][ pt2Index ]  ) * pyStride +
                      (  theCellK + shiftLUT[2][ pt2Index ]  ) * pzStride

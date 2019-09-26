@@ -137,7 +137,7 @@ void vtkTriangleStrip::Contour(double value, vtkDataArray *cellScalars,
                                vtkCellData *inCd, vtkIdType cellId,
                                vtkCellData *outCd)
 {
-  int i, numTris=this->Points->GetNumberOfPoints()-2;
+  vtkIdType i, numTris=this->Points->GetNumberOfPoints()-2;
   vtkDataArray *triScalars=cellScalars->NewInstance();
   triScalars->SetNumberOfComponents(cellScalars->GetNumberOfComponents());
   triScalars->SetNumberOfTuples(3);
@@ -224,7 +224,7 @@ int vtkTriangleStrip::IntersectWithLine(const double p1[3], const double p2[3], 
 int vtkTriangleStrip::Triangulate(int vtkNotUsed(index), vtkIdList *ptIds,
                                   vtkPoints *pts)
 {
-  int numTris = this->Points->GetNumberOfPoints()-2;
+  vtkIdType numTris = this->Points->GetNumberOfPoints()-2;
   int i, order;
   static const int idx[2][3]={{0,1,2},{1,0,2}};
 
@@ -259,10 +259,10 @@ void vtkTriangleStrip::Derivatives(int subId, const double pcoords[3], const dou
 //----------------------------------------------------------------------------
 // Given a triangle strip, decompose it into (triangle) polygons. The
 // polygons are appended to the end of the list of polygons.
-void vtkTriangleStrip::DecomposeStrip(int npts, vtkIdType *pts,
+void vtkTriangleStrip::DecomposeStrip(vtkIdType npts, vtkIdType *pts,
                                       vtkCellArray *polys)
 {
-  int p1, p2, p3, i;
+  vtkIdType p1, p2, p3, i;
 
   p1 = pts[0];
   p2 = pts[1];
@@ -294,7 +294,7 @@ void vtkTriangleStrip::Clip(double value, vtkDataArray *cellScalars,
                             vtkCellData *inCd, vtkIdType cellId,
                             vtkCellData *outCd, int insideOut)
 {
-  int i, numTris=this->Points->GetNumberOfPoints()-2;
+  vtkIdType i, numTris=this->Points->GetNumberOfPoints()-2;
   int id1, id2, id3;
   vtkDataArray *triScalars=cellScalars->NewInstance();
   triScalars->SetNumberOfComponents(cellScalars->GetNumberOfComponents());

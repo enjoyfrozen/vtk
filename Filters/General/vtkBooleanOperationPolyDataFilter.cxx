@@ -49,7 +49,7 @@ void vtkBooleanOperationPolyDataFilter::SortPolyData(vtkPolyData* input,
                                                      vtkIdList* interList,
                                                      vtkIdList* unionList)
 {
-  int numCells = input->GetNumberOfCells();
+  vtkIdType numCells = input->GetNumberOfCells();
 
   vtkDoubleArray *distArray = vtkArrayDownCast<vtkDoubleArray>
     ( input->GetCellData()->GetArray("Distance") );
@@ -340,9 +340,9 @@ void vtkBooleanOperationPolyDataFilter
         {
           float normal[3];
           outNormals->GetTypedTuple( newId, normal );
-          normal[0] *= -1.0;
-          normal[1] *= -1.0;
-          normal[2] *= -1.0;
+          normal[0] *= -1.0f;
+          normal[1] *= -1.0f;
+          normal[2] *= -1.0f;
           outNormals->SetTypedTuple( newId, normal );
         }
 

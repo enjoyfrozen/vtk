@@ -77,12 +77,12 @@ int vtkBrownianPoints::RequestData(
     this->MaximumSpeed = 1.0;
   }
 
-  int tenth = numPts/10 + 1;
+  vtkIdType tenth = numPts/10 + 1;
   for (i=0; i<numPts; i++)
   {
     if ( ! (i % tenth) )
     {
-      this->UpdateProgress (static_cast<double>(i)/numPts);
+      this->UpdateProgress (static_cast<double>(i)/static_cast<double>(numPts));
       if (this->GetAbortExecute())
       {
         break;

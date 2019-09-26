@@ -443,7 +443,7 @@ int vtkClipClosedSurface::RequestData(
 
   // Copy the polygons, convert strips to triangles
   vtkCellArray *polys = nullptr;
-  int polyMax = 3;
+  vtkIdType polyMax = 3;
   if ((input->GetPolys() && input->GetPolys()->GetNumberOfCells() > 0) ||
       (input->GetStrips() && input->GetStrips()->GetNumberOfCells() > 0))
   {
