@@ -66,20 +66,6 @@ public:
   void PrintSelf(ostream& os, vtkIndent indent) override;
   //@}
 
-  //@{
-  /**
-   * See vtkCell3D API for description of these methods.
-   * @warning These method are unimplemented in vtkPolyhedron
-   */
-  void GetEdgePoints(int vtkNotUsed(edgeId), int* &vtkNotUsed(pts)) override {vtkWarningMacro(<< "vtkPolyhedron::GetEdgePoints Not Implemented");}
-  void GetFacePoints(int vtkNotUsed(faceId), int* &vtkNotUsed(pts)) override {vtkWarningMacro(<< "vtkPolyhedron::GetFacePoints Not Implemented");}
-  //@}
-
-  /**
-   * See vtkCell3D API for description of this method.
-   */
-  double *GetParametricCoords() override;
-
   /**
    * See the vtkCell API for descriptions of these methods.
    */
@@ -298,9 +284,14 @@ protected:
   vtkIdList      *CellIds;
   vtkGenericCell *Cell;
 
-  void InternalGetEdgePoints(int vtkNotUsed(edgeId), int* &vtkNotUsed(pts)) override {}
-  void InternalGetFacePoints(int vtkNotUsed(faceId), int* &vtkNotUsed(pts)) override {}
-
+  //@{
+/**
+ * See vtkCell3D API for description of these methods.
+ * @warning These method are unimplemented in vtkPolyhedron
+ */
+  void InternalGetEdgePoints(int vtkNotUsed(edgeId), int* &vtkNotUsed(pts)) override { vtkWarningMacro(<< "vtkPolyhedron::InternalGetEdgePoints Not Implemented"); }
+  void InternalGetFacePoints(int vtkNotUsed(faceId), int* &vtkNotUsed(pts)) override { vtkWarningMacro(<< "vtkPolyhedron::InternalGetFacePoints Not Implemented"); }
+  //@}
   double *InternalGetParametricCoords() override;
   int InternalGetNumberOfPointsOnEdge(vtkIdType edgeId) override { return 0 * edgeId; }
   int InternalGetNumberOfPointsOnFace(vtkIdType faceId) override { return 0 * faceId; }
