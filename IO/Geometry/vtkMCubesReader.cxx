@@ -14,6 +14,7 @@
 =========================================================================*/
 #include "vtkMCubesReader.h"
 
+#include <vtksys/SystemTools.hxx>
 #include "vtkByteSwap.h"
 #include "vtkCellArray.h"
 #include "vtkFloatArray.h"
@@ -100,7 +101,7 @@ int vtkMCubesReader::RequestData(vtkInformation* vtkNotUsed(request),
     vtkErrorMacro(<< "Please specify input FileName");
     return 0;
   }
-  if ((fp = fopen(this->FileName, "rb")) == nullptr)
+  if ((fp = vtksys::SystemTools::Fopen(this->FileName, "rb")) == nullptr)
   {
     vtkErrorMacro(<< "File " << this->FileName << " not found");
     return 0;

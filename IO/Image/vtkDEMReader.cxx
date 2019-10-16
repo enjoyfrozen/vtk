@@ -14,6 +14,7 @@
 =========================================================================*/
 #include "vtkDEMReader.h"
 
+#include <vtksys/SystemTools.hxx>
 #include "vtkDataArray.h"
 #include "vtkImageData.h"
 #include "vtkInformation.h"
@@ -177,7 +178,7 @@ int vtkDEMReader::ReadTypeARecord()
     return -1;
   }
 
-  if ((fp = fopen(this->FileName, "rb")) == nullptr)
+  if ((fp = vtksys::SystemTools::Fopen(this->FileName, "rb")) == nullptr)
   {
     vtkErrorMacro(<< "File " << this->FileName << " not found");
     return -1;
@@ -377,7 +378,7 @@ int vtkDEMReader::ReadProfiles(vtkImageData* data)
     return -1;
   }
 
-  if ((fp = fopen(this->FileName, "rb")) == nullptr)
+  if ((fp = vtksys::SystemTools::Fopen(this->FileName, "rb")) == nullptr)
   {
     vtkErrorMacro(<< "File " << this->FileName << " not found");
     return -1;

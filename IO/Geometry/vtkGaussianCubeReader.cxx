@@ -14,6 +14,7 @@
 =========================================================================*/
 #include "vtkGaussianCubeReader.h"
 
+#include <vtksys/SystemTools.hxx>
 #include "vtkFloatArray.h"
 #include "vtkIdTypeArray.h"
 #include "vtkImageData.h"
@@ -84,7 +85,7 @@ int vtkGaussianCubeReader::RequestData(vtkInformation* vtkNotUsed(request),
     return 0;
   }
 
-  if ((fp = fopen(this->FileName, "r")) == nullptr)
+  if ((fp = vtksys::SystemTools::Fopen(this->FileName, "r")) == nullptr)
   {
     vtkErrorMacro(<< "File " << this->FileName << " not found");
     return 0;
@@ -303,7 +304,7 @@ int vtkGaussianCubeReader::RequestInformation(vtkInformation* vtkNotUsed(request
     return 0;
   }
 
-  if ((fp = fopen(this->FileName, "r")) == nullptr)
+  if ((fp = vtksys::SystemTools::Fopen(this->FileName, "r")) == nullptr)
   {
     vtkErrorMacro(<< "File " << this->FileName << " not found");
     return 0;

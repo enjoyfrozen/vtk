@@ -14,6 +14,7 @@
 =========================================================================*/
 #include "vtkIVWriter.h"
 
+#include <vtksys/SystemTools.hxx>
 #include "vtkCellArray.h"
 #include "vtkInformation.h"
 #include "vtkLookupTable.h"
@@ -36,7 +37,7 @@ void vtkIVWriter::WriteData()
   }
 
   // try opening the files
-  fp = fopen(this->FileName, "w");
+  fp = vtksys::SystemTools::Fopen(this->FileName, "w");
   if (!fp)
   {
     vtkErrorMacro(<< "unable to open OpenInventor file: " << this->FileName);

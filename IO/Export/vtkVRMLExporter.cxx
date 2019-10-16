@@ -14,6 +14,7 @@
 =========================================================================*/
 #include "vtkVRMLExporter.h"
 
+#include <vtksys/SystemTools.hxx>
 #include "vtkAssemblyNode.h"
 #include "vtkAssemblyPath.h"
 #include "vtkCamera.h"
@@ -102,7 +103,7 @@ void vtkVRMLExporter::WriteData()
   // try opening the files
   if (!this->FilePointer)
   {
-    fp = fopen(this->FileName, "w");
+    fp = vtksys::SystemTools::Fopen(this->FileName, "w");
     if (!fp)
     {
       vtkErrorMacro(<< "unable to open VRML file " << this->FileName);

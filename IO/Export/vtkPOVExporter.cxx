@@ -61,6 +61,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "vtkPOVExporter.h"
 
+#include <vtksys/SystemTools.hxx>
 #include "vtkAssemblyPath.h"
 #include "vtkCamera.h"
 #include "vtkCellArray.h"
@@ -175,7 +176,7 @@ void vtkPOVExporter::WriteData()
   }
 
   // try opening the file
-  this->FilePtr = fopen(this->FileName, "w");
+  this->FilePtr = vtksys::SystemTools::Fopen(this->FileName, "w");
   if (this->FilePtr == nullptr)
   {
     vtkErrorMacro(<< "Cannot open " << this->FileName);

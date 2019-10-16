@@ -15,6 +15,7 @@
 
 #include "vtkOggTheoraWriter.h"
 
+#include <vtksys/SystemTools.hxx>
 #include "vtkErrorCode.h"
 #include "vtkImageData.h"
 #include "vtkObjectFactory.h"
@@ -189,7 +190,7 @@ int vtkOggTheoraWriterInternal::Start()
   th_info_clear(&thInfo);
 
   // Finally, open the file and start it off.
-  this->outFile = fopen(this->Writer->GetFileName(), "wb");
+  this->outFile = vtksys::SystemTools::Fopen(this->Writer->GetFileName(), "wb");
   if (!this->outFile)
   {
     vtkGenericWarningMacro(<< "Could not open " << this->Writer->GetFileName() << ".");
