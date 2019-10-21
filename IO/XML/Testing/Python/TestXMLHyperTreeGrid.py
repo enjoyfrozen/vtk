@@ -341,4 +341,3 @@ if iren is not None:
 renWin.Render()
 if iren is not None:
   iren.Start()
-
