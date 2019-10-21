@@ -197,7 +197,7 @@ public:
       nbVerticesbyLevel->InsertNextValue( static_cast<unsigned long>(globalIdByLevel[iLevel].size()));
     }
     nbVerticesbyLevel->Squeeze();
-    //
+    // Ids
     vtkIdType nb = this->GetNumberOfVertices();
     ids->SetNumberOfIds( nb );
     for ( std::size_t i = 0, iLevel = 0; iLevel < globalIdByLevel.size(); ++ iLevel )
@@ -210,39 +210,65 @@ public:
       globalIdByLevel[iLevel].clear();
     }
     globalIdByLevel.clear();
-    // For more compressed
-    if( maxLevels > 2 )
+    // isParent compressed
     {
-      std::vector< bool >& desc = descByLevel[maxLevels - 2];
-      for ( std::vector< bool >::reverse_iterator it = desc.rbegin();
-           it != desc.rend(); -- it )
+      // Find last level with cells
+      int reduceLevel = maxLevels - 1;
+      for (; descByLevel[reduceLevel].size() == 0; -- reduceLevel);
+      // By definition, all values is false
+      for (auto it = descByLevel[reduceLevel].begin(); it != descByLevel[reduceLevel].end(); ++ it)
       {
-        if ( *it )
+        assert( ! (*it) );
+      }
+      // Move before last level with cells
+      -- reduceLevel;
+      // We're looking for the latest true value
+      if( reduceLevel > 0 )
+      {
+        std::vector< bool >& desc = descByLevel[reduceLevel];
+        for ( std::vector< bool >::reverse_iterator it = desc.rbegin();
+              it != desc.rend(); ++ it )
         {
-          if ( it != desc.rend() )
+          if ( *it )
           {
+            // Resize to ignore the latest false values
+            // There is by definition at least one value true
             desc.resize( std::distance( it, desc.rend() ) );
+            break;
           }
-          break;
         }
       }
-    }
-    // isParent
-    isParent->Resize( 0 );
-    for ( int iLevel = 0; iLevel < maxLevels - 1; ++ iLevel )
-    {
-      for ( auto etat: descByLevel[iLevel] )
+      isParent->Resize( 0 );
+      for ( int iLevel = 0; iLevel <= reduceLevel; ++ iLevel )
       {
-        isParent->InsertNextValue(etat);
+        for ( auto etat: descByLevel[iLevel] )
+        {
+          isParent->InsertNextValue(etat);
+        }
       }
+      isParent->Squeeze();
     }
-    //
-    isParent->Squeeze();
-    // isMasked
+    // isMasked compressed
     if ( inIsMasked )
     {
+      int reduceLevel = 0;
+      for(; reduceLevel > 0; --reduceLevel)
+      {
+          std::vector< bool >& mask = maskByLevel[reduceLevel];
+          for ( std::vector< bool >::reverse_iterator it = mask.rbegin();
+                it != mask.rend(); ++ it )
+          {
+              if ( *it )
+              {
+                  // Resize to ignore the latest false values
+                  // There is by definition at least one value true
+                  mask.resize( std::distance( it, mask.rend() ) );
+                  break;
+              }
+          }
+      }
       isMasked->Resize( 0 );
-      for ( int iLevel = 0; iLevel < maxLevels; ++ iLevel )
+      for ( int iLevel = 0; iLevel <= reduceLevel; ++ iLevel )
       {
         for ( auto etat: maskByLevel[iLevel] )
         {
