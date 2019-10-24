@@ -582,6 +582,23 @@ public:
   static vtkPolyData* GetData(vtkInformationVector* v, int i = 0);
   //@}
 
+  //@{
+  /**
+   * Get direct access to the cell offsets and types. These methods are only
+   * valid after BuildCells() has been called. Also note these offsets and
+   * types implicitly depend on the organization of vtkPolyData into four
+   * separate data arrays in order of (points, lines, polys, strips); i.e.,
+   * the types and locations refer to all of the cells across these four
+   * arrays.
+   */
+  /* vtkUnsignedCharArray* GetCellTypesArray() */
+  /*   { return (this->Cells == nullptr ? nullptr : */
+  /*             this->Cells->GetCellTypesArray() ); } */
+  /* vtkIdTypeArray* GetCellLocationsArray() */
+  /*   { return (this->Cells == nullptr ? nullptr : */
+  /*             this->Cells->GetCellLocationsArray() ); } */
+  //@}
+
   /**
    * Scalar field critical point classification (for manifold 2D meshes).
    * Reference: J. Milnor "Morse Theory", Princeton University Press, 1963.
