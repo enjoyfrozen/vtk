@@ -35,6 +35,7 @@
 #include "vtkVectorOperators.h"
 
 #include <vtksys/RegularExpression.hxx>
+#include "vtksys/FStream.hxx"
 
 #include <algorithm>
 #include <cassert>
@@ -175,7 +176,7 @@ int vtkVASPTessellationReader::RequestData(
     vtkUnstructuredGrid::SafeDownCast(outInfo1->Get(vtkDataObject::DATA_OBJECT()));
   assert(voronoi);
 
-  std::ifstream in(this->FileName);
+  vtksys::ifstream in(this->FileName);
   if (!in)
   {
     vtkErrorMacro("Could not open file for reading: " << (this->FileName ? this->FileName : ""));
@@ -213,7 +214,7 @@ int vtkVASPTessellationReader::RequestData(
 int vtkVASPTessellationReader::RequestInformation(
   vtkInformation*, vtkInformationVector**, vtkInformationVector* outInfos)
 {
-  std::ifstream in(this->FileName);
+  vtksys::ifstream in(this->FileName);
   if (!in)
   {
     vtkErrorMacro("Could not open file for reading: " << (this->FileName ? this->FileName : ""));

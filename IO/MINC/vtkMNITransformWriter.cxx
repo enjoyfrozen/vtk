@@ -74,6 +74,7 @@ POSSIBILITY OF SUCH DAMAGES.
 
 #include <stack>
 #include <vtksys/SystemTools.hxx>
+#include <vtksys/FStream.hxx>
 
 //--------------------------------------------------------------------------
 vtkStandardNewMacro(vtkMNITransformWriter);
@@ -413,7 +414,7 @@ int vtkMNITransformWriter::WriteFile()
   }
 
   // Open the file.
-  ofstream outfile(this->FileName, ios::out);
+  vtksys::ofstream outfile(this->FileName, ios::out);
 
   if (outfile.fail())
   {

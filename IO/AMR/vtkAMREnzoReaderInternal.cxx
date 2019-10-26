@@ -17,6 +17,7 @@
 #define H5_USE_16_API
 #include "vtk_hdf5.h" // for the HDF5 library
 
+#include "vtksys/FStream.hxx"
 #include "vtkCellData.h"
 #include "vtkDataArray.h"
 #include "vtkDataSet.h"
@@ -586,7 +587,7 @@ int vtkEnzoReaderInternal::LoadAttribute(const char* attribute, int blockIdx)
 // block file name, and particle file name of each block
 void vtkEnzoReaderInternal::ReadBlockStructures()
 {
-  ifstream stream(this->HierarchyFileName.c_str());
+  vtksys::ifstream stream(this->HierarchyFileName.c_str());
   if (!stream)
   {
     vtkGenericWarningMacro(
@@ -815,7 +816,7 @@ void vtkEnzoReaderInternal::ReadBlockStructures()
 // obtain the general information of the dataset (number of dimensions)
 void vtkEnzoReaderInternal::ReadGeneralParameters()
 {
-  ifstream stream(this->MajorFileName.c_str());
+  vtksys::ifstream stream(this->MajorFileName.c_str());
   if (!stream)
   {
     vtkGenericWarningMacro("Invalid parameter file " << this->MajorFileName.c_str() << endl);

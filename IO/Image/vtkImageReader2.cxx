@@ -26,6 +26,7 @@
 #include "vtkStringArray.h"
 
 #include "vtksys/SystemTools.hxx"
+#include "vtksys/Encoding.hxx"
 
 vtkStandardNewMacro(vtkImageReader2);
 
@@ -575,7 +576,8 @@ int vtkImageReader2::OpenFile()
   if (!vtksys::SystemTools::Stat(this->InternalFileName, &fs))
   {
 #ifdef _WIN32
-    this->File = new ifstream(this->InternalFileName, ios::in | ios::binary);
+    std::wstring wfilename = vtksys::Encoding::ToWindowsExtendedPath(this->InternalFileName);
+    this->File = new ifstream(wfilename, ios::in | ios::binary);
 #else
     this->File = new ifstream(this->InternalFileName, ios::in);
 #endif

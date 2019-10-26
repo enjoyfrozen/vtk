@@ -16,6 +16,7 @@
 #include "vtkObjectFactory.h"
 #include "vtkUnstructuredGrid.h"
 #include "vtksys/SystemTools.hxx"
+#include "vtksys/FStream.hxx"
 
 #include <iostream>
 #include <sstream>
@@ -113,7 +114,7 @@ int vtkSEPReader::ReadHeader()
     return 0;
   }
 
-  ifstream file(this->FileName, ios::in | ios::binary);
+  vtksys::ifstream file(this->FileName, ios::in | ios::binary);
   if (file.fail())
   {
     vtkErrorMacro(<< "Could not open file " << this->FileName);

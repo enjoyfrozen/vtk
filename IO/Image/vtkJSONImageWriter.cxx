@@ -27,6 +27,7 @@
 #include "vtkStreamingDemandDrivenPipeline.h"
 
 #include <vtksys/SystemTools.hxx>
+#include <vtksys/FStream.hxx>
 
 vtkStandardNewMacro(vtkJSONImageWriter);
 
@@ -80,7 +81,7 @@ int vtkJSONImageWriter::RequestData(vtkInformation* vtkNotUsed(request),
   vtkCharArray* validMask =
     vtkArrayDownCast<vtkCharArray>(input->GetPointData()->GetArray("vtkValidPointMask"));
 
-  ofstream file(this->FileName, ios::out);
+  vtksys::ofstream file(this->FileName, ios::out);
   if (file.fail())
   {
     vtkErrorMacro("RecursiveWrite: Could not open file " << this->FileName);
