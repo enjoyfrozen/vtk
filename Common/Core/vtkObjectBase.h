@@ -48,11 +48,11 @@
 // The object factory methods take care of this automatically.
 #define VTK_HAS_INITIALIZE_OBJECT_BASE
 
+#include "vtkAtomicTypes.h"      // needs to be included after vtkSystemIncludes.h
+                                 // for warning suppressions to work on Visual Studio
 #include "vtkCommonCoreModule.h" // For export macro
 #include "vtkIndent.h"
 #include "vtkSystemIncludes.h"
-#include "vtkAtomicTypes.h" // needs to be included after vtkSystemIncludes.h
-                            // for warning suppressions to work on Visual Studio
 
 class vtkGarbageCollector;
 class vtkGarbageCollectorToObjectBaseFriendship;

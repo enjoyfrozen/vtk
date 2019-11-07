@@ -14,18 +14,17 @@
 =========================================================================*/
 #include "vtkDecimatePolylineFilter.h"
 
+#include "vtkCellArray.h"
+#include "vtkCellData.h"
 #include "vtkDoubleArray.h"
-#include "vtkLine.h"
-#include "vtkMath.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
-#include "vtkObjectFactory.h"
 #include "vtkLine.h"
-#include "vtkPolyData.h"
-#include "vtkPoints.h"
-#include "vtkCellArray.h"
+#include "vtkMath.h"
+#include "vtkObjectFactory.h"
 #include "vtkPointData.h"
-#include "vtkCellData.h"
+#include "vtkPoints.h"
+#include "vtkPolyData.h"
 #include "vtkPriorityQueue.h"
 
 #include <map>

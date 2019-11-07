@@ -22,9 +22,9 @@
 #ifndef vtkGenericDataArrayLookupHelper_h
 #define vtkGenericDataArrayLookupHelper_h
 
+#include "vtkIdList.h"
 #include <algorithm>
 #include <cmath>
-#include "vtkIdList.h"
 
 namespace detail
 {

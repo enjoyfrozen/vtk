@@ -18,14 +18,14 @@
 //  this software.
 //============================================================================
 
-#include "vtkmlib/Storage.h"
 #include "vtkmCellSetExplicit.h"
 #include "vtkmConnectivityExec.h"
+#include "vtkmlib/Storage.h"
 
 #include <vtkm/cont/ArrayHandleImplicit.h>
 #include <vtkm/cont/internal/ReverseConnectivityBuilder.h>
-#include <vtkm/worklet/WorkletMapField.h>
 #include <vtkm/worklet/DispatcherMapField.h>
+#include <vtkm/worklet/WorkletMapField.h>
 
 #include <utility>
 

@@ -17,13 +17,13 @@
 //  Laboratory (LANL), the U.S. Government retains certain rights in
 //  this software.
 //============================================================================
-#include "vtkmlib/Storage.h"
 #include "vtkmCellSetSingleType.h"
 #include "vtkmConnectivityExec.h"
+#include "vtkmlib/Storage.h"
 
 #include <vtkm/cont/internal/ReverseConnectivityBuilder.h>
-#include <vtkm/worklet/WorkletMapField.h>
 #include <vtkm/worklet/DispatcherMapField.h>
+#include <vtkm/worklet/WorkletMapField.h>
 
 namespace
 {

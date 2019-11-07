@@ -38,11 +38,11 @@
 #define vtk3DLinearGridInternal_h
 
 // Include appropriate cell types
-#include "vtkTetra.h"
 #include "vtkHexahedron.h"
-#include "vtkWedge.h"
 #include "vtkPyramid.h"
+#include "vtkTetra.h"
 #include "vtkVoxel.h"
+#include "vtkWedge.h"
 #include <cmath>
 
 namespace { //anonymous namespace

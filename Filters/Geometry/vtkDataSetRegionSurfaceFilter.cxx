@@ -9,16 +9,16 @@
 //=========================================================================
 #include "vtkDataSetRegionSurfaceFilter.h"
 
-#include "vtkCellData.h"
 #include "vtkCellArray.h"
+#include "vtkCellData.h"
 #include "vtkCharArray.h"
 #include "vtkDoubleArray.h"
 #include "vtkGenericCell.h"
 #include "vtkIdList.h"
 #include "vtkIdTypeArray.h"
-#include "vtkIntArray.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
+#include "vtkIntArray.h"
 #include "vtkNew.h"
 #include "vtkObjectFactory.h"
 #include "vtkPointData.h"

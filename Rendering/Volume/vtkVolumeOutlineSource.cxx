@@ -14,20 +14,20 @@
 =========================================================================*/
 #include "vtkVolumeOutlineSource.h"
 
-#include "vtkDataSet.h"
-#include "vtkDemandDrivenPipeline.h"
-#include "vtkInformation.h"
-#include "vtkInformationVector.h"
-#include "vtkObjectFactory.h"
-#include "vtkImageData.h"
-#include "vtkPolyData.h"
-#include "vtkPoints.h"
 #include "vtkCellArray.h"
 #include "vtkCellData.h"
+#include "vtkDataSet.h"
+#include "vtkDemandDrivenPipeline.h"
+#include "vtkImageData.h"
+#include "vtkInformation.h"
+#include "vtkInformationVector.h"
+#include "vtkMath.h"
+#include "vtkObjectFactory.h"
+#include "vtkPoints.h"
+#include "vtkPolyData.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
 #include "vtkUnsignedCharArray.h"
 #include "vtkVolumeMapper.h"
-#include "vtkMath.h"
 
 vtkStandardNewMacro(vtkVolumeOutlineSource);
 

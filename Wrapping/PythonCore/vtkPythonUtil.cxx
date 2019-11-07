@@ -28,13 +28,13 @@
 #include "vtkWeakPointer.h"
 #include "vtkWindows.h"
 
+#include <algorithm>
 #include <cstring>
-#include <sstream>
 #include <map>
-#include <vector>
+#include <sstream>
 #include <string>
 #include <utility>
-#include <algorithm>
+#include <vector>
 
 // for uintptr_t
 #ifdef _MSC_VER

@@ -20,14 +20,14 @@
 #include "vtkFloatArray.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
+#include "vtkMolecule.h"
+#include "vtkNew.h"
 #include "vtkObjectFactory.h"
 #include "vtkPointData.h"
-#include "vtkPolyData.h"
-#include "vtkUnsignedCharArray.h"
-#include "vtkStringArray.h"
-#include "vtkMolecule.h"
 #include "vtkPointLocator.h"
-#include "vtkNew.h"
+#include "vtkPolyData.h"
+#include "vtkStringArray.h"
+#include "vtkUnsignedCharArray.h"
 
 #include <algorithm>
 #include <cctype>

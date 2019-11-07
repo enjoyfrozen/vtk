@@ -19,10 +19,10 @@
 
 #include "vtkCellArray.h"
 #include "vtkDataSet.h"
-#include "vtkPolyData.h"
-#include "vtkUnstructuredGrid.h"
 #include "vtkExplicitStructuredGrid.h"
+#include "vtkPolyData.h"
 #include "vtkSMPTools.h"
+#include "vtkUnstructuredGrid.h"
 #include <array>
 #include <atomic>
 

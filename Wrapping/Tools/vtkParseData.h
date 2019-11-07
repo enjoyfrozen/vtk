@@ -26,8 +26,8 @@
 #ifndef vtkParseData_h
 #define vtkParseData_h
 
-#include "vtkParseType.h"
 #include "vtkParseString.h"
+#include "vtkParseType.h"
 
 /* legacy */
 #ifndef VTK_PARSE_LEGACY_REMOVE
