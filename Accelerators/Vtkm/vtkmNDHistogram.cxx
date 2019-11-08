@@ -20,15 +20,15 @@
 #include "vtkDataSet.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
-#include "vtkmFilterPolicy.h"
 #include "vtkObjectFactory.h"
 #include "vtkPointData.h"
 #include "vtkSparseArray.h"
 #include "vtkTable.h"
+#include "vtkmFilterPolicy.h"
 
-#include "vtkmlib/Storage.h"
-#include "vtkmlib/DataSetConverters.h"
 #include "vtkmlib/ArrayConverters.h"
+#include "vtkmlib/DataSetConverters.h"
+#include "vtkmlib/Storage.h"
 
 #include <vtkm/filter/NDHistogram.h>
 

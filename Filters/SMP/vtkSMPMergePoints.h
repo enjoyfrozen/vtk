@@ -31,10 +31,10 @@
 #ifndef vtkSMPMergePoints_h
 #define vtkSMPMergePoints_h
 
-#include "vtkFiltersSMPModule.h" // For export macro
-#include "vtkMergePoints.h"
-#include "vtkIdList.h" // For inline functions
 #include "vtkAtomicTypes.h" // For the atomic integer used in Merge()
+#include "vtkFiltersSMPModule.h" // For export macro
+#include "vtkIdList.h" // For inline functions
+#include "vtkMergePoints.h"
 
 class vtkPointData;
 

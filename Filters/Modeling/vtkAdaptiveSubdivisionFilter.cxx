@@ -14,14 +14,14 @@
 =========================================================================*/
 #include "vtkAdaptiveSubdivisionFilter.h"
 
+#include "vtkCellArray.h"
+#include "vtkCellData.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
-#include "vtkTriangle.h"
-#include "vtkPolyData.h"
-#include "vtkCellArray.h"
-#include "vtkPointData.h"
-#include "vtkCellData.h"
 #include "vtkMergePoints.h"
+#include "vtkPointData.h"
+#include "vtkPolyData.h"
+#include "vtkTriangle.h"
 
 vtkStandardNewMacro(vtkAdaptiveSubdivisionFilter);
 vtkCxxSetObjectMacro(vtkAdaptiveSubdivisionFilter,Locator,vtkIncrementalPointLocator);

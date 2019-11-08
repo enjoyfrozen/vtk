@@ -29,8 +29,8 @@
 #include <vtkm/cont/ArrayHandle.h>
 #include <vtkm/cont/CellSet.h>
 
-#include <vtkm/cont/serial/DeviceAdapterSerial.h>
 #include <vtkm/cont/cuda/DeviceAdapterCuda.h>
+#include <vtkm/cont/serial/DeviceAdapterSerial.h>
 #include <vtkm/cont/tbb/DeviceAdapterTBB.h>
 
 #include "vtkmConnectivityExec.h"

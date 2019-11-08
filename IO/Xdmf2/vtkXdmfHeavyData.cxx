@@ -40,8 +40,8 @@
 #include "vtkXdmfReader.h"
 #include "vtkXdmfReaderInternal.h"
 
-#include <deque>
 #include <cassert>
+#include <deque>
 
 #include "vtk_libxml2.h"
 #include VTKLIBXML2_HEADER(tree.h)

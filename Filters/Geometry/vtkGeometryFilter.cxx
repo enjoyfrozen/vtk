@@ -19,14 +19,16 @@
 #include "vtkGenericCell.h"
 #include "vtkHexagonalPrism.h"
 #include "vtkHexahedron.h"
+#include "vtkIncrementalPointLocator.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
 #include "vtkMergePoints.h"
+#include "vtkNew.h"
 #include "vtkObjectFactory.h"
+#include "vtkPentagonalPrism.h"
 #include "vtkPointData.h"
 #include "vtkPolyData.h"
 #include "vtkPyramid.h"
-#include "vtkPentagonalPrism.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
 #include "vtkStructuredGrid.h"
 #include "vtkTetra.h"
@@ -34,8 +36,6 @@
 #include "vtkUnstructuredGrid.h"
 #include "vtkVoxel.h"
 #include "vtkWedge.h"
-#include "vtkIncrementalPointLocator.h"
-#include "vtkNew.h"
 
 
 vtkStandardNewMacro(vtkGeometryFilter);

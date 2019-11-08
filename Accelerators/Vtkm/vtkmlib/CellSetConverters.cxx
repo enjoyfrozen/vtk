@@ -24,9 +24,9 @@
 #include "vtkmConnectivityExec.h"
 #include "vtkmFilterPolicy.h"
 
+#include <vtkm/cont/openmp/DeviceAdapterOpenMP.h>
 #include <vtkm/cont/serial/DeviceAdapterSerial.h>
 #include <vtkm/cont/tbb/DeviceAdapterTBB.h>
-#include <vtkm/cont/openmp/DeviceAdapterOpenMP.h>
 
 #include <vtkm/cont/TryExecute.h>
 #include <vtkm/worklet/DispatcherMapTopology.h>

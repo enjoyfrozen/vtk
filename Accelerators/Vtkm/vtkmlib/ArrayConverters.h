@@ -21,8 +21,8 @@
 #include "vtkmConfig.h"                //required for general vtkm setup
 #include "vtkmTags.h"
 
-#include <vtkm/cont/Field.h>
 #include <vtkm/cont/ArrayHandleSOA.h>
+#include <vtkm/cont/Field.h>
 
 #include <type_traits> // for std::underlying_type
 

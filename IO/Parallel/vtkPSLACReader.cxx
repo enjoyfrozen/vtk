@@ -24,10 +24,12 @@
 
 #include "vtkCellArray.h"
 #include "vtkCompositeDataIterator.h"
+#include "vtkDoubleArray.h"
 #include "vtkDummyController.h"
 #include "vtkIdTypeArray.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
+#include "vtkMath.h"
 #include "vtkMultiBlockDataSet.h"
 #include "vtkMultiProcessController.h"
 #include "vtkMultiProcessStream.h"
@@ -36,8 +38,6 @@
 #include "vtkSortDataArray.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
 #include "vtkUnstructuredGrid.h"
-#include "vtkDoubleArray.h"
-#include "vtkMath.h"
 
 #include "vtkSmartPointer.h"
 #define VTK_CREATE(type, name) \

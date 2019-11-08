@@ -21,8 +21,8 @@
 #ifndef vtkParse_h
 #define vtkParse_h
 
-#include "vtkParseType.h"
 #include "vtkParseData.h"
+#include "vtkParseType.h"
 #include <stdio.h>
 
 #ifdef __cplusplus
