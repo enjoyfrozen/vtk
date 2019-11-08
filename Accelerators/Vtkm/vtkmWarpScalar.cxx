@@ -31,8 +31,8 @@
 #include "vtkmlib/DataSetConverters.h"
 #include "vtkmlib/Storage.h"
 
-#include "vtkmFilterPolicy.h"
 #include "vtkm/cont/DataSetFieldAdd.h"
+#include "vtkmFilterPolicy.h"
 
 #include <vtkm/filter/WarpScalar.h>
 

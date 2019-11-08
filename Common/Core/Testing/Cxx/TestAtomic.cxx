@@ -13,9 +13,9 @@
 
 =========================================================================*/
 #include "vtkAtomicTypes.h"
+#include "vtkMultiThreader.h"
 #include "vtkNew.h"
 #include "vtkObjectFactory.h"
-#include "vtkMultiThreader.h"
 
 #include <algorithm>
 

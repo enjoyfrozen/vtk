@@ -35,8 +35,8 @@
 #include "vtkUnsignedCharArray.h"
 #include "vtkUnstructuredGrid.h"
 
-#include <vector>
 #include <atomic>
+#include <vector>
 
 
 vtkStandardNewMacro(vtk3DLinearGridCrinkleExtractor);

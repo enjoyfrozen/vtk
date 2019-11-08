@@ -13,15 +13,15 @@
 
 =========================================================================*/
 #include "vtkXMLUnstructuredDataReader.h"
-#include "vtkObjectFactory.h"
-#include "vtkXMLDataElement.h"
-#include "vtkPoints.h"
-#include "vtkIdTypeArray.h"
-#include "vtkUnsignedCharArray.h"
 #include "vtkCellArray.h"
-#include "vtkPointSet.h"
+#include "vtkIdTypeArray.h"
 #include "vtkInformation.h"
+#include "vtkObjectFactory.h"
+#include "vtkPointSet.h"
+#include "vtkPoints.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
+#include "vtkUnsignedCharArray.h"
+#include "vtkXMLDataElement.h"
 
 #include <cassert>
 

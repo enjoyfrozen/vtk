@@ -14,8 +14,8 @@
 =========================================================================*/
 #include "vtkExtractSelectedThresholds.h"
 
-#include "vtkCellData.h"
 #include "vtkCell.h"
+#include "vtkCellData.h"
 #include "vtkDataSet.h"
 #include "vtkDoubleArray.h"
 #include "vtkIdList.h"

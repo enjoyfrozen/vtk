@@ -17,9 +17,9 @@
 #ifndef vtkmTags_h
 #define vtkmTags_h
 
+#include "vtkAOSDataArrayTemplate.h"
 #include "vtkCellArray.h"
 #include "vtkPoints.h"
-#include "vtkAOSDataArrayTemplate.h"
 #include "vtkSOADataArrayTemplate.h"
 
 #include "vtkmConfig.h" //required for general vtkm setup
