@@ -62,6 +62,9 @@ uniform int PrimitiveIDOffset;
 // Value raster
 //VTK::ValuePass::Dec
 
+// surface with edges
+//VTK::Edges::Dec
+
 void main()
 {
   // VC position of this fragment. This should not branch/return/discard.
@@ -96,6 +99,8 @@ void main()
     {
     discard;
     }
+
+  //VTK::Edges::Impl
 
   //VTK::DepthPeeling::Impl
 
