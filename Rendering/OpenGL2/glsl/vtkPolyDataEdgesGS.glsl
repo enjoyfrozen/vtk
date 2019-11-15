@@ -68,11 +68,12 @@ void main()
   }
   pos[3] = pos[0];
 
-  vec2 dirs[3];
+  float ccw = sign(cross(vec3(pos[1] - pos[0], 0.0), vec3(pos[2] - pos[0], 0.0)).z);
+
   for (int i = 0; i < 3; i++)
   {
-    dirs[i] = normalize(pos[i+1] - pos[i]);
-    vec2 tmp = vec2(-dirs[i].y, dirs[i].x);
+    vec2 tmp = normalize(pos[i+1] - pos[i]);
+    tmp = ccw*vec2(-tmp.y, tmp.x);
     float d = dot(pos[i], tmp);
     edgeEqn[i] = vec4(tmp.x, tmp.y, 0.0, -d);
   }
@@ -80,15 +81,15 @@ void main()
   vec2 offsets[3];
 
   offsets[0] = edgeEqn[2].xy + edgeEqn[0].xy;
-  offsets[0] = -0.9*sign(cross(edgeEqn[2].xyz, edgeEqn[0].xyz).z)*normalize(offsets[0])*lineWidth;
+  offsets[0] = -0.9*normalize(offsets[0])*lineWidth;
   offsets[0] /= vpDims.zw;
 
   offsets[1] = edgeEqn[0].xy + edgeEqn[1].xy;
-  offsets[1] = -0.9*sign(cross(edgeEqn[0].xyz, edgeEqn[1].xyz).z)*normalize(offsets[1])*lineWidth;
+  offsets[1] = -0.9*normalize(offsets[1])*lineWidth;
   offsets[1] /= vpDims.zw;
 
   offsets[2] = edgeEqn[1].xy + edgeEqn[2].xy;
-  offsets[2] = -0.9*sign(cross(edgeEqn[1].xyz, edgeEqn[2].xyz).z)*normalize(offsets[2])*lineWidth;
+  offsets[2] = -0.9*normalize(offsets[2])*lineWidth;
   offsets[2] /= vpDims.zw;
 
   //VTK::Edges::Impl

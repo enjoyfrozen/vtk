@@ -88,6 +88,8 @@ void main()
 
   //VTK::Color::Impl
 
+  //VTK::Edges::Impl
+
   // Generate the normal if we are not passed in one
   //VTK::Normal::Impl
 
@@ -99,8 +101,6 @@ void main()
     {
     discard;
     }
-
-  //VTK::Edges::Impl
 
   //VTK::DepthPeeling::Impl
 

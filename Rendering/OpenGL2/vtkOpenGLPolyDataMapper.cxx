@@ -657,12 +657,17 @@ void vtkOpenGLPolyDataMapper::ReplaceShaderEdges(
         GSSource, "//VTK::Edges::Dec", "uniform samplerBuffer edgeTexture;");
       vtkShaderProgram::Substitute(GSSource, "//VTK::Edges::Impl",
         "float edgeValues = 255.0*texelFetch(edgeTexture, gl_PrimitiveIDIn).r;\n"
-        "if (edgeValues < 4.0) edgeEqn[2] = vec4(0.0, -1.0, 0.0, -10);\n"
-        "if (mod(edgeValues, 4.0) < 2.0) edgeEqn[1] = vec4(0.0, -1.0, 0.0, -10);\n"
-        "if (mod(edgeValues, 2.0) < 1.0) edgeEqn[0] = vec4(0.0, -1.0, 0.0, -10);\n");
+        // "if (edgeValues < 4.0) edgeEqn[2] = vec4(0.0, -1.0, 0.0, -10);\n"
+        // "if (mod(edgeValues, 4.0) < 2.0) edgeEqn[1] = vec4(0.0, -1.0, 0.0, -10);\n"
+        // "if (mod(edgeValues, 2.0) < 1.0) edgeEqn[0] = vec4(0.0, -1.0, 0.0, -10);\n"
+        "if (edgeValues < 4.0) edgeEqn[2].z = lineWidth;\n"
+        "if (mod(edgeValues, 4.0) < 2.0) edgeEqn[1].z = lineWidth;\n"
+        "if (mod(edgeValues, 2.0) < 1.0) edgeEqn[0].z = lineWidth;\n");
 
       shaders[vtkShader::Geometry]->SetSource(GSSource);
     }
+
+    // discard pixels that are outside the polygon and not an edge
 
     std::string FSSource = shaders[vtkShader::Fragment]->GetSource();
 
@@ -670,11 +675,67 @@ void vtkOpenGLPolyDataMapper::ReplaceShaderEdges(
       "in vec4 edgeEqn[3];\n"
       "uniform float lineWidth;\n"
       "uniform vec3 edgeColor;\n");
-    vtkShaderProgram::Substitute(FSSource, "//VTK::Edges::Impl",
-      "if (min(min(abs(dot(edgeEqn[0].xy, gl_FragCoord.xy) + edgeEqn[0].w),\n"
-      "            abs(dot(edgeEqn[1].xy, gl_FragCoord.xy) + edgeEqn[1].w)),\n"
-      "            abs(dot(edgeEqn[2].xy, gl_FragCoord.xy) + edgeEqn[2].w)) < 0.5*lineWidth) {\n"
-      "  gl_FragData[0] = vec4(edgeColor.rgb, opacity); }\n");
+
+    std::string fsimpl = "float edist[3];\n"
+                         "edist[0] = dot(edgeEqn[0].xy, gl_FragCoord.xy) + edgeEqn[0].w;\n"
+                         "edist[1] = dot(edgeEqn[1].xy, gl_FragCoord.xy) + edgeEqn[1].w;\n"
+                         "edist[2] = dot(edgeEqn[2].xy, gl_FragCoord.xy) + edgeEqn[2].w;\n"
+
+                         // "if (abs(edist[0]) > 0.5*lineWidth && abs(edist[1]) > 0.5*lineWidth &&
+                         // abs(edist[2]) > 0.5*lineWidth) discard;\n"
+
+                         "if (edist[0] < -0.5 && edgeEqn[0].z > 0.0) discard;\n"
+                         "if (edist[1] < -0.5 && edgeEqn[1].z > 0.0) discard;\n"
+                         "if (edist[2] < -0.5 && edgeEqn[2].z > 0.0) discard;\n"
+
+                         "edist[0] += edgeEqn[0].z;\n"
+                         "edist[1] += edgeEqn[1].z;\n"
+                         "edist[2] += edgeEqn[2].z;\n"
+
+                         "if ( min( min( edist[0], edist[1]), edist[2]) < 0.5*lineWidth) {\n";
+
+    if (actor->GetProperty()->GetRenderLinesAsTubes())
+    {
+      fsimpl += "  diffuseColor = diffuseIntensity*edgeColor;\n"
+                "  ambientColor = ambientIntensity*edgeColor; }\n"
+        // " else { discard; }\n" // this yields wireframe only
+        ;
+    }
+    else
+    {
+      fsimpl += "  diffuseColor = vec3(0.0);\n"
+                "  ambientColor = edgeColor; }\n"
+        // " else { discard; }\n" // this yields wireframe only
+        ;
+    }
+    vtkShaderProgram::Substitute(FSSource, "//VTK::Edges::Impl", fsimpl);
+
+    // even more fake tubes, for surface with edges this implementation
+    // just adjusts the normal calculation but not the zbuffer
+    if (actor->GetProperty()->GetRenderLinesAsTubes())
+    {
+
+      vtkShaderProgram::Substitute(FSSource, "//VTK::Normal::Impl",
+        "//VTK::Normal::Impl\n"
+        " if (edist[0] < 0.5*lineWidth) {\n"
+        "  float rdist = 2.0*edist[0]/lineWidth;\n"
+        "  float lenZ = clamp(sqrt(1.0 - rdist*rdist),0.0,1.0);\n"
+        "  vec3 tnorm = cross(normalVCVSOutput, cross(vec3(edgeEqn[0].xy,0.0), "
+        "normalVCVSOutput));\n"
+        "  normalVCVSOutput = normalize(rdist*tnorm + normalVCVSOutput*lenZ); }\n"
+        " if (edist[1] < 0.5*lineWidth) {\n"
+        "  float rdist = 2.0*edist[1]/lineWidth;\n"
+        "  float lenZ = clamp(sqrt(1.0 - rdist*rdist),0.0,1.0);\n"
+        "  vec3 tnorm = cross(normalVCVSOutput, cross(vec3(edgeEqn[1].xy,0.0), "
+        "normalVCVSOutput));\n"
+        "  normalVCVSOutput = normalize(rdist*tnorm + normalVCVSOutput*lenZ); }\n"
+        " if (edist[2] < 0.5*lineWidth) {\n"
+        "  float rdist = 2.0*edist[2]/lineWidth;\n"
+        "  float lenZ = clamp(sqrt(1.0 - rdist*rdist),0.0,1.0);\n"
+        "  vec3 tnorm = cross(normalVCVSOutput, cross(vec3(edgeEqn[2].xy,0.0), "
+        "normalVCVSOutput));\n"
+        "  normalVCVSOutput = normalize(rdist*tnorm + normalVCVSOutput*lenZ); }\n");
+    }
 
     shaders[vtkShader::Fragment]->SetSource(FSSource);
   }
