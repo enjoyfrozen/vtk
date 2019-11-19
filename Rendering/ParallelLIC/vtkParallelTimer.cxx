@@ -21,6 +21,7 @@
 
 #include "vtkMPI.h"
 #include "vtkObjectFactory.h"
+#include "vtksys/FStream.hxx"
 
 using std::cerr;
 using std::endl;
