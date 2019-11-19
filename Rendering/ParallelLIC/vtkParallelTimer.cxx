@@ -21,6 +21,7 @@
 
 #include "vtkMPI.h"
 #include "vtkObjectFactory.h"
+#include "vtksys/FStream.hxx"
 
 using std::cerr;
 using std::endl;
@@ -59,7 +60,6 @@ static int gettimeofday(struct timeval* tv, void*)
 
 #include <fstream>
 using std::ios_base;
-using std::ofstream;
 using vtksys::ofstream;
 
 /*
