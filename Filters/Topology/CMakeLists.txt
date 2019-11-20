@@ -1,5 +1,6 @@
 set(classes
-  vtkFiberSurface)
+  vtkFiberSurface
+  vtkVectorFieldTopology)
 
 vtk_module_add_module(VTK::FiltersTopology
   CLASSES ${classes})
