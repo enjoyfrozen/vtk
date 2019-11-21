@@ -10,6 +10,7 @@
 #include <vtkXMLPUnstructuredGridReader.h>
 #include <vtkXMLPUnstructuredGridWriter.h>
 #include <vtkXMLUnstructuredGridReader.h>
+#include "vtksys/FStream.hxx"
 
 using namespace std;
 
@@ -200,7 +201,7 @@ int TestParallelUnstructuredGridIO(int argc, char* argv[])
   w->SetDataModeToAscii();
   w->Update();
   delete[] tempDir;
-  ifstream f(fn.c_str());
+  vtksys::ifstream f(fn.c_str());
   if (!f.good())
   {
     std::cerr << "File " << fn << " does not exist." << std::endl;

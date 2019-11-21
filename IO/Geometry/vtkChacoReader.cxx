@@ -19,6 +19,8 @@
 ----------------------------------------------------------------------------*/
 
 #include "vtkChacoReader.h"
+
+#include <vtksys/SystemTools.hxx>
 #include "vtkCellArray.h"
 #include "vtkCellData.h"
 #include "vtkDoubleArray.h"
@@ -825,7 +827,7 @@ int vtkChacoReader::OpenCurrentFile()
     char* buf = new char[len + 64];
     snprintf(buf, len + 64, "%s.coords", this->BaseName);
 
-    this->CurrentGeometryFP = fopen(buf, "r");
+    this->CurrentGeometryFP = vtksys::SystemTools::Fopen(buf, "r");
 
     if (this->CurrentGeometryFP == nullptr)
     {
@@ -836,7 +838,7 @@ int vtkChacoReader::OpenCurrentFile()
     {
       snprintf(buf, len + 64, "%s.graph", this->BaseName);
 
-      this->CurrentGraphFP = fopen(buf, "r");
+      this->CurrentGraphFP = vtksys::SystemTools::Fopen(buf, "r");
 
       if (this->CurrentGraphFP == nullptr)
       {

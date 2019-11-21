@@ -23,6 +23,7 @@
 #include "vtkStreamingDemandDrivenPipeline.h"
 
 #include <vtksys/SystemTools.hxx>
+#include "vtksys/FStream.hxx"
 
 #include <map>
 #include <string>
@@ -344,7 +345,7 @@ int vtkPlot3DMetaReader::RequestInformation(vtkInformation* vtkNotUsed(request),
     return 0;
   }
 
-  ifstream file(this->FileName);
+  vtksys::ifstream file(this->FileName);
 
   Json::CharReaderBuilder rbuilder;
   rbuilder["collectComments"] = true;

@@ -14,6 +14,7 @@
 =========================================================================*/
 #include "vtkIVExporter.h"
 
+#include <vtksys/SystemTools.hxx>
 #include "vtkAssemblyNode.h"
 #include "vtkAssemblyPath.h"
 #include "vtkCamera.h"
@@ -99,7 +100,7 @@ void vtkIVExporter::WriteData()
   }
 
   // try opening the files
-  fp = fopen(this->FileName, "w");
+  fp = vtksys::SystemTools::Fopen(this->FileName, "w");
   if (!fp)
   {
     vtkErrorMacro(<< "unable to open OpenInventor file " << this->FileName);

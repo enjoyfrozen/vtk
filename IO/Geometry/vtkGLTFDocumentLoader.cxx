@@ -39,6 +39,7 @@
 #include "vtkTransform.h"
 #include "vtkUnsignedShortArray.h"
 #include "vtksys/SystemTools.hxx"
+#include "vtksys/FStream.hxx"
 
 #include <algorithm>
 #include <limits>
@@ -1357,8 +1358,8 @@ bool vtkGLTFDocumentLoader::LoadFileBuffer(
   }
 
   // Open the file in binary mode
-  std::ifstream fin;
-  fin.open(fileName, std::ios::binary | std::ios::in);
+  vtksys::ifstream fin;
+  fin.open(fileName.c_str(), std::ios::binary | std::ios::in);
   if (!fin.is_open())
   {
     vtkErrorMacro("Error opening file " << fileName);

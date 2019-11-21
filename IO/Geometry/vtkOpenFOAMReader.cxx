@@ -62,6 +62,7 @@
 #include <sstream>
 #include <vector>
 
+#include <vtksys/SystemTools.hxx>
 #include "vtkAssume.h"
 #include "vtkCellArray.h"
 #include "vtkCellData.h"
@@ -1585,7 +1586,7 @@ public:
           const vtkStdString fullName =
             this->ExpandPath(fileNameToken.ToString(), this->ExtractPath(this->FileName));
 
-          FILE* fh = fopen(fullName.c_str(), "rb");
+          FILE* fh = vtksys::SystemTools::Fopen(fullName, "rb");
           if (fh)
           {
             fclose(fh);
@@ -1708,7 +1709,7 @@ public:
       throw this->StackString() << "File already opened within this object";
     }
 
-    if ((this->Superclass::File = fopen(this->Superclass::FileName.c_str(), "rb")) == nullptr)
+    if ((this->Superclass::File = vtksys::SystemTools::Fopen(this->Superclass::FileName, "rb")) == nullptr)
     {
       throw this->StackString() << "Can't open";
     }

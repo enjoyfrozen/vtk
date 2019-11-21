@@ -14,6 +14,7 @@
 =========================================================================*/
 #include "vtkOBJReader.h"
 
+#include <vtksys/SystemTools.hxx>
 #include "vtkCellArray.h"
 #include "vtkFloatArray.h"
 #include "vtkInformation.h"
@@ -121,7 +122,7 @@ int vtkOBJReader::RequestData(vtkInformation* vtkNotUsed(request),
     return 0;
   }
 
-  FILE* in = fopen(this->FileName, "r");
+  FILE* in = vtksys::SystemTools::Fopen(this->FileName, "r");
 
   if (in == nullptr)
   {

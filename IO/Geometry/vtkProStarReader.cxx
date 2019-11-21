@@ -14,6 +14,9 @@
 =========================================================================*/
 
 #include "vtkProStarReader.h"
+
+#include <vtksys/SystemTools.hxx>
+#include "vtkUnstructuredGrid.h"
 #include "vtkErrorCode.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
@@ -121,7 +124,7 @@ FILE* vtkProStarReader::OpenFile(const char* ext)
   }
 
   fullName += ext;
-  FILE* in = fopen(fullName.c_str(), "r");
+  FILE* in = vtksys::SystemTools::Fopen(fullName.c_str(), "r");
   if (in == nullptr)
   {
     vtkErrorMacro(<< "Error opening file: " << fullName);

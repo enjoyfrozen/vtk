@@ -23,6 +23,7 @@
 #include "vtkPolyData.h"
 #include "vtkUniformGrid.h"
 #include "vtksys/SystemTools.hxx"
+#include "vtksys/FStream.hxx"
 
 #include "vtkCellData.h"
 #include "vtkDataSet.h"
@@ -182,7 +183,7 @@ void vtkAMREnzoReader::ParseConversionFactors()
     baseDir + "/" + vtksys::SystemTools::GetFilenameWithoutExtension(std::string(this->FileName));
 
   // STEP 1: Open Parameters file
-  std::ifstream ifs;
+  vtksys::ifstream ifs;
   ifs.open(paramsFile.c_str());
   if (!ifs.is_open())
   {

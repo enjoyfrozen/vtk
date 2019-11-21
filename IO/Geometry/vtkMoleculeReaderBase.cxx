@@ -14,6 +14,7 @@
 =========================================================================*/
 #include "vtkMoleculeReaderBase.h"
 
+#include <vtksys/SystemTools.hxx>
 #include "vtkCellArray.h"
 #include "vtkCellType.h"
 #include "vtkDataArray.h"
@@ -208,7 +209,7 @@ int vtkMoleculeReaderBase::RequestData(vtkInformation* vtkNotUsed(request),
     return 0;
   }
 
-  if ((fp = fopen(this->FileName, "r")) == nullptr)
+  if ((fp = vtksys::SystemTools::Fopen(this->FileName, "r")) == nullptr)
   {
     vtkErrorMacro(<< "Unable to open " << this->FileName);
     return 0;

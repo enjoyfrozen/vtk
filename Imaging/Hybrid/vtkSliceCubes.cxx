@@ -14,6 +14,7 @@
 =========================================================================*/
 #include "vtkSliceCubes.h"
 
+#include <vtksys/SystemTools.hxx>
 #include "vtkByteSwap.h"
 #include "vtkCharArray.h"
 #include "vtkDoubleArray.h"
@@ -411,7 +412,7 @@ void vtkSliceCubes::Execute()
     return;
   }
 
-  if ((outFP = fopen(this->FileName, "wb")) == nullptr)
+  if ((outFP = vtksys::SystemTools::Fopen(this->FileName, "wb")) == nullptr)
   {
     vtkErrorMacro(<< "Cannot open specified output file...");
     return;
@@ -549,7 +550,7 @@ void vtkSliceCubes::Execute()
     int i;
     float t;
 
-    if ((outFP = fopen(this->LimitsFileName, "wb")) == nullptr)
+    if ((outFP = vtksys::SystemTools::Fopen(this->LimitsFileName, "wb")) == nullptr)
     {
       vtkWarningMacro(<< "Sorry, couldn't write limits file...");
     }

@@ -45,6 +45,7 @@
 #include "vtkUnsignedIntArray.h"
 
 #include "vtksys/SystemTools.hxx"
+#include "vtksys/FStream.hxx"
 
 vtkStandardNewMacro(vtkGLTFExporter);
 
@@ -87,7 +88,7 @@ vtkPolyData* findPolyData(vtkDataObject* input)
   return nullptr;
 }
 
-void WriteValues(vtkDataArray* ca, ofstream& myFile)
+void WriteValues(vtkDataArray* ca, ostream& myFile)
 {
   myFile.write(reinterpret_cast<char*>(ca->GetVoidPointer(0)),
     ca->GetNumberOfTuples() * ca->GetNumberOfComponents() * ca->GetElementComponentSize());
@@ -139,7 +140,7 @@ void WriteBufferAndView(vtkDataArray* inda, const char* fileName, bool inlineDat
     fullPath += result;
 
     // now write the data
-    ofstream myFile(fullPath, ios::out | ios::binary);
+    vtksys::ofstream myFile(fullPath.c_str(), ios::out | ios::binary);
 
     WriteValues(da, myFile);
     myFile.close();
@@ -559,7 +560,7 @@ std::string vtkGLTFExporter::WriteToString()
 
 void vtkGLTFExporter::WriteData()
 {
-  ofstream output;
+  vtksys::ofstream output;
 
   // make sure the user specified a FileName or FilePointer
   if (this->FileName == nullptr)

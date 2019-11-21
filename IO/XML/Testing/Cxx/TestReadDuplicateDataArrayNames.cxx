@@ -19,6 +19,7 @@
 #include <vtkUnstructuredGrid.h>
 #include <vtkXMLUnstructuredGridReader.h>
 #include <vtkXMLWriterC.h>
+#include "vtksys/FStream.hxx"
 
 #include <cmath>
 #include <fstream>
@@ -101,7 +102,7 @@ void generateDataSetWithDuplicateArrayNames(const std::string& filename)
     "</UnstructuredGrid>\n"
     "</VTKFile>";
 
-  ofstream myfile;
+  vtksys::ofstream myfile;
   myfile.open(filename.c_str());
   myfile << dataSet;
   myfile.close();

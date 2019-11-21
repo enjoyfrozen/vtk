@@ -14,6 +14,8 @@
 =========================================================================*/
 #include "vtkOOGLExporter.h"
 
+#include <vtksys/SystemTools.hxx>
+#include "vtkObjectFactory.h"
 #include "vtkActorCollection.h"
 #include "vtkAssemblyPath.h"
 #include "vtkCamera.h"
@@ -101,7 +103,7 @@ void vtkOOGLExporter::WriteData()
   }
 
   // try opening the files
-  fp = fopen(this->FileName, "w");
+  fp = vtksys::SystemTools::Fopen(this->FileName, "w");
   if (!fp)
   {
     vtkErrorMacro(<< "unable to open Geomview OOGL file " << this->FileName);
