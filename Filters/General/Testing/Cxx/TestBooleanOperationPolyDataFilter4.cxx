@@ -52,7 +52,7 @@ int TestBooleanOperationPolyDataFilter4(int argc, char* argv[])
   // The chamber
   vtkSmartPointer<vtkPolyData> input1;
 
-  // Human skull
+  // skull
   vtkSmartPointer<vtkPolyData> input2;
 
   // 1st Input
