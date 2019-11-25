@@ -18,6 +18,7 @@
 #include "vtkBoundingBox.h"
 #include "vtkCellData.h"
 #include "vtkCompositeDataIterator.h"
+#include "vtkGenericCell.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
 #include "vtkLagrangianBasicIntegrationModel.h"
@@ -779,8 +780,10 @@ void vtkPLagrangianParticleTracker::GenerateParticles(const vtkBoundingBox* boun
     }
 
     // Create and set a dummy particle so FindInLocators can use caching.
+    vtkNew<vtkGenericCell> dummyCell;
     vtkLagrangianParticle dummyParticle(
       0, 0, 0, 0, 0, nullptr, this->IntegrationModel->GetWeightsSize(), 0);
+    dummyParticle.SetThreadedGenericCell(dummyCell);
 
     // Generate particle and distribute the ones not in domain to other nodes
     for (vtkIdType i = 0; i < seeds->GetNumberOfPoints(); i++)
@@ -958,6 +961,13 @@ void vtkPLagrangianParticleTracker::ReceiveParticles(
   std::queue<vtkLagrangianParticle*>& particleQueue)
 {
   vtkLagrangianParticle* receivedParticle;
+
+  // Create and set a dummy particle so FindInLocators can use caching.
+  vtkNew<vtkGenericCell> dummyCell;
+  vtkLagrangianParticle dummyParticle(
+    0, 0, 0, 0, 0, nullptr, this->IntegrationModel->GetWeightsSize(), 0);
+  dummyParticle.SetThreadedGenericCell(dummyCell);
+
   while (this->StreamManager->ReceiveParticleIfAny(receivedParticle))
   {
     // Check for manual shift
@@ -967,7 +977,7 @@ void vtkPLagrangianParticleTracker::ReceiveParticles(
       receivedParticle->SetPManualShift(false);
     }
     // Receive all particles
-    if (this->IntegrationModel->FindInLocators(receivedParticle->GetPosition()))
+    if (this->IntegrationModel->FindInLocators(receivedParticle->GetPosition(), &dummyParticle))
     {
       particleQueue.push(receivedParticle);
     }

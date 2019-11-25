@@ -20,6 +20,7 @@
 #include "vtkDataSetSurfaceFilter.h"
 #include "vtkDataSetTriangleFilter.h"
 #include "vtkDoubleArray.h"
+#include "vtkGenericCell.h"
 #include "vtkImageData.h"
 #include "vtkIntArray.h"
 #include "vtkLagrangianParticle.h"
@@ -170,7 +171,9 @@ int TestLagrangianIntegrationModel(int, char*[])
   }
   odeWavelet->SetUseInitialIntegrationTime(false);
 
+  vtkNew<vtkGenericCell> cell;
   vtkLagrangianParticle part(nvar, seedIdx, seedIdx, 0, 0, pd, odeWavelet->GetWeightsSize(), 3);
+  part.SetThreadedGenericCell(cell);
 
   odeWavelet->InitializeParticleData(pd);
   odeWavelet->InsertParticleData(&part, pd, 0);

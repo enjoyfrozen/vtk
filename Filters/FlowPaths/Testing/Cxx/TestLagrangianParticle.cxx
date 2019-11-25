@@ -15,6 +15,7 @@
 #include "vtkLagrangianParticle.h"
 
 #include "vtkDoubleArray.h"
+#include "vtkGenericCell.h"
 #include "vtkNew.h"
 #include "vtkPointData.h"
 #include "vtkPolyData.h"
@@ -36,8 +37,10 @@ int TestLagrangianParticle(int, char*[])
   pd->AddArray(vel);
   vtkIdType particleCounter = 0;
 
+  vtkNew<vtkGenericCell> cell;
   vtkLagrangianParticle* part =
     new vtkLagrangianParticle(nvar, seedId, particleCounter, seedId, 0, pd, 8, 3);
+  part->SetThreadedGenericCell(cell);
   particleCounter++;
   if (nvar != part->GetNumberOfVariables())
   {
@@ -369,6 +372,7 @@ int TestLagrangianParticle(int, char*[])
   particleCounter = 0;
   vtkLagrangianParticle* part4 =
     new vtkLagrangianParticle(nvar, seedId, particleCounter, seedId, 0, pd, 8, 17);
+  part4->SetThreadedGenericCell(cell);
   particleCounter++;
   vtkLagrangianParticle* part5 = vtkLagrangianParticle::NewInstance(
     nvar, seedId, particleCounter, seedId, 0.17, pd, 8, 7, 17, 0.13);

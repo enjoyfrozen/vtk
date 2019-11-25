@@ -53,6 +53,7 @@ struct IntegratingFunctor
 {
   vtkLagrangianParticleTracker* Tracker;
   vtkSMPThreadLocal<vtkInitialValueProblemSolver*> LocalIntegrator;
+  vtkSMPThreadLocal<vtkGenericCell*> LocalGenericCell;
   std::vector<vtkLagrangianParticle*>& ParticlesVec;
   std::queue<vtkLagrangianParticle*>& ParticlesQueue;
   vtkPolyData* ParticlePathsOutput;
@@ -75,6 +76,9 @@ struct IntegratingFunctor
     // Create a local non-threadsafe integrator with a threadsafe integration model
     this->LocalIntegrator.Local() = this->Tracker->Integrator->NewInstance();
     this->LocalIntegrator.Local()->SetFunctionSet(this->Tracker->IntegrationModel);
+
+    // Create a local generic cell to avoid recreation
+    this->LocalGenericCell.Local() = vtkGenericCell::New();
   }
 
   void operator()(vtkIdType partId, vtkIdType endPartId)
@@ -82,6 +86,9 @@ struct IntegratingFunctor
     for (vtkIdType id = partId; id < endPartId; id++)
     {
       vtkLagrangianParticle* particle = this->ParticlesVec[id];
+
+      // Set threaded data on the particle
+      particle->SetThreadedGenericCell(this->LocalGenericCell.Local());
 
       // Create polyLine output cell
       vtkNew<vtkPolyLine> particlePath;
@@ -107,9 +114,15 @@ struct IntegratingFunctor
     {
       integrator->Delete();
     }
+    for (auto cell : this->LocalGenericCell)
+    {
+      cell->Delete();
+    }
   }
 };
 
+#include "vtkCallbackCommand.h"
+#include "vtkLogger.h"
 //---------------------------------------------------------------------------
 vtkLagrangianParticleTracker::vtkLagrangianParticleTracker()
   : IntegrationModel(vtkLagrangianMatidaIntegrationModel::New())
@@ -134,6 +147,9 @@ vtkLagrangianParticleTracker::vtkLagrangianParticleTracker()
 {
   this->SetNumberOfInputPorts(3);
   this->SetNumberOfOutputPorts(2);
+  vtkLogger::New();
+  vtkDoubleArray::New();
+  vtkCallbackCommand::New();
 }
 
 //---------------------------------------------------------------------------
@@ -890,11 +906,14 @@ void vtkLagrangianParticleTracker::GenerateParticles(const vtkBoundingBox* vtkNo
   vtkPointData* seedData, int nVar, std::queue<vtkLagrangianParticle*>& particles)
 {
   // Create and set a dummy particle so FindInLocators can use caching.
+  vtkNew<vtkGenericCell> dummyCell;
   vtkLagrangianParticle dummyParticle(
     0, 0, 0, 0, 0, nullptr, this->IntegrationModel->GetWeightsSize(), 0);
+  dummyParticle.SetThreadedGenericCell(dummyCell);
 
   this->ParticleCounter = 0;
   this->IntegratedParticleCounter = 0;
+
   for (vtkIdType i = 0; i < seeds->GetNumberOfPoints(); i++)
   {
     double position[3];
@@ -1192,7 +1211,12 @@ double vtkLagrangianParticleTracker::ComputeCellLength(vtkLagrangianParticle* pa
 {
   double cellLength = 1.0;
   vtkDataSet* dataset = nullptr;
-  vtkNew<vtkGenericCell> cell;
+  vtkGenericCell* cell = particle->GetThreadedGenericCell();
+  if (!cell)
+  {
+    vtkErrorMacro("Could not recover a generic cell for cell length computation");
+    return 1.0;
+  }
   bool forceLastCell = false;
   if (this->CellLengthComputationMode == STEP_CUR_CELL_LENGTH ||
     this->CellLengthComputationMode == STEP_CUR_CELL_VEL_DIR ||
@@ -1222,12 +1246,6 @@ double vtkLagrangianParticleTracker::ComputeCellLength(vtkLagrangianParticle* pa
     {
       return cellLength;
     }
-  }
-  if (!cell)
-  {
-    vtkWarningMacro("Unsupported Cell Length Computation Mode"
-                    " or could not find a cell to compute cell length with");
-    return 1.0;
   }
 
   double* vel = particle->GetVelocity();

@@ -217,7 +217,7 @@ public:
     vtkIdType& cellId, vtkAbstractCellLocator*& loc, double*& weights);
   virtual bool FindInLocators(
     double* x, vtkLagrangianParticle* particle, vtkDataSet*& dataset, vtkIdType& cellId);
-  virtual bool FindInLocators(double* x, vtkLagrangianParticle* particle = nullptr);
+  virtual bool FindInLocators(double* x, vtkLagrangianParticle* particle);
   //@}
 
   /**

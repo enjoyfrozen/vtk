@@ -36,6 +36,7 @@
 
 class vtkAbstractCellLocator;
 class vtkDataSet;
+class vtkGenericCell;
 class vtkPointData;
 
 class VTKFILTERSFLOWPATHS_EXPORT vtkLagrangianParticle
@@ -275,13 +276,26 @@ public:
 
   //@{
   /**
-   * Get/Set a pointer to TemporaryUserData
-   * This data is not tracked and not transferred nor copied
+   * Get/Set a pointer to TemporaryUserData that is considered to be local to the thread.
    * This can be used to store any kind of data, structure, class instance that you may need.
-   * Be cautious if the pointer is shared as particle integration can be multithreaded.
+   * This is not set by the vtkLagrangianParticleTracker nor used in the basic model
    */
-  inline void* GetTemporaryUserData() { return this->TemporaryUserData; }
-  inline void SetTemporaryUserData(void* tempUserData) { this->TemporaryUserData = tempUserData; }
+  inline void* GetThreadedUserData() { return this->ThreadedUserData; }
+  inline void SetThreadedUserData(void* userData) { this->ThreadedUserData = userData; }
+  //@}
+
+  //@{
+  /**
+   * Get/Set a pointer to a vtkGenericCell that is considered to be local to the thread
+   * manipulating the particle.
+   * The is normally set by the vtkLagrangianParticleTracker and used by the basic model
+   * and the tracker.
+   */
+  inline vtkGenericCell* GetThreadedGenericCell() { return this->ThreadedGenericCell; }
+  inline void SetThreadedGenericCell(vtkGenericCell* genericCell)
+  {
+    this->ThreadedGenericCell = genericCell;
+  }
   //@}
 
   /**
@@ -491,7 +505,8 @@ protected:
   std::vector<double> TrackedUserData;
   std::vector<double> NextTrackedUserData;
 
-  void* TemporaryUserData = nullptr;
+  void* ThreadedUserData = nullptr;
+  vtkGenericCell* ThreadedGenericCell = nullptr;
 
   vtkIdType Id;
   vtkIdType ParentId;

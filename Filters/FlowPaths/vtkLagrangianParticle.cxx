@@ -132,6 +132,10 @@ vtkLagrangianParticle* vtkLagrangianParticle::NewParticle(vtkIdType particleId)
     particle->TrackedUserData.begin());
   std::fill(particle->NextTrackedUserData.begin(), particle->NextTrackedUserData.end(), 0);
 
+  // Copy thread-specific data as well
+  particle->ThreadedGenericCell = this->ThreadedGenericCell;
+  particle->ThreadedUserData = this->ThreadedUserData;
+
   return particle;
 }
 
@@ -158,6 +162,11 @@ vtkLagrangianParticle* vtkLagrangianParticle::CloneParticle()
   std::copy(this->NextTrackedUserData.begin(), this->NextTrackedUserData.end(),
     clone->NextTrackedUserData.begin());
   clone->StepTime = this->StepTime;
+
+  // Copy thread-specific data as well
+  clone->ThreadedGenericCell = this->ThreadedGenericCell;
+  clone->ThreadedUserData = this->ThreadedUserData;
+
   return clone;
 }
 

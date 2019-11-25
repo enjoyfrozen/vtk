@@ -739,7 +739,7 @@ vtkLagrangianParticle* vtkLagrangianBasicIntegrationModel::ComputeSurfaceInterac
       vtkAbstractCellLocator* loc = (*this->SurfaceLocators)[iDs];
       vtkDataSet* tmpSurface = (*this->Surfaces)[iDs].second;
       vtkNew<vtkIdList> cellList;
-      vtkNew<vtkGenericCell> cell;
+      vtkGenericCell* cell = particle->GetThreadedGenericCell();
       loc->FindCellsAlongLine(
         particle->GetPosition(), particle->GetNextPosition(), this->Tolerance, cellList);
       for (vtkIdType i = 0; i < cellList->GetNumberOfIds(); i++)
@@ -1156,20 +1156,17 @@ bool vtkLagrangianBasicIntegrationModel::FindInLocators(double* x, vtkLagrangian
     return false;
   }
 
-  vtkNew<vtkGenericCell> cell;
+  vtkGenericCell* cell = particle->GetThreadedGenericCell();
 
-  if (particle)
+  // Try the provided particle cache
+  dataset = particle->GetLastDataSet();
+  loc = particle->GetLastLocator();
+  if (dataset)
   {
-    // We have a cache
-    dataset = particle->GetLastDataSet();
-    loc = particle->GetLastLocator();
-    if (dataset)
+    cellId = this->FindInLocator(dataset, loc, x, cell, weights);
+    if (cellId != -1)
     {
-      cellId = this->FindInLocator(dataset, loc, x, cell, weights);
-      if (cellId != -1)
-      {
-        return true;
-      }
+      return true;
     }
   }
 
