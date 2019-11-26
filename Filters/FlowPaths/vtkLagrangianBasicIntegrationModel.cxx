@@ -1678,7 +1678,7 @@ void vtkLagrangianBasicIntegrationModel::InsertSeedData(
     vtkDataArray* arr = data->GetArray(name);
     if (arr->GetNumberOfTuples() < maxTuples)
     {
-      arr->InsertNextTuple(seedData->GetArray(i)->GetTuple(particle->GetSeedArrayTupleIndex()));
+      arr->InsertNextTuple(particle->GetSeedArrayTupleIndex(), seedData->GetArray(i));
     }
   }
 }
