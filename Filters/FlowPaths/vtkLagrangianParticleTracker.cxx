@@ -147,9 +147,6 @@ vtkLagrangianParticleTracker::vtkLagrangianParticleTracker()
 {
   this->SetNumberOfInputPorts(3);
   this->SetNumberOfOutputPorts(2);
-  vtkLogger::New();
-  vtkDoubleArray::New();
-  vtkCallbackCommand::New();
 }
 
 //---------------------------------------------------------------------------
