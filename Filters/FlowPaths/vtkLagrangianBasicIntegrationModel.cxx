@@ -1659,7 +1659,7 @@ void vtkLagrangianBasicIntegrationModel::InitializeInteractionData(vtkFieldData*
 }
 
 //---------------------------------------------------------------------------
-void vtkLagrangianBasicIntegrationModel::InsertSeedData(
+void vtkLagrangianBasicIntegrationModel::InsertParticleSeedData(
   vtkLagrangianParticle* particle, vtkFieldData* data)
 {
   // Check for max number of tuples in arrays
@@ -1678,7 +1678,7 @@ void vtkLagrangianBasicIntegrationModel::InsertSeedData(
     vtkDataArray* arr = data->GetArray(name);
     if (arr->GetNumberOfTuples() < maxTuples)
     {
-      arr->InsertNextTuple(particle->GetSeedArrayTupleIndex(), seedData->GetArray(i));
+      arr->InsertNextTuple(0, seedData->GetArray(i));
     }
   }
 }

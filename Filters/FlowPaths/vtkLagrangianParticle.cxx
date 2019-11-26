@@ -21,8 +21,6 @@
 
 #include <mutex>
 
-std::mutex seedDataMutex;
-
 //---------------------------------------------------------------------------
 vtkLagrangianParticle::vtkLagrangianParticle(int numberOfVariables, vtkIdType seedId,
   vtkIdType particleId, vtkIdType seedArrayTupleIndex, double integrationTime,
@@ -32,7 +30,6 @@ vtkLagrangianParticle::vtkLagrangianParticle(int numberOfVariables, vtkIdType se
   , SeedId(seedId)
   , SeedArrayTupleIndex(seedArrayTupleIndex)
   , NumberOfSteps(0)
-  , SeedData(seedData)
   , StepTime(0)
   , IntegrationTime(integrationTime)
   , PrevIntegrationTime(0)
@@ -67,11 +64,20 @@ vtkLagrangianParticle::vtkLagrangianParticle(int numberOfVariables, vtkIdType se
   this->LastSurfaceCellId = -1;
   this->LastSurfaceDataSet = nullptr;
 
+  // SeedData
+  this->SeedData->CopyAllocate(seedData, 1);
+  this->SeedData->CopyData(seedData, seedArrayTupleIndex, 0);
+
   // Initialize tracked user data
   this->PrevTrackedUserData.resize(numberOfTrackedUserData, 0);
   this->TrackedUserData.resize(numberOfTrackedUserData, 0);
   this->NextTrackedUserData.resize(numberOfTrackedUserData, 0);
 }
+
+//---------------------------------------------------------------------------
+// Default desctructor in implementation in order to be able to use
+// vtkNew in header
+vtkLagrangianParticle::~vtkLagrangianParticle() {}
 
 //---------------------------------------------------------------------------
 vtkLagrangianParticle* vtkLagrangianParticle::NewInstance(int numberOfVariables, vtkIdType seedId,
@@ -98,23 +104,10 @@ vtkLagrangianParticle* vtkLagrangianParticle::NewInstance(int numberOfVariables,
 //---------------------------------------------------------------------------
 vtkLagrangianParticle* vtkLagrangianParticle::NewParticle(vtkIdType particleId)
 {
-  // Copy point data tuples
-  vtkPointData* seedData = this->GetSeedData();
-  vtkIdType seedArrayTupleIndex = this->GetSeedArrayTupleIndex();
-  if (seedData->GetNumberOfArrays() > 0)
-  {
-    // Mutex Locked Area
-    std::lock_guard<std::mutex> guard(seedDataMutex);
-    vtkIdType parentSeedArrayTupleIndex = seedArrayTupleIndex;
-    seedArrayTupleIndex = seedData->GetArray(0)->GetNumberOfTuples();
-    seedData->CopyAllocate(seedData, seedArrayTupleIndex + 1);
-    seedData->CopyData(seedData, parentSeedArrayTupleIndex, seedArrayTupleIndex);
-  }
-
   // Create particle and copy members
   vtkLagrangianParticle* particle = this->NewInstance(this->GetNumberOfVariables(),
-    this->GetSeedId(), particleId, seedArrayTupleIndex, this->IntegrationTime + this->StepTime,
-    seedData, this->WeightsSize, static_cast<int>(this->TrackedUserData.size()));
+    this->GetSeedId(), particleId, 0, this->IntegrationTime + this->StepTime, this->SeedData,
+    this->WeightsSize, static_cast<int>(this->TrackedUserData.size()));
   particle->ParentId = this->GetId();
   particle->NumberOfSteps = this->GetNumberOfSteps() + 1;
 
@@ -143,8 +136,8 @@ vtkLagrangianParticle* vtkLagrangianParticle::NewParticle(vtkIdType particleId)
 vtkLagrangianParticle* vtkLagrangianParticle::CloneParticle()
 {
   vtkLagrangianParticle* clone = this->NewInstance(this->GetNumberOfVariables(), this->GetSeedId(),
-    this->GetId(), this->GetSeedArrayTupleIndex(), this->IntegrationTime, this->GetSeedData(),
-    this->WeightsSize, static_cast<int>(this->TrackedUserData.size()));
+    this->GetId(), 0, this->IntegrationTime, this->GetSeedData(), this->WeightsSize,
+    static_cast<int>(this->TrackedUserData.size()));
   clone->Id = this->Id;
   clone->ParentId = this->ParentId;
   clone->NumberOfSteps = this->NumberOfSteps;
@@ -244,12 +237,6 @@ vtkIdType vtkLagrangianParticle::GetParentId()
 vtkIdType vtkLagrangianParticle::GetSeedId()
 {
   return this->SeedId;
-}
-
-//---------------------------------------------------------------------------
-vtkIdType vtkLagrangianParticle::GetSeedArrayTupleIndex()
-{
-  return this->SeedArrayTupleIndex;
 }
 
 //---------------------------------------------------------------------------
@@ -401,7 +388,6 @@ void vtkLagrangianParticle::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "ParentId: " << this->ParentId << std::endl;
   os << indent << "SeedData: " << this->SeedData << std::endl;
   os << indent << "SeedId: " << this->SeedId << std::endl;
-  os << indent << "SeedArrayTupleIndex: " << this->SeedArrayTupleIndex << std::endl;
   os << indent << "StepTime: " << this->StepTime << std::endl;
   os << indent << "IntegrationTime: " << this->IntegrationTime << std::endl;
   os << indent << "Termination: " << this->Termination << std::endl;

@@ -294,10 +294,6 @@ int vtkLagrangianParticleTracker::RequestDataObject(vtkInformation* vtkNotUsed(r
 int vtkLagrangianParticleTracker::RequestData(vtkInformation* vtkNotUsed(request),
   vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
-  // Initialize inputs
-  vtkDataObject* flow = nullptr;
-  vtkDataObject* seeds = nullptr;
-  vtkDataObject* surfaces = nullptr;
   std::queue<vtkLagrangianParticle*> particlesQueue;
 
   if (!this->IntegrationModel)
@@ -307,11 +303,78 @@ int vtkLagrangianParticleTracker::RequestData(vtkInformation* vtkNotUsed(request
   }
   this->IntegrationModel->SetTracker(this);
 
-  vtkNew<vtkPointData> seedData;
-  if (!this->InitializeInputs(inputVector, flow, seeds, surfaces, particlesQueue, seedData))
+  // Initialize flow
+  vtkInformation* flowInInfo = inputVector[0]->GetInformationObject(0);
+  vtkDataObject* flow = flowInInfo->Get(vtkDataObject::DATA_OBJECT());
+  vtkBoundingBox bounds;
+  if (!this->InitializeFlow(flow, &bounds))
   {
-    vtkErrorMacro(<< "Cannot initialize inputs");
+    vtkErrorMacro(<< "Could not initialize flow, aborting.");
+    return false;
+  }
+
+  // Initialize surfaces
+  vtkInformation* surfacesInInfo = inputVector[2]->GetInformationObject(0);
+  vtkDataObject* surfaces = nullptr;
+  if (surfacesInInfo)
+  {
+    surfaces = surfacesInInfo->Get(vtkDataObject::DATA_OBJECT());
+    if (this->UpdateSurfaceCacheIfNeeded(surfaces))
+    {
+      this->InitializeSurface(surfaces);
+    }
+  }
+
+  // Recover seeds
+  vtkInformation* seedsInInfo = inputVector[1]->GetInformationObject(0);
+  vtkDataObject* seeds =
+    vtkDataObject::SafeDownCast(seedsInInfo->Get(vtkDataObject::DATA_OBJECT()));
+  if (!seeds)
+  {
+    vtkErrorMacro(<< "Cannot recover seeds, aborting.");
     return 0;
+  }
+
+  // Check seed dataset type
+  vtkCompositeDataSet* hdInput = vtkCompositeDataSet::SafeDownCast(seeds);
+  vtkDataSet* actualSeeds = vtkDataSet::SafeDownCast(seeds);
+  if (hdInput)
+  {
+    // Composite data
+    vtkSmartPointer<vtkCompositeDataIterator> iter;
+    iter.TakeReference(hdInput->NewIterator());
+    bool leafFound = false;
+    for (iter->InitTraversal(); !iter->IsDoneWithTraversal(); iter->GoToNextItem())
+    {
+      vtkDataSet* ds = vtkDataSet::SafeDownCast(iter->GetCurrentDataObject());
+      if (ds)
+      {
+        // We show the warning only when the input contains more than one leaf
+        if (leafFound)
+        {
+          vtkWarningMacro("Only the first block of seeds have been used to "
+                          "generate seeds, other blocks are ignored");
+          break;
+        }
+        actualSeeds = ds;
+        leafFound = true;
+      }
+    }
+  }
+
+  if (!actualSeeds)
+  {
+    vtkErrorMacro(<< "This filter cannot handle input of type: "
+                  << (seeds ? seeds->GetClassName() : "(none)"));
+    return 0;
+  }
+  vtkPointData* seedData = actualSeeds->GetPointData();
+
+  // Initialize Particles from the seeds
+  if (!this->InitializeParticles(&bounds, actualSeeds, particlesQueue, seedData))
+  {
+    vtkErrorMacro(<< "Could not initialize particles, aborting.");
+    return false;
   }
 
   // Initialize outputs
@@ -390,50 +453,6 @@ vtkMTimeType vtkLagrangianParticleTracker::GetMTime()
 vtkIdType vtkLagrangianParticleTracker::GetNewParticleId()
 {
   return this->ParticleCounter++;
-}
-
-//---------------------------------------------------------------------------
-bool vtkLagrangianParticleTracker::InitializeInputs(vtkInformationVector** inputVector,
-  vtkDataObject*& flow, vtkDataObject*& seeds, vtkDataObject*& surfaces,
-  std::queue<vtkLagrangianParticle*>& particlesQueue, vtkPointData* seedData)
-{
-  // Initialize flow
-  vtkInformation* flowInInfo = inputVector[0]->GetInformationObject(0);
-  flow = flowInInfo->Get(vtkDataObject::DATA_OBJECT());
-  vtkBoundingBox bounds;
-  if (!this->InitializeFlow(flow, &bounds))
-  {
-    vtkErrorMacro(<< "Could not initialize flow, aborting.");
-    return false;
-  }
-
-  // Recover seeds
-  vtkInformation* seedsInInfo = inputVector[1]->GetInformationObject(0);
-  seeds = vtkDataObject::SafeDownCast(seedsInInfo->Get(vtkDataObject::DATA_OBJECT()));
-  if (!seeds)
-  {
-    vtkErrorMacro(<< "Cannot recover seeds, aborting.");
-    return false;
-  }
-
-  // Initialize Particles
-  if (!this->InitializeParticles(&bounds, seeds, particlesQueue, seedData))
-  {
-    vtkErrorMacro(<< "Could not initialize particles, aborting.");
-    return false;
-  }
-
-  // Recover surfaces
-  vtkInformation* surfacesInInfo = inputVector[2]->GetInformationObject(0);
-  if (surfacesInInfo)
-  {
-    surfaces = surfacesInInfo->Get(vtkDataObject::DATA_OBJECT());
-    if (this->UpdateSurfaceCacheIfNeeded(surfaces))
-    {
-      this->InitializeSurface(surfaces);
-    }
-  }
-  return true;
 }
 
 //---------------------------------------------------------------------------
@@ -816,7 +835,7 @@ void vtkLagrangianParticleTracker::InitializeSurface(vtkDataObject*& surfaces)
 
 //---------------------------------------------------------------------------
 bool vtkLagrangianParticleTracker::InitializeParticles(const vtkBoundingBox* bounds,
-  vtkDataObject* seeds, std::queue<vtkLagrangianParticle*>& particles, vtkPointData* seedData)
+  vtkDataSet* seeds, std::queue<vtkLagrangianParticle*>& particles, vtkPointData* seedData)
 {
   // Sanity check
   if (!seeds)
@@ -825,52 +844,14 @@ bool vtkLagrangianParticleTracker::InitializeParticles(const vtkBoundingBox* bou
     return false;
   }
 
-  // Check seed dataset type
-  vtkCompositeDataSet* hdInput = vtkCompositeDataSet::SafeDownCast(seeds);
-  vtkDataSet* actualSeeds = vtkDataSet::SafeDownCast(seeds);
-  if (hdInput)
-  {
-    // Composite data
-    vtkSmartPointer<vtkCompositeDataIterator> iter;
-    iter.TakeReference(hdInput->NewIterator());
-    bool leafFound = false;
-    for (iter->InitTraversal(); !iter->IsDoneWithTraversal(); iter->GoToNextItem())
-    {
-      vtkDataSet* ds = vtkDataSet::SafeDownCast(iter->GetCurrentDataObject());
-      if (ds)
-      {
-        // We show the warning only when the input contains more than one leaf
-        if (leafFound)
-        {
-          vtkWarningMacro("Only the first block of seeds have been used to "
-                          "generate seeds, other blocks are ignored");
-          break;
-        }
-        actualSeeds = ds;
-        leafFound = true;
-      }
-    }
-  }
-
-  if (!actualSeeds)
-  {
-    vtkErrorMacro(<< "This filter cannot handle input of type: "
-                  << (seeds ? seeds->GetClassName() : "(none)"));
-    return false;
-  }
-
   // Recover data
-  int nVar = this->IntegrationModel->GetNumberOfIndependentVariables();
-  seedData->DeepCopy(actualSeeds->GetPointData());
-
   vtkDataArray* initialVelocities = nullptr;
   vtkDataArray* initialIntegrationTimes = nullptr;
-
-  if (actualSeeds->GetNumberOfPoints() > 0)
+  if (seeds->GetNumberOfPoints() > 0)
   {
     // Recover initial velocities, index 0
-    initialVelocities = vtkDataArray::SafeDownCast(
-      this->IntegrationModel->GetSeedArray(0, actualSeeds->GetPointData()));
+    initialVelocities =
+      vtkDataArray::SafeDownCast(this->IntegrationModel->GetSeedArray(0, seedData));
     if (!initialVelocities)
     {
       vtkErrorMacro(<< "initialVelocity is not set in particle data, "
@@ -881,8 +862,8 @@ bool vtkLagrangianParticleTracker::InitializeParticles(const vtkBoundingBox* bou
     // Recover initial integration time if any, index 1
     if (this->IntegrationModel->GetUseInitialIntegrationTime())
     {
-      initialIntegrationTimes = vtkDataArray::SafeDownCast(
-        this->IntegrationModel->GetSeedArray(1, actualSeeds->GetPointData()));
+      initialIntegrationTimes =
+        vtkDataArray::SafeDownCast(this->IntegrationModel->GetSeedArray(1, seedData));
       if (!initialVelocities)
       {
         vtkWarningMacro("initialIntegrationTimes is not set in particle data, "
@@ -892,8 +873,9 @@ bool vtkLagrangianParticleTracker::InitializeParticles(const vtkBoundingBox* bou
   }
 
   // Create one particle for each point
+  int nVar = this->IntegrationModel->GetNumberOfIndependentVariables();
   this->GenerateParticles(
-    bounds, actualSeeds, initialVelocities, initialIntegrationTimes, seedData, nVar, particles);
+    bounds, seeds, initialVelocities, initialIntegrationTimes, seedData, nVar, particles);
   return true;
 }
 
@@ -1128,7 +1110,7 @@ int vtkLagrangianParticleTracker::Integrate(vtkInitialValueProblemSolver* integr
       this->IntegrationModel->InsertPathData(particle, particlePathsOutput->GetCellData());
 
       // Insert data from seed data only in not yet written arrays
-      this->IntegrationModel->InsertSeedData(particle, particlePathsOutput->GetCellData());
+      this->IntegrationModel->InsertParticleSeedData(particle, particlePathsOutput->GetCellData());
     }
   }
 
@@ -1200,7 +1182,7 @@ void vtkLagrangianParticleTracker::InsertInteractionOutputPoint(vtkLagrangianPar
     particle, pointData, vtkLagrangianBasicIntegrationModel::VARIABLE_STEP_NEXT);
 
   // Finally, Insert data from seed data only on not yet written arrays
-  this->IntegrationModel->InsertSeedData(particle, pointData);
+  this->IntegrationModel->InsertParticleSeedData(particle, pointData);
 }
 
 //---------------------------------------------------------------------------

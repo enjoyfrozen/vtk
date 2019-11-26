@@ -315,11 +315,8 @@ protected:
   vtkLagrangianParticleTracker();
   ~vtkLagrangianParticleTracker() override;
 
-  virtual bool InitializeInputs(vtkInformationVector** inputVector, vtkDataObject*& flow,
-    vtkDataObject*& seeds, vtkDataObject*& surfaces,
-    std::queue<vtkLagrangianParticle*>& particleQueue, vtkPointData* seedData);
   virtual bool InitializeFlow(vtkDataObject* flow, vtkBoundingBox* bounds);
-  virtual bool InitializeParticles(const vtkBoundingBox* bounds, vtkDataObject* seeds,
+  virtual bool InitializeParticles(const vtkBoundingBox* bounds, vtkDataSet* seeds,
     std::queue<vtkLagrangianParticle*>& particles, vtkPointData* seedData);
   virtual void GenerateParticles(const vtkBoundingBox* bounds, vtkDataSet* seeds,
     vtkDataArray* initialVelocities, vtkDataArray* initialIntegrationTimes, vtkPointData* seedData,

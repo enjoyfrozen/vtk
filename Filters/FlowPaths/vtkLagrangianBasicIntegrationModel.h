@@ -430,10 +430,10 @@ public:
 
   /**
    * Method used by the LPT to insert data from the partice into
-   * the provided vtkFieldData. It insert alls array available in the SeedData.
+   * the provided vtkFieldData. It insert alls arrays from the original SeedData.
    * Reimplement as needed.
    */
-  virtual void InsertSeedData(vtkLagrangianParticle* particle, vtkFieldData* data);
+  virtual void InsertParticleSeedData(vtkLagrangianParticle* particle, vtkFieldData* data);
 
   /**
    * Method to be reimplemented if needed in inherited classes.
@@ -528,8 +528,7 @@ protected:
   /**
    * Get a seed array, as set in setInputArrayToProcess
    * from the provided particle seed data
-   * Access then the correct tuple using
-   * vtkLagrangianParticle::GetSeedArrayTupleIndex()
+   * Access then the first tuple to access the data
    * This method is thread-safe.
    */
   virtual vtkAbstractArray* GetSeedArray(int idx, vtkLagrangianParticle* particle);

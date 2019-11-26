@@ -30,6 +30,7 @@
 #define vtkLagrangianParticle_h
 
 #include "vtkFiltersFlowPathsModule.h" // For export macro
+#include "vtkNew.h"                    // For vtkNew
 #include "vtkSystemIncludes.h"         // For PrintSelf signature and vtkType
 
 #include <vector>
@@ -128,7 +129,7 @@ public:
   /**
    * Destructor.
    */
-  virtual ~vtkLagrangianParticle() = default;
+  virtual ~vtkLagrangianParticle();
 
   //@{
   /**
@@ -327,13 +328,6 @@ public:
   virtual vtkIdType GetSeedId();
 
   /**
-   * Get the particle data tuple in a seed array.
-   * To be used on the output of
-   * vtkLagrangianBasicIntegrationModel::GetSeedArray
-   */
-  virtual vtkIdType GetSeedArrayTupleIndex();
-
-  /**
    * Get the number of variables used to initialize EquationVariables.
    */
   virtual int GetNumberOfVariables();
@@ -513,7 +507,7 @@ protected:
   vtkIdType SeedId;
   vtkIdType SeedArrayTupleIndex;
   vtkIdType NumberOfSteps;
-  vtkPointData* SeedData;
+  vtkNew<vtkPointData> SeedData;
 
   vtkAbstractCellLocator* LastLocator;
   vtkDataSet* LastDataSet;

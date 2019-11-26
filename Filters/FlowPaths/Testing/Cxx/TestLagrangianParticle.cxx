@@ -197,16 +197,6 @@ int TestLagrangianParticle(int, char*[])
     return EXIT_FAILURE;
   }
 
-  if (part->GetSeedArrayTupleIndex() != seedId || part2->GetSeedArrayTupleIndex() != seedId + 1 ||
-    part3->GetSeedArrayTupleIndex() != seedId + 1)
-  {
-    std::cerr << "Incorrect SeedArrayTupleIndex" << std::endl;
-    delete part;
-    delete part2;
-    delete part3;
-    return EXIT_FAILURE;
-  }
-
   if (part->GetId() != 0)
   {
     std::cerr << "Incorrect Id in part : " << part->GetId() << std::endl;
@@ -252,19 +242,12 @@ int TestLagrangianParticle(int, char*[])
     delete part3;
     return EXIT_FAILURE;
   }
-  if (part->GetSeedData() != pd || part2->GetSeedData() != pd || part3->GetSeedData() != pd)
+  if (part->GetSeedData()->GetArray(0)->GetComponent(0, 0) != 17 ||
+    part2->GetSeedData()->GetArray(0)->GetComponent(0, 0) != 17 ||
+    part3->GetSeedData()->GetArray(0)->GetComponent(0, 0) != 17)
   {
     std::cerr << "Incorrect Seed data " << std::endl;
     delete part;
-    return EXIT_FAILURE;
-  }
-  if (pd->GetArray(0)->GetTuple(1)[0] != 17)
-  {
-    std::cerr << "Incorrect Value in Particle data :" << pd->GetArray(0)->GetTuple(1)[0] << " != 17"
-              << std::endl;
-    delete part;
-    delete part2;
-    delete part3;
     return EXIT_FAILURE;
   }
 

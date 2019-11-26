@@ -199,7 +199,7 @@ public:
     for (int i = 0; i < particle->GetSeedData()->GetNumberOfArrays(); i++)
     {
       vtkDataArray* array = particle->GetSeedData()->GetArray(i);
-      double* tuple = array->GetTuple(particle->GetSeedArrayTupleIndex());
+      double* tuple = array->GetTuple(0);
       for (int j = 0; j < array->GetNumberOfComponents(); j++)
       {
         *this->SendStream << tuple[j];
