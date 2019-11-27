@@ -391,6 +391,7 @@ protected:
 
   std::mutex ParticlePathsOutputMutex;
   std::mutex InteractionOutputMutex;
+  std::mutex ProgressMutex;
   friend struct IntegratingFunctor;
 
 private:
