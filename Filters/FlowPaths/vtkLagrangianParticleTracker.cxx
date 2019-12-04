@@ -105,15 +105,14 @@ struct IntegratingFunctor
 
       this->Tracker->IntegratedParticleCounter += this->Tracker->IntegratedParticleCounterIncrement;
 
-      {
-        std::lock_guard<std::mutex> guard(this->Tracker->ProgressMutex);
-        double progress = static_cast<double>(this->Tracker->IntegratedParticleCounter) /
-          this->Tracker->ParticleCounter;
-        this->Tracker->UpdateProgress(progress);
-      }
       this->Tracker->IntegrationModel->ParticleAboutToBeDeleted(particle);
       delete particle;
     }
+    // Protect the progress event with a mutex
+    std::lock_guard<std::mutex> guard(this->Tracker->ProgressMutex);
+    double progress = static_cast<double>(this->Tracker->IntegratedParticleCounter) /
+      this->Tracker->ParticleCounter;
+    this->Tracker->UpdateProgress(progress);
   }
 
   void Reduce()
