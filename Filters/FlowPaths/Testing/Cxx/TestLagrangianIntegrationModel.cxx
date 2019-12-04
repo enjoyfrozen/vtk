@@ -175,6 +175,9 @@ int TestLagrangianIntegrationModel(int, char*[])
   vtkLagrangianParticle part(nvar, seedIdx, seedIdx, 0, 0, pd, odeWavelet->GetWeightsSize(), 3);
   part.SetThreadedGenericCell(cell);
 
+  vtkNew<vtkIdList> cellId;
+  part.SetThreadedIdList(cellId);
+
   odeWavelet->InitializeParticleData(pd);
   odeWavelet->InsertParticleData(&part, pd, 0);
   odeWavelet->InitializeParticle(&part);

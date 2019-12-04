@@ -37,6 +37,7 @@
 
 class vtkAbstractCellLocator;
 class vtkDataSet;
+class vtkIdList;
 class vtkGenericCell;
 class vtkPointData;
 
@@ -299,6 +300,17 @@ public:
   }
   //@}
 
+  //@{
+  /**
+   * Get/Set a pointer to a vtkIdList that is considered to be local to the thread
+   * manipulating the particle.
+   * The is normally set by the vtkLagrangianParticleTracker and used by the basic model
+   * and the tracker.
+   */
+  inline vtkIdList* GetThreadedIdList() { return this->ThreadedIdList; }
+  inline void SetThreadedIdList(vtkIdList* IdList) { this->ThreadedIdList = IdList; }
+  //@}
+
   /**
    * Move the particle to its next position by putting next equation
    * variable to equation variable and clearing next equation variable.
@@ -501,6 +513,7 @@ protected:
 
   void* ThreadedUserData = nullptr;
   vtkGenericCell* ThreadedGenericCell = nullptr;
+  vtkIdList* ThreadedIdList = nullptr;
 
   vtkIdType Id;
   vtkIdType ParentId;

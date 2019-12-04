@@ -724,10 +724,6 @@ vtkLagrangianParticle* vtkLagrangianBasicIntegrationModel::ComputeSurfaceInterac
   vtkLagrangianParticle* particle, std::queue<vtkLagrangianParticle*>& particles,
   unsigned int& surfaceFlatIndex, PassThroughParticlesType& passThroughParticles)
 {
-  // Create a cellList and allocate a reasonable amount of cellIds
-  vtkNew<vtkIdList> cellList;
-  cellList->Allocate(10);
-
   vtkDataSet* surface = nullptr;
   double interFactor = 1.0;
   vtkIdType cellId = -1;
@@ -743,7 +739,8 @@ vtkLagrangianParticle* vtkLagrangianBasicIntegrationModel::ComputeSurfaceInterac
       vtkAbstractCellLocator* loc = (*this->SurfaceLocators)[iDs];
       vtkDataSet* tmpSurface = (*this->Surfaces)[iDs].second;
       vtkGenericCell* cell = particle->GetThreadedGenericCell();
-      cellList.reset();
+      vtkIdList* cellList = particle->GetThreadedIdList();
+      cellList->Reset();
       loc->FindCellsAlongLine(
         particle->GetPosition(), particle->GetNextPosition(), this->Tolerance, cellList);
       for (vtkIdType i = 0; i < cellList->GetNumberOfIds(); i++)

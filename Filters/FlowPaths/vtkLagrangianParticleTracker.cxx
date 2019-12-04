@@ -54,6 +54,7 @@ struct IntegratingFunctor
   vtkLagrangianParticleTracker* Tracker;
   vtkSMPThreadLocal<vtkInitialValueProblemSolver*> LocalIntegrator;
   vtkSMPThreadLocal<vtkGenericCell*> LocalGenericCell;
+  vtkSMPThreadLocal<vtkIdList*> LocalIdList;
   std::vector<vtkLagrangianParticle*>& ParticlesVec;
   std::queue<vtkLagrangianParticle*>& ParticlesQueue;
   vtkPolyData* ParticlePathsOutput;
@@ -79,6 +80,10 @@ struct IntegratingFunctor
 
     // Create a local generic cell to avoid recreation
     this->LocalGenericCell.Local() = vtkGenericCell::New();
+
+    // Create a local idList to avoid recreation and initialize to a reasonable value
+    this->LocalIdList.Local() = vtkIdList::New();
+    this->LocalIdList.Local()->Allocate(10);
   }
 
   void operator()(vtkIdType partId, vtkIdType endPartId)
@@ -89,6 +94,7 @@ struct IntegratingFunctor
 
       // Set threaded data on the particle
       particle->SetThreadedGenericCell(this->LocalGenericCell.Local());
+      particle->SetThreadedIdList(this->LocalIdList.Local());
 
       // Create polyLine output cell
       vtkNew<vtkPolyLine> particlePath;
@@ -105,7 +111,6 @@ struct IntegratingFunctor
           this->Tracker->ParticleCounter;
         this->Tracker->UpdateProgress(progress);
       }
-
       this->Tracker->IntegrationModel->ParticleAboutToBeDeleted(particle);
       delete particle;
     }
@@ -120,6 +125,10 @@ struct IntegratingFunctor
     for (auto cell : this->LocalGenericCell)
     {
       cell->Delete();
+    }
+    for (auto list : this->LocalIdList)
+    {
+      list->Delete();
     }
   }
 };
