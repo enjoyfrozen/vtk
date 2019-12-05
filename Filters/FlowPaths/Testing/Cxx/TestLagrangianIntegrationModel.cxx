@@ -23,6 +23,7 @@
 #include "vtkGenericCell.h"
 #include "vtkImageData.h"
 #include "vtkIntArray.h"
+#include "vtkLagrangianBilinearQuadIntersection.h"
 #include "vtkLagrangianParticle.h"
 #include "vtkLagrangianParticleTracker.h"
 #include "vtkMath.h"
@@ -177,6 +178,9 @@ int TestLagrangianIntegrationModel(int, char*[])
 
   vtkNew<vtkIdList> cellId;
   part.SetThreadedIdList(cellId);
+
+  vtkLagrangianBilinearQuadIntersection bqi;
+  part.SetThreadedBilinearQuadIntersection(&bqi);
 
   odeWavelet->InitializeParticleData(pd);
   odeWavelet->InsertParticleData(&part, pd, 0);

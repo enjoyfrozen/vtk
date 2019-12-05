@@ -507,8 +507,8 @@ protected:
    * to implement specific line/surface intersection
    * This method is thread-safe.
    */
-  virtual bool IntersectWithLine(
-    vtkCell* cell, double p1[3], double p2[3], double tol, double& t, double x[3]);
+  virtual bool IntersectWithLine(vtkLagrangianParticle* particle, vtkCell* cell, double p1[3],
+    double p2[3], double tol, double& t, double x[3]);
 
   /**
    * compute all particle variables using interpolation factor

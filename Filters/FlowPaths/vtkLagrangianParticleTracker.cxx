@@ -26,6 +26,7 @@
 #include "vtkIdList.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
+#include "vtkLagrangianBilinearQuadIntersection.h"
 #include "vtkLagrangianMatidaIntegrationModel.h"
 #include "vtkLagrangianParticle.h"
 #include "vtkNew.h"
@@ -55,6 +56,7 @@ struct IntegratingFunctor
   vtkSMPThreadLocal<vtkInitialValueProblemSolver*> LocalIntegrator;
   vtkSMPThreadLocal<vtkGenericCell*> LocalGenericCell;
   vtkSMPThreadLocal<vtkIdList*> LocalIdList;
+  vtkSMPThreadLocal<vtkLagrangianBilinearQuadIntersection*> LocalBilinearQuadIntersection;
   std::vector<vtkLagrangianParticle*>& ParticlesVec;
   std::queue<vtkLagrangianParticle*>& ParticlesQueue;
   vtkPolyData* ParticlePathsOutput;
@@ -84,6 +86,9 @@ struct IntegratingFunctor
     // Create a local idList to avoid recreation and initialize to a reasonable value
     this->LocalIdList.Local() = vtkIdList::New();
     this->LocalIdList.Local()->Allocate(10);
+
+    // Create a local bilinear quad intersection to avoid recreation
+    this->LocalBilinearQuadIntersection.Local() = new vtkLagrangianBilinearQuadIntersection;
   }
 
   void operator()(vtkIdType partId, vtkIdType endPartId)
@@ -95,6 +100,7 @@ struct IntegratingFunctor
       // Set threaded data on the particle
       particle->SetThreadedGenericCell(this->LocalGenericCell.Local());
       particle->SetThreadedIdList(this->LocalIdList.Local());
+      particle->SetThreadedBilinearQuadIntersection(this->LocalBilinearQuadIntersection.Local());
 
       // Create polyLine output cell
       vtkNew<vtkPolyLine> particlePath;
@@ -128,6 +134,10 @@ struct IntegratingFunctor
     for (auto list : this->LocalIdList)
     {
       list->Delete();
+    }
+    for (auto bqi : this->LocalBilinearQuadIntersection)
+    {
+      delete bqi;
     }
   }
 };
