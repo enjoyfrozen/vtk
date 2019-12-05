@@ -540,8 +540,8 @@ protected:
    * GetFlowOrSurfaceDataNumberOfComponents if needed.
    * This method is thread-safe.
    */
-  virtual bool GetFlowOrSurfaceData(
-    int idx, vtkDataSet* flowDataSet, vtkIdType tupleId, double* weights, double* data);
+  virtual bool GetFlowOrSurfaceData(vtkLagrangianParticle* particle, int idx,
+    vtkDataSet* flowDataSet, vtkIdType tupleId, double* weights, double* data);
 
   /**
    * Recover the number of components for a specified array index

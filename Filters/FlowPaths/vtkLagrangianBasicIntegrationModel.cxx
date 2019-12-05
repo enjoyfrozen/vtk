@@ -777,7 +777,7 @@ vtkLagrangianParticle* vtkLagrangianBasicIntegrationModel::ComputeSurfaceInterac
             surfaceTupleId = 0;
           }
           if (!this->GetFlowOrSurfaceData(
-                surfaceIndex, tmpSurface, surfaceTupleId, nullptr, &surfaceTypeDbl))
+                particle, surfaceIndex, tmpSurface, surfaceTupleId, nullptr, &surfaceTypeDbl))
           {
             vtkErrorMacro(
               << "Surface Type is not set in surface dataset or"
@@ -1352,7 +1352,7 @@ int vtkLagrangianBasicIntegrationModel::GetFlowOrSurfaceDataNumberOfComponents(
 }
 
 //----------------------------------------------------------------------------
-bool vtkLagrangianBasicIntegrationModel::GetFlowOrSurfaceData(
+bool vtkLagrangianBasicIntegrationModel::GetFlowOrSurfaceData(vtkLagrangianParticle* particle,
   int idx, vtkDataSet* dataSet, vtkIdType tupleId, double* weights, double* data)
 {
   // Check index
@@ -1412,13 +1412,18 @@ bool vtkLagrangianBasicIntegrationModel::GetFlowOrSurfaceData(
                       << " does not contain cellId :" << tupleId << " . Please check arrays.");
         return false;
       }
-      auto tmpArray = vtkSmartPointer<vtkDataArray>::Take(array->NewInstance());
-      tmpArray->SetNumberOfComponents(array->GetNumberOfComponents());
-      tmpArray->SetNumberOfTuples(1);
-      tmpArray->InterpolateTuple(0, dataSet->GetCell(tupleId)->GetPointIds(), array, weights);
 
-      // Recover data
-      tmpArray->GetTuple(0, data);
+      // Manual interpolation of data at particle location
+      vtkIdList* idList = particle->GetThreadedIdList();
+      dataSet->GetCellPoints(tupleId, idList);
+      for (int j = 0; j < array->GetNumberOfComponents(); j++)
+      {
+        data[j] = 0;
+        for (int i = 0; i < idList->GetNumberOfIds(); i++)
+        {
+          data[j] += weights[i] * array->GetComponent(idList->GetId(i), j);
+        }
+      }
       return true;
     }
     case vtkDataObject::FIELD_ASSOCIATION_CELLS:
