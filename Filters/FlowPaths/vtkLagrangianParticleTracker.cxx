@@ -509,17 +509,6 @@ bool vtkLagrangianParticleTracker::InitializePathsOutput(vtkInformationVector* o
       return false;
     }
 
-    // Set information keys
-    particlePathsOutput->GetInformation()->Set(
-      vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES(),
-      particleOutInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES()));
-    particlePathsOutput->GetInformation()->Set(
-      vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER(),
-      particleOutInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER()));
-    particlePathsOutput->GetInformation()->Set(
-      vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_GHOST_LEVELS(),
-      particleOutInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_GHOST_LEVELS()));
-
     vtkNew<vtkPoints> particlePathsPoints;
     vtkNew<vtkCellArray> particlePaths;
     vtkNew<vtkCellArray> particleVerts;
@@ -552,16 +541,6 @@ bool vtkLagrangianParticleTracker::InitializeInteractionOutput(vtkInformationVec
     vtkErrorMacro(<< "Cannot find a vtkDataObject particle interaction output. aborting");
     return false;
   }
-
-  // Set information keys
-  interactionOutput->GetInformation()->Set(
-    vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES(),
-    particleOutInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES()));
-  interactionOutput->GetInformation()->Set(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER(),
-    particleOutInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER()));
-  interactionOutput->GetInformation()->Set(
-    vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_GHOST_LEVELS(),
-    particleOutInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_GHOST_LEVELS()));
 
   // Check surfaces dataset type
   vtkCompositeDataSet* hdInput = vtkCompositeDataSet::SafeDownCast(surfaces);
