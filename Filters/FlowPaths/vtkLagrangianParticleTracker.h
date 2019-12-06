@@ -104,6 +104,7 @@ class vtkInformation;
 class vtkInitialValueProblemSolver;
 class vtkLagrangianBasicIntegrationModel;
 class vtkLagrangianParticle;
+class vtkMultiPieceDataSet;
 class vtkPointData;
 class vtkPoints;
 class vtkPolyData;
@@ -324,16 +325,17 @@ protected:
   virtual bool UpdateSurfaceCacheIfNeeded(vtkDataObject*& surfaces);
   virtual void InitializeSurface(vtkDataObject*& surfaces);
   virtual bool InitializeOutputs(vtkInformationVector* outputVector, vtkPointData* seedData,
-    vtkIdType numberOfSeeds, vtkDataObject* surfaces, vtkPolyData*& particlePathsOutput,
+    vtkIdType numberOfSeeds, vtkDataObject* surfaces, vtkMultiPieceDataSet*& particlePathsOutput,
     vtkDataObject*& interactionOutput);
 
-  virtual bool InitializePathsOutput(vtkInformationVector* outputVector, vtkPointData* seedData,
-    vtkIdType numberOfSeeds, vtkPolyData*& particlePathsOutput);
+  virtual bool InitializePathsOutput(
+    vtkPointData* seedData, vtkIdType numberOfSeeds, vtkPolyData*& particlePathsOutput);
 
   virtual bool InitializeInteractionOutput(vtkInformationVector* outputVector,
     vtkPointData* seedData, vtkDataObject* surfaces, vtkDataObject*& interractionOutput);
 
-  virtual bool FinalizeOutputs(vtkPolyData* particlePathsOutput, vtkDataObject* interractionOutput);
+  virtual bool FinalizeOutputs(
+    vtkMultiPieceDataSet* particlePathsOutput, vtkDataObject* interractionOutput);
 
   static void InsertPolyVertexCell(vtkPolyData* polydata);
   static void InsertVertexCells(vtkPolyData* polydata);
@@ -377,6 +379,7 @@ protected:
   std::atomic<vtkIdType> ParticleCounter;
   std::atomic<vtkIdType> IntegratedParticleCounter;
   vtkIdType IntegratedParticleCounterIncrement;
+  vtkPointData* SeedData;
 
   // internal parameters use for step computation
   double MinimumVelocityMagnitude;

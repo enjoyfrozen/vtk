@@ -206,7 +206,7 @@ int TestLagrangianIntegrationModel(int, char*[])
   }
 
   odeWavelet->ParallelManualShift(&part);
-  vtkPolyData* tmpPd = nullptr;
+  vtkMultiPieceDataSet* tmpPd = nullptr;
   vtkDataObject* tmpDo = nullptr;
   if (!odeWavelet->FinalizeOutputs(tmpPd, tmpDo))
   {

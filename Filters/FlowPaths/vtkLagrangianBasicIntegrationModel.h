@@ -79,6 +79,7 @@ class vtkIntArray;
 class vtkLagrangianParticle;
 class vtkLagrangianParticleTracker;
 class vtkLocatorsType;
+class vtkMultiPieceDataSet;
 class vtkPointData;
 class vtkPolyData;
 class vtkStringArray;
@@ -362,8 +363,8 @@ public:
    * Return true if successful, false otherwise
    * Empty and Always return true with basic model
    */
-  virtual bool FinalizeOutputs(
-    vtkPolyData* vtkNotUsed(particlePathsOutput), vtkDataObject* vtkNotUsed(interractionOutput))
+  virtual bool FinalizeOutputs(vtkMultiPieceDataSet* vtkNotUsed(particlePathsOutput),
+    vtkDataObject* vtkNotUsed(interractionOutput))
   {
     return true;
   }
