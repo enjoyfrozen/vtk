@@ -104,6 +104,7 @@ class vtkInformation;
 class vtkInitialValueProblemSolver;
 class vtkLagrangianBasicIntegrationModel;
 class vtkLagrangianParticle;
+class vtkMultiBlockDataSet;
 class vtkMultiPieceDataSet;
 class vtkPointData;
 class vtkPoints;
@@ -326,16 +327,16 @@ protected:
   virtual void InitializeSurface(vtkDataObject*& surfaces);
   virtual bool InitializeOutputs(vtkInformationVector* outputVector, vtkPointData* seedData,
     vtkIdType numberOfSeeds, vtkDataObject* surfaces, vtkMultiPieceDataSet*& particlePathsOutput,
-    vtkDataObject*& interactionOutput);
+    vtkMultiBlockDataSet*& interactionOutput);
 
   virtual bool InitializePathsOutput(
     vtkPointData* seedData, vtkIdType numberOfSeeds, vtkPolyData*& particlePathsOutput);
 
-  virtual bool InitializeInteractionOutput(vtkInformationVector* outputVector,
-    vtkPointData* seedData, vtkDataObject* surfaces, vtkDataObject*& interractionOutput);
+  virtual bool InitializeInteractionOutput(
+    vtkPointData* seedData, vtkDataObject* surfaces, vtkMultiBlockDataSet*& interractionOutput);
 
   virtual bool FinalizeOutputs(
-    vtkMultiPieceDataSet* particlePathsOutput, vtkDataObject* interractionOutput);
+    vtkMultiPieceDataSet* particlePathsOutput, vtkMultiBlockDataSet* interactionOutput);
 
   static void InsertPolyVertexCell(vtkPolyData* polydata);
   static void InsertVertexCells(vtkPolyData* polydata);

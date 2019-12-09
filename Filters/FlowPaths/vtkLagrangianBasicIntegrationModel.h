@@ -79,6 +79,7 @@ class vtkIntArray;
 class vtkLagrangianParticle;
 class vtkLagrangianParticleTracker;
 class vtkLocatorsType;
+class vtkMultiBlockDataSet;
 class vtkMultiPieceDataSet;
 class vtkPointData;
 class vtkPolyData;
@@ -364,7 +365,7 @@ public:
    * Empty and Always return true with basic model
    */
   virtual bool FinalizeOutputs(vtkMultiPieceDataSet* vtkNotUsed(particlePathsOutput),
-    vtkDataObject* vtkNotUsed(interractionOutput))
+    vtkMultiBlockDataSet* vtkNotUsed(interractionOutput))
   {
     return true;
   }
