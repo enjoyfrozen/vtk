@@ -452,6 +452,7 @@ vtkLagrangianParticle* vtkLagrangianBasicIntegrationModel::ComputeSurfaceInterac
           this->InteractWithSurface(surfaceType, particle, surface, cellId, particles);
         break;
     }
+    interactionParticle->SetInteraction(particle->GetInteraction());
   }
   if (!recordInteraction)
   {
