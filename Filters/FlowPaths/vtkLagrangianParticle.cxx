@@ -19,8 +19,6 @@
 #include "vtkPointData.h"
 #include "vtkSetGet.h"
 
-#include <mutex>
-
 //---------------------------------------------------------------------------
 vtkLagrangianParticle::vtkLagrangianParticle(int numberOfVariables, vtkIdType seedId,
   vtkIdType particleId, vtkIdType seedArrayTupleIndex, double integrationTime,

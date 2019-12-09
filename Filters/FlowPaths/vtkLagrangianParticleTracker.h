@@ -31,10 +31,10 @@
  *     kind of data object, support distributed input.
  *
  * It has two outputs :
- * * port 0 : ParticlePaths : a polyData of polyLines showing the paths of
+ * * port 0 : ParticlePaths : a multipieces of polyData of polyLines showing the paths of
  *     particles in the flow
  * * port 1 : ParticleInteractions : empty if no surface input, contains a
- *     polydata of vertex
+ *     a multiblock of multiblock of polydata of vertex
  * with the same composite layout of surface input if any, showing all
  *     interactions between particles and the surface input
  *
@@ -325,13 +325,16 @@ protected:
     int nVar, std::queue<vtkLagrangianParticle*>& particles);
   virtual bool UpdateSurfaceCacheIfNeeded(vtkDataObject*& surfaces);
   virtual void InitializeSurface(vtkDataObject*& surfaces);
-  virtual bool InitializeOutputs(vtkInformationVector* outputVector, vtkPointData* seedData,
-    vtkIdType numberOfSeeds, vtkDataObject* surfaces, vtkMultiPieceDataSet*& particlePathsOutput,
-    vtkMultiBlockDataSet*& interactionOutput);
 
+  /**
+   * This method is thread safe
+   */
   virtual bool InitializePathsOutput(
     vtkPointData* seedData, vtkIdType numberOfSeeds, vtkPolyData*& particlePathsOutput);
 
+  /**
+   * This method is thread safe
+   */
   virtual bool InitializeInteractionOutput(
     vtkPointData* seedData, vtkDataObject* surfaces, vtkMultiBlockDataSet*& interractionOutput);
 
@@ -350,9 +353,15 @@ protected:
     std::queue<vtkLagrangianParticle*>&, vtkPolyData* particlePathsOutput,
     vtkPolyLine* particlePath, vtkDataObject* interactionOutput);
 
+  /**
+   * This method is thread safe
+   */
   void InsertPathOutputPoint(vtkLagrangianParticle* particle, vtkPolyData* particlePathsOutput,
     vtkIdList* particlePathPointId, bool prev = false);
 
+  /**
+   * This method is thread safe
+   */
   void InsertInteractionOutputPoint(vtkLagrangianParticle* particle,
     unsigned int interactedSurfaceFlatIndex, vtkDataObject* interactionOutput);
 
@@ -393,8 +402,6 @@ protected:
   vtkDataObject* SurfacesCache;
   vtkMTimeType SurfacesTime;
 
-  std::mutex ParticlePathsOutputMutex;
-  std::mutex InteractionOutputMutex;
   std::mutex ProgressMutex;
   friend struct IntegratingFunctor;
 

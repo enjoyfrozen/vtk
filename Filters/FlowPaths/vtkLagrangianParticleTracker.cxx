@@ -318,40 +318,15 @@ int vtkLagrangianParticleTracker::FillOutputPortInformation(int port, vtkInforma
 
 //----------------------------------------------------------------------------
 int vtkLagrangianParticleTracker::RequestDataObject(vtkInformation* vtkNotUsed(request),
-  vtkInformationVector** inputVector, vtkInformationVector* outputVector)
+  vtkInformationVector** vtkNotUsed(inputVector), vtkInformationVector* outputVector)
 {
-  // Create a multipiece output
+  // Create multipiece outputs
   vtkInformation* info = outputVector->GetInformationObject(0);
   vtkNew<vtkMultiPieceDataSet> particlePathsOutput;
   info->Set(vtkDataObject::DATA_OBJECT(), particlePathsOutput);
-
-  // Create a multipiece output
   info = outputVector->GetInformationObject(1);
   vtkNew<vtkMultiBlockDataSet> interactionOutput;
   info->Set(vtkDataObject::DATA_OBJECT(), interactionOutput);
-
-  // Create a surface interaction output
-  // First check for composite
-  /*  vtkInformation* inInfo = inputVector[2]->GetInformationObject(0);
-    info = outputVector->GetInformationObject(1);
-    if (inInfo)
-    {
-      vtkDataObject* input = vtkDataObject::SafeDownCast(inInfo->Get(vtkDataObject::DATA_OBJECT()));
-      if (input)
-      {
-        vtkCompositeDataSet* hdInput = vtkCompositeDataSet::SafeDownCast(input);
-        if (hdInput)
-        {
-          vtkDataObject* interactionOutput = input->NewInstance();
-          info->Set(vtkDataObject::DATA_OBJECT(), interactionOutput);
-          interactionOutput->Delete();
-          return 1;
-        }
-      }
-    }
-    // In any other case, create a polydata
-    vtkNew<vtkPolyData> interactionOutput;
-    info->Set(vtkDataObject::DATA_OBJECT(), interactionOutput);*/
   return 1;
 }
 
@@ -444,12 +419,24 @@ int vtkLagrangianParticleTracker::RequestData(vtkInformation* vtkNotUsed(request
 
   // Initialize outputs
   vtkMultiPieceDataSet* particlePathsOutput = nullptr;
-  vtkMultiBlockDataSet* interactionOutput = nullptr;
-  if (!this->InitializeOutputs(outputVector, this->SeedData,
-        static_cast<vtkIdType>(particlesQueue.size()), surfaces, particlePathsOutput,
-        interactionOutput))
+  vtkInformation* particleOutInfo = outputVector->GetInformationObject(0);
+  if (this->GenerateParticlePathsOutput)
   {
-    vtkErrorMacro(<< "Cannot initialize outputs");
+    particlePathsOutput =
+      vtkMultiPieceDataSet::SafeDownCast(particleOutInfo->Get(vtkPolyData::DATA_OBJECT()));
+    if (!particlePathsOutput)
+    {
+      vtkErrorMacro(<< "Cannot find a vtkMultiPiece particle paths output. aborting");
+      return 0;
+    }
+  }
+
+  vtkInformation* interactionOutInfo = outputVector->GetInformationObject(1);
+  vtkMultiBlockDataSet* interactionOutput =
+    vtkMultiBlockDataSet::SafeDownCast(interactionOutInfo->Get(vtkPolyData::DATA_OBJECT()));
+  if (!interactionOutput)
+  {
+    vtkErrorMacro(<< "Cannot find a vtkMultiBlock interaction output. aborting");
     return 0;
   }
 
@@ -521,44 +508,6 @@ vtkIdType vtkLagrangianParticleTracker::GetNewParticleId()
 }
 
 //---------------------------------------------------------------------------
-bool vtkLagrangianParticleTracker::InitializeOutputs(vtkInformationVector* outputVector,
-  vtkPointData* seedData, vtkIdType numberOfSeeds, vtkDataObject* surfaces,
-  vtkMultiPieceDataSet*& particlePathsOutput, vtkMultiBlockDataSet*& interactionOutput)
-{
-  // Prepare path output
-  vtkInformation* particleOutInfo = outputVector->GetInformationObject(0);
-  if (this->GenerateParticlePathsOutput)
-  {
-    particlePathsOutput =
-      vtkMultiPieceDataSet::SafeDownCast(particleOutInfo->Get(vtkPolyData::DATA_OBJECT()));
-    if (!particlePathsOutput)
-    {
-      vtkErrorMacro(<< "Cannot find a vtkMultiPiece particle paths output. aborting");
-      return false;
-    }
-    /*    if (!this->InitializePathsOutput(seedData, numberOfSeeds, particlePathsOutput))
-        {
-          return false; TODO
-        }*/
-  }
-
-  vtkInformation* interactionOutInfo = outputVector->GetInformationObject(1);
-  interactionOutput =
-    vtkMultiBlockDataSet::SafeDownCast(interactionOutInfo->Get(vtkPolyData::DATA_OBJECT()));
-  if (!interactionOutput)
-  {
-    vtkErrorMacro(<< "Cannot find a vtkMultiBlock interaction output. aborting");
-    return false;
-  }
-
-  /*  if (!this->InitializeInteractionOutput(outputVector, seedData, surfaces, interactionOutput))
-    {
-      return false;
-    }*/
-  return true;
-}
-
-//---------------------------------------------------------------------------
 bool vtkLagrangianParticleTracker::InitializePathsOutput(
   vtkPointData* seedData, vtkIdType numberOfSeeds, vtkPolyData*& particlePathsOutput)
 {
@@ -586,15 +535,6 @@ bool vtkLagrangianParticleTracker::InitializePathsOutput(
 bool vtkLagrangianParticleTracker::InitializeInteractionOutput(
   vtkPointData* seedData, vtkDataObject* surfaces, vtkMultiBlockDataSet*& interactionOutput)
 {
-  // Prepare interaction output
-  /*  vtkInformation* particleOutInfo = outputVector->GetInformationObject(1);
-    interactionOutput = particleOutInfo->Get(vtkDataObject::DATA_OBJECT());
-    if (!interactionOutput)
-    {
-      vtkErrorMacro(<< "Cannot find a vtkDataObject particle interaction output. aborting");
-      return false;
-    }*/
-
   // Check surfaces dataset type
   vtkCompositeDataSet* hdInput = vtkCompositeDataSet::SafeDownCast(surfaces);
   vtkDataSet* dsInput = vtkDataSet::SafeDownCast(surfaces);
@@ -1046,8 +986,6 @@ int vtkLagrangianParticleTracker::Integrate(vtkInitialValueProblemSolver* integr
           particle, particlesQueue, interactedSurfaceFlaxIndex, passThroughParticles);
       if (interactionParticle)
       {
-        // Mutex Locked Area
-        std::lock_guard<std::mutex> guard(this->InteractionOutputMutex);
         this->InsertInteractionOutputPoint(
           interactionParticle, interactedSurfaceFlaxIndex, interactionOutput);
         this->IntegrationModel->ParticleAboutToBeDeleted(interactionParticle);
@@ -1066,8 +1004,6 @@ int vtkLagrangianParticleTracker::Integrate(vtkInitialValueProblemSolver* integr
           passThroughParticles.front();
         passThroughParticles.pop();
 
-        // Mutex Locked Area
-        std::lock_guard<std::mutex> guard(this->InteractionOutputMutex);
         this->InsertInteractionOutputPoint(item.second, item.first, interactionOutput);
 
         // the pass through particles needs to be deleted
@@ -1080,8 +1016,6 @@ int vtkLagrangianParticleTracker::Integrate(vtkInitialValueProblemSolver* integr
 
       if (particlePathsOutput)
       {
-        // Mutex Locked Area
-        std::lock_guard<std::mutex> guard(this->ParticlePathsOutputMutex);
         this->InsertPathOutputPoint(particle, particlePathsOutput, particlePath->GetPointIds());
       }
 
@@ -1093,8 +1027,6 @@ int vtkLagrangianParticleTracker::Integrate(vtkInitialValueProblemSolver* integr
 
         if (particlePathsOutput)
         {
-          // Mutex Locked Area
-          std::lock_guard<std::mutex> guard(this->ParticlePathsOutputMutex);
           this->InsertPathOutputPoint(particle, particlePathsOutput, particlePath->GetPointIds());
         }
 
@@ -1141,8 +1073,6 @@ int vtkLagrangianParticleTracker::Integrate(vtkInitialValueProblemSolver* integr
     // Duplicate single point particle paths, to avoid degenerated lines.
     if (particlePath->GetPointIds()->GetNumberOfIds() > 0)
     {
-      // Mutex Locked Area
-      std::lock_guard<std::mutex> guard(this->ParticlePathsOutputMutex);
 
       // Add particle path or vertex to cell array
       particlePathsOutput->GetLines()->InsertNextCell(particlePath);

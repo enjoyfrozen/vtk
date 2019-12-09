@@ -503,7 +503,7 @@ protected:
    * Return true to record the interaction, false otherwise
    * This method is thread-safe and should use
    * vtkLagrangianBasicIntegrationModel::ParticleQueueMutex
-   *  to add particles to the particles queue,
+   *  to add particles to the particles queue, see BreakParticle for an example.
    */
   virtual bool InteractWithSurface(int surfaceType, vtkLagrangianParticle* particle,
     vtkDataSet* surface, vtkIdType cellId, std::queue<vtkLagrangianParticle*>& particles);

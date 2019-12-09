@@ -448,8 +448,6 @@ vtkLagrangianParticle* vtkLagrangianBasicIntegrationModel::ComputeSurfaceInterac
             << USER_SURFACE_TYPE
             << " as they may be used in the future by the Lagrangian Particle Tracker");
         }
-        // Mutex Locked Area
-        std::lock_guard<std::mutex> guard(ParticleQueueMutex);
         recordInteraction =
           this->InteractWithSurface(surfaceType, particle, surface, cellId, particles);
         break;
