@@ -37,6 +37,7 @@
 
 class vtkAbstractCellLocator;
 class vtkLagrangianBilinearQuadIntersection;
+class vtkLagrangianUserData;
 class vtkDataSet;
 class vtkGenericCell;
 class vtkIdList;
@@ -283,8 +284,11 @@ public:
    * This can be used to store any kind of data, structure, class instance that you may need.
    * This is not set by the vtkLagrangianParticleTracker nor used in the basic model
    */
-  inline void* GetThreadedUserData() { return this->ThreadedUserData; }
-  inline void SetThreadedUserData(void* userData) { this->ThreadedUserData = userData; }
+  inline vtkLagrangianUserData* GetThreadedUserData() { return this->ThreadedUserData; }
+  inline void SetThreadedUserData(vtkLagrangianUserData* userData)
+  {
+    this->ThreadedUserData = userData;
+  }
   //@}
 
   //@{
@@ -529,7 +533,7 @@ protected:
   std::vector<double> TrackedUserData;
   std::vector<double> NextTrackedUserData;
 
-  void* ThreadedUserData = nullptr;
+  vtkLagrangianUserData* ThreadedUserData = nullptr;
   vtkGenericCell* ThreadedGenericCell = nullptr;
   vtkIdList* ThreadedIdList = nullptr;
   vtkLagrangianBilinearQuadIntersection* ThreadedBilinearQuadIntersection = nullptr;

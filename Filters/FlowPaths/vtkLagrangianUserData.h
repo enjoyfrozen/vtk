@@ -40,74 +40,23 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 =========================================================================*/
 /**
- * @class   vtkLagrangianBilinearQuadIntersection
- * @brief   Class to perform non planar quad intersection
+ * @class   vtkLagrangianUserData
+ * @brief   Class to hold a  user data
  *
- * Class for non planar intersection
- * This class is based on
- * http://shaunramsey.com/research/bp/
- * which does not work in the general case
- * hence the ugly transformation patch.
+ * Class to hold a  user data used by the Lagrangian Particle Tracker
  */
 
-#ifndef vtkLagrangianBilinearQuadIntersection_h
-#define vtkLagrangianBilinearQuadIntersection_h
+#ifndef vtkLagrangianUserData_h
+#define vtkLagrangianUserData_h
 
 #include "vtkFiltersFlowPathsModule.h" // For export macro
-#include "vtkVector.h"
 
-class VTKFILTERSFLOWPATHS_EXPORT vtkLagrangianBilinearQuadIntersection
+class VTKFILTERSFLOWPATHS_EXPORT vtkLagrangianUserData
 {
 public:
-  vtkLagrangianBilinearQuadIntersection(const vtkVector3d& pt00, const vtkVector3d& Pt01,
-    const vtkVector3d& Pt10, const vtkVector3d& Pt11);
-  vtkLagrangianBilinearQuadIntersection();
-  ~vtkLagrangianBilinearQuadIntersection();
+  vtkLagrangianUserData() = default;
+  virtual ~vtkLagrangianUserData() = default;
 
-  //@{
-  /**
-   * Get direct access to the underlying point data
-   */
-  double* GetP00Data();
-  double* GetP01Data();
-  double* GetP10Data();
-  double* GetP11Data();
-  //}@
-
-  /**
-   * Compute cartesian coordinates of point in the quad
-   * using parameteric coordinates
-   */
-  vtkVector3d ComputeCartesianCoordinates(double u, double v);
-
-  /**
-   * Compute the intersection between a ray r->d and the quad
-   */
-  bool RayIntersection(const vtkVector3d& r, const vtkVector3d& d, vtkVector3d& uv);
-
-  /**
-   * find roots of ax^2+bx+c=0  in the interval min,max.
-   * place the roots in u[2] and return how many roots found
-   */
-  static int QuadraticRoot(double a, double b, double c, double min, double max, double* u);
-
-  /**
-   * Compute intersection factor
-   */
-  static double ComputeIntersectionFactor(
-    const vtkVector3d& dir, const vtkVector3d& orig, const vtkVector3d& srfpos);
-
-  /**
-   * Compute best denominator
-   */
-  static double GetBestDenominator(double v, double m1, double m2, double J1, double J2, double K1,
-    double K2, double R1, double R2);
-
-private:
-  vtkVector3d* Point00;
-  vtkVector3d* Point01;
-  vtkVector3d* Point10;
-  vtkVector3d* Point11;
-  int AxesSwapping;
+  void* UserData;
 };
-#endif // vtkLagrangianBilinearQuadIntersection_h
+#endif // vtkLagrangianUserData_h

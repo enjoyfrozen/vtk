@@ -78,6 +78,7 @@ class vtkInitialValueProblemSolver;
 class vtkIntArray;
 class vtkLagrangianParticle;
 class vtkLagrangianParticleTracker;
+class vtkLagrangianUserData;
 class vtkLocatorsType;
 class vtkMultiBlockDataSet;
 class vtkMultiPieceDataSet;
@@ -358,6 +359,18 @@ public:
    * on the particle. Does nothing in base implementation
    */
   virtual void ParallelManualShift(vtkLagrangianParticle* vtkNotUsed(particle)) {}
+
+  /**
+   * Let the model allocate and initialize a user data at thread level
+   * This method is thread-safe, its reimplementation should still be thread-safe.
+   */
+  virtual void InitializeThreadedUserData(vtkLagrangianUserData* vtkNotUsed(data)) {}
+
+  /**
+   * Let the model finalize and deallocate a user data at thread level
+   * This method is called serially for each thread and does not require to be thread safe.
+   */
+  virtual void FinalizeThreadedUserData(vtkLagrangianUserData* vtkNotUsed(data)) {}
 
   /**
    * Enable model post process on output
