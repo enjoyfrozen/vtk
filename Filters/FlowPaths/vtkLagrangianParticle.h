@@ -282,7 +282,7 @@ public:
   /**
    * Get/Set a pointer to TemporaryUserData that is considered to be local to the thread.
    * This can be used to store any kind of data, structure, class instance that you may need.
-   * This is not set by the vtkLagrangianParticleTracker nor used in the basic model
+   * This is set by the vtkLagrangianParticleTracker and can be initialized/finalized in the model
    */
   inline vtkLagrangianUserData* GetThreadedUserData() { return this->ThreadedUserData; }
   inline void SetThreadedUserData(vtkLagrangianUserData* userData)
@@ -541,7 +541,6 @@ protected:
   vtkIdType Id;
   vtkIdType ParentId;
   vtkIdType SeedId;
-  vtkIdType SeedArrayTupleIndex;
   vtkIdType NumberOfSteps;
   vtkNew<vtkPointData> SeedData;
 

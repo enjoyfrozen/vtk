@@ -26,7 +26,6 @@ vtkLagrangianParticle::vtkLagrangianParticle(int numberOfVariables, vtkIdType se
   : Id(particleId)
   , ParentId(-1)
   , SeedId(seedId)
-  , SeedArrayTupleIndex(seedArrayTupleIndex)
   , NumberOfSteps(0)
   , StepTime(0)
   , IntegrationTime(integrationTime)
