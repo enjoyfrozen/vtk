@@ -23,6 +23,7 @@
  * @par Thanks:
  * Developed by Roxana Bujack and Karen Tsai at Los Alamos National Laboratory under LDRD 20190143ER
  */
+
 #ifndef vtkVectorFieldTopology_h
 #define vtkVectorFieldTopology_h
 
