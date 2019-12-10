@@ -47,20 +47,14 @@
 #include <vtk_eigen.h>
 #include VTK_EIGEN(Eigenvalues)
 
-// C/C++ includes
-// #include <stdlib.h>
-// #include <stdio.h>
-// #include <sys/stat.h>
 #include <cmath>
 #include <map>
 
 #define epsilon (1e-10)
 //----------------------------------------------------------------------------
-
 vtkStandardNewMacro(vtkVectorFieldTopology);
 
 //----------------------------------------------------------------------------
-
 vtkVectorFieldTopology::vtkVectorFieldTopology()
 {
   // number of input ports is 1
@@ -74,7 +68,6 @@ vtkVectorFieldTopology::vtkVectorFieldTopology()
 }
 
 //----------------------------------------------------------------------------
-
 void vtkVectorFieldTopology::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
@@ -86,7 +79,6 @@ void vtkVectorFieldTopology::PrintSelf(ostream& os, vtkIndent indent)
 }
 
 //----------------------------------------------------------------------------
-
 int vtkVectorFieldTopology::FillInputPortInformation(int port, vtkInformation* info)
 {
   if (port == 0)
@@ -105,6 +97,7 @@ int vtkVectorFieldTopology::FillOutputPortInformation(int port, vtkInformation* 
   return 1;
 }
 
+//----------------------------------------------------------------------------
 int classify2D(int countReal, int countComplex, int countPos, int countNeg)
 {
   // make simple type that corresponds to the number of positive eigenvalues
@@ -122,6 +115,7 @@ int classify2D(int countReal, int countComplex, int countPos, int countNeg)
   return critType;
 }
 
+//----------------------------------------------------------------------------
 int classify3D(int countReal, int countComplex, int countPos, int countNeg)
 {
   // make simple type that corresponds to the number of positive eigenvalues
@@ -139,6 +133,7 @@ int classify3D(int countReal, int countComplex, int countPos, int countNeg)
   return critType;
 }
 
+//----------------------------------------------------------------------------
 int vtkVectorFieldTopology::ComputeCriticalPoints2D(
   vtkSmartPointer<vtkPolyData> criticalPoints, vtkSmartPointer<vtkUnstructuredGrid> tridataset)
 {
@@ -148,8 +143,6 @@ int vtkVectorFieldTopology::ComputeCriticalPoints2D(
   {
     auto cell = tridataset->GetCell(cellId);
     vtkIdType indices[3] = { cell->GetPointId(0), cell->GetPointId(1), cell->GetPointId(2) };
-    // std::cout << "Indices: " << indices[0] << ", " << indices[1] << ", " << indices[2] <<
-    // std::endl;
 
     vtkVector3d coords[3] = { vtkVector3d(tridataset->GetPoint(indices[0])),
       vtkVector3d(tridataset->GetPoint(indices[1])),
@@ -159,11 +152,8 @@ int vtkVectorFieldTopology::ComputeCriticalPoints2D(
                                 tridataset->GetPointData()->GetVectors()->GetTuple(indices[0])),
       vtkVector3d(tridataset->GetPointData()->GetVectors()->GetTuple(indices[1])),
       vtkVector3d(tridataset->GetPointData()->GetVectors()->GetTuple(indices[2])) };
-    // std::cout << "values[0]: " << values[0][0] << ", " << values[0][1] << ", " << values[0][2] <<
-    // std::endl;
 
     vtkNew<vtkMatrix3x3> valueMatrix;
-    // valueMatrix->Zero();
     for (int i = 0; i < 2; i++)
     {
       for (int j = 0; j < 2; j++)
@@ -171,10 +161,8 @@ int vtkVectorFieldTopology::ComputeCriticalPoints2D(
         valueMatrix->SetElement(j, i, values[i + 1][j] - values[0][j]);
       }
     }
-    // valueMatrix->Print(std::cout);
 
     valueMatrix->Invert();
-    // valueMatrix->PrintSelf(std::cout, vtkIndent(2));
     double zeroBase[3] = { -values[0][0], -values[0][1], -values[0][2] };
     valueMatrix->MultiplyPoint(zeroBase, zeroBase);
 
@@ -205,6 +193,7 @@ int vtkVectorFieldTopology::ComputeCriticalPoints2D(
   return 1;
 }
 
+//----------------------------------------------------------------------------
 int vtkVectorFieldTopology::ComputeCriticalPoints3D(
   vtkSmartPointer<vtkPolyData> criticalPoints, vtkSmartPointer<vtkUnstructuredGrid> tridataset)
 {
@@ -213,8 +202,6 @@ int vtkVectorFieldTopology::ComputeCriticalPoints3D(
     auto cell = tridataset->GetCell(cellId);
     vtkIdType indices[4] = { cell->GetPointId(0), cell->GetPointId(1), cell->GetPointId(2),
       cell->GetPointId(3) };
-    //     std::cout << "Indices: " << indices[0] << ", " << indices[1] << ", " << indices[2] << ",
-    //     " << indices[3] << std::endl;
 
     vtkVector3d coords[4] = { vtkVector3d(tridataset->GetPoint(indices[0])),
       vtkVector3d(tridataset->GetPoint(indices[1])), vtkVector3d(tridataset->GetPoint(indices[2])),
@@ -226,11 +213,7 @@ int vtkVectorFieldTopology::ComputeCriticalPoints3D(
       vtkVector3d(tridataset->GetPointData()->GetVectors()->GetTuple(indices[2])),
       vtkVector3d(tridataset->GetPointData()->GetVectors()->GetTuple(indices[3])) };
 
-    //     std::cout << "values[0]: " << values[0][0] << ", " << values[0][1] << ", " <<
-    //     values[0][2] << ", " << values[0][3] << std::endl;
-
     vtkNew<vtkMatrix3x3> valueMatrix;
-    // valueMatrix->Zero();
     for (int i = 0; i < 3; i++)
     {
       for (int j = 0; j < 3; j++)
@@ -238,10 +221,7 @@ int vtkVectorFieldTopology::ComputeCriticalPoints3D(
         valueMatrix->SetElement(j, i, values[3][j] - values[i][j]);
       }
     }
-    // valueMatrix->Print(std::cout);
-
     valueMatrix->Invert();
-    // valueMatrix->PrintSelf(std::cout, vtkIndent(2));
     double zeroBase[3] = { values[3][0], values[3][1], values[3][2] };
     valueMatrix->MultiplyPoint(zeroBase, zeroBase);
 
@@ -256,10 +236,6 @@ int vtkVectorFieldTopology::ComputeCriticalPoints3D(
     if (zeroBase[0] >= -epsilon && zeroBase[1] >= -epsilon && zeroBase[2] >= -epsilon &&
       zeroBase[0] + zeroBase[1] + zeroBase[2] <= 1.0 + epsilon)
     {
-      //      std::cout <<criticalPoints->GetNumberOfPoints() << std::endl;
-      //      std::cout <<cellId<< " zeroBase: " << zeroBase[0] << ", " << zeroBase[1] << ", " <<
-      //      zeroBase[2] << std::endl; std::cout <<cellId<< " zeroPos: " << zeroPos[0] << ", " <<
-      //      zeroPos[1] << ", " << zeroPos[2] << std::endl;
       bool isNewPoint = 1;
       for (int i = 0; i < criticalPoints->GetNumberOfPoints(); ++i)
       {
@@ -270,8 +246,6 @@ int vtkVectorFieldTopology::ComputeCriticalPoints3D(
       }
       if (isNewPoint)
       {
-        //        std::cout <<cellId<< " zeroPos: " << zeroPos[0] << ", " << zeroPos[1] << ", " <<
-        //        zeroPos[2] << std::endl;
         criticalPoints->GetPoints()->InsertNextPoint(zeroPos);
         vtkNew<vtkVertex> vertex;
         vertex->GetPointIds()->SetId(0, criticalPoints->GetNumberOfPoints() - 1);
@@ -282,11 +256,11 @@ int vtkVectorFieldTopology::ComputeCriticalPoints3D(
   return 1;
 }
 
+//----------------------------------------------------------------------------
 int surface(bool isBackward, double normal[3], double zeroPos[3],
   vtkSmartPointer<vtkPolyData> streamSurfaces, vtkSmartPointer<vtkImageData> dataset, double dist,
   double stepSize, int maxNumSteps, bool useIterativeSeeding)
 {
-  //  cout<<"surface "<<isBackward<<endl;
   // generate circle and add first point again in the back to avoid gap
   vtkNew<vtkRegularPolygonSource> circle;
   circle->GeneratePolygonOff();
@@ -295,6 +269,7 @@ int surface(bool isBackward, double normal[3], double zeroPos[3],
   circle->SetCenter(zeroPos);
   circle->SetNormal(normal);
   circle->Update();
+
   // close circle exactly with a point instead of an edge to correctly treat points exiting the
   // boundary
   circle->GetOutput()->GetPoints()->InsertNextPoint(circle->GetOutput()->GetPoint(0));
@@ -331,13 +306,13 @@ int surface(bool isBackward, double normal[3], double zeroPos[3],
   return 1;
 }
 
+//----------------------------------------------------------------------------
 int vtkVectorFieldTopology::ComputeSeparatrices(vtkSmartPointer<vtkPolyData> criticalPoints,
   vtkSmartPointer<vtkPolyData> separatrices, vtkSmartPointer<vtkPolyData> surfaces,
   vtkSmartPointer<vtkImageData> dataset, vtkSmartPointer<vtkImageData> graddataset, double dist,
   double stepSize, int maxNumSteps, bool computeSurfaces, bool useIterativeSeeding)
 {
   // Compute eigenvectors & eigenvalues
-  //    cout<<"criticalPoints->GetNumberOfPoints() "<<criticalPoints->GetNumberOfPoints()<<endl;
   vtkNew<vtkDoubleArray> criticalPointsTypes;
   criticalPointsTypes->SetNumberOfTuples(criticalPoints->GetNumberOfPoints());
   criticalPointsTypes->SetName("type");
@@ -375,14 +350,6 @@ int vtkVectorFieldTopology::ComputeSeparatrices(vtkSmartPointer<vtkPolyData> cri
     }
 
     Eigen::EigenSolver<Eigen::Matrix<double, 3, 3>> eigenS(eigenMatrix);
-    //    cout << "The first eigenvalue of the 3x3 matrix is:" << endl <<
-    //    eigenS.eigenvalues().row(0) << endl; cout << "The second eigenvalue of the 3x3 matrix is:"
-    //    << endl << eigenS.eigenvalues().row(1) << endl; cout << "The third eigenvalue of the 3x3
-    //    matrix is:" << endl << eigenS.eigenvalues().row(2) << endl; cout << "The first eigenvector
-    //    of the 3x3 matrix is:" << endl << eigenS.eigenvectors().col(0) << endl; cout << "The
-    //    second eigenvector of the 3x3 matrix is:" << endl << eigenS.eigenvectors().col(1) << endl;
-    //    cout << "The third eigenvector of the 3x3 matrix is:" << endl <<
-    //    eigenS.eigenvectors().col(2) << endl;
 
     int countReal = 0;
     int countComplex = 0;
@@ -477,7 +444,6 @@ int vtkVectorFieldTopology::ComputeSeparatrices(vtkSmartPointer<vtkPolyData> cri
       }
     }
   }
-  //  cout<<seeds->GetNumberOfPoints()<<endl;
 
   vtkNew<vtkStreamTracer> streamTracerFw;
   streamTracerFw->SetInputData(dataset);
@@ -556,11 +522,9 @@ int vtkVectorFieldTopology::ComputeSeparatrices(vtkSmartPointer<vtkPolyData> cri
 }
 
 //----------------------------------------------------------------------------
-
 int vtkVectorFieldTopology::RequestData(vtkInformation* vtkNotUsed(request),
   vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
-
   // get the info objects
   vtkInformation* inInfo = inputVector[0]->GetInformationObject(0);
   vtkInformation* outInfo0 = outputVector->GetInformationObject(0);
