@@ -203,7 +203,6 @@ public:
   virtual void SetInputArrayToProcess(
     int idx, int port, int connection, int fieldAssociation, const char* name);
 
-  //@{
   /**
    * Look for a dataset in this integration model
    * containing the point x. return false if out of domain,
@@ -215,6 +214,12 @@ public:
    */
   virtual bool FindInLocators(double* x, vtkLagrangianParticle* particle, vtkDataSet*& dataset,
     vtkIdType& cellId, vtkAbstractCellLocator*& loc, double*& weights);
+
+  //@{
+  /**
+   * Convienience methods to call FindInLocators with less arguments
+   * THESE METHODS ARE NOT THREAD-SAFE
+   */
   virtual bool FindInLocators(
     double* x, vtkLagrangianParticle* particle, vtkDataSet*& dataset, vtkIdType& cellId);
   virtual bool FindInLocators(double* x, vtkLagrangianParticle* particle);
@@ -575,6 +580,7 @@ protected:
   vtkLocatorsType* Locators;
   vtkDataSetsType* DataSets;
   int WeightsSize;
+  double* SharedWeights = nullptr;
 
   struct ArrayVal
   {

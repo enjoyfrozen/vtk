@@ -113,6 +113,7 @@ vtkLagrangianBasicIntegrationModel::~vtkLagrangianBasicIntegrationModel()
   delete this->DataSets;
   delete this->Surfaces;
   delete this->SurfaceLocators;
+  delete[] this->SharedWeights;
 }
 
 //----------------------------------------------------------------------------
@@ -222,6 +223,8 @@ void vtkLagrangianBasicIntegrationModel::AddDataSet(
     {
       this->WeightsSize = size;
     }
+    delete[] this->SharedWeights;
+    this->SharedWeights = new double[this->WeightsSize];
   }
 }
 
@@ -238,6 +241,8 @@ void vtkLagrangianBasicIntegrationModel::ClearDataSets(bool surface)
     this->DataSets->clear();
     this->Locators->clear();
     this->WeightsSize = 0;
+    delete[] this->SharedWeights;
+    this->SharedWeights = nullptr;
   }
 }
 
@@ -711,10 +716,7 @@ bool vtkLagrangianBasicIntegrationModel::FindInLocators(
   double* x, vtkLagrangianParticle* particle, vtkDataSet*& dataset, vtkIdType& cellId)
 {
   vtkAbstractCellLocator* loc;
-  std::vector<double> weights(this->WeightsSize);
-  double* wPtr = weights.data(); // FindInLocators expects a double*&, though it doesn't modify?
-  bool ret = this->FindInLocators(x, particle, dataset, cellId, loc, wPtr);
-  return ret;
+  return this->FindInLocators(x, particle, dataset, cellId, loc, this->SharedWeights);
 }
 
 //----------------------------------------------------------------------------
