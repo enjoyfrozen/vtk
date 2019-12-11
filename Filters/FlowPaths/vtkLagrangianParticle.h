@@ -295,8 +295,8 @@ public:
   /**
    * Get/Set a pointer to a vtkGenericCell that is considered to be local to the thread
    * manipulating the particle.
-   * The is normally set by the vtkLagrangianParticleTracker and used by the basic model
-   * and the tracker.
+   * The generic cell is normally set by the vtkLagrangianParticleTracker and used by the basic
+   * model and the tracker.
    */
   inline vtkGenericCell* GetThreadedGenericCell() { return this->ThreadedGenericCell; }
   inline void SetThreadedGenericCell(vtkGenericCell* genericCell)
@@ -309,7 +309,7 @@ public:
   /**
    * Get/Set a pointer to a vtkIdList that is considered to be local to the thread
    * manipulating the particle.
-   * The is normally set by the vtkLagrangianParticleTracker and used by the basic model
+   * The id list is normally set by the vtkLagrangianParticleTracker and used by the basic model
    * and the tracker.
    */
   inline vtkIdList* GetThreadedIdList() { return this->ThreadedIdList; }
@@ -320,8 +320,8 @@ public:
   /**
    * Get/Set a pointer to a vtkLagrangianBilinearQuadIntersection that is
    *considered to be local to the thread manipulating the particle.
-   * The is normally set by the vtkLagrangianParticleTracker and used by the basic model
-   * and the tracker.
+   * The bilinear quad intersection is normally set by the vtkLagrangianParticleTracker and used by
+   *the basic model and the tracker.
    */
   inline vtkLagrangianBilinearQuadIntersection* GetThreadedBilinearQuadIntersection()
   {

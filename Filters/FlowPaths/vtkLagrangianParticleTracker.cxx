@@ -89,14 +89,14 @@ struct IntegratingFunctor
     this->LocalIntegrator.Local() = this->Tracker->Integrator->NewInstance();
     this->LocalIntegrator.Local()->SetFunctionSet(this->Tracker->IntegrationModel);
 
-    // Create a local generic cell to avoid recreation
+    // Create a local generic cell
     this->LocalGenericCell.Local() = vtkGenericCell::New();
 
-    // Create a local idList to avoid recreation and initialize to a reasonable value
+    // Create and initialize a local idList
     this->LocalIdList.Local() = vtkIdList::New();
     this->LocalIdList.Local()->Allocate(10);
 
-    // Create a local bilinear quad intersection to avoid recreation
+    // Create a local bilinear quad intersection
     this->LocalBilinearQuadIntersection.Local() = new vtkLagrangianBilinearQuadIntersection;
 
     if (this->Tracker->GenerateParticlePathsOutput)
@@ -112,7 +112,7 @@ struct IntegratingFunctor
     this->Tracker->InitializeInteractionOutput(
       this->Tracker->SeedData, this->Surfaces, this->LocalInteractionOutput.Local());
 
-    // Create a local bilinear quad intersection to avoid recreation
+    // Create a local user data
     this->LocalUserData.Local() = new vtkLagrangianUserData;
     this->Tracker->IntegrationModel->InitializeThreadedUserData(this->LocalUserData.Local());
   }
@@ -615,8 +615,7 @@ bool vtkLagrangianParticleTracker::FinalizeOutputs(
   }
 
   // Insert interaction poly-vertex cell
-  vtkSmartPointer<vtkDataObjectTreeIterator> iter =
-    vtkSmartPointer<vtkDataObjectTreeIterator>::New();
+  vtkNew<vtkDataObjectTreeIterator> iter;
   iter->SetDataSet(interactionOutput);
   iter->SkipEmptyNodesOn();
   iter->VisitOnlyLeavesOn();
