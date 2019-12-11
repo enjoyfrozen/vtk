@@ -25,9 +25,11 @@
 #ifndef vtkStreamSurface_h
 #define vtkStreamSurface_h
 
+#include <vtkAppendPolyData.h>
 #include <vtkFiltersFlowPathsModule.h> // For export macro
 #include <vtkImageData.h>
 #include <vtkPolyDataAlgorithm.h>
+#include <vtkRuledSurfaceFilter.h>
 #include <vtkStreamTracer.h>
 
 class VTKFILTERSFLOWPATHS_EXPORT vtkStreamSurface : public vtkStreamTracer
@@ -73,5 +75,9 @@ private:
    * depending on this boolen the simple or iterative version is called
    */
   bool UseIterativeSeeding;
+
+  vtkSmartPointer<vtkRuledSurfaceFilter> vtkRuledSurface;
+  vtkSmartPointer<vtkStreamTracer> streamTracer;
+  vtkSmartPointer<vtkAppendPolyData> appendSurfaces;
 };
 #endif
