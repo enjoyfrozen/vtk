@@ -90,7 +90,7 @@ protected:
   void ReceiveParticles(std::queue<vtkLagrangianParticle*>& particleQueue);
 
   bool FinalizeOutputs(
-    vtkPolyData* particlePathsOutput, vtkDataObject* interractionOutput) override;
+    vtkMultiPieceDataSet* particlePathsOutput, vtkMultiBlockDataSet* interactionOutput) override;
 
   bool UpdateSurfaceCacheIfNeeded(vtkDataObject*& surfaces) override;
 

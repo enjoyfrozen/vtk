@@ -927,9 +927,6 @@ int vtkPLagrangianParticleTracker::Integrate(vtkInitialValueProblemSolver* integ
   {
     if (particlePathsOutput && particle->GetPInsertPreviousPosition())
     {
-      // Mutex Locked Area
-      std::lock_guard<std::mutex> guard(this->ParticlePathsOutputMutex);
-
       // This is a particle from another rank, store a duplicated previous point
       this->InsertPathOutputPoint(particle, particlePathsOutput, particlePath->GetPointIds(), true);
       particle->SetPInsertPreviousPosition(false);
@@ -990,45 +987,45 @@ void vtkPLagrangianParticleTracker::ReceiveParticles(
 
 //---------------------------------------------------------------------------
 bool vtkPLagrangianParticleTracker::FinalizeOutputs(
-  vtkPolyData* particlePathsOutput, vtkDataObject* interactionOutput)
+  vtkMultiPieceDataSet* particlePathsOutput, vtkMultiBlockDataSet* interactionOutput)
 {
-  if (particlePathsOutput && this->Controller && this->Controller->GetNumberOfProcesses() > 1)
-  {
-
-    // Construct array with all non outofdomains ids and terminations
-    vtkNew<vtkLongLongArray> idTermination;
-    vtkNew<vtkLongLongArray> allIdTermination;
-    idTermination->Allocate(particlePathsOutput->GetNumberOfCells());
-    idTermination->SetNumberOfComponents(2);
-    vtkIntArray* terminations =
-      vtkIntArray::SafeDownCast(particlePathsOutput->GetCellData()->GetArray("Termination"));
-    vtkLongLongArray* ids =
-      vtkLongLongArray::SafeDownCast(particlePathsOutput->GetCellData()->GetArray("Id"));
-    for (int i = 0; i < particlePathsOutput->GetNumberOfCells(); i++)
+  /*  if (particlePathsOutput && this->Controller && this->Controller->GetNumberOfProcesses() > 1)
     {
-      if (terminations->GetValue(i) != vtkLagrangianParticle::PARTICLE_TERMINATION_OUT_OF_DOMAIN)
-      {
-        idTermination->InsertNextTuple2(ids->GetValue(i), terminations->GetValue(i));
-      }
-    }
-    idTermination->Squeeze();
 
-    // AllGather it
-    this->Controller->AllGatherV(idTermination, allIdTermination);
-
-    // Modify current terminations
-    for (int i = 0; i < allIdTermination->GetNumberOfTuples(); i++)
-    {
-      vtkIdType id = allIdTermination->GetTuple2(i)[0];
-      for (int j = 0; j < ids->GetNumberOfTuples(); j++)
+      // Construct array with all non outofdomains ids and terminations
+      vtkNew<vtkLongLongArray> idTermination;
+      vtkNew<vtkLongLongArray> allIdTermination;
+      idTermination->Allocate(particlePathsOutput->GetNumberOfCells());
+      idTermination->SetNumberOfComponents(2);
+      vtkIntArray* terminations =
+        vtkIntArray::SafeDownCast(particlePathsOutput->GetCellData()->GetArray("Termination"));
+      vtkLongLongArray* ids =
+        vtkLongLongArray::SafeDownCast(particlePathsOutput->GetCellData()->GetArray("Id"));
+      for (int i = 0; i < particlePathsOutput->GetNumberOfCells(); i++)
       {
-        if (ids->GetValue(j) == id)
+        if (terminations->GetValue(i) != vtkLagrangianParticle::PARTICLE_TERMINATION_OUT_OF_DOMAIN)
         {
-          terminations->SetTuple1(j, allIdTermination->GetTuple2(i)[1]);
+          idTermination->InsertNextTuple2(ids->GetValue(i), terminations->GetValue(i));
         }
       }
-    }
-  }
+      idTermination->Squeeze();
+
+      // AllGather it
+      this->Controller->AllGatherV(idTermination, allIdTermination);
+
+      // Modify current terminations
+      for (int i = 0; i < allIdTermination->GetNumberOfTuples(); i++)
+      {
+        vtkIdType id = allIdTermination->GetTuple2(i)[0];
+        for (int j = 0; j < ids->GetNumberOfTuples(); j++)
+        {
+          if (ids->GetValue(j) == id)
+          {
+            terminations->SetTuple1(j, allIdTermination->GetTuple2(i)[1]);
+          }
+        }
+      }
+    }*/
   return this->Superclass::FinalizeOutputs(particlePathsOutput, interactionOutput);
 }
 
