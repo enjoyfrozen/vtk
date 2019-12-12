@@ -25,25 +25,35 @@
 #ifndef vtkStreamSurface_h
 #define vtkStreamSurface_h
 
-#include <vtkAppendPolyData.h>
-#include <vtkFiltersFlowPathsModule.h> // For export macro
-#include <vtkImageData.h>
-#include <vtkPolyDataAlgorithm.h>
-#include <vtkRuledSurfaceFilter.h>
-#include <vtkStreamTracer.h>
+#include "vtkFiltersFlowPathsModule.h" // For export macro
+#include "vtkPolyDataAlgorithm.h"
+#include "vtkStreamTracer.h"
+
+class vtkImageData;
+class vtkAppendPolyData;
+class vtkRuledSurfaceFilter;
 
 class VTKFILTERSFLOWPATHS_EXPORT vtkStreamSurface : public vtkStreamTracer
 {
 public:
-  static vtkStreamSurface* New();
-  vtkTypeMacro(vtkStreamSurface, vtkPolyDataAlgorithm);
+  vtkTypeMacro(vtkStreamSurface, vtkStreamTracer);
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
+  /**
+   * Construct object to integrate streamsurface.
+   * The defaults are like in vtkStreamTracer and UseIterativeSeeding = 0
+   */
+  static vtkStreamSurface* New();
+
+  /**
+   * Specify/see if the simple (fast) or iterative (correct) version is called
+   */
   vtkSetMacro(UseIterativeSeeding, bool);
   vtkGetMacro(UseIterativeSeeding, bool);
 
 protected:
   vtkStreamSurface();
+  ~vtkStreamSurface() override = default;
   int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
 private:
@@ -72,12 +82,12 @@ private:
   void AdvectIterative(vtkImageData* field, vtkPolyData* seeds, vtkPolyData* output);
 
   /**
-   * depending on this boolen the simple or iterative version is called
+   * depending on this boolen the simple (fast) or iterative (correct) version is called
    */
   bool UseIterativeSeeding;
 
-  vtkSmartPointer<vtkRuledSurfaceFilter> vtkRuledSurface;
-  vtkSmartPointer<vtkStreamTracer> streamTracer;
-  vtkSmartPointer<vtkAppendPolyData> appendSurfaces;
+  vtkNew<vtkRuledSurfaceFilter> RuledSurface;
+  vtkNew<vtkStreamTracer> StreamTracer;
+  vtkNew<vtkAppendPolyData> AppendSurfaces;
 };
 #endif

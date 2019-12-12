@@ -36,9 +36,10 @@ vtkStandardNewMacro(vtkStreamSurface);
 vtkStreamSurface::vtkStreamSurface()
 {
   this->UseIterativeSeeding = false;
-  this->vtkRuledSurface = vtkNew<vtkRuledSurfaceFilter>();
-  this->streamTracer = vtkNew<vtkStreamTracer>();
-  this->appendSurfaces = vtkNew<vtkAppendPolyData>();
+
+  this->RuledSurface->SetInputConnection(this->StreamTracer->GetOutputPort());
+  this->RuledSurface->SetRuledModeToResample();
+  this->RuledSurface->SetResolution(this->MaximumNumberOfSteps, 1);
 }
 
 //----------------------------------------------------------------------------
@@ -46,11 +47,24 @@ void vtkStreamSurface::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
   os << indent << "UseIterativeSeeding =  " << this->UseIterativeSeeding << "\n";
+  os << indent << "vtkRuledSurfaceFilter: \n";
+  this->RuledSurface->PrintSelf(os, indent.GetNextIndent());
+  os << indent << "vtkStreamTracer: \n";
+  this->StreamTracer->PrintSelf(os, indent.GetNextIndent());
+  os << indent << "vtkAppendPolyData: \n";
+  this->AppendSurfaces->PrintSelf(os, indent.GetNextIndent());
 }
 
 //----------------------------------------------------------------------------
 void vtkStreamSurface::AdvectIterative(vtkImageData* field, vtkPolyData* seeds, vtkPolyData* output)
 {
+  // adapt dist if cell unit was selected
+  double distThreshold = this->InitialIntegrationStep;
+  if (this->IntegrationStepUnit == 2)
+  {
+    distThreshold *= sqrt(static_cast<double>(field->GetCell(0)->GetLength2()));
+  }
+
   vtkNew<vtkPolyData> currentSeeds;
   currentSeeds->ShallowCopy(seeds);
   vtkNew<vtkDoubleArray> seedIntegrationTimeArray;
@@ -64,16 +78,17 @@ void vtkStreamSurface::AdvectIterative(vtkImageData* field, vtkPolyData* seeds, 
     // advect currentSeeds
     // the output will be ordered: 0, advect(0), 1, advect(1), 2...
     // but if a point reaches the boundary, its advected point is just missing
-    this->streamTracer->SetInputData(field);
-    this->streamTracer->SetSourceData(currentSeeds);
-    this->streamTracer->SetIntegratorType(this->GetIntegratorType());
-    this->streamTracer->SetIntegrationStepUnit(this->IntegrationStepUnit);
-    this->streamTracer->SetInitialIntegrationStep(this->InitialIntegrationStep);
-    this->streamTracer->SetIntegrationDirection(this->IntegrationDirection);
-    this->streamTracer->SetComputeVorticity(this->ComputeVorticity);
-    this->streamTracer->SetMaximumNumberOfSteps(0);
-    this->streamTracer->SetMaximumPropagation(this->MaximumPropagation);
-    this->streamTracer->Update();
+    this->StreamTracer->SetInputData(field);
+    this->StreamTracer->SetSourceData(currentSeeds);
+    this->StreamTracer->SetIntegratorType(this->GetIntegratorType());
+    this->StreamTracer->SetComputeVorticity(this->ComputeVorticity);
+    this->StreamTracer->SetMaximumPropagation(this->MaximumPropagation);
+    this->StreamTracer->SetIntegrationStepUnit(this->IntegrationStepUnit);
+    this->StreamTracer->SetInitialIntegrationStep(this->InitialIntegrationStep);
+    this->StreamTracer->SetIntegrationDirection(this->IntegrationDirection);
+    // setting this to zero makes the tracer do 1 step
+    this->StreamTracer->SetMaximumNumberOfSteps(0);
+    this->StreamTracer->Update();
 
     // fill in points that were not advected because they reached the boundary
     // i.e. copy a point k with integrationtime(k)==0 if its successor also has
@@ -89,32 +104,32 @@ void vtkStreamSurface::AdvectIterative(vtkImageData* field, vtkPolyData* seeds, 
     orderedSurface->GetPointData()->AddArray(integrationTimeArray);
 
     int currentCircleIndex = -1;
-    int numPts = this->streamTracer->GetOutput()->GetNumberOfPoints() - 1;
+    int numPts = this->StreamTracer->GetOutput()->GetNumberOfPoints() - 1;
     for (int k = 0; k < numPts; k++)
     {
-      if (this->streamTracer->GetOutput()
+      if (this->StreamTracer->GetOutput()
             ->GetPointData()
             ->GetArray("IntegrationTime")
             ->GetTuple1(k) == 0)
       {
         currentCircleIndex++;
       }
-      orderedSurfacePoints->InsertNextPoint(this->streamTracer->GetOutput()->GetPoint(k));
+      orderedSurfacePoints->InsertNextPoint(this->StreamTracer->GetOutput()->GetPoint(k));
       integrationTimeArray->InsertNextTuple1(
-        this->streamTracer->GetOutput()->GetPointData()->GetArray("IntegrationTime")->GetTuple1(k) +
+        this->StreamTracer->GetOutput()->GetPointData()->GetArray("IntegrationTime")->GetTuple1(k) +
         currentSeeds->GetPointData()->GetArray("IntegrationTime")->GetTuple1(currentCircleIndex));
 
-      if (this->streamTracer->GetOutput()
+      if (this->StreamTracer->GetOutput()
             ->GetPointData()
             ->GetArray("IntegrationTime")
             ->GetTuple1(k) == 0)
       {
-        if (this->streamTracer->GetOutput()
+        if (this->StreamTracer->GetOutput()
               ->GetPointData()
               ->GetArray("IntegrationTime")
               ->GetTuple1(k + 1) == 0)
         {
-          orderedSurfacePoints->InsertNextPoint(this->streamTracer->GetOutput()->GetPoint(k));
+          orderedSurfacePoints->InsertNextPoint(this->StreamTracer->GetOutput()->GetPoint(k));
           integrationTimeArray->InsertNextTuple1(currentSeeds->GetPointData()
                                                    ->GetArray("IntegrationTime")
                                                    ->GetTuple1(currentCircleIndex));
@@ -122,18 +137,18 @@ void vtkStreamSurface::AdvectIterative(vtkImageData* field, vtkPolyData* seeds, 
       }
     }
 
-    orderedSurfacePoints->InsertNextPoint(this->streamTracer->GetOutput()->GetPoint(numPts));
-    integrationTimeArray->InsertNextTuple1(this->streamTracer->GetOutput()
+    orderedSurfacePoints->InsertNextPoint(this->StreamTracer->GetOutput()->GetPoint(numPts));
+    integrationTimeArray->InsertNextTuple1(this->StreamTracer->GetOutput()
                                              ->GetPointData()
                                              ->GetArray("IntegrationTime")
                                              ->GetTuple1(numPts) +
       currentSeeds->GetPointData()->GetArray("IntegrationTime")->GetTuple1(currentCircleIndex));
-    if (this->streamTracer->GetOutput()
+    if (this->StreamTracer->GetOutput()
           ->GetPointData()
           ->GetArray("IntegrationTime")
           ->GetTuple1(numPts) == 0)
     {
-      orderedSurfacePoints->InsertNextPoint(this->streamTracer->GetOutput()->GetPoint(numPts));
+      orderedSurfacePoints->InsertNextPoint(this->StreamTracer->GetOutput()->GetPoint(numPts));
       integrationTimeArray->InsertNextTuple1(
         currentSeeds->GetPointData()->GetArray("IntegrationTime")->GetTuple1(currentCircleIndex));
     }
@@ -205,7 +220,6 @@ void vtkStreamSurface::AdvectIterative(vtkImageData* field, vtkPolyData* seeds, 
     currentSeeds->SetPoints(newCirclePoints);
     vtkNew<vtkDoubleArray> newIntegrationTimeArray;
     newIntegrationTimeArray->SetName("IntegrationTime");
-    currentSeeds->GetPointData()->RemoveArray("IntegrationTime");
     currentSeeds->GetPointData()->AddArray(newIntegrationTimeArray);
     for (int k = 0; k < orderedSurface->GetNumberOfPoints() - 2; k += 2)
     {
@@ -218,7 +232,7 @@ void vtkStreamSurface::AdvectIterative(vtkImageData* field, vtkPolyData* seeds, 
       double p1[3];
       orderedSurface->GetPoint(k + 3, p1);
 
-      if (sqrt(vtkMath::Distance2BetweenPoints(p0, p1)) > this->InitialIntegrationStep &&
+      if (sqrt(vtkMath::Distance2BetweenPoints(p0, p1)) > distThreshold &&
         std::abs(orderedSurface->GetPointData()->GetArray("IntegrationTime")->GetTuple1(k + 1) -
           orderedSurface->GetPointData()->GetArray("IntegrationTime")->GetTuple1(k)) > 1e-10 &&
         std::abs(orderedSurface->GetPointData()->GetArray("IntegrationTime")->GetTuple1(k + 3) -
@@ -240,14 +254,14 @@ void vtkStreamSurface::AdvectIterative(vtkImageData* field, vtkPolyData* seeds, 
         ->GetTuple1(orderedSurface->GetNumberOfPoints() - 1));
 
     // add current surface strip to the so far computed stream surface
-    this->appendSurfaces->RemoveAllInputs();
-    this->appendSurfaces->AddInputData(orderedSurface);
-    this->appendSurfaces->AddInputData(output);
-    this->appendSurfaces->Update();
-    output->ShallowCopy(this->appendSurfaces->GetOutput());
+    this->AppendSurfaces->RemoveAllInputs();
+    this->AppendSurfaces->AddInputData(orderedSurface);
+    this->AppendSurfaces->AddInputData(output);
+    this->AppendSurfaces->Update();
+    output->ShallowCopy(this->AppendSurfaces->GetOutput());
 
     // stop criterion if all points have left the boundary
-    if (this->streamTracer->GetOutput()
+    if (this->StreamTracer->GetOutput()
           ->GetPointData()
           ->GetArray("IntegrationTime")
           ->GetRange()[1 - this->IntegrationDirection] == 0)
@@ -271,22 +285,19 @@ void vtkStreamSurface::AdvectIterative(vtkImageData* field, vtkPolyData* seeds, 
 void vtkStreamSurface::AdvectSimple(vtkImageData* field, vtkPolyData* seeds, vtkPolyData* output)
 {
   //  this is for comparison with the standard ruled surface
-  this->streamTracer->SetInputData(field);
-  this->streamTracer->SetSourceData(seeds);
-  this->streamTracer->SetIntegratorType(this->GetIntegratorType());
-  this->streamTracer->SetIntegrationStepUnit(this->IntegrationStepUnit);
-  this->streamTracer->SetInitialIntegrationStep(this->InitialIntegrationStep);
-  this->streamTracer->SetIntegrationDirection(this->IntegrationDirection);
-  this->streamTracer->SetComputeVorticity(this->ComputeVorticity);
-  this->streamTracer->SetMaximumNumberOfSteps(this->MaximumNumberOfSteps);
-  this->streamTracer->SetMaximumPropagation(this->MaximumPropagation);
+  this->StreamTracer->SetInputData(field);
+  this->StreamTracer->SetSourceData(seeds);
+  this->StreamTracer->SetIntegratorType(this->GetIntegratorType());
+  this->StreamTracer->SetComputeVorticity(this->ComputeVorticity);
+  this->StreamTracer->SetMaximumPropagation(this->MaximumPropagation);
+  this->StreamTracer->SetIntegrationStepUnit(this->IntegrationStepUnit);
+  this->StreamTracer->SetInitialIntegrationStep(this->InitialIntegrationStep);
+  this->StreamTracer->SetIntegrationDirection(this->IntegrationDirection);
+  this->StreamTracer->SetMaximumNumberOfSteps(this->MaximumNumberOfSteps);
 
-  this->vtkRuledSurface->SetInputConnection(streamTracer->GetOutputPort());
-  this->vtkRuledSurface->SetRuledModeToResample();
-  this->vtkRuledSurface->SetResolution(this->MaximumNumberOfSteps, 1);
-  this->vtkRuledSurface->Update();
+  this->RuledSurface->Update();
 
-  output->ShallowCopy(this->vtkRuledSurface->GetOutput());
+  output->ShallowCopy(this->RuledSurface->GetOutput());
 }
 
 //----------------------------------------------------------------------------
