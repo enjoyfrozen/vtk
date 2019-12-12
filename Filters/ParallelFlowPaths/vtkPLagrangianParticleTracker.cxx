@@ -252,13 +252,8 @@ public:
       *this->ReceiveStream >> pInsertPrevious;
       *this->ReceiveStream >> pManualShift;
 
-      // Get a new seedTupleIndex
-      vtkIdType seedTupleIndex = -1;
-      if (this->SeedData->GetNumberOfArrays() > 0)
-      {
-        seedTupleIndex = this->SeedData->GetArray(0)->GetNumberOfTuples();
-      }
-      particle = vtkLagrangianParticle::NewInstance(nVar, seedId, particleId, seedTupleIndex, iTime,
+      // Get a particle with an incorrect seed data
+      particle = vtkLagrangianParticle::NewInstance(nVar, seedId, particleId, -1, iTime,
         this->SeedData, this->WeightsSize, nTrackedUserData, nSteps, prevITime);
       particle->SetParentId(parentId);
       particle->SetUserFlag(userFlag);
@@ -290,6 +285,7 @@ public:
         *this->ReceiveStream >> var;
       }
 
+      // Recover the correct seed data values
       for (int i = 0; i < particle->GetSeedData()->GetNumberOfArrays(); i++)
       {
         vtkDataArray* array = particle->GetSeedData()->GetArray(i);
@@ -299,7 +295,7 @@ public:
         {
           *this->ReceiveStream >> xi[j];
         }
-        array->InsertNextTuple(&xi[0]);
+        array->SetTuple(0, &xi[0]);
       }
       return true;
     }

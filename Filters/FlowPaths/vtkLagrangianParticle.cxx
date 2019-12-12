@@ -63,7 +63,10 @@ vtkLagrangianParticle::vtkLagrangianParticle(int numberOfVariables, vtkIdType se
 
   // SeedData
   this->SeedData->CopyAllocate(seedData, 1);
-  this->SeedData->CopyData(seedData, seedArrayTupleIndex, 0);
+  if (seedArrayTupleIndex >= 0)
+  {
+    this->SeedData->CopyData(seedData, seedArrayTupleIndex, 0);
+  }
 
   // Initialize tracked user data
   this->PrevTrackedUserData.resize(numberOfTrackedUserData, 0);
