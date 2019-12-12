@@ -28,67 +28,83 @@
 #define vtkVectorFieldTopology_h
 
 #include <vtkFiltersTopologyModule.h> // For export macro
-#include <vtkImageData.h>
-#include <vtkPolyData.h>
 #include <vtkPolyDataAlgorithm.h>
-#include <vtkUnstructuredGrid.h>
+
+class vtkImageData;
+class vtkPolyData;
+class vtkUnstructuredGrid;
+class vtkStreamSurface;
+class vtkGradientFilter;
 
 class VTKFILTERSTOPOLOGY_EXPORT vtkVectorFieldTopology : public vtkPolyDataAlgorithm
 {
 public:
-  static vtkVectorFieldTopology* New();
   vtkTypeMacro(vtkVectorFieldTopology, vtkPolyDataAlgorithm);
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
+  /**
+   * Construct object to extract the topolofy of a  vector field.
+   * The defaults are: MaxNumSteps = 100,
+   * IntegrationStepUnit=2, IntegrationStepSize = 1, SeparatrixDistance = 1
+   * That means one cell away
+   * UseIterativeSeeding = 0 and ComputeSurfaces = 0
+   * That means, no surfaces are computed via default
+   */
+  static vtkVectorFieldTopology* New();
+
+  /**
+   * Specify a uniform integration step unit for MinimumIntegrationStep,
+   * InitialIntegrationStep, and MaximumIntegrationStep.
+   * 1 = LENGTH_UNIT, i.e. all sizes are expresed in coordinate scale or cell scale
+   * 2 = CELL_LENGTH_UNIT, i.e. all sizes are expresed in cell scale
+   */
+  vtkSetMacro(IntegrationStepUnit, int);
+  vtkGetMacro(IntegrationStepUnit, int);
+
+  /**
+   * Specify/see the maximal number of iterations in this class and in vtkStreamTracer
+   */
   vtkSetMacro(MaxNumSteps, int);
   vtkGetMacro(MaxNumSteps, int);
 
+  /**
+   * Specify the Initial, minimum, and maximum step size used for line integration,
+   * expressed in IntegrationStepUnit
+   */
   vtkSetMacro(IntegrationStepSize, double);
   vtkGetMacro(IntegrationStepSize, double);
 
+  /**
+   * Specify/see the distance by which the seedpoints of the separatrices are placed away from the
+   * saddle expressed in IntegrationStepUnit
+   */
   vtkSetMacro(SeparatrixDistance, double);
   vtkGetMacro(SeparatrixDistance, double);
 
+  /**
+   * Specify/see if the simple (fast) or iterative (correct) version is called
+   */
   vtkSetMacro(UseIterativeSeeding, bool);
   vtkGetMacro(UseIterativeSeeding, bool);
 
+  /**
+   * Specify/see if the separatring surfaces (separatrices in 3D) are computed or not
+   */
   vtkSetMacro(ComputeSurfaces, bool);
   vtkGetMacro(ComputeSurfaces, bool);
 
 protected:
   vtkVectorFieldTopology();
+  ~vtkVectorFieldTopology() override = default;
   int FillInputPortInformation(int port, vtkInformation* info) override;
   int FillOutputPortInformation(int port, vtkInformation* info) override;
   int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
+  int IntegrationStepUnit;
+
 private:
   vtkVectorFieldTopology(const vtkVectorFieldTopology&) = delete;
   void operator=(const vtkVectorFieldTopology&) = delete;
-
-  /**
-   * number of iterations in this class and in vtkStreamTracer
-   */
-  int MaxNumSteps;
-
-  /**
-   * this value is also used as stepsize for the integration
-   */
-  double IntegrationStepSize;
-
-  /**
-   * the separatrices are seeded with this offset from the critical points
-   */
-  double SeparatrixDistance;
-
-  /**
-   * depending on this boolen the simple or iterative version is called
-   */
-  bool UseIterativeSeeding;
-
-  /**
-   * depending on this boolen the separatring surfaces (separatrices in 3D) are computed or not
-   */
-  bool ComputeSurfaces;
 
   /**
    * for each triangle, we solve the linear vector field analytically for its zeros
@@ -116,6 +132,7 @@ private:
    * @param surfaces: inegration surfaces starting at saddles
    * @param dataset: input vector field
    * @param graddataset: the jacobian of the vector field
+   * @param integrationStepUnit: whether the sizes are expresed in coordinate scale or cell scale
    * @param dist: size of the offset of the seeding
    * @param stepSize: stepsize of the integrator
    * @param maxNumSteps: maximal number of integration steps
@@ -125,7 +142,74 @@ private:
    */
   int ComputeSeparatrices(vtkSmartPointer<vtkPolyData> criticalPoints,
     vtkSmartPointer<vtkPolyData> separatrices, vtkSmartPointer<vtkPolyData> surfaces,
-    vtkSmartPointer<vtkImageData> dataset, vtkSmartPointer<vtkImageData> graddataset, double dist,
-    double stepSize, int maxNumSteps, bool computeSurfaces, bool useIterativeSeeding);
+    vtkSmartPointer<vtkImageData> dataset, vtkSmartPointer<vtkImageData> graddataset,
+    int integrationStepUnit, double dist, double stepSize, int maxNumSteps, bool computeSurfaces,
+    bool useIterativeSeeding);
+
+  /**
+   * this method computes streamsurfaces
+   * in the plane of the two eigenvectors of the same sign around saddles
+   * @param isBackward: is 1 if the integration direction is backward and 0 for forward
+   * @param normal: direction along the one eigenvector with opposite sign
+   * @param zeroPos: location of the saddle
+   * @param streamSurfaces: surfaces that have so far been computed
+   * @param dataset: the vector field in which we advect
+   * @param integrationStepUnit: whether the sizes are expresed in coordinate scale or cell scale
+   * @param dist: size of the offset of the seeding
+   * @param stepSize: stepsize of the integrator
+   * @param maxNumSteps: maximal number of integration steps
+   * @param useIterativeSeeding: depending on this boolen the separatring surfaces  are computed
+   * either good or fast
+   */
+  int ComputeSurface(bool isBackward, double normal[3], double zeroPos[3],
+    vtkSmartPointer<vtkPolyData> streamSurfaces, vtkSmartPointer<vtkImageData> dataset,
+    int integrationStepUnit, double dist, double stepSize, int maxNumSteps,
+    bool useIterativeSeeding);
+
+  /**
+   * determine which type of critical point we have based on the eigenvalues of the Jacobian in 3D
+   * @param countReal: number of real valued eigenvalues
+   * @param countReal: number of complex valued eigenvalues
+   * @param countPos: number of positive eigenvalues
+   * @param countNeg: number of negative eigenvalues
+   */
+  int classify3D(int countReal, int countComplex, int countPos, int countNeg);
+
+  /**
+   * determine which type of critical point we have based on the eigenvalues of the Jacobian in 2D
+   * @param countReal: number of real valued eigenvalues
+   * @param countReal: number of complex valued eigenvalues
+   * @param countPos: number of positive eigenvalues
+   * @param countNeg: number of negative eigenvalues
+   */
+  int classify2D(int countReal, int countComplex, int countPos, int countNeg);
+
+  /**
+   * number of iterations in this class and in vtkStreamTracer
+   */
+  int MaxNumSteps;
+
+  /**
+   * this value is used as stepsize for the integration
+   */
+  double IntegrationStepSize;
+
+  /**
+   * the separatrices are seeded with this offset from the critical points
+   */
+  double SeparatrixDistance;
+
+  /**
+   * depending on this boolen the simple (fast) or iterative (correct) version is called
+   */
+  bool UseIterativeSeeding;
+
+  /**
+   * depending on this boolen the separatring surfaces (separatrices in 3D) are computed or not
+   */
+  bool ComputeSurfaces;
+
+  vtkNew<vtkStreamSurface> StreamSurface;
+  vtkNew<vtkGradientFilter> GradientFilter;
 };
 #endif

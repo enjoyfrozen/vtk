@@ -61,8 +61,9 @@ vtkVectorFieldTopology::vtkVectorFieldTopology()
   this->SetNumberOfInputPorts(1);
   this->SetNumberOfOutputPorts(3);
   this->MaxNumSteps = 100;
-  this->IntegrationStepSize = 0.1;
-  this->SeparatrixDistance = 0.1;
+  this->IntegrationStepUnit = 2;
+  this->IntegrationStepSize = 1;
+  this->SeparatrixDistance = 1;
   this->UseIterativeSeeding = false;
   this->ComputeSurfaces = false;
 }
@@ -76,6 +77,8 @@ void vtkVectorFieldTopology::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "SeparatrixDistance =  " << this->SeparatrixDistance << "\n";
   os << indent << "UseIterativeSeeding =  " << this->UseIterativeSeeding << "\n";
   os << indent << "ComputeSurfaces =  " << this->ComputeSurfaces << "\n";
+  os << indent << "vtkStreamSurface: \n";
+  this->StreamSurface->PrintSelf(os, indent.GetNextIndent());
 }
 
 //----------------------------------------------------------------------------
@@ -98,7 +101,7 @@ int vtkVectorFieldTopology::FillOutputPortInformation(int port, vtkInformation* 
 }
 
 //----------------------------------------------------------------------------
-int classify2D(int countReal, int countComplex, int countPos, int countNeg)
+int vtkVectorFieldTopology::classify2D(int countReal, int countComplex, int countPos, int countNeg)
 {
   // make simple type that corresponds to the number of positive eigenvalues
   // source 2, saddle 1, sink 0, (center 3)
@@ -116,7 +119,7 @@ int classify2D(int countReal, int countComplex, int countPos, int countNeg)
 }
 
 //----------------------------------------------------------------------------
-int classify3D(int countReal, int countComplex, int countPos, int countNeg)
+int vtkVectorFieldTopology::classify3D(int countReal, int countComplex, int countPos, int countNeg)
 {
   // make simple type that corresponds to the number of positive eigenvalues
   // source 3, saddle 2 or 1, sink 0, (center 4)
@@ -257,9 +260,9 @@ int vtkVectorFieldTopology::ComputeCriticalPoints3D(
 }
 
 //----------------------------------------------------------------------------
-int surface(bool isBackward, double normal[3], double zeroPos[3],
-  vtkSmartPointer<vtkPolyData> streamSurfaces, vtkSmartPointer<vtkImageData> dataset, double dist,
-  double stepSize, int maxNumSteps, bool useIterativeSeeding)
+int vtkVectorFieldTopology::ComputeSurface(bool isBackward, double normal[3], double zeroPos[3],
+  vtkSmartPointer<vtkPolyData> streamSurfaces, vtkSmartPointer<vtkImageData> dataset,
+  int integrationStepUnit, double dist, double stepSize, int maxNumSteps, bool useIterativeSeeding)
 {
   // generate circle and add first point again in the back to avoid gap
   vtkNew<vtkRegularPolygonSource> circle;
@@ -283,23 +286,22 @@ int surface(bool isBackward, double normal[3], double zeroPos[3],
     integrationTimeArray->InsertNextTuple1(0);
   }
 
-  vtkNew<vtkStreamSurface> streamSurface;
-  streamSurface->SetInputData(0, dataset);
-  streamSurface->SetInputData(1, currentCircle);
-  streamSurface->SetUseIterativeSeeding(useIterativeSeeding);
-  streamSurface->SetIntegratorTypeToRungeKutta4();
-  streamSurface->SetIntegrationStepUnit(1);
-  streamSurface->SetInitialIntegrationStep(stepSize);
-  streamSurface->SetIntegrationDirection(isBackward);
-  streamSurface->SetComputeVorticity(0);
-  streamSurface->SetMaximumNumberOfSteps(maxNumSteps);
-  streamSurface->SetSourceData(currentCircle);
-  streamSurface->SetMaximumPropagation(dist * maxNumSteps);
-  streamSurface->Update();
+  this->StreamSurface->SetInputData(0, dataset);
+  this->StreamSurface->SetInputData(1, currentCircle);
+  this->StreamSurface->SetUseIterativeSeeding(useIterativeSeeding);
+  this->StreamSurface->SetIntegratorTypeToRungeKutta4();
+  this->StreamSurface->SetIntegrationStepUnit(this->IntegrationStepUnit);
+  this->StreamSurface->SetInitialIntegrationStep(this->IntegrationStepSize);
+  this->StreamSurface->SetIntegrationDirection(isBackward);
+  this->StreamSurface->SetComputeVorticity(0);
+  this->StreamSurface->SetMaximumNumberOfSteps(maxNumSteps);
+  this->StreamSurface->SetSourceData(currentCircle);
+  this->StreamSurface->SetMaximumPropagation(dist * maxNumSteps);
+  this->StreamSurface->Update();
 
   // add current surface to existing surfaces
   vtkNew<vtkAppendPolyData> appendSurfaces;
-  appendSurfaces->AddInputData(streamSurface->GetOutput());
+  appendSurfaces->AddInputData(this->StreamSurface->GetOutput());
   appendSurfaces->AddInputData(streamSurfaces);
   appendSurfaces->Update();
   streamSurfaces->DeepCopy(appendSurfaces->GetOutput());
@@ -309,9 +311,16 @@ int surface(bool isBackward, double normal[3], double zeroPos[3],
 //----------------------------------------------------------------------------
 int vtkVectorFieldTopology::ComputeSeparatrices(vtkSmartPointer<vtkPolyData> criticalPoints,
   vtkSmartPointer<vtkPolyData> separatrices, vtkSmartPointer<vtkPolyData> surfaces,
-  vtkSmartPointer<vtkImageData> dataset, vtkSmartPointer<vtkImageData> graddataset, double dist,
-  double stepSize, int maxNumSteps, bool computeSurfaces, bool useIterativeSeeding)
+  vtkSmartPointer<vtkImageData> dataset, vtkSmartPointer<vtkImageData> graddataset,
+  int integrationStepUnit, double dist, double stepSize, int maxNumSteps, bool computeSurfaces,
+  bool useIterativeSeeding)
 {
+  // adapt dist if cell unit was selected
+  if (integrationStepUnit == 2)
+  {
+    dist *= sqrt(static_cast<double>(dataset->GetCell(0)->GetLength2()));
+  }
+
   // Compute eigenvectors & eigenvalues
   vtkNew<vtkDoubleArray> criticalPointsTypes;
   criticalPointsTypes->SetNumberOfTuples(criticalPoints->GetNumberOfPoints());
@@ -414,8 +423,8 @@ int vtkVectorFieldTopology::ComputeSeparatrices(vtkSmartPointer<vtkPolyData> cri
           seedCellsFw->InsertNextCell(vertex1);
           if (computeSurfaces and dataset->GetDataDimension() == 3)
           {
-            surface(1, normal, criticalPoints->GetPoint(pointId), surfaces, dataset, dist, stepSize,
-              maxNumSteps, useIterativeSeeding);
+            ComputeSurface(1, normal, criticalPoints->GetPoint(pointId), surfaces, dataset,
+              integrationStepUnit, dist, stepSize, maxNumSteps, useIterativeSeeding);
           }
         }
         if (real(eigenS.eigenvalues()[i]) < 0 && countNeg == 1)
@@ -437,8 +446,8 @@ int vtkVectorFieldTopology::ComputeSeparatrices(vtkSmartPointer<vtkPolyData> cri
           seedCellsBw->InsertNextCell(vertex1);
           if (computeSurfaces and dataset->GetDataDimension() == 3)
           {
-            surface(0, normal, criticalPoints->GetPoint(pointId), surfaces, dataset, dist, stepSize,
-              maxNumSteps, useIterativeSeeding);
+            ComputeSurface(0, normal, criticalPoints->GetPoint(pointId), surfaces, dataset,
+              integrationStepUnit, dist, stepSize, maxNumSteps, useIterativeSeeding);
           }
         }
       }
@@ -449,7 +458,7 @@ int vtkVectorFieldTopology::ComputeSeparatrices(vtkSmartPointer<vtkPolyData> cri
   streamTracerFw->SetInputData(dataset);
   streamTracerFw->SetSourceData(seedsFw);
   streamTracerFw->SetIntegratorTypeToRungeKutta4();
-  streamTracerFw->SetIntegrationStepUnit(1);
+  streamTracerFw->SetIntegrationStepUnit(integrationStepUnit);
   streamTracerFw->SetInitialIntegrationStep(dist);
   streamTracerFw->SetIntegrationDirectionToForward();
   streamTracerFw->SetComputeVorticity(0);
@@ -476,7 +485,7 @@ int vtkVectorFieldTopology::ComputeSeparatrices(vtkSmartPointer<vtkPolyData> cri
   streamTracerBw->SetInputData(dataset);
   streamTracerBw->SetSourceData(seedsBw);
   streamTracerBw->SetIntegratorTypeToRungeKutta4();
-  streamTracerBw->SetIntegrationStepUnit(1);
+  streamTracerBw->SetIntegrationStepUnit(integrationStepUnit);
   streamTracerBw->SetInitialIntegrationStep(dist);
   streamTracerBw->SetIntegrationDirectionToBackward();
   streamTracerBw->SetComputeVorticity(0);
@@ -549,13 +558,13 @@ int vtkVectorFieldTopology::RequestData(vtkInformation* vtkNotUsed(request),
   vtkSmartPointer<vtkUnstructuredGrid> tridataset = triangulateFilter3D->GetOutput();
 
   // Compute gradient
-  vtkNew<vtkGradientFilter> gradient;
-  gradient->SetInputData(dataset);
-  gradient->SetInputScalars(
+  this->GradientFilter->SetInputData(dataset);
+  this->GradientFilter->SetInputScalars(
     vtkDataObject::FIELD_ASSOCIATION_POINTS, dataset->GetPointData()->GetVectors()->GetName());
-  gradient->SetResultArrayName("gradient");
-  gradient->Update();
-  vtkSmartPointer<vtkImageData> graddataset = vtkImageData::SafeDownCast(gradient->GetOutput());
+  this->GradientFilter->SetResultArrayName("gradient");
+  this->GradientFilter->Update();
+  vtkSmartPointer<vtkImageData> graddataset =
+    vtkImageData::SafeDownCast(this->GradientFilter->GetOutput());
 
   // Compute critical points
   vtkNew<vtkPoints> criticalPointsPoints;
@@ -572,8 +581,8 @@ int vtkVectorFieldTopology::RequestData(vtkInformation* vtkNotUsed(request),
   }
 
   ComputeSeparatrices(criticalPoints, separatingLines, separatingSurfaces, dataset, graddataset,
-    this->SeparatrixDistance, this->IntegrationStepSize, this->MaxNumSteps, this->ComputeSurfaces,
-    this->UseIterativeSeeding);
+    this->IntegrationStepUnit, this->SeparatrixDistance, this->IntegrationStepSize,
+    this->MaxNumSteps, this->ComputeSurfaces, this->UseIterativeSeeding);
 
   return 1;
 }
