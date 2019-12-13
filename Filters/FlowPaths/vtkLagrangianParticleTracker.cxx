@@ -57,6 +57,7 @@ vtkCxxSetObjectMacro(vtkLagrangianParticleTracker, Integrator, vtkInitialValuePr
 
 struct IntegratingFunctor
 {
+  bool Serial = false;
   vtkLagrangianParticleTracker* Tracker;
   vtkSMPThreadLocal<vtkInitialValueProblemSolver*> LocalIntegrator;
   vtkSMPThreadLocal<vtkGenericCell*> LocalGenericCell;
@@ -86,6 +87,11 @@ struct IntegratingFunctor
 
   void Initialize()
   {
+    if (this->LocalIntegrator.size() == 1)
+    {
+      this->Serial = 1;
+    }
+
     // Create a local non-threadsafe integrator with a threadsafe integration model
     this->LocalIntegrator.Local() = this->Tracker->Integrator->NewInstance();
     this->LocalIntegrator.Local()->SetFunctionSet(this->Tracker->IntegrationModel);
@@ -144,12 +150,23 @@ struct IntegratingFunctor
 
       this->Tracker->IntegrationModel->ParticleAboutToBeDeleted(particle);
       delete particle;
+
+      // Special case to show progress in serial
+      if (this->Serial)
+      {
+        double progress = static_cast<double>(this->Tracker->IntegratedParticleCounter) /
+          this->Tracker->ParticleCounter;
+        this->Tracker->UpdateProgress(progress);
+      }
     }
-    // Protect the progress event with a mutex
-    std::lock_guard<std::mutex> guard(this->Tracker->ProgressMutex);
-    double progress = static_cast<double>(this->Tracker->IntegratedParticleCounter) /
-      this->Tracker->ParticleCounter;
-    this->Tracker->UpdateProgress(progress);
+    if (!this->Serial)
+    {
+      // In multithread, protect the progress event with a mutex
+      std::lock_guard<std::mutex> guard(this->Tracker->ProgressMutex);
+      double progress = static_cast<double>(this->Tracker->IntegratedParticleCounter) /
+        this->Tracker->ParticleCounter;
+      this->Tracker->UpdateProgress(progress);
+    }
   }
 
   void Reduce()
@@ -660,10 +677,6 @@ bool vtkLagrangianParticleTracker::FinalizeOutputs(
 {
   if (particlePathsOutput)
   {
-    //    for (unsigned int piece = 0; piece < particlePathsOutput->GetNumberOfPieces(); piece++)
-    //    {
-    //      vtkPolyData* particlePathsOutputPolyData =
-    //        vtkPolyData::SafeDownCast(particlePathsOutput->GetPiece(piece));
     if (!particlePathsOutput)
     {
       vtkErrorMacro("Could not recover a output path polydata, something went wrong");
@@ -681,7 +694,6 @@ bool vtkLagrangianParticleTracker::FinalizeOutputs(
       array->Resize(particlePathsPoints->GetNumberOfPoints());
       array->Squeeze();
     }
-    //    }
   }
 
   // Insert interaction poly-vertex cell
@@ -691,8 +703,6 @@ bool vtkLagrangianParticleTracker::FinalizeOutputs(
   {
     vtkNew<vtkDataObjectTreeIterator> iter;
     iter->SetDataSet(hdInteractionOutput);
-    iter->SkipEmptyNodesOn();
-    iter->VisitOnlyLeavesOn();
     for (iter->InitTraversal(); !iter->IsDoneWithTraversal(); iter->GoToNextItem())
     {
       vtkPolyData* pdBlock = vtkPolyData::SafeDownCast(hdInteractionOutput->GetDataSet(iter));

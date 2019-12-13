@@ -265,9 +265,9 @@ bool vtkLagrangianBilinearQuadIntersection::RayIntersection(
       pos1 = this->ComputeCartesianCoordinates(uv.GetX(), uv.GetY());
       uv.SetZ(vtkLagrangianBilinearQuadIntersection::ComputeIntersectionFactor(q, r, pos1));
 
-      return (uv.GetX() < 1 + RAY_EPSILON && uv.GetX() > -RAY_EPSILON && uv.GetZ() > 0) case 2
-        : // two solutions found
-          uv.SetY(vsol[0]);
+      return (uv.GetX() < 1 + RAY_EPSILON && uv.GetX() > -RAY_EPSILON && uv.GetZ() > 0);
+    case 2: // two solutions found
+      uv.SetY(vsol[0]);
       uv.SetX(vtkLagrangianBilinearQuadIntersection::GetBestDenominator(
         uv.GetY(), A2, A1, B2, B1, C2, C1, D2, D1));
       pos1 = this->ComputeCartesianCoordinates(uv.GetX(), uv.GetY());
