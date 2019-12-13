@@ -206,8 +206,8 @@ int TestLagrangianIntegrationModel(int, char*[])
   }
 
   odeWavelet->ParallelManualShift(&part);
-  vtkMultiPieceDataSet* tmpPd = nullptr;
-  vtkMultiBlockDataSet* tmpDo = nullptr;
+  vtkPolyData* tmpPd = nullptr;
+  vtkDataObject* tmpDo = nullptr;
   if (!odeWavelet->FinalizeOutputs(tmpPd, tmpDo))
   {
     std::cerr << "FinalizeOutputs should be doing nothing and return true with matida model"

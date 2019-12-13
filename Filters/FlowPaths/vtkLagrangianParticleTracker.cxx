@@ -14,6 +14,7 @@
 =========================================================================*/
 #include "vtkLagrangianParticleTracker.h"
 
+#include "vtkAppendPolyData.h"
 #include "vtkBoundingBox.h"
 #include "vtkCellData.h"
 #include "vtkCompositeDataIterator.h"
@@ -63,17 +64,17 @@ struct IntegratingFunctor
   vtkSMPThreadLocal<vtkLagrangianBilinearQuadIntersection*> LocalBilinearQuadIntersection;
   std::vector<vtkLagrangianParticle*>& ParticlesVec;
   std::queue<vtkLagrangianParticle*>& ParticlesQueue;
-  vtkMultiPieceDataSet* ParticlePathsOutput;
+  vtkPolyData* ParticlePathsOutput;
   vtkSMPThreadLocal<vtkPolyData*> LocalParticlePathsOutput;
   vtkDataObject* Surfaces;
-  vtkMultiBlockDataSet* InteractionOutput;
-  vtkSMPThreadLocal<vtkMultiBlockDataSet*> LocalInteractionOutput;
+  vtkDataObject* InteractionOutput;
+  vtkSMPThreadLocal<vtkDataObject*> LocalInteractionOutput;
   vtkSMPThreadLocal<vtkLagrangianUserData*> LocalUserData;
 
   IntegratingFunctor(vtkLagrangianParticleTracker* tracker,
     std::vector<vtkLagrangianParticle*>& particlesVec,
-    std::queue<vtkLagrangianParticle*>& particlesQueue, vtkMultiPieceDataSet* particlePathsOutput,
-    vtkDataObject* surfaces, vtkMultiBlockDataSet* interactionOutput)
+    std::queue<vtkLagrangianParticle*>& particlesQueue, vtkPolyData* particlePathsOutput,
+    vtkDataObject* surfaces, vtkDataObject* interactionOutput)
     : Tracker(tracker)
     , ParticlesVec(particlesVec)
     , ParticlesQueue(particlesQueue)
@@ -108,7 +109,7 @@ struct IntegratingFunctor
     }
 
     // Create and initialize a local interaction output
-    this->LocalInteractionOutput.Local() = vtkMultiBlockDataSet::New();
+    this->LocalInteractionOutput.Local() = this->InteractionOutput->NewInstance();
     this->Tracker->InitializeInteractionOutput(
       this->Tracker->SeedData, this->Surfaces, this->LocalInteractionOutput.Local());
 
@@ -166,28 +167,66 @@ struct IntegratingFunctor
     {
       delete bqi;
     }
+
+    // Particle Path reduction
     if (this->Tracker->GenerateParticlePathsOutput)
     {
-      unsigned int offset = this->ParticlePathsOutput->GetNumberOfPieces();
-      this->ParticlePathsOutput->SetNumberOfPieces(offset + this->LocalParticlePathsOutput.size());
-      unsigned int i = 0;
+      vtkNew<vtkAppendPolyData> append;
+      append->AddInputData(this->ParticlePathsOutput);
       for (auto ppo : this->LocalParticlePathsOutput)
       {
-        this->ParticlePathsOutput->SetPiece(offset + i, ppo);
+        append->AddInputData(ppo);
         ppo->Delete();
-        i++;
       }
+      append->Update();
+      this->ParticlePathsOutput->ShallowCopy(append->GetOutput());
     }
 
-    unsigned int offset = this->InteractionOutput->GetNumberOfBlocks();
-    this->InteractionOutput->SetNumberOfBlocks(offset + this->LocalInteractionOutput.size());
-    unsigned int i = 0;
-    for (auto interOut : this->LocalInteractionOutput)
+    // Interaction Reduction
+    vtkCompositeDataSet* hdInteractionOutput =
+      vtkCompositeDataSet::SafeDownCast(this->InteractionOutput);
+    vtkPolyData* pdInteractionOutput = vtkPolyData::SafeDownCast(this->InteractionOutput);
+    if (hdInteractionOutput)
     {
-      this->InteractionOutput->SetBlock(offset + i, interOut);
-      interOut->Delete();
-      i++;
+      vtkCompositeDataSet* hdSurfaces = vtkCompositeDataSet::SafeDownCast(this->Surfaces);
+      vtkSmartPointer<vtkCompositeDataIterator> iter;
+      iter.TakeReference(hdSurfaces->NewIterator());
+      for (iter->InitTraversal(); !iter->IsDoneWithTraversal(); iter->GoToNextItem())
+      {
+        vtkNew<vtkAppendPolyData> append;
+        vtkPolyData* initialPD = vtkPolyData::SafeDownCast(hdInteractionOutput->GetDataSet(iter));
+        if (initialPD)
+        {
+          append->AddInputData(initialPD);
+        }
+        for (auto interOut : this->LocalInteractionOutput)
+        {
+          append->AddInputData(vtkPolyData::SafeDownCast(
+            vtkCompositeDataSet::SafeDownCast(interOut)->GetDataSet(iter)));
+        }
+        append->Update();
+        hdInteractionOutput->SetDataSet(iter, append->GetOutput());
+      }
+      for (auto interOut : this->LocalInteractionOutput)
+      {
+        interOut->Delete();
+      }
     }
+    else
+    {
+      vtkNew<vtkAppendPolyData> append;
+      append->AddInputData(pdInteractionOutput);
+      for (auto interOut : this->LocalInteractionOutput)
+      {
+        vtkPolyData* pd = vtkPolyData::SafeDownCast(interOut);
+        append->AddInputData(pd);
+        interOut->Delete();
+      }
+      append->Update();
+      pdInteractionOutput->ShallowCopy(append->GetOutput());
+    }
+
+    // User Data Reduction
     for (auto data : this->LocalUserData)
     {
       this->Tracker->IntegrationModel->FinalizeThreadedUserData(data);
@@ -333,14 +372,34 @@ int vtkLagrangianParticleTracker::FillOutputPortInformation(int port, vtkInforma
 
 //----------------------------------------------------------------------------
 int vtkLagrangianParticleTracker::RequestDataObject(vtkInformation* vtkNotUsed(request),
-  vtkInformationVector** vtkNotUsed(inputVector), vtkInformationVector* outputVector)
+  vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
-  // Create multipiece outputs
+  // Create particle path output
   vtkInformation* info = outputVector->GetInformationObject(0);
-  vtkNew<vtkMultiPieceDataSet> particlePathsOutput;
+  vtkNew<vtkPolyData> particlePathsOutput;
   info->Set(vtkDataObject::DATA_OBJECT(), particlePathsOutput);
+
+  // Create a surface interaction output
+  // First check for composite
+  vtkInformation* inInfo = inputVector[2]->GetInformationObject(0);
   info = outputVector->GetInformationObject(1);
-  vtkNew<vtkMultiBlockDataSet> interactionOutput;
+  if (inInfo)
+  {
+    vtkDataObject* input = vtkDataObject::SafeDownCast(inInfo->Get(vtkDataObject::DATA_OBJECT()));
+    if (input)
+    {
+      vtkCompositeDataSet* hdInput = vtkCompositeDataSet::SafeDownCast(input);
+      if (hdInput)
+      {
+        vtkDataObject* interactionOutput = input->NewInstance();
+        info->Set(vtkDataObject::DATA_OBJECT(), interactionOutput);
+        interactionOutput->Delete();
+        return 1;
+      }
+    }
+  }
+  // In any other case, create a polydata
+  vtkNew<vtkPolyData> interactionOutput;
   info->Set(vtkDataObject::DATA_OBJECT(), interactionOutput);
   return 1;
 }
@@ -433,12 +492,12 @@ int vtkLagrangianParticleTracker::RequestData(vtkInformation* vtkNotUsed(request
   }
 
   // Initialize outputs
-  vtkMultiPieceDataSet* particlePathsOutput = nullptr;
+  vtkPolyData* particlePathsOutput = nullptr;
   vtkInformation* particleOutInfo = outputVector->GetInformationObject(0);
   if (this->GenerateParticlePathsOutput)
   {
     particlePathsOutput =
-      vtkMultiPieceDataSet::SafeDownCast(particleOutInfo->Get(vtkPolyData::DATA_OBJECT()));
+      vtkPolyData::SafeDownCast(particleOutInfo->Get(vtkPolyData::DATA_OBJECT()));
     if (!particlePathsOutput)
     {
       vtkErrorMacro(<< "Cannot find a vtkMultiPiece particle paths output. aborting");
@@ -447,12 +506,16 @@ int vtkLagrangianParticleTracker::RequestData(vtkInformation* vtkNotUsed(request
   }
 
   vtkInformation* interactionOutInfo = outputVector->GetInformationObject(1);
-  vtkMultiBlockDataSet* interactionOutput =
-    vtkMultiBlockDataSet::SafeDownCast(interactionOutInfo->Get(vtkPolyData::DATA_OBJECT()));
+  vtkDataObject* interactionOutput = interactionOutInfo->Get(vtkPolyData::DATA_OBJECT());
   if (!interactionOutput)
   {
     vtkErrorMacro(<< "Cannot find a vtkMultiBlock interaction output. aborting");
     return 0;
+  }
+  vtkCompositeDataSet* hdInteractionOutput = vtkCompositeDataSet::SafeDownCast(interactionOutput);
+  if (hdInteractionOutput)
+  {
+    hdInteractionOutput->CopyStructure(vtkCompositeDataSet::SafeDownCast(surfaces));
   }
 
   // Let model a chance to change the particles or compute things
@@ -548,14 +611,15 @@ bool vtkLagrangianParticleTracker::InitializePathsOutput(
 
 //---------------------------------------------------------------------------
 bool vtkLagrangianParticleTracker::InitializeInteractionOutput(
-  vtkPointData* seedData, vtkDataObject* surfaces, vtkMultiBlockDataSet*& interactionOutput)
+  vtkPointData* seedData, vtkDataObject* surfaces, vtkDataObject*& interactionOutput)
 {
   // Check surfaces dataset type
   vtkCompositeDataSet* hdInput = vtkCompositeDataSet::SafeDownCast(surfaces);
   vtkDataSet* dsInput = vtkDataSet::SafeDownCast(surfaces);
   if (hdInput)
   {
-    interactionOutput->CopyStructure(hdInput);
+    vtkCompositeDataSet* hdInteractionOutput = vtkCompositeDataSet::SafeDownCast(interactionOutput);
+    hdInteractionOutput->CopyStructure(hdInput);
     vtkSmartPointer<vtkCompositeDataIterator> iter;
     iter.TakeReference(hdInput->NewIterator());
     for (iter->InitTraversal(); !iter->IsDoneWithTraversal(); iter->GoToNextItem())
@@ -568,75 +632,89 @@ bool vtkLagrangianParticleTracker::InitializeInteractionOutput(
       this->IntegrationModel->InitializePathData(pd->GetPointData());
       this->IntegrationModel->InitializeInteractionData(pd->GetPointData());
       this->IntegrationModel->InitializeParticleData(pd->GetPointData());
-      interactionOutput->SetDataSet(iter, pd);
+      hdInteractionOutput->SetDataSet(iter, pd);
     }
   }
   else if (dsInput)
   {
-    vtkNew<vtkPolyData> pd;
+    vtkPolyData* pdInteractionOutput = vtkPolyData::SafeDownCast(interactionOutput);
     vtkNew<vtkPoints> points;
     vtkNew<vtkCellArray> cells;
-    pd->SetPoints(points);
-    pd->GetPointData()->CopyStructure(seedData);
-    this->IntegrationModel->InitializePathData(pd->GetPointData());
-    this->IntegrationModel->InitializeInteractionData(pd->GetPointData());
-    this->IntegrationModel->InitializeParticleData(pd->GetPointData());
-    interactionOutput->SetNumberOfBlocks(1);
-    interactionOutput->SetBlock(0, pd);
+    pdInteractionOutput->SetPoints(points);
+    pdInteractionOutput->GetPointData()->CopyStructure(seedData);
+    this->IntegrationModel->InitializePathData(pdInteractionOutput->GetPointData());
+    this->IntegrationModel->InitializeInteractionData(pdInteractionOutput->GetPointData());
+    this->IntegrationModel->InitializeParticleData(pdInteractionOutput->GetPointData());
   }
   return true;
 }
 
 //---------------------------------------------------------------------------
 bool vtkLagrangianParticleTracker::FinalizeOutputs(
-  vtkMultiPieceDataSet* particlePathsOutput, vtkMultiBlockDataSet* interactionOutput)
+  vtkPolyData* particlePathsOutput, vtkDataObject* interactionOutput)
 {
   if (particlePathsOutput)
   {
-    for (unsigned int piece = 0; piece < particlePathsOutput->GetNumberOfPieces(); piece++)
+    //    for (unsigned int piece = 0; piece < particlePathsOutput->GetNumberOfPieces(); piece++)
+    //    {
+    //      vtkPolyData* particlePathsOutputPolyData =
+    //        vtkPolyData::SafeDownCast(particlePathsOutput->GetPiece(piece));
+    if (!particlePathsOutput)
     {
-      vtkPolyData* particlePathsOutputPolyData =
-        vtkPolyData::SafeDownCast(particlePathsOutput->GetPiece(piece));
-      if (!particlePathsOutputPolyData)
-      {
-        vtkErrorMacro("Could not recover a output path polydata, something went wrong");
-        return false;
-      }
-
-      // Recover structures
-      vtkPointData* particlePathsPointData = particlePathsOutputPolyData->GetPointData();
-      vtkPoints* particlePathsPoints = particlePathsOutputPolyData->GetPoints();
-
-      // Squeeze and resize point data
-      for (int i = 0; i < particlePathsPointData->GetNumberOfArrays(); i++)
-      {
-        vtkDataArray* array = particlePathsPointData->GetArray(i);
-        array->Resize(particlePathsPoints->GetNumberOfPoints());
-        array->Squeeze();
-      }
+      vtkErrorMacro("Could not recover a output path polydata, something went wrong");
+      return false;
     }
+
+    // Recover structures
+    vtkPointData* particlePathsPointData = particlePathsOutput->GetPointData();
+    vtkPoints* particlePathsPoints = particlePathsOutput->GetPoints();
+
+    // Squeeze and resize point data
+    for (int i = 0; i < particlePathsPointData->GetNumberOfArrays(); i++)
+    {
+      vtkDataArray* array = particlePathsPointData->GetArray(i);
+      array->Resize(particlePathsPoints->GetNumberOfPoints());
+      array->Squeeze();
+    }
+    //    }
   }
 
   // Insert interaction poly-vertex cell
-  vtkNew<vtkDataObjectTreeIterator> iter;
-  iter->SetDataSet(interactionOutput);
-  iter->SkipEmptyNodesOn();
-  iter->VisitOnlyLeavesOn();
-  for (iter->InitTraversal(); !iter->IsDoneWithTraversal(); iter->GoToNextItem())
+  vtkCompositeDataSet* hdInteractionOutput = vtkCompositeDataSet::SafeDownCast(interactionOutput);
+  vtkPolyData* pdInteractionOutput = vtkPolyData::SafeDownCast(interactionOutput);
+  if (hdInteractionOutput)
   {
-    vtkPolyData* pdBlock = vtkPolyData::SafeDownCast(interactionOutput->GetDataSet(iter));
-    if (!pdBlock)
+    vtkNew<vtkDataObjectTreeIterator> iter;
+    iter->SetDataSet(hdInteractionOutput);
+    iter->SkipEmptyNodesOn();
+    iter->VisitOnlyLeavesOn();
+    for (iter->InitTraversal(); !iter->IsDoneWithTraversal(); iter->GoToNextItem())
     {
-      vtkErrorMacro(<< "Cannot recover interaction output, something went wrong");
-      return false;
+      vtkPolyData* pdBlock = vtkPolyData::SafeDownCast(hdInteractionOutput->GetDataSet(iter));
+      if (!pdBlock)
+      {
+        vtkErrorMacro(<< "Cannot recover interaction output, something went wrong");
+        return false;
+      }
+      if (this->GeneratePolyVertexInteractionOutput)
+      {
+        this->InsertPolyVertexCell(pdBlock);
+      }
+      else
+      {
+        this->InsertVertexCells(pdBlock);
+      }
     }
+  }
+  else
+  {
     if (this->GeneratePolyVertexInteractionOutput)
     {
-      this->InsertPolyVertexCell(pdBlock);
+      this->InsertPolyVertexCell(pdInteractionOutput);
     }
     else
     {
-      this->InsertVertexCells(pdBlock);
+      this->InsertVertexCells(pdInteractionOutput);
     }
   }
 

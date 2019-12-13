@@ -337,10 +337,9 @@ protected:
    * This method is thread safe
    */
   virtual bool InitializeInteractionOutput(
-    vtkPointData* seedData, vtkDataObject* surfaces, vtkMultiBlockDataSet*& interractionOutput);
+    vtkPointData* seedData, vtkDataObject* surfaces, vtkDataObject*& interractionOutput);
 
-  virtual bool FinalizeOutputs(
-    vtkMultiPieceDataSet* particlePathsOutput, vtkMultiBlockDataSet* interactionOutput);
+  virtual bool FinalizeOutputs(vtkPolyData* particlePathsOutput, vtkDataObject* interactionOutput);
 
   static void InsertPolyVertexCell(vtkPolyData* polydata);
   static void InsertVertexCells(vtkPolyData* polydata);

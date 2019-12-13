@@ -377,8 +377,8 @@ public:
    * Return true if successful, false otherwise
    * Empty and Always return true with basic model
    */
-  virtual bool FinalizeOutputs(vtkMultiPieceDataSet* vtkNotUsed(particlePathsOutput),
-    vtkMultiBlockDataSet* vtkNotUsed(interractionOutput))
+  virtual bool FinalizeOutputs(
+    vtkPolyData* vtkNotUsed(particlePathsOutput), vtkDataObject* vtkNotUsed(interractionOutput))
   {
     return true;
   }
