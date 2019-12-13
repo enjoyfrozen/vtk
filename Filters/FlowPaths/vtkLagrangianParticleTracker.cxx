@@ -1278,9 +1278,15 @@ double vtkLagrangianParticleTracker::ComputeCellLength(vtkLagrangianParticle* pa
     this->CellLengthComputationMode == STEP_CUR_CELL_DIV_THEO)
   {
     vtkIdType cellId;
-    if (this->IntegrationModel->FindInLocators(particle->GetPosition(), particle, dataset, cellId))
+    vtkAbstractCellLocator* loc;
+    double* weights = particle->GetLastWeights();
+    if (this->IntegrationModel->FindInLocators(
+          particle->GetPosition(), particle, dataset, cellId, loc, weights))
     {
       dataset->GetCell(cellId, cell);
+
+      // Store the found cell as it may be used later
+      particle->SetLastCell(loc, dataset, cellId);
     }
     else
     {
