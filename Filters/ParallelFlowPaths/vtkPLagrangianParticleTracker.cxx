@@ -295,7 +295,7 @@ public:
         {
           *this->ReceiveStream >> xi[j];
         }
-        array->SetTuple(0, &xi[0]);
+        array->InsertNextTuple(&xi[0]);
       }
       return true;
     }
