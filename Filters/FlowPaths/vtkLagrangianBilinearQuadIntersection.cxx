@@ -47,70 +47,48 @@ DEALINGS IN THE SOFTWARE.
 vtkLagrangianBilinearQuadIntersection::vtkLagrangianBilinearQuadIntersection(
   const vtkVector3d& pt00, const vtkVector3d& pt01, const vtkVector3d& pt10,
   const vtkVector3d& pt11)
-  : AxesSwapping(0)
-{
-  this->Point00 = new vtkVector3d(pt00.GetData());
-  this->Point01 = new vtkVector3d(pt01.GetData());
-  this->Point10 = new vtkVector3d(pt10.GetData());
-  this->Point11 = new vtkVector3d(pt11.GetData());
-}
+  : Point00(pt00.GetData())
+  , Point01(pt01.GetData())
+  , Point10(pt10.GetData())
+  , Point11(pt11.GetData())
 
-//----------------------------------------------------------------------------
-vtkLagrangianBilinearQuadIntersection::vtkLagrangianBilinearQuadIntersection()
-  : AxesSwapping(0)
 {
-  this->Point00 = new vtkVector3d();
-  this->Point01 = new vtkVector3d();
-  this->Point10 = new vtkVector3d();
-  this->Point11 = new vtkVector3d();
-}
-
-//----------------------------------------------------------------------------
-vtkLagrangianBilinearQuadIntersection::~vtkLagrangianBilinearQuadIntersection()
-{
-  delete this->Point00;
-  delete this->Point01;
-  delete this->Point10;
-  delete this->Point11;
 }
 
 //----------------------------------------------------------------------------
 double* vtkLagrangianBilinearQuadIntersection::GetP00Data()
 {
-  return this->Point00->GetData();
+  return this->Point00.GetData();
 }
 
 //----------------------------------------------------------------------------
 double* vtkLagrangianBilinearQuadIntersection::GetP01Data()
 {
-  return this->Point01->GetData();
+  return this->Point01.GetData();
 }
 
 //----------------------------------------------------------------------------
 double* vtkLagrangianBilinearQuadIntersection::GetP10Data()
 {
-  return this->Point10->GetData();
+  return this->Point10.GetData();
 }
 
 //----------------------------------------------------------------------------
 double* vtkLagrangianBilinearQuadIntersection::GetP11Data()
 {
-  return this->Point11->GetData();
+  return this->Point11.GetData();
 }
 
 //----------------------------------------------------------------------------
 vtkVector3d vtkLagrangianBilinearQuadIntersection::ComputeCartesianCoordinates(double u, double v)
 {
   vtkVector3d respt;
-  respt.SetX(
-    ((1.0 - u) * (1.0 - v) * this->Point00->GetX() + (1.0 - u) * v * this->Point01->GetX() +
-      u * (1.0 - v) * this->Point10->GetX() + u * v * this->Point11->GetX()));
-  respt.SetY(
-    ((1.0 - u) * (1.0 - v) * this->Point00->GetY() + (1.0 - u) * v * this->Point01->GetY() +
-      u * (1.0 - v) * this->Point10->GetY() + u * v * this->Point11->GetY()));
-  respt.SetZ(
-    ((1.0 - u) * (1.0 - v) * this->Point00->GetZ() + (1.0 - u) * v * this->Point01->GetZ() +
-      u * (1.0 - v) * this->Point10->GetZ() + u * v * this->Point11->GetZ()));
+  respt.SetX(((1.0 - u) * (1.0 - v) * this->Point00.GetX() + (1.0 - u) * v * this->Point01.GetX() +
+    u * (1.0 - v) * this->Point10.GetX() + u * v * this->Point11.GetX()));
+  respt.SetY(((1.0 - u) * (1.0 - v) * this->Point00.GetY() + (1.0 - u) * v * this->Point01.GetY() +
+    u * (1.0 - v) * this->Point10.GetY() + u * v * this->Point11.GetY()));
+  respt.SetZ(((1.0 - u) * (1.0 - v) * this->Point00.GetZ() + (1.0 - u) * v * this->Point01.GetZ() +
+    u * (1.0 - v) * this->Point10.GetZ() + u * v * this->Point11.GetZ()));
 
   int nbOfSwap = this->AxesSwapping;
   while (nbOfSwap != 0)
@@ -164,8 +142,8 @@ bool vtkLagrangianBilinearQuadIntersection::RayIntersection(
 {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Equation of the ray intersection:
-  // P(u, v) = (1-u)(1-v)this->Point00->+ (1-u)vthis->Point01->+
-  //   u(1-v)this->Point10->+ uvthis->Point11
+  // P(u, v) = (1-u)(1-v)this->Point00.+ (1-u)vthis->Point01.+
+  //   u(1-v)this->Point10.+ uvthis->Point11
   // Equation of the ray:
   // R(t) = r + tq
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -176,10 +154,10 @@ bool vtkLagrangianBilinearQuadIntersection::RayIntersection(
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Variables for substitition
-  // a = this->Point11->- this->Point10->- this->Point01->+ this->Point00
-  // b = this->Point10->- this->Point00
-  // c = this->Point01->- this->Point00
-  // d = this->Point00-> (d is shown below in the #ifdef ray area)
+  // a = this->Point11.- this->Point10.- this->Point01.+ this->Point00
+  // b = this->Point10.- this->Point00
+  // c = this->Point01.- this->Point00
+  // d = this->Point00. (d is shown below in the #ifdef ray area)
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
   // Retrieve the xyz of the q part of ray
@@ -207,49 +185,49 @@ bool vtkLagrangianBilinearQuadIntersection::RayIntersection(
     ry = rz;
     rz = tmp;
 
-    tmp = this->Point00->GetX();
-    this->Point00->SetX(this->Point00->GetY());
-    this->Point00->SetY(this->Point00->GetZ());
-    this->Point00->SetZ(tmp);
+    tmp = this->Point00.GetX();
+    this->Point00.SetX(this->Point00.GetY());
+    this->Point00.SetY(this->Point00.GetZ());
+    this->Point00.SetZ(tmp);
 
-    tmp = this->Point01->GetX();
-    this->Point01->SetX(this->Point01->GetY());
-    this->Point01->SetY(this->Point01->GetZ());
-    this->Point01->SetZ(tmp);
+    tmp = this->Point01.GetX();
+    this->Point01.SetX(this->Point01.GetY());
+    this->Point01.SetY(this->Point01.GetZ());
+    this->Point01.SetZ(tmp);
 
-    tmp = this->Point10->GetX();
-    this->Point10->SetX(this->Point10->GetY());
-    this->Point10->SetY(this->Point10->GetZ());
-    this->Point10->SetZ(tmp);
+    tmp = this->Point10.GetX();
+    this->Point10.SetX(this->Point10.GetY());
+    this->Point10.SetY(this->Point10.GetZ());
+    this->Point10.SetZ(tmp);
 
-    tmp = this->Point11->GetX();
-    this->Point11->SetX(this->Point11->GetY());
-    this->Point11->SetY(this->Point11->GetZ());
-    this->Point11->SetZ(tmp);
+    tmp = this->Point11.GetX();
+    this->Point11.SetX(this->Point11.GetY());
+    this->Point11.SetY(this->Point11.GetZ());
+    this->Point11.SetZ(tmp);
   }
 
   // Find a w.r.t. x, y, z
   double ax =
-    this->Point11->GetX() - this->Point10->GetX() - this->Point01->GetX() + this->Point00->GetX();
+    this->Point11.GetX() - this->Point10.GetX() - this->Point01.GetX() + this->Point00.GetX();
   double ay =
-    this->Point11->GetY() - this->Point10->GetY() - this->Point01->GetY() + this->Point00->GetY();
+    this->Point11.GetY() - this->Point10.GetY() - this->Point01.GetY() + this->Point00.GetY();
   double az =
-    this->Point11->GetZ() - this->Point10->GetZ() - this->Point01->GetZ() + this->Point00->GetZ();
+    this->Point11.GetZ() - this->Point10.GetZ() - this->Point01.GetZ() + this->Point00.GetZ();
 
   // Find b w.r.t. x, y, z
-  double bx = this->Point10->GetX() - this->Point00->GetX();
-  double by = this->Point10->GetY() - this->Point00->GetY();
-  double bz = this->Point10->GetZ() - this->Point00->GetZ();
+  double bx = this->Point10.GetX() - this->Point00.GetX();
+  double by = this->Point10.GetY() - this->Point00.GetY();
+  double bz = this->Point10.GetZ() - this->Point00.GetZ();
 
   // Find c w.r.t. x, y, z
-  double cx = this->Point01->GetX() - this->Point00->GetX();
-  double cy = this->Point01->GetY() - this->Point00->GetY();
-  double cz = this->Point01->GetZ() - this->Point00->GetZ();
+  double cx = this->Point01.GetX() - this->Point00.GetX();
+  double cy = this->Point01.GetY() - this->Point00.GetY();
+  double cz = this->Point01.GetZ() - this->Point00.GetZ();
 
   // Find d w.r.t. x, y, z - subtracting r just after
-  double dx = this->Point00->GetX() - rx;
-  double dy = this->Point00->GetY() - ry;
-  double dz = this->Point00->GetZ() - rz;
+  double dx = this->Point00.GetX() - rx;
+  double dy = this->Point00.GetY() - ry;
+  double dz = this->Point00.GetZ() - rz;
 
   // Find A1 and A2
   double A1 = ax * qz - az * qx;
@@ -287,16 +265,9 @@ bool vtkLagrangianBilinearQuadIntersection::RayIntersection(
       pos1 = this->ComputeCartesianCoordinates(uv.GetX(), uv.GetY());
       uv.SetZ(vtkLagrangianBilinearQuadIntersection::ComputeIntersectionFactor(q, r, pos1));
 
-      if (uv.GetX() < 1 + RAY_EPSILON && uv.GetX() > -RAY_EPSILON && uv.GetZ() > 0) // vars okay?
-      {
-        return true;
-      }
-      else
-      {
-        return false; // no other soln - so ret false
-      }
-    case 2: // two solutions found
-      uv.SetY(vsol[0]);
+      return (uv.GetX() < 1 + RAY_EPSILON && uv.GetX() > -RAY_EPSILON && uv.GetZ() > 0) case 2
+        : // two solutions found
+          uv.SetY(vsol[0]);
       uv.SetX(vtkLagrangianBilinearQuadIntersection::GetBestDenominator(
         uv.GetY(), A2, A1, B2, B1, C2, C1, D2, D1));
       pos1 = this->ComputeCartesianCoordinates(uv.GetX(), uv.GetY());
@@ -379,11 +350,7 @@ int vtkLagrangianBilinearQuadIntersection::QuadraticRoot(
       return 0;
     }
   }
-#ifdef WIN32
-  double q = -0.5 * (b + _copysign(sqrt(d), b));
-#else
   double q = -0.5 * (b + copysign(sqrt(d), b));
-#endif
   u[0] = c / q;
   u[1] = q / a;
 
@@ -397,10 +364,7 @@ int vtkLagrangianBilinearQuadIntersection::QuadraticRoot(
   }
   else if (u[1] > min && u[1] < max)
   { // make it easier, make u[0] be the valid one always
-    double dummy;
-    dummy = u[0];
-    u[0] = u[1];
-    u[1] = dummy; // just in case somebody wants to check it
+    std::swap(u[0], u[1]);
     return 1;
   }
   return 0;

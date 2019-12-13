@@ -450,7 +450,7 @@ public:
 
   /**
    * Method used by the LPT to insert data from the partice into
-   * the provided vtkFieldData. It insert alls arrays from the original SeedData.
+   * the provided vtkFieldData. It inserts alls arrays from the original SeedData.
    * Reimplement as needed.
    */
   virtual void InsertParticleSeedData(vtkLagrangianParticle* particle, vtkFieldData* data);
@@ -595,7 +595,7 @@ protected:
   vtkLocatorsType* Locators;
   vtkDataSetsType* DataSets;
   int WeightsSize;
-  double* SharedWeights = nullptr;
+  std::vector<double> SharedWeights;
 
   struct ArrayVal
   {

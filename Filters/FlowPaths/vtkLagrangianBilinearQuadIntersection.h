@@ -61,8 +61,8 @@ class VTKFILTERSFLOWPATHS_EXPORT vtkLagrangianBilinearQuadIntersection
 public:
   vtkLagrangianBilinearQuadIntersection(const vtkVector3d& pt00, const vtkVector3d& Pt01,
     const vtkVector3d& Pt10, const vtkVector3d& Pt11);
-  vtkLagrangianBilinearQuadIntersection();
-  ~vtkLagrangianBilinearQuadIntersection();
+  vtkLagrangianBilinearQuadIntersection() = default;
+  ~vtkLagrangianBilinearQuadIntersection() = default;
 
   //@{
   /**
@@ -104,10 +104,10 @@ public:
     double K2, double R1, double R2);
 
 private:
-  vtkVector3d* Point00;
-  vtkVector3d* Point01;
-  vtkVector3d* Point10;
-  vtkVector3d* Point11;
-  int AxesSwapping;
+  vtkVector3d Point00;
+  vtkVector3d Point01;
+  vtkVector3d Point10;
+  vtkVector3d Point11;
+  int AxesSwapping = 0;
 };
 #endif // vtkLagrangianBilinearQuadIntersection_h

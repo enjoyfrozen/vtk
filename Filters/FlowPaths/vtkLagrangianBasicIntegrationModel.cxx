@@ -113,7 +113,6 @@ vtkLagrangianBasicIntegrationModel::~vtkLagrangianBasicIntegrationModel()
   delete this->DataSets;
   delete this->Surfaces;
   delete this->SurfaceLocators;
-  delete[] this->SharedWeights;
 }
 
 //----------------------------------------------------------------------------
@@ -222,9 +221,8 @@ void vtkLagrangianBasicIntegrationModel::AddDataSet(
     if (size > this->WeightsSize)
     {
       this->WeightsSize = size;
+      this->SharedWeights.resize(this->WeightsSize);
     }
-    delete[] this->SharedWeights;
-    this->SharedWeights = new double[this->WeightsSize];
   }
 }
 
@@ -241,8 +239,6 @@ void vtkLagrangianBasicIntegrationModel::ClearDataSets(bool surface)
     this->DataSets->clear();
     this->Locators->clear();
     this->WeightsSize = 0;
-    delete[] this->SharedWeights;
-    this->SharedWeights = nullptr;
   }
 }
 
@@ -715,7 +711,8 @@ bool vtkLagrangianBasicIntegrationModel::FindInLocators(
   double* x, vtkLagrangianParticle* particle, vtkDataSet*& dataset, vtkIdType& cellId)
 {
   vtkAbstractCellLocator* loc;
-  return this->FindInLocators(x, particle, dataset, cellId, loc, this->SharedWeights);
+  double* weights = this->SharedWeights.data();
+  return this->FindInLocators(x, particle, dataset, cellId, loc, weights);
 }
 
 //----------------------------------------------------------------------------

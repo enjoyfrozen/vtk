@@ -36,11 +36,11 @@
 #include <vector>
 
 class vtkAbstractCellLocator;
-class vtkLagrangianBilinearQuadIntersection;
-class vtkLagrangianUserData;
 class vtkDataSet;
 class vtkGenericCell;
 class vtkIdList;
+class vtkLagrangianBilinearQuadIntersection;
+class vtkLagrangianUserData;
 class vtkPointData;
 
 class VTKFILTERSFLOWPATHS_EXPORT vtkLagrangianParticle
@@ -319,9 +319,9 @@ public:
   //@{
   /**
    * Get/Set a pointer to a vtkLagrangianBilinearQuadIntersection that is
-   *considered to be local to the thread manipulating the particle.
+   * considered to be local to the thread manipulating the particle.
    * The bilinear quad intersection is normally set by the vtkLagrangianParticleTracker and used by
-   *the basic model and the tracker.
+   * the basic model and the tracker.
    */
   inline vtkLagrangianBilinearQuadIntersection* GetThreadedBilinearQuadIntersection()
   {

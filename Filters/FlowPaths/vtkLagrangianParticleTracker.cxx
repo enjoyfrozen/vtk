@@ -424,8 +424,7 @@ int vtkLagrangianParticleTracker::RequestData(vtkInformation* vtkNotUsed(request
   this->IntegrationModel->SetTracker(this);
 
   // Initialize flow
-  vtkInformation* flowInInfo = inputVector[0]->GetInformationObject(0);
-  vtkDataObject* flow = flowInInfo->Get(vtkDataObject::DATA_OBJECT());
+  vtkDataObject* flow = vtkDataObject::GetData(inputVector[0]);
   vtkBoundingBox bounds;
   if (!this->InitializeFlow(flow, &bounds))
   {
