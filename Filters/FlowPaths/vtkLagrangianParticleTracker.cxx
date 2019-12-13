@@ -168,20 +168,23 @@ struct IntegratingFunctor
     }
     if (this->Tracker->GenerateParticlePathsOutput)
     {
-      this->ParticlePathsOutput->SetNumberOfPieces(this->LocalParticlePathsOutput.size());
+      unsigned int offset = this->ParticlePathsOutput->GetNumberOfPieces();
+      this->ParticlePathsOutput->SetNumberOfPieces(offset + this->LocalParticlePathsOutput.size());
       unsigned int i = 0;
       for (auto ppo : this->LocalParticlePathsOutput)
       {
-        this->ParticlePathsOutput->SetPiece(i, ppo);
+        this->ParticlePathsOutput->SetPiece(offset + i, ppo);
         ppo->Delete();
         i++;
       }
     }
-    this->InteractionOutput->SetNumberOfBlocks(this->LocalInteractionOutput.size());
+
+    unsigned int offset = this->InteractionOutput->GetNumberOfBlocks();
+    this->InteractionOutput->SetNumberOfBlocks(offset + this->LocalInteractionOutput.size());
     unsigned int i = 0;
     for (auto interOut : this->LocalInteractionOutput)
     {
-      this->InteractionOutput->SetBlock(i, interOut);
+      this->InteractionOutput->SetBlock(offset + i, interOut);
       interOut->Delete();
       i++;
     }
