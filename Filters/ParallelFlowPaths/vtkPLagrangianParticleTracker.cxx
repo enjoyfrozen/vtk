@@ -802,6 +802,7 @@ void vtkPLagrangianParticleTracker::GenerateParticles(const vtkBoundingBox* boun
       else
       {
         this->StreamManager->SendParticle(particle);
+        delete particle;
       }
     }
     this->Controller->Barrier();

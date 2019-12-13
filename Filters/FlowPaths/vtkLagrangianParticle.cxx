@@ -65,6 +65,7 @@ vtkLagrangianParticle::vtkLagrangianParticle(int numberOfVariables, vtkIdType se
   this->SeedData->CopyAllocate(seedData, 1);
   if (seedArrayTupleIndex >= 0)
   {
+    // In some cases we may want to leave it uninitialized
     this->SeedData->CopyData(seedData, seedArrayTupleIndex, 0);
   }
 
