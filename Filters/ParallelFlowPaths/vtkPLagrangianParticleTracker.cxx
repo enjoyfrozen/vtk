@@ -987,7 +987,6 @@ bool vtkPLagrangianParticleTracker::FinalizeOutputs(
 {
   if (particlePathsOutput && this->Controller && this->Controller->GetNumberOfProcesses() > 1)
   {
-
     // Construct array with all non outofdomains ids and terminations
     vtkNew<vtkLongLongArray> idTermination;
     vtkNew<vtkLongLongArray> allIdTermination;
@@ -1013,7 +1012,7 @@ bool vtkPLagrangianParticleTracker::FinalizeOutputs(
     for (int i = 0; i < allIdTermination->GetNumberOfTuples(); i++)
     {
       vtkIdType id = allIdTermination->GetTuple2(i)[0];
-      for (int j = 0; j < ids->GetNumberOfTuples(); j++)
+      for (int j = 0; j < particlePathsOutput->GetNumberOfCells(); j++)
       {
         if (ids->GetValue(j) == id)
         {

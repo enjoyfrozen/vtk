@@ -108,10 +108,13 @@ struct IntegratingFunctor
         this->LocalParticlePathsOutput.size(), this->LocalParticlePathsOutput.Local());
     }
 
-    // Create and initialize a local interaction output
-    this->LocalInteractionOutput.Local() = this->InteractionOutput->NewInstance();
-    this->Tracker->InitializeInteractionOutput(
-      this->Tracker->SeedData, this->Surfaces, this->LocalInteractionOutput.Local());
+    if (this->Surfaces)
+    {
+      // Create and initialize a local interaction output
+      this->LocalInteractionOutput.Local() = this->InteractionOutput->NewInstance();
+      this->Tracker->InitializeInteractionOutput(
+        this->Tracker->SeedData, this->Surfaces, this->LocalInteractionOutput.Local());
+    }
 
     // Create a local user data
     this->LocalUserData.Local() = new vtkLagrangianUserData;
@@ -182,48 +185,51 @@ struct IntegratingFunctor
       this->ParticlePathsOutput->ShallowCopy(append->GetOutput());
     }
 
-    // Interaction Reduction
-    vtkCompositeDataSet* hdInteractionOutput =
-      vtkCompositeDataSet::SafeDownCast(this->InteractionOutput);
-    vtkPolyData* pdInteractionOutput = vtkPolyData::SafeDownCast(this->InteractionOutput);
-    if (hdInteractionOutput)
+    if (this->Surfaces)
     {
-      vtkCompositeDataSet* hdSurfaces = vtkCompositeDataSet::SafeDownCast(this->Surfaces);
-      vtkSmartPointer<vtkCompositeDataIterator> iter;
-      iter.TakeReference(hdSurfaces->NewIterator());
-      for (iter->InitTraversal(); !iter->IsDoneWithTraversal(); iter->GoToNextItem())
+      // Interaction Reduction
+      vtkCompositeDataSet* hdInteractionOutput =
+        vtkCompositeDataSet::SafeDownCast(this->InteractionOutput);
+      vtkPolyData* pdInteractionOutput = vtkPolyData::SafeDownCast(this->InteractionOutput);
+      if (hdInteractionOutput)
       {
-        vtkNew<vtkAppendPolyData> append;
-        vtkPolyData* initialPD = vtkPolyData::SafeDownCast(hdInteractionOutput->GetDataSet(iter));
-        if (initialPD)
+        vtkCompositeDataSet* hdSurfaces = vtkCompositeDataSet::SafeDownCast(this->Surfaces);
+        vtkSmartPointer<vtkCompositeDataIterator> iter;
+        iter.TakeReference(hdSurfaces->NewIterator());
+        for (iter->InitTraversal(); !iter->IsDoneWithTraversal(); iter->GoToNextItem())
         {
-          append->AddInputData(initialPD);
+          vtkNew<vtkAppendPolyData> append;
+          vtkPolyData* initialPD = vtkPolyData::SafeDownCast(hdInteractionOutput->GetDataSet(iter));
+          if (initialPD)
+          {
+            append->AddInputData(initialPD);
+          }
+          for (auto interOut : this->LocalInteractionOutput)
+          {
+            append->AddInputData(vtkPolyData::SafeDownCast(
+              vtkCompositeDataSet::SafeDownCast(interOut)->GetDataSet(iter)));
+          }
+          append->Update();
+          hdInteractionOutput->SetDataSet(iter, append->GetOutput());
         }
         for (auto interOut : this->LocalInteractionOutput)
         {
-          append->AddInputData(vtkPolyData::SafeDownCast(
-            vtkCompositeDataSet::SafeDownCast(interOut)->GetDataSet(iter)));
+          interOut->Delete();
+        }
+      }
+      else
+      {
+        vtkNew<vtkAppendPolyData> append;
+        append->AddInputData(pdInteractionOutput);
+        for (auto interOut : this->LocalInteractionOutput)
+        {
+          vtkPolyData* pd = vtkPolyData::SafeDownCast(interOut);
+          append->AddInputData(pd);
+          interOut->Delete();
         }
         append->Update();
-        hdInteractionOutput->SetDataSet(iter, append->GetOutput());
+        pdInteractionOutput->ShallowCopy(append->GetOutput());
       }
-      for (auto interOut : this->LocalInteractionOutput)
-      {
-        interOut->Delete();
-      }
-    }
-    else
-    {
-      vtkNew<vtkAppendPolyData> append;
-      append->AddInputData(pdInteractionOutput);
-      for (auto interOut : this->LocalInteractionOutput)
-      {
-        vtkPolyData* pd = vtkPolyData::SafeDownCast(interOut);
-        append->AddInputData(pd);
-        interOut->Delete();
-      }
-      append->Update();
-      pdInteractionOutput->ShallowCopy(append->GetOutput());
     }
 
     // User Data Reduction
