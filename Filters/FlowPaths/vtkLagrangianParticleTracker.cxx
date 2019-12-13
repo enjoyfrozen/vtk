@@ -57,7 +57,6 @@ vtkCxxSetObjectMacro(vtkLagrangianParticleTracker, Integrator, vtkInitialValuePr
 
 struct IntegratingFunctor
 {
-  bool Serial = false;
   vtkLagrangianParticleTracker* Tracker;
   vtkSMPThreadLocal<vtkInitialValueProblemSolver*> LocalIntegrator;
   vtkSMPThreadLocal<vtkGenericCell*> LocalGenericCell;
@@ -71,27 +70,24 @@ struct IntegratingFunctor
   vtkDataObject* InteractionOutput;
   vtkSMPThreadLocal<vtkDataObject*> LocalInteractionOutput;
   vtkSMPThreadLocal<vtkLagrangianUserData*> LocalUserData;
+  bool Serial = false;
 
   IntegratingFunctor(vtkLagrangianParticleTracker* tracker,
     std::vector<vtkLagrangianParticle*>& particlesVec,
     std::queue<vtkLagrangianParticle*>& particlesQueue, vtkPolyData* particlePathsOutput,
-    vtkDataObject* surfaces, vtkDataObject* interactionOutput)
+    vtkDataObject* surfaces, vtkDataObject* interactionOutput, bool serial)
     : Tracker(tracker)
     , ParticlesVec(particlesVec)
     , ParticlesQueue(particlesQueue)
     , ParticlePathsOutput(particlePathsOutput)
     , Surfaces(surfaces)
     , InteractionOutput(interactionOutput)
+    , Serial(serial)
   {
   }
 
   void Initialize()
   {
-    if (this->LocalIntegrator.size() == 1)
-    {
-      this->Serial = 1;
-    }
-
     // Create a local non-threadsafe integrator with a threadsafe integration model
     this->LocalIntegrator.Local() = this->Tracker->Integrator->NewInstance();
     this->LocalIntegrator.Local()->SetFunctionSet(this->Tracker->IntegrationModel);
@@ -566,8 +562,8 @@ int vtkLagrangianParticleTracker::RequestData(vtkInformation* vtkNotUsed(request
     }
 
     // Integrate all available particles
-    IntegratingFunctor functor(
-      this, particlesVec, particlesQueue, particlePathsOutput, surfaces, interactionOutput);
+    IntegratingFunctor functor(this, particlesVec, particlesQueue, particlePathsOutput, surfaces,
+      interactionOutput, vtkSMPTools::GetEstimatedNumberOfThreads() == 1);
     vtkSMPTools::For(0, static_cast<vtkIdType>(particlesVec.size()), functor);
   }
 
