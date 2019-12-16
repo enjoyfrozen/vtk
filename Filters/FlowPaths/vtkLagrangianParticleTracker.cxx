@@ -445,9 +445,7 @@ int vtkLagrangianParticleTracker::RequestData(vtkInformation* vtkNotUsed(request
   }
 
   // Recover seeds
-  vtkInformation* seedsInInfo = inputVector[1]->GetInformationObject(0);
-  vtkDataObject* seeds =
-    vtkDataObject::SafeDownCast(seedsInInfo->Get(vtkDataObject::DATA_OBJECT()));
+  vtkDataObject* seeds = vtkDataObject::GetData(inputVector[1]);
   if (!seeds)
   {
     vtkErrorMacro(<< "Cannot recover seeds, aborting.");
@@ -498,11 +496,9 @@ int vtkLagrangianParticleTracker::RequestData(vtkInformation* vtkNotUsed(request
 
   // Initialize outputs
   vtkPolyData* particlePathsOutput = nullptr;
-  vtkInformation* particleOutInfo = outputVector->GetInformationObject(0);
   if (this->GenerateParticlePathsOutput)
   {
-    particlePathsOutput =
-      vtkPolyData::SafeDownCast(particleOutInfo->Get(vtkPolyData::DATA_OBJECT()));
+    particlePathsOutput = vtkPolyData::GetData(outputVector);
     if (!particlePathsOutput)
     {
       vtkErrorMacro(<< "Cannot find a vtkMultiPiece particle paths output. aborting");
