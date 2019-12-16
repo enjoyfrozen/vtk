@@ -47,7 +47,12 @@ public:
   /**
    * Get/Set the fraction of shrink for each cell. The default is 0.5.
    */
-  vtkSetClampMacro(ShrinkFactor, double, 0.0, 1.0);
+  //  vtkSetClampMacro(ShrinkFactor, double, 0.0, 1.0);
+  void SetShrinkFactor(double factor)
+  {
+    this->ShrinkFactor = factor * 2;
+    this->Modified();
+  }
   vtkGetMacro(ShrinkFactor, double);
   //@}
 

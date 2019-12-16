@@ -69,7 +69,6 @@ typedef std::set<PassThroughItem> PassThroughSetType;
 //----------------------------------------------------------------------------
 vtkLagrangianBasicIntegrationModel::vtkLagrangianBasicIntegrationModel()
   : Locator(nullptr)
-  , WeightsSize(0)
   , Tolerance(1.0e-8)
   , NonPlanarQuadSupport(false)
   , UseInitialIntegrationTime(false)
@@ -218,10 +217,9 @@ void vtkLagrangianBasicIntegrationModel::AddDataSet(
     this->Locators->push_back(locator);
 
     int size = dataset->GetMaxCellSize();
-    if (size > this->WeightsSize)
+    if (size > static_cast<int>(this->SharedWeights.size()))
     {
-      this->WeightsSize = size;
-      this->SharedWeights.resize(this->WeightsSize);
+      this->SharedWeights.resize(size);
     }
   }
 }
@@ -238,7 +236,7 @@ void vtkLagrangianBasicIntegrationModel::ClearDataSets(bool surface)
   {
     this->DataSets->clear();
     this->Locators->clear();
-    this->WeightsSize = 0;
+    this->SharedWeights.clear();
   }
 }
 
@@ -1106,6 +1104,13 @@ vtkIntArray* vtkLagrangianBasicIntegrationModel::GetSurfaceArrayComps()
   return this->SurfaceArrayComps;
 }
 
+//---------------------------------------------------------------------------
+int vtkLagrangianBasicIntegrationModel::GetWeightsSize()
+{
+  return static_cast<int>(this->SharedWeights.size());
+}
+
+//---------------------------------------------------------------------------
 vtkStringArray* vtkLagrangianBasicIntegrationModel::GetSurfaceArrayEnumValues()
 {
   this->SurfaceArrayEnumValues->SetNumberOfValues(0);
@@ -1125,6 +1130,7 @@ vtkStringArray* vtkLagrangianBasicIntegrationModel::GetSurfaceArrayEnumValues()
   return this->SurfaceArrayEnumValues;
 }
 
+//---------------------------------------------------------------------------
 vtkDoubleArray* vtkLagrangianBasicIntegrationModel::GetSurfaceArrayDefaultValues()
 {
   this->SurfaceArrayDefaultValues->SetNumberOfValues(0);

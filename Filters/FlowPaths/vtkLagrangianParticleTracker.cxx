@@ -43,6 +43,7 @@
 #include "vtkPolyLine.h"
 #include "vtkPolygon.h"
 #include "vtkRungeKutta2.h"
+#include "vtkSMPThreadLocalObject.h"
 #include "vtkSMPTools.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
 
@@ -59,13 +60,13 @@ struct IntegratingFunctor
 {
   vtkLagrangianParticleTracker* Tracker;
   vtkSMPThreadLocal<vtkInitialValueProblemSolver*> LocalIntegrator;
-  vtkSMPThreadLocal<vtkGenericCell*> LocalGenericCell;
-  vtkSMPThreadLocal<vtkIdList*> LocalIdList;
+  vtkSMPThreadLocalObject<vtkGenericCell> LocalGenericCell;
+  vtkSMPThreadLocalObject<vtkIdList> LocalIdList;
   vtkSMPThreadLocal<vtkLagrangianBilinearQuadIntersection*> LocalBilinearQuadIntersection;
   std::vector<vtkLagrangianParticle*>& ParticlesVec;
   std::queue<vtkLagrangianParticle*>& ParticlesQueue;
   vtkPolyData* ParticlePathsOutput;
-  vtkSMPThreadLocal<vtkPolyData*> LocalParticlePathsOutput;
+  vtkSMPThreadLocalObject<vtkPolyData> LocalParticlePathsOutput;
   vtkDataObject* Surfaces;
   vtkDataObject* InteractionOutput;
   vtkSMPThreadLocal<vtkDataObject*> LocalInteractionOutput;
@@ -92,11 +93,7 @@ struct IntegratingFunctor
     this->LocalIntegrator.Local() = this->Tracker->Integrator->NewInstance();
     this->LocalIntegrator.Local()->SetFunctionSet(this->Tracker->IntegrationModel);
 
-    // Create a local generic cell
-    this->LocalGenericCell.Local() = vtkGenericCell::New();
-
-    // Create and initialize a local idList
-    this->LocalIdList.Local() = vtkIdList::New();
+    // Initialize a local idList
     this->LocalIdList.Local()->Allocate(10);
 
     // Create a local bilinear quad intersection
@@ -104,8 +101,7 @@ struct IntegratingFunctor
 
     if (this->Tracker->GenerateParticlePathsOutput)
     {
-      // Create and initialize a local particle path output
-      this->LocalParticlePathsOutput.Local() = vtkPolyData::New();
+      // Initialize a local particle path output
       this->Tracker->InitializePathsOutput(this->Tracker->SeedData,
         this->LocalParticlePathsOutput.size(), this->LocalParticlePathsOutput.Local());
     }
@@ -171,14 +167,6 @@ struct IntegratingFunctor
     {
       integrator->Delete();
     }
-    for (auto cell : this->LocalGenericCell)
-    {
-      cell->Delete();
-    }
-    for (auto list : this->LocalIdList)
-    {
-      list->Delete();
-    }
     for (auto bqi : this->LocalBilinearQuadIntersection)
     {
       delete bqi;
@@ -192,7 +180,6 @@ struct IntegratingFunctor
       for (auto ppo : this->LocalParticlePathsOutput)
       {
         append->AddInputData(ppo);
-        ppo->Delete();
       }
       append->Update();
       this->ParticlePathsOutput->ShallowCopy(append->GetOutput());
@@ -671,7 +658,7 @@ bool vtkLagrangianParticleTracker::InitializeInteractionOutput(
 bool vtkLagrangianParticleTracker::FinalizeOutputs(
   vtkPolyData* particlePathsOutput, vtkDataObject* interactionOutput)
 {
-  if (particlePathsOutput)
+  if (this->GenerateParticlePathsOutput)
   {
     if (!particlePathsOutput)
     {
@@ -1117,7 +1104,7 @@ int vtkLagrangianParticleTracker::Integrate(vtkInitialValueProblemSolver* integr
       // Particle has been correctly integrated and interacted, record it
       // Insert Current particle as an output point
 
-      if (particlePathsOutput)
+      if (this->GenerateParticlePathsOutput)
       {
         this->InsertPathOutputPoint(particle, particlePathsOutput, particlePath->GetPointIds());
       }
@@ -1128,7 +1115,7 @@ int vtkLagrangianParticleTracker::Integrate(vtkInitialValueProblemSolver* integr
         // Insert last particle path point on surface
         particle->MoveToNextPosition();
 
-        if (particlePathsOutput)
+        if (this->GenerateParticlePathsOutput)
         {
           this->InsertPathOutputPoint(particle, particlePathsOutput, particlePath->GetPointIds());
         }
@@ -1166,7 +1153,7 @@ int vtkLagrangianParticleTracker::Integrate(vtkInitialValueProblemSolver* integr
     }
   }
 
-  if (particlePathsOutput)
+  if (this->GenerateParticlePathsOutput)
   {
     if (particlePath->GetPointIds()->GetNumberOfIds() == 1)
     {

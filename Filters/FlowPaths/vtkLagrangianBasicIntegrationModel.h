@@ -322,7 +322,7 @@ public:
    * Get the maximum weights size necessary for calling
    * FindInLocators with weights
    */
-  vtkGetMacro(WeightsSize, int);
+  virtual int GetWeightsSize();
   //@}
 
   /**
@@ -594,7 +594,6 @@ protected:
   bool LocatorsBuilt;
   vtkLocatorsType* Locators;
   vtkDataSetsType* DataSets;
-  int WeightsSize;
   std::vector<double> SharedWeights;
 
   struct ArrayVal

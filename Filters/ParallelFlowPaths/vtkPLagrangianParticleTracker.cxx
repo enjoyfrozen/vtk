@@ -922,7 +922,7 @@ int vtkPLagrangianParticleTracker::Integrate(vtkInitialValueProblemSolver* integ
 {
   if (this->Controller && this->Controller->GetNumberOfProcesses() > 1)
   {
-    if (particlePathsOutput && particle->GetPInsertPreviousPosition())
+    if (this->GenerateParticlePathsOutput && particle->GetPInsertPreviousPosition())
     {
       // This is a particle from another rank, store a duplicated previous point
       this->InsertPathOutputPoint(particle, particlePathsOutput, particlePath->GetPointIds(), true);
@@ -986,7 +986,8 @@ void vtkPLagrangianParticleTracker::ReceiveParticles(
 bool vtkPLagrangianParticleTracker::FinalizeOutputs(
   vtkPolyData* particlePathsOutput, vtkDataObject* interactionOutput)
 {
-  if (particlePathsOutput && this->Controller && this->Controller->GetNumberOfProcesses() > 1)
+  if (this->GenerateParticlePathsOutput && this->Controller &&
+    this->Controller->GetNumberOfProcesses() > 1)
   {
     // Construct array with all non outofdomains ids and terminations
     vtkNew<vtkLongLongArray> idTermination;
