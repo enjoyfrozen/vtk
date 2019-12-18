@@ -3,10 +3,11 @@ NAME
 LIBRARY_NAME
   vtkPVVTKExtensionsCGNSReader
 KIT
-  ParaView::Extensions
+  ParaView::CoreKit
+GROUPS
+  PARAVIEW_CANONICAL
 DEPENDS
   ParaView::VTKExtensionsCore
-  ParaView::VTKExtensionsSIL
   VTK::CommonCore
   VTK::CommonDataModel
   VTK::CommonExecutionModel
