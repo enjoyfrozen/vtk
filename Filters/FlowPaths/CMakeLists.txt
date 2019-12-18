@@ -7,7 +7,6 @@ set(classes
   vtkEvenlySpacedStreamlines2D
   vtkInterpolatedVelocityField
   vtkLagrangianBasicIntegrationModel
-  vtkLagrangianBilinearQuadIntersection
   vtkLagrangianMatidaIntegrationModel
   vtkLagrangianParticle
   vtkLagrangianParticleTracker

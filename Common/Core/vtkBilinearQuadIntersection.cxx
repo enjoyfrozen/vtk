@@ -39,48 +39,46 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 =========================================================================*/
-#include "vtkLagrangianBilinearQuadIntersection.h"
+#include "vtkBilinearQuadIntersection.h"
 
 #define RAY_EPSILON 1e-12 // some small epsilon for flt pt
 
 //----------------------------------------------------------------------------
-vtkLagrangianBilinearQuadIntersection::vtkLagrangianBilinearQuadIntersection(
-  const vtkVector3d& pt00, const vtkVector3d& pt01, const vtkVector3d& pt10,
-  const vtkVector3d& pt11)
+vtkBilinearQuadIntersection::vtkBilinearQuadIntersection(const vtkVector3d& pt00,
+  const vtkVector3d& pt01, const vtkVector3d& pt10, const vtkVector3d& pt11)
   : Point00(pt00.GetData())
   , Point01(pt01.GetData())
   , Point10(pt10.GetData())
   , Point11(pt11.GetData())
-
 {
 }
 
 //----------------------------------------------------------------------------
-double* vtkLagrangianBilinearQuadIntersection::GetP00Data()
+double* vtkBilinearQuadIntersection::GetP00Data()
 {
   return this->Point00.GetData();
 }
 
 //----------------------------------------------------------------------------
-double* vtkLagrangianBilinearQuadIntersection::GetP01Data()
+double* vtkBilinearQuadIntersection::GetP01Data()
 {
   return this->Point01.GetData();
 }
 
 //----------------------------------------------------------------------------
-double* vtkLagrangianBilinearQuadIntersection::GetP10Data()
+double* vtkBilinearQuadIntersection::GetP10Data()
 {
   return this->Point10.GetData();
 }
 
 //----------------------------------------------------------------------------
-double* vtkLagrangianBilinearQuadIntersection::GetP11Data()
+double* vtkBilinearQuadIntersection::GetP11Data()
 {
   return this->Point11.GetData();
 }
 
 //----------------------------------------------------------------------------
-vtkVector3d vtkLagrangianBilinearQuadIntersection::ComputeCartesianCoordinates(double u, double v)
+vtkVector3d vtkBilinearQuadIntersection::ComputeCartesianCoordinates(double u, double v)
 {
   vtkVector3d respt;
   respt.SetX(((1.0 - u) * (1.0 - v) * this->Point00.GetX() + (1.0 - u) * v * this->Point01.GetX() +
@@ -103,7 +101,7 @@ vtkVector3d vtkLagrangianBilinearQuadIntersection::ComputeCartesianCoordinates(d
 }
 
 //----------------------------------------------------------------------------
-double vtkLagrangianBilinearQuadIntersection::GetBestDenominator(
+double vtkBilinearQuadIntersection::GetBestDenominator(
   double v, double M1, double M2, double J1, double J2, double K1, double K2, double R1, double R2)
 {
   double denom = (v * (M1 - M2) + J1 - J2);
@@ -116,7 +114,7 @@ double vtkLagrangianBilinearQuadIntersection::GetBestDenominator(
 }
 
 //----------------------------------------------------------------------------
-double vtkLagrangianBilinearQuadIntersection::ComputeIntersectionFactor(
+double vtkBilinearQuadIntersection::ComputeIntersectionFactor(
   const vtkVector3d& dir, const vtkVector3d& orig, const vtkVector3d& srfpos)
 {
   // if x is bigger than y and z
@@ -137,7 +135,7 @@ double vtkLagrangianBilinearQuadIntersection::ComputeIntersectionFactor(
 }
 
 //----------------------------------------------------------------------------
-bool vtkLagrangianBilinearQuadIntersection::RayIntersection(
+bool vtkBilinearQuadIntersection::RayIntersection(
   const vtkVector3d& r, const vtkVector3d& q, vtkVector3d& uv)
 {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -252,35 +250,35 @@ bool vtkLagrangianBilinearQuadIntersection::RayIntersection(
   uv.SetX(-2);
   uv.SetY(-2);
   uv.SetZ(-2);
-  num_sol = vtkLagrangianBilinearQuadIntersection::QuadraticRoot(
-    A, B, C, -RAY_EPSILON, 1 + RAY_EPSILON, vsol);
+  num_sol =
+    vtkBilinearQuadIntersection::QuadraticRoot(A, B, C, -RAY_EPSILON, 1 + RAY_EPSILON, vsol);
   switch (num_sol)
   {
     case 0:
       return false; // no solutions found
     case 1:
       uv.SetY(vsol[0]);
-      uv.SetX(vtkLagrangianBilinearQuadIntersection::GetBestDenominator(
-        uv.GetY(), A2, A1, B2, B1, C2, C1, D2, D1));
+      uv.SetX(
+        vtkBilinearQuadIntersection::GetBestDenominator(uv.GetY(), A2, A1, B2, B1, C2, C1, D2, D1));
       pos1 = this->ComputeCartesianCoordinates(uv.GetX(), uv.GetY());
-      uv.SetZ(vtkLagrangianBilinearQuadIntersection::ComputeIntersectionFactor(q, r, pos1));
+      uv.SetZ(vtkBilinearQuadIntersection::ComputeIntersectionFactor(q, r, pos1));
 
       return (uv.GetX() < 1 + RAY_EPSILON && uv.GetX() > -RAY_EPSILON && uv.GetZ() > 0);
     case 2: // two solutions found
       uv.SetY(vsol[0]);
-      uv.SetX(vtkLagrangianBilinearQuadIntersection::GetBestDenominator(
-        uv.GetY(), A2, A1, B2, B1, C2, C1, D2, D1));
+      uv.SetX(
+        vtkBilinearQuadIntersection::GetBestDenominator(uv.GetY(), A2, A1, B2, B1, C2, C1, D2, D1));
       pos1 = this->ComputeCartesianCoordinates(uv.GetX(), uv.GetY());
-      uv.SetZ(vtkLagrangianBilinearQuadIntersection::ComputeIntersectionFactor(q, r, pos1));
+      uv.SetZ(vtkBilinearQuadIntersection::ComputeIntersectionFactor(q, r, pos1));
 
       if (uv.GetX() < 1 + RAY_EPSILON && uv.GetX() > -RAY_EPSILON && uv.GetZ() > 0)
       {
-        u = vtkLagrangianBilinearQuadIntersection::GetBestDenominator(
-          vsol[1], A2, A1, B2, B1, C2, C1, D2, D1);
+        u =
+          vtkBilinearQuadIntersection::GetBestDenominator(vsol[1], A2, A1, B2, B1, C2, C1, D2, D1);
         if (u < 1 + RAY_EPSILON && u > RAY_EPSILON)
         {
           pos2 = this->ComputeCartesianCoordinates(u, vsol[1]);
-          t2 = vtkLagrangianBilinearQuadIntersection::ComputeIntersectionFactor(q, r, pos2);
+          t2 = vtkBilinearQuadIntersection::ComputeIntersectionFactor(q, r, pos2);
           if (t2 < 0 || uv.GetZ() < t2) // t2 is bad or t1 is better
           {
             return true;
@@ -296,10 +294,10 @@ bool vtkLagrangianBilinearQuadIntersection::RayIntersection(
       else // doesn't fit in the root - try other one
       {
         uv.SetY(vsol[1]);
-        uv.SetX(vtkLagrangianBilinearQuadIntersection::GetBestDenominator(
-          vsol[1], A2, A1, B2, B1, C2, C1, D2, D1));
+        uv.SetX(
+          vtkBilinearQuadIntersection::GetBestDenominator(vsol[1], A2, A1, B2, B1, C2, C1, D2, D1));
         pos1 = this->ComputeCartesianCoordinates(uv.GetX(), uv.GetY());
-        uv.SetZ(vtkLagrangianBilinearQuadIntersection::ComputeIntersectionFactor(q, r, pos1));
+        uv.SetZ(vtkBilinearQuadIntersection::ComputeIntersectionFactor(q, r, pos1));
         return (uv.GetX() < 1 + RAY_EPSILON && uv.GetX() > -RAY_EPSILON && uv.GetZ() > 0);
       }
     default:
@@ -308,7 +306,7 @@ bool vtkLagrangianBilinearQuadIntersection::RayIntersection(
 }
 
 //----------------------------------------------------------------------------
-int vtkLagrangianBilinearQuadIntersection::QuadraticRoot(
+int vtkBilinearQuadIntersection::QuadraticRoot(
   double a, double b, double c, double min, double max, double* u)
 {
   if (a == 0.0) // then its close to 0

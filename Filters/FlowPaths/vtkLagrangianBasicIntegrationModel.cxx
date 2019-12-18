@@ -14,6 +14,7 @@
 =========================================================================*/
 #include "vtkLagrangianBasicIntegrationModel.h"
 
+#include "vtkBilinearQuadIntersection.h"
 #include "vtkCellData.h"
 #include "vtkDataArray.h"
 #include "vtkDataObjectTypes.h"
@@ -22,7 +23,6 @@
 #include "vtkFieldData.h"
 #include "vtkGenericCell.h"
 #include "vtkIntArray.h"
-#include "vtkLagrangianBilinearQuadIntersection.h"
 #include "vtkLagrangianParticle.h"
 #include "vtkLagrangianParticleTracker.h"
 #include "vtkLongLongArray.h"
@@ -566,7 +566,7 @@ bool vtkLagrangianBasicIntegrationModel::IntersectWithLine(vtkLagrangianParticle
 
       // create 4 points and fill the bqi
       vtkPoints* points = quad->GetPoints();
-      vtkLagrangianBilinearQuadIntersection* bqi = particle->GetThreadedBilinearQuadIntersection();
+      vtkBilinearQuadIntersection* bqi = particle->GetThreadedBilinearQuadIntersection();
       points->GetPoint(0, bqi->GetP00Data());
       points->GetPoint(3, bqi->GetP01Data());
       points->GetPoint(1, bqi->GetP10Data());

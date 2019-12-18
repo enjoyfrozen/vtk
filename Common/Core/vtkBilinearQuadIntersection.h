@@ -40,29 +40,27 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 =========================================================================*/
 /**
- * @class   vtkLagrangianBilinearQuadIntersection
+ * @class   vtkBilinearQuadIntersection
  * @brief   Class to perform non planar quad intersection
  *
- * Class for non planar intersection
- * This class is based on
- * http://shaunramsey.com/research/bp/
- * which does not work in the general case
- * hence the ugly transformation patch.
+ * Class for non planar intersection.
+ * This class is based on http://shaunramsey.com/research/bp/
+ * which does not work in the general case hence the ugly transformation patch.
  */
 
-#ifndef vtkLagrangianBilinearQuadIntersection_h
-#define vtkLagrangianBilinearQuadIntersection_h
+#ifndef vtkBilinearQuadIntersection_h
+#define vtkBilinearQuadIntersection_h
 
 #include "vtkFiltersFlowPathsModule.h" // For export macro
 #include "vtkVector.h"
 
-class VTKFILTERSFLOWPATHS_EXPORT vtkLagrangianBilinearQuadIntersection
+class VTKFILTERSFLOWPATHS_EXPORT vtkBilinearQuadIntersection
 {
 public:
-  vtkLagrangianBilinearQuadIntersection(const vtkVector3d& pt00, const vtkVector3d& Pt01,
+  vtkBilinearQuadIntersection(const vtkVector3d& pt00, const vtkVector3d& Pt01,
     const vtkVector3d& Pt10, const vtkVector3d& Pt11);
-  vtkLagrangianBilinearQuadIntersection() = default;
-  ~vtkLagrangianBilinearQuadIntersection() = default;
+  vtkBilinearQuadIntersection() = default;
+  ~vtkBilinearQuadIntersection() = default;
 
   //@{
   /**
@@ -110,4 +108,4 @@ private:
   vtkVector3d Point11;
   int AxesSwapping = 0;
 };
-#endif // vtkLagrangianBilinearQuadIntersection_h
+#endif // vtkBilinearQuadIntersection_h

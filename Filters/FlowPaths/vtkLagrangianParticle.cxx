@@ -76,7 +76,7 @@ vtkLagrangianParticle::vtkLagrangianParticle(int numberOfVariables, vtkIdType se
 }
 
 //---------------------------------------------------------------------------
-// Default desctructor in implementation in order to be able to use
+// Default destructor in implementation in order to be able to use
 // vtkNew in header
 vtkLagrangianParticle::~vtkLagrangianParticle() = default;
 

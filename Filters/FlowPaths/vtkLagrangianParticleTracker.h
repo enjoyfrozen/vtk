@@ -31,13 +31,13 @@
  *     kind of data object, support distributed input.
  *
  * It has two outputs :
- * * port 0 : ParticlePaths : a multipieces of polyData (one per thread) of polyLines showing the
+ * * port 0 : ParticlePaths : a multipiece of polyData (one per thread) of polyLines showing the
  * paths of particles in the flow
  * * port 1 : ParticleInteractions : empty if no surface input, contains a
  *     a multiblock with as many children as the number of threads, each children containing a
- * multiblock with the same structure as the surfaces. the leafs of these structures contains a
+ * multiblock with the same structure as the surfaces. The leafs of these structures contain a
  * polydata of vertexes corresponding to the interactions. with the same composite layout of surface
- * input if any, showing all interactions between particles and the surface input
+ * input if any, showing all interactions between particles and the surface input.
  *
  * It has a parallel implementation which streams particle between domains.
  *

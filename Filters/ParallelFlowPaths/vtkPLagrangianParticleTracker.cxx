@@ -1011,10 +1011,10 @@ bool vtkPLagrangianParticleTracker::FinalizeOutputs(
     this->Controller->AllGatherV(idTermination, allIdTermination);
 
     // Modify current terminations
-    for (int i = 0; i < allIdTermination->GetNumberOfTuples(); i++)
+    for (vtkIdType i = 0; i < allIdTermination->GetNumberOfTuples(); i++)
     {
       vtkIdType id = allIdTermination->GetTuple2(i)[0];
-      for (int j = 0; j < particlePathsOutput->GetNumberOfCells(); j++)
+      for (vtkIdType j = 0; j < particlePathsOutput->GetNumberOfCells(); j++)
       {
         if (ids->GetValue(j) == id)
         {
