@@ -1463,29 +1463,29 @@ size_t vtkDICOMCharacterSet::SJISToUTF8(const char* text, size_t l, std::string*
             switch (y)
             {
               case 0x5C:
-                code = 0x2015;
-                break; // HORIZONTAL BAR
+                code = 0x2015; // HORIZONTAL BAR
+                break;
               case 0x5F:
-                code = 0xFF3C;
-                break; // FULLWIDTH REVERSE SOLIDUS
+                code = 0xFF3C; // FULLWIDTH REVERSE SOLIDUS
+                break;
               case 0x60:
-                code = 0xFF5E;
-                break; // FULLWIDTH TILDE
+                code = 0xFF5E; // FULLWIDTH TILDE
+                break;
               case 0x61:
-                code = 0x2225;
-                break; // PARALLEL TO
+                code = 0x2225; // PARALLEL TO
+                break;
               case 0x7C:
-                code = 0xFF0D;
-                break; // FULLWIDTH HYPHEN-MINUS
+                code = 0xFF0D; // FULLWIDTH HYPHEN-MINUS
+                break;
               case 0x91:
-                code = 0xFFE0;
-                break; // FULLWIDTH CENT SIGN
+                code = 0xFFE0; // FULLWIDTH CENT SIGN
+                break;
               case 0x92:
-                code = 0xFFE1;
-                break; // FULLWIDTH POUND SIGN
+                code = 0xFFE1; // FULLWIDTH POUND SIGN
+                break;
               case 0xCA:
-                code = 0xFFE2;
-                break; // FULLWIDTH NOT SIGN
+                code = 0xFFE2; // FULLWIDTH NOT SIGN
+                break;
             }
           }
         }
