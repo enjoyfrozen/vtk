@@ -15,6 +15,7 @@
 #include "vtkLagrangianParticleTracker.h"
 
 #include "vtkAppendPolyData.h"
+#include "vtkBilinearQuadIntersection.h"
 #include "vtkBoundingBox.h"
 #include "vtkCellData.h"
 #include "vtkCompositeDataIterator.h"
@@ -28,7 +29,6 @@
 #include "vtkIdList.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
-#include "vtkLagrangianBilinearQuadIntersection.h"
 #include "vtkLagrangianMatidaIntegrationModel.h"
 #include "vtkLagrangianParticle.h"
 #include "vtkLagrangianUserData.h"
@@ -62,7 +62,7 @@ struct IntegratingFunctor
   vtkSMPThreadLocal<vtkInitialValueProblemSolver*> LocalIntegrator;
   vtkSMPThreadLocalObject<vtkGenericCell> LocalGenericCell;
   vtkSMPThreadLocalObject<vtkIdList> LocalIdList;
-  vtkSMPThreadLocal<vtkLagrangianBilinearQuadIntersection*> LocalBilinearQuadIntersection;
+  vtkSMPThreadLocal<vtkBilinearQuadIntersection*> LocalBilinearQuadIntersection;
   std::vector<vtkLagrangianParticle*>& ParticlesVec;
   std::queue<vtkLagrangianParticle*>& ParticlesQueue;
   vtkPolyData* ParticlePathsOutput;
@@ -97,7 +97,7 @@ struct IntegratingFunctor
     this->LocalIdList.Local()->Allocate(10);
 
     // Create a local bilinear quad intersection
-    this->LocalBilinearQuadIntersection.Local() = new vtkLagrangianBilinearQuadIntersection;
+    this->LocalBilinearQuadIntersection.Local() = new vtkBilinearQuadIntersection;
 
     if (this->Tracker->GenerateParticlePathsOutput)
     {

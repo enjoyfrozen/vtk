@@ -51,10 +51,10 @@ DEALINGS IN THE SOFTWARE.
 #ifndef vtkBilinearQuadIntersection_h
 #define vtkBilinearQuadIntersection_h
 
-#include "vtkFiltersFlowPathsModule.h" // For export macro
+#include "vtkCommonComputationalGeometryModule.h" // For export macro
 #include "vtkVector.h"
 
-class VTKFILTERSFLOWPATHS_EXPORT vtkBilinearQuadIntersection
+class VTKCOMMONCOMPUTATIONALGEOMETRY_EXPORT vtkBilinearQuadIntersection
 {
 public:
   vtkBilinearQuadIntersection(const vtkVector3d& pt00, const vtkVector3d& Pt01,

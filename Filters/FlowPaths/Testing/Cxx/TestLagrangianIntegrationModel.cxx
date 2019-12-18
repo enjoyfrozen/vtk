@@ -15,6 +15,7 @@
 #include "vtkLagrangianMatidaIntegrationModel.h"
 
 #include "vtkActor.h"
+#include "vtkBilinearQuadIntersection.h"
 #include "vtkCellData.h"
 #include "vtkDataSetMapper.h"
 #include "vtkDataSetSurfaceFilter.h"
@@ -23,7 +24,6 @@
 #include "vtkGenericCell.h"
 #include "vtkImageData.h"
 #include "vtkIntArray.h"
-#include "vtkLagrangianBilinearQuadIntersection.h"
 #include "vtkLagrangianParticle.h"
 #include "vtkLagrangianParticleTracker.h"
 #include "vtkMath.h"
@@ -179,7 +179,7 @@ int TestLagrangianIntegrationModel(int, char*[])
   vtkNew<vtkIdList> cellId;
   part.SetThreadedIdList(cellId);
 
-  vtkLagrangianBilinearQuadIntersection bqi;
+  vtkBilinearQuadIntersection bqi;
   part.SetThreadedBilinearQuadIntersection(&bqi);
 
   odeWavelet->InitializeParticleData(pd);

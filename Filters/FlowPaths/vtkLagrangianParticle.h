@@ -39,7 +39,7 @@ class vtkAbstractCellLocator;
 class vtkDataSet;
 class vtkGenericCell;
 class vtkIdList;
-class vtkLagrangianBilinearQuadIntersection;
+class vtkBilinearQuadIntersection;
 class vtkLagrangianUserData;
 class vtkPointData;
 
@@ -318,16 +318,16 @@ public:
 
   //@{
   /**
-   * Get/Set a pointer to a vtkLagrangianBilinearQuadIntersection that is
+   * Get/Set a pointer to a vtkBilinearQuadIntersection that is
    * considered to be local to the thread manipulating the particle.
    * The bilinear quad intersection is normally set by the vtkLagrangianParticleTracker and used by
    * the basic model and the tracker.
    */
-  inline vtkLagrangianBilinearQuadIntersection* GetThreadedBilinearQuadIntersection()
+  inline vtkBilinearQuadIntersection* GetThreadedBilinearQuadIntersection()
   {
     return this->ThreadedBilinearQuadIntersection;
   }
-  inline void SetThreadedBilinearQuadIntersection(vtkLagrangianBilinearQuadIntersection* bqi)
+  inline void SetThreadedBilinearQuadIntersection(vtkBilinearQuadIntersection* bqi)
   {
     this->ThreadedBilinearQuadIntersection = bqi;
   }
@@ -536,7 +536,7 @@ protected:
   vtkLagrangianUserData* ThreadedUserData = nullptr;
   vtkGenericCell* ThreadedGenericCell = nullptr;
   vtkIdList* ThreadedIdList = nullptr;
-  vtkLagrangianBilinearQuadIntersection* ThreadedBilinearQuadIntersection = nullptr;
+  vtkBilinearQuadIntersection* ThreadedBilinearQuadIntersection = nullptr;
 
   vtkIdType Id;
   vtkIdType ParentId;

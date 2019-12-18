@@ -82,7 +82,6 @@ set(classes
   vtkArrayRange
   vtkArraySort
   vtkArrayWeights
-  vtkBilinearQuadIntersection
   vtkBitArray
   vtkBitArrayIterator
   vtkBoxMuellerRandomSequence
