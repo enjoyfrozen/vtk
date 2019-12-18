@@ -109,3 +109,4 @@ private:
   int AxesSwapping = 0;
 };
 #endif // vtkBilinearQuadIntersection_h
+// VTK-HeaderTest-Exclude: vtkBilinearQuadIntersection.h

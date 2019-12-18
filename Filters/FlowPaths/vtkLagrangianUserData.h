@@ -29,3 +29,4 @@ struct VTKFILTERSFLOWPATHS_EXPORT vtkLagrangianUserData
   void* UserData;
 };
 #endif // vtkLagrangianUserData_h
+// VTK-HeaderTest-Exclude: vtkLagrangianUserData.h
