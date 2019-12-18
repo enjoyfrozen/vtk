@@ -1,0 +1,5 @@
+# Generated files
+vtkDICOMCharacterSetTables.cxx -format.clang-format
+vtkDICOMDictHash.h             -format.clang-format
+vtkDICOMDictHash.cxx           -format.clang-format
+vtkDICOMUtilitiesUIDTable.cxx  -format.clang-format
