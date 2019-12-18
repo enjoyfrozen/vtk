@@ -249,17 +249,10 @@ public:
       // add element id if not reporting stats.
       if (!this->Self->GetReportStatisticsOnly())
       {
-        if (value.UsingGlobalIDs)
+        stream << (value.UsingGlobalIDs ? "gid=" : "id=") << key.ID;
+        if (originalIdsArray)
         {
-          stream << "gid=" << key.ID;
-        }
-        else if (originalIdsArray)
-        {
-          stream << "originalId=" << originalIdsArray->GetTuple1(0);
-        }
-        else
-        {
-          stream << "id=" << key.ID;
+          stream << " originalId=" << originalIdsArray->GetTuple1(0);
         }
       }
       if (key.CompositeID != 0)
