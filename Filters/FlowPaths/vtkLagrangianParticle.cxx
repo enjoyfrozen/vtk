@@ -61,7 +61,7 @@ vtkLagrangianParticle::vtkLagrangianParticle(int numberOfVariables, vtkIdType se
   this->LastSurfaceCellId = -1;
   this->LastSurfaceDataSet = nullptr;
 
-  // SeedData
+  // Initialize Seed Data
   this->SeedData->CopyAllocate(seedData, 1);
   if (seedArrayTupleIndex >= 0)
   {

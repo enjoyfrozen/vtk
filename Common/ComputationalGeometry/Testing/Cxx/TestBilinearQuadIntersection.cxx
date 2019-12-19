@@ -21,54 +21,6 @@
 int TestBilinearQuadIntersection(int, char*[])
 {
   // --------- Static methods ------------
-  // ---- GetBestDenominator ----
-  double denom =
-    vtkBilinearQuadIntersection::GetBestDenominator(1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9);
-  if (!vtkMathUtilities::FuzzyCompare(denom, -1.30882352941, 1e-6))
-  {
-    std::cerr << setprecision(12);
-    std::cerr << "vtkBilinearQuadIntersection::GetBestDenominator expecting -1.30882352941, got"
-              << denom << std::endl;
-    return EXIT_FAILURE;
-  }
-
-  // ---- QuadraticRoot ----
-  double root[2];
-  int numRoot;
-
-  // x2 = 0
-  numRoot = vtkBilinearQuadIntersection::QuadraticRoot(1, 0, 0, -10, 10, root);
-  if (numRoot != 1 || root[0] != 0)
-  {
-    std::cerr << "vtkBilinearQuadIntersection::QuadraticRoot got unexpected results" << std::endl;
-    std::cerr << "numRoot should be 1, it is " << numRoot << std::endl;
-    std::cerr << "root should be 0, it is " << root[0] << std::endl;
-    return EXIT_FAILURE;
-  }
-  // x2 - x - 2 = 0
-  numRoot = vtkBilinearQuadIntersection::QuadraticRoot(1, -1, -2, -10, 10, root);
-  if (numRoot != 2 || root[0] != -1 || root[1] != 2)
-  {
-    std::cerr << "vtkBilinearQuadIntersection::QuadraticRoot got unexpected results" << std::endl;
-    std::cerr << "numRoot should be 2, it is " << numRoot << std::endl;
-    std::cerr << "root should be -1, it is " << root[0] << std::endl;
-    std::cerr << "root should be 2, it is " << root[1] << std::endl;
-    return EXIT_FAILURE;
-  }
-
-  // ---- ComputeIntersectionFactor ----
-  vtkVector3d dir(1, 2, 1);
-  vtkVector3d orig(0, 0, 0);
-  vtkVector3d srfpos(0.5, 0.5, 0.5);
-  double factor = vtkBilinearQuadIntersection::ComputeIntersectionFactor(dir, orig, srfpos);
-  if (factor != 0.25)
-  {
-    std::cerr << "vtkBilinearQuadIntersection::ComputeIntersectionFactor expecting 0.5, got"
-              << factor << std::endl;
-    return EXIT_FAILURE;
-  }
-
-  // -------- Member methods --------
   vtkVector3d p00(0, 0, 0);
   vtkVector3d p01(0, 1, 0);
   vtkVector3d p10(1, 0, 0);

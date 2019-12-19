@@ -41,7 +41,45 @@ DEALINGS IN THE SOFTWARE.
 =========================================================================*/
 #include "vtkBilinearQuadIntersection.h"
 
+#include "vtkMath.h"
+
 #define RAY_EPSILON 1e-12 // some small epsilon for flt pt
+
+namespace
+{
+
+  double GetBestDenominator(
+    double v, double M1, double M2, double J1, double J2, double K1, double K2, double R1, double R2)
+  {
+    double denom = (v * (M1 - M2) + J1 - J2);
+    double d2 = (v * M1 + J1);
+    if (fabs(denom) > fabs(d2)) // which denominator is bigger
+    {
+      return (v * (K2 - K1) + R2 - R1) / denom;
+    }
+    return -(v * K1 + R1) / d2;
+  }
+
+  double ComputeIntersectionFactor(
+    const vtkVector3d& dir, const vtkVector3d& orig, const vtkVector3d& srfpos)
+  {
+    // if x is bigger than y and z
+    if (fabs(dir.GetX()) >= fabs(dir.GetY()) && fabs(dir.GetX()) >= fabs(dir.GetZ()))
+    {
+      return (srfpos.GetX() - orig.GetX()) / dir.GetX();
+    }
+    // if y is bigger than x and z
+    else if (fabs(dir.GetY()) >= fabs(dir.GetZ())) // && fabs(dir.GetY()) >= fabs(dir.GetX()))
+    {
+      return (srfpos.GetY() - orig.GetY()) / dir.GetY();
+    }
+    // otherwise x isn't bigger than both and y isn't bigger than both
+    else // if(fabs(dir.GetZ()) >= fabs(dir.GetX()) && fabs(dir.GetZ()) >= fabs(dir.GetY()))
+    {
+      return (srfpos.GetZ() - orig.GetZ()) / dir.GetZ();
+    }
+  }
+}
 
 //----------------------------------------------------------------------------
 vtkBilinearQuadIntersection::vtkBilinearQuadIntersection(const vtkVector3d& pt00,
@@ -98,40 +136,6 @@ vtkVector3d vtkBilinearQuadIntersection::ComputeCartesianCoordinates(double u, d
     nbOfSwap--;
   }
   return respt;
-}
-
-//----------------------------------------------------------------------------
-double vtkBilinearQuadIntersection::GetBestDenominator(
-  double v, double M1, double M2, double J1, double J2, double K1, double K2, double R1, double R2)
-{
-  double denom = (v * (M1 - M2) + J1 - J2);
-  double d2 = (v * M1 + J1);
-  if (fabs(denom) > fabs(d2)) // which denominator is bigger
-  {
-    return (v * (K2 - K1) + R2 - R1) / denom;
-  }
-  return -(v * K1 + R1) / d2;
-}
-
-//----------------------------------------------------------------------------
-double vtkBilinearQuadIntersection::ComputeIntersectionFactor(
-  const vtkVector3d& dir, const vtkVector3d& orig, const vtkVector3d& srfpos)
-{
-  // if x is bigger than y and z
-  if (fabs(dir.GetX()) >= fabs(dir.GetY()) && fabs(dir.GetX()) >= fabs(dir.GetZ()))
-  {
-    return (srfpos.GetX() - orig.GetX()) / dir.GetX();
-  }
-  // if y is bigger than x and z
-  else if (fabs(dir.GetY()) >= fabs(dir.GetZ())) // && fabs(dir.GetY()) >= fabs(dir.GetX()))
-  {
-    return (srfpos.GetY() - orig.GetY()) / dir.GetY();
-  }
-  // otherwise x isn't bigger than both and y isn't bigger than both
-  else // if(fabs(dir.GetZ()) >= fabs(dir.GetX()) && fabs(dir.GetZ()) >= fabs(dir.GetY()))
-  {
-    return (srfpos.GetZ() - orig.GetZ()) / dir.GetZ();
-  }
 }
 
 //----------------------------------------------------------------------------
@@ -251,7 +255,7 @@ bool vtkBilinearQuadIntersection::RayIntersection(
   uv.SetY(-2);
   uv.SetZ(-2);
   num_sol =
-    vtkBilinearQuadIntersection::QuadraticRoot(A, B, C, -RAY_EPSILON, 1 + RAY_EPSILON, vsol);
+    vtkMath::QuadraticRoot(A, B, C, -RAY_EPSILON, 1 + RAY_EPSILON, vsol);
   switch (num_sol)
   {
     case 0:
@@ -259,26 +263,26 @@ bool vtkBilinearQuadIntersection::RayIntersection(
     case 1:
       uv.SetY(vsol[0]);
       uv.SetX(
-        vtkBilinearQuadIntersection::GetBestDenominator(uv.GetY(), A2, A1, B2, B1, C2, C1, D2, D1));
+        ::GetBestDenominator(uv.GetY(), A2, A1, B2, B1, C2, C1, D2, D1));
       pos1 = this->ComputeCartesianCoordinates(uv.GetX(), uv.GetY());
-      uv.SetZ(vtkBilinearQuadIntersection::ComputeIntersectionFactor(q, r, pos1));
+      uv.SetZ(::ComputeIntersectionFactor(q, r, pos1));
 
       return (uv.GetX() < 1 + RAY_EPSILON && uv.GetX() > -RAY_EPSILON && uv.GetZ() > 0);
     case 2: // two solutions found
       uv.SetY(vsol[0]);
       uv.SetX(
-        vtkBilinearQuadIntersection::GetBestDenominator(uv.GetY(), A2, A1, B2, B1, C2, C1, D2, D1));
+        ::GetBestDenominator(uv.GetY(), A2, A1, B2, B1, C2, C1, D2, D1));
       pos1 = this->ComputeCartesianCoordinates(uv.GetX(), uv.GetY());
-      uv.SetZ(vtkBilinearQuadIntersection::ComputeIntersectionFactor(q, r, pos1));
+      uv.SetZ(::ComputeIntersectionFactor(q, r, pos1));
 
       if (uv.GetX() < 1 + RAY_EPSILON && uv.GetX() > -RAY_EPSILON && uv.GetZ() > 0)
       {
         u =
-          vtkBilinearQuadIntersection::GetBestDenominator(vsol[1], A2, A1, B2, B1, C2, C1, D2, D1);
+          ::GetBestDenominator(vsol[1], A2, A1, B2, B1, C2, C1, D2, D1);
         if (u < 1 + RAY_EPSILON && u > RAY_EPSILON)
         {
           pos2 = this->ComputeCartesianCoordinates(u, vsol[1]);
-          t2 = vtkBilinearQuadIntersection::ComputeIntersectionFactor(q, r, pos2);
+          t2 = ::ComputeIntersectionFactor(q, r, pos2);
           if (t2 < 0 || uv.GetZ() < t2) // t2 is bad or t1 is better
           {
             return true;
@@ -295,75 +299,12 @@ bool vtkBilinearQuadIntersection::RayIntersection(
       {
         uv.SetY(vsol[1]);
         uv.SetX(
-          vtkBilinearQuadIntersection::GetBestDenominator(vsol[1], A2, A1, B2, B1, C2, C1, D2, D1));
+          ::GetBestDenominator(vsol[1], A2, A1, B2, B1, C2, C1, D2, D1));
         pos1 = this->ComputeCartesianCoordinates(uv.GetX(), uv.GetY());
-        uv.SetZ(vtkBilinearQuadIntersection::ComputeIntersectionFactor(q, r, pos1));
+        uv.SetZ(::ComputeIntersectionFactor(q, r, pos1));
         return (uv.GetX() < 1 + RAY_EPSILON && uv.GetX() > -RAY_EPSILON && uv.GetZ() > 0);
       }
     default:
       return false;
   }
-}
-
-//----------------------------------------------------------------------------
-int vtkBilinearQuadIntersection::QuadraticRoot(
-  double a, double b, double c, double min, double max, double* u)
-{
-  if (a == 0.0) // then its close to 0
-  {
-    if (b != 0.0) // not close to 0
-    {
-      u[0] = -c / b;
-      if (u[0] > min && u[0] < max) // its in the interval
-      {
-        return 1; // 1 soln found
-      }
-      else // its not in the interval
-      {
-        return 0;
-      }
-    }
-    else
-    {
-      return 0;
-    }
-  }
-  double d = b * b - 4 * a * c; // discriminant
-  if (d <= 0.0)                 // single or no root
-  {
-    if (d == 0.0) // close to 0
-    {
-      u[0] = -b / a;
-      if (u[0] > min && u[0] < max) // its in the interval
-      {
-        return 1;
-      }
-      else // its not in the interval
-      {
-        return 0;
-      }
-    }
-    else // no root d must be below 0
-    {
-      return 0;
-    }
-  }
-  double q = -0.5 * (b + copysign(sqrt(d), b));
-  u[0] = c / q;
-  u[1] = q / a;
-
-  if ((u[0] > min && u[0] < max) && (u[1] > min && u[1] < max))
-  {
-    return 2;
-  }
-  else if (u[0] > min && u[0] < max) // then one wasn't in interval
-  {
-    return 1;
-  }
-  else if (u[1] > min && u[1] < max)
-  { // make it easier, make u[0] be the valid one always
-    std::swap(u[0], u[1]);
-    return 1;
-  }
-  return 0;
 }
