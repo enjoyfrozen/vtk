@@ -17,6 +17,7 @@
 #include "vtkActor.h"
 #include "vtkCamera.h"
 #include "vtkCellData.h"
+#include "vtkCompositePolyDataMapper.h"
 #include "vtkDataSetMapper.h"
 #include "vtkDataSetSurfaceFilter.h"
 #include "vtkDoubleArray.h"
@@ -311,8 +312,8 @@ int TestLagrangianParticleTracker(int, char*[])
   glyph->SetInputData(mbInter->GetBlock(1));
 
   // Setup actor and mapper
-  vtkNew<vtkPolyDataMapper> mapper;
-  mapper->SetInputData(vtkPolyData::SafeDownCast(tracker->GetOutput()));
+  vtkNew<vtkCompositePolyDataMapper> mapper;
+  mapper->SetInputDataObject(tracker->GetOutput());
 
   vtkNew<vtkActor> actor;
   actor->SetMapper(mapper);
