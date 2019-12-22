@@ -29,6 +29,7 @@
 #include "vtkStructuredPoints.h"
 #include "vtkUnstructuredGrid.h"
 #include "vtksys/Encoding.hxx"
+#include "vtksys/FStream.hxx"
 
 #include <cctype>
 #include <string>
@@ -77,7 +78,6 @@ vtkEnSight6BinaryReader::~vtkEnSight6BinaryReader()
 
   if (this->BinaryIFile)
   {
-    this->BinaryIFile->close();
     delete this->BinaryIFile;
     this->BinaryIFile = nullptr;
   }
@@ -92,13 +92,8 @@ int vtkEnSight6BinaryReader::OpenFile(const char* filename)
     return 0;
   }
 
-  // Close file from any previous image
-  if (this->BinaryIFile)
-  {
-    this->BinaryIFile->close();
-    delete this->BinaryIFile;
-    this->BinaryIFile = nullptr;
-  }
+  delete this->BinaryIFile;
+  this->BinaryIFile = nullptr;
 
   // Open the new file
   vtkDebugMacro(<< "Opening file " << filename);
@@ -108,12 +103,11 @@ int vtkEnSight6BinaryReader::OpenFile(const char* filename)
     // Find out how big the file is.
     this->FileSize = static_cast<vtkTypeUInt64>(fs.st_size);
 
+    std::ios_base::openmode mode = ios::in;
 #ifdef _WIN32
-    this->BinaryIFile =
-      new ifstream(vtksys::Encoding::ToWindowsExtendedPath(filename), ios::in | ios::binary);
-#else
-    this->BinaryIFile = new ifstream(filename, ios::in);
+    mode |= ios::binary;
 #endif
+    this->BinaryIFile = new vtksys::ifstream(filename, mode);
   }
   else
   {
@@ -296,13 +290,10 @@ int vtkEnSight6BinaryReader::ReadGeometryFile(
     this->UnstructuredNodeIds->Delete();
     this->UnstructuredNodeIds = nullptr;
   }
-  // Close file from any previous image
-  if (this->BinaryIFile)
-  {
-    this->BinaryIFile->close();
-    delete this->BinaryIFile;
-    this->BinaryIFile = nullptr;
-  }
+
+  delete this->BinaryIFile;
+  this->BinaryIFile = nullptr;
+
   if (lineRead < 0)
   {
     return 0;
@@ -863,12 +854,9 @@ int vtkEnSight6BinaryReader::ReadMeasuredGeometryFile(
   delete[] pointIds;
   delete[] coords;
 
-  if (this->BinaryIFile)
-  {
-    this->BinaryIFile->close();
-    delete this->BinaryIFile;
-    this->BinaryIFile = nullptr;
-  }
+  delete this->BinaryIFile;
+  this->BinaryIFile = nullptr;
+
   return 1;
 }
 
@@ -1116,12 +1104,9 @@ int vtkEnSight6BinaryReader::ReadScalarsPerNode(const char* fileName, const char
     }
   }
 
-  if (this->BinaryIFile)
-  {
-    this->BinaryIFile->close();
-    delete this->BinaryIFile;
-    this->BinaryIFile = nullptr;
-  }
+  delete this->BinaryIFile;
+  this->BinaryIFile = nullptr;
+
   return 1;
 }
 
@@ -1316,12 +1301,8 @@ int vtkEnSight6BinaryReader::ReadVectorsPerNode(const char* fileName, const char
     lineRead = this->ReadLine(line);
   }
 
-  if (this->BinaryIFile)
-  {
-    this->BinaryIFile->close();
-    delete this->BinaryIFile;
-    this->BinaryIFile = nullptr;
-  }
+  delete this->BinaryIFile;
+  this->BinaryIFile = nullptr;
 
   return 1;
 }
@@ -1482,12 +1463,9 @@ int vtkEnSight6BinaryReader::ReadTensorsPerNode(const char* fileName, const char
     lineRead = this->ReadLine(line);
   }
 
-  if (this->BinaryIFile)
-  {
-    this->BinaryIFile->close();
-    delete this->BinaryIFile;
-    this->BinaryIFile = nullptr;
-  }
+  delete this->BinaryIFile;
+  this->BinaryIFile = nullptr;
+
   return 1;
 }
 
@@ -1563,7 +1541,6 @@ int vtkEnSight6BinaryReader::ReadScalarsPerElement(const char* fileName, const c
             if (elementType < 0)
             {
               vtkErrorMacro("invalid element type");
-              this->BinaryIFile->close();
               delete this->BinaryIFile;
               this->BinaryIFile = nullptr;
               return 0;
@@ -1629,7 +1606,6 @@ int vtkEnSight6BinaryReader::ReadScalarsPerElement(const char* fileName, const c
         if (elementType < 0)
         {
           vtkErrorMacro("invalid element type");
-          this->BinaryIFile->close();
           delete this->BinaryIFile;
           this->BinaryIFile = nullptr;
           return 0;
@@ -1678,12 +1654,9 @@ int vtkEnSight6BinaryReader::ReadScalarsPerElement(const char* fileName, const c
     }
   }
 
-  if (this->BinaryIFile)
-  {
-    this->BinaryIFile->close();
-    delete this->BinaryIFile;
-    this->BinaryIFile = nullptr;
-  }
+  delete this->BinaryIFile;
+  this->BinaryIFile = nullptr;
+
   return 1;
 }
 
@@ -1859,12 +1832,9 @@ int vtkEnSight6BinaryReader::ReadVectorsPerElement(const char* fileName, const c
     vectors->Delete();
   }
 
-  if (this->BinaryIFile)
-  {
-    this->BinaryIFile->close();
-    delete this->BinaryIFile;
-    this->BinaryIFile = nullptr;
-  }
+  delete this->BinaryIFile;
+  this->BinaryIFile = nullptr;
+
   return 1;
 }
 
@@ -1941,7 +1911,6 @@ int vtkEnSight6BinaryReader::ReadTensorsPerElement(const char* fileName, const c
             if (elementType < 0)
             {
               vtkErrorMacro("invalid element type");
-              this->BinaryIFile->close();
               delete this->BinaryIFile;
               this->BinaryIFile = nullptr;
               return 0;
@@ -1998,7 +1967,6 @@ int vtkEnSight6BinaryReader::ReadTensorsPerElement(const char* fileName, const c
         if (elementType < 0)
         {
           vtkErrorMacro("invalid element type");
-          this->BinaryIFile->close();
           delete this->BinaryIFile;
           this->BinaryIFile = nullptr;
           return 0;
@@ -2046,12 +2014,9 @@ int vtkEnSight6BinaryReader::ReadTensorsPerElement(const char* fileName, const c
     tensors->Delete();
   }
 
-  if (this->BinaryIFile)
-  {
-    this->BinaryIFile->close();
-    delete this->BinaryIFile;
-    this->BinaryIFile = nullptr;
-  }
+  delete this->BinaryIFile;
+  this->BinaryIFile = nullptr;
+
   return 1;
 }
 
