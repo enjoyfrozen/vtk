@@ -726,8 +726,10 @@ public:
   virtual void MouseMoveEvent();
   virtual void RightButtonPressEvent();
   virtual void RightButtonReleaseEvent();
+  virtual void RightButtonDoubleClickedEvent();
   virtual void LeftButtonPressEvent();
   virtual void LeftButtonReleaseEvent();
+  virtual void LeftButtonDoubleClickedEvent();
   virtual void MiddleButtonPressEvent();
   virtual void MiddleButtonReleaseEvent();
   virtual void MouseWheelForwardEvent();

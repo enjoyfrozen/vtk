@@ -187,6 +187,9 @@ void vtkInteractorStyle::SetInteractor(vtkRenderWindowInteractor* i)
 
     i->AddObserver(vtkCommand::LeftButtonReleaseEvent, this->EventCallbackCommand, this->Priority);
 
+    i->AddObserver(
+      vtkCommand::LeftButtonDoubleClickEvent, this->EventCallbackCommand, this->Priority);
+
     i->AddObserver(vtkCommand::MiddleButtonPressEvent, this->EventCallbackCommand, this->Priority);
 
     i->AddObserver(
@@ -195,6 +198,9 @@ void vtkInteractorStyle::SetInteractor(vtkRenderWindowInteractor* i)
     i->AddObserver(vtkCommand::RightButtonPressEvent, this->EventCallbackCommand, this->Priority);
 
     i->AddObserver(vtkCommand::RightButtonReleaseEvent, this->EventCallbackCommand, this->Priority);
+
+    i->AddObserver(
+      vtkCommand::RightButtonDoubleClickEvent, this->EventCallbackCommand, this->Priority);
 
     i->AddObserver(vtkCommand::MouseWheelForwardEvent, this->EventCallbackCommand, this->Priority);
 
@@ -1058,6 +1064,17 @@ void vtkInteractorStyle::ProcessEvents(
       }
       break;
 
+    case vtkCommand::LeftButtonDoubleClickEvent:
+      if (self->HandleObservers && self->HasObserver(vtkCommand::LeftButtonDoubleClickEvent))
+      {
+        self->InvokeEvent(vtkCommand::LeftButtonDoubleClickEvent, nullptr);
+      }
+      else
+      {
+        self->OnLeftButtonDoubleClicked();
+      }
+      break;
+
     case vtkCommand::MiddleButtonPressEvent:
       if (self->HandleObservers && self->HasObserver(vtkCommand::MiddleButtonPressEvent))
       {
@@ -1099,6 +1116,17 @@ void vtkInteractorStyle::ProcessEvents(
       else
       {
         self->OnRightButtonUp();
+      }
+      break;
+
+    case vtkCommand::RightButtonDoubleClickEvent:
+      if (self->HandleObservers && self->HasObserver(vtkCommand::RightButtonDoubleClickEvent))
+      {
+        self->InvokeEvent(vtkCommand::RightButtonDoubleClickEvent, nullptr);
+      }
+      else
+      {
+        self->OnRightButtonDoubleClicked();
       }
       break;
 

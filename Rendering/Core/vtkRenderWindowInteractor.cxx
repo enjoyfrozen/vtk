@@ -1064,6 +1064,16 @@ void vtkRenderWindowInteractor::RightButtonReleaseEvent()
 }
 
 //------------------------------------------------------------------
+void vtkRenderWindowInteractor::RightButtonDoubleClickedEvent()
+{
+  if (!this->Enabled)
+  {
+    return;
+  }
+  this->InvokeEvent(vtkCommand::RightButtonDoubleClickEvent, nullptr);
+}
+
+//------------------------------------------------------------------
 void vtkRenderWindowInteractor::LeftButtonPressEvent()
 {
   if (!this->Enabled)
@@ -1120,6 +1130,16 @@ void vtkRenderWindowInteractor::LeftButtonReleaseEvent()
     }
   }
   this->InvokeEvent(vtkCommand::LeftButtonReleaseEvent, nullptr);
+}
+
+//------------------------------------------------------------------
+void vtkRenderWindowInteractor::LeftButtonDoubleClickedEvent()
+{
+  if (!this->Enabled)
+  {
+    return;
+  }
+  this->InvokeEvent(vtkCommand::LeftButtonDoubleClickEvent, nullptr);
 }
 
 //------------------------------------------------------------------

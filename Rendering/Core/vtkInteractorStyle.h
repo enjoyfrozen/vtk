@@ -225,10 +225,12 @@ public:
   virtual void OnMouseMove() {}
   virtual void OnLeftButtonDown() {}
   virtual void OnLeftButtonUp() {}
+  virtual void OnLeftButtonDoubleClicked() {}
   virtual void OnMiddleButtonDown() {}
   virtual void OnMiddleButtonUp() {}
   virtual void OnRightButtonDown() {}
   virtual void OnRightButtonUp() {}
+  virtual void OnRightButtonDoubleClicked() {}
   virtual void OnMouseWheelForward() {}
   virtual void OnMouseWheelBackward() {}
   virtual void OnFourthButtonDown() {}
