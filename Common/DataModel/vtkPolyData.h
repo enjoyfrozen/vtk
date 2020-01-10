@@ -133,7 +133,9 @@ public:
   void GetPointCells(vtkIdType ptId, vtkIdList* cellIds) override;
 
   /**
-   * Compute the (X, Y, Z)  bounds of the data.
+   * Compute the (X, Y, Z)  bounds of the data. Note that the method only considers
+   * points that are used by cells (unless there are no cells, in which case all
+   * points are considered). This is done for usability and historical reasons.
    */
   void ComputeBounds() override;
 
@@ -580,23 +582,6 @@ public:
    */
   static vtkPolyData* GetData(vtkInformation* info);
   static vtkPolyData* GetData(vtkInformationVector* v, int i = 0);
-  //@}
-
-  //@{
-  /**
-   * Get direct access to the cell offsets and types. These methods are only
-   * valid after BuildCells() has been called. Also note these offsets and
-   * types implicitly depend on the organization of vtkPolyData into four
-   * separate data arrays in order of (points, lines, polys, strips); i.e.,
-   * the types and locations refer to all of the cells across these four
-   * arrays.
-   */
-  /* vtkUnsignedCharArray* GetCellTypesArray() */
-  /*   { return (this->Cells == nullptr ? nullptr : */
-  /*             this->Cells->GetCellTypesArray() ); } */
-  /* vtkIdTypeArray* GetCellLocationsArray() */
-  /*   { return (this->Cells == nullptr ? nullptr : */
-  /*             this->Cells->GetCellLocationsArray() ); } */
   //@}
 
   /**

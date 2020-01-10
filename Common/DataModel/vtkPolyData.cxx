@@ -16,6 +16,7 @@
 
 #include "vtkBoundingBox.h"
 #include "vtkCellArray.h"
+#include "vtkCellArrayIterator.h"
 #include "vtkCellData.h"
 #include "vtkEmptyCell.h"
 #include "vtkGenericCell.h"
@@ -35,7 +36,6 @@
 #include "vtkTriangleStrip.h"
 #include "vtkUnsignedCharArray.h"
 #include "vtkVertex.h"
-
 #include "vtkSmartPointer.h"
 
 #include <stdexcept>
@@ -529,12 +529,10 @@ void vtkPolyData::ComputeBounds()
       return;
     }
 
-    // With cells available, loop over the four cell arrays that compose
-    // vtkPolyData. Mark points that are used by one or more cells. Unmarked
+    // With cells available, loop over the cells of the polydata.
+    // Mark points that are used by one or more cells. Unmarked
     // points do not contribute.
     int ca, i;
-    const vtkIdType* pts = nullptr;
-    vtkIdType npts = 0;
     vtkIdType numCells, numPts = this->GetNumberOfPoints();
     unsigned char* ptUses = new unsigned char[numPts];
     std::fill_n(ptUses, numPts, 0); // initially unvisited
@@ -545,24 +543,41 @@ void vtkPolyData::ComputeBounds()
     cellA[2] = this->GetPolys();
     cellA[3] = this->GetStrips();
 
-    // Process each cell array separately
-    for (ca = 0; ca < 4; ca++)
+    // Process each cell array separately. Note that threading is only used
+    // if the model is big enough (since there is a cost to spinning up the
+    // thread pool).
+    for (ca=0; ca < 4; ca++)
     {
-      if ((numCells = cellA[ca]->GetNumberOfCells()) > 0)
+      if ( (numCells=cellA[ca]->GetNumberOfCells()) > 250000 )
       {
         // Lambda to parallel compute bounds
         vtkSMPTools::For(0, numCells, [&](vtkIdType cellId, vtkIdType endCellId) {
-          vtkIdType ptIdx, npts;
-          const vtkIdType* pts;
           for (; cellId < endCellId; ++cellId)
           {
+            // Don't move these variable outside the lamda, results in a huge performance hit
+            vtkIdType npts, ptIdx;
+            const vtkIdType* pts;
             cellA[ca]->GetCellAtId(cellId, npts, pts);
-            for (ptIdx = 0; ptIdx < npts; ++ptIdx)
+            for (ptIdx=0; ptIdx < npts; ++ptIdx)
             {
               ptUses[pts[ptIdx]] = 1;
             }
           }
         }); // end lambda
+      }
+      else if ( numCells > 0 ) // serial
+      {
+        auto iter = vtk::TakeSmartPointer(cellA[ca]->NewIterator());
+        for (iter->GoToFirstCell(); !iter->IsDoneWithTraversal(); iter->GoToNextCell())
+        {
+          vtkIdType npts, ptIdx;
+          const vtkIdType* pts;
+          iter->GetCurrentCell(npts, pts);
+          for (ptIdx=0; ptIdx < npts; ++ptIdx)
+          {
+            ptUses[pts[ptIdx]] = 1;
+          }
+        }
       }
     } // for all cell arrays
 
