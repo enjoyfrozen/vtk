@@ -465,55 +465,17 @@ void vtkPolyData::GetCellBounds(vtkIdType cellId, double bounds[6])
 }
 
 //----------------------------------------------------------------------------
-// Support compute bounds
-namespace
-{
-
-struct ComputePointUses
-{
-  vtkIdType* Cells;
-  vtkIdType* Locations;
-  unsigned char* PointUses;
-
-  ComputePointUses(vtkCellArray* ca, vtkCellTypes* types, vtkIdType offset, unsigned char* ptUses)
-    : PointUses(ptUses)
-  {
-    // this->Cells = static_cast<vtkIdType*>(ca->GetPointer());
-    // this->Locations =
-    //   static_cast<vtkIdType*>(types->GetCellLocationsArray()->GetVoidPointer(0)) + offset;
-  }
-
-  void operator()(vtkIdType cellId, vtkIdType endCellId)
-  {
-    const vtkIdType* cell = this->Cells + this->Locations[cellId];
-    vtkIdType npts;
-    unsigned char* ptUses = this->PointUses;
-
-    for (; cellId < endCellId; ++cellId)
-    {
-      npts = *cell++;
-      for (auto i = 0; i < npts; ++i)
-      {
-        ptUses[*cell++] = 1;
-      }
-    } // for all cells in this batch of cells
-  }
-};
-
-} // anonymous namespace
-
-//----------------------------------------------------------------------------
-// This method only considers points that are used by a cell. Thus unused
-// points make no contribution to the bounding box computation. This is
-// more costly to compute than using just the points, but for rendering and
-// historical reasons, produces preferred results.
+// This method only considers points that are used by one or more cells. Thus
+// unused points make no contribution to the bounding box computation. This
+// is more costly to compute than using just the points, but for rendering
+// and historical reasons, produces preferred results.
 void vtkPolyData::ComputeBounds()
 {
   if (this->GetMeshMTime() > this->ComputeTime)
   {
     vtkBoundingBox bbox;
 
-    // Make sure this vtkPolyData has points
+    // Make sure this vtkPolyData has points.
     if (this->Points == nullptr)
     {
       bbox.GetBounds(this->Bounds); // will set bounds to invalid state
@@ -532,7 +494,7 @@ void vtkPolyData::ComputeBounds()
     // With cells available, loop over the cells of the polydata.
     // Mark points that are used by one or more cells. Unmarked
     // points do not contribute.
-    int ca, i;
+    int ca;
     vtkIdType numCells, numPts = this->GetNumberOfPoints();
     unsigned char* ptUses = new unsigned char[numPts];
     std::fill_n(ptUses, numPts, 0); // initially unvisited
@@ -581,7 +543,7 @@ void vtkPolyData::ComputeBounds()
       }
     } // for all cell arrays
 
-    // Do the bounding box computation
+    // Perform the bounding box computation
     bbox.ComputeBounds(this->Points, ptUses, this->Bounds);
     delete[] ptUses;
 

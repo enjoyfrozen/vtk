@@ -24,8 +24,11 @@ plane.SetResolution(res,res)
 
 edges = vtk.vtkFeatureEdges()
 edges.SetInputConnection(plane.GetOutputPort())
-edges.ExtractAllEdgeTypesOff()
+#edges.ExtractAllEdgeTypesOff()
 edges.BoundaryEdgesOn()
+edges.ManifoldEdgesOff()
+edges.NonManifoldEdgesOff()
+edges.FeatureEdgesOff()
 
 t1 = vtk.vtkTransform()
 t1.Translate(-1.0,0,0)
@@ -57,7 +60,7 @@ print("\tNum Cells: {0}".format(output.GetNumberOfCells()))
 # points; hence only connected points (i.e., points used by cells) are
 # considered.
 
-# Compute bounds on polydaya
+# Compute bounds on polydata
 points.Modified()
 timer.StartTimer()
 output.GetBounds(box)
@@ -94,7 +97,7 @@ assert box[4] ==  0.0
 assert box[5] ==  0.0
 
 # Uses vtkBoundingBox with vtkSMPTools. This method takes into account
-# a pointUses array to only consider selected points.
+# an (optional) pointUses array to only consider selected points.
 bbox = vtk.vtkBoundingBox()
 timer.StartTimer()
 bbox.ComputeBounds(points,box)

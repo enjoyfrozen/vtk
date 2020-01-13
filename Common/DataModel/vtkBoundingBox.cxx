@@ -742,7 +742,8 @@ void vtkBoundingBox::ComputeBounds(vtkPoints* pts, double bounds[6])
 // ---------------------------------------------------------------------------
 // Fast computing of bounding box from vtkPoints and optional array that marks
 // points that should be used in the computation.
-void vtkBoundingBox::ComputeBounds(vtkPoints* pts, const unsigned char* ptUses, double bounds[6])
+void vtkBoundingBox::
+ComputeBounds(vtkPoints* pts, const unsigned char* ptUses, double bounds[6])
 {
   // Check for valid
   vtkIdType numPts;

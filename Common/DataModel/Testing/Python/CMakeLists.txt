@@ -6,6 +6,7 @@ vtk_add_test_python(
   TestBoxPlaneIntersection.py
   TestCopyStructuredData.py,NO_DATA,NO_VALID
   TestGetBounds.py,NO_DATA,NO_VALID
+  TestGetBounds2.py,NO_DATA,NO_VALID
   TestNumericArrayImageData.py,NO_DATA,NO_VALID
   TestPartitionedData.py,NO_DATA,NO_VALID
   TestQuadricClustering.py
