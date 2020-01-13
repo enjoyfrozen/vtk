@@ -14,7 +14,9 @@
 =========================================================================*/
 #include "vtkPolyData.h"
 
+#include "vtkBoundingBox.h"
 #include "vtkCellArray.h"
+#include "vtkCellArrayIterator.h"
 #include "vtkCellData.h"
 #include "vtkEmptyCell.h"
 #include "vtkGenericCell.h"
@@ -29,11 +31,11 @@
 #include "vtkPolyVertex.h"
 #include "vtkPolygon.h"
 #include "vtkQuad.h"
+#include "vtkSMPTools.h"
 #include "vtkTriangle.h"
 #include "vtkTriangleStrip.h"
 #include "vtkUnsignedCharArray.h"
 #include "vtkVertex.h"
-
 #include "vtkSmartPointer.h"
 
 #include <stdexcept>
@@ -463,57 +465,88 @@ void vtkPolyData::GetCellBounds(vtkIdType cellId, double bounds[6])
 }
 
 //----------------------------------------------------------------------------
+// This method only considers points that are used by one or more cells. Thus
+// unused points make no contribution to the bounding box computation. This
+// is more costly to compute than using just the points, but for rendering
+// and historical reasons, produces preferred results.
 void vtkPolyData::ComputeBounds()
 {
   if (this->GetMeshMTime() > this->ComputeTime)
   {
-    // If there are no cells, but there are points, back to the
-    // bounds of the points set.
-    if (this->GetNumberOfCells() == 0 && this->GetNumberOfPoints())
+    vtkBoundingBox bbox;
+
+    // Make sure this vtkPolyData has points.
+    if (this->Points == nullptr)
+    {
+      bbox.GetBounds(this->Bounds); // will set bounds to invalid state
+      return;
+    }
+
+    // If there are no cells, but there are points, compute the bounds from the
+    // parent class vtkPointSet (which just examines points).
+    vtkIdType totCells = this->GetNumberOfCells();
+    if (totCells <= 0)
     {
       vtkPointSet::ComputeBounds();
       return;
     }
 
-    int t, i;
-    const vtkIdType* pts = nullptr;
-    vtkIdType npts = 0;
-    double x[3];
+    // With cells available, loop over the cells of the polydata.
+    // Mark points that are used by one or more cells. Unmarked
+    // points do not contribute.
+    int ca;
+    vtkIdType numCells, numPts = this->GetNumberOfPoints();
+    unsigned char* ptUses = new unsigned char[numPts];
+    std::fill_n(ptUses, numPts, 0); // initially unvisited
 
-    vtkCellArray* cella[4];
+    vtkCellArray* cellA[4];
+    cellA[0] = this->GetVerts();
+    cellA[1] = this->GetLines();
+    cellA[2] = this->GetPolys();
+    cellA[3] = this->GetStrips();
 
-    cella[0] = this->GetVerts();
-    cella[1] = this->GetLines();
-    cella[2] = this->GetPolys();
-    cella[3] = this->GetStrips();
-
-    // carefully compute the bounds
-    int doneOne = 0;
-    this->Bounds[0] = this->Bounds[2] = this->Bounds[4] = VTK_DOUBLE_MAX;
-    this->Bounds[1] = this->Bounds[3] = this->Bounds[5] = -VTK_DOUBLE_MAX;
-
-    // Iterate over cells's points
-    for (t = 0; t < 4; t++)
+    // Process each cell array separately. Note that threading is only used
+    // if the model is big enough (since there is a cost to spinning up the
+    // thread pool).
+    for (ca=0; ca < 4; ca++)
     {
-      for (cella[t]->InitTraversal(); cella[t]->GetNextCell(npts, pts);)
+      if ( (numCells=cellA[ca]->GetNumberOfCells()) > 250000 )
       {
-        for (i = 0; i < npts; i++)
+        // Lambda to parallel compute bounds
+        vtkSMPTools::For(0, numCells, [&](vtkIdType cellId, vtkIdType endCellId) {
+          for (; cellId < endCellId; ++cellId)
+          {
+            // Don't move these variable outside the lamda, results in a huge performance hit
+            vtkIdType npts, ptIdx;
+            const vtkIdType* pts;
+            cellA[ca]->GetCellAtId(cellId, npts, pts);
+            for (ptIdx=0; ptIdx < npts; ++ptIdx)
+            {
+              ptUses[pts[ptIdx]] = 1;
+            }
+          }
+        }); // end lambda
+      }
+      else if ( numCells > 0 ) // serial
+      {
+        auto iter = vtk::TakeSmartPointer(cellA[ca]->NewIterator());
+        for (iter->GoToFirstCell(); !iter->IsDoneWithTraversal(); iter->GoToNextCell())
         {
-          this->Points->GetPoint(pts[i], x);
-          this->Bounds[0] = (x[0] < this->Bounds[0] ? x[0] : this->Bounds[0]);
-          this->Bounds[1] = (x[0] > this->Bounds[1] ? x[0] : this->Bounds[1]);
-          this->Bounds[2] = (x[1] < this->Bounds[2] ? x[1] : this->Bounds[2]);
-          this->Bounds[3] = (x[1] > this->Bounds[3] ? x[1] : this->Bounds[3]);
-          this->Bounds[4] = (x[2] < this->Bounds[4] ? x[2] : this->Bounds[4]);
-          this->Bounds[5] = (x[2] > this->Bounds[5] ? x[2] : this->Bounds[5]);
-          doneOne = 1;
+          vtkIdType npts, ptIdx;
+          const vtkIdType* pts;
+          iter->GetCurrentCell(npts, pts);
+          for (ptIdx=0; ptIdx < npts; ++ptIdx)
+          {
+            ptUses[pts[ptIdx]] = 1;
+          }
         }
       }
-    }
-    if (!doneOne)
-    {
-      vtkMath::UninitializeBounds(this->Bounds);
-    }
+    } // for all cell arrays
+
+    // Perform the bounding box computation
+    bbox.ComputeBounds(this->Points, ptUses, this->Bounds);
+    delete[] ptUses;
+
     this->ComputeTime.Modified();
   }
 }
