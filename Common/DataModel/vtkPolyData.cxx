@@ -476,16 +476,17 @@ void vtkPolyData::ComputeBounds()
     vtkBoundingBox bbox;
 
     // Make sure this vtkPolyData has points.
-    if (this->Points == nullptr)
+    vtkIdType numPts = this->GetNumberOfPoints();
+    if (this->Points == nullptr || numPts <= 0)
     {
-      bbox.GetBounds(this->Bounds); // will set bounds to invalid state
+      vtkMath::UninitializeBounds(this->Bounds);
       return;
     }
 
     // If there are no cells, but there are points, compute the bounds from the
     // parent class vtkPointSet (which just examines points).
-    vtkIdType totCells = this->GetNumberOfCells();
-    if (totCells <= 0)
+    vtkIdType numCells = this->GetNumberOfCells();
+    if ( numCells <= 0 )
     {
       vtkPointSet::ComputeBounds();
       return;
@@ -495,7 +496,6 @@ void vtkPolyData::ComputeBounds()
     // Mark points that are used by one or more cells. Unmarked
     // points do not contribute.
     int ca;
-    vtkIdType numCells, numPts = this->GetNumberOfPoints();
     unsigned char* ptUses = new unsigned char[numPts];
     std::fill_n(ptUses, numPts, 0); // initially unvisited
 
