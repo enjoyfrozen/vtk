@@ -473,22 +473,23 @@ void vtkPolyData::ComputeBounds()
 {
   if (this->GetMeshMTime() > this->ComputeTime)
   {
-    vtkBoundingBox bbox;
-
-    // Make sure this vtkPolyData has points.
+    // If there are no cells, but there are points, compute the bounds from the
+    // parent class vtkPointSet (which just examines points).
     vtkIdType numPts = this->GetNumberOfPoints();
-    if (this->Points == nullptr || numPts <= 0)
+    vtkIdType numCells = this->GetNumberOfCells();
+    if ( numCells <= 0 && numPts > 0 )
     {
-      vtkMath::UninitializeBounds(this->Bounds);
+      vtkPointSet::ComputeBounds();
       return;
     }
 
-    // If there are no cells, but there are points, compute the bounds from the
-    // parent class vtkPointSet (which just examines points).
-    vtkIdType numCells = this->GetNumberOfCells();
-    if ( numCells <= 0 )
+    // We are going to compute the bounds
+    this->ComputeTime.Modified();
+
+    // Make sure this vtkPolyData has points.
+    if (this->Points == nullptr || numPts <= 0)
     {
-      vtkPointSet::ComputeBounds();
+      vtkMath::UninitializeBounds(this->Bounds);
       return;
     }
 
@@ -544,10 +545,8 @@ void vtkPolyData::ComputeBounds()
     } // for all cell arrays
 
     // Perform the bounding box computation
-    bbox.ComputeBounds(this->Points, ptUses, this->Bounds);
+    vtkBoundingBox::ComputeBounds(this->Points, ptUses, this->Bounds);
     delete[] ptUses;
-
-    this->ComputeTime.Modified();
   }
 }
 

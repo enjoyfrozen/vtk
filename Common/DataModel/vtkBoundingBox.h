@@ -77,8 +77,8 @@ public:
    * path when possible. The second signature (with point uses) only considers
    * points with ptUses[i] != 0 in the bounds calculation.
    */
-  void ComputeBounds(vtkPoints* pts, double bounds[6]);
-  void ComputeBounds(vtkPoints* pts, const unsigned char* ptUses, double bounds[6]);
+  static void ComputeBounds(vtkPoints* pts, double bounds[6]);
+  static void ComputeBounds(vtkPoints* pts, const unsigned char* ptUses, double bounds[6]);
   //@}
 
   //@{

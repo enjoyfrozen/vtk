@@ -736,7 +736,7 @@ struct BoundsWorker
 // Fast computing of bounding box from vtkPoints.
 void vtkBoundingBox::ComputeBounds(vtkPoints* pts, double bounds[6])
 {
-  return this->ComputeBounds(pts, nullptr, bounds);
+  return vtkBoundingBox::ComputeBounds(pts, nullptr, bounds);
 }
 
 // ---------------------------------------------------------------------------
