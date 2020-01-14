@@ -510,7 +510,7 @@ void vtkPolyData::ComputeBounds()
     // thread pool).
     for (auto ca=0; ca < 4; ca++)
     {
-      if ( 1 )
+      if ( (numCells=cellA[ca]->GetNumberOfCells()) > 0 )
         //      if ( (numCells=cellA[ca]->GetNumberOfCells()) > 250000 )
       {
         // Lambda to parallel compute bounds
