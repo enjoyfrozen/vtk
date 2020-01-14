@@ -496,7 +496,6 @@ void vtkPolyData::ComputeBounds()
     // With cells available, loop over the cells of the polydata.
     // Mark points that are used by one or more cells. Unmarked
     // points do not contribute.
-    int ca;
     unsigned char* ptUses = new unsigned char[numPts];
     std::fill_n(ptUses, numPts, 0); // initially unvisited
 
@@ -509,9 +508,10 @@ void vtkPolyData::ComputeBounds()
     // Process each cell array separately. Note that threading is only used
     // if the model is big enough (since there is a cost to spinning up the
     // thread pool).
-    for (ca=0; ca < 4; ca++)
+    for (auto ca=0; ca < 4; ca++)
     {
-      if ( (numCells=cellA[ca]->GetNumberOfCells()) > 250000 )
+      if ( 1 )
+        //      if ( (numCells=cellA[ca]->GetNumberOfCells()) > 250000 )
       {
         // Lambda to parallel compute bounds
         vtkSMPTools::For(0, numCells, [&](vtkIdType cellId, vtkIdType endCellId) {
@@ -528,7 +528,8 @@ void vtkPolyData::ComputeBounds()
           }
         }); // end lambda
       }
-      else if ( numCells > 0 ) // serial
+      else
+      //      else if ( numCells > 0 ) // serial
       {
         auto iter = vtk::TakeSmartPointer(cellA[ca]->NewIterator());
         for (iter->GoToFirstCell(); !iter->IsDoneWithTraversal(); iter->GoToNextCell())

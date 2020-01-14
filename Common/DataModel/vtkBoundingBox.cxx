@@ -628,7 +628,7 @@ bool vtkBoundingBox::IntersectPlane(double origin[3], double normal[3])
 }
 
 // ---------------------------------------------------------------------------
-// Support specialized ComputeBounds()
+// Support ComputeBounds()
 namespace
 {
 
@@ -700,7 +700,8 @@ struct FastBounds
     double ymax = VTK_DOUBLE_MIN;
     double zmax = VTK_DOUBLE_MIN;
 
-    for (auto iter = this->LocalBounds.begin(); iter != this->LocalBounds.end(); ++iter)
+    for (auto iter = this->LocalBounds.begin();
+         iter != this->LocalBounds.end(); ++iter)
     {
       xmin = std::min((*iter)[0], xmin);
       xmax = std::max((*iter)[1], xmax);
