@@ -138,6 +138,7 @@ public:
    * points are considered). This is done for usability and historical reasons.
    */
   void ComputeBounds() override;
+  void DebugComputeBounds(double bounds[6]);
 
   /**
    * Recover extra allocated memory when creating data whose initial size

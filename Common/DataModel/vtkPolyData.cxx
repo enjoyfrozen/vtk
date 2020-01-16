@@ -465,6 +465,59 @@ void vtkPolyData::GetCellBounds(vtkIdType cellId, double bounds[6])
 }
 
 //----------------------------------------------------------------------------
+void vtkPolyData::DebugComputeBounds(double bounds[6])
+{
+  // If there are no cells, but there are points, back to the
+  // bounds of the points set.
+  if (this->GetNumberOfCells() == 0 && this->GetNumberOfPoints())
+  {
+    vtkPointSet::ComputeBounds();
+    cout << "PointSet::ComputeBounds()\n";
+    return;
+  }
+
+  int t, i;
+  const vtkIdType *pts = nullptr;
+  vtkIdType npts = 0;
+  double x[3];
+
+  vtkCellArray *cella[4];
+
+  cella[0] = this->GetVerts();
+  cella[1] = this->GetLines();
+  cella[2] = this->GetPolys();
+  cella[3] = this->GetStrips();
+
+  // carefully compute the bounds
+  int doneOne = 0;
+  bounds[0] = bounds[2] = bounds[4] =  VTK_DOUBLE_MAX;
+  bounds[1] = bounds[3] = bounds[5] = -VTK_DOUBLE_MAX;
+
+  // Iterate over cells's points
+  for (t = 0; t < 4; t++)
+  {
+    for (cella[t]->InitTraversal(); cella[t]->GetNextCell(npts,pts); )
+    {
+      for (i = 0;  i < npts; i++)
+      {
+        this->Points->GetPoint( pts[i], x );
+        bounds[0] = (x[0] < bounds[0] ? x[0] : bounds[0]);
+        bounds[1] = (x[0] > bounds[1] ? x[0] : bounds[1]);
+        bounds[2] = (x[1] < bounds[2] ? x[1] : bounds[2]);
+        bounds[3] = (x[1] > bounds[3] ? x[1] : bounds[3]);
+        bounds[4] = (x[2] < bounds[4] ? x[2] : bounds[4]);
+        bounds[5] = (x[2] > bounds[5] ? x[2] : bounds[5]);
+        doneOne = 1;
+      }
+    }
+  }
+
+  if (!doneOne)
+  {
+    vtkMath::UninitializeBounds(bounds);
+  }
+}
+//----------------------------------------------------------------------------
 // This method only considers points that are used by one or more cells. Thus
 // unused points make no contribution to the bounding box computation. This
 // is more costly to compute than using just the points, but for rendering
@@ -510,8 +563,7 @@ void vtkPolyData::ComputeBounds()
     // thread pool).
     for (auto ca=0; ca < 4; ca++)
     {
-      if ( (numCells=cellA[ca]->GetNumberOfCells()) > 0 )
-        //      if ( (numCells=cellA[ca]->GetNumberOfCells()) > 250000 )
+      if ( (numCells=cellA[ca]->GetNumberOfCells()) > 250000 )
       {
         // Lambda to parallel compute bounds
         vtkSMPTools::For(0, numCells, [&](vtkIdType cellId, vtkIdType endCellId) {
@@ -528,15 +580,13 @@ void vtkPolyData::ComputeBounds()
           }
         }); // end lambda
       }
-      else
-      //      else if ( numCells > 0 ) // serial
+      else if ( numCells > 0 ) // serial
       {
-        auto iter = vtk::TakeSmartPointer(cellA[ca]->NewIterator());
-        for (iter->GoToFirstCell(); !iter->IsDoneWithTraversal(); iter->GoToNextCell())
+        for (auto cellId=0; cellId < numCells; ++cellId)
         {
           vtkIdType npts, ptIdx;
           const vtkIdType* pts;
-          iter->GetCurrentCell(npts, pts);
+          cellA[ca]->GetCellAtId(cellId, npts, pts);
           for (ptIdx=0; ptIdx < npts; ++ptIdx)
           {
             ptUses[pts[ptIdx]] = 1;
