@@ -57,6 +57,8 @@
  *   // do work with iter
  * }
  * ```
+ * (Note that a cell array iterator may be significantly slower than direct
+ * traversal over the cell array. Factors of 5-63X are not uncommon.)
  *
  * The internal arrays may store either 32- or 64-bit values, though most of the API
  * will prefer to use vtkIdType to refer to items in these arrays. This enables

@@ -16,6 +16,18 @@
 /**
  * @class   vtkCellArrayIterator
  * @brief   Encapsulate traversal logic for vtkCellArray.
+ *
+ * This is forward iterator for traversing vtkCellArray. Typical usage
+ * looks like:
+ *
+ * ```
+ * auto iter = vtk::TakeSmartPointer(cellArray->NewIterator());
+ * for (iter->GoToFirstCell(); !iter->IsDoneWithTraversal(); iter->GoToNextCell())
+ * {
+ *   // do work with iter
+ * }
+ * ```
+ *
  */
 
 #ifndef vtkCellArrayIterator_h
@@ -40,11 +52,18 @@
 class VTKCOMMONDATAMODEL_EXPORT vtkCellArrayIterator : public vtkObject
 {
 public:
+  //@{
+  /**
+   * Standard methods for instantiation, type information, and printing.
+   */
   vtkTypeMacro(vtkCellArrayIterator, vtkObject);
   void PrintSelf(ostream& os, vtkIndent indent) override;
   static vtkCellArrayIterator* New();
+  //@}
 
-  /** The vtkCellArray object being iterated. */
+  /**
+   * Return the vtkCellArray object over which iteration is occuring.
+   */
   vtkCellArray* GetCellArray() { return this->CellArray; }
 
   /**
@@ -57,7 +76,9 @@ public:
     this->NumberOfCells = this->CellArray->GetNumberOfCells();
   }
 
-  /** Advance the iterator to the next cell. */
+  /**
+   * Advance the iterator to the next cell.
+   */
   void GoToNextCell() { ++this->CurrentCellId; }
 
   /**
@@ -76,7 +97,9 @@ public:
    */
   bool IsDoneWithTraversal() { return this->CurrentCellId >= this->NumberOfCells; }
 
-  /** Returns the id of the current cell. */
+  /**
+   * Returns the id of the current cell.
+   */
   vtkIdType GetCurrentCellId() const { return this->CurrentCellId; }
 
   /**
@@ -103,14 +126,18 @@ public:
     cellPoints = this->TempCell->GetPointer(0);
   }
 
-  /** Returns the definition of the current cell. */
+  /**
+   * Returns the definition of the current cell.
+   */
   void GetCurrentCell(vtkIdList* ids)
   {
     assert(this->CurrentCellId < this->NumberOfCells);
     this->CellArray->GetCellAtId(this->CurrentCellId, ids);
   }
 
-  /** Returns the definition of the current cell. */
+  /**
+   * Returns the definition of the current cell.
+   */
   vtkIdList* GetCurrentCell()
   {
     assert(this->CurrentCellId < this->NumberOfCells);
