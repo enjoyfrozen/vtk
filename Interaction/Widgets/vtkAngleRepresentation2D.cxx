@@ -48,7 +48,7 @@ double vtkAngleRepresentation2D::GetAngle()
 }
 
 //------------------------------------------------------------------------------
-void vtkAngleRepresentation2D::GetPoint1WorldPosition(double pos[3])
+void vtkAngleRepresentation2D::GetPoint1WorldPosition(double pos[3]) VTK_FUTURE_CONST
 {
   if (this->Point1Representation)
   {
@@ -61,7 +61,7 @@ void vtkAngleRepresentation2D::GetPoint1WorldPosition(double pos[3])
 }
 
 //------------------------------------------------------------------------------
-void vtkAngleRepresentation2D::GetCenterWorldPosition(double pos[3])
+void vtkAngleRepresentation2D::GetCenterWorldPosition(double pos[3]) VTK_FUTURE_CONST
 {
   if (this->CenterRepresentation)
   {
@@ -74,7 +74,7 @@ void vtkAngleRepresentation2D::GetCenterWorldPosition(double pos[3])
 }
 
 //------------------------------------------------------------------------------
-void vtkAngleRepresentation2D::GetPoint2WorldPosition(double pos[3])
+void vtkAngleRepresentation2D::GetPoint2WorldPosition(double pos[3]) VTK_FUTURE_CONST
 {
   if (this->Point2Representation)
   {
@@ -168,7 +168,7 @@ void vtkAngleRepresentation2D::SetPoint2WorldPosition(double x[3])
 }
 
 //------------------------------------------------------------------------------
-void vtkAngleRepresentation2D::GetPoint1DisplayPosition(double pos[3])
+void vtkAngleRepresentation2D::GetPoint1DisplayPosition(double pos[3]) VTK_FUTURE_CONST
 {
   if (this->Point1Representation)
   {
@@ -182,7 +182,7 @@ void vtkAngleRepresentation2D::GetPoint1DisplayPosition(double pos[3])
 }
 
 //------------------------------------------------------------------------------
-void vtkAngleRepresentation2D::GetCenterDisplayPosition(double pos[3])
+void vtkAngleRepresentation2D::GetCenterDisplayPosition(double pos[3]) VTK_FUTURE_CONST
 {
   if (this->CenterRepresentation)
   {
@@ -196,7 +196,7 @@ void vtkAngleRepresentation2D::GetCenterDisplayPosition(double pos[3])
 }
 
 //------------------------------------------------------------------------------
-void vtkAngleRepresentation2D::GetPoint2DisplayPosition(double pos[3])
+void vtkAngleRepresentation2D::GetPoint2DisplayPosition(double pos[3]) VTK_FUTURE_CONST
 {
   if (this->Point2Representation)
   {
