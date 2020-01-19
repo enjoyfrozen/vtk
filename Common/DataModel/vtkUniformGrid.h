@@ -41,7 +41,7 @@ public:
   /**
    * Return what type of dataset this is.
    */
-  int GetDataObjectType() override { return VTK_UNIFORM_GRID; }
+  int GetDataObjectType() VTK_FUTURE_CONST override { return VTK_UNIFORM_GRID; }
 
   ///@{
   /**
