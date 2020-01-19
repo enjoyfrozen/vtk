@@ -336,7 +336,7 @@ public:
   /**
    * A polyhedron is a full-fledged primary cell.
    */
-  int IsPrimaryCell() override { return 1; }
+  int IsPrimaryCell() VTK_FUTURE_CONST override { return 1; }
 
   ///@{
   /**

@@ -289,7 +289,7 @@ double* vtkGenericCell::GetParametricCoords()
 }
 
 //------------------------------------------------------------------------------
-int vtkGenericCell::IsPrimaryCell()
+int vtkGenericCell::IsPrimaryCell() VTK_FUTURE_CONST
 {
   return this->Cell->IsPrimaryCell();
 }
