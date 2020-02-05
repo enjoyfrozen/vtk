@@ -14,6 +14,8 @@
 =========================================================================*/
 #include "vtkLagrangianBasicIntegrationModel.h"
 
+#include "vtkLagrangianThreadedData.h"
+
 #include "vtkBilinearQuadIntersection.h"
 #include "vtkCellData.h"
 #include "vtkDataArray.h"
@@ -313,8 +315,8 @@ vtkLagrangianParticle* vtkLagrangianBasicIntegrationModel::ComputeSurfaceInterac
     {
       vtkAbstractCellLocator* loc = (*this->SurfaceLocators)[iDs];
       vtkDataSet* tmpSurface = (*this->Surfaces)[iDs].second;
-      vtkGenericCell* cell = particle->GetThreadedGenericCell();
-      vtkIdList* cellList = particle->GetThreadedIdList();
+      vtkGenericCell* cell = particle->GetThreadedData()->GenericCell;
+      vtkIdList* cellList = particle->GetThreadedData()->IdList;
       cellList->Reset();
       loc->FindCellsAlongLine(
         particle->GetPosition(), particle->GetNextPosition(), this->Tolerance, cellList);
@@ -566,7 +568,7 @@ bool vtkLagrangianBasicIntegrationModel::IntersectWithLine(vtkLagrangianParticle
 
       // create 4 points and fill the bqi
       vtkPoints* points = quad->GetPoints();
-      vtkBilinearQuadIntersection* bqi = particle->GetThreadedBilinearQuadIntersection();
+      vtkBilinearQuadIntersection* bqi = particle->GetThreadedData()->BilinearQuadIntersection;
       points->GetPoint(0, bqi->GetP00Data());
       points->GetPoint(3, bqi->GetP01Data());
       points->GetPoint(1, bqi->GetP10Data());
@@ -723,7 +725,7 @@ bool vtkLagrangianBasicIntegrationModel::FindInLocators(double* x, vtkLagrangian
     return false;
   }
 
-  vtkGenericCell* cell = particle->GetThreadedGenericCell();
+  vtkGenericCell* cell = particle->GetThreadedData()->GenericCell;
 
   // Try the provided particle cache
   dataset = particle->GetLastDataSet();
@@ -980,7 +982,7 @@ bool vtkLagrangianBasicIntegrationModel::GetFlowOrSurfaceData(vtkLagrangianParti
       }
 
       // Manual interpolation of data at particle location
-      vtkIdList* idList = particle->GetThreadedIdList();
+      vtkIdList* idList = particle->GetThreadedData()->IdList;
       dataSet->GetCellPoints(tupleId, idList);
       for (int j = 0; j < array->GetNumberOfComponents(); j++)
       {

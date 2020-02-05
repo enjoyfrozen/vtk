@@ -127,10 +127,7 @@ vtkLagrangianParticle* vtkLagrangianParticle::NewParticle(vtkIdType particleId)
   std::fill(particle->NextTrackedUserData.begin(), particle->NextTrackedUserData.end(), 0);
 
   // Copy thread-specific data as well
-  particle->ThreadedGenericCell = this->ThreadedGenericCell;
-  particle->ThreadedIdList = this->ThreadedIdList;
-  particle->ThreadedBilinearQuadIntersection = this->ThreadedBilinearQuadIntersection;
-  particle->ThreadedUserData = this->ThreadedUserData;
+  particle->ThreadedData = this->ThreadedData;
 
   return particle;
 }
@@ -160,10 +157,7 @@ vtkLagrangianParticle* vtkLagrangianParticle::CloneParticle()
   clone->StepTime = this->StepTime;
 
   // Copy thread-specific data as well
-  clone->ThreadedGenericCell = this->ThreadedGenericCell;
-  clone->ThreadedIdList = this->ThreadedIdList;
-  clone->ThreadedBilinearQuadIntersection = this->ThreadedBilinearQuadIntersection;
-  clone->ThreadedUserData = this->ThreadedUserData;
+  clone->ThreadedData = this->ThreadedData;
 
   return clone;
 }
@@ -441,9 +435,5 @@ void vtkLagrangianParticle::PrintSelf(ostream& os, vtkIndent indent)
   }
   os << std::endl;
 
-  os << indent << "ThreadedUserData: " << this->ThreadedUserData << std::endl;
-  os << indent << "ThreadedGenericCell: " << this->ThreadedGenericCell << std::endl;
-  os << indent << "ThreadedIdList: " << this->ThreadedIdList << std::endl;
-  os << indent << "ThreadedBilinearQuadIntersection: " << this->ThreadedBilinearQuadIntersection
-     << std::endl;
+  os << indent << "ThreadedData: " << this->ThreadedData << std::endl;
 }
