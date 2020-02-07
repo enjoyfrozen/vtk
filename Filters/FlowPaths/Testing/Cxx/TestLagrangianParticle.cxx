@@ -209,7 +209,8 @@ int TestLagrangianParticle(int, char*[])
   vtkNew<vtkStaticCellLocator> locator;
   vtkNew<vtkPolyData> poly;
   int cellId = 17;
-  part.SetLastCell(locator, poly, cellId);
+  double pos[3] = { 0, 0, 0 };
+  part.SetLastCell(locator, poly, cellId, pos);
   if (part.GetLastLocator() != locator || part.GetLastDataSet() != poly ||
     part.GetLastCellId() != cellId)
   {
