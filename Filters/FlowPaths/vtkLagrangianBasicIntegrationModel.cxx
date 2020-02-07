@@ -264,12 +264,7 @@ int vtkLagrangianBasicIntegrationModel::FunctionValues(double* x, double* f, voi
   if (this->FindInLocators(x, particle, ds, cellId, loc, weights))
   {
     // Evaluate integration model velocity field with the found cell
-    if (this->FunctionValues(particle, ds, cellId, weights, x, f) != 0)
-    {
-      // Found a cell, keep an hand to it in the particle
-      particle->SetLastCell(loc, ds, cellId);
-      return 1;
-    }
+    return this->FunctionValues(particle, ds, cellId, weights, x, f);
   }
 
   // Can't evaluate
@@ -727,14 +722,30 @@ bool vtkLagrangianBasicIntegrationModel::FindInLocators(double* x, vtkLagrangian
 
   vtkGenericCell* cell = particle->GetThreadedData()->GenericCell;
 
-  // Try the provided particle cache
+  // Try the provided cache
   dataset = particle->GetLastDataSet();
   loc = particle->GetLastLocator();
+  cellId = particle->GetLastCellId();
   if (dataset)
   {
+    // Check the last cell
+    if (cellId != -1)
+    {
+      double pcoords[3];
+      int subId;
+      double dist2;
+      dataset->GetCell(cellId, cell);
+      if (cell->EvaluatePosition(x, nullptr, subId, pcoords, dist2, weights) == 1)
+      {
+        return true;
+      }
+    }
+
+    // Not in provided cell cache, try the whole dataset
     cellId = this->FindInLocator(dataset, loc, x, cell, weights);
     if (cellId != -1)
     {
+      particle->SetLastCell(loc, dataset, cellId);
       return true;
     }
   }
@@ -750,6 +761,8 @@ bool vtkLagrangianBasicIntegrationModel::FindInLocators(double* x, vtkLagrangian
       cellId = this->FindInLocator(dataset, loc, x, cell, weights);
       if (cellId != -1)
       {
+        // Store the found cell for caching purpose
+        particle->SetLastCell(loc, dataset, cellId);
         return true;
       }
     }

@@ -1251,9 +1251,6 @@ double vtkLagrangianParticleTracker::ComputeCellLength(vtkLagrangianParticle* pa
           particle->GetPosition(), particle, dataset, cellId, loc, weights))
     {
       dataset->GetCell(cellId, cell);
-
-      // Store the found cell as it may be used later
-      particle->SetLastCell(loc, dataset, cellId);
     }
     else
     {
