@@ -491,19 +491,25 @@ int vtkLagrangianParticleTracker::RequestData(vtkInformation* vtkNotUsed(request
       vtkErrorMacro(<< "Cannot find a vtkMultiPiece particle paths output. aborting");
       return 0;
     }
+    this->InitializePathsOutput(this->SeedData, 0, particlePathsOutput);
   }
 
-  vtkInformation* interactionOutInfo = outputVector->GetInformationObject(1);
-  vtkDataObject* interactionOutput = interactionOutInfo->Get(vtkPolyData::DATA_OBJECT());
-  if (!interactionOutput)
+  vtkDataObject* interactionOutput = nullptr;
+  if (surfaces)
   {
-    vtkErrorMacro(<< "Cannot find a vtkMultiBlock interaction output. aborting");
-    return 0;
-  }
-  vtkCompositeDataSet* hdInteractionOutput = vtkCompositeDataSet::SafeDownCast(interactionOutput);
-  if (hdInteractionOutput)
-  {
-    hdInteractionOutput->CopyStructure(vtkCompositeDataSet::SafeDownCast(surfaces));
+    vtkInformation* interactionOutInfo = outputVector->GetInformationObject(1);
+    interactionOutput = interactionOutInfo->Get(vtkPolyData::DATA_OBJECT());
+    if (!interactionOutput)
+    {
+      vtkErrorMacro(<< "Cannot find a vtkMultiBlock interaction output. aborting");
+      return 0;
+    }
+    vtkCompositeDataSet* hdInteractionOutput = vtkCompositeDataSet::SafeDownCast(interactionOutput);
+    if (hdInteractionOutput)
+    {
+      hdInteractionOutput->CopyStructure(vtkCompositeDataSet::SafeDownCast(surfaces));
+    }
+    this->InitializeInteractionOutput(this->SeedData, surfaces, interactionOutput);
   }
 
   // Let model a chance to change the particles or compute things
@@ -663,39 +669,42 @@ bool vtkLagrangianParticleTracker::FinalizeOutputs(
   }
 
   // Insert interaction poly-vertex cell
-  vtkCompositeDataSet* hdInteractionOutput = vtkCompositeDataSet::SafeDownCast(interactionOutput);
-  vtkPolyData* pdInteractionOutput = vtkPolyData::SafeDownCast(interactionOutput);
-  if (hdInteractionOutput)
+  if (interactionOutput)
   {
-    vtkNew<vtkDataObjectTreeIterator> iter;
-    iter->SetDataSet(hdInteractionOutput);
-    for (iter->InitTraversal(); !iter->IsDoneWithTraversal(); iter->GoToNextItem())
+    vtkCompositeDataSet* hdInteractionOutput = vtkCompositeDataSet::SafeDownCast(interactionOutput);
+    vtkPolyData* pdInteractionOutput = vtkPolyData::SafeDownCast(interactionOutput);
+    if (hdInteractionOutput)
     {
-      vtkPolyData* pdBlock = vtkPolyData::SafeDownCast(hdInteractionOutput->GetDataSet(iter));
-      if (!pdBlock)
+      vtkNew<vtkDataObjectTreeIterator> iter;
+      iter->SetDataSet(hdInteractionOutput);
+      for (iter->InitTraversal(); !iter->IsDoneWithTraversal(); iter->GoToNextItem())
       {
-        vtkErrorMacro(<< "Cannot recover interaction output, something went wrong");
-        return false;
+        vtkPolyData* pdBlock = vtkPolyData::SafeDownCast(hdInteractionOutput->GetDataSet(iter));
+        if (!pdBlock)
+        {
+          vtkErrorMacro(<< "Cannot recover interaction output, something went wrong");
+          return false;
+        }
+        if (this->GeneratePolyVertexInteractionOutput)
+        {
+          this->InsertPolyVertexCell(pdBlock);
+        }
+        else
+        {
+          this->InsertVertexCells(pdBlock);
+        }
       }
-      if (this->GeneratePolyVertexInteractionOutput)
-      {
-        this->InsertPolyVertexCell(pdBlock);
-      }
-      else
-      {
-        this->InsertVertexCells(pdBlock);
-      }
-    }
-  }
-  else
-  {
-    if (this->GeneratePolyVertexInteractionOutput)
-    {
-      this->InsertPolyVertexCell(pdInteractionOutput);
     }
     else
     {
-      this->InsertVertexCells(pdInteractionOutput);
+      if (this->GeneratePolyVertexInteractionOutput)
+      {
+        this->InsertPolyVertexCell(pdInteractionOutput);
+      }
+      else
+      {
+        this->InsertVertexCells(pdInteractionOutput);
+      }
     }
   }
 
