@@ -198,9 +198,9 @@ int TestLagrangianParticle(int, char*[])
               << part3->GetParentId() << std::endl;
     return EXIT_FAILURE;
   }
-  if (part.GetSeedData()->GetArray(0)->GetComponent(0, 0) != 17 ||
-    part2->GetSeedData()->GetArray(0)->GetComponent(0, 0) != 17 ||
-    part3->GetSeedData()->GetArray(0)->GetComponent(0, 0) != 17)
+  if (part.GetSeedData()->GetArray(0)->GetComponent(part.GetSeedArrayTupleIndex(), 0) != 17 ||
+    part2->GetSeedData()->GetArray(0)->GetComponent(part2->GetSeedArrayTupleIndex(), 0) != 17 ||
+    part3->GetSeedData()->GetArray(0)->GetComponent(part3->GetSeedArrayTupleIndex(), 0) != 17)
   {
     std::cerr << "Incorrect Seed data " << std::endl;
     return EXIT_FAILURE;

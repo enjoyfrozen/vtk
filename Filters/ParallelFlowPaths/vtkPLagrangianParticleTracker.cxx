@@ -144,6 +144,11 @@ public:
 
   ~ParticleStreamManager()
   {
+    for (vtkPointData* seedData : this->ReceivedSeedData)
+    {
+      seedData->Delete();
+    }
+
     for (size_t i = 0; i < this->SendRequests.size(); i++)
     {
       delete this->SendRequests[i];
@@ -200,7 +205,7 @@ public:
     for (int i = 0; i < particle->GetSeedData()->GetNumberOfArrays(); i++)
     {
       vtkDataArray* array = particle->GetSeedData()->GetArray(i);
-      double* tuple = array->GetTuple(0);
+      double* tuple = array->GetTuple(particle->GetSeedArrayTupleIndex());
       for (int j = 0; j < array->GetNumberOfComponents(); j++)
       {
         *this->SendStream << tuple[j];
@@ -253,9 +258,13 @@ public:
       *this->ReceiveStream >> pInsertPrevious;
       *this->ReceiveStream >> pManualShift;
 
-      // Get a particle with an incorrect seed data
-      particle = vtkLagrangianParticle::NewInstance(nVar, seedId, particleId, -1, iTime,
-        this->SeedData, this->WeightsSize, nTrackedUserData, nSteps, prevITime);
+      // Create and store an empty seed data
+      vtkPointData* seedData = vtkPointData::New();
+      this->ReceivedSeedData.push_back(seedData);
+
+      // Get a particle with an empty seed data
+      particle = vtkLagrangianParticle::NewInstance(nVar, seedId, particleId, 0, iTime, seedData,
+        this->WeightsSize, nTrackedUserData, nSteps, prevITime);
       particle->SetParentId(parentId);
       particle->SetUserFlag(userFlag);
       particle->SetPInsertPreviousPosition(pInsertPrevious);
@@ -286,10 +295,12 @@ public:
         *this->ReceiveStream >> var;
       }
 
-      // Recover the correct seed data values
-      for (int i = 0; i < particle->GetSeedData()->GetNumberOfArrays(); i++)
+      // Recover the correct seed data values and write them into a dedicated PointData
+      // So particle seed data become correct
+      seedData->CopyAllocate(this->SeedData, 1);
+      for (int i = 0; i < seedData->GetNumberOfArrays(); i++)
       {
-        vtkDataArray* array = particle->GetSeedData()->GetArray(i);
+        vtkDataArray* array = seedData->GetArray(i);
         int numComponents = array->GetNumberOfComponents();
         std::vector<double> xi(numComponents);
         for (int j = 0; j < numComponents; j++)
@@ -330,6 +341,7 @@ private:
   ParticleStreamManager(const ParticleStreamManager&) {}
   std::vector<vtkBoundingBox> Boxes;
   std::vector<vtkMPICommunicator::Request*> SendRequests;
+  std::vector<vtkPointData*> ReceivedSeedData;
 };
 
 // Class used by the master rank to receive and send flag

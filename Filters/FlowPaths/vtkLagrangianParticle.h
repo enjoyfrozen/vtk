@@ -332,9 +332,15 @@ public:
   virtual int GetNumberOfUserVariables();
 
   /**
-   * Get the particle data.
+   * Get the particle seed data, for reading only.
    */
   virtual vtkPointData* GetSeedData();
+
+  /**
+   * Get the index of the tuple for this particle in the point data
+   * returned by GetSeedData method
+   */
+  virtual vtkIdType GetSeedArrayTupleIndex();
 
   /**
    * Get the last weights computed when locating the
@@ -499,7 +505,8 @@ protected:
   vtkIdType ParentId;
   vtkIdType SeedId;
   vtkIdType NumberOfSteps;
-  vtkNew<vtkPointData> SeedData;
+  vtkIdType SeedArrayTupleIndex;
+  vtkPointData* SeedData;
 
   vtkAbstractCellLocator* LastLocator;
   vtkDataSet* LastDataSet;
