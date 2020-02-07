@@ -58,6 +58,7 @@ public:
   {
     this->Data.resize(Size);
     this->Head = Data.data();
+    this->count = 0;
   }
 
   ~MessageStream() {}
@@ -89,6 +90,7 @@ public:
   int GetLength() { return this->Head - this->Data.data(); }
 
   void Reset() { this->Head = this->Data.data(); }
+  int count;
 
 private:
   MessageStream(const MessageStream&) = delete;
@@ -139,7 +141,6 @@ public:
 
     // Initialize Streams
     this->ReceiveStream = new MessageStream(this->StreamSize);
-    this->SendStream = nullptr;
   }
 
   ~ParticleStreamManager()
@@ -151,12 +152,12 @@ public:
 
     for (size_t i = 0; i < this->SendRequests.size(); i++)
     {
-      delete this->SendRequests[i];
+      this->SendRequests[i].first->Wait();
     }
+    this->CleanSendRequests();
 
-    // Delete streams
+    // Delete  receive stream
     delete this->ReceiveStream;
-    delete this->SendStream;
   }
 
   // Method to send a particle to others ranks
@@ -165,41 +166,41 @@ public:
   {
     // Serialize particle
     // This is strongly linked to Constructor and Receive code
-    delete this->SendStream;
-    this->SendStream = new MessageStream(this->StreamSize);
-    *this->SendStream << particle->GetSeedId();
-    *this->SendStream << particle->GetId();
-    *this->SendStream << particle->GetParentId();
-    *this->SendStream << particle->GetNumberOfVariables();
-    *this->SendStream << static_cast<int>(particle->GetTrackedUserData().size());
-    *this->SendStream << particle->GetNumberOfSteps();
-    *this->SendStream << particle->GetIntegrationTime();
-    *this->SendStream << particle->GetPrevIntegrationTime();
-    *this->SendStream << particle->GetUserFlag();
-    *this->SendStream << particle->GetPInsertPreviousPosition();
-    *this->SendStream << particle->GetPManualShift();
+
+    MessageStream* SendStream = new MessageStream(this->StreamSize);
+    *SendStream << particle->GetSeedId();
+    *SendStream << particle->GetId();
+    *SendStream << particle->GetParentId();
+    *SendStream << particle->GetNumberOfVariables();
+    *SendStream << static_cast<int>(particle->GetTrackedUserData().size());
+    *SendStream << particle->GetNumberOfSteps();
+    *SendStream << particle->GetIntegrationTime();
+    *SendStream << particle->GetPrevIntegrationTime();
+    *SendStream << particle->GetUserFlag();
+    *SendStream << particle->GetPInsertPreviousPosition();
+    *SendStream << particle->GetPManualShift();
 
     double* prev = particle->GetPrevEquationVariables();
     double* curr = particle->GetEquationVariables();
     double* next = particle->GetNextEquationVariables();
     for (int i = 0; i < particle->GetNumberOfVariables(); i++)
     {
-      *this->SendStream << prev[i];
-      *this->SendStream << curr[i];
-      *this->SendStream << next[i];
+      *SendStream << prev[i];
+      *SendStream << curr[i];
+      *SendStream << next[i];
     }
 
     for (auto data : particle->GetPrevTrackedUserData())
     {
-      *this->SendStream << data;
+      *SendStream << data;
     }
     for (auto data : particle->GetTrackedUserData())
     {
-      *this->SendStream << data;
+      *SendStream << data;
     }
     for (auto data : particle->GetNextTrackedUserData())
     {
-      *this->SendStream << data;
+      *SendStream << data;
     }
 
     for (int i = 0; i < particle->GetSeedData()->GetNumberOfArrays(); i++)
@@ -208,9 +209,12 @@ public:
       double* tuple = array->GetTuple(particle->GetSeedArrayTupleIndex());
       for (int j = 0; j < array->GetNumberOfComponents(); j++)
       {
-        *this->SendStream << tuple[j];
+        *SendStream << tuple[j];
       }
     }
+
+    // clean out old requests & SendStreams
+    this->CleanSendRequests();
 
     // Send to other ranks
     for (int i = 0; i < this->Controller->GetNumberOfProcesses(); i++)
@@ -221,10 +225,10 @@ public:
       }
       if (particle->GetPManualShift() || this->Boxes[i].ContainsPoint(particle->GetPosition()))
       {
-        this->CleanSendRequests();
-        this->SendRequests.push_back(new vtkMPICommunicator::Request);
-        this->Controller->NoBlockSend(this->SendStream->GetRawData(), this->StreamSize, i,
-          LAGRANGIAN_PARTICLE_TAG, *this->SendRequests.back());
+        ++SendStream->count; // increment counter on message
+        this->SendRequests.push_back(std::make_pair(new vtkMPICommunicator::Request, SendStream));
+        this->Controller->NoBlockSend(SendStream->GetRawData(), this->StreamSize, i,
+          LAGRANGIAN_PARTICLE_TAG, *this->SendRequests.back().first);
       }
     }
   }
@@ -316,12 +320,18 @@ public:
 
   void CleanSendRequests()
   {
-    std::vector<vtkMPICommunicator::Request*>::iterator it = SendRequests.begin();
+    auto it = SendRequests.begin();
     while (it != SendRequests.end())
     {
-      if ((*it)->Test())
+      if ((*it).first->Test())
       {
-        delete *it;
+        delete (*it).first;    // delete Request
+        --(*it).second->count; // decrement counter
+        if ((*it).second->count == 0)
+        {
+          // delete the SendStream
+          delete (*it).second;
+        }
         it = SendRequests.erase(it);
       }
       else
@@ -335,12 +345,11 @@ private:
   vtkMPIController* Controller;
   int StreamSize;
   int WeightsSize;
-  MessageStream* SendStream;
   MessageStream* ReceiveStream;
   vtkPointData* SeedData;
   ParticleStreamManager(const ParticleStreamManager&) {}
   std::vector<vtkBoundingBox> Boxes;
-  std::vector<vtkMPICommunicator::Request*> SendRequests;
+  std::vector<std::pair<vtkMPICommunicator::Request*, MessageStream*> > SendRequests;
   std::vector<vtkPointData*> ReceivedSeedData;
 };
 
