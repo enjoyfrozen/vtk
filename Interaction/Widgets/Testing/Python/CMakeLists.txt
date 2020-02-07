@@ -5,6 +5,7 @@ if(VTK_CAN_DO_ONSCREEN AND NOT VTK_DEFAULT_RENDER_WINDOW_OFFSCREEN)
     TestInteractivePlaneCutter.py
     TestInteractorEventRecorder.py,NO_RT
     TestSphereWidget.py,NO_RT
+    TestTensorWidget.py
     TestTextWidget.py,NO_RT
     )
 endif()

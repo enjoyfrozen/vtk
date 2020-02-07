@@ -128,6 +128,8 @@ set(classes
   vtkSplineWidget2
   vtkTensorProbeRepresentation
   vtkTensorProbeWidget
+  vtkTensorRepresentation
+  vtkTensorWidget
   vtkTerrainContourLineInterpolator
   vtkTerrainDataPointPlacer
   vtkTextRepresentation

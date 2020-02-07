@@ -41,6 +41,7 @@ set(classes
   vtkExtractArray
   vtkExtractSelectedFrustum
   vtkExtractSelectionBase
+  vtkGlyphPackingFilter
   vtkGradientFilter
   vtkGraphLayoutFilter
   vtkGraphToPoints
