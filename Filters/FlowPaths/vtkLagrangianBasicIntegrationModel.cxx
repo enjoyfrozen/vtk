@@ -726,11 +726,19 @@ bool vtkLagrangianBasicIntegrationModel::FindInLocators(double* x, vtkLagrangian
   dataset = particle->GetLastDataSet();
   loc = particle->GetLastLocator();
   cellId = particle->GetLastCellId();
+  double* lastPosition = particle->GetLastCellPosition();
   if (dataset)
   {
     // Check the last cell
     if (cellId != -1)
     {
+      // Check if previous call was the same
+      if (lastPosition[0] == x[0] && lastPosition[1] == x[1] && lastPosition[2] == x[2])
+      {
+        return true;
+      }
+
+      // If not, check if new position is in the same cell
       double pcoords[3];
       int subId;
       double dist2;
@@ -745,7 +753,7 @@ bool vtkLagrangianBasicIntegrationModel::FindInLocators(double* x, vtkLagrangian
     cellId = this->FindInLocator(dataset, loc, x, cell, weights);
     if (cellId != -1)
     {
-      particle->SetLastCell(loc, dataset, cellId);
+      particle->SetLastCell(loc, dataset, cellId, x);
       return true;
     }
   }
@@ -762,7 +770,7 @@ bool vtkLagrangianBasicIntegrationModel::FindInLocators(double* x, vtkLagrangian
       if (cellId != -1)
       {
         // Store the found cell for caching purpose
-        particle->SetLastCell(loc, dataset, cellId);
+        particle->SetLastCell(loc, dataset, cellId, x);
         return true;
       }
     }

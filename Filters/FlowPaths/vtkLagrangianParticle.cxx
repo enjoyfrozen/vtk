@@ -170,6 +170,12 @@ vtkIdType vtkLagrangianParticle::GetLastCellId()
 }
 
 //---------------------------------------------------------------------------
+double* vtkLagrangianParticle::GetLastCellPosition()
+{
+  return this->LastCellPosition;
+}
+
+//---------------------------------------------------------------------------
 vtkDataSet* vtkLagrangianParticle::GetLastDataSet()
 {
   return this->LastDataSet;
@@ -183,11 +189,12 @@ vtkAbstractCellLocator* vtkLagrangianParticle::GetLastLocator()
 
 //---------------------------------------------------------------------------
 void vtkLagrangianParticle::SetLastCell(
-  vtkAbstractCellLocator* locator, vtkDataSet* dataset, vtkIdType cellId)
+  vtkAbstractCellLocator* locator, vtkDataSet* dataset, vtkIdType cellId, double cellPosition[3])
 {
   this->LastLocator = locator;
   this->LastDataSet = dataset;
   this->LastCellId = cellId;
+  std::copy(cellPosition, cellPosition + 3, this->LastCellPosition);
 }
 
 //---------------------------------------------------------------------------

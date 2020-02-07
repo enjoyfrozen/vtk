@@ -354,6 +354,11 @@ public:
   vtkIdType GetLastCellId();
 
   /**
+   * Get the last position evaluated
+   */
+  double* GetLastCellPosition();
+
+  /**
    * Get the dataset containing the last traversed cell
    */
   vtkDataSet* GetLastDataSet();
@@ -376,7 +381,8 @@ public:
   /**
    * Set the last dataset and last cell id
    */
-  void SetLastCell(vtkAbstractCellLocator* locator, vtkDataSet* dataset, vtkIdType cellId);
+  void SetLastCell(vtkAbstractCellLocator* locator, vtkDataSet* dataset, vtkIdType cellId,
+    double lastCellPosition[3]);
 
   /**
    * Set the last surface dataset and last surface cell id
@@ -511,6 +517,7 @@ protected:
   vtkAbstractCellLocator* LastLocator;
   vtkDataSet* LastDataSet;
   vtkIdType LastCellId;
+  double LastCellPosition[3];
   int WeightsSize;
   std::vector<double> LastWeights;
 
