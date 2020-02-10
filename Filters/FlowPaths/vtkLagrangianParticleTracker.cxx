@@ -946,10 +946,10 @@ void vtkLagrangianParticleTracker::GenerateParticles(const vtkBoundingBox* vtkNo
   vtkPointData* seedData, int nVar, std::queue<vtkLagrangianParticle*>& particles)
 {
   // Create and set a dummy particle so FindInLocators can use caching.
-  vtkLagrangianThreadedData* dummyData = new vtkLagrangianThreadedData;
+  std::unique_ptr<vtkLagrangianThreadedData> dummyData(new vtkLagrangianThreadedData);
   vtkLagrangianParticle dummyParticle(
     0, 0, 0, 0, 0, nullptr, this->IntegrationModel->GetWeightsSize(), 0);
-  dummyParticle.SetThreadedData(dummyData);
+  dummyParticle.SetThreadedData(dummyData.get());
 
   this->ParticleCounter = 0;
   this->IntegratedParticleCounter = 0;
@@ -977,7 +977,6 @@ void vtkLagrangianParticleTracker::GenerateParticles(const vtkBoundingBox* vtkNo
       delete particle;
     }
   }
-  delete dummyData;
 }
 
 //---------------------------------------------------------------------------

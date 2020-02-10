@@ -77,15 +77,6 @@ vtkLagrangianParticle::~vtkLagrangianParticle() = default;
 //---------------------------------------------------------------------------
 vtkLagrangianParticle* vtkLagrangianParticle::NewInstance(int numberOfVariables, vtkIdType seedId,
   vtkIdType particleId, vtkIdType seedArrayTupleIndex, double integrationTime,
-  vtkPointData* seedData, int weightsSize, int numberOfTrackedUserData)
-{
-  return new vtkLagrangianParticle(numberOfVariables, seedId, particleId, seedArrayTupleIndex,
-    integrationTime, seedData, weightsSize, numberOfTrackedUserData);
-}
-
-//---------------------------------------------------------------------------
-vtkLagrangianParticle* vtkLagrangianParticle::NewInstance(int numberOfVariables, vtkIdType seedId,
-  vtkIdType particleId, vtkIdType seedArrayTupleIndex, double integrationTime,
   vtkPointData* seedData, int weightsSize, int numberOfTrackedUserData, vtkIdType numberOfSteps,
   double previousIntegrationTime)
 {
@@ -101,7 +92,7 @@ vtkLagrangianParticle* vtkLagrangianParticle::NewParticle(vtkIdType particleId)
 {
   // Create particle and copy members
   vtkLagrangianParticle* particle =
-    this->NewInstance(this->GetNumberOfVariables(), this->GetSeedId(), particleId,
+    vtkLagrangianParticle::NewInstance(this->GetNumberOfVariables(), this->GetSeedId(), particleId,
       this->SeedArrayTupleIndex, this->IntegrationTime + this->StepTime, this->SeedData,
       this->WeightsSize, static_cast<int>(this->TrackedUserData.size()));
   particle->ParentId = this->GetId();
@@ -265,7 +256,7 @@ vtkPointData* vtkLagrangianParticle::GetSeedData()
 }
 
 //---------------------------------------------------------------------------
-vtkIdType vtkLagrangianParticle::GetSeedArrayTupleIndex()
+vtkIdType vtkLagrangianParticle::GetSeedArrayTupleIndex() const
 {
   return this->SeedArrayTupleIndex;
 }

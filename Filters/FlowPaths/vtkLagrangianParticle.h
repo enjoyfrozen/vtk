@@ -113,8 +113,8 @@ public:
    */
   static vtkLagrangianParticle* NewInstance(int numberOfVariables, vtkIdType seedId,
     vtkIdType particleId, vtkIdType seedArrayTupleIndex, double integrationTime,
-    vtkPointData* seedData, int weightsSize, int numberOfTrackedUserData, vtkIdType numberOfSteps,
-    double previousIntegrationTime);
+    vtkPointData* seedData, int weightsSize, int numberOfTrackedUserData,
+    vtkIdType numberOfSteps = 0, double previousIntegrationTime = 0);
 
   /**
    * method to create a particle from a parent particle.
@@ -340,7 +340,7 @@ public:
    * Get the index of the tuple for this particle in the point data
    * returned by GetSeedData method
    */
-  virtual vtkIdType GetSeedArrayTupleIndex();
+  virtual vtkIdType GetSeedArrayTupleIndex() const;
 
   /**
    * Get the last weights computed when locating the
@@ -478,13 +478,6 @@ public:
   virtual void PrintSelf(ostream& os, vtkIndent indent);
 
 protected:
-  /**
-   * Constructor wrapper for internal convenience
-   */
-  vtkLagrangianParticle* NewInstance(int numberOfVariables, vtkIdType seedId, vtkIdType particleId,
-    vtkIdType seedArrayTupleIndex, double integrationTime, vtkPointData* seedData, int weightsSize,
-    int numberOfTrackedUserData);
-
   vtkLagrangianParticle(const vtkLagrangianParticle&) = delete;
   vtkLagrangianParticle() = delete;
   void operator=(const vtkLagrangianParticle&) = delete;

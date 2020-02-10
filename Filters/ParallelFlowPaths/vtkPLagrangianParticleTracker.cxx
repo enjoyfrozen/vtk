@@ -788,10 +788,10 @@ void vtkPLagrangianParticleTracker::GenerateParticles(const vtkBoundingBox* boun
     }
 
     // Create and set a dummy particle so FindInLocators can use caching.
-    vtkLagrangianThreadedData* dummyData = new vtkLagrangianThreadedData;
+    std::unique_ptr<vtkLagrangianThreadedData> dummyData(new vtkLagrangianThreadedData);
     vtkLagrangianParticle dummyParticle(
       0, 0, 0, 0, 0, nullptr, this->IntegrationModel->GetWeightsSize(), 0);
-    dummyParticle.SetThreadedData(dummyData);
+    dummyParticle.SetThreadedData(dummyData.get());
 
     // Generate particle and distribute the ones not in domain to other nodes
     for (vtkIdType i = 0; i < seeds->GetNumberOfPoints(); i++)
@@ -819,7 +819,6 @@ void vtkPLagrangianParticleTracker::GenerateParticles(const vtkBoundingBox* boun
     }
     this->Controller->Barrier();
     this->ReceiveParticles(particles);
-    delete dummyData;
   }
   else
   {
@@ -970,10 +969,10 @@ void vtkPLagrangianParticleTracker::ReceiveParticles(
   vtkLagrangianParticle* receivedParticle;
 
   // Create and set a dummy particle so FindInLocators can use caching.
-  vtkLagrangianThreadedData* dummyData = new vtkLagrangianThreadedData;
+  std::unique_ptr<vtkLagrangianThreadedData> dummyData(new vtkLagrangianThreadedData);
   vtkLagrangianParticle dummyParticle(
     0, 0, 0, 0, 0, nullptr, this->IntegrationModel->GetWeightsSize(), 0);
-  dummyParticle.SetThreadedData(dummyData);
+  dummyParticle.SetThreadedData(dummyData.get());
 
   while (this->StreamManager->ReceiveParticleIfAny(receivedParticle))
   {
@@ -993,7 +992,6 @@ void vtkPLagrangianParticleTracker::ReceiveParticles(
       delete receivedParticle;
     }
   }
-  delete dummyData;
 }
 
 //---------------------------------------------------------------------------
