@@ -121,9 +121,9 @@ vtkLagrangianParticle* vtkLagrangianParticle::NewParticle(vtkIdType particleId)
 //---------------------------------------------------------------------------
 vtkLagrangianParticle* vtkLagrangianParticle::CloneParticle()
 {
-  vtkLagrangianParticle* clone = this->NewInstance(this->GetNumberOfVariables(), this->GetSeedId(),
-    this->GetId(), this->SeedArrayTupleIndex, this->IntegrationTime, this->GetSeedData(),
-    this->WeightsSize, static_cast<int>(this->TrackedUserData.size()));
+  vtkLagrangianParticle* clone = vtkLagrangianParticle::NewInstance(this->GetNumberOfVariables(),
+    this->GetSeedId(), this->GetId(), this->SeedArrayTupleIndex, this->IntegrationTime,
+    this->GetSeedData(), this->WeightsSize, static_cast<int>(this->TrackedUserData.size()));
   clone->Id = this->Id;
   clone->ParentId = this->ParentId;
   clone->NumberOfSteps = this->NumberOfSteps;

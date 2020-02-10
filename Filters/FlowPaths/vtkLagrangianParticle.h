@@ -282,7 +282,7 @@ public:
   /**
    * Get/Set a pointer to a vtkLagrangianThreadedData that is considered to be local to the thread.
    * This structure contains multiple objects to be used by the tracker and the model, it also
-   * contains a user data  that can be used to store any kind of data, structure, class instance
+   * contains a user data that can be used to store any kind of data, structure, class instance
    * that you may need. This is set by the vtkLagrangianParticleTracker and can be
    * initialized/finalized in the model
    */

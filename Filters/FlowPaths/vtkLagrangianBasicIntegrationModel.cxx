@@ -14,8 +14,6 @@
 =========================================================================*/
 #include "vtkLagrangianBasicIntegrationModel.h"
 
-#include "vtkLagrangianThreadedData.h"
-
 #include "vtkBilinearQuadIntersection.h"
 #include "vtkCellData.h"
 #include "vtkDataArray.h"
@@ -27,6 +25,7 @@
 #include "vtkIntArray.h"
 #include "vtkLagrangianParticle.h"
 #include "vtkLagrangianParticleTracker.h"
+#include "vtkLagrangianThreadedData.h"
 #include "vtkLongLongArray.h"
 #include "vtkMath.h"
 #include "vtkNew.h"
