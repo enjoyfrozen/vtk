@@ -314,14 +314,14 @@ public:
     auto it = SendRequests.begin();
     while (it != SendRequests.end())
     {
-      if ((*it).first->Test())
+      if (it->first->Test())
       {
-        delete (*it).first;    // delete Request
-        --(*it).second->count; // decrement counter
-        if ((*it).second->count == 0)
+        delete it->first;    // delete Request
+        --it->second->count; // decrement counter
+        if (it->second->count == 0)
         {
           // delete the SendStream
-          delete (*it).second;
+          delete it->second;
         }
         it = SendRequests.erase(it);
       }
