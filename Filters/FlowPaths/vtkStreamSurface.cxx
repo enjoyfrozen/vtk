@@ -56,7 +56,7 @@ void vtkStreamSurface::PrintSelf(ostream& os, vtkIndent indent)
 }
 
 //----------------------------------------------------------------------------
-void vtkStreamSurface::AdvectIterative(vtkImageData* field, vtkPolyData* seeds, vtkPolyData* output)
+int vtkStreamSurface::AdvectIterative(vtkImageData* field, vtkPolyData* seeds, vtkPolyData* output)
 {
   // adapt dist if cell unit was selected
   double distThreshold = this->InitialIntegrationStep;
@@ -279,10 +279,11 @@ void vtkStreamSurface::AdvectIterative(vtkImageData* field, vtkPolyData* seeds, 
       break;
     }
   }
+  return 1;
 }
 
 //----------------------------------------------------------------------------
-void vtkStreamSurface::AdvectSimple(vtkImageData* field, vtkPolyData* seeds, vtkPolyData* output)
+int vtkStreamSurface::AdvectSimple(vtkImageData* field, vtkPolyData* seeds, vtkPolyData* output)
 {
   //  this is for comparison with the standard ruled surface
   this->StreamTracer->SetInputData(field);
@@ -298,6 +299,8 @@ void vtkStreamSurface::AdvectSimple(vtkImageData* field, vtkPolyData* seeds, vtk
   this->RuledSurface->Update();
 
   output->ShallowCopy(this->RuledSurface->GetOutput());
+
+  return 1;
 }
 
 //----------------------------------------------------------------------------

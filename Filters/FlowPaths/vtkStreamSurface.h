@@ -66,7 +66,7 @@ private:
    * seeds is the polydata with the start curve
    * output is the final streamsurface
    */
-  void AdvectSimple(vtkImageData* field, vtkPolyData* seeds, vtkPolyData* output);
+  int AdvectSimple(vtkImageData* field, vtkPolyData* seeds, vtkPolyData* output);
 
   /**
    * loop: 1.advect one step at a time
@@ -79,7 +79,7 @@ private:
    * @param seeds: initial values
    * @param output: the final surface
    */
-  void AdvectIterative(vtkImageData* field, vtkPolyData* seeds, vtkPolyData* output);
+  int AdvectIterative(vtkImageData* field, vtkPolyData* seeds, vtkPolyData* output);
 
   /**
    * depending on this boolen the simple (fast) or iterative (correct) version is called
