@@ -51,6 +51,7 @@
 #include <map>
 
 #define epsilon (1e-10)
+
 //----------------------------------------------------------------------------
 vtkStandardNewMacro(vtkVectorFieldTopology);
 

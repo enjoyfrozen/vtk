@@ -173,7 +173,7 @@ private:
    * @param countPos: number of positive eigenvalues
    * @param countNeg: number of negative eigenvalues
    */
-  int classify3D(int countReal, int countComplex, int countPos, int countNeg);
+  static int classify3D(int countReal, int countComplex, int countPos, int countNeg);
 
   /**
    * determine which type of critical point we have based on the eigenvalues of the Jacobian in 2D
@@ -182,7 +182,7 @@ private:
    * @param countPos: number of positive eigenvalues
    * @param countNeg: number of negative eigenvalues
    */
-  int classify2D(int countReal, int countComplex, int countPos, int countNeg);
+  static int classify2D(int countReal, int countComplex, int countPos, int countNeg);
 
   /**
    * number of iterations in this class and in vtkStreamTracer
