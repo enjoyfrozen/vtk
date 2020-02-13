@@ -458,13 +458,13 @@ int vtkVectorFieldTopology::ComputeSeparatrices(vtkSmartPointer<vtkPolyData> cri
   streamTracerFw->SetInputData(dataset);
   streamTracerFw->SetSourceData(seedsFw);
   streamTracerFw->SetIntegratorTypeToRungeKutta4();
-  streamTracerFw->SetIntegrationStepUnit(integrationStepUnit);
-  streamTracerFw->SetInitialIntegrationStep(dist);
+  streamTracerFw->SetIntegrationStepUnit(this->IntegrationStepUnit);
+  streamTracerFw->SetInitialIntegrationStep(this->IntegrationStepSize);
   streamTracerFw->SetIntegrationDirectionToForward();
   streamTracerFw->SetComputeVorticity(0);
   streamTracerFw->SetMaximumNumberOfSteps(maxNumSteps);
   streamTracerFw->SetMaximumPropagation(dist * maxNumSteps);
-  streamTracerFw->SetTerminalSpeed(1e-5);
+  streamTracerFw->SetTerminalSpeed(epsilon);
   streamTracerFw->Update();
 
   vtkNew<vtkDoubleArray> iterationArrayFw;
@@ -485,13 +485,13 @@ int vtkVectorFieldTopology::ComputeSeparatrices(vtkSmartPointer<vtkPolyData> cri
   streamTracerBw->SetInputData(dataset);
   streamTracerBw->SetSourceData(seedsBw);
   streamTracerBw->SetIntegratorTypeToRungeKutta4();
-  streamTracerBw->SetIntegrationStepUnit(integrationStepUnit);
-  streamTracerBw->SetInitialIntegrationStep(dist);
+  streamTracerBw->SetIntegrationStepUnit(this->IntegrationStepUnit);
+  streamTracerBw->SetInitialIntegrationStep(this->IntegrationStepSize);
   streamTracerBw->SetIntegrationDirectionToBackward();
   streamTracerBw->SetComputeVorticity(0);
   streamTracerBw->SetMaximumNumberOfSteps(maxNumSteps);
   streamTracerBw->SetMaximumPropagation(dist * maxNumSteps);
-  streamTracerBw->SetTerminalSpeed(1e-5);
+  streamTracerBw->SetTerminalSpeed(epsilon);
   streamTracerBw->Update();
 
   vtkNew<vtkDoubleArray> iterationArrayBw;
@@ -515,16 +515,19 @@ int vtkVectorFieldTopology::ComputeSeparatrices(vtkSmartPointer<vtkPolyData> cri
   appendFilter->Update();
   separatrices->DeepCopy(appendFilter->GetOutput());
 
-  probe->SetInputData(surfaces);
-  probe->SetSourceData(dataset);
-  probe->Update();
-  for (int i = 0; i < dataset->GetPointData()->GetNumberOfArrays(); ++i)
+  // probe arrays to output surfaces
+  if (computeSurfaces and dataset->GetDataDimension() == 3)
   {
-    if (dataset->GetPointData()->GetArray(i)->GetNumberOfComponents() == 3)
+    probe->SetInputData(surfaces);
+    probe->SetSourceData(dataset);
+    probe->Update();
+    for (int i = 0; i < dataset->GetPointData()->GetNumberOfArrays(); ++i)
     {
-      //      cout<<dataset->GetPointData()->GetArray(i)->GetNumberOfComponents()<<endl;
-      surfaces->GetPointData()->SetVectors(probe->GetOutput()->GetPointData()->GetArray(i));
-      break;
+      if (probe->GetOutput()->GetPointData()->GetArray(i)->GetNumberOfComponents() == 3)
+      {
+        surfaces->GetPointData()->SetVectors(probe->GetOutput()->GetPointData()->GetArray(i));
+        break;
+      }
     }
   }
   return 1;
@@ -542,6 +545,22 @@ int vtkVectorFieldTopology::RequestData(vtkInformation* vtkNotUsed(request),
 
   // get the input and output
   vtkImageData* dataset = vtkImageData::SafeDownCast(inInfo->Get(vtkDataObject::DATA_OBJECT()));
+
+  // these things are necessary for probe and the integrator to work properly in the 2D setting
+  if (dataset->GetDataDimension() == 2)
+  {
+    dataset->SetSpacing(dataset->GetSpacing()[0], dataset->GetSpacing()[1], 1);
+    dataset->SetOrigin(dataset->GetOrigin()[0], dataset->GetOrigin()[1], 0);
+    for (int i = 0; i < dataset->GetNumberOfPoints(); ++i)
+    {
+      auto vector = dataset->GetPointData()->GetVectors()->GetTuple(i);
+      dataset->GetPointData()->GetVectors()->SetTuple3(i, vector[0], vector[1], 0);
+    }
+  }
+  if (dataset->GetPointData()->GetVectors() == NULL)
+  {
+    vtkErrorMacro("The field does not contain any vectors.");
+  }
 
   // make output
   vtkPolyData* criticalPoints =
