@@ -29,8 +29,8 @@
 #include "vtkPolyDataAlgorithm.h"
 #include "vtkStreamTracer.h"
 
-class vtkImageData;
 class vtkAppendPolyData;
+class vtkImageData;
 class vtkRuledSurfaceFilter;
 
 class VTKFILTERSFLOWPATHS_EXPORT vtkStreamSurface : public vtkStreamTracer
@@ -84,7 +84,7 @@ private:
   /**
    * depending on this boolen the simple (fast) or iterative (correct) version is called
    */
-  bool UseIterativeSeeding;
+  bool UseIterativeSeeding = false;
 
   vtkNew<vtkRuledSurfaceFilter> RuledSurface;
   vtkNew<vtkStreamTracer> StreamTracer;

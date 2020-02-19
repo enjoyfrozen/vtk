@@ -35,11 +35,8 @@ vtkStandardNewMacro(vtkStreamSurface);
 //----------------------------------------------------------------------------
 vtkStreamSurface::vtkStreamSurface()
 {
-  this->UseIterativeSeeding = false;
-
   this->RuledSurface->SetInputConnection(this->StreamTracer->GetOutputPort());
   this->RuledSurface->SetRuledModeToResample();
-  this->RuledSurface->SetResolution(this->MaximumNumberOfSteps, 1);
 }
 
 //----------------------------------------------------------------------------
@@ -266,17 +263,13 @@ int vtkStreamSurface::AdvectIterative(vtkImageData* field, vtkPolyData* seeds, v
           ->GetArray("IntegrationTime")
           ->GetRange()[1 - this->IntegrationDirection] == 0)
     {
-      cout << currentIteration << " surface stagnates at IntegrationTime "
-           << currentSeeds->GetPointData()
-                ->GetArray("IntegrationTime")
-                ->GetRange()[1 - this->IntegrationDirection]
-           << endl;
+      vtkDebugMacro("Surface stagnates. All particles have left the boundary.");
       break;
     }
     if (currentSeeds == nullptr)
     {
-      cout << "circle is empty." << endl;
-      break;
+      vtkErrorMacro("circle is empty.");
+      return 0;
     }
   }
   return 1;
@@ -296,6 +289,7 @@ int vtkStreamSurface::AdvectSimple(vtkImageData* field, vtkPolyData* seeds, vtkP
   this->StreamTracer->SetIntegrationDirection(this->IntegrationDirection);
   this->StreamTracer->SetMaximumNumberOfSteps(this->MaximumNumberOfSteps);
 
+  this->RuledSurface->SetResolution(this->MaximumNumberOfSteps, 1);
   this->RuledSurface->Update();
 
   output->ShallowCopy(this->RuledSurface->GetOutput());
@@ -319,13 +313,14 @@ int vtkStreamSurface::RequestData(vtkInformation* vtkNotUsed(request),
   // make output
   vtkPolyData* output = vtkPolyData::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
 
+  int finishedSuccessfully = 0;
   if (this->UseIterativeSeeding)
   {
-    AdvectIterative(field, seeds, output);
+    finishedSuccessfully = AdvectIterative(field, seeds, output);
   }
   else
   {
-    AdvectSimple(field, seeds, output);
+    finishedSuccessfully = AdvectSimple(field, seeds, output);
   }
-  return 1;
+  return finishedSuccessfully;
 }
