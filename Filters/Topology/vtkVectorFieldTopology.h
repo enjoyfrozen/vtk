@@ -30,11 +30,11 @@
 #include <vtkFiltersTopologyModule.h> // For export macro
 #include <vtkPolyDataAlgorithm.h>
 
+class vtkGradientFilter;
 class vtkImageData;
 class vtkPolyData;
-class vtkUnstructuredGrid;
 class vtkStreamSurface;
-class vtkGradientFilter;
+class vtkUnstructuredGrid;
 
 class VTKFILTERSTOPOLOGY_EXPORT vtkVectorFieldTopology : public vtkPolyDataAlgorithm
 {
@@ -167,13 +167,40 @@ private:
     bool useIterativeSeeding);
 
   /**
+   * simple type that corresponds to the number of positive eigenvalues
+   * in analogy to ttk, where the type corresponds to the down directions
+   */
+  enum CriticalType3D
+  {
+    Degenerate3D = -1,
+    Sink3D = 0,
+    Saddle13D = 1,
+    Saddle23D = 2,
+    Source3D = 3,
+    Center3D = 4
+  };
+
+  /**
+   * simple type that corresponds to the number of positive eigenvalues
+   * in analogy to ttk, where the type corresponds to the down directions
+   */
+  enum CriticalType2D
+  {
+    Degenerate2D = -1,
+    Sink2D = 0,
+    Saddle2D = 1,
+    Source2D = 2,
+    Center2D = 3
+  };
+
+  /**
    * determine which type of critical point we have based on the eigenvalues of the Jacobian in 3D
    * @param countReal: number of real valued eigenvalues
    * @param countReal: number of complex valued eigenvalues
    * @param countPos: number of positive eigenvalues
    * @param countNeg: number of negative eigenvalues
    */
-  static int classify3D(int countReal, int countComplex, int countPos, int countNeg);
+  static CriticalType3D Classify3D(int countReal, int countComplex, int countPos, int countNeg);
 
   /**
    * determine which type of critical point we have based on the eigenvalues of the Jacobian in 2D
@@ -182,32 +209,32 @@ private:
    * @param countPos: number of positive eigenvalues
    * @param countNeg: number of negative eigenvalues
    */
-  static int classify2D(int countReal, int countComplex, int countPos, int countNeg);
+  static CriticalType2D Classify2D(int countReal, int countComplex, int countPos, int countNeg);
 
   /**
    * number of iterations in this class and in vtkStreamTracer
    */
-  int MaxNumSteps;
+  int MaxNumSteps = 100;
 
   /**
    * this value is used as stepsize for the integration
    */
-  double IntegrationStepSize;
+  double IntegrationStepSize = 1;
 
   /**
    * the separatrices are seeded with this offset from the critical points
    */
-  double SeparatrixDistance;
+  double SeparatrixDistance = 1;
 
   /**
    * depending on this boolen the simple (fast) or iterative (correct) version is called
    */
-  bool UseIterativeSeeding;
+  bool UseIterativeSeeding = false;
 
   /**
    * depending on this boolen the separatring surfaces (separatrices in 3D) are computed or not
    */
-  bool ComputeSurfaces;
+  bool ComputeSurfaces = false;
 
   vtkNew<vtkStreamSurface> StreamSurface;
   vtkNew<vtkGradientFilter> GradientFilter;

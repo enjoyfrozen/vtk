@@ -61,12 +61,6 @@ vtkVectorFieldTopology::vtkVectorFieldTopology()
   // number of input ports is 1
   this->SetNumberOfInputPorts(1);
   this->SetNumberOfOutputPorts(3);
-  this->MaxNumSteps = 100;
-  this->IntegrationStepUnit = 2;
-  this->IntegrationStepSize = 1;
-  this->SeparatrixDistance = 1;
-  this->UseIterativeSeeding = false;
-  this->ComputeSurfaces = false;
 }
 
 //----------------------------------------------------------------------------
@@ -102,37 +96,68 @@ int vtkVectorFieldTopology::FillOutputPortInformation(int port, vtkInformation* 
 }
 
 //----------------------------------------------------------------------------
-int vtkVectorFieldTopology::classify2D(int countReal, int countComplex, int countPos, int countNeg)
+vtkVectorFieldTopology::CriticalType2D vtkVectorFieldTopology::Classify2D(
+  int countReal, int countComplex, int countPos, int countNeg)
 {
   // make simple type that corresponds to the number of positive eigenvalues
   // source 2, saddle 1, sink 0, (center 3)
   // in analogy to ttk, where the type corresponds to the down directions
-  int critType = -1;
+  enum CriticalType2D critType = Degenerate2D;
   if (countPos + countNeg == 2)
   {
-    critType = countPos;
+    switch (countPos)
+    {
+      case 0:
+        critType = Sink2D;
+        break;
+      case 1:
+        critType = Saddle2D;
+        break;
+      case 2:
+        critType = Source2D;
+        break;
+      default:
+        break;
+    }
   }
   if (countComplex == 2)
   {
-    critType = 3;
+    critType = Center2D;
   }
   return critType;
 }
 
 //----------------------------------------------------------------------------
-int vtkVectorFieldTopology::classify3D(int countReal, int countComplex, int countPos, int countNeg)
+vtkVectorFieldTopology::CriticalType3D vtkVectorFieldTopology::Classify3D(
+  int countReal, int countComplex, int countPos, int countNeg)
 {
   // make simple type that corresponds to the number of positive eigenvalues
   // source 3, saddle 2 or 1, sink 0, (center 4)
   // in analogy to ttk, where the type corresponds to the down directions
-  int critType = -1;
+  enum CriticalType3D critType = Degenerate3D;
   if (countComplex > 0)
   {
-    critType = 4;
+    critType = Center3D;
   }
   if (countPos + countNeg == 3)
   {
-    critType = countPos;
+    switch (countPos)
+    {
+      case 0:
+        critType = Sink3D;
+        break;
+      case 1:
+        critType = Saddle13D;
+        break;
+      case 2:
+        critType = Saddle23D;
+        break;
+      case 3:
+        critType = Source3D;
+        break;
+      default:
+        break;
+    }
   }
   return critType;
 }
@@ -388,12 +413,12 @@ int vtkVectorFieldTopology::ComputeSeparatrices(vtkSmartPointer<vtkPolyData> cri
     if (dataset->GetDataDimension() == 2)
     {
       criticalPoints->GetPointData()->GetArray("type")->SetTuple1(
-        pointId, classify2D(countReal, countComplex, countPos, countNeg));
+        pointId, Classify2D(countReal, countComplex, countPos, countNeg));
     }
     else
     {
       criticalPoints->GetPointData()->GetArray("type")->SetTuple1(
-        pointId, classify3D(countReal, countComplex, countPos, countNeg));
+        pointId, Classify3D(countReal, countComplex, countPos, countNeg));
     }
 
     // separatrix
@@ -558,9 +583,10 @@ int vtkVectorFieldTopology::RequestData(vtkInformation* vtkNotUsed(request),
       dataset->GetPointData()->GetVectors()->SetTuple3(i, vector[0], vector[1], 0);
     }
   }
-  if (dataset->GetPointData()->GetVectors() == NULL)
+  if (dataset->GetPointData()->GetVectors() == nullptr)
   {
     vtkErrorMacro("The field does not contain any vectors.");
+    return 0;
   }
 
   // make output
