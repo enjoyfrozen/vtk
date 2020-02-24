@@ -36,24 +36,21 @@ class vtkRuledSurfaceFilter;
 class VTKFILTERSFLOWPATHS_EXPORT vtkStreamSurface : public vtkStreamTracer
 {
 public:
+  static vtkStreamSurface* New();
   vtkTypeMacro(vtkStreamSurface, vtkStreamTracer);
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  /**
-   * Construct object to integrate streamsurface.
-   * The defaults are like in vtkStreamTracer and UseIterativeSeeding = 0
-   */
-  static vtkStreamSurface* New();
-
+  //@{
   /**
    * Specify/see if the simple (fast) or iterative (correct) version is called
    */
   vtkSetMacro(UseIterativeSeeding, bool);
   vtkGetMacro(UseIterativeSeeding, bool);
+  //@}
 
 protected:
   vtkStreamSurface();
-  ~vtkStreamSurface() override = default;
+  ~vtkStreamSurface();
   int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
 private:

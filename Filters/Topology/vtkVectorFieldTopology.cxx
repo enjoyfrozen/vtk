@@ -64,6 +64,9 @@ vtkVectorFieldTopology::vtkVectorFieldTopology()
 }
 
 //----------------------------------------------------------------------------
+vtkVectorFieldTopology::~vtkVectorFieldTopology() = default;
+
+//----------------------------------------------------------------------------
 void vtkVectorFieldTopology::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
@@ -96,13 +99,12 @@ int vtkVectorFieldTopology::FillOutputPortInformation(int port, vtkInformation* 
 }
 
 //----------------------------------------------------------------------------
-vtkVectorFieldTopology::CriticalType2D vtkVectorFieldTopology::Classify2D(
-  int countReal, int countComplex, int countPos, int countNeg)
+int vtkVectorFieldTopology::Classify2D(int countReal, int countComplex, int countPos, int countNeg)
 {
   // make simple type that corresponds to the number of positive eigenvalues
   // source 2, saddle 1, sink 0, (center 3)
   // in analogy to ttk, where the type corresponds to the down directions
-  enum CriticalType2D critType = Degenerate2D;
+  int critType = Degenerate2D;
   if (countPos + countNeg == 2)
   {
     switch (countPos)
@@ -128,13 +130,12 @@ vtkVectorFieldTopology::CriticalType2D vtkVectorFieldTopology::Classify2D(
 }
 
 //----------------------------------------------------------------------------
-vtkVectorFieldTopology::CriticalType3D vtkVectorFieldTopology::Classify3D(
-  int countReal, int countComplex, int countPos, int countNeg)
+int vtkVectorFieldTopology::Classify3D(int countReal, int countComplex, int countPos, int countNeg)
 {
   // make simple type that corresponds to the number of positive eigenvalues
   // source 3, saddle 2 or 1, sink 0, (center 4)
   // in analogy to ttk, where the type corresponds to the down directions
-  enum CriticalType3D critType = Degenerate3D;
+  int critType = Degenerate3D;
   if (countComplex > 0)
   {
     critType = Center3D;
@@ -342,7 +343,7 @@ int vtkVectorFieldTopology::ComputeSeparatrices(vtkSmartPointer<vtkPolyData> cri
   bool useIterativeSeeding)
 {
   // adapt dist if cell unit was selected
-  if (integrationStepUnit == 2)
+  if (integrationStepUnit == vtkStreamTracer::CELL_LENGTH_UNIT)
   {
     dist *= sqrt(static_cast<double>(dataset->GetCell(0)->GetLength2()));
   }

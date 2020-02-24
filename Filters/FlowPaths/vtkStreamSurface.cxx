@@ -40,6 +40,9 @@ vtkStreamSurface::vtkStreamSurface()
 }
 
 //----------------------------------------------------------------------------
+vtkStreamSurface::~vtkStreamSurface() = default;
+
+//----------------------------------------------------------------------------
 void vtkStreamSurface::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
@@ -294,7 +297,7 @@ int vtkStreamSurface::AdvectSimple(vtkImageData* field, vtkPolyData* seeds, vtkP
 
   output->ShallowCopy(this->RuledSurface->GetOutput());
 
-  return 1;
+  return (output != nullptr);
 }
 
 //----------------------------------------------------------------------------
