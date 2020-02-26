@@ -273,6 +273,12 @@ int vtkGeometryFilter::RequestData(vtkInformation* vtkNotUsed(request),
   outputPD->CopyGlobalIdsOn();
   outputCD->CopyAllocate(cd, numCells, numCells / 2);
 
+  vtkSmartPointer<vtkIdTypeArray> pedigree;
+  if (this->GeneratePedigreeIds)
+  {
+    pedigree = vtkSmartPointer<vtkIdTypeArray>::New();
+    pedigree->SetName("pedigree");
+  }
   if (this->Merging)
   {
     if (this->Locator == nullptr)
@@ -324,11 +330,19 @@ int vtkGeometryFilter::RequestData(vtkInformation* vtkNotUsed(request),
               if (this->Merging && this->Locator->InsertUniquePoint(x, pt))
               {
                 outputPD->CopyData(pd, ptId, pt);
+                if (pedigree)
+                {
+                  pedigree->InsertNextValue(ptId);
+                }
               }
               else if (!this->Merging)
               {
                 pt = newPts->InsertNextPoint(x);
                 outputPD->CopyData(pd, ptId, pt);
+                if (pedigree)
+                {
+                  pedigree->InsertNextValue(ptId);
+                }
               }
               pts->InsertId(i, pt);
             }
@@ -353,11 +367,19 @@ int vtkGeometryFilter::RequestData(vtkInformation* vtkNotUsed(request),
                   if (this->Merging && this->Locator->InsertUniquePoint(x, pt))
                   {
                     outputPD->CopyData(pd, ptId, pt);
+                    if (pedigree)
+                    {
+                      pedigree->InsertNextValue(ptId);
+                    }
                   }
                   else if (!this->Merging)
                   {
                     pt = newPts->InsertNextPoint(x);
                     outputPD->CopyData(pd, ptId, pt);
+                    if (pedigree)
+                    {
+                      pedigree->InsertNextValue(ptId);
+                    }
                   }
                   pts->InsertId(i, pt);
                 }
@@ -370,6 +392,11 @@ int vtkGeometryFilter::RequestData(vtkInformation* vtkNotUsed(request),
       }
     } // if visible
   }   // for all cells
+
+  if (pedigree)
+  {
+    outputPD->SetPedigreeIds(pedigree);
+  }
 
   vtkDebugMacro(<< "Extracted " << newPts->GetNumberOfPoints() << " points,"
                 << output->GetNumberOfCells() << " cells.");

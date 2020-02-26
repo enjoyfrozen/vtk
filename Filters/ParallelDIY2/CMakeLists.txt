@@ -10,6 +10,7 @@ set(classes
   vtkOverlappingCellsDetector
   vtkExtractSubsetWithSeed
   vtkGenerateGlobalIds
+  vtkPointFeatures
   vtkPResampleToImage
   vtkPResampleWithDataSet
   vtkRedistributeDataSetFilter)

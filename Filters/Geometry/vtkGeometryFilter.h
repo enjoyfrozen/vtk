@@ -150,6 +150,17 @@ public:
 
   //@{
   /**
+   * Turn on/off generation of node pedigree IDs. By default, this feature
+   * is off. When enabled, an array will be added to the output point data
+   * that indicates which mesh points the extracted points correspond to.
+   */
+  vtkSetMacro(GeneratePedigreeIds, vtkTypeBool);
+  vtkGetMacro(GeneratePedigreeIds, vtkTypeBool);
+  vtkBooleanMacro(GeneratePedigreeIds, vtkTypeBool);
+  //@}
+
+  //@{
+  /**
    * Set / get a spatial locator for merging points. By
    * default an instance of vtkMergePoints is used.
    */
@@ -202,6 +213,7 @@ protected:
   int OutputPointsPrecision;
 
   vtkTypeBool Merging;
+  vtkTypeBool GeneratePedigreeIds;
   vtkIncrementalPointLocator* Locator;
 
 private:
