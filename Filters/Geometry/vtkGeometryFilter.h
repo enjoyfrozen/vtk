@@ -139,9 +139,9 @@ public:
 
   //@{
   /**
-   * Turn on/off merging of coincident points. Note that is merging is
-   * on, points with different point attributes (e.g., normals) are merged,
-   * which may cause rendering artifacts.
+   * Turn on/off merging of coincident points. Note that if is merging is
+   * on, points with different point attributes (e.g., normals) are merged;
+   * this may cause rendering artifacts.
    */
   vtkSetMacro(Merging, vtkTypeBool);
   vtkGetMacro(Merging, vtkTypeBool);

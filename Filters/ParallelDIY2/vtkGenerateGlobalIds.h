@@ -17,7 +17,7 @@
  * @brief generates global point and cell ids.
  *
  * vtkGenerateGlobalIds generates global point and cell ids. This filter also
- * generated ghost-point information, flagging duplicate points appropriately.
+ * generates ghost-point information, flagging duplicate points appropriately.
  * vtkGenerateGlobalIds works across all blocks in the input datasets and across
  * all ranks.
  */
