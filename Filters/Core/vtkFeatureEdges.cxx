@@ -183,6 +183,7 @@ int vtkFeatureEdges::RequestData(vtkInformation* vtkNotUsed(request),
     newScalars->Allocate(numCells / 10, numCells);
   }
 
+  outPD->CopyGlobalIdsOn();
   outPD->CopyAllocate(pd, numPts);
   outCD->CopyAllocate(cd, numCells);
 
