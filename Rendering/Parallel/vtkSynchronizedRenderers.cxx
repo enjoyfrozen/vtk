@@ -177,10 +177,18 @@ void vtkSynchronizedRenderers::HandleStartRender()
     this->LastTexturedBackground = this->Renderer->GetTexturedBackground();
     this->LastGradientBackground = this->Renderer->GetGradientBackground();
 
+    this->Renderer->GetEnvironmentalBG(this->LastEnvironmentalBG);
+    this->LastTexturedEnvironmentalBG = this->Renderer->GetTexturedEnvironmentalBG();
+    this->LastGradientEnvironmentalBG = this->Renderer->GetGradientEnvironmentalBG();
+
     this->Renderer->SetBackground(0, 0, 0);
     this->Renderer->SetBackgroundAlpha(0);
     this->Renderer->SetTexturedBackground(false);
     this->Renderer->SetGradientBackground(false);
+
+    this->Renderer->SetEnvironmentalBG(0, 0, 0);
+    this->Renderer->SetTexturedEnvironmentalBG(false);
+    this->Renderer->SetGradientEnvironmentalBG(false);
   }
 
   if (this->ParallelController->GetLocalProcessId() == this->RootProcessId)
@@ -261,15 +269,6 @@ void vtkSynchronizedRenderers::HandleEndRender()
     }
   }
 
-  if (this->FixBackground)
-  {
-    // restore background values.
-    this->Renderer->SetBackground(this->LastBackground);
-    this->Renderer->SetBackgroundAlpha(this->LastBackgroundAlpha);
-    this->Renderer->SetTexturedBackground(this->LastTexturedBackground);
-    this->Renderer->SetGradientBackground(this->LastGradientBackground);
-  }
-
   // restore viewport before `PushImageToScreen`, but after
   // `CaptureRenderedImage`.
   this->Renderer->SetViewport(this->LastViewport);
@@ -277,6 +276,19 @@ void vtkSynchronizedRenderers::HandleEndRender()
   if (this->WriteBackImages)
   {
     this->PushImageToScreen();
+  }
+
+  if (this->FixBackground)
+  {
+    // restore background values.
+    this->Renderer->SetBackground(this->LastBackground);
+    this->Renderer->SetBackgroundAlpha(this->LastBackgroundAlpha);
+    this->Renderer->SetTexturedBackground(this->LastTexturedBackground);
+    this->Renderer->SetGradientBackground(this->LastGradientBackground);
+
+    this->Renderer->SetEnvironmentalBG(this->LastEnvironmentalBG);
+    this->Renderer->SetTexturedEnvironmentalBG(this->LastTexturedEnvironmentalBG);
+    this->Renderer->SetGradientEnvironmentalBG(this->LastGradientEnvironmentalBG);
   }
 
   // restore FXAA state.
