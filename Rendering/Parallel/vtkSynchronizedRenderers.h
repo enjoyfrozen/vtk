@@ -304,6 +304,10 @@ private:
   double LastBackgroundAlpha;
   bool LastTexturedBackground;
   bool LastGradientBackground;
+  double LastEnvironmentalBG[3];
+  double LastEnvironmentalBGAlpha;
+  bool LastTexturedEnvironmentalBG;
+  bool LastGradientEnvironmentalBG;
   bool FixBackground;
 };
 
