@@ -94,6 +94,7 @@ int vtkExtractEdges::RequestData(vtkInformation* vtkNotUsed(request),
 
   pd = input->GetPointData();
   outPD = output->GetPointData();
+  outPD->CopyGlobalIdsOn();
   outPD->CopyAllocate(pd, numPts);
 
   cd = input->GetCellData();
