@@ -81,7 +81,11 @@ vtkBoxRepresentation::vtkBoxRepresentation()
   this->HexActor->SetMapper(this->HexMapper);
   this->HexActor->SetProperty(this->OutlineProperty);
 
-  // Construct initial points
+  // Construct initial points. The first 8 points are the cube vertices
+  // (0,1,2,3 is bottom face in counterclockwise order; the next four
+  // points 4,5,6,7 is the top face in counterclockwise order; points
+  // 8,9 are -/+ xfaces; 10,11 are -/+ yfaces; 12,13 are -/+ zfaces.
+  // Point 14 is the center point.
   this->Points = vtkPoints::New(VTK_DOUBLE);
   this->Points->SetNumberOfPoints(15); // 8 corners; 6 faces; 1 center
   this->HexPolyData->SetPoints(this->Points);
@@ -284,6 +288,7 @@ void vtkBoxRepresentation::StartWidgetInteraction(double e[2])
   this->ComputeInteractionState(static_cast<int>(e[0]), static_cast<int>(e[1]), 0);
 }
 
+//----------------------------------------------------------------------
 void vtkBoxRepresentation::StartComplexInteraction(
   vtkRenderWindowInteractor*, vtkAbstractWidget*, unsigned long, void* calldata)
 {
@@ -309,6 +314,7 @@ void vtkBoxRepresentation::StartComplexInteraction(
   }
 }
 
+//----------------------------------------------------------------------
 void vtkBoxRepresentation::SetTwoPlaneMode(bool val)
 {
   if (this->TwoPlaneMode == val)
@@ -417,6 +423,7 @@ void vtkBoxRepresentation::WidgetInteraction(double e[2])
   this->LastEventPosition[2] = 0.0;
 }
 
+//----------------------------------------------------------------------
 void vtkBoxRepresentation::ComplexInteraction(
   vtkRenderWindowInteractor*, vtkAbstractWidget*, unsigned long, void* calldata)
 {
@@ -475,30 +482,35 @@ void vtkBoxRepresentation::ComplexInteraction(
   }
 }
 
+//----------------------------------------------------------------------------
 void vtkBoxRepresentation::StepForward()
 {
   double* pts = static_cast<vtkDoubleArray*>(this->Points->GetData())->GetPointer(0);
   this->Translate(pts, pts + 3);
 }
 
+//----------------------------------------------------------------------------
 void vtkBoxRepresentation::StepBackward()
 {
   double* pts = static_cast<vtkDoubleArray*>(this->Points->GetData())->GetPointer(0);
   this->Translate(pts + 3, pts);
 }
 
+//----------------------------------------------------------------------------
 void vtkBoxRepresentation::EndComplexInteraction(
   vtkRenderWindowInteractor*, vtkAbstractWidget*, unsigned long, void*)
 {
 }
 
 //----------------------------------------------------------------------------
-void vtkBoxRepresentation::MoveFace(const double* p1, const double* p2, const double* dir,
-  double* x1, double* x2, double* x3, double* x4, double* x5)
+void vtkBoxRepresentation::
+MoveFace(const double* p1, const double* p2, const double* dir,
+         double* x1, double* x2, double* x3, double* x4, double* x5)
 {
   int i;
   double v[3], v2[3];
 
+  // Get the vector of motion and project it onto the face normal
   for (i = 0; i < 3; i++)
   {
     v[i] = p2[i] - p1[i];
@@ -566,8 +578,10 @@ void vtkBoxRepresentation::MovePlusXFace(const double* p1, const double* p2)
 {
   double* pts = static_cast<vtkDoubleArray*>(this->Points->GetData())->GetPointer(0);
 
+  // The center point of the +x face
   double* h1 = pts + 3 * 9;
 
+  // The points defining the face
   double* x1 = pts + 3 * 1;
   double* x2 = pts + 3 * 2;
   double* x3 = pts + 3 * 5;
@@ -584,8 +598,10 @@ void vtkBoxRepresentation::MoveMinusXFace(const double* p1, const double* p2)
 {
   double* pts = static_cast<vtkDoubleArray*>(this->Points->GetData())->GetPointer(0);
 
+  // The center point of the -x face
   double* h1 = pts + 3 * 8;
 
+  // The points defining the face
   double* x1 = pts + 3 * 0;
   double* x2 = pts + 3 * 3;
   double* x3 = pts + 3 * 4;
@@ -818,7 +834,7 @@ void vtkBoxRepresentation::Rotate(
   vtkPoints* newPts = vtkPoints::New(VTK_DOUBLE);
   this->Transform->TransformPoints(this->Points, newPts);
 
-  for (i = 0; i < 8; i++, pts += 3)
+  for (i = 0; i < 8; i++)
   {
     this->Points->SetPoint(i, newPts->GetPoint(i));
   }
@@ -827,6 +843,7 @@ void vtkBoxRepresentation::Rotate(
   this->PositionHandles();
 }
 
+//----------------------------------------------------------------------
 namespace
 {
 bool snapToAxis(vtkVector3d& in, vtkVector3d& out, double snapAngle)
@@ -856,6 +873,7 @@ bool snapToAxis(vtkVector3d& in, vtkVector3d& out, double snapAngle)
 }
 }
 
+//----------------------------------------------------------------------------
 void vtkBoxRepresentation::UpdatePose(
   const double* pos1, const double* orient1, const double* pos2, const double* orient2)
 {
@@ -1369,6 +1387,7 @@ int vtkBoxRepresentation::ComputeInteractionState(int X, int Y, int modify)
   return this->InteractionState;
 }
 
+//----------------------------------------------------------------------
 int vtkBoxRepresentation::ComputeComplexInteractionState(
   vtkRenderWindowInteractor*, vtkAbstractWidget*, unsigned long, void* calldata, int)
 {
@@ -1596,6 +1615,8 @@ vtkTypeBool vtkBoxRepresentation::HasTranslucentPolygonalGeometry()
   c[2] = (a[2] + b[2]) / 2.0;
 
 //----------------------------------------------------------------------------
+// After moving some of the points defining the box corner vertices, update
+// the other (face,center) points and associated (plane) implicit functions.
 void vtkBoxRepresentation::PositionHandles()
 {
   double* pts = static_cast<vtkDoubleArray*>(this->Points->GetData())->GetPointer(0);
@@ -1610,7 +1631,7 @@ void vtkBoxRepresentation::PositionHandles()
   double x[3];
 
   VTK_AVERAGE(p0, p7, x);
-  this->Points->SetPoint(8, x);
+  this->Points->SetPoint(8, x); //the six face points
   VTK_AVERAGE(p1, p6, x);
   this->Points->SetPoint(9, x);
   VTK_AVERAGE(p0, p5, x);
@@ -1622,13 +1643,15 @@ void vtkBoxRepresentation::PositionHandles()
   VTK_AVERAGE(p5, p7, x);
   this->Points->SetPoint(13, x);
   VTK_AVERAGE(p0, p6, x);
-  this->Points->SetPoint(14, x);
+  this->Points->SetPoint(14, x); //center point opposite corners
 
+  // Update the face points and center point
   for (int i = 0; i < 7; ++i)
   {
     this->HandleGeometry[i]->SetCenter(this->Points->GetPoint(8 + i));
   }
 
+  // Set the origin and normal of the planes defining the box.
   for (int i = 0; i < 6; ++i)
   {
     this->Planes[i]->SetOrigin(this->Points->GetPoint(8 + i));
@@ -1640,6 +1663,7 @@ void vtkBoxRepresentation::PositionHandles()
     this->Planes[i]->SetNormal(pp2.GetData());
   }
 
+  // Modify everything to make sure pipelinese execute properly
   this->Points->GetData()->Modified();
   this->HexFacePolyData->Modified();
   this->HexPolyData->Modified();

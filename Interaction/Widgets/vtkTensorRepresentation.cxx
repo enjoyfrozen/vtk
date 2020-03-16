@@ -102,7 +102,11 @@ vtkTensorRepresentation::vtkTensorRepresentation()
   this->HexActor->SetMapper(this->HexMapper);
   this->HexActor->SetProperty(this->OutlineProperty);
 
-  // Construct initial points
+  // Construct initial points. The first 8 points are the cube vertices
+  // (0,1,2,3 is bottom face in counterclockwise order; the next four
+  // points 4,5,6,7 is the top face in counterclockwise order; points
+  // 8,9 are -/+ xfaces; 10,11 are -/+ yfaces; 12,13 are -/+ zfaces.
+  // Point 14 is the center point.
   this->Points = vtkPoints::New(VTK_DOUBLE);
   this->Points->SetNumberOfPoints(15); // 8 corners; 6 faces; 1 center
   this->HexPolyData->SetPoints(this->Points);
@@ -202,7 +206,10 @@ vtkTensorRepresentation::vtkTensorRepresentation()
   this->EllipsoidSource->SetPhiResolution(64);
   this->EllipsoidMapper = vtkPolyDataMapper::New();
   this->EllipsoidMapper->SetInputConnection(this->EllipsoidSource->GetOutputPort());
+  this->EllipsoidTransform = vtkTransform::New();
+  this->EllipsoidMatrix = vtkMatrix4x4::New();
   this->EllipsoidActor = vtkActor::New();
+
   this->EllipsoidActor->SetMapper(this->EllipsoidMapper);
   this->EllipsoidActor->SetProperty(this->EllipsoidProperty);
 
@@ -264,6 +271,8 @@ vtkTensorRepresentation::~vtkTensorRepresentation()
   delete[] this->HandleGeometry;
 
   this->EllipsoidActor->Delete();
+  this->EllipsoidTransform->Delete();
+  this->EllipsoidMatrix->Delete();
   this->EllipsoidMapper->Delete();
   this->EllipsoidSource->Delete();
 
@@ -901,19 +910,21 @@ void vtkTensorRepresentation::Rotate(
   this->Transform->RotateWXYZ(theta, axis);
   this->Transform->Translate(-center[0], -center[1], -center[2]);
 
-  // Set the corners
+  // Set the corner points.
   this->TmpPoints->Reset();
   this->Transform->TransformPoints(this->Points, this->TmpPoints);
-
-  for (i = 0; i < 8; i++, pts += 3)
+  for (i = 0; i < 8; i++)
   {
     this->Points->SetPoint(i, this->TmpPoints->GetPoint(i));
   }
 
-  this->PositionHandles();
+  // Update the other points
   this->UpdateTensorFromWidget();
+  this->PositionHandles();
+
 }
 
+//----------------------------------------------------------------------------
 namespace
 {
 bool snapToAxis(vtkVector3d& in, vtkVector3d& out, double snapAngle)
@@ -1310,10 +1321,10 @@ void vtkTensorRepresentation::UpdateTensorFromWidget()
 
   // Use the internal transforms to perform the transformation of the
   // ellipsoid.
-  this->Transform->Identity();
+  this->EllipsoidTransform->Identity();
 
   // Translate to center of widget
-  this->Transform->Translate(center);
+  this->EllipsoidTransform->Translate(center);
 
   // Next scale and rotate the ellipsoid based on the eigenvectors (which are
   // simply the semi-axes of the widget representation).
@@ -1321,13 +1332,13 @@ void vtkTensorRepresentation::UpdateTensorFromWidget()
   {
     for ( auto i=0; i<3; ++i )
     {
-      this->Matrix->Element[i][j] = tensor[i][j];
+      this->EllipsoidMatrix->Element[i][j] = tensor[i][j];
     }
   }
-  this->Transform->Concatenate(this->Matrix);
+  this->EllipsoidTransform->Concatenate(this->EllipsoidMatrix);
 
   // Specify total transformation
-  this->EllipsoidActor->SetUserTransform(this->Transform);
+  this->EllipsoidActor->SetUserTransform(this->EllipsoidTransform);
 
   // Now update the tensor information
   std::copy(this->TensorPosition,this->TensorPosition+3, center);

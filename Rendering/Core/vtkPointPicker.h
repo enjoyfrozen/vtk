@@ -41,9 +41,14 @@ class vtkDataSet;
 class VTKRENDERINGCORE_EXPORT vtkPointPicker : public vtkPicker
 {
 public:
+  //@{
+  /**
+   * Standard methods for instantiation, type information, and printing.
+   */
   static vtkPointPicker* New();
   vtkTypeMacro(vtkPointPicker, vtkPicker);
   void PrintSelf(ostream& os, vtkIndent indent) override;
+  //@}
 
   //@{
   /**

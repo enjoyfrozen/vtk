@@ -34,7 +34,7 @@ vtkPointCloudWidget::vtkPointCloudWidget()
   this->WidgetState = vtkPointCloudWidget::Start;
   this->ManagesCursor = 1;
 
-  // Define widget events
+  // Define widget events: translate mouse events to widget events
   this->CallbackMapper->SetCallbackMethod(
     vtkCommand::MouseMoveEvent, vtkWidgetEvent::Move, this, vtkPointCloudWidget::MoveAction);
 
@@ -42,16 +42,6 @@ vtkPointCloudWidget::vtkPointCloudWidget()
     0, nullptr, vtkWidgetEvent::Select, this, vtkPointCloudWidget::SelectAction);
   this->CallbackMapper->SetCallbackMethod(vtkCommand::LeftButtonReleaseEvent, vtkEvent::AnyModifier,
     0, 0, nullptr, vtkWidgetEvent::EndSelect, this, vtkPointCloudWidget::EndSelectAction);
-
-  this->CallbackMapper->SetCallbackMethod(vtkCommand::LeftButtonPressEvent, vtkEvent::ShiftModifier, 0,
-    0, nullptr, vtkWidgetEvent::Select, this, vtkPointCloudWidget::QueryAction);
-
-  this->CallbackMapper->SetCallbackMethod(vtkCommand::MiddleButtonPressEvent,
-    vtkWidgetEvent::Select, this, vtkPointCloudWidget::QueryAction);
-
-  this->CallbackMapper->SetCallbackMethod(vtkCommand::RightButtonPressEvent,
-    vtkWidgetEvent::Select, this, vtkPointCloudWidget::QueryAction);
-
 }
 
 //----------------------------------------------------------------------------
@@ -74,8 +64,9 @@ void vtkPointCloudWidget::MoveAction(vtkAbstractWidget* w)
 {
   vtkPointCloudWidget* self = reinterpret_cast<vtkPointCloudWidget*>(w);
 
-  // See whether we're active
-  if (self->WidgetState == vtkPointCloudWidget::Start)
+  // See whether we're active, return if we are in the middle of something
+  // (i.e., a selection process).
+  if (self->WidgetState == vtkPointCloudWidget::Active)
   {
     return;
   }
@@ -84,11 +75,20 @@ void vtkPointCloudWidget::MoveAction(vtkAbstractWidget* w)
   int X = self->Interactor->GetEventPosition()[0];
   int Y = self->Interactor->GetEventPosition()[1];
 
-  // Okay, adjust the representation
-  double e[2];
-  e[0] = static_cast<double>(X);
-  e[1] = static_cast<double>(Y);
-  self->WidgetRep->WidgetInteraction(e);
+  // Retrieve the current point id before computing the interaction state. Invoke an
+  // event only when a new point is selected.
+  vtkIdType ptId = reinterpret_cast<vtkPointCloudRepresentation*>(self->WidgetRep)->GetPointId();
+  int state = self->WidgetRep->ComputeInteractionState(X,Y);
+  if ( ptId == reinterpret_cast<vtkPointCloudRepresentation*>(self->WidgetRep)->GetPointId() )
+  {
+    return;
+  }
+
+  // Something new has been picked
+  if ( state == vtkPointCloudRepresentation::Over )
+  {
+    self->InvokeEvent(vtkCommand::PickEvent, nullptr);
+  }
 
   // moving something
   self->EventCallbackCommand->SetAbortFlag(1);
@@ -113,59 +113,28 @@ void vtkPointCloudWidget::SelectAction(vtkAbstractWidget* w)
     return;
   }
 
-  // Begin the widget interaction which has the side effect of setting the
-  // interaction state.
-  double e[2];
-  e[0] = static_cast<double>(X);
-  e[1] = static_cast<double>(Y);
-  self->WidgetRep->StartWidgetInteraction(e);
-  int interactionState = self->WidgetRep->GetInteractionState();
-  if (interactionState == vtkPointCloudRepresentation::Outside)
+  // Only can select if we are over a point
+  int state = self->WidgetRep->GetInteractionState();
+  if ( state != vtkPointCloudRepresentation::Over )
   {
     return;
   }
 
-
-
-  // start the interaction
-  self->EventCallbackCommand->SetAbortFlag(1);
-  self->StartInteraction();
-  self->InvokeEvent(vtkCommand::StartInteractionEvent, nullptr);
-  self->Render();
-}
-
-//----------------------------------------------------------------------
-void vtkPointCloudWidget::QueryAction(vtkAbstractWidget* w)
-{
-  // We are in a static method, cast to ourself
-  vtkPointCloudWidget* self = reinterpret_cast<vtkPointCloudWidget*>(w);
-
-  // Get the event position
-  int X = self->Interactor->GetEventPosition()[0];
-  int Y = self->Interactor->GetEventPosition()[1];
-
-  // Okay, make sure that the pick is in the current renderer
-  if (!self->CurrentRenderer || !self->CurrentRenderer->IsInViewport(X, Y))
-  {
-    self->WidgetState = vtkPointCloudWidget::Start;
-    return;
-  }
-
-  // Begin the widget interaction which has the side effect of setting the
-  // interaction state.
-  double e[2];
-  e[0] = static_cast<double>(X);
-  e[1] = static_cast<double>(Y);
-  self->WidgetRep->StartWidgetInteraction(e);
-  int interactionState = self->WidgetRep->GetInteractionState();
-  if (interactionState == vtkPointCloudRepresentation::Outside)
+  // Compare the old state to the new computed state. If nothing has
+  // changed, just return.
+  if ( state == self->WidgetRep->ComputeInteractionState(X,Y))
   {
     return;
   }
 
+  // We are definitely selected
+  self->WidgetState = vtkPointCloudWidget::Active;
+  if (!self->Parent)
+  {
+    self->GrabFocus(self->EventCallbackCommand);
+  }
 
-
-  // start the interaction
+  // Something has changed, so render to see the changes
   self->EventCallbackCommand->SetAbortFlag(1);
   self->StartInteraction();
   self->InvokeEvent(vtkCommand::StartInteractionEvent, nullptr);

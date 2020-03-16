@@ -391,8 +391,10 @@ protected:
   vtkPolyDataMapper* OutlineMapper;
   vtkPolyData* OutlinePolyData;
 
-  // the tensor ellipsoid
+  // the tensor ellipsoid and transforms
   vtkActor* EllipsoidActor;
+  vtkTransform* EllipsoidTransform;
+  vtkMatrix4x4* EllipsoidMatrix;
   vtkPolyDataMapper* EllipsoidMapper;
   vtkSphereSource* EllipsoidSource;
 

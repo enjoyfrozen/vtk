@@ -12,6 +12,7 @@ set(classes
   vtkFitImplicitFunction
   vtkGaussianKernel
   vtkGeneralizedKernel
+  vtkGlyphPackingFilter
   vtkHierarchicalBinningFilter
   vtkInterpolationKernel
   vtkLinearKernel

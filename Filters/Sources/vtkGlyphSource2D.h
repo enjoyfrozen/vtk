@@ -56,8 +56,13 @@ class vtkCellArray;
 class VTKFILTERSSOURCES_EXPORT vtkGlyphSource2D : public vtkPolyDataAlgorithm
 {
 public:
+  //@{
+  /**
+   * Standard methods for obtaining type information and printing.
+   */
   vtkTypeMacro(vtkGlyphSource2D, vtkPolyDataAlgorithm);
   void PrintSelf(ostream& os, vtkIndent indent) override;
+  //@}
 
   /**
    * Construct a vertex glyph centered at the origin, scale 1.0, white in

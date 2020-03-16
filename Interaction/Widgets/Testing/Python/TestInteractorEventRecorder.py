@@ -129,8 +129,8 @@ class TestInteractorEventRecorder(vtk.test.Testing.vtkTest):
         recorder.Off()
 
         # render and interact with data
-
         renWin.Render()
+        iRen.Start()
 
         img_file = "TestInteractorEventRecorder.png"
         vtk.test.Testing.compareImage(iRen.GetRenderWindow(), vtk.test.Testing.getAbsImagePath(img_file), threshold=25)

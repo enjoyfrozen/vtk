@@ -14,15 +14,24 @@
 =========================================================================*/
 /**
  * @class   vtkPointCloudWidget
- * @brief   query, select, and manipulate a point from a point cloud
+ * @brief   select and manipulate a point from a point cloud
  *
- * This 3D widget allows the user to query, select, and optionally manipulate
- * one point from a large collection of points. Typically it is paired with
- * an additional widget to provide local point editing (e.g., move a point,
- * modify associated attribute values).
+ * This 3D widget allows the user to select one point from a large collection
+ * of points (i.e., a point cloud). Typically it is paired with an additional
+ * widget to provide local point editing (e.g., move a point, modify
+ * associated attribute values); or uses callbacks (via the Observer
+ * mechanism) to perform additional operations on the selected point.
+ *
+ * Typically the behavior of the widget is as follows. As the user mouses
+ * over the point cloud, picking continuously occurs. If a point is 1) picked
+ * (i.e., the cursor is within a tolerance) and 2) a different point is
+ * picked, then a widget pick event is invoked. The user, by observing the
+ * event, can display further information such as text strings
+ * etc. Additionally, the user can select the point (typically any mouse
+ * button click) which invokes a widget select event.
  *
  * @sa
- * vtkPointWidget vtkTensorSizingWidget
+ * vtkPointCloudRepresentation vtkPointWidget vtkTensorSizingWidget
  */
 
 #ifndef vtkPointCloudWidget_h
@@ -42,7 +51,7 @@ public:
    * Standard methods for instantiation, type information, and printing.
    */
   static vtkPointCloudWidget* New();
-  vtkTypeMacro(vtkPointCloudWidget, vtk3DWidget);
+  vtkTypeMacro(vtkPointCloudWidget, vtkAbstractWidget);
   void PrintSelf(ostream& os, vtkIndent indent) override;
   //@}
 
@@ -79,10 +88,9 @@ protected:
     Active
   };
 
-  // These methods handle events
+  // These methods handle mouse events
   static void MoveAction(vtkAbstractWidget*);
   static void SelectAction(vtkAbstractWidget*);
-  static void QueryAction(vtkAbstractWidget*);
   static void EndSelectAction(vtkAbstractWidget*);
 
 private:

@@ -99,6 +99,7 @@ public:
   virtual void BuildRepresentation() = 0;
   //@}
 
+  //@{
   /**
    * The following is a suggested API for widget representations. These methods
    * define the communication between the widget and its representation. These
@@ -138,6 +139,7 @@ public:
   virtual int ComputeInteractionState(int X, int Y, int modify = 0);
   virtual int GetInteractionState() { return this->InteractionState; }
   virtual void Highlight(int vtkNotUsed(highlightOn)) {}
+  //@}
 
   //@{
   // Widgets were originally designed to be driven by 2D mouse events
@@ -198,6 +200,7 @@ public:
   vtkBooleanMacro(NeedToRender, vtkTypeBool);
   //@}
 
+  //@{
   /**
    * Methods to make this class behave as a vtkProp. They are repeated here (from the
    * vtkProp superclass) as a reminder to the widget implementor. Failure to implement
@@ -216,6 +219,7 @@ public:
   int RenderTranslucentPolygonalGeometry(vtkViewport* vtkNotUsed(viewport)) override { return 0; }
   int RenderVolumetricGeometry(vtkViewport* vtkNotUsed(viewport)) override { return 0; }
   vtkTypeBool HasTranslucentPolygonalGeometry() override { return 0; }
+  //@}
 
   /**
    * Register internal Pickers in the Picking Manager.
@@ -280,6 +284,7 @@ protected:
    */
   vtkPickingManager* GetPickingManager();
 
+  //@{
   /**
    * Proceed to a pick, whether through the PickingManager if the picking is
    * managed or directly using the registered picker, and return the assembly
@@ -287,6 +292,7 @@ protected:
    */
   vtkAssemblyPath* GetAssemblyPath(double X, double Y, double Z, vtkAbstractPropPicker* picker);
   vtkAssemblyPath* GetAssemblyPath3DPoint(double pos[3], vtkAbstractPropPicker* picker);
+  //@}
 
   // Helper function to cull events if they are not near to the actual widget
   // representation. This is needed typically in situations of extreme zoom
