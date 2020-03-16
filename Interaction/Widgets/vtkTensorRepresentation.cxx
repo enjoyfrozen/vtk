@@ -335,6 +335,7 @@ SetTensor(double tensor[9])
   vtkMath::Jacobi(m, this->Eigenvalues, v);
 
   // Now update the widget/representation from the tensor
+  this->PositionHandles();
   this->UpdateWidgetFromTensor();
 }
 
@@ -918,10 +919,9 @@ void vtkTensorRepresentation::Rotate(
     this->Points->SetPoint(i, this->TmpPoints->GetPoint(i));
   }
 
-  // Update the other points. We update the tensor first to make sure the
-  // proper center point for rotation is used.
-  this->UpdateTensorFromWidget();
+  // Update the other points.
   this->PositionHandles();
+  this->UpdateTensorFromWidget();
 }
 
 //----------------------------------------------------------------------------
@@ -1132,22 +1132,11 @@ void vtkTensorRepresentation::CreateDefaultProperties()
 void vtkTensorRepresentation::
 PlaceTensor(double tensor[9], double pos[3])
 {
-  // Set the center of the representation
-  double* pts = static_cast<vtkDoubleArray*>(this->Points->GetData())->GetPointer(0);
-  double* center = pts + 3*14;
-  std::copy(pos,pos+3, center);
+  double bds[6]={-1,1, -1,1, -1,1};
+  this->PlaceWidget(bds);
 
   // Now update the widget/representation from the tensor
   this->SetTensor(tensor);
-
-  // Perform some bookkeeping including setting the initial bounds and length
-  // (used for sizing the handles and such)
-  vtkBoundingBox bbox;
-  bbox.ComputeBounds(this->Points,this->InitialBounds);
-  this->InitialLength = bbox.GetDiagonalLength();
-  this->ComputeNormals();
-  this->ValidPick = 1; // since we have set up widget
-  this->SizeHandles();
 }
 
 //----------------------------------------------------------------------------
@@ -1388,30 +1377,27 @@ void vtkTensorRepresentation::UpdateWidgetFromTensor()
   this->Points->SetPoint(6,  1,  1,  1);
   this->Points->SetPoint(7, -1,  1,  1);
 
-  this->Transform->Identity();
-  this->Transform->Translate(center[0],center[1],center[2]);
-  this->Transform->Scale(this->Eigenvalues);
+  this->EllipsoidTransform->Identity();
+  this->EllipsoidTransform->Translate(center[0],center[1],center[2]);
+  this->EllipsoidTransform->Scale(this->Eigenvalues);
 
   for ( auto j=0; j<3; ++j )
   {
     for ( auto i=0; i<3; ++i )
     {
-      this->Matrix->Element[i][j] = this->Eigenvectors[i][j];
+      this->EllipsoidMatrix->Element[i][j] = this->Eigenvectors[i][j];
     }
   }
-  this->Transform->Concatenate(this->Matrix);
-  this->Transform->Translate(-center[0],-center[1],-center[2]);
+  this->EllipsoidTransform->Concatenate(this->EllipsoidMatrix);
+  this->EllipsoidTransform->Translate(-center[0],-center[1],-center[2]);
 
   // Transform the 8 corner points
   this->TmpPoints->Reset();
-  this->Transform->TransformPoints(this->Points, this->TmpPoints);
+  this->EllipsoidTransform->TransformPoints(this->Points, this->TmpPoints);
   for (auto i = 0; i < 8; i++)
   {
     this->Points->SetPoint(i, this->TmpPoints->GetPoint(i));
   }
-
-  // Transform the ellipsoid
-  this->EllipsoidActor->SetUserTransform(this->Transform);
 
   this->PositionHandles();
 }

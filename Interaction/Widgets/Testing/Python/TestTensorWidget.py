@@ -29,8 +29,8 @@ class TestTensorWidget(vtk.test.Testing.vtkTest):
 
         # Demonstrate how to use the vtkTensorWidget This script uses a
         # vtkTensorWidget and vtkTensorRepresentation to select and edit a
-        # tensor and associated glyph. Make sure that you hit the "I" key to
-        # activate the widget.
+        # tensor and associated glyph. This test places an initial, canonical
+        # widget (i.e., sphere) at the orgin.
 
         # Create the RenderWindow, Renderer and both Actors
         #
