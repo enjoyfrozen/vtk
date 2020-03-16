@@ -209,9 +209,9 @@ vtkTensorRepresentation::vtkTensorRepresentation()
   this->EllipsoidTransform = vtkTransform::New();
   this->EllipsoidMatrix = vtkMatrix4x4::New();
   this->EllipsoidActor = vtkActor::New();
-
   this->EllipsoidActor->SetMapper(this->EllipsoidMapper);
   this->EllipsoidActor->SetProperty(this->EllipsoidProperty);
+  this->EllipsoidActor->SetUserTransform(this->EllipsoidTransform);
 
   // Define the point coordinates
   double bounds[6];
@@ -918,10 +918,10 @@ void vtkTensorRepresentation::Rotate(
     this->Points->SetPoint(i, this->TmpPoints->GetPoint(i));
   }
 
-  // Update the other points
+  // Update the other points. We update the tensor first to make sure the
+  // proper center point for rotation is used.
   this->UpdateTensorFromWidget();
   this->PositionHandles();
-
 }
 
 //----------------------------------------------------------------------------
@@ -958,7 +958,6 @@ bool snapToAxis(vtkVector3d& in, vtkVector3d& out, double snapAngle)
 void vtkTensorRepresentation::UpdatePose(
   const double* pos1, const double* orient1, const double* pos2, const double* orient2)
 {
-
   bool newSnap[3];
   vtkVector3d basis[3];
   double basisSize[3];
@@ -1338,10 +1337,10 @@ void vtkTensorRepresentation::UpdateTensorFromWidget()
   this->EllipsoidTransform->Concatenate(this->EllipsoidMatrix);
 
   // Specify total transformation
-  this->EllipsoidActor->SetUserTransform(this->EllipsoidTransform);
+  //  this->EllipsoidTransform->Modified();
 
   // Now update the tensor information
-  std::copy(this->TensorPosition,this->TensorPosition+3, center);
+  std::copy(center,center+3, this->TensorPosition);
   this->UpdateTensorEigenfunctions(tensor);
 }
 
