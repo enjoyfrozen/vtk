@@ -87,7 +87,8 @@
  * minimizing shrinkage.
  *
  * @sa
- * vtkWindowedSincPolyDataFilter vtkDecimate vtkDecimatePro
+ * vtkWindowedSincPolyDataFilter vtkGlyphPackingFilter
+ * vtkDecimate vtkDecimatePro
  */
 
 #ifndef vtkSmoothPolyDataFilter_h
@@ -101,8 +102,14 @@ class vtkSmoothPoints;
 class VTKFILTERSCORE_EXPORT vtkSmoothPolyDataFilter : public vtkPolyDataAlgorithm
 {
 public:
+  //@{
+  /**
+   * Standard methods for obtaining type information and printing
+   * information.
+   */
   vtkTypeMacro(vtkSmoothPolyDataFilter, vtkPolyDataAlgorithm);
   void PrintSelf(ostream& os, vtkIndent indent) override;
+  //@}
 
   /**
    * Construct object with number of iterations 20; relaxation factor .01;
@@ -115,8 +122,9 @@ public:
 
   //@{
   /**
-   * Specify a convergence criterion for the iteration
-   * process. Smaller numbers result in more smoothing iterations.
+   * Specify a convergence criterion for the iteration process. This is
+   * expressed as a fraction of the bounding box of the input dataset
+   * diagonal. Smaller numbers result in more smoothing iterations.
    */
   vtkSetClampMacro(Convergence, double, 0.0, 1.0);
   vtkGetMacro(Convergence, double);

@@ -12,7 +12,6 @@ set(classes
   vtkFitImplicitFunction
   vtkGaussianKernel
   vtkGeneralizedKernel
-  vtkGlyphPackingFilter
   vtkHierarchicalBinningFilter
   vtkInterpolationKernel
   vtkLinearKernel
@@ -24,6 +23,7 @@ set(classes
   vtkPointInterpolator
   vtkPointInterpolator2D
   vtkPointOccupancyFilter
+  vtkPointSmoothingFilter
   vtkProbabilisticVoronoiKernel
   vtkRadiusOutlierRemoval
   vtkSPHCubicKernel

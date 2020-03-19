@@ -8,7 +8,6 @@ vtk_add_test_python(
   TestExtractEnclosedPoints.py
   TestExtractPoints.py
   TestFitImplicitFunction.py
-  TestGlyphPackingFilter.py
   TestHierarchicalBinningFilter.py
   TestPCACurvatureEstimation.py
   TestPCACurvatureEstimation2.py
@@ -21,6 +20,7 @@ vtk_add_test_python(
   TestPointInterpolator2D.py
   TestPointInterpolator2D2.py
   TestPointOccupancyFilter.py
+  TestPointSmoothingFilter.py
   TestRadiusOutlierRemoval.py
   TestSPHInterpolator.py
   TestSPHInterpolator2D.py

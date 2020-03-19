@@ -36,6 +36,7 @@ cut.Update()
 # Now pack the points
 gpack = vtk.vtkGlyphPackingFilter()
 gpack.SetInputConnection(cut.GetOutputPort())
+gpack.SetPackingModeToGeometric()
 gpack.Update()
 
 sph = vtk.vtkSphereSource()

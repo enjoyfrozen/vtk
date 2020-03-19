@@ -105,6 +105,7 @@ vtkSmoothPoint* vtkSmoothPoints::Resize(vtkIdType sz)
 // The following code defines methods for the vtkSmoothPolyDataFilter class
 //
 
+//----------------------------------------------------------------------------
 // Construct object with number of iterations 20; relaxation factor .01;
 // feature edge smoothing turned off; feature
 // angle 45 degrees; edge angle 15 degrees; and boundary smoothing turned
@@ -133,11 +134,13 @@ vtkSmoothPolyDataFilter::vtkSmoothPolyDataFilter()
   this->SetNumberOfInputPorts(2);
 }
 
+//----------------------------------------------------------------------------
 void vtkSmoothPolyDataFilter::SetSourceData(vtkPolyData* source)
 {
   this->SetInputData(1, source);
 }
 
+//----------------------------------------------------------------------------
 vtkPolyData* vtkSmoothPolyDataFilter::GetSource()
 {
   if (this->GetNumberOfInputConnections(1) < 1)
@@ -278,6 +281,7 @@ void vtkSPDF_MovePoints(vtkSPDF_InternalParams<T>& params)
 
 } // namespace
 
+//----------------------------------------------------------------------------
 int vtkSmoothPolyDataFilter::RequestData(vtkInformation* vtkNotUsed(request),
   vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
@@ -750,6 +754,7 @@ int vtkSmoothPolyDataFilter::RequestData(vtkInformation* vtkNotUsed(request),
   return 1;
 }
 
+//----------------------------------------------------------------------------
 int vtkSmoothPolyDataFilter::FillInputPortInformation(int port, vtkInformation* info)
 {
   if (!this->Superclass::FillInputPortInformation(port, info))
@@ -764,6 +769,7 @@ int vtkSmoothPolyDataFilter::FillInputPortInformation(int port, vtkInformation* 
   return 1;
 }
 
+//----------------------------------------------------------------------------
 void vtkSmoothPolyDataFilter::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
