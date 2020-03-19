@@ -34,17 +34,17 @@ cut.InterpolateAttributesOn()
 cut.Update()
 
 # Now pack the points
-gpack = vtk.vtkGlyphPackingFilter()
-gpack.SetInputConnection(cut.GetOutputPort())
-gpack.SetPackingModeToGeometric()
-gpack.Update()
+smooth = vtk.vtkPointSmoothingFilter()
+smooth.SetInputConnection(cut.GetOutputPort())
+smooth.SetSmoothingModeToGeometric()
+smooth.Update()
 
 sph = vtk.vtkSphereSource()
 sph.SetRadius(0.5)
 sph.SetCenter(0.0, 0.0, 0.0)
 
 glyph = vtk.vtkTensorGlyph()
-glyph.SetInputConnection(gpack.GetOutputPort())
+glyph.SetInputConnection(smooth.GetOutputPort())
 glyph.SetSourceConnection(sph.GetOutputPort())
 glyph.SetScaleFactor(0.05)
 
