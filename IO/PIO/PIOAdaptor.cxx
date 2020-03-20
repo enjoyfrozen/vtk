@@ -304,6 +304,16 @@ int PIOAdaptor::initializeGlobal(const char* PIOFileName)
       }
     }
     sort(this->variableName.begin(), this->variableName.end());
+
+    // Default variable names that are initially enabled for loading
+    this->variableDefault.push_back("tev");
+    this->variableDefault.push_back("prs");
+    this->variableDefault.push_back("rho");
+    this->variableDefault.push_back("rade");
+    this->variableDefault.push_back("cell_energy");
+    this->variableDefault.push_back("kemax");
+    this->variableDefault.push_back("vel");
+    this->variableDefault.push_back("eng");
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -1038,17 +1048,21 @@ void PIOAdaptor::create_amr_HTG(vtkMultiBlockDataSet* grid,
 
   int planeSize = gridSize[1] * gridSize[0];
   int rowSize = gridSize[0];
+  int gridIndx[3] = { 0, 0, 0 };
+
   for (int i = 0; i < numberOfCells; i++)
   {
     if (cell_level[i] == 1)
     {
       // Calculate which tree because the XRAGE arrangement does not match the HTG
-      int xIndx = gridSize[0] * ((cell_center[0][i] - minLoc[0]) / (maxLoc[0] - minLoc[0]));
-      int yIndx = gridSize[1] * ((cell_center[1][i] - minLoc[1]) / (maxLoc[1] - minLoc[1]));
-      int zIndx = gridSize[2] * ((cell_center[2][i] - minLoc[2]) / (maxLoc[2] - minLoc[2]));
+      for (int dim = 0; dim < dimension; dim++)
+      {
+        gridIndx[dim] =
+          gridSize[dim] * ((cell_center[dim][i] - minLoc[dim]) / (maxLoc[dim] - minLoc[dim]));
+      }
 
       // Collect the count per tree for load balancing
-      int whichTree = (zIndx * planeSize) + (yIndx * rowSize) + xIndx;
+      int whichTree = (gridIndx[2] * planeSize) + (gridIndx[1] * rowSize) + gridIndx[0];
       int gridCount = count_hypertree(i, cell_daughter);
       treeCount.push_back(std::make_pair(gridCount, whichTree));
 
