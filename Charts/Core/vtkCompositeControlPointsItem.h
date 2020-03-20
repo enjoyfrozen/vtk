@@ -118,6 +118,28 @@ public:
   bool MouseButtonPressEvent(const vtkContextMouseEvent& mouse) override;
   //@}
 
+  /**
+   * Returns the total number of points, either from
+   * using the superclass implementation or the opacity function
+   * when available
+   */
+  vtkIdType GetNumberOfPoints() const override;
+
+  /**
+   * Returns the x and y coordinates as well as the midpoint and sharpness
+   * of the control point corresponding to the index.
+   * point must be a double array of size 4.
+   * y will be recovered from the opacity function when available.
+   */
+  void GetControlPoint(vtkIdType index, double* pos) const override;
+
+  /**
+   * Sets the x and y coordinates as well as the midpoint and sharpness
+   * of the control point corresponding to the index, either using the superclass
+   * implementation or the opacity function when available.
+   */
+  void SetControlPoint(vtkIdType index, double* point) override;
+
 protected:
   vtkCompositeControlPointsItem();
   ~vtkCompositeControlPointsItem() override;
@@ -126,10 +148,7 @@ protected:
 
   vtkMTimeType GetControlPointsMTime() override;
 
-  vtkIdType GetNumberOfPoints() const override;
   void DrawPoint(vtkContext2D* painter, vtkIdType index) override;
-  void GetControlPoint(vtkIdType index, double* pos) const override;
-  void SetControlPoint(vtkIdType index, double* point) override;
   void EditPoint(float tX, float tY) override;
   virtual void EditPointCurve(vtkIdType idx);
 
