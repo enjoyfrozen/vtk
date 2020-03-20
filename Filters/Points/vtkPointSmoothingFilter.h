@@ -37,6 +37,11 @@
  * then use a glyph filter (e.g., vtkTensorGlyph or vtkGlyph3D) to visualize
  * the packed points.
  *
+ * Smoothing depends on a local neighborhood of nearby points. In general,
+ * the larger the neighborhood size, the greater the reduction in high
+ * frequency information. (The memory and/or computational requirements of
+ * the algorithm may also significantly increase.)
+ *
  * Any vtkPointSet type can be provided as input, and the output will contain
  * the same number of new points each of which is adjusted to a new position.
  *
@@ -44,6 +49,18 @@
  * point locator is used to build a local neighborhood of the points
  * surrounding each point. It is also used to perform interpolation as the
  * point positions are adjusted.
+ *
+ * The algorithm incrementally adjusts the point positions through an
+ * iterative process. Basically points are moved due to the influence of
+ * neighboring points. Iterations continue until the specified number of
+ * iterations is reached, or convergence occurs. Convergence occurs when the
+ * maximum displacement of any point is less than the convergence value. As
+ * points move, both the local connectivity and data attributes associated
+ * with each point must be updated. Rather than performing these expensive
+ * operations after every iteration, a number of sub-iterations Si can be
+ * specified. If Si > 1, then the neighborhood and attribute value updates
+ * occur only every Si'th iteration. Using sub-iterations can improve
+ * performance significantly.
  *
  * @warning
  * This class has been loosely inspired by the paper by Kindlmann and Westin
@@ -81,6 +98,15 @@ public:
   static vtkPointSmoothingFilter* New();
   vtkTypeMacro(vtkPointSmoothingFilter, vtkPointSetAlgorithm);
   void PrintSelf(ostream& os, vtkIndent indent) override;
+  //@}
+
+  //@{
+  /**
+   * Specify the neighborhood size. This controls the number of surrounding
+   * points that can affect a point to be smoothed.
+   */
+  vtkSetClampMacro(NeighborhoodSize, int, 4, 26);
+  vtkGetMacro(NeighborhoodSize, int);
   //@}
 
   /**
@@ -126,19 +152,28 @@ public:
 
   //@{
   /**
+   * Specify the number of smoothing iterations.
+   */
+  vtkSetClampMacro(NumberOfIterations, int, 0, VTK_INT_MAX);
+  vtkGetMacro(NumberOfIterations, int);
+  //@}
+
+  //@{
+  /**
+   * Specify the number of smoothing subiterations. This specifies the
+   * frequency of connectivity and data attribute updates.
+   */
+  vtkSetClampMacro(NumberOfSubIterations, int, 1, VTK_INT_MAX);
+  vtkGetMacro(NumberOfSubIterations, int);
+  //@}
+
+  //@{
+  /**
    * Specify a convergence criterion for the iteration
    * process. Smaller numbers result in more smoothing iterations.
    */
   vtkSetClampMacro(Convergence, double, 0.0, 1.0);
   vtkGetMacro(Convergence, double);
-  //@}
-
-  //@{
-  /**
-   * Specify the number of smoothing iterations,
-   */
-  vtkSetClampMacro(NumberOfIterations, int, 0, VTK_INT_MAX);
-  vtkGetMacro(NumberOfIterations, int);
   //@}
 
   //@{
@@ -149,7 +184,7 @@ public:
    * numbers of iterations are more stable than larger relaxation
    * factors and smaller numbers of iterations.
    */
-  vtkSetMacro(RelaxationFactor, double);
+  vtkSetClampMacro(RelaxationFactor, double, 0.0, 1.0);
   vtkGetMacro(RelaxationFactor, double);
   //@}
 
@@ -168,9 +203,11 @@ protected:
   ~vtkPointSmoothingFilter() override;
 
   // Control the smoothing
+  int NeighborhoodSize;
   int SmoothingMode;
   double Convergence;
   int NumberOfIterations;
+  int NumberOfSubIterations;
   double RelaxationFactor;
   vtkDataArray* FrameFieldArray;
 

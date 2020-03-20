@@ -20,12 +20,16 @@
 #include "vtkInformationVector.h"
 #include "vtkPointSet.h"
 #include "vtkPoints.h"
+#include "vtkPolyData.h"
 #include "vtkLogger.h"
 #include "vtkPointData.h"
 #include "vtkCellData.h"
 #include "vtkDataArray.h"
-#include "vtkSMPThreadLocalObject.h"
+#include "vtkIdList.h"
+#include "vtkArrayDispatch.h"
+#include "vtkDataArrayRange.h"
 #include "vtkSMPTools.h"
+#include "vtkSMPThreadLocalObject.h"
 #include "vtkStaticPointLocator.h"
 
 vtkStandardNewMacro(vtkPointSmoothingFilter);
@@ -33,15 +37,279 @@ vtkStandardNewMacro(vtkPointSmoothingFilter);
 vtkCxxSetObjectMacro(vtkPointSmoothingFilter, FrameFieldArray, vtkDataArray);
 vtkCxxSetObjectMacro(vtkPointSmoothingFilter, Locator, vtkAbstractPointLocator);
 
+//----------------------------------------------------------------------------
+namespace
+{
+
+  template <typename PointsT>
+  struct BuildConnectivity
+  {
+    PointsT* Points;
+    int NeiSize;
+    vtkAbstractPointLocator *Locator;
+    vtkIdType *Conn;
+    vtkSMPThreadLocalObject<vtkIdList> LocalNeighbors;
+
+    BuildConnectivity(PointsT* pts, int neiSize,
+                     vtkAbstractPointLocator *loc, vtkIdType *conn) :
+      Points(pts), NeiSize(neiSize), Locator(loc), Conn(conn)
+    {}
+
+    void Initialize()
+    {
+      this->LocalNeighbors.Local()->Allocate(this->NeiSize+1);
+    }
+
+    void operator()(vtkIdType ptId, vtkIdType endPtId)
+    {
+      const auto tuples = vtk::DataArrayTupleRange<3>(this->Points, ptId, endPtId);
+      vtkIdList *neis = this->LocalNeighbors.Local();
+      double x[3];
+      vtkIdType i, numInserted, *nptr;
+      vtkIdType numNeis, *cptr = this->Conn + (ptId * this->NeiSize);
+      for (const auto tuple : tuples)
+      {
+        x[0] = static_cast<double>(tuple[0]);
+        x[1] = static_cast<double>(tuple[1]);
+        x[2] = static_cast<double>(tuple[2]);
+
+        // Exclude ourselves from list of neighbors and be paranoid about it (that
+        // is don't insert too many points)
+        this->Locator->FindClosestNPoints(this->NeiSize+1, x, neis);
+        numNeis = neis->GetNumberOfIds();
+        nptr = neis->GetPointer(0);
+        for (numInserted=0, i=0; i < numNeis && numInserted < this->NeiSize; ++i)
+        {
+          if ( *nptr != ptId )
+          {
+            *cptr++ = *nptr;
+            ++numInserted;
+          }
+          ++nptr;
+        }
+        // In rare cases not all neighbors may be found, mark with a (-1)
+        for ( ; numInserted < this->NeiSize; ++numInserted )
+        {
+          *cptr++ = (-1);
+        }
+        ++ptId; //move to the next point
+      }
+    }
+
+    // An Initialize() method requires a Reduce() method
+    void Reduce()
+    {
+    }
+
+  };//BuildConnectivity
+
+  // Hooks into dispatcher vtkArrayDispatch by providing a callable generic
+  struct ConnectivityWorker
+  {
+    template <typename PointsT>
+    void operator()(PointsT* pts, vtkIdType numPts, int neiSize,
+                    vtkAbstractPointLocator *loc, vtkIdType *conn)
+    {
+      BuildConnectivity<PointsT> buildConn(pts, neiSize, loc, conn);
+      vtkSMPTools::For(0, numPts, buildConn);
+    }
+  };
+
+  // Centralize the dispatch to avoid duplication
+  void UpdateConnectivity(vtkDataArray *pts, vtkIdType numPts, int neiSize,
+                          vtkAbstractPointLocator *loc, vtkIdType *conn)
+  {
+    using vtkArrayDispatch::Reals;
+    using ConnDispatch = vtkArrayDispatch::DispatchByValueType<Reals>;
+    ConnectivityWorker connWorker;
+    if (!ConnDispatch::Execute(pts, connWorker, numPts, neiSize, loc, conn))
+    { // Fallback to slowpath for other point types
+      connWorker(pts, numPts, neiSize, loc, conn);
+    }
+  }
+
+  // Smoothing operation based on double buffering (simplifies threading). In
+  // general the types of points (input and output buffers) can be different.
+  template <typename PointsT>
+  struct CharacterizeMesh
+  {
+    PointsT *Points;
+    int NeiSize;
+    const vtkIdType *Conn;
+    double MinLength;
+    double MaxLength;
+    vtkSMPThreadLocal<double>LocalMin;
+    vtkSMPThreadLocal<double>LocalMax;
+
+    CharacterizeMesh(PointsT *inPts, int neiSize, const vtkIdType *conn) :
+      Points(inPts), NeiSize(neiSize), Conn(conn), MinLength(0.0), MaxLength(0.0)
+    {}
+
+    void Initialize()
+    {
+      this->LocalMin.Local() = VTK_DOUBLE_MAX;
+      this->LocalMax.Local() = VTK_DOUBLE_MIN;
+    }
+
+    // Determine the minimum and maximum edge lengths
+    void operator()(vtkIdType ptId, vtkIdType endPtId)
+    {
+      const vtkIdType *cptr = this->Conn + (this->NeiSize * ptId);
+      const auto inPts = vtk::DataArrayTupleRange<3>(this->Points);
+      double &min = this->LocalMin.Local();
+      double &max = this->LocalMax.Local();
+      double x[3], y[3], len;
+      vtkIdType neiId;
+
+      for ( ; ptId < endPtId; ++ptId )
+      {
+        x[0] = inPts[ptId][0];
+        x[1] = inPts[ptId][1];
+        x[2] = inPts[ptId][2];
+
+        for (auto i=0; i<this->NeiSize; i++)
+        {
+          neiId = *cptr++;
+          // Process valid connections, and to reduce work only edges where
+          // the neighbor id > pt id.
+          if ( neiId >= 0 && neiId > ptId)
+          {
+            y[0] = inPts[neiId][0];
+            y[1] = inPts[neiId][1];
+            y[2] = inPts[neiId][2];
+
+            len = vtkMath::Distance2BetweenPoints(x,y);
+            min = std::min(len, min);
+            max = std::max(len, max);
+          }
+        }
+      }//for all points in this batch
+    }//operator()
+
+    // Composite the data
+    void Reduce()
+    {
+      double min = VTK_DOUBLE_MAX;
+      double max = VTK_DOUBLE_MIN;
+
+      for (auto iter = this->LocalMin.begin(); iter != this->LocalMin.end(); ++iter)
+      {
+        min = std::min(*iter, min);
+      }
+      for (auto iter = this->LocalMax.begin(); iter != this->LocalMax.end(); ++iter)
+      {
+        max = std::max(*iter, max);
+      }
+
+      this->MinLength = sqrt(min);
+      this->MaxLength = sqrt(max);
+    }
+
+  };//CharacterizeMesh
+
+  // Hooks into dispatcher vtkArrayDispatch by providing a callable generic
+  struct MeshWorker
+  {
+    double MinLength;
+    double MaxLength;
+    MeshWorker() : MinLength(0.0), MaxLength(0.0) {}
+
+    template <typename PointsT>
+    void operator()(PointsT* inPts, vtkIdType numPts, int neiSize, vtkIdType *conn)
+    {
+      CharacterizeMesh<PointsT> characterize(inPts, neiSize, conn);
+      vtkSMPTools::For(0, numPts, characterize);
+      this->MinLength = characterize.MinLength;
+      this->MaxLength = characterize.MaxLength;
+    }
+  };//MeshWorker
+
+
+
+  // Smoothing operation based on double buffering (simplifies threading). In
+  // general the types of points (input and output buffers) can be different.
+  template <typename PointsT1, typename PointsT2>
+  struct SmoothPoints
+  {
+    PointsT1 *InPoints;
+    PointsT2 *OutPoints;
+    int NeiSize;
+    double RelaxationFactor;
+    const vtkIdType *Conn;
+
+    SmoothPoints(PointsT1 *inPts, PointsT2 *outPts, int neiSize, double relaxF, const vtkIdType *conn) :
+      InPoints(inPts), OutPoints(outPts), NeiSize(neiSize), RelaxationFactor(relaxF), Conn(conn)
+    {}
+
+    void operator()(vtkIdType ptId, vtkIdType endPtId)
+    {
+      const vtkIdType *cptr = this->Conn + (this->NeiSize * ptId);
+      const auto inPts = vtk::DataArrayTupleRange<3>(this->InPoints);
+      auto outPts = vtk::DataArrayTupleRange<3>(this->OutPoints);
+      double x[3], center[3], relaxF=this->RelaxationFactor;
+      int npts;
+
+      for ( ; ptId < endPtId; ++ptId )
+      {
+        npts = 0;
+        center[0] = center[1] = center[2] = 0.0;
+        for (auto i=0; i<this->NeiSize; i++)
+        {
+          // average the displacement
+          if ( *cptr++ >= 0 ) //valid connection to another point
+          {
+            ++npts;
+            center[0] += inPts[*cptr][0];
+            center[1] += inPts[*cptr][1];
+            center[2] += inPts[*cptr][2];
+          }
+        }
+        if ( npts <= 0 ) // no contributions just copy point to output
+        {
+          outPts[ptId][0] = inPts[ptId][0];
+          outPts[ptId][1] = inPts[ptId][1];
+          outPts[ptId][2] = inPts[ptId][2];
+        }
+        else
+        {
+          center[0] /= static_cast<double>(npts);
+          center[1] /= static_cast<double>(npts);
+          center[2] /= static_cast<double>(npts);
+          outPts[ptId][0] = inPts[ptId][0] + relaxF*(center[0] - inPts[ptId][0]);
+          outPts[ptId][1] = inPts[ptId][1] + relaxF*(center[1] - inPts[ptId][1]);
+          outPts[ptId][2] = inPts[ptId][2] + relaxF*(center[2] - inPts[ptId][2]);
+        }
+      }//for all points in this batch
+    }//operator()
+
+  };//SmoothPoints
+
+  // Hooks into dispatcher vtkArrayDispatch by providing a callable generic
+  struct SmoothWorker
+  {
+    template <typename PointsT1, typename PointsT2>
+    void operator()(PointsT1* inPts, PointsT2* outPts, vtkIdType numPts,
+                    int neiSize, double relaxF, vtkIdType *conn)
+    {
+      SmoothPoints<PointsT1,PointsT2> smooth(inPts, outPts, neiSize, relaxF, conn);
+      vtkSMPTools::For(0, numPts, smooth);
+    }
+  };//SmoothWorker
+
+} // anonymous namespace
+
+
 
 //================= Begin class proper =======================================
 //----------------------------------------------------------------------------
 vtkPointSmoothingFilter::vtkPointSmoothingFilter()
 {
+  this->NeighborhoodSize = 8; // works well for 2D
   this->SmoothingMode = DEFAULT_SMOOTHING;
   this->Convergence = 0.0; // runs to number of specified iterations
   this->NumberOfIterations = 20;
-  this->RelaxationFactor = .01;
+  this->NumberOfSubIterations = 4;
+  this->RelaxationFactor = 0.1;
   this->FrameFieldArray = nullptr;
 
   this->Locator = vtkStaticPointLocator::New();
@@ -67,6 +335,16 @@ RequestData(vtkInformation* vtkNotUsed(request),
   vtkSmartPointer<vtkPointSet> input = vtkPointSet::GetData(inputVector[0]);
   vtkPointSet* output = vtkPointSet::GetData(outputVector);
 
+  // Copy the input to the output as a starting point. We'll replace
+  // the points and update point data later on.
+  output->CopyStructure(input);
+  output->GetCellData()->PassData(input->GetCellData());
+  if ( this->NumberOfIterations <= 0 ) // Trivial case: 0 iterations
+  {
+    output->GetPointData()->PassData(input->GetPointData());
+    return 1;
+  }
+
   // Check the input
   vtkIdType numPts=input->GetNumberOfPoints();
   if ( numPts < 1 )
@@ -84,11 +362,13 @@ RequestData(vtkInformation* vtkNotUsed(request),
   vtkPointData *inPD=input->GetPointData(), *outPD=output->GetPointData();
   vtkDataArray *inScalars = inPD->GetScalars();
   vtkDataArray *inTensors = inPD->GetTensors();
+  vtkDataArray *frameField = this->FrameFieldArray;
   int smoothingMode=GEOMETRIC_SMOOTHING;
   if ( this->SmoothingMode == DEFAULT_SMOOTHING )
   {
-    smoothingMode = (inTensors != nullptr ? TENSOR_SMOOTHING :
-                   (inScalars != nullptr ? SCALAR_SMOOTHING : GEOMETRIC_SMOOTHING) );
+    smoothingMode = (frameField != nullptr ? FRAME_FIELD_SMOOTHING :
+                     (inTensors != nullptr ? TENSOR_SMOOTHING :
+                      (inScalars != nullptr ? SCALAR_SMOOTHING : GEOMETRIC_SMOOTHING)));
   }
   else if ( this->SmoothingMode == SCALAR_SMOOTHING && inScalars != nullptr )
   {
@@ -98,28 +378,119 @@ RequestData(vtkInformation* vtkNotUsed(request),
   {
     smoothingMode = TENSOR_SMOOTHING;
   }
+  else if ( this->SmoothingMode == FRAME_FIELD_SMOOTHING && frameField != nullptr )
+  {
+    smoothingMode = FRAME_FIELD_SMOOTHING;
+  }
   vtkDebugMacro(<< "Smoothing glyphs: mode is: " << smoothingMode);
 
-  // Copy the input to the output as a starting point. We'll replace
-  // the points and update point data later on.
-  output->CopyStructure(input);
-  output->GetCellData()->PassData(input->GetCellData());
-
   // We'll build a locator for two purposes: 1) to build a point connectivity
-  // list (connections to close points); and 2) interpolate data from the close
+  // list (connections to close points); and 2) interpolate data from neighbor
   // points.
+  vtkDataArray *pts = input->GetPoints()->GetData();
   this->Locator->SetDataSet(input);
   this->Locator->BuildLocator();
 
+  // The point neighborhood must be initially defined. Later on we'll update
+  // it periodically.
+  vtkIdType neiSize = (numPts < this->NeighborhoodSize ? numPts : this->NeighborhoodSize);
+  vtkIdType *conn = new vtkIdType[numPts * neiSize];
+  UpdateConnectivity(pts, numPts, neiSize, this->Locator, conn);
 
+  // In order to perform smoothing properly we need to characterize the point
+  // spacing and/or scalar, tensor, and or frame field data values. Later on
+  // this enables the appropriate computation of the smoothing forces on the
+  // points.
+  using vtkArrayDispatch::Reals;
+  using MeshDispatch = vtkArrayDispatch::DispatchByValueType<Reals>;
+  MeshWorker meshWorker;
+  if (!MeshDispatch::Execute(pts, meshWorker, numPts, neiSize, conn))
+  { // Fallback to slowpath for other point types
+    meshWorker(pts, numPts, neiSize, conn);
+  }
+  double minConnLen = meshWorker.MinLength; //the min and max "edge" lengths
+  double maxConnLen = meshWorker.MaxLength;
+  cout << "Min,Max: (" << minConnLen << "," << maxConnLen << ")\n";
 
+  if ( smoothingMode == SCALAR_SMOOTHING )
+  {
+    double range[2];
+    inScalars->GetRange(range);
+  }
+  else if ( smoothingMode == TENSOR_SMOOTHING )
+  {
+  }
+  else if ( smoothingMode == FRAME_FIELD_SMOOTHING )
+  {
+  }
+  else //GEOMETRIC_SMOOTHING
+  {
+    ;
+  }
 
+  // Prepare for smoothing. We double buffer the points. The output points
+  // type is the same as the input points type.
+  vtkPoints *pts0 = vtkPoints::New();
+  pts0->SetDataType(pts->GetDataType());
+  pts0->SetNumberOfPoints(numPts);
+  pts0->DeepCopy(input->GetPoints());
+  vtkPoints *pts1 = vtkPoints::New();
+  pts1->SetDataType(pts->GetDataType());
+  pts1->SetNumberOfPoints(numPts);
+  vtkPoints *swapBuf, *inBuf=pts0, *outBuf=pts1;
+  int numSubIters = (this->NumberOfSubIterations < this->NumberOfIterations ?
+                     this->NumberOfSubIterations : this->NumberOfIterations);
+  double relaxF = this->RelaxationFactor;
 
+  // We need to incrementally compute a local neighborhood. This will be
+  // performed every sub-iterations. This requires another point locator to
+  // periodically rebuild the neighborhood connectivity. The initial point locator
+  // is not modified we we can interpolate from the original points.
+  vtkPolyData *tmpPolyData = vtkPolyData::New();
+  tmpPolyData->SetPoints(inBuf);
+  vtkAbstractPointLocator *tmpLocator = this->Locator->NewInstance();
+  tmpLocator->SetDataSet(tmpPolyData);
+
+  // Begin looping. We dispatch to various workers depending on points type.
+  using SmoothDispatch = vtkArrayDispatch::Dispatch2ByValueType<Reals,Reals>;
+  SmoothWorker sworker;
+  bool converged = false;
+  for ( int iterNum=0; iterNum < this->NumberOfIterations && !converged; ++iterNum )
+  {
+    // Perform a smoothing iteration using the current connectivity.
+    if (!SmoothDispatch::Execute(inBuf->GetData(), outBuf->GetData(), sworker,
+                                 numPts, neiSize, relaxF, conn))
+    { // Fallback to slowpath for other point types
+      sworker(inBuf->GetData(), outBuf->GetData(), numPts, neiSize, relaxF, conn);
+    }
+
+    // Build connectivity every sub-iterations.
+    if ( ! (iterNum % numSubIters) )
+    {
+      // Build the point connectivity list as necessary. This is threaded and optimized over
+      // Real types.
+      tmpLocator->BuildLocator();
+      UpdateConnectivity(pts, numPts, neiSize, tmpLocator, conn);
+    }
+
+    swapBuf = inBuf;
+    inBuf = outBuf;
+    outBuf = swapBuf;
+    tmpLocator->Modified(); //ensure a rebuild the next time we build connectivity
+  }//over all iterations
+
+  // Set the output points
+  output->SetPoints(outBuf);
+
+  // Clean up
+  delete [] conn;
+  pts0->Delete();
+  pts1->Delete();
+  tmpPolyData->Delete();
+  tmpLocator->Delete();
 
   // Copy point data
   outPD->PassData(inPD);
-
-  // Copy cell data
 
   return 1;
 }
@@ -137,6 +508,7 @@ void vtkPointSmoothingFilter::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 
+  os << indent << "Neighborhood Size: " << this->NeighborhoodSize << endl;
   os << indent << "Smoothing Mode: " << this->SmoothingMode << endl;
   os << indent << "Frame Field Array: " << this->FrameFieldArray << "\n";
 }

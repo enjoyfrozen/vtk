@@ -36,6 +36,9 @@ cut.Update()
 # Now pack the points
 smooth = vtk.vtkPointSmoothingFilter()
 smooth.SetInputConnection(cut.GetOutputPort())
+smooth.SetNumberOfIterations(40)
+#smooth.SetNumberOfIterations(0)
+smooth.SetNeighborhoodSize(7)
 smooth.SetSmoothingModeToGeometric()
 smooth.Update()
 
