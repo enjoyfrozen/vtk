@@ -64,14 +64,32 @@ public:
 
   //@{
   /**
-   * Add/Remove points to/from the function. If a duplicate point is added
-   * then the function value is changed at that location.
+   * Add points to the function. If a duplicate point is added
+   * then the previous point is removed unless
+   * AllowDuplicateScalars is set to true
    * Return the index of the point (0 based), or -1 on error.
    */
   int AddPoint(double x, double y);
   int AddPoint(double x, double y, double midpoint, double sharpness);
-  int RemovePoint(double x);
   //@}
+
+  /**
+   * Remove a point from the function at a given id
+   * Return true if point has been found and removed, false other wise
+   */
+  bool RemovePointByIndex(size_t id);
+
+  /**
+   * Remove the first point found at the given x location
+   * Return the index of the remove point if any, -1 otherwise
+   */
+  int RemovePoint(double x);
+
+  /**
+   * Remove the first point found at the given x and y location
+   * Return the index of the remove point if any, -1 otherwise
+   */
+  int RemovePoint(double x, double y);
 
   /**
    * Removes all points from the function.
