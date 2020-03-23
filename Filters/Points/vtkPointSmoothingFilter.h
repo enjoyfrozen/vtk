@@ -19,23 +19,26 @@
  *
  * vtkPointSmoothingFilter modifies the coordinates of the input points of a
  * vtkPointSet by adjusting their position to create a smooth distribution
- * (and thereby form a pleasing packing of the points). Smoothing in its
- * simplest form is simply a variant of Laplacian smoothing (i.e., smoothing
- * based on nearby point neighbors). However the smoothing can be further
- * controlled either by a scalar field, by a tensor field, or a frame field
- * (the user can specify the nature of the smoothing operation). If
- * controlled by a scalar field, then each input point is assumed to be
- * surrounded by a isotropic sphere scaled by the scalar field; if controlled
- * by a tensor field, then each input point is assumed to be surrounded by an
- * anisotropic, oriented ellipsoid aligned to the the tensor eigenvectors and
- * scaled by the determinate of the tensor. A frame field also assumes a
- * surrounding, ellipsoidal shape except that the inversion of the ellipsoid
- * tensor is already performed. If no scalar, tensor, or frame field, the
- * smoothing is simply akin to Laplacian smoothing (see
- * vtkSmoothPolyDataFilter). Typical usage of this filter is to perform the
- * smoothing (or packing) operation (i.e., first execute this filter) and
- * then use a glyph filter (e.g., vtkTensorGlyph or vtkGlyph3D) to visualize
- * the packed points.
+ * (and thereby form a pleasing packing of the points). Smoothing is
+ * performed by considering the effects of neighboring points on one
+ * another. Smoothing in its simplest form is simply a variant of Laplacian
+ * smoothing where each point moves towards the average position of its
+ * neigboring points. Next uniform smoothing uses a cubic cutoff function to
+ * produce higher forces between points that are closer together, but the
+ * forces are independent of associated point data attribute
+ * values. Smoothing can be further controlled either by a scalar field, by a
+ * tensor field, or a frame field (the user can specify the nature of the
+ * smoothing operation). If controlled by a scalar field, then each input
+ * point is assumed to be surrounded by a isotropic sphere scaled by the
+ * scalar field; if controlled by a tensor field, then each input point is
+ * assumed to be surrounded by an anisotropic, oriented ellipsoid aligned to
+ * the the tensor eigenvectors and scaled by the determinate of the tensor. A
+ * frame field also assumes a surrounding, ellipsoidal shape except that the
+ * inversion of the ellipsoid tensor is already performed. Typical usage of
+ * this filter is to perform a smoothing (also referred to as packing)
+ * operation (i.e., first execute this filter) and then combine it with a
+ * glyph filter (e.g., vtkTensorGlyph or vtkGlyph3D) to visualize the packed
+ * points.
  *
  * Smoothing depends on a local neighborhood of nearby points. In general,
  * the larger the neighborhood size, the greater the reduction in high
@@ -115,7 +118,8 @@ public:
   enum
   {
     DEFAULT_SMOOTHING,
-    GEOMETRIC_SMOOTHING,
+    LAPLACIAN_SMOOTHING,
+    UNIFORM_SMOOTHING,
     SCALAR_SMOOTHING,
     TENSOR_SMOOTHING,
     FRAME_FIELD_SMOOTHING
@@ -127,15 +131,16 @@ public:
    * field is available then frame field smoothing will be performed; then if
    * point tensors are available then anisotropic tensor smoothing will be
    * used; the next choice is to use isotropic scalar smoothing; and finally
-   * if no frame field, tensors, or scalars are available, geometric
-   * smoothing (i.e, Laplacian smoothing) will be used. If both scalars,
-   * tensors, and /or a frame field are present, the user can specifiy which
-   * to use, or to use geometric smoothing.
+   * if no frame field, tensors, or scalars are available, uniform smoothing
+   * will be used. If both scalars, tensors, and /or a frame field are
+   * present, the user can specifiy which to use; or to use uniform or
+   * geometric smoothing.
    */
   vtkSetClampMacro(SmoothingMode, int, DEFAULT_SMOOTHING, FRAME_FIELD_SMOOTHING);
   vtkGetMacro(SmoothingMode, int);
   void SetSmoothingModeToDefault() { this->SetSmoothingMode(DEFAULT_SMOOTHING); }
-  void SetSmoothingModeToGeometric() { this->SetSmoothingMode(GEOMETRIC_SMOOTHING); }
+  void SetSmoothingModeToLaplacian() { this->SetSmoothingMode(LAPLACIAN_SMOOTHING); }
+  void SetSmoothingModeToUniform() { this->SetSmoothingMode(UNIFORM_SMOOTHING); }
   void SetSmoothingModeToScalars() { this->SetSmoothingMode(SCALAR_SMOOTHING); }
   void SetSmoothingModeToTensors() { this->SetSmoothingMode(TENSOR_SMOOTHING); }
   void SetSmoothingModeToFrameField() { this->SetSmoothingMode(FRAME_FIELD_SMOOTHING); }
@@ -178,10 +183,11 @@ public:
 
   //@{
   /**
-   * Specify the relaxation factor for smoothing iterations. As in all
-   * iterative methods, the stability of the process is sensitive to
-   * this parameter. In general, small relaxation factors and large
-   * numbers of iterations are more stable than larger relaxation
+   * Specify the relaxation factor for smoothing iterations. The relexation
+   * factor controls the speed (across multiple iterations) which points
+   * move. As in all iterative methods, the stability of the process is
+   * sensitive to this parameter. In general, small relaxation factors and
+   * large numbers of iterations are more stable than larger relaxation
    * factors and smaller numbers of iterations.
    */
   vtkSetClampMacro(RelaxationFactor, double, 0.0, 1.0);

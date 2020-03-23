@@ -41,6 +41,70 @@ vtkCxxSetObjectMacro(vtkPointSmoothingFilter, Locator, vtkAbstractPointLocator);
 namespace
 {
 
+  // These classes compute the forced displacement between two points
+  struct DisplacePoint
+  {
+    vtkDataArray *Data;
+    DisplacePoint(vtkDataArray *data) : Data(data) {}
+    virtual void operator()(vtkIdType p0, vtkIdType p1, double x[3],
+                            double y[3], double disp[3]) = 0;
+  };
+  struct LaplacianDisplacement : public DisplacePoint
+  {
+    LaplacianDisplacement(vtkDataArray *data) : DisplacePoint(data) {}
+    void operator()(vtkIdType p0, vtkIdType p1, double x[3],
+                    double y[3], double disp[3]) override
+    {
+      disp[0] = y[0] - x[0];
+      disp[1] = y[1] - x[1];
+      disp[2] = y[2] - x[2];
+    }
+  };
+  struct UniformDisplacement : public DisplacePoint
+  {
+    UniformDisplacement(vtkDataArray *data) : DisplacePoint(data) {}
+    void operator()(vtkIdType p0, vtkIdType p1, double x[3],
+                    double y[3], double disp[3]) override
+    {
+      disp[0] = y[0] - x[0];
+      disp[1] = y[1] - x[1];
+      disp[2] = y[2] - x[2];
+    }
+  };
+  struct ScalarDisplacement : public DisplacePoint
+  {
+    ScalarDisplacement(vtkDataArray *data) : DisplacePoint(data) {}
+    void operator()(vtkIdType p0, vtkIdType p1, double x[3],
+                    double y[3], double disp[3]) override
+    {
+      disp[0] = y[0] - x[0];
+      disp[1] = y[1] - x[1];
+      disp[2] = y[2] - x[2];
+    }
+  };
+  struct TensorDisplacement : public DisplacePoint
+  {
+    TensorDisplacement(vtkDataArray *data) : DisplacePoint(data) {}
+    void operator()(vtkIdType p0, vtkIdType p1, double x[3],
+                    double y[3], double disp[3]) override
+    {
+      disp[0] = y[0] - x[0];
+      disp[1] = y[1] - x[1];
+      disp[2] = y[2] - x[2];
+    }
+  };
+  struct FrameFieldDisplacement : public DisplacePoint
+  {
+    FrameFieldDisplacement(vtkDataArray *data) : DisplacePoint(data) {}
+    void operator()(vtkIdType p0, vtkIdType p1, double x[3],
+                    double y[3], double disp[3]) override
+    {
+      disp[0] = y[0] - x[0];
+      disp[1] = y[1] - x[1];
+      disp[2] = y[2] - x[2];
+    }
+  };
+
   template <typename PointsT>
   struct BuildConnectivity
   {
@@ -236,9 +300,12 @@ namespace
     int NeiSize;
     double RelaxationFactor;
     const vtkIdType *Conn;
+    DisplacePoint *Displace;
 
-    SmoothPoints(PointsT1 *inPts, PointsT2 *outPts, int neiSize, double relaxF, const vtkIdType *conn) :
-      InPoints(inPts), OutPoints(outPts), NeiSize(neiSize), RelaxationFactor(relaxF), Conn(conn)
+    SmoothPoints(PointsT1 *inPts, PointsT2 *outPts, int neiSize, double relaxF,
+                 const vtkIdType *conn, DisplacePoint *f) :
+      InPoints(inPts), OutPoints(outPts), NeiSize(neiSize), RelaxationFactor(relaxF),
+      Conn(conn), Displace(f)
     {}
 
     void operator()(vtkIdType ptId, vtkIdType endPtId)
@@ -246,38 +313,45 @@ namespace
       const vtkIdType *cptr = this->Conn + (this->NeiSize * ptId);
       const auto inPts = vtk::DataArrayTupleRange<3>(this->InPoints);
       auto outPts = vtk::DataArrayTupleRange<3>(this->OutPoints);
-      double x[3], center[3], relaxF=this->RelaxationFactor;
+      double x[3], y[3], sumDisp[3], disp[3], relaxF=this->RelaxationFactor;
       int npts;
 
       for ( ; ptId < endPtId; ++ptId )
       {
         npts = 0;
-        center[0] = center[1] = center[2] = 0.0;
-        for (auto i=0; i<this->NeiSize; i++)
+        sumDisp[0] = sumDisp[1] = sumDisp[2] = 0.0;
+        x[0] = inPts[ptId][0];
+        x[1] = inPts[ptId][1];
+        x[2] = inPts[ptId][2];
+        for (auto i=0; i<this->NeiSize; ++i, ++cptr)
         {
-          // average the displacement
-          if ( *cptr++ >= 0 ) //valid connection to another point
+          // average the disps
+          if ( *cptr >= 0 ) //valid connection to another point
           {
             ++npts;
-            center[0] += inPts[*cptr][0];
-            center[1] += inPts[*cptr][1];
-            center[2] += inPts[*cptr][2];
+            y[0] = inPts[*cptr][0];
+            y[1] = inPts[*cptr][1];
+            y[2] = inPts[*cptr][2];
+            (*this->Displace)(ptId,*cptr,x,y,disp);
+            sumDisp[0] += disp[0];
+            sumDisp[1] += disp[1];
+            sumDisp[2] += disp[2];
           }
         }
         if ( npts <= 0 ) // no contributions just copy point to output
         {
-          outPts[ptId][0] = inPts[ptId][0];
-          outPts[ptId][1] = inPts[ptId][1];
-          outPts[ptId][2] = inPts[ptId][2];
+          outPts[ptId][0] = x[0];
+          outPts[ptId][1] = x[1];
+          outPts[ptId][2] = x[2];
         }
         else
         {
-          center[0] /= static_cast<double>(npts);
-          center[1] /= static_cast<double>(npts);
-          center[2] /= static_cast<double>(npts);
-          outPts[ptId][0] = inPts[ptId][0] + relaxF*(center[0] - inPts[ptId][0]);
-          outPts[ptId][1] = inPts[ptId][1] + relaxF*(center[1] - inPts[ptId][1]);
-          outPts[ptId][2] = inPts[ptId][2] + relaxF*(center[2] - inPts[ptId][2]);
+          sumDisp[0] /= static_cast<double>(npts);
+          sumDisp[1] /= static_cast<double>(npts);
+          sumDisp[2] /= static_cast<double>(npts);
+          outPts[ptId][0] = inPts[ptId][0] + (relaxF * sumDisp[0]);
+          outPts[ptId][1] = inPts[ptId][1] + (relaxF * sumDisp[1]);
+          outPts[ptId][2] = inPts[ptId][2] + (relaxF * sumDisp[2]);
         }
       }//for all points in this batch
     }//operator()
@@ -289,9 +363,9 @@ namespace
   {
     template <typename PointsT1, typename PointsT2>
     void operator()(PointsT1* inPts, PointsT2* outPts, vtkIdType numPts,
-                    int neiSize, double relaxF, vtkIdType *conn)
+                    int neiSize, double relaxF, vtkIdType *conn, DisplacePoint *f)
     {
-      SmoothPoints<PointsT1,PointsT2> smooth(inPts, outPts, neiSize, relaxF, conn);
+      SmoothPoints<PointsT1,PointsT2> smooth(inPts, outPts, neiSize, relaxF, conn, f);
       vtkSMPTools::For(0, numPts, smooth);
     }
   };//SmoothWorker
@@ -363,12 +437,12 @@ RequestData(vtkInformation* vtkNotUsed(request),
   vtkDataArray *inScalars = inPD->GetScalars();
   vtkDataArray *inTensors = inPD->GetTensors();
   vtkDataArray *frameField = this->FrameFieldArray;
-  int smoothingMode=GEOMETRIC_SMOOTHING;
+  int smoothingMode=UNIFORM_SMOOTHING;
   if ( this->SmoothingMode == DEFAULT_SMOOTHING )
   {
     smoothingMode = (frameField != nullptr ? FRAME_FIELD_SMOOTHING :
                      (inTensors != nullptr ? TENSOR_SMOOTHING :
-                      (inScalars != nullptr ? SCALAR_SMOOTHING : GEOMETRIC_SMOOTHING)));
+                      (inScalars != nullptr ? SCALAR_SMOOTHING : UNIFORM_SMOOTHING)));
   }
   else if ( this->SmoothingMode == SCALAR_SMOOTHING && inScalars != nullptr )
   {
@@ -412,20 +486,29 @@ RequestData(vtkInformation* vtkNotUsed(request),
   double maxConnLen = meshWorker.MaxLength;
   cout << "Min,Max: (" << minConnLen << "," << maxConnLen << ")\n";
 
-  if ( smoothingMode == SCALAR_SMOOTHING )
+  // Establish the type of inter-point forces/displacements
+  DisplacePoint *disp;
+  if ( smoothingMode == UNIFORM_SMOOTHING )
+  {
+    disp = new UniformDisplacement(nullptr);
+  }
+  else if ( smoothingMode == SCALAR_SMOOTHING )
   {
     double range[2];
     inScalars->GetRange(range);
+    disp = new ScalarDisplacement(inScalars);
   }
   else if ( smoothingMode == TENSOR_SMOOTHING )
   {
+    disp = new TensorDisplacement(inTensors);
   }
   else if ( smoothingMode == FRAME_FIELD_SMOOTHING )
   {
+    disp = new FrameFieldDisplacement(frameField);
   }
-  else //GEOMETRIC_SMOOTHING
+  else //LAPLACIAN_SMOOTHING
   {
-    ;
+    disp = new LaplacianDisplacement(nullptr);
   }
 
   // Prepare for smoothing. We double buffer the points. The output points
@@ -459,9 +542,9 @@ RequestData(vtkInformation* vtkNotUsed(request),
   {
     // Perform a smoothing iteration using the current connectivity.
     if (!SmoothDispatch::Execute(inBuf->GetData(), outBuf->GetData(), sworker,
-                                 numPts, neiSize, relaxF, conn))
+                                 numPts, neiSize, relaxF, conn, disp))
     { // Fallback to slowpath for other point types
-      sworker(inBuf->GetData(), outBuf->GetData(), numPts, neiSize, relaxF, conn);
+      sworker(inBuf->GetData(), outBuf->GetData(), numPts, neiSize, relaxF, conn, disp);
     }
 
     // Build connectivity every sub-iterations.
@@ -508,7 +591,12 @@ void vtkPointSmoothingFilter::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 
-  os << indent << "Neighborhood Size: " << this->NeighborhoodSize << endl;
   os << indent << "Smoothing Mode: " << this->SmoothingMode << endl;
+  os << indent << "Neighborhood Size: " << this->NeighborhoodSize << endl;
+  os << indent << "Number of Iterations: " << this->NumberOfIterations << endl;
+  os << indent << "Number of Sub-iterations: " << this->NumberOfSubIterations << endl;
+  os << indent << "Relaxation Factor: " << this->RelaxationFactor << endl;
+  os << indent << "Convergence: " << this->Convergence << endl;
   os << indent << "Frame Field Array: " << this->FrameFieldArray << "\n";
+  os << indent << "Locator: " << this->Locator << "\n";
 }

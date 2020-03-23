@@ -39,7 +39,7 @@ smooth.SetInputConnection(cut.GetOutputPort())
 smooth.SetNumberOfIterations(40)
 #smooth.SetNumberOfIterations(0)
 smooth.SetNeighborhoodSize(7)
-smooth.SetSmoothingModeToGeometric()
+smooth.SetSmoothingModeToLaplacian()
 smooth.Update()
 
 sph = vtk.vtkSphereSource()
