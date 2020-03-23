@@ -45,13 +45,17 @@ namespace
   struct DisplacePoint
   {
     vtkDataArray *Data;
-    DisplacePoint(vtkDataArray *data) : Data(data) {}
+    double AverageLength;
+
+    DisplacePoint(vtkDataArray *data, double l) :
+      Data(data), AverageLength(l) {}
     virtual void operator()(vtkIdType p0, vtkIdType p1, double x[3],
                             double y[3], double disp[3]) = 0;
   };
   struct LaplacianDisplacement : public DisplacePoint
   {
-    LaplacianDisplacement(vtkDataArray *data) : DisplacePoint(data) {}
+    LaplacianDisplacement(vtkDataArray *data, double l) :
+      DisplacePoint(data,l) {}
     void operator()(vtkIdType p0, vtkIdType p1, double x[3],
                     double y[3], double disp[3]) override
     {
@@ -62,7 +66,8 @@ namespace
   };
   struct UniformDisplacement : public DisplacePoint
   {
-    UniformDisplacement(vtkDataArray *data) : DisplacePoint(data) {}
+    UniformDisplacement(vtkDataArray *data, double l) :
+      DisplacePoint(data,l) {}
     void operator()(vtkIdType p0, vtkIdType p1, double x[3],
                     double y[3], double disp[3]) override
     {
@@ -73,7 +78,8 @@ namespace
   };
   struct ScalarDisplacement : public DisplacePoint
   {
-    ScalarDisplacement(vtkDataArray *data) : DisplacePoint(data) {}
+    ScalarDisplacement(vtkDataArray *data, double l) :
+      DisplacePoint(data,l) {}
     void operator()(vtkIdType p0, vtkIdType p1, double x[3],
                     double y[3], double disp[3]) override
     {
@@ -84,7 +90,8 @@ namespace
   };
   struct TensorDisplacement : public DisplacePoint
   {
-    TensorDisplacement(vtkDataArray *data) : DisplacePoint(data) {}
+    TensorDisplacement(vtkDataArray *data, double l) :
+      DisplacePoint(data,l) {}
     void operator()(vtkIdType p0, vtkIdType p1, double x[3],
                     double y[3], double disp[3]) override
     {
@@ -95,7 +102,8 @@ namespace
   };
   struct FrameFieldDisplacement : public DisplacePoint
   {
-    FrameFieldDisplacement(vtkDataArray *data) : DisplacePoint(data) {}
+    FrameFieldDisplacement(vtkDataArray *data, double l) :
+      DisplacePoint(data,l) {}
     void operator()(vtkIdType p0, vtkIdType p1, double x[3],
                     double y[3], double disp[3]) override
     {
@@ -202,17 +210,23 @@ namespace
     const vtkIdType *Conn;
     double MinLength;
     double MaxLength;
-    vtkSMPThreadLocal<double>LocalMin;
-    vtkSMPThreadLocal<double>LocalMax;
+    double AverageLength;
+    vtkSMPThreadLocal<double> LocalMin;
+    vtkSMPThreadLocal<double> LocalMax;
+    vtkSMPThreadLocal<vtkIdType> LocalNEdges;
+    vtkSMPThreadLocal<double> LocalAve;
 
     CharacterizeMesh(PointsT *inPts, int neiSize, const vtkIdType *conn) :
-      Points(inPts), NeiSize(neiSize), Conn(conn), MinLength(0.0), MaxLength(0.0)
+      Points(inPts), NeiSize(neiSize), Conn(conn),
+      MinLength(0.0), MaxLength(0.0), AverageLength(0.0)
     {}
 
     void Initialize()
     {
       this->LocalMin.Local() = VTK_DOUBLE_MAX;
       this->LocalMax.Local() = VTK_DOUBLE_MIN;
+      this->LocalNEdges.Local() = 0;
+      this->LocalAve.Local() = 0.0;
     }
 
     // Determine the minimum and maximum edge lengths
@@ -222,6 +236,8 @@ namespace
       const auto inPts = vtk::DataArrayTupleRange<3>(this->Points);
       double &min = this->LocalMin.Local();
       double &max = this->LocalMax.Local();
+      vtkIdType &nEdges = this->LocalNEdges.Local();
+      double &ave = this->LocalAve.Local();
       double x[3], y[3], len;
       vtkIdType neiId;
 
@@ -242,9 +258,11 @@ namespace
             y[1] = inPts[neiId][1];
             y[2] = inPts[neiId][2];
 
-            len = vtkMath::Distance2BetweenPoints(x,y);
+            len = sqrt( vtkMath::Distance2BetweenPoints(x,y) );
             min = std::min(len, min);
             max = std::max(len, max);
+            ++nEdges;
+            ave += len;
           }
         }
       }//for all points in this batch
@@ -253,9 +271,9 @@ namespace
     // Composite the data
     void Reduce()
     {
+      // Min / max edge lengths
       double min = VTK_DOUBLE_MAX;
       double max = VTK_DOUBLE_MIN;
-
       for (auto iter = this->LocalMin.begin(); iter != this->LocalMin.end(); ++iter)
       {
         min = std::min(*iter, min);
@@ -264,9 +282,21 @@ namespace
       {
         max = std::max(*iter, max);
       }
+      this->MinLength = min;
+      this->MaxLength = max;
 
-      this->MinLength = sqrt(min);
-      this->MaxLength = sqrt(max);
+      // Average length
+      vtkIdType numEdges = 0;
+      double ave = 0.0;
+      for (auto iter = this->LocalNEdges.begin(); iter != this->LocalNEdges.end(); ++iter)
+      {
+        numEdges += *iter;
+      }
+      for (auto iter = this->LocalAve.begin(); iter != this->LocalAve.end(); ++iter)
+      {
+        ave += *iter;
+      }
+      this->AverageLength = ave / static_cast<double>( numEdges );
     }
 
   };//CharacterizeMesh
@@ -276,6 +306,7 @@ namespace
   {
     double MinLength;
     double MaxLength;
+    double AverageLength;
     MeshWorker() : MinLength(0.0), MaxLength(0.0) {}
 
     template <typename PointsT>
@@ -285,6 +316,7 @@ namespace
       vtkSMPTools::For(0, numPts, characterize);
       this->MinLength = characterize.MinLength;
       this->MaxLength = characterize.MaxLength;
+      this->AverageLength = characterize.AverageLength;
     }
   };//MeshWorker
 
@@ -484,31 +516,33 @@ RequestData(vtkInformation* vtkNotUsed(request),
   }
   double minConnLen = meshWorker.MinLength; //the min and max "edge" lengths
   double maxConnLen = meshWorker.MaxLength;
-  cout << "Min,Max: (" << minConnLen << "," << maxConnLen << ")\n";
+  double aveConnLen = meshWorker.AverageLength;
+  cout << "Min,Max,Average: (" << minConnLen << ","
+       << maxConnLen << aveConnLen << ")\n";
 
   // Establish the type of inter-point forces/displacements
   DisplacePoint *disp;
   if ( smoothingMode == UNIFORM_SMOOTHING )
   {
-    disp = new UniformDisplacement(nullptr);
+    disp = new UniformDisplacement(nullptr,aveConnLen);
   }
   else if ( smoothingMode == SCALAR_SMOOTHING )
   {
     double range[2];
     inScalars->GetRange(range);
-    disp = new ScalarDisplacement(inScalars);
+    disp = new ScalarDisplacement(inScalars,aveConnLen);
   }
   else if ( smoothingMode == TENSOR_SMOOTHING )
   {
-    disp = new TensorDisplacement(inTensors);
+    disp = new TensorDisplacement(inTensors,aveConnLen);
   }
   else if ( smoothingMode == FRAME_FIELD_SMOOTHING )
   {
-    disp = new FrameFieldDisplacement(frameField);
+    disp = new FrameFieldDisplacement(frameField,aveConnLen);
   }
   else //LAPLACIAN_SMOOTHING
   {
-    disp = new LaplacianDisplacement(nullptr);
+    disp = new LaplacianDisplacement(nullptr,aveConnLen);
   }
 
   // Prepare for smoothing. We double buffer the points. The output points
