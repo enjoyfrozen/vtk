@@ -41,21 +41,44 @@ vtkCxxSetObjectMacro(vtkPointSmoothingFilter, Locator, vtkAbstractPointLocator);
 namespace
 {
 
-  // These classes compute the forced displacement between two points
+  // Compute force depending on normalized radius. The force is linearly
+  // repulsive near the point; has a slight (cubic) attractive force in the
+  // region (1< r<=1.5); and produces no force further away.
+  inline double ForceFunction(double r)
+  {
+    if ( r <= 1.0 ) //repulsive
+    {
+      return (r - 1.0);
+    }
+    else if ( r > 1.5 ) //far away do nothing
+    {
+      return 0.0;
+    }
+    else //attractive
+    {
+      return ((r-1.0)*(1.5-r)*(1.5-r)/0.25);
+    }
+  }
+
+
+  // These classes compute the forced displacement between two points. The
+  // classes vary on attribute data which affects the type of forces beween
+  // particles.
   struct DisplacePoint
   {
     vtkDataArray *Data;
     double AverageLength;
 
-    DisplacePoint(vtkDataArray *data, double l) :
-      Data(data), AverageLength(l) {}
+    DisplacePoint(vtkDataArray *data, double ave) :
+      Data(data), AverageLength(ave) {}
     virtual void operator()(vtkIdType p0, vtkIdType p1, double x[3],
                             double y[3], double disp[3]) = 0;
   };
+  // Nearby points apply forces (not modified by distance nor attribute data)
   struct LaplacianDisplacement : public DisplacePoint
   {
-    LaplacianDisplacement(vtkDataArray *data, double l) :
-      DisplacePoint(data,l) {}
+    LaplacianDisplacement(vtkDataArray *data, double ave) :
+      DisplacePoint(data,ave) {}
     void operator()(vtkIdType p0, vtkIdType p1, double x[3],
                     double y[3], double disp[3]) override
     {
@@ -64,22 +87,26 @@ namespace
       disp[2] = y[2] - x[2];
     }
   };
+  // Forces on nearby points are moderated by distance apart
   struct UniformDisplacement : public DisplacePoint
   {
-    UniformDisplacement(vtkDataArray *data, double l) :
-      DisplacePoint(data,l) {}
+    UniformDisplacement(vtkDataArray *data, double ave) :
+      DisplacePoint(data,ave) {}
     void operator()(vtkIdType p0, vtkIdType p1, double x[3],
                     double y[3], double disp[3]) override
     {
-      disp[0] = y[0] - x[0];
-      disp[1] = y[1] - x[1];
-      disp[2] = y[2] - x[2];
+      double len = sqrt ( vtkMath::Distance2BetweenPoints(x,y) );
+      double f = ForceFunction(len/(2.0*this->AverageLength));
+      disp[0] = f * (y[0] - x[0]);
+      disp[1] = f * (y[1] - x[1]);
+      disp[2] = f * (y[2] - x[2]);
     }
   };
+  // Forces on nearby points are moderated by distance and scalar values
   struct ScalarDisplacement : public DisplacePoint
   {
-    ScalarDisplacement(vtkDataArray *data, double l) :
-      DisplacePoint(data,l) {}
+    ScalarDisplacement(vtkDataArray *data, double ave) :
+      DisplacePoint(data,ave) {}
     void operator()(vtkIdType p0, vtkIdType p1, double x[3],
                     double y[3], double disp[3]) override
     {
@@ -88,10 +115,11 @@ namespace
       disp[2] = y[2] - x[2];
     }
   };
+  // Forces on nearby points are moderated by distance and tensor values
   struct TensorDisplacement : public DisplacePoint
   {
-    TensorDisplacement(vtkDataArray *data, double l) :
-      DisplacePoint(data,l) {}
+    TensorDisplacement(vtkDataArray *data, double ave) :
+      DisplacePoint(data,ave) {}
     void operator()(vtkIdType p0, vtkIdType p1, double x[3],
                     double y[3], double disp[3]) override
     {
@@ -100,10 +128,11 @@ namespace
       disp[2] = y[2] - x[2];
     }
   };
+  // Forces on nearby points are moderated by distance and tensor eigenvalues
   struct FrameFieldDisplacement : public DisplacePoint
   {
-    FrameFieldDisplacement(vtkDataArray *data, double l) :
-      DisplacePoint(data,l) {}
+    FrameFieldDisplacement(vtkDataArray *data, double ave) :
+      DisplacePoint(data,ave) {}
     void operator()(vtkIdType p0, vtkIdType p1, double x[3],
                     double y[3], double disp[3]) override
     {

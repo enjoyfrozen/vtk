@@ -20,7 +20,7 @@
  * a tensor to create a scalar, vector, normal, or texture coords. For
  * example, if the tensor contains components of stress, then you
  * could extract the normal stress in the x-direction as a scalar
- * (i.e., tensor component (0,0).
+ * (i.e., tensor component (0,0)).
  *
  * To use this filter, you must set some boolean flags to control
  * which data is extracted from the tensors, and whether you want to
@@ -38,6 +38,15 @@
  * effective stress of the tensor. These require that the ivar
  * ExtractScalars is on, and the appropriate scalar extraction mode is
  * set.
+ *
+ * @warning
+ * This class has been threaded with vtkSMPTools. Using TBB or other
+ * non-sequential type (set in the CMake variable
+ * VTK_SMP_IMPLEMENTATION_TYPE) may improve performance significantly.
+ *
+ * @sa
+ * vtkTensorWidget vtkTensorGlyph vtkPointSmoothingFilter
+ * vtkHyperStreamline
  */
 
 #ifndef vtkExtractTensorComponents_h
@@ -53,8 +62,13 @@
 class VTKFILTERSEXTRACTION_EXPORT vtkExtractTensorComponents : public vtkDataSetAlgorithm
 {
 public:
+  //@{
+  /**
+   * Standard methods for obtaining type information, and printing.
+   */
   vtkTypeMacro(vtkExtractTensorComponents, vtkDataSetAlgorithm);
   void PrintSelf(ostream& os, vtkIndent indent) override;
+  //@}
 
   /**
    * Construct object to extract nothing and to not pass tensor data
@@ -178,6 +192,18 @@ public:
   vtkGetVectorMacro(TCoordComponents, int, 6);
   //@}
 
+  //@{
+  /**
+   * Set/get the desired precision for the output types. See the documentation
+   * for the vtkAlgorithm::DesiredOutputPrecision enum for an explanation of
+   * the available precision settings. Note that any data that is simply passed
+   * through the filter retains its input type, only newly created data added
+   * to the output is affected by this flag.
+   */
+  vtkSetMacro(OutputPrecision, int);
+  vtkGetMacro(OutputPrecision, int);
+  //@}
+
 protected:
   vtkExtractTensorComponents();
   ~vtkExtractTensorComponents() override {}
@@ -201,6 +227,8 @@ protected:
 
   int NumberOfTCoords;
   int TCoordComponents[6];
+
+  int OutputPrecision;
 
 private:
   vtkExtractTensorComponents(const vtkExtractTensorComponents&) = delete;
