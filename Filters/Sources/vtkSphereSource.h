@@ -40,8 +40,13 @@
 class VTKFILTERSSOURCES_EXPORT vtkSphereSource : public vtkPolyDataAlgorithm
 {
 public:
+  //@{
+  /**
+   * Standard methods for obtaining type information, and printing.
+   */
   vtkTypeMacro(vtkSphereSource, vtkPolyDataAlgorithm);
   void PrintSelf(ostream& os, vtkIndent indent) override;
+  //@}
 
   /**
    * Construct sphere with radius=0.5 and default resolution 8 in both Phi
@@ -140,6 +145,16 @@ public:
   vtkGetMacro(OutputPointsPrecision, int);
   //@}
 
+  //@{
+  /**
+   * Specify whether to generate output point normals. By default this is
+   * enabled.
+   */
+  vtkSetMacro(GenerateNormals, vtkTypeBool);
+  vtkGetMacro(GenerateNormals, vtkTypeBool);
+  vtkBooleanMacro(GenerateNormals, vtkTypeBool);
+  //@}
+
 protected:
   vtkSphereSource(int res = 8);
   ~vtkSphereSource() override {}
@@ -157,6 +172,7 @@ protected:
   double EndPhi;
   vtkTypeBool LatLongTessellation;
   int OutputPointsPrecision;
+  vtkTypeBool GenerateNormals;
 
 private:
   vtkSphereSource(const vtkSphereSource&) = delete;

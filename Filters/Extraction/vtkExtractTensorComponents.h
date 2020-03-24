@@ -16,11 +16,11 @@
  * @class   vtkExtractTensorComponents
  * @brief   extract parts of tensor and create a scalar, vector, normal, or texture coordinates.
  *
- * vtkExtractTensorComponents is a filter that extracts components of
- * a tensor to create a scalar, vector, normal, or texture coords. For
- * example, if the tensor contains components of stress, then you
- * could extract the normal stress in the x-direction as a scalar
- * (i.e., tensor component (0,0)).
+ * vtkExtractTensorComponents is a filter that extracts components of a
+ * tensor to create a scalar, vector, normal, and/or texture coords. For
+ * example, if the tensor contains components of stress, then you could
+ * extract the normal stress in the x-direction as a scalar (i.e., tensor
+ * component (0,0)).
  *
  * To use this filter, you must set some boolean flags to control
  * which data is extracted from the tensors, and whether you want to
@@ -30,7 +30,7 @@
  * into a 3x3 matrix. That is, use the (row,column) address to specify
  * a particular tensor component; and if the data you are extracting
  * requires more than one component, use a list of addresses. (Note
- * that the addresses are 0-offset -> (0,0) specifies upper left
+ * that the addresses are 0-offset -> (0,0) specifies the upper left
  * corner of the tensor.)
  *
  * There are two optional methods to extract scalar data. You can
@@ -78,7 +78,7 @@ public:
 
   //@{
   /**
-   * Boolean controls whether tensor data is passed through to output.
+   * Boolean controls whether tensor data is passed through to the output.
    */
   vtkSetMacro(PassTensorsToOutput, vtkTypeBool);
   vtkGetMacro(PassTensorsToOutput, vtkTypeBool);
@@ -87,7 +87,7 @@ public:
 
   //@{
   /**
-   * Boolean controls whether scalar data is extracted from tensor.
+   * Boolean controls whether scalar data is extracted from the tensors.
    */
   vtkSetMacro(ExtractScalars, vtkTypeBool);
   vtkGetMacro(ExtractScalars, vtkTypeBool);
@@ -194,11 +194,12 @@ public:
 
   //@{
   /**
-   * Set/get the desired precision for the output types. See the documentation
-   * for the vtkAlgorithm::DesiredOutputPrecision enum for an explanation of
-   * the available precision settings. Note that any data that is simply passed
-   * through the filter retains its input type, only newly created data added
-   * to the output is affected by this flag.
+   * Set/get the desired precision for the output types. See the
+   * documentation for the vtkAlgorithm::DesiredOutputPrecision enum for an
+   * explanation of the available precision settings. Note that any data that
+   * is simply passed through the filter to its output retains its input
+   * type, only newly created data added to the output is affected by this
+   * flag. By default the output type is the same as the input tensor type.
    */
   vtkSetMacro(OutputPrecision, int);
   vtkGetMacro(OutputPrecision, int);

@@ -67,10 +67,10 @@ namespace
   struct DisplacePoint
   {
     vtkDataArray *Data;
-    double AverageLength;
+    double Radius; //radius of average sphere
 
     DisplacePoint(vtkDataArray *data, double ave) :
-      Data(data), AverageLength(ave) {}
+      Data(data), Radius(ave) {}
     virtual void operator()(vtkIdType p0, vtkIdType p1, double x[3],
                             double y[3], double disp[3]) = 0;
   };
@@ -96,7 +96,7 @@ namespace
                     double y[3], double disp[3]) override
     {
       double len = sqrt ( vtkMath::Distance2BetweenPoints(x,y) );
-      double f = ForceFunction(len/(2.0*this->AverageLength));
+      double f = ForceFunction((len/2.0)*this->Radius);
       disp[0] = f * (y[0] - x[0]);
       disp[1] = f * (y[1] - x[1]);
       disp[2] = f * (y[2] - x[2]);
@@ -105,14 +105,33 @@ namespace
   // Forces on nearby points are moderated by distance and scalar values
   struct ScalarDisplacement : public DisplacePoint
   {
-    ScalarDisplacement(vtkDataArray *data, double ave) :
-      DisplacePoint(data,ave) {}
+    double Range[2];
+    double ScalarAverage;
+
+    ScalarDisplacement(vtkDataArray *data, double ave, double range[2]) :
+      DisplacePoint(data,ave)
+    {
+      this->Range[0] = range[0];
+      this->Range[1] = range[1];
+      this->ScalarAverage = (this->Range[0] + this->Range[1]) / 2.0;
+    }
     void operator()(vtkIdType p0, vtkIdType p1, double x[3],
                     double y[3], double disp[3]) override
     {
-      disp[0] = y[0] - x[0];
-      disp[1] = y[1] - x[1];
-      disp[2] = y[2] - x[2];
+      double len = sqrt ( vtkMath::Distance2BetweenPoints(x,y) );
+      // The length is modified by the point spheres scaled by scalars. The point
+      // spheres are assumed to be of radius Radius.
+      double s0, s1, sf0, sf1;
+      this->Data->GetTuple(p0,&s0);
+      this->Data->GetTuple(p1,&s1);
+      sf0 = (s0 - this->Range[0]) / (this->ScalarAverage - this->Range[0]);
+      sf1 = (s1 - this->Range[0]) / (this->ScalarAverage - this->Range[0]);
+
+      // Now compute the displacement
+      double f = ForceFunction((len/2.0)*this->Radius);
+      disp[0] = f * (y[0] - x[0]);
+      disp[1] = f * (y[1] - x[1]);
+      disp[2] = f * (y[2] - x[2]);
     }
   };
   // Forces on nearby points are moderated by distance and tensor values
@@ -545,33 +564,31 @@ RequestData(vtkInformation* vtkNotUsed(request),
   }
   double minConnLen = meshWorker.MinLength; //the min and max "edge" lengths
   double maxConnLen = meshWorker.MaxLength;
-  double aveConnLen = meshWorker.AverageLength;
-  cout << "Min,Max,Average: (" << minConnLen << ","
-       << maxConnLen << aveConnLen << ")\n";
+  double radius = meshWorker.AverageLength/2.0;
 
   // Establish the type of inter-point forces/displacements
   DisplacePoint *disp;
   if ( smoothingMode == UNIFORM_SMOOTHING )
   {
-    disp = new UniformDisplacement(nullptr,aveConnLen);
+    disp = new UniformDisplacement(nullptr,radius);
   }
   else if ( smoothingMode == SCALAR_SMOOTHING )
   {
     double range[2];
     inScalars->GetRange(range);
-    disp = new ScalarDisplacement(inScalars,aveConnLen);
+    disp = new ScalarDisplacement(inScalars,radius,range);
   }
   else if ( smoothingMode == TENSOR_SMOOTHING )
   {
-    disp = new TensorDisplacement(inTensors,aveConnLen);
+    disp = new TensorDisplacement(inTensors,radius);
   }
   else if ( smoothingMode == FRAME_FIELD_SMOOTHING )
   {
-    disp = new FrameFieldDisplacement(frameField,aveConnLen);
+    disp = new FrameFieldDisplacement(frameField,radius);
   }
   else //LAPLACIAN_SMOOTHING
   {
-    disp = new LaplacianDisplacement(nullptr,aveConnLen);
+    disp = new LaplacianDisplacement(nullptr,radius);
   }
 
   // Prepare for smoothing. We double buffer the points. The output points

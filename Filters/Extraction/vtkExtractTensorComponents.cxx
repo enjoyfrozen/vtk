@@ -29,16 +29,19 @@ vtkStandardNewMacro(vtkExtractTensorComponents);
 //---------------------------------------------------------------------------
 namespace
 {
-  vtkDataArray *CreateDataArray(int type)
+  vtkDataArray *CreateDataArray(int type, const char* name)
   {
+    vtkDataArray *da;
     if ( type == VTK_DOUBLE )
     {
-      return vtkDoubleArray::New();
+      da = vtkDoubleArray::New();
     }
     else
     {
-      return vtkFloatArray::New();
+      da = vtkFloatArray::New();
     }
+    da->SetName(name);
+    return da;
   }
 }
 
@@ -145,27 +148,30 @@ int vtkExtractTensorComponents::RequestData(vtkInformation* vtkNotUsed(request),
   if (this->ExtractScalars)
   {
     outPD->CopyScalarsOff();
-    newScalars = CreateDataArray(precisionType);
+    newScalars = CreateDataArray(precisionType,
+                                 this->ScalarMode == VTK_EXTRACT_COMPONENT ? "Tensor Component" :
+                                 (this->ScalarMode == VTK_EXTRACT_DETERMINANT ? "Tensor Determinant" :
+                                  "Tensor Effective Stress"));
     newScalars->SetNumberOfTuples(numPts);
   }
   if (this->ExtractVectors)
   {
     outPD->CopyVectorsOff();
-    newVectors = CreateDataArray(precisionType);
+    newVectors = CreateDataArray(precisionType,"TensorVectors");
     newVectors->SetNumberOfComponents(3);
     newVectors->SetNumberOfTuples(numPts);
   }
   if (this->ExtractNormals)
   {
     outPD->CopyNormalsOff();
-    newNormals = CreateDataArray(precisionType);
+    newNormals = CreateDataArray(precisionType,"TensorNormals");
     newNormals->SetNumberOfComponents(3);
     newNormals->SetNumberOfTuples(numPts);
   }
   if (this->ExtractTCoords)
   {
     outPD->CopyTCoordsOff();
-    newTCoords = CreateDataArray(precisionType);
+    newTCoords = CreateDataArray(precisionType,"TensorTCoords");
     newTCoords->SetNumberOfComponents(2);
     newTCoords->SetNumberOfTuples(numPts);
   }
@@ -209,7 +215,7 @@ int vtkExtractTensorComponents::RequestData(vtkInformation* vtkNotUsed(request),
           s = tensor[this->ScalarComponents[0] + 3 * this->ScalarComponents[1]];
         }
 
-        else // VTK_EXTRACT_EFFECTIVE_DETERMINANT
+        else // VTK_EXTRACT_DETERMINANT
         {
           s = tensor[0] * tensor[4] * tensor[8] - tensor[0] * tensor[5] * tensor[7] -
             tensor[1] * tensor[3] * tensor[8] + tensor[1] * tensor[5] * tensor[6] +
