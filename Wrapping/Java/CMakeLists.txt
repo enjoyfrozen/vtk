@@ -4,17 +4,20 @@ vtk_module_wrap_java(
   MODULES         ${vtk_modules}
   WRAPPED_MODULES vtk_java_wrapped_modules)
 
+# TODO: Make FindJava.cmake use imported targets.
+find_package(Java REQUIRED COMPONENTS Development)
+include(UseJava)
+
 option(VTK_JAVA_SWT_COMPONENT "Enable the SWT component for Java" OFF)
 if (VTK_JAVA_SWT_COMPONENT)
   find_package(SWT REQUIRED)
 endif ()
 
 # Add the option for build the JOGL component to VTK.
-set(JOGL_VERSION "2.3.2")
 option(VTK_JAVA_JOGL_COMPONENT "Need JOGL jar files" OFF)
-
-# TODO: Make FindJava.cmake use imported targets.
-find_package(Java REQUIRED COMPONENTS Development)
+if (VTK_JAVA_JOGL_COMPONENT)
+  find_package(JOGL REQUIRED)
+endif ()
 
 set(java_sources
   vtk/CellType
