@@ -193,9 +193,11 @@ int TestLagrangianIntegrationModel(int, char*[])
     return EXIT_FAILURE;
   }
 
+  std::cout << odeWavelet->GetWeightsSize() << std::endl;
   if (odeWavelet->GetWeightsSize() != 8)
   {
-    std::cerr << "Incorrect Weights Size" << std::endl;
+    std::cerr << "Incorrect Weights Size : " << odeWavelet->GetWeightsSize() << ". Expecting 8"
+              << std::endl;
     return EXIT_FAILURE;
   }
 

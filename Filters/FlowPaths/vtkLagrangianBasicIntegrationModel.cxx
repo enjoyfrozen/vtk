@@ -128,6 +128,7 @@ void vtkLagrangianBasicIntegrationModel::PrintSelf(ostream& os, vtkIndent indent
   {
     os << indent << "Locator: " << this->Locator << endl;
   }
+  os << indent << "WeightsSize: " << this->WeightsSize << endl;
   os << indent << "Tolerance: " << this->Tolerance << endl;
 }
 
