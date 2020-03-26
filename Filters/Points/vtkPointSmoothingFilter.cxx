@@ -41,25 +41,31 @@ vtkCxxSetObjectMacro(vtkPointSmoothingFilter, Locator, vtkAbstractPointLocator);
 namespace
 {
 
-  // Compute force depending on normalized radius. The force is linearly
-  // repulsive near the point; has a slight (cubic) attractive force in the
-  // region (1< r<=1.5); and produces no force further away.
-  inline double ForceFunction(double r)
+  // Compute 1/r**2 function
+  inline double RadiusFunction(double r)
   {
+    return (1.0 - r*r);
+  }
+
+  // Compute the inter-point force depending on normalized radius. The force
+  // is linearly repulsive near the point; has a slight (cubic) attractive
+  // force in the region (1<r<=gamma); and produces no force further away.
+  inline double ForceFunction(double r, double gamma=1.0)
+  {
+    double gp1 = 1.0 + gamma;
     if ( r <= 1.0 ) //repulsive
     {
-      return (r - 1.0);
+      return -(r - 1.0);
     }
-    else if ( r > 1.5 ) //far away do nothing
+    else if ( r > gp1 ) //far away do nothing
     {
       return 0.0;
     }
     else //attractive
     {
-      return ((r-1.0)*(1.5-r)*(1.5-r)/0.25);
+      return (-(r-1.0)*(gp1-r)*(gp1-r)/(gamma*gamma));
     }
   }
-
 
   // These classes compute the forced displacement between two points. The
   // classes vary on attribute data which affects the type of forces beween
@@ -71,20 +77,25 @@ namespace
 
     DisplacePoint(vtkDataArray *data, double ave) :
       Data(data), Radius(ave) {}
-    virtual void operator()(vtkIdType p0, vtkIdType p1, double x[3],
+    // Return 1 if this edge pair(p0,p1) exerts a force on the point p0.
+    // Otherwise 0. p0 is assumed to be the center point.
+    virtual int operator()(vtkIdType p0, vtkIdType p1, double x[3],
                             double y[3], double disp[3]) = 0;
   };
   // Nearby points apply forces (not modified by distance nor attribute data)
-  struct LaplacianDisplacement : public DisplacePoint
+  struct GeometricDisplacement : public DisplacePoint
   {
-    LaplacianDisplacement(vtkDataArray *data, double ave) :
+    GeometricDisplacement(vtkDataArray *data, double ave) :
       DisplacePoint(data,ave) {}
-    void operator()(vtkIdType p0, vtkIdType p1, double x[3],
+    int operator()(vtkIdType p0, vtkIdType p1, double x[3],
                     double y[3], double disp[3]) override
     {
-      disp[0] = y[0] - x[0];
-      disp[1] = y[1] - x[1];
-      disp[2] = y[2] - x[2];
+      double len = sqrt ( vtkMath::Distance2BetweenPoints(x,y) );
+      double f = RadiusFunction(len);
+      disp[0] = f * (y[0] - x[0]);
+      disp[1] = f * (y[1] - x[1]);
+      disp[2] = f * (y[2] - x[2]);
+      return 1;
     }
   };
   // Forces on nearby points are moderated by distance apart
@@ -92,14 +103,19 @@ namespace
   {
     UniformDisplacement(vtkDataArray *data, double ave) :
       DisplacePoint(data,ave) {}
-    void operator()(vtkIdType p0, vtkIdType p1, double x[3],
+    int operator()(vtkIdType p0, vtkIdType p1, double x[3],
                     double y[3], double disp[3]) override
     {
       double len = sqrt ( vtkMath::Distance2BetweenPoints(x,y) );
-      double f = ForceFunction((len/2.0)*this->Radius);
-      disp[0] = f * (y[0] - x[0]);
-      disp[1] = f * (y[1] - x[1]);
-      disp[2] = f * (y[2] - x[2]);
+      double f = ForceFunction((len/2.0)/this->Radius,0.1);
+      if ( f != 0.0 )
+      {
+        disp[0] = f * (y[0] - x[0]);
+        disp[1] = f * (y[1] - x[1]);
+        disp[2] = f * (y[2] - x[2]);
+        return 1;
+      }
+      return 0;
     }
   };
   // Forces on nearby points are moderated by distance and scalar values
@@ -115,23 +131,27 @@ namespace
       this->Range[1] = range[1];
       this->ScalarAverage = (this->Range[0] + this->Range[1]) / 2.0;
     }
-    void operator()(vtkIdType p0, vtkIdType p1, double x[3],
+    int operator()(vtkIdType p0, vtkIdType p1, double x[3],
                     double y[3], double disp[3]) override
     {
       double len = sqrt ( vtkMath::Distance2BetweenPoints(x,y) );
       // The length is modified by the point spheres scaled by scalars. The point
       // spheres are assumed to be of radius Radius.
-      double s0, s1, sf0, sf1;
-      this->Data->GetTuple(p0,&s0);
+      double s1, sf;
       this->Data->GetTuple(p1,&s1);
-      sf0 = (s0 - this->Range[0]) / (this->ScalarAverage - this->Range[0]);
-      sf1 = (s1 - this->Range[0]) / (this->ScalarAverage - this->Range[0]);
+      sf = (s1 - this->Range[0]) / (this->ScalarAverage - this->Range[0]);
+      //      sf = (sf < 1.0 ? 1.0 : sf);
 
       // Now compute the displacement
-      double f = ForceFunction((len/2.0)*this->Radius);
-      disp[0] = f * (y[0] - x[0]);
-      disp[1] = f * (y[1] - x[1]);
-      disp[2] = f * (y[2] - x[2]);
+      double f = ForceFunction((len/2.0)/(sf*this->Radius),0.1);
+      if ( f != 0.0 )
+      {
+        disp[0] = sf * f * (y[0] - x[0]);
+        disp[1] = sf * f * (y[1] - x[1]);
+        disp[2] = sf * f * (y[2] - x[2]);
+        return 1;
+      }
+      return 0;
     }
   };
   // Forces on nearby points are moderated by distance and tensor values
@@ -139,12 +159,13 @@ namespace
   {
     TensorDisplacement(vtkDataArray *data, double ave) :
       DisplacePoint(data,ave) {}
-    void operator()(vtkIdType p0, vtkIdType p1, double x[3],
+    int operator()(vtkIdType p0, vtkIdType p1, double x[3],
                     double y[3], double disp[3]) override
     {
       disp[0] = y[0] - x[0];
       disp[1] = y[1] - x[1];
       disp[2] = y[2] - x[2];
+      return 1;
     }
   };
   // Forces on nearby points are moderated by distance and tensor eigenvalues
@@ -152,12 +173,13 @@ namespace
   {
     FrameFieldDisplacement(vtkDataArray *data, double ave) :
       DisplacePoint(data,ave) {}
-    void operator()(vtkIdType p0, vtkIdType p1, double x[3],
+    int operator()(vtkIdType p0, vtkIdType p1, double x[3],
                     double y[3], double disp[3]) override
     {
       disp[0] = y[0] - x[0];
       disp[1] = y[1] - x[1];
       disp[2] = y[2] - x[2];
+      return 1;
     }
   };
 
@@ -408,14 +430,16 @@ namespace
           // average the disps
           if ( *cptr >= 0 ) //valid connection to another point
           {
-            ++npts;
             y[0] = inPts[*cptr][0];
             y[1] = inPts[*cptr][1];
             y[2] = inPts[*cptr][2];
-            (*this->Displace)(ptId,*cptr,x,y,disp);
-            sumDisp[0] += disp[0];
-            sumDisp[1] += disp[1];
-            sumDisp[2] += disp[2];
+            if ( (*this->Displace)(ptId,*cptr,x,y,disp) )
+            {
+              ++npts;
+              sumDisp[0] += disp[0];
+              sumDisp[1] += disp[1];
+              sumDisp[2] += disp[2];
+            }
           }
         }
         if ( npts <= 0 ) // no contributions just copy point to output
@@ -524,6 +548,10 @@ RequestData(vtkInformation* vtkNotUsed(request),
                      (inTensors != nullptr ? TENSOR_SMOOTHING :
                       (inScalars != nullptr ? SCALAR_SMOOTHING : UNIFORM_SMOOTHING)));
   }
+  else if ( this->SmoothingMode == GEOMETRIC_SMOOTHING )
+  {
+    smoothingMode = GEOMETRIC_SMOOTHING;
+  }
   else if ( this->SmoothingMode == SCALAR_SMOOTHING && inScalars != nullptr )
   {
     smoothingMode = SCALAR_SMOOTHING;
@@ -586,9 +614,9 @@ RequestData(vtkInformation* vtkNotUsed(request),
   {
     disp = new FrameFieldDisplacement(frameField,radius);
   }
-  else //LAPLACIAN_SMOOTHING
+  else //GEOMETRIC_SMOOTHING
   {
-    disp = new LaplacianDisplacement(nullptr,radius);
+    disp = new GeometricDisplacement(nullptr,radius);
   }
 
   // Prepare for smoothing. We double buffer the points. The output points

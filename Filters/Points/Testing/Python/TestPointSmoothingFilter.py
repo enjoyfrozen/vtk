@@ -9,6 +9,10 @@ VTK_DATA_ROOT = vtkGetDataRoot()
 # Control test resolution
 res = 50
 
+# Controls the plane normal and view plane normal
+normal = [0.1,0.1,1]
+normal = [.8,1,1]
+
 # Generate a sizing field. Use a synthetic volume with stress
 # tensors.
 ptLoad = vtk.vtkPointLoad()
@@ -24,7 +28,7 @@ center = [(bounds[1]+bounds[0])/2.0, (bounds[3]+bounds[2])/2.0, (bounds[5]+bound
 # Cut the data (which has tensors) with a plane
 plane = vtk.vtkPlane()
 plane.SetOrigin(center)
-plane.SetNormal(0,0,1)
+plane.SetNormal(normal)
 
 cut = vtk.vtkFlyingEdgesPlaneCutter()
 cut.SetInputData(sizeField)
@@ -32,6 +36,7 @@ cut.SetPlane(plane)
 cut.ComputeNormalsOff()
 cut.InterpolateAttributesOn()
 cut.Update()
+numPts = cut.GetOutput().GetNumberOfPoints()
 
 # Extract some tensor information
 textract = vtk.vtkExtractTensorComponents()
@@ -40,6 +45,14 @@ textract.ExtractScalarsOn()
 textract.ScalarIsDeterminant()
 textract.PassTensorsToOutputOn()
 textract.Update()
+
+# Extract points along sphere surface
+mask = vtk.vtkMaskPoints()
+mask.SetInputConnection(textract.GetOutputPort())
+mask.RandomModeOn()
+mask.SetRandomModeType(0)
+mask.SetMaximumNumberOfPoints(int(0.67*numPts))
+mask.Update()
 
 # Now smooth/pack the points in a variety of ways.
 # We'll glyph with a transformed sphere
@@ -50,21 +63,18 @@ sph.SetThetaResolution(24)
 sph.SetPhiResolution(12)
 sph.Update()
 
-# First exercise the default behavior (which is UNIFORM)
+# First show the points unsmoothed
 smooth0 = vtk.vtkPointSmoothingFilter()
-smooth0.SetInputConnection(textract.GetOutputPort())
+smooth0.SetInputConnection(mask.GetOutputPort())
+smooth0.SetNumberOfIterations(0) #sends input to output
 smooth0.SetSmoothingModeToDefault()
-smooth0.SetNumberOfIterations(40)
-smooth0.SetNumberOfSubIterations(4)
-smooth0.SetRelaxationFactor(0.1)
-#smooth0.SetNumberOfIterations(0)
-smooth0.SetNeighborhoodSize(12)
 smooth0.Update()
 
 glyph0 = vtk.vtkGlyph3D()
 glyph0.SetInputConnection(smooth0.GetOutputPort())
 glyph0.SetSourceConnection(sph.GetOutputPort())
-glyph0.SetScaleFactor(-0.8) #negative to be consistent with normals
+glyph0.SetScaleModeToDataScalingOff()
+glyph0.SetScaleFactor(0.025)
 
 gMapper0 = vtk.vtkPolyDataMapper()
 gMapper0.SetInputConnection(glyph0.GetOutputPort())
@@ -75,21 +85,21 @@ gActor0.SetMapper(gMapper0)
 gActor0.GetProperty().SetColor(1,1,1)
 gActor0.GetProperty().SetOpacity(1)
 
-# Now the Laplacian behavior
+# Now the geometric 1/r**2 behavior
 smooth1 = vtk.vtkPointSmoothingFilter()
-smooth1.SetInputConnection(textract.GetOutputPort())
-smooth1.SetSmoothingModeToLaplacian()
+smooth1.SetInputConnection(mask.GetOutputPort())
+smooth1.SetSmoothingModeToGeometric()
 smooth1.SetNumberOfIterations(40)
-smooth1.SetNumberOfSubIterations(4)
+smooth1.SetNumberOfSubIterations(10)
 smooth1.SetRelaxationFactor(0.1)
-#smooth1.SetNumberOfIterations(0)
-smooth1.SetNeighborhoodSize(12)
+smooth1.SetNeighborhoodSize(18)
 smooth1.Update()
 
 glyph1 = vtk.vtkGlyph3D()
 glyph1.SetInputConnection(smooth1.GetOutputPort())
 glyph1.SetSourceConnection(sph.GetOutputPort())
-glyph1.SetScaleFactor(-0.8)
+glyph1.SetScaleModeToDataScalingOff()
+glyph1.SetScaleFactor(0.025)
 
 gMapper1 = vtk.vtkPolyDataMapper()
 gMapper1.SetInputConnection(glyph1.GetOutputPort())
@@ -102,19 +112,19 @@ gActor1.GetProperty().SetOpacity(1)
 
 # Now explicitly the Uniform behavior
 smooth2 = vtk.vtkPointSmoothingFilter()
-smooth2.SetInputConnection(textract.GetOutputPort())
+smooth2.SetInputConnection(mask.GetOutputPort())
 smooth2.SetSmoothingModeToUniform()
-smooth2.SetNumberOfIterations(40)
-smooth2.SetNumberOfSubIterations(4)
-smooth2.SetRelaxationFactor(0.1)
-#smooth2.SetNumberOfIterations(0)
-smooth2.SetNeighborhoodSize(12)
+smooth2.SetNumberOfIterations(50)
+smooth2.SetNumberOfSubIterations(10)
+smooth2.SetRelaxationFactor(0.5)
+smooth2.SetNeighborhoodSize(20)
 smooth2.Update()
 
 glyph2 = vtk.vtkGlyph3D()
 glyph2.SetInputConnection(smooth2.GetOutputPort())
 glyph2.SetSourceConnection(sph.GetOutputPort())
-glyph2.SetScaleFactor(-0.8)
+glyph2.SetScaleModeToDataScalingOff()
+glyph2.SetScaleFactor(0.025)
 
 gMapper2 = vtk.vtkPolyDataMapper()
 gMapper2.SetInputConnection(glyph2.GetOutputPort())
@@ -127,19 +137,20 @@ gActor2.GetProperty().SetOpacity(1)
 
 # Now explicitly the Scalar behavior
 smooth3 = vtk.vtkPointSmoothingFilter()
-smooth3.SetInputConnection(textract.GetOutputPort())
+smooth3.SetInputConnection(mask.GetOutputPort())
 smooth3.SetSmoothingModeToScalars()
-smooth3.SetNumberOfIterations(40)
-smooth3.SetNumberOfSubIterations(4)
-smooth3.SetRelaxationFactor(0.1)
-#smooth3.SetNumberOfIterations(0)
-smooth3.SetNeighborhoodSize(12)
+smooth3.SetNumberOfIterations(50)
+smooth3.SetNumberOfSubIterations(10)
+smooth3.SetRelaxationFactor(0.2)
+smooth3.SetNeighborhoodSize(10)
 smooth3.Update()
 
 glyph3 = vtk.vtkGlyph3D()
 glyph3.SetInputConnection(smooth3.GetOutputPort())
 glyph3.SetSourceConnection(sph.GetOutputPort())
-glyph3.SetScaleFactor(-0.8)
+#glyph3.SetScaleModeToDataScalingOff()
+#glyph3.SetScaleFactor(0.025)
+glyph3.SetScaleFactor(-0.25)
 
 gMapper3 = vtk.vtkPolyDataMapper()
 gMapper3.SetInputConnection(glyph3.GetOutputPort())
@@ -152,12 +163,11 @@ gActor3.GetProperty().SetOpacity(1)
 
 # Now explicitly the Tensor behavior
 smooth4 = vtk.vtkPointSmoothingFilter()
-smooth4.SetInputConnection(textract.GetOutputPort())
+smooth4.SetInputConnection(mask.GetOutputPort())
 smooth4.SetSmoothingModeToUniform()
 smooth4.SetNumberOfIterations(40)
 smooth4.SetNumberOfSubIterations(4)
 smooth4.SetRelaxationFactor(0.1)
-#smooth4.SetNumberOfIterations(0)
 smooth4.SetNeighborhoodSize(12)
 smooth4.Update()
 
@@ -176,12 +186,11 @@ gActor4.GetProperty().SetOpacity(1)
 
 # Now explicitly the Frame Field behavior
 smooth5 = vtk.vtkPointSmoothingFilter()
-smooth5.SetInputConnection(textract.GetOutputPort())
-smooth5.SetSmoothingModeToUniform()
+smooth5.SetInputConnection(mask.GetOutputPort())
+smooth5.SetSmoothingModeToFrameField()
 smooth5.SetNumberOfIterations(40)
 smooth5.SetNumberOfSubIterations(4)
 smooth5.SetRelaxationFactor(0.1)
-#smooth5.SetNumberOfIterations(0)
 smooth5.SetNeighborhoodSize(12)
 smooth5.Update()
 
@@ -238,7 +247,8 @@ iRen.SetRenderWindow(renWin)
 # Add the actors to the renderer, set the background and size
 #
 camera = vtk.vtkCamera()
-camera.SetPosition(0,0,1)
+camera.SetFocalPoint(0,0,0)
+camera.SetPosition(normal)
 
 ren0.AddActor(gActor0)
 ren0.AddActor(outlineActor)

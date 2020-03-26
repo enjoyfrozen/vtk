@@ -21,9 +21,9 @@
  * vtkPointSet by adjusting their position to create a smooth distribution
  * (and thereby form a pleasing packing of the points). Smoothing is
  * performed by considering the effects of neighboring points on one
- * another. Smoothing in its simplest form is simply a variant of Laplacian
+ * another. Smoothing in its simplest form is simply a variant of 1/r**2
  * smoothing where each point moves towards the average position of its
- * neigboring points. Next uniform smoothing uses a cubic cutoff function to
+ * neighboring points. Next uniform smoothing uses a cubic cutoff function to
  * produce higher forces between points that are closer together, but the
  * forces are independent of associated point data attribute
  * values. Smoothing can be further controlled either by a scalar field, by a
@@ -117,8 +117,8 @@ public:
    */
   enum
   {
-    DEFAULT_SMOOTHING,
-    LAPLACIAN_SMOOTHING,
+    DEFAULT_SMOOTHING=0,
+    GEOMETRIC_SMOOTHING,
     UNIFORM_SMOOTHING,
     SCALAR_SMOOTHING,
     TENSOR_SMOOTHING,
@@ -139,7 +139,7 @@ public:
   vtkSetClampMacro(SmoothingMode, int, DEFAULT_SMOOTHING, FRAME_FIELD_SMOOTHING);
   vtkGetMacro(SmoothingMode, int);
   void SetSmoothingModeToDefault() { this->SetSmoothingMode(DEFAULT_SMOOTHING); }
-  void SetSmoothingModeToLaplacian() { this->SetSmoothingMode(LAPLACIAN_SMOOTHING); }
+  void SetSmoothingModeToGeometric() { this->SetSmoothingMode(GEOMETRIC_SMOOTHING); }
   void SetSmoothingModeToUniform() { this->SetSmoothingMode(UNIFORM_SMOOTHING); }
   void SetSmoothingModeToScalars() { this->SetSmoothingMode(SCALAR_SMOOTHING); }
   void SetSmoothingModeToTensors() { this->SetSmoothingMode(TENSOR_SMOOTHING); }
