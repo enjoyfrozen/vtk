@@ -221,7 +221,8 @@ public:
       if (particle->GetPManualShift() || this->Boxes[i].ContainsPoint(particle->GetPosition()))
       {
         ++sendStream->count; // increment counter on message
-        this->SendRequests.push_back(std::make_pair(new vtkMPICommunicator::Request, sendStream));
+        this->SendRequests.emplace_back(
+          std::make_pair(new vtkMPICommunicator::Request, sendStream));
         this->Controller->NoBlockSend(sendStream->GetRawData(), this->StreamSize, i,
           LAGRANGIAN_PARTICLE_TAG, *this->SendRequests.back().first);
       }
@@ -343,7 +344,7 @@ private:
 };
 
 // A singleton class used by each rank to send particle id to each other
-// It sends ut to all other ranks and can receive it from any other rank.
+// It sends it to all other ranks and can receive it from any other rank.
 class ParticleIdManager
 {
 public:
@@ -390,7 +391,7 @@ public:
         continue;
       }
       ++sendStream->count; // increment counter on message
-      this->SendRequests.push_back(std::make_pair(new vtkMPICommunicator::Request, sendStream));
+      this->SendRequests.emplace_back(std::make_pair(new vtkMPICommunicator::Request, sendStream));
       this->Controller->NoBlockSend(sendStream->GetRawData(), this->StreamSize, i,
         LAGRANGIAN_PARTICLE_ID_TAG, *this->SendRequests.back().first);
     }
