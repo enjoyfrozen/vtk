@@ -140,21 +140,24 @@ function (_vtk_module_wrap_python_sources module sources classes)
 $<$<BOOL:${_vtk_python_genex_include_directories}>:\n-I\'$<JOIN:${_vtk_python_genex_include_directories},\'\n-I\'>\'>\n
 $<$<BOOL:${_vtk_python_hierarchy_files}>:\n--types \'$<JOIN:${_vtk_python_hierarchy_files},\'\n--types \'>\'>\n")
 
+  set(_vtk_python_command_depends)
   get_property(_vtk_python_is_imported
     TARGET    "${_vtk_python_target_name}"
     PROPERTY  "IMPORTED")
-  if (_vtk_python_is_imported OR CMAKE_GENERATOR MATCHES "Ninja")
-    set(_vtk_python_command_depend "${_vtk_python_hierarchy_file}")
-  else ()
-    if (TARGET "${_vtk_python_library_name}-hierarchy")
-      set(_vtk_python_command_depend "${_vtk_python_library_name}-hierarchy")
+  foreach (_vtk_python_hierarchy_file IN LISTS _vtk_python_hierarchy_files)
+    if (_vtk_python_is_imported OR CMAKE_GENERATOR MATCHES "Ninja")
+      list(APPEND _vtk_python_command_depends "${_vtk_python_hierarchy_file}")
     else ()
-      message(FATAL_ERROR
-        "The ${module} hierarchy file is attached to a non-imported target "
-        "and a hierarchy target (${_vtk_python_library_name}-hierarchy) is "
-        "missing.")
+      if (TARGET "${_vtk_python_library_name}-hierarchy")
+        list(APPEND _vtk_python_command_depends "${_vtk_python_library_name}-hierarchy")
+      else ()
+        message(FATAL_ERROR
+          "The ${module} hierarchy file is attached to a non-imported target "
+          "and a hierarchy target (${_vtk_python_library_name}-hierarchy) is "
+          "missing.")
+      endif ()
     endif ()
-  endif ()
+  endforeach ()
 
   set(_vtk_python_sources)
 
@@ -175,7 +178,6 @@ $<$<BOOL:${_vtk_python_hierarchy_files}>:\n--types \'$<JOIN:${_vtk_python_hierar
     list(APPEND _vtk_python_sources
       "${_vtk_python_source_output}")
 
-    set(_vtk_python_command_depends)
     set(_vtk_python_wrap_target "VTK::WrapPython")
     set(_vtk_python_macros_args)
     if (TARGET VTKCompileTools::WrapPython)
@@ -203,7 +205,6 @@ $<$<BOOL:${_vtk_python_hierarchy_files}>:\n--types \'$<JOIN:${_vtk_python_hierar
       DEPENDS
         "${_vtk_python_header}"
         "${_vtk_python_args_file}"
-        "${_vtk_python_command_depend}"
         "$<TARGET_FILE:${_vtk_python_wrap_target}>"
         ${_vtk_python_command_depends})
   endforeach ()
