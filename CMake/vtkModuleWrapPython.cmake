@@ -143,18 +143,20 @@ $<$<BOOL:${_vtk_python_hierarchy_files}>:\n--types \'$<JOIN:${_vtk_python_hierar
   get_property(_vtk_python_is_imported
     TARGET    "${_vtk_python_target_name}"
     PROPERTY  "IMPORTED")
-  if (_vtk_python_is_imported OR CMAKE_GENERATOR MATCHES "Ninja")
-    set(_vtk_python_command_depend "${_vtk_python_hierarchy_file}")
-  else ()
-    if (TARGET "${_vtk_python_library_name}-hierarchy")
-      set(_vtk_python_command_depend "${_vtk_python_library_name}-hierarchy")
+  foreach (_vtk_python_hierarchy_file IN LISTS _vtk_python_hierarchy_files)
+    if (_vtk_python_is_imported OR CMAKE_GENERATOR MATCHES "Ninja")
+      set(_vtk_python_command_depend "${_vtk_python_hierarchy_file}")
     else ()
-      message(FATAL_ERROR
-        "The ${module} hierarchy file is attached to a non-imported target "
-        "and a hierarchy target (${_vtk_python_library_name}-hierarchy) is "
-        "missing.")
+      if (TARGET "${_vtk_python_library_name}-hierarchy")
+        set(_vtk_python_command_depend "${_vtk_python_library_name}-hierarchy")
+      else ()
+        message(FATAL_ERROR
+          "The ${module} hierarchy file is attached to a non-imported target "
+          "and a hierarchy target (${_vtk_python_library_name}-hierarchy) is "
+          "missing.")
+      endif ()
     endif ()
-  endif ()
+  endforeach ()
 
   set(_vtk_python_sources)
 

@@ -62,18 +62,20 @@ $<$<BOOL:${_vtk_java_hierarchy_files}>:\n--types \'$<JOIN:${_vtk_java_hierarchy_
   get_property(_vtk_java_is_imported
     TARGET    "${module}"
     PROPERTY  "IMPORTED")
-  if (_vtk_java_is_imported OR CMAKE_GENERATOR MATCHES "Ninja")
-    set(_vtk_java_command_depend "${_vtk_java_hierarchy_file}")
-  else ()
-    if (TARGET "${_vtk_java_library_name}-hierarchy")
-      set(_vtk_java_command_depend "${_vtk_java_library_name}-hierarchy")
+  foreach (_vtk_java_hierarchy_file IN LISTS _vtk_java_hierarchy_files)
+    if (_vtk_java_is_imported OR CMAKE_GENERATOR MATCHES "Ninja")
+      set(_vtk_java_command_depend "${_vtk_java_hierarchy_file}")
     else ()
-      message(FATAL_ERROR
-        "The ${module} hierarchy file is attached to a non-imported target "
-        "and a hierarchy target (${_vtk_java_library_name}-hierarchy) is "
-        "missing.")
+      if (TARGET "${_vtk_java_library_name}-hierarchy")
+        set(_vtk_java_command_depend "${_vtk_java_library_name}-hierarchy")
+      else ()
+        message(FATAL_ERROR
+          "The ${module} hierarchy file is attached to a non-imported target "
+          "and a hierarchy target (${_vtk_java_library_name}-hierarchy) is "
+          "missing.")
+      endif ()
     endif ()
-  endif ()
+  endforeach ()
 
   set(_vtk_java_sources)
   set(_vtk_java_java_sources)
