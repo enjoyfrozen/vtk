@@ -11,7 +11,7 @@ res = 50
 
 # Controls the plane normal and view plane normal
 normal = [0.1,0.1,1]
-normal = [.8,1,1]
+#normal = [.8,1,1]
 
 # Generate a sizing field. Use a synthetic volume with stress
 # tensors.
@@ -30,29 +30,41 @@ plane = vtk.vtkPlane()
 plane.SetOrigin(center)
 plane.SetNormal(normal)
 
-cut = vtk.vtkFlyingEdgesPlaneCutter()
-cut.SetInputData(sizeField)
-cut.SetPlane(plane)
-cut.ComputeNormalsOff()
-cut.InterpolateAttributesOn()
+# Create a single voxel the same size as the volume.
+vox = vtk.vtkImageData()
+vox.SetDimensions(2,2,2)
+vox.SetOrigin(-0.5,-0.5,-0.5)
+vox.SetSpacing(1,1,1)
+
+# Cut the voxel to produce a polygon
+cut = vtk.vtkCutter()
+cut.SetInputData(vox)
+cut.SetCutFunction(plane)
 cut.Update()
-numPts = cut.GetOutput().GetNumberOfPoints()
+
+# Now create points on the polygon
+sampler = vtk.vtkPolyDataPointSampler()
+sampler.SetInputConnection(cut.GetOutputPort())
+sampler.SetDistance(0.025)
+sampler.SetPointGenerationModeToRandom()
+sampler.GenerateVertexPointsOff()
+sampler.GenerateEdgePointsOff()
+sampler.GenerateInteriorPointsOn()
+sampler.Update()
+
+# Use these points to probe for tensor data
+probe = vtk.vtkProbeFilter()
+probe.SetInputConnection(sampler.GetOutputPort())
+probe.SetSourceConnection(ptLoad.GetOutputPort())
+probe.Update()
 
 # Extract some tensor information
 textract = vtk.vtkExtractTensorComponents()
-textract.SetInputConnection(cut.GetOutputPort())
+textract.SetInputConnection(probe.GetOutputPort())
 textract.ExtractScalarsOn()
 textract.ScalarIsDeterminant()
 textract.PassTensorsToOutputOn()
 textract.Update()
-
-# Extract points along sphere surface
-mask = vtk.vtkMaskPoints()
-mask.SetInputConnection(textract.GetOutputPort())
-mask.RandomModeOn()
-mask.SetRandomModeType(0)
-mask.SetMaximumNumberOfPoints(int(0.67*numPts))
-mask.Update()
 
 # Now smooth/pack the points in a variety of ways.
 # We'll glyph with a transformed sphere
@@ -65,7 +77,7 @@ sph.Update()
 
 # First show the points unsmoothed
 smooth0 = vtk.vtkPointSmoothingFilter()
-smooth0.SetInputConnection(mask.GetOutputPort())
+smooth0.SetInputConnection(textract.GetOutputPort())
 smooth0.SetNumberOfIterations(0) #sends input to output
 smooth0.SetSmoothingModeToDefault()
 smooth0.Update()
@@ -87,7 +99,7 @@ gActor0.GetProperty().SetOpacity(1)
 
 # Now the geometric 1/r**2 behavior
 smooth1 = vtk.vtkPointSmoothingFilter()
-smooth1.SetInputConnection(mask.GetOutputPort())
+smooth1.SetInputConnection(textract.GetOutputPort())
 smooth1.SetSmoothingModeToGeometric()
 smooth1.SetNumberOfIterations(40)
 smooth1.SetNumberOfSubIterations(10)
@@ -112,7 +124,7 @@ gActor1.GetProperty().SetOpacity(1)
 
 # Now explicitly the Uniform behavior
 smooth2 = vtk.vtkPointSmoothingFilter()
-smooth2.SetInputConnection(mask.GetOutputPort())
+smooth2.SetInputConnection(textract.GetOutputPort())
 smooth2.SetSmoothingModeToUniform()
 smooth2.SetNumberOfIterations(50)
 smooth2.SetNumberOfSubIterations(10)
@@ -137,7 +149,7 @@ gActor2.GetProperty().SetOpacity(1)
 
 # Now explicitly the Scalar behavior
 smooth3 = vtk.vtkPointSmoothingFilter()
-smooth3.SetInputConnection(mask.GetOutputPort())
+smooth3.SetInputConnection(textract.GetOutputPort())
 smooth3.SetSmoothingModeToScalars()
 smooth3.SetNumberOfIterations(50)
 smooth3.SetNumberOfSubIterations(10)
@@ -163,7 +175,7 @@ gActor3.GetProperty().SetOpacity(1)
 
 # Now explicitly the Tensor behavior
 smooth4 = vtk.vtkPointSmoothingFilter()
-smooth4.SetInputConnection(mask.GetOutputPort())
+smooth4.SetInputConnection(textract.GetOutputPort())
 smooth4.SetSmoothingModeToUniform()
 smooth4.SetNumberOfIterations(40)
 smooth4.SetNumberOfSubIterations(4)
@@ -186,7 +198,7 @@ gActor4.GetProperty().SetOpacity(1)
 
 # Now explicitly the Frame Field behavior
 smooth5 = vtk.vtkPointSmoothingFilter()
-smooth5.SetInputConnection(mask.GetOutputPort())
+smooth5.SetInputConnection(textract.GetOutputPort())
 smooth5.SetSmoothingModeToFrameField()
 smooth5.SetNumberOfIterations(40)
 smooth5.SetNumberOfSubIterations(4)
@@ -286,5 +298,5 @@ renWin.SetSize(600, 400)
 iRen.Initialize()
 renWin.Render()
 
-# Actually cut the data
+# Interact with the data
 iRen.Start()
