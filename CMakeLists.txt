@@ -53,8 +53,8 @@ include(vtkDownload)
 include(vtkTesting)
 include(vtkDirectories)
 include(vtkMobileDevices)
-include(vtkCrossCompiling)
 include(vtkWrapSettings)
+include(vtkCrossCompiling)
 include(vtkObjectFactory)
 include(vtkCMakeBackports)
 
@@ -322,6 +322,7 @@ vtk_module_build(
   INSTALL_HEADERS     "${VTK_INSTALL_SDK}"
   BUILD_WITH_KITS     "${VTK_ENABLE_KITS}"
   USE_EXTERNAL        "${VTK_USE_EXTERNAL}"
+  ENABLE_WRAPPING     "${VTK_ENABLE_WRAPPING}"
   TEST_INPUT_DATA_DIRECTORY   "${CMAKE_CURRENT_SOURCE_DIR}/Testing"
   TEST_OUTPUT_DATA_DIRECTORY  "${CMAKE_CURRENT_BINARY_DIR}/ExternalData/Testing")
 include(vtkModuleJson)
