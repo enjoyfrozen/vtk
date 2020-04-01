@@ -263,14 +263,9 @@ typedef signed long vtkTypeInt64;
 
 // Provide this define to facilitate apps that need to support older
 // versions that do not have vtkMTimeType
-// #ifndef VTK_HAS_MTIME_TYPE
-// #if VTK_SIZEOF_LONG == 8
-// typedef unsigned long vtkMTimeType;
-// #else
-// typedef vtkTypeUInt64 vtkMTimeType;
-// #endif
-// #endif
+#if !defined(VTK_LEGACY_REMOVE)
 #define VTK_HAS_MTIME_TYPE
+#endif
 
 // If this is a 64-bit platform, or the user has indicated that 64-bit
 // timestamps should be used, select an unsigned 64-bit integer type
