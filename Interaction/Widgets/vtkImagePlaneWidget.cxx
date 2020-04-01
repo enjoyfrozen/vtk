@@ -1586,11 +1586,9 @@ void vtkImagePlaneWidget::UpdatePlane()
     this->PlaneSource->SetCenter(planeCenter);
   }
 
-  double planeAxis1[3];
-  double planeAxis2[3];
-
-  this->GetVector1(planeAxis1);
-  this->GetVector2(planeAxis2);
+  double planeAxis1[3], planeAxis2[3];
+  this->PlaneSource->GetAxis1(planeAxis1);
+  this->PlaneSource->GetAxis2(planeAxis2);
 
   // The x,y dimensions of the plane
   //
@@ -1675,6 +1673,10 @@ void vtkImagePlaneWidget::UpdatePlane()
   this->Reslice->SetOutputSpacing(outputSpacingX, outputSpacingY, 1);
   this->Reslice->SetOutputOrigin(0.5 * outputSpacingX, 0.5 * outputSpacingY, 0);
   this->Reslice->SetOutputExtent(0, extentX - 1, 0, extentY - 1, 0, 0);
+
+  std::ostream & objOstream = std::cout;
+  this->Reslice->Print(objOstream);
+
 }
 
 //----------------------------------------------------------------------------
@@ -2377,21 +2379,13 @@ vtkTexture* vtkImagePlaneWidget::GetTexture()
 //----------------------------------------------------------------------------
 void vtkImagePlaneWidget::GetVector1(double v1[3])
 {
-  double* p1 = this->PlaneSource->GetPoint1();
-  double* o = this->PlaneSource->GetOrigin();
-  v1[0] = p1[0] - o[0];
-  v1[1] = p1[1] - o[1];
-  v1[2] = p1[2] - o[2];
+  this->PlaneSource->GetAxis1(v1);
 }
 
 //----------------------------------------------------------------------------
 void vtkImagePlaneWidget::GetVector2(double v2[3])
 {
-  double* p2 = this->PlaneSource->GetPoint2();
-  double* o = this->PlaneSource->GetOrigin();
-  v2[0] = p2[0] - o[0];
-  v2[1] = p2[1] - o[1];
-  v2[2] = p2[2] - o[2];
+  this->PlaneSource->GetAxis2(v2);
 }
 
 //----------------------------------------------------------------------------

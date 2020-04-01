@@ -32,7 +32,7 @@
  * class vtkImplicitPlaneWidget.
  *
  * @sa
- * vtkImplicitPlaneWidget2 vtkImplicitPlaneWidget
+ * vtkImplicitPlaneWidget2 vtkImplicitPlaneWidget vtkImplicitImageRepresentation
  */
 
 #ifndef vtkImplicitPlaneRepresentation_h
@@ -398,8 +398,8 @@ public:
   vtkGetMacro(RepresentationState, int);
   //@}
 
-  // Get the underlying plane object used by this rep
-  // this can be used as a cropping plane in vtkMapper
+  // Get the underlying implicit plane object used by this rep
+  // that can be used as a cropping plane in vtkMapper.
   vtkPlane* GetUnderlyingPlane() { return this->Plane; }
 
   //@{
@@ -483,7 +483,7 @@ protected:
 
   // The cut plane is produced with a vtkCutter
   vtkCutter* Cutter;
-  vtkPlaneSource* PlaneSource;
+  vtkPlaneSource* PlaneSource; //used when plane cropping disabled
   vtkPolyDataMapper* CutMapper;
   vtkActor* CutActor;
   vtkTypeBool DrawPlane;
@@ -552,7 +552,7 @@ protected:
   vtkProperty* OutlineProperty;
   vtkProperty* SelectedOutlineProperty;
   vtkProperty* EdgesProperty;
-  void CreateDefaultProperties();
+  virtual void CreateDefaultProperties();
 
   void GeneratePlane();
 
