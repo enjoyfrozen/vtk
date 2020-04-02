@@ -26,9 +26,11 @@
 #include "vtkCellData.h"
 #include "vtkDataArray.h"
 #include "vtkIdList.h"
+#include "vtkPlane.h"
 #include "vtkArrayDispatch.h"
 #include "vtkDataArrayRange.h"
 #include "vtkSMPTools.h"
+#include "vtkSMPThreadLocal.h"
 #include "vtkSMPThreadLocalObject.h"
 #include "vtkStaticPointLocator.h"
 
@@ -40,14 +42,7 @@ vtkCxxSetObjectMacro(vtkPointSmoothingFilter, Locator, vtkAbstractPointLocator);
 //----------------------------------------------------------------------------
 namespace
 {
-
-  // Compute 1/r**2 function
-  inline double RadiusFunction(double r)
-  {
-    return (1.0 - r*r);
-  }
-
-  // Compute the inter-point force depending on normalized radius. The force
+  // Compute an inter-point force depending on normalized radius. The force
   // is linearly repulsive near the point; has a slight (cubic) attractive
   // force in the region (1<r<=gamma); and produces no force further away.
   inline double ForceFunction(double r, double gamma=1.0)
@@ -67,119 +62,150 @@ namespace
     }
   }
 
-  // These classes compute the forced displacement between two points. The
-  // classes vary on attribute data which affects the type of forces beween
-  // particles.
+  // These classes compute the forced displacement of a point within a
+  // neighborhood of points. Besides geometric proximity, attribute
+  // data (e.g., scalars, tensors) may also affect the displacement.
   struct DisplacePoint
   {
-    vtkDataArray *Data;
+    vtkDataArray *Data; //data attribute of interest
     double Radius; //radius of average sphere
+    double RelaxationFactor; //controls effect of smoothing
 
-    DisplacePoint(vtkDataArray *data, double ave) :
-      Data(data), Radius(ave) {}
+    DisplacePoint(vtkDataArray *data, double radius, double rf) :
+      Data(data), Radius(radius), RelaxationFactor(rf) {}
+
     // Return 1 if this edge pair(p0,p1) exerts a force on the point p0.
     // Otherwise 0. p0 is assumed to be the center point.
-    virtual int operator()(vtkIdType p0, vtkIdType p1, double x[3],
-                            double y[3], double disp[3]) = 0;
+    virtual void operator()(vtkIdType p0, double x[3], vtkIdType numNeis,
+                            const vtkIdType *neis, const double *neiPts,
+                            double disp[3]) = 0;
   };
   // Nearby points apply forces (not modified by distance nor attribute data)
+  // This is a form of Laplacian smoothing. Attributes do not affect the
+  // displacement. This has a tendency to collapse points to the center of
+  // their local neighborhood.
   struct GeometricDisplacement : public DisplacePoint
   {
-    GeometricDisplacement(vtkDataArray *data, double ave) :
-      DisplacePoint(data,ave) {}
-    int operator()(vtkIdType p0, vtkIdType p1, double x[3],
-                    double y[3], double disp[3]) override
+    GeometricDisplacement(vtkDataArray *data, double radius, double rf) :
+      DisplacePoint(data,radius,rf) {}
+    void operator()(vtkIdType p0, double x[3], vtkIdType numNeis,
+                    const vtkIdType *neis, const double *neiPts,
+                    double disp[3]) override
     {
-      double len = sqrt ( vtkMath::Distance2BetweenPoints(x,y) );
-      double f = RadiusFunction(len);
-      disp[0] = f * (y[0] - x[0]);
-      disp[1] = f * (y[1] - x[1]);
-      disp[2] = f * (y[2] - x[2]);
-      return 1;
+      double count=0;
+      double ave[3]={0.0,0.0,0.0};
+      vtkIdType neiId;
+      for (auto i=0; i<numNeis; ++i)
+      {
+        neiId = neis[i];
+        if ( neiId >= 0 ) //valid connection to another point
+        {
+          ++count;
+          ave[0] += neiPts[3*i];
+          ave[1] += neiPts[3*i+1];
+          ave[2] += neiPts[3*i+2];
+        }
+      }
+      if ( count <= 0 )
+      {
+        disp[0] = 0.0;
+        disp[1] = 0.0;
+        disp[2] = 0.0;
+      }
+      else
+      {
+        // Displace towards the average of surrounding points
+        ave[0] /= static_cast<double>(count);
+        ave[1] /= static_cast<double>(count);
+        ave[2] /= static_cast<double>(count);
+        disp[0] = this->RelaxationFactor * (ave[0] - x[0]);
+        disp[1] = this->RelaxationFactor * (ave[1] - x[1]);
+        disp[2] = this->RelaxationFactor * (ave[2] - x[2]);
+      }
     }
   };
-  // Forces on nearby points are moderated by distance apart
+  // Forces from nearby points are moderated by their distance. Attributes
+  // do not affect the displacement.
   struct UniformDisplacement : public DisplacePoint
   {
-    UniformDisplacement(vtkDataArray *data, double ave) :
-      DisplacePoint(data,ave) {}
-    int operator()(vtkIdType p0, vtkIdType p1, double x[3],
-                    double y[3], double disp[3]) override
+    UniformDisplacement(vtkDataArray *data, double radius, double rf) :
+      DisplacePoint(data,radius,rf) {}
+    void operator()(vtkIdType p0, double x[3], vtkIdType numNeis,
+                    const vtkIdType *neis, const double *neiPts,
+                    double disp[3]) override
     {
-      double len = sqrt ( vtkMath::Distance2BetweenPoints(x,y) );
-      double f = ForceFunction((len/2.0)/this->Radius,0.1);
-      if ( f != 0.0 )
+      double len, force;
+      double fVec[3];
+      vtkIdType neiId;
+      disp[0] = disp[1] = disp[2] = 0.0;
+      for (auto i=0; i<numNeis; ++i)
       {
-        disp[0] = f * (y[0] - x[0]);
-        disp[1] = f * (y[1] - x[1]);
-        disp[2] = f * (y[2] - x[2]);
-        return 1;
+        neiId = neis[i];
+        if ( neiId >= 0 ) //valid connection to another point
+        {
+          fVec[0] = neiPts[3*i] - x[0];
+          fVec[1] = neiPts[3*i+1] - x[1];
+          fVec[2] = neiPts[3*i+2] - x[2];
+          if ( (len=vtkMath::Normalize(fVec)) == 0.0 )
+          {
+            fVec[0] = 1.0; //arbitrary bump
+          }
+          force = ForceFunction(len/this->Radius,0.5);
+          disp[0] += force * this->RelaxationFactor * fVec[0];
+          disp[1] += force * this->RelaxationFactor * fVec[1];
+          disp[2] += force * this->RelaxationFactor * fVec[2];
+        }
       }
-      return 0;
     }
   };
-  // Forces on nearby points are moderated by distance and scalar values
+  // Forces on nearby points are moderated by distance and scalar values.
   struct ScalarDisplacement : public DisplacePoint
   {
     double Range[2];
     double ScalarAverage;
 
-    ScalarDisplacement(vtkDataArray *data, double ave, double range[2]) :
-      DisplacePoint(data,ave)
+    ScalarDisplacement(vtkDataArray *data, double radius, double rf, double range[2]) :
+      DisplacePoint(data,radius,rf)
     {
       this->Range[0] = range[0];
       this->Range[1] = range[1];
       this->ScalarAverage = (this->Range[0] + this->Range[1]) / 2.0;
     }
-    int operator()(vtkIdType p0, vtkIdType p1, double x[3],
-                    double y[3], double disp[3]) override
+    void operator()(vtkIdType p0, double x[3], vtkIdType numNeis,
+                    const vtkIdType *neis, const double *neiPts,
+                    double disp[3]) override
     {
-      double len = sqrt ( vtkMath::Distance2BetweenPoints(x,y) );
-      // The length is modified by the point spheres scaled by scalars. The point
-      // spheres are assumed to be of radius Radius.
-      double s1, sf;
-      this->Data->GetTuple(p1,&s1);
-      sf = (s1 - this->Range[0]) / (this->ScalarAverage - this->Range[0]);
-      //      sf = (sf < 1.0 ? 1.0 : sf);
-
-      // Now compute the displacement
-      double f = ForceFunction((len/2.0)/(sf*this->Radius),0.1);
-      if ( f != 0.0 )
-      {
-        disp[0] = sf * f * (y[0] - x[0]);
-        disp[1] = sf * f * (y[1] - x[1]);
-        disp[2] = sf * f * (y[2] - x[2]);
-        return 1;
-      }
-      return 0;
+      disp[0] = 0.0;
+      disp[1] = 0.0;
+      disp[2] = 0.0;
     }
   };
-  // Forces on nearby points are moderated by distance and tensor values
+  // Forces on nearby points are moderated by distance and tensor values.
   struct TensorDisplacement : public DisplacePoint
   {
-    TensorDisplacement(vtkDataArray *data, double ave) :
-      DisplacePoint(data,ave) {}
-    int operator()(vtkIdType p0, vtkIdType p1, double x[3],
-                    double y[3], double disp[3]) override
+    TensorDisplacement(vtkDataArray *data, double radius, double rf) :
+      DisplacePoint(data,radius,rf) {}
+    void operator()(vtkIdType p0, double x[3], vtkIdType numNeis,
+                    const vtkIdType *neis, const double *neiPts,
+                    double disp[3]) override
     {
-      disp[0] = y[0] - x[0];
-      disp[1] = y[1] - x[1];
-      disp[2] = y[2] - x[2];
-      return 1;
+      disp[0] = 0.0;
+      disp[1] = 0.0;
+      disp[2] = 0.0;
     }
   };
-  // Forces on nearby points are moderated by distance and tensor eigenvalues
+  // Forces on nearby points are moderated by distance and tensor eigenvalues.
   struct FrameFieldDisplacement : public DisplacePoint
   {
-    FrameFieldDisplacement(vtkDataArray *data, double ave) :
-      DisplacePoint(data,ave) {}
-    int operator()(vtkIdType p0, vtkIdType p1, double x[3],
-                    double y[3], double disp[3]) override
+    FrameFieldDisplacement(vtkDataArray *data, double radius, double rf) :
+      DisplacePoint(data,radius,rf) {}
+    void operator()(vtkIdType p0, double x[3], vtkIdType numNeis,
+                    const vtkIdType *neis, const double *neiPts,
+                    double disp[3]) override
     {
-      disp[0] = y[0] - x[0];
-      disp[1] = y[1] - x[1];
-      disp[2] = y[2] - x[2];
-      return 1;
+      disp[0] = 0.0;
+      disp[1] = 0.0;
+      disp[2] = 0.0;
     }
   };
 
@@ -208,7 +234,7 @@ namespace
       vtkIdList *neis = this->LocalNeighbors.Local();
       double x[3];
       vtkIdType i, numInserted, *nptr;
-      vtkIdType numNeis, *cptr = this->Conn + (ptId * this->NeiSize);
+      vtkIdType numNeis, *neighbors = this->Conn + (ptId * this->NeiSize);
       for (const auto tuple : tuples)
       {
         x[0] = static_cast<double>(tuple[0]);
@@ -224,17 +250,17 @@ namespace
         {
           if ( *nptr != ptId )
           {
-            *cptr++ = *nptr;
-            ++numInserted;
+            neighbors[numInserted++] = *nptr;
           }
           ++nptr;
         }
         // In rare cases not all neighbors may be found, mark with a (-1)
         for ( ; numInserted < this->NeiSize; ++numInserted )
         {
-          *cptr++ = (-1);
+          neighbors[numInserted] = (-1);
         }
         ++ptId; //move to the next point
+        neighbors += this->NeiSize;
       }
     }
 
@@ -270,29 +296,127 @@ namespace
     }
   }
 
-  // Smoothing operation based on double buffering (simplifies threading). In
-  // general the types of points (input and output buffers) can be different.
+  // Constrain point movement depending on classification. The point can move
+  // freely, on the plane, or is fixed.
+  struct PointConstraints
+  {
+    enum
+    {
+      UNCONSTRAINED=0,
+      PLANE=1,
+      CORNER=2
+    };
+    char *Classification;
+    double *Normals;
+    double FixedAngle;
+    double BoundaryAngle;
+    PointConstraints(vtkIdType numPts, double fa, double ba) :
+      FixedAngle(fa), BoundaryAngle(ba)
+    {
+      this->Classification = new char[numPts];
+      this->Normals = new double[numPts*3];
+    }
+    ~PointConstraints()
+    {
+      delete [] this->Classification;
+      delete [] this->Normals;
+    }
+  };
+
+  // Characterize the mesh, including classifying points as to whether they
+  // are on boundaries or are fixed.
   template <typename PointsT>
   struct CharacterizeMesh
   {
     PointsT *Points;
     int NeiSize;
     const vtkIdType *Conn;
+    PointConstraints *Constraints;
     double MinLength;
     double MaxLength;
     double AverageLength;
+
+    double CornerAngle;
+    double BoundaryAngle;
+
+    vtkSMPThreadLocal<double*> LocalNeiPoints;
+    vtkSMPThreadLocal<double*> LocalNeiNormals;
     vtkSMPThreadLocal<double> LocalMin;
     vtkSMPThreadLocal<double> LocalMax;
     vtkSMPThreadLocal<vtkIdType> LocalNEdges;
     vtkSMPThreadLocal<double> LocalAve;
 
-    CharacterizeMesh(PointsT *inPts, int neiSize, const vtkIdType *conn) :
-      Points(inPts), NeiSize(neiSize), Conn(conn),
+    CharacterizeMesh(PointsT *inPts, int neiSize, const vtkIdType *conn, PointConstraints *c) :
+      Points(inPts), NeiSize(neiSize), Conn(conn), Constraints(c),
       MinLength(0.0), MaxLength(0.0), AverageLength(0.0)
-    {}
+    {
+      if ( this->Constraints )
+      {
+        this->CornerAngle = cos ( vtkMath::RadiansFromDegrees(this->Constraints->FixedAngle) );
+        this->BoundaryAngle = cos ( vtkMath::RadiansFromDegrees(this->Constraints->BoundaryAngle) );
+      }
+    }
+
+    void ClassifyPoint(vtkIdType ptId, double x[3], vtkIdType neiSize,
+                       const vtkIdType *neis, const double *neiPts,
+                       double *normals)
+    {
+      // Compute an average normal
+      double *normal;
+      double *aveN = this->Constraints->Normals + 3*ptId;
+      aveN[0] = aveN[1] = aveN[2] = 0.0;
+      char *classification = this->Constraints->Classification + ptId;
+      for (auto i=0; i<neiSize; ++i)
+      {
+        if ( neis[i] >= 0 ) //check for valid neighbor
+        {
+          normal = normals + 3*i;
+          normal[0] = neiPts[3*i] - x[0];
+          normal[1] = neiPts[3*i+1] - x[1];
+          normal[2] = neiPts[3*i+2] - x[2];
+          vtkMath::Normalize(normal);
+          aveN[0] += normal[0];
+          aveN[1] += normal[1];
+          aveN[2] += normal[2];
+        }
+      }
+      double mag = vtkMath::Normalize(aveN);
+      if ( mag == 0.0 )
+      {
+        *classification = PointConstraints::UNCONSTRAINED;
+        return;
+      }
+
+      // Now determine angles away from average normal. This provides
+      // a classification.
+      double dot, minDot=1.0;
+      for (auto i=0; i<neiSize; ++i)
+      {
+        if ( neis[i] >= 0 )
+        {
+          normal = normals + 3*i;
+          dot = vtkMath::Dot(normal,aveN);
+          minDot = (dot < minDot ? dot : minDot);
+        }
+      }
+      if ( minDot >= this->CornerAngle )
+      {
+        *classification = PointConstraints::CORNER;
+      }
+      else if ( minDot >= this->BoundaryAngle )
+      {
+        *classification = PointConstraints::PLANE;
+      }
+      else
+      {
+        *classification = PointConstraints::UNCONSTRAINED;
+      }
+    }
 
     void Initialize()
     {
+      this->LocalNeiPoints.Local() = new double [this->NeiSize*3];
+      this->LocalNeiNormals.Local() = new double [this->NeiSize*3];
       this->LocalMin.Local() = VTK_DOUBLE_MAX;
       this->LocalMax.Local() = VTK_DOUBLE_MIN;
       this->LocalNEdges.Local() = 0;
@@ -302,38 +426,48 @@ namespace
     // Determine the minimum and maximum edge lengths
     void operator()(vtkIdType ptId, vtkIdType endPtId)
     {
-      const vtkIdType *cptr = this->Conn + (this->NeiSize * ptId);
+      const vtkIdType *neis = this->Conn + (this->NeiSize * ptId);
       const auto inPts = vtk::DataArrayTupleRange<3>(this->Points);
       double &min = this->LocalMin.Local();
       double &max = this->LocalMax.Local();
       vtkIdType &nEdges = this->LocalNEdges.Local();
       double &ave = this->LocalAve.Local();
+      double *neiPts = this->LocalNeiPoints.Local();
+      double *neiNormals = this->LocalNeiNormals.Local();
       double x[3], y[3], len;
       vtkIdType neiId;
 
-      for ( ; ptId < endPtId; ++ptId )
+      for ( ; ptId < endPtId; ++ptId, neis+=this->NeiSize )
       {
         x[0] = inPts[ptId][0];
         x[1] = inPts[ptId][1];
         x[2] = inPts[ptId][2];
-
-        for (auto i=0; i<this->NeiSize; i++)
+        // Gather the coordinates of the points surrounding the point to smooth
+        for (auto i=0; i<this->NeiSize; ++i)
         {
-          neiId = *cptr++;
-          // Process valid connections, and to reduce work only edges where
-          // the neighbor id > pt id.
-          if ( neiId >= 0 && neiId > ptId)
+          neiId = neis[i];
+          if ( neiId >= 0 ) //valid connection to another point
           {
-            y[0] = inPts[neiId][0];
-            y[1] = inPts[neiId][1];
-            y[2] = inPts[neiId][2];
+            neiPts[3*i] = y[0] = inPts[neiId][0];
+            neiPts[3*i+1] = y[1] = inPts[neiId][1];
+            neiPts[3*i+2] = y[2] = inPts[neiId][2];
 
-            len = sqrt( vtkMath::Distance2BetweenPoints(x,y) );
-            min = std::min(len, min);
-            max = std::max(len, max);
-            ++nEdges;
-            ave += len;
+            // Process valid connections, and to reduce work only edges where
+            // the neighbor id > pt id.
+            if ( neiId >= 0 && neiId > ptId)
+            {
+              len = sqrt( vtkMath::Distance2BetweenPoints(x,y) );
+              min = std::min(len, min);
+              max = std::max(len, max);
+              ++nEdges;
+              ave += len;
+            }
           }
+        }
+        // Classify point if requested
+        if ( this->Constraints )
+        {
+          this->ClassifyPoint(ptId,x,this->NeiSize,neis,neiPts,neiNormals);
         }
       }//for all points in this batch
     }//operator()
@@ -341,6 +475,10 @@ namespace
     // Composite the data
     void Reduce()
     {
+      // Don't need scratch storage anymore
+      delete [] this->LocalNeiPoints.Local();
+      delete [] this->LocalNeiNormals.Local();
+
       // Min / max edge lengths
       double min = VTK_DOUBLE_MAX;
       double max = VTK_DOUBLE_MIN;
@@ -368,7 +506,6 @@ namespace
       }
       this->AverageLength = ave / static_cast<double>( numEdges );
     }
-
   };//CharacterizeMesh
 
   // Hooks into dispatcher vtkArrayDispatch by providing a callable generic
@@ -380,9 +517,10 @@ namespace
     MeshWorker() : MinLength(0.0), MaxLength(0.0) {}
 
     template <typename PointsT>
-    void operator()(PointsT* inPts, vtkIdType numPts, int neiSize, vtkIdType *conn)
+    void operator()(PointsT* inPts, vtkIdType numPts, int neiSize, vtkIdType *conn,
+                    PointConstraints *constraints)
     {
-      CharacterizeMesh<PointsT> characterize(inPts, neiSize, conn);
+      CharacterizeMesh<PointsT> characterize(inPts, neiSize, conn, constraints);
       vtkSMPTools::For(0, numPts, characterize);
       this->MinLength = characterize.MinLength;
       this->MaxLength = characterize.MaxLength;
@@ -403,62 +541,78 @@ namespace
     double RelaxationFactor;
     const vtkIdType *Conn;
     DisplacePoint *Displace;
+    PointConstraints *Constraints;
+    vtkSMPThreadLocal<double*> LocalNeiPoints;
 
     SmoothPoints(PointsT1 *inPts, PointsT2 *outPts, int neiSize, double relaxF,
-                 const vtkIdType *conn, DisplacePoint *f) :
+                 const vtkIdType *conn, DisplacePoint *f, PointConstraints *c) :
       InPoints(inPts), OutPoints(outPts), NeiSize(neiSize), RelaxationFactor(relaxF),
-      Conn(conn), Displace(f)
+      Conn(conn), Displace(f), Constraints(c)
     {}
+
+    void Initialize()
+    {
+      this->LocalNeiPoints.Local() = new double [this->NeiSize*3];
+    }
 
     void operator()(vtkIdType ptId, vtkIdType endPtId)
     {
-      const vtkIdType *cptr = this->Conn + (this->NeiSize * ptId);
+      const vtkIdType *neis = this->Conn + (this->NeiSize * ptId);
       const auto inPts = vtk::DataArrayTupleRange<3>(this->InPoints);
       auto outPts = vtk::DataArrayTupleRange<3>(this->OutPoints);
-      double x[3], y[3], sumDisp[3], disp[3], relaxF=this->RelaxationFactor;
-      int npts;
+      double *neiPts = this->LocalNeiPoints.Local();
+      vtkIdType neiId;
+      double x[3], y[3], disp[3];
 
-      for ( ; ptId < endPtId; ++ptId )
+      for ( ; ptId < endPtId; ++ptId, neis+=this->NeiSize )
       {
-        npts = 0;
-        sumDisp[0] = sumDisp[1] = sumDisp[2] = 0.0;
+        // Gather the coordinates of the points surrounding the point to smooth
+        for (auto i=0; i<this->NeiSize; ++i)
+        {
+          neiId = neis[i];
+          if ( neiId >= 0 ) //valid connection to another point
+          {
+            neiPts[3*i] = inPts[neiId][0];
+            neiPts[3*i+1] = inPts[neiId][1];
+            neiPts[3*i+2] = inPts[neiId][2];
+          }
+        }
+
+        // Now compute a displacement for the current point
         x[0] = inPts[ptId][0];
         x[1] = inPts[ptId][1];
         x[2] = inPts[ptId][2];
-        for (auto i=0; i<this->NeiSize; ++i, ++cptr)
+        (*this->Displace)(ptId,x,this->NeiSize,neis,neiPts,disp);
+
+        // It may be necessary to constrain the points's motion
+        if ( this->Constraints )
         {
-          // average the disps
-          if ( *cptr >= 0 ) //valid connection to another point
+          // Check the classification of the point. May have to constrain it's motion.
+          if ( this->Constraints->Classification[ptId] == PointConstraints::CORNER )
+          { //do nothing, point will never move
+            disp[0] = disp[1] = disp[2] = 0.0;
+          }
+          else
           {
-            y[0] = inPts[*cptr][0];
-            y[1] = inPts[*cptr][1];
-            y[2] = inPts[*cptr][2];
-            if ( (*this->Displace)(ptId,*cptr,x,y,disp) )
-            {
-              ++npts;
-              sumDisp[0] += disp[0];
-              sumDisp[1] += disp[1];
-              sumDisp[2] += disp[2];
+            if ( this->Constraints->Classification[ptId] == PointConstraints::PLANE )
+            { // constrain to plane
+              double *normal = this->Constraints->Normals + 3*ptId;
+              vtkPlane::ProjectVector(disp,x,normal,disp);
             }
           }
         }
-        if ( npts <= 0 ) // no contributions just copy point to output
-        {
-          outPts[ptId][0] = x[0];
-          outPts[ptId][1] = x[1];
-          outPts[ptId][2] = x[2];
-        }
-        else
-        {
-          sumDisp[0] /= static_cast<double>(npts);
-          sumDisp[1] /= static_cast<double>(npts);
-          sumDisp[2] /= static_cast<double>(npts);
-          outPts[ptId][0] = inPts[ptId][0] + (relaxF * sumDisp[0]);
-          outPts[ptId][1] = inPts[ptId][1] + (relaxF * sumDisp[1]);
-          outPts[ptId][2] = inPts[ptId][2] + (relaxF * sumDisp[2]);
-        }
+
+        // Move the point
+        outPts[ptId][0] = x[0] + disp[0];
+        outPts[ptId][1] = x[1] + disp[1];
+        outPts[ptId][2] = x[2] + disp[2];
       }//for all points in this batch
     }//operator()
+
+    void Reduce()
+    {
+      delete [] this->LocalNeiPoints.Local();
+    }
 
   };//SmoothPoints
 
@@ -467,9 +621,11 @@ namespace
   {
     template <typename PointsT1, typename PointsT2>
     void operator()(PointsT1* inPts, PointsT2* outPts, vtkIdType numPts,
-                    int neiSize, double relaxF, vtkIdType *conn, DisplacePoint *f)
+                    int neiSize, double relaxF, vtkIdType *conn,
+                    DisplacePoint *f, PointConstraints *c)
     {
-      SmoothPoints<PointsT1,PointsT2> smooth(inPts, outPts, neiSize, relaxF, conn, f);
+      SmoothPoints<PointsT1,PointsT2> smooth(inPts, outPts, neiSize, relaxF,
+                                             conn, f, c);
       vtkSMPTools::For(0, numPts, smooth);
     }
   };//SmoothWorker
@@ -491,6 +647,10 @@ vtkPointSmoothingFilter::vtkPointSmoothingFilter()
   this->FrameFieldArray = nullptr;
 
   this->Locator = vtkStaticPointLocator::New();
+
+  this->EnableConstraints = false;
+  this->FixedAngle = 60.0;
+  this->BoundaryAngle = 110.0;
 }
 
 //----------------------------------------------------------------------------
@@ -582,13 +742,18 @@ RequestData(vtkInformation* vtkNotUsed(request),
   // In order to perform smoothing properly we need to characterize the point
   // spacing and/or scalar, tensor, and or frame field data values. Later on
   // this enables the appropriate computation of the smoothing forces on the
-  // points.
+  // points. Also classify the points as to on boundary or on edge etc.
+  PointConstraints *constraints=nullptr;
+  if ( this->EnableConstraints )
+  {
+    constraints = new PointConstraints(numPts,this->FixedAngle,this->BoundaryAngle);
+  }
   using vtkArrayDispatch::Reals;
   using MeshDispatch = vtkArrayDispatch::DispatchByValueType<Reals>;
   MeshWorker meshWorker;
-  if (!MeshDispatch::Execute(pts, meshWorker, numPts, neiSize, conn))
+  if (!MeshDispatch::Execute(pts, meshWorker, numPts, neiSize, conn, constraints))
   { // Fallback to slowpath for other point types
-    meshWorker(pts, numPts, neiSize, conn);
+    meshWorker(pts, numPts, neiSize, conn, constraints);
   }
   double minConnLen = meshWorker.MinLength; //the min and max "edge" lengths
   double maxConnLen = meshWorker.MaxLength;
@@ -598,25 +763,25 @@ RequestData(vtkInformation* vtkNotUsed(request),
   DisplacePoint *disp;
   if ( smoothingMode == UNIFORM_SMOOTHING )
   {
-    disp = new UniformDisplacement(nullptr,radius);
+    disp = new UniformDisplacement(nullptr,radius,this->RelaxationFactor);
   }
   else if ( smoothingMode == SCALAR_SMOOTHING )
   {
     double range[2];
     inScalars->GetRange(range);
-    disp = new ScalarDisplacement(inScalars,radius,range);
+    disp = new ScalarDisplacement(inScalars,radius,this->RelaxationFactor,range);
   }
   else if ( smoothingMode == TENSOR_SMOOTHING )
   {
-    disp = new TensorDisplacement(inTensors,radius);
+    disp = new TensorDisplacement(inTensors,radius,this->RelaxationFactor);
   }
   else if ( smoothingMode == FRAME_FIELD_SMOOTHING )
   {
-    disp = new FrameFieldDisplacement(frameField,radius);
+    disp = new FrameFieldDisplacement(frameField,radius,this->RelaxationFactor);
   }
   else //GEOMETRIC_SMOOTHING
   {
-    disp = new GeometricDisplacement(nullptr,radius);
+    disp = new GeometricDisplacement(nullptr,radius,this->RelaxationFactor);
   }
 
   // Prepare for smoothing. We double buffer the points. The output points
@@ -650,9 +815,10 @@ RequestData(vtkInformation* vtkNotUsed(request),
   {
     // Perform a smoothing iteration using the current connectivity.
     if (!SmoothDispatch::Execute(inBuf->GetData(), outBuf->GetData(), sworker,
-                                 numPts, neiSize, relaxF, conn, disp))
+                                 numPts, neiSize, relaxF, conn, disp, constraints))
     { // Fallback to slowpath for other point types
-      sworker(inBuf->GetData(), outBuf->GetData(), numPts, neiSize, relaxF, conn, disp);
+      sworker(inBuf->GetData(), outBuf->GetData(), numPts, neiSize, relaxF,
+              conn, disp, constraints);
     }
 
     // Build connectivity every sub-iterations.
@@ -674,6 +840,7 @@ RequestData(vtkInformation* vtkNotUsed(request),
   output->SetPoints(outBuf);
 
   // Clean up
+  delete constraints;
   delete [] conn;
   pts0->Delete();
   pts1->Delete();
@@ -707,4 +874,9 @@ void vtkPointSmoothingFilter::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "Convergence: " << this->Convergence << endl;
   os << indent << "Frame Field Array: " << this->FrameFieldArray << "\n";
   os << indent << "Locator: " << this->Locator << "\n";
+
+  os << indent << "Enable Constraints: " << (this->EnableConstraints ? "On\n" : "Off\n");
+  os << indent << "Fixed Angle: " << this->FixedAngle << "\n";
+  os << indent << "Boundary Angle: " << this->BoundaryAngle << "\n";
+
 }

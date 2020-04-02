@@ -21,11 +21,11 @@
  * vtkPointSet by adjusting their position to create a smooth distribution
  * (and thereby form a pleasing packing of the points). Smoothing is
  * performed by considering the effects of neighboring points on one
- * another. Smoothing in its simplest form is simply a variant of 1/r**2
- * smoothing where each point moves towards the average position of its
- * neighboring points. Next uniform smoothing uses a cubic cutoff function to
- * produce higher forces between points that are closer together, but the
- * forces are independent of associated point data attribute
+ * another. Smoothing in its simplest form (geometric) is simply a variant of
+ * Laplacian smoothing where each point moves towards the average position of
+ * its neighboring points. Next uniform smoothing uses a cubic cutoff
+ * function to produce higher forces between points that are closer together,
+ * but the forces are independent of associated point data attribute
  * values. Smoothing can be further controlled either by a scalar field, by a
  * tensor field, or a frame field (the user can specify the nature of the
  * smoothing operation). If controlled by a scalar field, then each input
@@ -108,7 +108,7 @@ public:
    * Specify the neighborhood size. This controls the number of surrounding
    * points that can affect a point to be smoothed.
    */
-  vtkSetClampMacro(NeighborhoodSize, int, 4, 26);
+  vtkSetClampMacro(NeighborhoodSize, int, 4, 128);
   vtkGetMacro(NeighborhoodSize, int);
   //@}
 
@@ -196,6 +196,28 @@ public:
 
   //@{
   /**
+   * Enable or disable constraints on points. Point constraints are used to
+   * prevent points from moving, or to move only on a plane. This can prevent
+   * shrinking or growing point clouds. If enabled, a local topological
+   * anlysis is performed to determine whether a point should be marked
+   * "Fixed" i.e., never moves; "Plane", the point only moves on a plane; or
+   * "Unconstrained", the point can move freely. If all points in the
+   * neighborhood surrounding a point are in the cone defined by FixedAngle,
+   * then the point is classified "Fixed." If all points in the neighborhood
+   * surrounding a point are in the cone defined by BoundaryAngle, then the
+   * point is classified "Plane." (The angles are expressed in degrees.)
+   */
+  vtkSetMacro(EnableConstraints,bool);
+  vtkGetMacro(EnableConstraints,bool);
+  vtkBooleanMacro(EnableConstraints,bool);
+  vtkSetClampMacro(FixedAngle,double,0,90);
+  vtkGetMacro(FixedAngle,double);
+  vtkSetClampMacro(BoundaryAngle,double,0,120);
+  vtkGetMacro(BoundaryAngle,double);
+  //@}
+
+  //@{
+  /**
    * Specify a point locator. By default a vtkStaticPointLocator is
    * used. The locator performs efficient searches to locate points
    * around a sample point.
@@ -219,6 +241,11 @@ protected:
 
   // Support the algorithm
   vtkAbstractPointLocator* Locator;
+
+  // Constraints
+  bool EnableConstraints;
+  double FixedAngle;
+  double BoundaryAngle;
 
   // Pipeline support
   int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
