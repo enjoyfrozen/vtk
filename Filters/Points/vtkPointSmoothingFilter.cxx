@@ -27,12 +27,15 @@
 #include "vtkDataArray.h"
 #include "vtkIdList.h"
 #include "vtkPlane.h"
+#include "vtkCharArray.h"
+#include "vtkDoubleArray.h"
 #include "vtkArrayDispatch.h"
 #include "vtkDataArrayRange.h"
 #include "vtkSMPTools.h"
 #include "vtkSMPThreadLocal.h"
 #include "vtkSMPThreadLocalObject.h"
 #include "vtkStaticPointLocator.h"
+#include "vtkMinimalStandardRandomSequence.h"
 
 vtkStandardNewMacro(vtkPointSmoothingFilter);
 
@@ -42,43 +45,53 @@ vtkCxxSetObjectMacro(vtkPointSmoothingFilter, Locator, vtkAbstractPointLocator);
 //----------------------------------------------------------------------------
 namespace
 {
-  // Compute an inter-point force depending on normalized radius. The force
-  // is linearly repulsive near the point; has a slight (cubic) attractive
-  // force in the region (1<r<=gamma); and produces no force further away.
-  inline double ForceFunction(double r, double gamma=1.0)
-  {
-    double gp1 = 1.0 + gamma;
-    if ( r <= 1.0 ) //repulsive
-    {
-      return -(r - 1.0);
-    }
-    else if ( r > gp1 ) //far away do nothing
-    {
-      return 0.0;
-    }
-    else //attractive
-    {
-      return (-(r-1.0)*(gp1-r)*(gp1-r)/(gamma*gamma));
-    }
-  }
-
   // These classes compute the forced displacement of a point within a
   // neighborhood of points. Besides geometric proximity, attribute
   // data (e.g., scalars, tensors) may also affect the displacement.
   struct DisplacePoint
   {
     vtkDataArray *Data; //data attribute of interest
-    double Radius; //radius of average sphere
+    double PackingRadius; //radius of average sphere
     double RelaxationFactor; //controls effect of smoothing
+    double PackingFactor;
+    double AttractionFactor;
+    vtkNew<vtkMinimalStandardRandomSequence> RandomSeq;
 
-    DisplacePoint(vtkDataArray *data, double radius, double rf) :
-      Data(data), Radius(radius), RelaxationFactor(rf) {}
+    DisplacePoint(vtkDataArray *data, double radius, double rf,
+                  double pf, double af) :
+      Data(data), PackingRadius(radius), RelaxationFactor(rf),
+      PackingFactor(pf), AttractionFactor(af)
+    {
+      this->RandomSeq->Initialize(1177);
+    }
 
-    // Return 1 if this edge pair(p0,p1) exerts a force on the point p0.
-    // Otherwise 0. p0 is assumed to be the center point.
+    // Generate a displacement for the given point from the
+    // surrounding neighborhood.
     virtual void operator()(vtkIdType p0, double x[3], vtkIdType numNeis,
                             const vtkIdType *neis, const double *neiPts,
                             double disp[3]) = 0;
+
+    // Compute an inter-point force depending on normalized radius. The force
+    // is linearly repulsive near the point; has a slight (cubic) attractive
+    // force in the region (1<r<=(1+af); and produces no force further
+    // away.
+    inline double ForceFunction(double r, double af)
+    {
+      double af1 = 1.0 + af;
+      if ( r <= 1.0 ) //repulsive, negative force
+      {
+        return (r - 1.0);
+      }
+      else if ( r > af1 ) //far away do nothing
+      {
+        return 0.0;
+      }
+      else //attractive, positive force
+      {
+        return ((r-1.0)*(af1-r)*(af1-r)/(af*af));
+      }
+    }
+
   };
   // Nearby points apply forces (not modified by distance nor attribute data)
   // This is a form of Laplacian smoothing. Attributes do not affect the
@@ -86,8 +99,10 @@ namespace
   // their local neighborhood.
   struct GeometricDisplacement : public DisplacePoint
   {
-    GeometricDisplacement(vtkDataArray *data, double radius, double rf) :
-      DisplacePoint(data,radius,rf) {}
+    GeometricDisplacement(vtkDataArray *data, double radius, double rf,
+                          double pf, double af) :
+      DisplacePoint(data,radius,rf,pf,af) {}
+
     void operator()(vtkIdType p0, double x[3], vtkIdType numNeis,
                     const vtkIdType *neis, const double *neiPts,
                     double disp[3]) override
@@ -124,12 +139,15 @@ namespace
       }
     }
   };
+
   // Forces from nearby points are moderated by their distance. Attributes
   // do not affect the displacement.
   struct UniformDisplacement : public DisplacePoint
   {
-    UniformDisplacement(vtkDataArray *data, double radius, double rf) :
-      DisplacePoint(data,radius,rf) {}
+    UniformDisplacement(vtkDataArray *data, double radius, double rf,
+                          double pf, double af) :
+      DisplacePoint(data,radius,rf,pf,af) {}
+
     void operator()(vtkIdType p0, double x[3], vtkIdType numNeis,
                     const vtkIdType *neis, const double *neiPts,
                     double disp[3]) override
@@ -147,10 +165,11 @@ namespace
           fVec[1] = neiPts[3*i+1] - x[1];
           fVec[2] = neiPts[3*i+2] - x[2];
           if ( (len=vtkMath::Normalize(fVec)) == 0.0 )
-          {
-            fVec[0] = 1.0; //arbitrary bump
+            {//points coincident, bump them apart
+            fVec[0] = this->RandomSeq->GetValue(); this->RandomSeq->Next();
           }
-          force = ForceFunction(len/this->Radius,0.5);
+          force = this->ForceFunction(len/(this->PackingFactor*this->PackingRadius),
+                                      this->AttractionFactor);
           disp[0] += force * this->RelaxationFactor * fVec[0];
           disp[1] += force * this->RelaxationFactor * fVec[1];
           disp[2] += force * this->RelaxationFactor * fVec[2];
@@ -158,19 +177,22 @@ namespace
       }
     }
   };
+
   // Forces on nearby points are moderated by distance and scalar values.
   struct ScalarDisplacement : public DisplacePoint
   {
     double Range[2];
     double ScalarAverage;
 
-    ScalarDisplacement(vtkDataArray *data, double radius, double rf, double range[2]) :
-      DisplacePoint(data,radius,rf)
+    ScalarDisplacement(vtkDataArray *data, double radius, double rf,
+                       double pf, double af, double range[2]) :
+      DisplacePoint(data,radius,rf,pf,af)
     {
       this->Range[0] = range[0];
       this->Range[1] = range[1];
       this->ScalarAverage = (this->Range[0] + this->Range[1]) / 2.0;
     }
+
     void operator()(vtkIdType p0, double x[3], vtkIdType numNeis,
                     const vtkIdType *neis, const double *neiPts,
                     double disp[3]) override
@@ -183,8 +205,10 @@ namespace
   // Forces on nearby points are moderated by distance and tensor values.
   struct TensorDisplacement : public DisplacePoint
   {
-    TensorDisplacement(vtkDataArray *data, double radius, double rf) :
-      DisplacePoint(data,radius,rf) {}
+    TensorDisplacement(vtkDataArray *data, double radius, double rf,
+                       double pf, double af) :
+      DisplacePoint(data,radius,rf,pf,af) {}
+
     void operator()(vtkIdType p0, double x[3], vtkIdType numNeis,
                     const vtkIdType *neis, const double *neiPts,
                     double disp[3]) override
@@ -197,8 +221,10 @@ namespace
   // Forces on nearby points are moderated by distance and tensor eigenvalues.
   struct FrameFieldDisplacement : public DisplacePoint
   {
-    FrameFieldDisplacement(vtkDataArray *data, double radius, double rf) :
-      DisplacePoint(data,radius,rf) {}
+    FrameFieldDisplacement(vtkDataArray *data, double radius, double rf,
+                           double pf, double af) :
+      DisplacePoint(data,radius,rf,pf,af) {}
+
     void operator()(vtkIdType p0, double x[3], vtkIdType numNeis,
                     const vtkIdType *neis, const double *neiPts,
                     double disp[3]) override
@@ -306,6 +332,8 @@ namespace
       PLANE=1,
       CORNER=2
     };
+    vtkNew<vtkCharArray> ClassificationArray;
+    vtkNew<vtkDoubleArray> NormalsArray;
     char *Classification;
     double *Normals;
     double FixedAngle;
@@ -313,14 +341,16 @@ namespace
     PointConstraints(vtkIdType numPts, double fa, double ba) :
       FixedAngle(fa), BoundaryAngle(ba)
     {
-      this->Classification = new char[numPts];
-      this->Normals = new double[numPts*3];
+      this->ClassificationArray->SetName("Constraint Scalars");
+      this->ClassificationArray->SetNumberOfComponents(1);
+      this->ClassificationArray->SetNumberOfTuples(numPts);
+      this->Classification = this->ClassificationArray->GetPointer(0);
+      this->NormalsArray->SetNumberOfComponents(3);
+      this->NormalsArray->SetNumberOfTuples(numPts);
+      this->Normals = this->NormalsArray->GetPointer(0);
     }
-    ~PointConstraints()
-    {
-      delete [] this->Classification;
-      delete [] this->Normals;
-    }
+    vtkDataArray *GetClassificationArray() {return this->ClassificationArray.Get();}
+    vtkDataArray *GetNormalsArray() {return this->NormalsArray.Get();}
   };
 
   // Characterize the mesh, including classifying points as to whether they
@@ -651,6 +681,13 @@ vtkPointSmoothingFilter::vtkPointSmoothingFilter()
   this->EnableConstraints = false;
   this->FixedAngle = 60.0;
   this->BoundaryAngle = 110.0;
+  this->GenerateConstraintScalars = false;
+  this->GenerateConstraintNormals = false;
+
+  this->ComputePackingRadius = true;
+  this->PackingRadius = 1.0;
+  this->PackingFactor = 1.0;
+  this->AttractionFactor = 0.5;
 }
 
 //----------------------------------------------------------------------------
@@ -742,46 +779,56 @@ RequestData(vtkInformation* vtkNotUsed(request),
   // In order to perform smoothing properly we need to characterize the point
   // spacing and/or scalar, tensor, and or frame field data values. Later on
   // this enables the appropriate computation of the smoothing forces on the
-  // points. Also classify the points as to on boundary or on edge etc.
-  PointConstraints *constraints=nullptr;
-  if ( this->EnableConstraints )
-  {
-    constraints = new PointConstraints(numPts,this->FixedAngle,this->BoundaryAngle);
-  }
+  // points. Also classify the points as to on boundary or on edge etc. This
+  // calculation is only done if not manually overridden.
   using vtkArrayDispatch::Reals;
-  using MeshDispatch = vtkArrayDispatch::DispatchByValueType<Reals>;
-  MeshWorker meshWorker;
-  if (!MeshDispatch::Execute(pts, meshWorker, numPts, neiSize, conn, constraints))
-  { // Fallback to slowpath for other point types
-    meshWorker(pts, numPts, neiSize, conn, constraints);
+  double radius=this->PackingRadius;
+  PointConstraints *constraints=nullptr;
+  if ( this->EnableConstraints || this->ComputePackingRadius )
+  {
+    if ( this->EnableConstraints )
+    {
+      constraints = new PointConstraints(numPts,this->FixedAngle,this->BoundaryAngle);
+    }
+    using MeshDispatch = vtkArrayDispatch::DispatchByValueType<Reals>;
+    MeshWorker meshWorker;
+    if (!MeshDispatch::Execute(pts, meshWorker, numPts, neiSize, conn, constraints))
+    { // Fallback to slowpath for other point types
+      meshWorker(pts, numPts, neiSize, conn, constraints);
+    }
+    double minConnLen = meshWorker.MinLength; //the min and max "edge" lengths
+    double maxConnLen = meshWorker.MaxLength;
+    this->PackingRadius = radius = meshWorker.AverageLength/2.0;
   }
-  double minConnLen = meshWorker.MinLength; //the min and max "edge" lengths
-  double maxConnLen = meshWorker.MaxLength;
-  double radius = meshWorker.AverageLength/2.0;
 
   // Establish the type of inter-point forces/displacements
   DisplacePoint *disp;
   if ( smoothingMode == UNIFORM_SMOOTHING )
   {
-    disp = new UniformDisplacement(nullptr,radius,this->RelaxationFactor);
+    disp = new UniformDisplacement(nullptr,radius,this->RelaxationFactor,
+                                   this->PackingFactor,this->AttractionFactor);
   }
   else if ( smoothingMode == SCALAR_SMOOTHING )
   {
     double range[2];
     inScalars->GetRange(range);
-    disp = new ScalarDisplacement(inScalars,radius,this->RelaxationFactor,range);
+    disp = new ScalarDisplacement(inScalars,radius,this->RelaxationFactor,
+                                  this->PackingFactor,this->AttractionFactor,range);
   }
   else if ( smoothingMode == TENSOR_SMOOTHING )
   {
-    disp = new TensorDisplacement(inTensors,radius,this->RelaxationFactor);
+    disp = new TensorDisplacement(inTensors,radius,this->RelaxationFactor,
+                                  this->PackingFactor,this->AttractionFactor);
   }
   else if ( smoothingMode == FRAME_FIELD_SMOOTHING )
   {
-    disp = new FrameFieldDisplacement(frameField,radius,this->RelaxationFactor);
+    disp = new FrameFieldDisplacement(frameField,radius,this->RelaxationFactor,
+                                      this->PackingFactor,this->AttractionFactor);
   }
   else //GEOMETRIC_SMOOTHING
   {
-    disp = new GeometricDisplacement(nullptr,radius,this->RelaxationFactor);
+    disp = new GeometricDisplacement(nullptr,radius,this->RelaxationFactor,
+                                     this->PackingFactor,this->AttractionFactor);
   }
 
   // Prepare for smoothing. We double buffer the points. The output points
@@ -839,6 +886,18 @@ RequestData(vtkInformation* vtkNotUsed(request),
   // Set the output points
   output->SetPoints(outBuf);
 
+  // If constraint scalars are requested, produce them
+  if ( constraints && this->GenerateConstraintScalars )
+  {
+    outPD->AddArray(constraints->GetClassificationArray());
+  }
+
+  // If constraint vectors are requested, produce them
+  if ( constraints && this->GenerateConstraintNormals )
+  {
+    outPD->AddArray(constraints->GetNormalsArray());
+  }
+
   // Clean up
   delete constraints;
   delete [] conn;
@@ -878,5 +937,14 @@ void vtkPointSmoothingFilter::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "Enable Constraints: " << (this->EnableConstraints ? "On\n" : "Off\n");
   os << indent << "Fixed Angle: " << this->FixedAngle << "\n";
   os << indent << "Boundary Angle: " << this->BoundaryAngle << "\n";
+  os << indent << "Generate Constraint Scalars: "
+     << (this->GenerateConstraintScalars ? "On\n" : "Off\n");
+  os << indent << "Generate Constraint Normals: "
+     << (this->GenerateConstraintNormals ? "On\n" : "Off\n");
 
+  os << indent << "Compute Packing Radius: "
+     << (this->ComputePackingRadius ? "On\n" : "Off\n");
+  os << indent << "Packing Radius: " << this->PackingRadius << "\n";
+  os << indent << "Packing Factor: " << this->PackingFactor << "\n";
+  os << indent << "Attraction Factor: " << this->AttractionFactor << "\n";
 }

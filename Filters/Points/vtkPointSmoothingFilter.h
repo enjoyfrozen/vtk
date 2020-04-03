@@ -218,6 +218,79 @@ public:
 
   //@{
   /**
+   * If point constraints are enabled, an output scalar indicating the
+   * classification of points can be generated.
+   */
+  vtkSetMacro(GenerateConstraintScalars,bool);
+  vtkGetMacro(GenerateConstraintScalars,bool);
+  vtkBooleanMacro(GenerateConstraintScalars,bool);
+  //@}
+
+  //@{
+  /**
+   * If point constraints are enabled, an output vector indicating the
+   * average normal at each point can be generated.
+   */
+  vtkSetMacro(GenerateConstraintNormals,bool);
+  vtkGetMacro(GenerateConstraintNormals,bool);
+  vtkBooleanMacro(GenerateConstraintNormals,bool);
+  //@}
+
+  //@{
+  /**
+   * Enable / disable the computation of a packing radius. By default,
+   * a packing radius is computed as one half of the average distance
+   * between neighboring points. (Point neighbors are defined by the
+   * neighborhood size.)
+   */
+  vtkSetMacro(ComputePackingRadius,bool);
+  vtkGetMacro(ComputePackingRadius,bool);
+  vtkBooleanMacro(ComputePackingRadius,bool);
+  //@}
+
+  //@{
+  /**
+   * Specify the packing radius R. This only takes effect if
+   * ComputePackingRadius is off. Note that the for two points separated by
+   * radius r, a repulsive force is generated when 0<=r<=R, and a repulsive
+   * force when R<=r<=(1+AttractionFactor*R). By default, the PackingRadius
+   * is automatically computed, but when ComputePackingRadius is off, then
+   * manually setting the PackingRadius is allowed. Note that the
+   * PackingRadius is updated after the algorithm runs (useful to examine the
+   * computed packing radius).
+   */
+  vtkSetClampMacro(PackingRadius,double,0.0,VTK_DOUBLE_MAX);
+  vtkGetMacro(PackingRadius,double);
+  //@}
+
+  //@{
+  /**
+   * Specify the packing factor. Larger numbers tend to loosen the overall
+   * packing of points. Note however that if the point density in a region is
+   * high, then the packing factor may have little effect (due to mutual
+   * inter-particle constraints). The default value is 1.0. (Note that a
+   * characteristic inter-particle radius R is computed at the onset of the
+   * algorithm (or can be manually specified). Within 0<=r<=R*PackingFactor a
+   * repulsive force is generated.)
+   */
+  vtkSetClampMacro(PackingFactor,double,0.1,10.0);
+  vtkGetMacro(PackingFactor,double);
+  //@}
+
+  //@{
+  /**
+   * Control the relative distance of inter-particle attraction. A value of
+   * 1.0 means that the radius of the attraction region is the same as the
+   * radius of repulsion. By default, a value of 0.5 is used (e.g., in the
+   * region 0<=r<=R a repulsive force is generated, while in R<r<=R*1.5 an
+   * attractive force is generated).
+   */
+  vtkSetClampMacro(AttractionFactor,double,0.1,10.0);
+  vtkGetMacro(AttractionFactor,double);
+  //@}
+
+  //@{
+  /**
    * Specify a point locator. By default a vtkStaticPointLocator is
    * used. The locator performs efficient searches to locate points
    * around a sample point.
@@ -246,6 +319,14 @@ protected:
   bool EnableConstraints;
   double FixedAngle;
   double BoundaryAngle;
+  bool GenerateConstraintScalars;
+  bool GenerateConstraintNormals;
+
+  // Packing radius and related
+  bool ComputePackingRadius;
+  double PackingRadius;
+  double PackingFactor;
+  double AttractionFactor;
 
   // Pipeline support
   int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;

@@ -10,7 +10,8 @@ VTK_DATA_ROOT = vtkGetDataRoot()
 res = 50
 
 # Controls the plane normal and view plane normal
-normal = [0.1,0.1,1]
+normal = [0,0,1]
+#normal = [0.1,0.1,1]
 #normal = [.8,1,1]
 
 # Generate a sizing field. Use a synthetic volume with stress
@@ -101,7 +102,7 @@ gActor0.GetProperty().SetOpacity(1)
 smooth1 = vtk.vtkPointSmoothingFilter()
 smooth1.SetInputConnection(textract.GetOutputPort())
 smooth1.SetSmoothingModeToGeometric()
-smooth1.SetNumberOfIterations(80)
+smooth1.SetNumberOfIterations(50)
 smooth1.SetNumberOfSubIterations(10)
 smooth1.SetRelaxationFactor(0.1)
 smooth1.SetNeighborhoodSize(24)
@@ -129,13 +130,16 @@ gActor1.GetProperty().SetOpacity(1)
 smooth2 = vtk.vtkPointSmoothingFilter()
 smooth2.SetInputConnection(textract.GetOutputPort())
 smooth2.SetSmoothingModeToUniform()
-smooth2.SetNumberOfIterations(100)
-smooth2.SetNumberOfSubIterations(20)
-smooth2.SetRelaxationFactor(0.01)
-smooth2.SetNeighborhoodSize(12)
-smooth2.EnableConstraintsOn()
+smooth2.SetNumberOfIterations(80)
+smooth2.SetNumberOfSubIterations(10)
+smooth2.SetRelaxationFactor(0.001)
+smooth2.SetNeighborhoodSize(24)
+smooth2.SetPackingFactor(2.0)
+smooth2.SetAttractionFactor(0.5)
+smooth2.EnableConstraintsOff()
 smooth2.SetFixedAngle(45)
 smooth2.SetBoundaryAngle(100)
+smooth2.GenerateConstraintScalarsOn()
 smooth2.Update()
 
 glyph2 = vtk.vtkGlyph3D()
@@ -146,7 +150,12 @@ glyph2.SetScaleFactor(0.025)
 
 gMapper2 = vtk.vtkPolyDataMapper()
 gMapper2.SetInputConnection(glyph2.GetOutputPort())
-gMapper2.ScalarVisibilityOff()
+gMapper2.SetColorModeToMapScalars()
+gMapper2.SetColorModeToMapScalars()
+gMapper2.SetScalarModeToUsePointFieldData()
+gMapper2.SetArrayAccessMode(1) #access by name
+gMapper2.SetArrayName("Constraint Scalars")
+gMapper2.SetScalarRange(0,2)
 
 gActor2 = vtk.vtkActor()
 gActor2.SetMapper(gMapper2)
