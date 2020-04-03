@@ -437,19 +437,15 @@ int vtkFFMPEGWriterInternal::Write(vtkImageData *id)
   }
 
 #else
-  
 #if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(57,37,100)
   int got_frame;
-  int ret = avcodec_encode_video2(cc,
-                                  &pkt,
-                                  this->yuvOutput,
-                                  &got_frame);
+  int ret = avcodec_encode_video2(cc,&pkt,this->yuvOutput,&got_frame);
 
 //dump the compressed result to file
   if (got_frame)
   {
-	  pkt.stream_index = this->avStream->index;
-	  ret = av_write_frame(this->avFormatContext, &pkt);
+      pkt.stream_index = this->avStream->index;
+      ret = av_write_frame(this->avFormatContext, &pkt);
   }
 #else
   cc->framerate.num = this->FrameRate;
@@ -458,8 +454,8 @@ int vtkFFMPEGWriterInternal::Write(vtkImageData *id)
   int ret = avcodec_send_frame(cc,this->yuvOutput);
   if (ret<0)
   {
-	  vtkGenericWarningMacro(<< "Problem encoding frame.");
-	  return 0;
+      vtkGenericWarningMacro(<< "Problem encoding frame.");
+      return 0;
   }
   ret = avcodec_receive_packet(cc, &pkt);
 #endif
