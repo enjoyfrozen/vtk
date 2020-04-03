@@ -72,10 +72,10 @@ namespace
                             double disp[3]) = 0;
 
     // Compute an inter-point force depending on normalized radius. The force
-    // is linearly repulsive near the point; has a slight (cubic) attractive
-    // force in the region (1<r<=(1+af); and produces no force further
-    // away.
-    inline double ForceFunction(double r, double af)
+    // is linearly repulsive near the point 0<=r<=1; has a slight (cubic)
+    // attractive force in the region (1<r<=(1+af); and produces no force
+    // further away.
+    inline double ParticleForce(double r, double af)
     {
       double af1 = 1.0 + af;
       if ( r <= 1.0 ) //repulsive, negative force
@@ -168,7 +168,7 @@ namespace
             {//points coincident, bump them apart
             fVec[0] = this->RandomSeq->GetValue(); this->RandomSeq->Next();
           }
-          force = this->ForceFunction(len/(this->PackingFactor*this->PackingRadius),
+          force = this->ParticleForce(len/(this->PackingFactor*this->PackingRadius),
                                       this->AttractionFactor);
           disp[0] += force * this->RelaxationFactor * fVec[0];
           disp[1] += force * this->RelaxationFactor * fVec[1];
@@ -197,9 +197,34 @@ namespace
                     const vtkIdType *neis, const double *neiPts,
                     double disp[3]) override
     {
-      disp[0] = 0.0;
-      disp[1] = 0.0;
-      disp[2] = 0.0;
+      double len, force, s, s0, s1, sf;
+      double fVec[3];
+      vtkIdType neiId;
+      disp[0] = disp[1] = disp[2] = 0.0;
+      this->Data->GetTuple(p0,&s0);
+      for (auto i=0; i<numNeis; ++i)
+      {
+        neiId = neis[i];
+        if ( neiId >= 0 ) //valid connection to another point
+        {
+          this->Data->GetTuple(neiId,&s1);
+          //         s = 0.5*(s0+s1); //average
+          s = (s1 > s0 ? s1 : s0);
+          sf = (s - this->Range[0]) / (this->ScalarAverage - this->Range[0]);
+          fVec[0] = neiPts[3*i] - x[0];
+          fVec[1] = neiPts[3*i+1] - x[1];
+          fVec[2] = neiPts[3*i+2] - x[2];
+          if ( (len=vtkMath::Normalize(fVec)) == 0.0 )
+            {//points coincident, bump them apart
+            fVec[0] = this->RandomSeq->GetValue(); this->RandomSeq->Next();
+          }
+          force = this->ParticleForce(len/(this->PackingFactor*this->PackingRadius),
+                                      this->AttractionFactor);
+          disp[0] += (sf * force * this->RelaxationFactor * fVec[0]);
+          disp[1] += (sf * force * this->RelaxationFactor * fVec[1]);
+          disp[2] += (sf * force * this->RelaxationFactor * fVec[2]);
+        }
+      }
     }
   };
   // Forces on nearby points are moderated by distance and tensor values.
