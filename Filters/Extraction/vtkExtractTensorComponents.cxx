@@ -151,7 +151,8 @@ int vtkExtractTensorComponents::RequestData(vtkInformation* vtkNotUsed(request),
     newScalars = CreateDataArray(precisionType,
                                  this->ScalarMode == VTK_EXTRACT_COMPONENT ? "Tensor Component" :
                                  (this->ScalarMode == VTK_EXTRACT_DETERMINANT ? "Tensor Determinant" :
-                                  "Tensor Effective Stress"));
+                                  (this->ScalarMode == VTK_EXTRACT_NONNEGATIVE_DETERMINANT ? "NonNegative Tensor Determinant" :
+                                   "Tensor Effective Stress")));
     newScalars->SetNumberOfTuples(numPts);
   }
   if (this->ExtractVectors)
@@ -215,11 +216,17 @@ int vtkExtractTensorComponents::RequestData(vtkInformation* vtkNotUsed(request),
           s = tensor[this->ScalarComponents[0] + 3 * this->ScalarComponents[1]];
         }
 
-        else // VTK_EXTRACT_DETERMINANT
+        else if ( this->ScalarMode == VTK_EXTRACT_DETERMINANT )
         {
           s = tensor[0] * tensor[4] * tensor[8] - tensor[0] * tensor[5] * tensor[7] -
             tensor[1] * tensor[3] * tensor[8] + tensor[1] * tensor[5] * tensor[6] +
             tensor[2] * tensor[3] * tensor[7] - tensor[2] * tensor[4] * tensor[6];
+        }
+        else //if ( this->ScalarMode == VTK_EXTRACT_NONNEGATIVE_DETERMINANT )
+        {
+          s = fabs(tensor[0] * tensor[4] * tensor[8] - tensor[0] * tensor[5] * tensor[7] -
+                   tensor[1] * tensor[3] * tensor[8] + tensor[1] * tensor[5] * tensor[6] +
+                   tensor[2] * tensor[3] * tensor[7] - tensor[2] * tensor[4] * tensor[6]);
         }
         newScalars->SetTuple(ptId, &s);
       } // if extract scalars

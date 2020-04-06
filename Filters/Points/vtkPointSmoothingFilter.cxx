@@ -3,9 +3,9 @@
   Program:   Visualization Toolkit
   Module:    vtkPointSmoothingFilter.cxx
 
-  Copyright (c) Kitware, Inc.
+  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.
-  See LICENSE file for details.
+  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
 
      This software is distributed WITHOUT ANY WARRANTY; without even
      the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
@@ -192,6 +192,90 @@ namespace
     return eigenWorker.Eigens;
   }
 
+  // Determine the min/max determinant values of the tensor field
+  template <typename TensorT>
+  struct CharacterizeTensors
+  {
+    TensorT *Tensors;
+    double DeterminantRange[2];
+
+    vtkSMPThreadLocal<double> LocalDetMin;
+    vtkSMPThreadLocal<double> LocalDetMax;
+
+    CharacterizeTensors(TensorT *tensors) : Tensors(tensors)
+    {}
+
+    void Initialize()
+    {
+      this->LocalDetMin.Local() = VTK_DOUBLE_MAX;
+      this->LocalDetMax.Local() = VTK_DOUBLE_MIN;
+    }
+
+    void operator()(vtkIdType ptId, vtkIdType endPtId)
+    {
+      const auto tensors = vtk::DataArrayTupleRange<9>(this->Tensors);
+      double &min = this->LocalDetMin.Local();
+      double &max = this->LocalDetMax.Local();
+      double det;
+
+      for (const auto tensor : tensors)
+      {
+        det = fabs(tensor[0] * tensor[4] * tensor[8] - tensor[0] * tensor[5] * tensor[7] -
+                   tensor[1] * tensor[3] * tensor[8] + tensor[1] * tensor[5] * tensor[6] +
+                   tensor[2] * tensor[3] * tensor[7] - tensor[2] * tensor[4] * tensor[6]);
+
+        min = std::min(det, min);
+        max = std::max(det, max);
+      }
+    }
+
+    void Reduce()
+    {
+      double min = VTK_DOUBLE_MAX;
+      double max = VTK_DOUBLE_MIN;
+      for (auto iter = this->LocalDetMin.begin(); iter != this->LocalDetMin.end(); ++iter)
+      {
+        min = std::min(*iter, min);
+      }
+      for (auto iter = this->LocalDetMax.begin(); iter != this->LocalDetMax.end(); ++iter)
+      {
+        max = std::max(*iter, max);
+      }
+      this->DeterminantRange[0] = min;
+      this->DeterminantRange[1] = max;
+    }
+  };
+
+  // Hooks into dispatcher vtkArrayDispatch by providing a callable generic
+  struct TensorWorker
+  {
+    double Range[2]; //min/max value of determinant
+
+    template <typename TensorT>
+    void operator()(TensorT* tensors, vtkIdType numPts)
+    {
+      CharacterizeTensors<TensorT> characterizeTensors(tensors);
+      vtkSMPTools::For(0, numPts, characterizeTensors);
+      this->Range[0] = characterizeTensors.DeterminantRange[0];
+      this->Range[1] = characterizeTensors.DeterminantRange[1];
+    }
+  };
+
+  // Centralize the dispatch to avoid duplication
+  void CharacterizeTensor(vtkDataArray *tensors, vtkIdType numPts,
+                          double detRange[2])
+  {
+    using vtkArrayDispatch::Reals;
+    using TensorDispatch = vtkArrayDispatch::DispatchByValueType<Reals>;
+    TensorWorker tensorWorker;
+    if (!TensorDispatch::Execute(tensors, tensorWorker, numPts))
+    { // Fallback to slowpath for other point types
+      tensorWorker(tensors, numPts);
+    }
+    detRange[0] = tensorWorker.Range[0];
+    detRange[1] = tensorWorker.Range[1];
+  }
+
   //--------------------------------------------------------------------------
   // These classes compute the forced displacement of a point within a
   // neighborhood of points. Besides geometric proximity, attribute
@@ -200,15 +284,13 @@ namespace
   {
     vtkDataArray *Data; //data attribute of interest
     double PackingRadius; //radius of average sphere
-    double RelaxationFactor; //controls effect of smoothing
     double PackingFactor;
     double AttractionFactor;
     vtkNew<vtkMinimalStandardRandomSequence> RandomSeq;
 
     DisplacePoint(vtkDataArray *data, double radius, double rf,
                   double pf, double af) :
-      Data(data), PackingRadius(radius), RelaxationFactor(rf),
-      PackingFactor(pf), AttractionFactor(af)
+      Data(data), PackingRadius(radius), PackingFactor(pf), AttractionFactor(af)
     {
       this->RandomSeq->Initialize(1177);
     }
@@ -290,9 +372,9 @@ namespace
         ave[0] /= static_cast<double>(count);
         ave[1] /= static_cast<double>(count);
         ave[2] /= static_cast<double>(count);
-        disp[0] = this->RelaxationFactor * (ave[0] - x[0]);
-        disp[1] = this->RelaxationFactor * (ave[1] - x[1]);
-        disp[2] = this->RelaxationFactor * (ave[2] - x[2]);
+        disp[0] = (ave[0] - x[0]);
+        disp[1] = (ave[1] - x[1]);
+        disp[2] = (ave[2] - x[2]);
       }
     }
   };
@@ -327,9 +409,9 @@ namespace
           }
           force = this->ParticleForce(len/(this->PackingFactor*this->PackingRadius),
                                       this->AttractionFactor);
-          disp[0] += force * this->RelaxationFactor * fVec[0];
-          disp[1] += force * this->RelaxationFactor * fVec[1];
-          disp[2] += force * this->RelaxationFactor * fVec[2];
+          disp[0] += force * fVec[0];
+          disp[1] += force * fVec[1];
+          disp[2] += force * fVec[2];
         }
       }
     }
@@ -377,9 +459,9 @@ namespace
           }
           force = this->ParticleForce(len/(this->PackingFactor*this->PackingRadius),
                                       this->AttractionFactor);
-          disp[0] += (sf * force * this->RelaxationFactor * fVec[0]);
-          disp[1] += (sf * force * this->RelaxationFactor * fVec[1]);
-          disp[2] += (sf * force * this->RelaxationFactor * fVec[2]);
+          disp[0] += (sf * force * fVec[0]);
+          disp[1] += (sf * force * fVec[1]);
+          disp[2] += (sf * force * fVec[2]);
         }
       }
     }
@@ -387,9 +469,15 @@ namespace
   // Forces on nearby points are moderated by distance and tensor values.
   struct TensorDisplacement : public DisplacePoint
   {
+    double DetRange[2];
+
     TensorDisplacement(vtkDataArray *data, double radius, double rf,
-                       double pf, double af) :
-      DisplacePoint(data,radius,rf,pf,af) {}
+                       double pf, double af, double detRange[2]) :
+      DisplacePoint(data,radius,rf,pf,af)
+    {
+      this->DetRange[0] = detRange[0];
+      this->DetRange[1] = detRange[2];
+    }
 
     // Tensor represented by columnar eigenvectors. Project normalized
     // vector vec against the three eigenvectors and return length.
@@ -435,27 +523,11 @@ namespace
           sf = tl / this->PackingRadius;
           force = this->ParticleForce(len/(this->PackingFactor*this->PackingRadius),
                                       this->AttractionFactor);
-          disp[0] += (sf * force * this->RelaxationFactor * fVec[0]);
-          disp[1] += (sf * force * this->RelaxationFactor * fVec[1]);
-          disp[2] += (sf * force * this->RelaxationFactor * fVec[2]);
+          disp[0] += (sf * force * fVec[0]);
+          disp[1] += (sf * force * fVec[1]);
+          disp[2] += (sf * force * fVec[2]);
         }
       }
-    }
-  };
-  // Forces on nearby points are moderated by distance and tensor eigenvalues.
-  struct FrameFieldDisplacement : public DisplacePoint
-  {
-    FrameFieldDisplacement(vtkDataArray *data, double radius, double rf,
-                           double pf, double af) :
-      DisplacePoint(data,radius,rf,pf,af) {}
-
-    void operator()(vtkIdType p0, double x[3], vtkIdType numNeis,
-                    const vtkIdType *neis, const double *neiPts,
-                    double disp[3]) override
-    {
-      disp[0] = 0.0;
-      disp[1] = 0.0;
-      disp[2] = 0.0;
     }
   };
 
@@ -797,7 +869,7 @@ namespace
     PointsT1 *InPoints;
     PointsT2 *OutPoints;
     int NeiSize;
-    double RelaxationFactor;
+    double MaximumStepSize;
     const vtkIdType *Conn;
     DisplacePoint *Displace;
     PointConstraints *Constraints;
@@ -806,10 +878,10 @@ namespace
     double PlaneNormal[3];
     vtkSMPThreadLocal<double*> LocalNeiPoints;
 
-    SmoothPoints(PointsT1 *inPts, PointsT2 *outPts, int neiSize, double relaxF,
+    SmoothPoints(PointsT1 *inPts, PointsT2 *outPts, int neiSize, double maxStep,
                  const vtkIdType *conn, DisplacePoint *f, PointConstraints *c,
                  vtkPlane *plane) :
-      InPoints(inPts), OutPoints(outPts), NeiSize(neiSize), RelaxationFactor(relaxF),
+      InPoints(inPts), OutPoints(outPts), NeiSize(neiSize), MaximumStepSize(maxStep),
       Conn(conn), Displace(f), Constraints(c), Plane(plane)
     {
       if ( this->Plane )
@@ -872,6 +944,15 @@ namespace
           }
         }
 
+        // Control the size of the step
+        double len = vtkMath::Norm(disp);
+        if ( len > this->MaximumStepSize )
+        {
+          disp[0] *= (this->MaximumStepSize / len);
+          disp[1] *= (this->MaximumStepSize / len);
+          disp[2] *= (this->MaximumStepSize / len);
+        }
+
         // Move the point
         x[0] += disp[0];
         x[1] += disp[1];
@@ -903,10 +984,10 @@ namespace
   {
     template <typename PointsT1, typename PointsT2>
     void operator()(PointsT1* inPts, PointsT2* outPts, vtkIdType numPts,
-                    int neiSize, double relaxF, vtkIdType *conn,
+                    int neiSize, double maxStepSize, vtkIdType *conn,
                     DisplacePoint *f, PointConstraints *c, vtkPlane *plane)
     {
-      SmoothPoints<PointsT1,PointsT2> smooth(inPts, outPts, neiSize, relaxF,
+      SmoothPoints<PointsT1,PointsT2> smooth(inPts, outPts, neiSize, maxStepSize,
                                              conn, f, c, plane);
       vtkSMPTools::For(0, numPts, smooth);
     }
@@ -922,10 +1003,10 @@ vtkPointSmoothingFilter::vtkPointSmoothingFilter()
 {
   this->NeighborhoodSize = 8; // works well for 2D
   this->SmoothingMode = DEFAULT_SMOOTHING;
-  this->Convergence = 0.0; // runs to number of specified iterations
   this->NumberOfIterations = 20;
-  this->NumberOfSubIterations = 4;
-  this->RelaxationFactor = 0.1;
+  this->NumberOfSubIterations = 10;
+  this->MaximumStepSize = 0.01;
+  this->Convergence = 0.0; // runs to number of specified iterations
   this->FrameFieldArray = nullptr;
 
   this->Locator = vtkStaticPointLocator::New();
@@ -1062,30 +1143,31 @@ RequestData(vtkInformation* vtkNotUsed(request),
   DisplacePoint *disp;
   if ( smoothingMode == UNIFORM_SMOOTHING )
   {
-    disp = new UniformDisplacement(nullptr,radius,this->RelaxationFactor,
+    disp = new UniformDisplacement(nullptr,radius,1.0,
                                    this->PackingFactor,this->AttractionFactor);
   }
   else if ( smoothingMode == SCALAR_SMOOTHING )
   {
     double range[2];
     inScalars->GetRange(range);
-    disp = new ScalarDisplacement(inScalars,radius,this->RelaxationFactor,
+    disp = new ScalarDisplacement(inScalars,radius,1.0,
                                   this->PackingFactor,this->AttractionFactor,range);
   }
-  else if ( smoothingMode == TENSOR_SMOOTHING )
+  else if ( smoothingMode == TENSOR_SMOOTHING || smoothingMode == FRAME_FIELD_SMOOTHING )
   {
-    computedFrameField = ComputeEigenvalues(inTensors, numPts);
-    disp = new FrameFieldDisplacement(computedFrameField.Get(),radius,this->RelaxationFactor,
-                                      this->PackingFactor,this->AttractionFactor);
-  }
-  else if ( smoothingMode == FRAME_FIELD_SMOOTHING )
-  {
-    disp = new FrameFieldDisplacement(frameField,radius,this->RelaxationFactor,
-                                      this->PackingFactor,this->AttractionFactor);
+    double detRange[2];
+    if ( smoothingMode == TENSOR_SMOOTHING )
+    {
+      computedFrameField = ComputeEigenvalues(inTensors, numPts);
+    }
+    CharacterizeTensor(computedFrameField, numPts, detRange);
+    cout << "Det Range: (" << detRange[0] << "," <<detRange[1] << ")\n";
+    disp = new TensorDisplacement(computedFrameField.Get(),radius,1.0,
+                                  this->PackingFactor,this->AttractionFactor, detRange);
   }
   else //GEOMETRIC_SMOOTHING
   {
-    disp = new GeometricDisplacement(nullptr,radius,this->RelaxationFactor,
+    disp = new GeometricDisplacement(nullptr,radius,1.0,
                                      this->PackingFactor,this->AttractionFactor);
   }
 
@@ -1101,7 +1183,7 @@ RequestData(vtkInformation* vtkNotUsed(request),
   vtkPoints *swapBuf, *inBuf=pts0, *outBuf=pts1;
   int numSubIters = (this->NumberOfSubIterations < this->NumberOfIterations ?
                      this->NumberOfSubIterations : this->NumberOfIterations);
-  double relaxF = this->RelaxationFactor;
+  double maxStepSize = this->MaximumStepSize;
   vtkPlane *plane = ( this->MotionConstraint == PLANE_MOTION && this->Plane ?
                       this->Plane : nullptr );
 
@@ -1122,10 +1204,10 @@ RequestData(vtkInformation* vtkNotUsed(request),
   {
     // Perform a smoothing iteration using the current connectivity.
     if (!SmoothDispatch::Execute(inBuf->GetData(), outBuf->GetData(), sworker,
-                                 numPts, neiSize, relaxF, conn, disp, constraints,
+                                 numPts, neiSize, maxStepSize, conn, disp, constraints,
                                  plane))
     { // Fallback to slowpath for other point types
-      sworker(inBuf->GetData(), outBuf->GetData(), numPts, neiSize, relaxF,
+      sworker(inBuf->GetData(), outBuf->GetData(), numPts, neiSize, maxStepSize,
               conn, disp, constraints, plane);
     }
 
@@ -1190,7 +1272,7 @@ void vtkPointSmoothingFilter::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "Neighborhood Size: " << this->NeighborhoodSize << endl;
   os << indent << "Number of Iterations: " << this->NumberOfIterations << endl;
   os << indent << "Number of Sub-iterations: " << this->NumberOfSubIterations << endl;
-  os << indent << "Relaxation Factor: " << this->RelaxationFactor << endl;
+  os << indent << "Maximum Step Size: " << this->MaximumStepSize << endl;
   os << indent << "Convergence: " << this->Convergence << endl;
   os << indent << "Frame Field Array: " << this->FrameFieldArray << "\n";
   os << indent << "Locator: " << this->Locator << "\n";

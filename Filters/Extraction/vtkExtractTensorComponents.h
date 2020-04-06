@@ -58,6 +58,7 @@
 #define VTK_EXTRACT_COMPONENT 0
 #define VTK_EXTRACT_EFFECTIVE_STRESS 1
 #define VTK_EXTRACT_DETERMINANT 2
+#define VTK_EXTRACT_NONNEGATIVE_DETERMINANT 3
 
 class VTKFILTERSEXTRACTION_EXPORT vtkExtractTensorComponents : public vtkDataSetAlgorithm
 {
@@ -104,10 +105,10 @@ public:
 
   //@{
   /**
-   * Specify how to extract the scalar. You can extract it as one of
-   * the components of the tensor, as effective stress, or as the
-   * determinant of the tensor. If you extract a component make sure
-   * that you set the ScalarComponents ivar.
+   * Specify how to extract the scalar. You can extract it as one of the
+   * components of the tensor, as effective stress, as the determinant of the
+   * tensor, or a non-negative determinant. If you extract a component make
+   * sure that you set the ScalarComponents ivar.
    */
   vtkSetMacro(ScalarMode, int);
   vtkGetMacro(ScalarMode, int);
@@ -117,6 +118,7 @@ public:
   void ScalarIsComponent() { this->SetScalarMode(VTK_EXTRACT_COMPONENT); }
   void ScalarIsEffectiveStress() { this->SetScalarMode(VTK_EXTRACT_EFFECTIVE_STRESS); }
   void ScalarIsDeterminant() { this->SetScalarMode(VTK_EXTRACT_DETERMINANT); }
+  void ScalarIsNonNegativeDeterminant() { this->SetScalarMode(VTK_EXTRACT_NONNEGATIVE_DETERMINANT); }
   //@}
 
   //@{

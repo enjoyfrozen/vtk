@@ -3,9 +3,9 @@
   Program:   Visualization Toolkit
   Module:    vtkPointSmoothingFilter.h
 
-  Copyright (c) Kitware, Inc.
+  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.
-  See LICENSE file for details.
+  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
 
      This software is distributed WITHOUT ANY WARRANTY; without even
      the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
@@ -182,24 +182,24 @@ public:
 
   //@{
   /**
+   * Specify the maximum smoothing step size for each smoothing iteration. This
+   * step size limits the the distance over which a point can move in each
+   * iteration.  As in all iterative methods, the stability of the process is
+   * sensitive to this parameter. In general, small step size and large
+   * numbers of iterations are more stable than a larger step size and a
+   * smaller numbers of iterations.
+   */
+  vtkSetClampMacro(MaximumStepSize, double, 0.0, VTK_DOUBLE_MAX);
+  vtkGetMacro(MaximumStepSize, double);
+  //@}
+
+  //@{
+  /**
    * Specify a convergence criterion for the iteration
    * process. Smaller numbers result in more smoothing iterations.
    */
   vtkSetClampMacro(Convergence, double, 0.0, 1.0);
   vtkGetMacro(Convergence, double);
-  //@}
-
-  //@{
-  /**
-   * Specify the relaxation factor for smoothing iterations. The relexation
-   * factor controls the speed (across multiple iterations) which points
-   * move. As in all iterative methods, the stability of the process is
-   * sensitive to this parameter. In general, small relaxation factors and
-   * large numbers of iterations are more stable than larger relaxation
-   * factors and smaller numbers of iterations.
-   */
-  vtkSetClampMacro(RelaxationFactor, double, 0.0, 1.0);
-  vtkGetMacro(RelaxationFactor, double);
   //@}
 
   //@{
@@ -344,10 +344,10 @@ protected:
   // Control the smoothing
   int NeighborhoodSize;
   int SmoothingMode;
-  double Convergence;
   int NumberOfIterations;
   int NumberOfSubIterations;
-  double RelaxationFactor;
+  double MaximumStepSize;
+  double Convergence;
   vtkDataArray* FrameFieldArray;
 
   // Support the algorithm
