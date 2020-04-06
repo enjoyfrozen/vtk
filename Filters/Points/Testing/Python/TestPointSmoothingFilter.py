@@ -10,8 +10,8 @@ VTK_DATA_ROOT = vtkGetDataRoot()
 res = 50
 
 # Controls the plane normal and view plane normal
-normal = [0,0,1]
-#normal = [0.1,0.1,1]
+#normal = [0,0,1]
+normal = [0.1,0.1,1]
 #normal = [.8,1,1]
 
 # Generate a sizing field. Use a synthetic volume with stress
@@ -104,11 +104,13 @@ smooth1.SetInputConnection(textract.GetOutputPort())
 smooth1.SetSmoothingModeToGeometric()
 smooth1.SetNumberOfIterations(50)
 smooth1.SetNumberOfSubIterations(10)
+smooth1.SetPackingFactor(1.0)
 smooth1.SetRelaxationFactor(0.1)
 smooth1.SetNeighborhoodSize(24)
 smooth1.EnableConstraintsOn()
 smooth1.SetFixedAngle(45)
-smooth1.SetBoundaryAngle(100)
+smooth1.SetBoundaryAngle(110)
+smooth1.GenerateConstraintScalarsOn()
 smooth1.Update()
 
 glyph1 = vtk.vtkGlyph3D()
@@ -119,7 +121,11 @@ glyph1.SetScaleFactor(0.025)
 
 gMapper1 = vtk.vtkPolyDataMapper()
 gMapper1.SetInputConnection(glyph1.GetOutputPort())
-gMapper1.ScalarVisibilityOff()
+gMapper1.SetColorModeToMapScalars()
+gMapper1.SetScalarModeToUsePointFieldData()
+gMapper1.SetArrayAccessMode(1) #access by name
+gMapper1.SetArrayName("Constraint Scalars")
+gMapper1.SetScalarRange(0,2)
 
 gActor1 = vtk.vtkActor()
 gActor1.SetMapper(gMapper1)
@@ -140,6 +146,8 @@ smooth2.EnableConstraintsOff()
 smooth2.SetFixedAngle(45)
 smooth2.SetBoundaryAngle(100)
 smooth2.GenerateConstraintScalarsOn()
+smooth2.SetMotionConstraintToPlane()
+smooth2.SetPlane(plane)
 smooth2.Update()
 
 glyph2 = vtk.vtkGlyph3D()
@@ -150,7 +158,6 @@ glyph2.SetScaleFactor(0.025)
 
 gMapper2 = vtk.vtkPolyDataMapper()
 gMapper2.SetInputConnection(glyph2.GetOutputPort())
-gMapper2.SetColorModeToMapScalars()
 gMapper2.SetColorModeToMapScalars()
 gMapper2.SetScalarModeToUsePointFieldData()
 gMapper2.SetArrayAccessMode(1) #access by name
@@ -177,19 +184,15 @@ smooth3.SetFixedAngle(45)
 smooth3.SetBoundaryAngle(100)
 smooth3.GenerateConstraintScalarsOn()
 smooth3.Update()
-print(smooth3.GetOutput())
 
 glyph3 = vtk.vtkGlyph3D()
 glyph3.SetInputConnection(smooth3.GetOutputPort())
 glyph3.SetSourceConnection(sph.GetOutputPort())
-#glyph3.SetScaleModeToDataScalingOff()
-#glyph3.SetScaleFactor(0.025)
 glyph3.SetColorModeToColorByScalar()
 glyph3.SetScaleFactor(-1)
 
 gMapper3 = vtk.vtkPolyDataMapper()
 gMapper3.SetInputConnection(glyph3.GetOutputPort())
-#gMapper3.ScalarVisibilityOff()
 gMapper3.SetScalarRange(smooth3.GetOutput().GetScalarRange())
 
 gActor3 = vtk.vtkActor()
@@ -200,20 +203,27 @@ gActor3.GetProperty().SetOpacity(1)
 # Now explicitly the Tensor behavior
 smooth4 = vtk.vtkPointSmoothingFilter()
 smooth4.SetInputConnection(textract.GetOutputPort())
-smooth4.SetSmoothingModeToUniform()
-smooth4.SetNumberOfIterations(40)
-smooth4.SetNumberOfSubIterations(4)
-smooth4.SetRelaxationFactor(0.1)
-smooth4.SetNeighborhoodSize(12)
+smooth4.SetSmoothingModeToTensors()
+smooth4.SetNumberOfIterations(80)
+smooth4.SetNumberOfSubIterations(10)
+smooth4.SetRelaxationFactor(0.004)
+smooth4.SetNeighborhoodSize(24)
+smooth4.SetPackingFactor(1.5)
+smooth4.SetAttractionFactor(0.25)
+smooth4.EnableConstraintsOn()
+smooth4.SetFixedAngle(45)
+smooth4.SetBoundaryAngle(100)
+smooth4.GenerateConstraintScalarsOn()
 smooth4.Update()
 
 glyph4 = vtk.vtkTensorGlyph()
 glyph4.SetInputConnection(smooth4.GetOutputPort())
 glyph4.SetSourceConnection(sph.GetOutputPort())
-glyph4.SetScaleFactor(0.05)
+glyph4.SetScaleFactor(0.1)
 
 gMapper4 = vtk.vtkPolyDataMapper()
 gMapper4.SetInputConnection(glyph4.GetOutputPort())
+gMapper3.SetScalarRange(smooth4.GetOutput().GetScalarRange())
 
 gActor4 = vtk.vtkActor()
 gActor4.SetMapper(gMapper4)

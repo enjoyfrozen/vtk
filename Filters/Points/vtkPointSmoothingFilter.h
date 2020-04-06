@@ -24,26 +24,27 @@
  * another. Smoothing in its simplest form (geometric) is simply a variant of
  * Laplacian smoothing where each point moves towards the average position of
  * its neighboring points. Next uniform smoothing uses a cubic cutoff
- * function to produce higher forces between points that are closer together,
- * but the forces are independent of associated point data attribute
- * values. Smoothing can be further controlled either by a scalar field, by a
- * tensor field, or a frame field (the user can specify the nature of the
- * smoothing operation). If controlled by a scalar field, then each input
- * point is assumed to be surrounded by a isotropic sphere scaled by the
- * scalar field; if controlled by a tensor field, then each input point is
- * assumed to be surrounded by an anisotropic, oriented ellipsoid aligned to
- * the the tensor eigenvectors and scaled by the determinate of the tensor. A
- * frame field also assumes a surrounding, ellipsoidal shape except that the
- * inversion of the ellipsoid tensor is already performed. Typical usage of
- * this filter is to perform a smoothing (also referred to as packing)
- * operation (i.e., first execute this filter) and then combine it with a
- * glyph filter (e.g., vtkTensorGlyph or vtkGlyph3D) to visualize the packed
- * points.
+ * function to produce repulsive forces between close points and attractive
+ * forces that are a little further away.  Smoothing can be further
+ * controlled either by a scalar field, by a tensor field, or a frame field
+ * (the user can specify the nature of the smoothing operation). If
+ * controlled by a scalar field, then each input point is assumed to be
+ * surrounded by a isotropic sphere scaled by the scalar field; if controlled
+ * by a tensor field, then each input point is assumed to be surrounded by an
+ * anisotropic, oriented ellipsoid aligned to the the tensor eigenvectors and
+ * scaled by the determinate of the tensor. A frame field also assumes a
+ * surrounding, ellipsoidal shape except that the inversion of the ellipsoid
+ * tensor is already performed. Typical usage of this filter is to perform a
+ * smoothing (also referred to as packing) operation (i.e., first execute
+ * this filter) and then combine it with a glyph filter (e.g., vtkTensorGlyph
+ * or vtkGlyph3D) to visualize the packed points.
  *
  * Smoothing depends on a local neighborhood of nearby points. In general,
  * the larger the neighborhood size, the greater the reduction in high
  * frequency information. (The memory and/or computational requirements of
- * the algorithm may also significantly increase.)
+ * the algorithm may also significantly increase.) The PackingRadius (and
+ * modified PackingFactor) controls what points are considered close. The
+ * PackingRadius can be computed automatically, or specified by the user.
  *
  * Any vtkPointSet type can be provided as input, and the output will contain
  * the same number of new points each of which is adjusted to a new position.
@@ -66,6 +67,13 @@
  * performance significantly.
  *
  * @warning
+ * Geometric smoothing defines a one-sided attractive force between
+ * particles. Thus particles tend to clump together, and the entire set of
+ * points (with enough iterations and appropriate PackingRadius) can converge
+ * to a single position. This can be mitigated by turning on point
+ * constraints, which limit the movement of "boundary" points.
+ *
+ * @warning
  * This class has been loosely inspired by the paper by Kindlmann and Westin
  * "Diffusion Tensor Visualization with Glyph Packing". However, several
  * computational shortcuts, and generalizations have been used for performance
@@ -77,7 +85,7 @@
  * VTK_SMP_IMPLEMENTATION_TYPE) may improve performance significantly.
  *
  * @sa
- * vtkTensorWidget vtkTensorGlyph vtkSmoothPolyDataFilter
+ * vtkTensorWidget vtkTensorGlyph vtkSmoothPolyDataFilter vtkGlyph3D
  */
 
 #ifndef vtkPointSmoothingFilter_h
@@ -88,7 +96,7 @@
 
 class vtkAbstractPointLocator;
 class vtkDataArray;
-
+class vtkPlane;
 
 class VTKFILTERSPOINTS_EXPORT vtkPointSmoothingFilter : public vtkPointSetAlgorithm
 {
@@ -289,6 +297,36 @@ public:
   vtkGetMacro(AttractionFactor,double);
   //@}
 
+  /**
+   * Specify how point motion is to be constrained.
+   */
+  enum
+  {
+    UNCONSTRAINED_MOTION=0,
+    PLANE_MOTION
+  };
+
+  //@{
+  /**
+   * Specify how to constrain the motion of points. By default, point motion is
+   * unconstrained. Points can also be constrained to a plane. If constrained to
+   * a plane, then an instance of vtkPlane must be specified.
+   */
+  vtkSetMacro(MotionConstraint,int);
+  vtkGetMacro(MotionConstraint,int);
+  void SetMotionConstraintToUnconstrained() {this->SetMotionConstraint(UNCONSTRAINED_MOTION);}
+  void SetMotionConstraintToPlane() {this->SetMotionConstraint(PLANE_MOTION);}
+  //@}
+
+  //@{
+  /**
+   * Specify the plane to which point motion is constrained. Only required if
+   * MotionConstraint is set to UNCONSTRAINED_MOTION.
+   */
+  void SetPlane(vtkPlane*);
+  vtkGetObjectMacro(Plane,vtkPlane);
+  //@}
+
   //@{
   /**
    * Specify a point locator. By default a vtkStaticPointLocator is
@@ -327,6 +365,10 @@ protected:
   double PackingRadius;
   double PackingFactor;
   double AttractionFactor;
+
+  // Motion constraints
+  int MotionConstraint;
+  vtkPlane *Plane;
 
   // Pipeline support
   int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;

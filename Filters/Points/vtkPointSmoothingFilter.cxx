@@ -41,10 +41,158 @@ vtkStandardNewMacro(vtkPointSmoothingFilter);
 
 vtkCxxSetObjectMacro(vtkPointSmoothingFilter, FrameFieldArray, vtkDataArray);
 vtkCxxSetObjectMacro(vtkPointSmoothingFilter, Locator, vtkAbstractPointLocator);
+vtkCxxSetObjectMacro(vtkPointSmoothingFilter, Plane, vtkPlane);
 
 //----------------------------------------------------------------------------
 namespace
 {
+  //--------------------------------------------------------------------------
+  // Machinery for extracting eigenfunctions. Needed if smoothing mode is set
+  // to Tensors.
+  template <typename DataT>
+  struct ExtractEigenfunctions
+  {
+    DataT* InTensors;
+    double *OutTensors; //9-component tensors with eigenfunctions extracted
+
+    ExtractEigenfunctions(DataT* tIn, double *tOut) : InTensors(tIn), OutTensors(tOut)
+    {}
+
+    void Extract(double *tensor, double *eTensor)
+    {
+      double *m[3], w[3], *v[3];
+      double m0[3], m1[3], m2[3];
+      double v0[3], v1[3], v2[3];
+      double xv[3], yv[3], zv[3];
+
+      // set up working matrices
+      m[0] = m0;
+      m[1] = m1;
+      m[2] = m2;
+      v[0] = v0;
+      v[1] = v1;
+      v[2] = v2;
+
+      // We are interested in the symmetrical part of the tensor only, since
+      // eigenvalues are real if and only if the matrice of reals is symmetrical
+      for (auto j=0; j < 3; j++)
+      {
+        for (auto i=0; i < 3; i++)
+        {
+          m[i][j] = 0.5 * (tensor[i + 3 * j] + tensor[j + 3 * i]);
+        }
+      }
+
+      vtkMath::Jacobi(m, w, v);
+
+      // copy non-normalized eigenvectors
+      eTensor[0] = w[0] * v[0][0];
+      eTensor[1] = w[0] * v[1][0];
+      eTensor[2] = w[0] * v[2][0];
+      eTensor[3] = w[1] * v[0][1];
+      eTensor[4] = w[1] * v[1][1];
+      eTensor[5] = w[1] * v[2][1];
+      eTensor[6] = w[2] * v[0][2];
+      eTensor[7] = w[2] * v[1][2];
+      eTensor[8] = w[2] * v[2][2];
+    }
+  };
+
+  template <typename DataT>
+  struct Extract6Eigenfunctions : public ExtractEigenfunctions<DataT>
+  {
+    Extract6Eigenfunctions(DataT* tIn, double *tOut) :
+      ExtractEigenfunctions<DataT>(tIn,tOut)
+    {}
+
+    void operator()(vtkIdType ptId, vtkIdType endPtId)
+    {
+      const auto tuples = vtk::DataArrayTupleRange<6>(this->InTensors, ptId, endPtId);
+      double *t = this->OutTensors + 6*ptId;
+      double tensor[9];
+
+      for (const auto tuple : tuples)
+      {
+        for (auto i=0; i<6; ++i)
+        {
+          tensor[i] = tuple[i];
+        }
+        vtkMath::TensorFromSymmetricTensor(tensor);
+        this->Extract(tensor,t);
+        ++ptId; //move to the next point
+        t += 6; //move to next output tensor
+      }
+    }
+  };//Extract6Eigenfunctions - 6 components
+
+  template <typename DataT>
+  struct Extract9Eigenfunctions : public ExtractEigenfunctions<DataT>
+  {
+    Extract9Eigenfunctions(DataT* tIn, double *tOut) :
+      ExtractEigenfunctions<DataT>(tIn,tOut)
+    {}
+
+    void operator()(vtkIdType ptId, vtkIdType endPtId)
+    {
+      const auto tuples = vtk::DataArrayTupleRange<9>(this->InTensors, ptId, endPtId);
+      double *t = this->OutTensors + 9*ptId;
+      double tensor[9];
+
+      for (const auto tuple : tuples)
+      {
+        for (auto i=0; i<9; ++i)
+        {
+          tensor[i] = tuple[i];
+        }
+        this->Extract(tensor,t);
+        ++ptId; //move to the next point
+        t += 9; //move to next output tensor
+      }
+    }
+  };//Extract9Eigenfunctions - 9 components
+
+  // Hooks into dispatcher vtkArrayDispatch by providing a callable generic
+  struct EigenWorker
+  {
+    vtkDoubleArray *Eigens;
+
+    EigenWorker()
+    {
+      this->Eigens = vtkDoubleArray::New();
+    }
+
+    template <typename DataT>
+    void operator()(DataT* tensor, vtkIdType numPts)
+    {
+      this->Eigens->SetNumberOfComponents(9);
+      this->Eigens->SetNumberOfTuples(numPts);
+      if ( tensor->GetNumberOfComponents() == 9 )
+      {
+        Extract9Eigenfunctions<DataT> extract9(tensor,this->Eigens->GetPointer(0));
+        vtkSMPTools::For(0, numPts, extract9);
+      }
+      else
+      {
+        Extract6Eigenfunctions<DataT> extract6(tensor,this->Eigens->GetPointer(0));
+        vtkSMPTools::For(0, numPts, extract6);
+      }
+    }
+  };
+
+  // Centralize the dispatch to avoid duplication
+  vtkDataArray* ComputeEigenvalues(vtkDataArray *tensors, vtkIdType numPts)
+  {
+    using vtkArrayDispatch::Reals;
+    using EigenDispatch = vtkArrayDispatch::DispatchByValueType<Reals>;
+    EigenWorker eigenWorker;
+    if (!EigenDispatch::Execute(tensors, eigenWorker, numPts))
+    { // Fallback to slowpath for other point types
+      eigenWorker(tensors, numPts);
+    }
+    return eigenWorker.Eigens;
+  }
+
+  //--------------------------------------------------------------------------
   // These classes compute the forced displacement of a point within a
   // neighborhood of points. Besides geometric proximity, attribute
   // data (e.g., scalars, tensors) may also affect the displacement.
@@ -107,18 +255,27 @@ namespace
                     const vtkIdType *neis, const double *neiPts,
                     double disp[3]) override
     {
-      double count=0;
+      int count=0;
       double ave[3]={0.0,0.0,0.0};
+      double len, fVec[3];
       vtkIdType neiId;
+      double R=this->PackingFactor*this->PackingRadius;
       for (auto i=0; i<numNeis; ++i)
       {
         neiId = neis[i];
-        if ( neiId >= 0 ) //valid connection to another point
+        // Make sure to have a valid connection within sphere of influence
+        if ( neiId >= 0 )
         {
-          ++count;
-          ave[0] += neiPts[3*i];
-          ave[1] += neiPts[3*i+1];
-          ave[2] += neiPts[3*i+2];
+          fVec[0] = neiPts[3*i] - x[0];
+          fVec[1] = neiPts[3*i+1] - x[1];
+          fVec[2] = neiPts[3*i+2] - x[2];
+          if ( (len=vtkMath::Normalize(fVec)) <= R )
+          {
+            ++count;
+            ave[0] += neiPts[3*i];
+            ave[1] += neiPts[3*i+1];
+            ave[2] += neiPts[3*i+2];
+          }
         }
       }
       if ( count <= 0 )
@@ -234,13 +391,55 @@ namespace
                        double pf, double af) :
       DisplacePoint(data,radius,rf,pf,af) {}
 
+    // Tensor represented by columnar eigenvectors. Project normalized
+    // vector vec against the three eigenvectors and return length.
+    double ComputeTensorLength(double vec[3], double tensor[9])
+    {
+      double dot = vtkMath::Dot(vec,tensor);
+      double len = dot * dot;
+
+      dot = vtkMath::Dot(vec,tensor+3);
+      len += (dot * dot);
+
+      dot = vtkMath::Dot(vec,tensor+6);
+      len += (dot * dot);
+
+      return sqrt(len);
+    }
+
     void operator()(vtkIdType p0, double x[3], vtkIdType numNeis,
                     const vtkIdType *neis, const double *neiPts,
                     double disp[3]) override
     {
-      disp[0] = 0.0;
-      disp[1] = 0.0;
-      disp[2] = 0.0;
+      double fVec[3], len;
+      double tl0, tl1, tl, force, sf, t0[9], t1[9];
+      vtkIdType neiId;
+      disp[0] = disp[1] = disp[2] = 0.0;
+      this->Data->GetTuple(p0,t0);
+      for (auto i=0; i<numNeis; ++i)
+      {
+        neiId = neis[i];
+        if ( neiId >= 0 ) //valid connection to another point
+        {
+          fVec[0] = neiPts[3*i] - x[0];
+          fVec[1] = neiPts[3*i+1] - x[1];
+          fVec[2] = neiPts[3*i+2] - x[2];
+          if ( (len=vtkMath::Normalize(fVec)) == 0.0 )
+            {//points coincident, bump them apart
+            fVec[0] = this->RandomSeq->GetValue(); this->RandomSeq->Next();
+          }
+          this->Data->GetTuple(neiId,t1);
+          tl0 = this->ComputeTensorLength(fVec,t0);
+          tl1 = this->ComputeTensorLength(fVec,t1);
+          tl = (tl1 > tl0 ? tl1 : tl0);
+          sf = tl / this->PackingRadius;
+          force = this->ParticleForce(len/(this->PackingFactor*this->PackingRadius),
+                                      this->AttractionFactor);
+          disp[0] += (sf * force * this->RelaxationFactor * fVec[0]);
+          disp[1] += (sf * force * this->RelaxationFactor * fVec[1]);
+          disp[2] += (sf * force * this->RelaxationFactor * fVec[2]);
+        }
+      }
     }
   };
   // Forces on nearby points are moderated by distance and tensor eigenvalues.
@@ -260,6 +459,9 @@ namespace
     }
   };
 
+  //--------------------------------------------------------------------------
+  // For each point, build the connectivity array to nearby points. The number
+  // of neighbors is given by the specified neighborhood size.
   template <typename PointsT>
   struct BuildConnectivity
   {
@@ -347,8 +549,9 @@ namespace
     }
   }
 
+  //--------------------------------------------------------------------------
   // Constrain point movement depending on classification. The point can move
-  // freely, on the plane, or is fixed.
+  // freely, on a plane, or is fixed.
   struct PointConstraints
   {
     enum
@@ -585,6 +788,7 @@ namespace
 
 
 
+  //--------------------------------------------------------------------------
   // Smoothing operation based on double buffering (simplifies threading). In
   // general the types of points (input and output buffers) can be different.
   template <typename PointsT1, typename PointsT2>
@@ -597,13 +801,24 @@ namespace
     const vtkIdType *Conn;
     DisplacePoint *Displace;
     PointConstraints *Constraints;
+    vtkPlane *Plane;
+    double PlaneOrigin[3];
+    double PlaneNormal[3];
     vtkSMPThreadLocal<double*> LocalNeiPoints;
 
     SmoothPoints(PointsT1 *inPts, PointsT2 *outPts, int neiSize, double relaxF,
-                 const vtkIdType *conn, DisplacePoint *f, PointConstraints *c) :
+                 const vtkIdType *conn, DisplacePoint *f, PointConstraints *c,
+                 vtkPlane *plane) :
       InPoints(inPts), OutPoints(outPts), NeiSize(neiSize), RelaxationFactor(relaxF),
-      Conn(conn), Displace(f), Constraints(c)
-    {}
+      Conn(conn), Displace(f), Constraints(c), Plane(plane)
+    {
+      if ( this->Plane )
+      {
+        this->Plane->GetOrigin(this->PlaneOrigin);
+        this->Plane->GetNormal(this->PlaneNormal);
+        vtkMath::Normalize(this->PlaneNormal);
+      }
+    }
 
     void Initialize()
     {
@@ -650,7 +865,7 @@ namespace
           else
           {
             if ( this->Constraints->Classification[ptId] == PointConstraints::PLANE )
-            { // constrain to plane
+            { // constrain to a point constraint plane
               double *normal = this->Constraints->Normals + 3*ptId;
               vtkPlane::ProjectVector(disp,x,normal,disp);
             }
@@ -658,9 +873,21 @@ namespace
         }
 
         // Move the point
-        outPts[ptId][0] = x[0] + disp[0];
-        outPts[ptId][1] = x[1] + disp[1];
-        outPts[ptId][2] = x[2] + disp[2];
+        x[0] += disp[0];
+        x[1] += disp[1];
+        x[2] += disp[2];
+
+        // If point motion is constrained to a plane, project onto the plane
+        if ( this->Plane )
+        {
+          vtkPlane::ProjectPoint(x,this->PlaneOrigin,this->PlaneNormal,x);
+        }
+
+        // Update the output points buffer
+        outPts[ptId][0] = x[0];
+        outPts[ptId][1] = x[1]; + disp[1];
+        outPts[ptId][2] = x[2];
+
       }//for all points in this batch
     }//operator()
 
@@ -677,10 +904,10 @@ namespace
     template <typename PointsT1, typename PointsT2>
     void operator()(PointsT1* inPts, PointsT2* outPts, vtkIdType numPts,
                     int neiSize, double relaxF, vtkIdType *conn,
-                    DisplacePoint *f, PointConstraints *c)
+                    DisplacePoint *f, PointConstraints *c, vtkPlane *plane)
     {
       SmoothPoints<PointsT1,PointsT2> smooth(inPts, outPts, neiSize, relaxF,
-                                             conn, f, c);
+                                             conn, f, c, plane);
       vtkSMPTools::For(0, numPts, smooth);
     }
   };//SmoothWorker
@@ -713,6 +940,9 @@ vtkPointSmoothingFilter::vtkPointSmoothingFilter()
   this->PackingRadius = 1.0;
   this->PackingFactor = 1.0;
   this->AttractionFactor = 0.5;
+
+  this->MotionConstraint = UNCONSTRAINED_MOTION;
+  this->Plane = nullptr;
 }
 
 //----------------------------------------------------------------------------
@@ -720,6 +950,7 @@ vtkPointSmoothingFilter::~vtkPointSmoothingFilter()
 {
   this->SetFrameFieldArray(nullptr);
   this->SetLocator(nullptr);
+  this->SetPlane(nullptr);
 }
 
 //----------------------------------------------------------------------------
@@ -827,6 +1058,7 @@ RequestData(vtkInformation* vtkNotUsed(request),
   }
 
   // Establish the type of inter-point forces/displacements
+  vtkSmartPointer<vtkDataArray> computedFrameField;
   DisplacePoint *disp;
   if ( smoothingMode == UNIFORM_SMOOTHING )
   {
@@ -842,8 +1074,9 @@ RequestData(vtkInformation* vtkNotUsed(request),
   }
   else if ( smoothingMode == TENSOR_SMOOTHING )
   {
-    disp = new TensorDisplacement(inTensors,radius,this->RelaxationFactor,
-                                  this->PackingFactor,this->AttractionFactor);
+    computedFrameField = ComputeEigenvalues(inTensors, numPts);
+    disp = new FrameFieldDisplacement(computedFrameField.Get(),radius,this->RelaxationFactor,
+                                      this->PackingFactor,this->AttractionFactor);
   }
   else if ( smoothingMode == FRAME_FIELD_SMOOTHING )
   {
@@ -869,6 +1102,8 @@ RequestData(vtkInformation* vtkNotUsed(request),
   int numSubIters = (this->NumberOfSubIterations < this->NumberOfIterations ?
                      this->NumberOfSubIterations : this->NumberOfIterations);
   double relaxF = this->RelaxationFactor;
+  vtkPlane *plane = ( this->MotionConstraint == PLANE_MOTION && this->Plane ?
+                      this->Plane : nullptr );
 
   // We need to incrementally compute a local neighborhood. This will be
   // performed every sub-iterations. This requires another point locator to
@@ -887,10 +1122,11 @@ RequestData(vtkInformation* vtkNotUsed(request),
   {
     // Perform a smoothing iteration using the current connectivity.
     if (!SmoothDispatch::Execute(inBuf->GetData(), outBuf->GetData(), sworker,
-                                 numPts, neiSize, relaxF, conn, disp, constraints))
+                                 numPts, neiSize, relaxF, conn, disp, constraints,
+                                 plane))
     { // Fallback to slowpath for other point types
       sworker(inBuf->GetData(), outBuf->GetData(), numPts, neiSize, relaxF,
-              conn, disp, constraints);
+              conn, disp, constraints, plane);
     }
 
     // Build connectivity every sub-iterations.
@@ -972,4 +1208,7 @@ void vtkPointSmoothingFilter::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "Packing Radius: " << this->PackingRadius << "\n";
   os << indent << "Packing Factor: " << this->PackingFactor << "\n";
   os << indent << "Attraction Factor: " << this->AttractionFactor << "\n";
+
+  os << indent << "Motion Constraint: " << this->MotionConstraint << "\n";
+  os << indent << "Plane: " << this->Plane << "\n";
 }
