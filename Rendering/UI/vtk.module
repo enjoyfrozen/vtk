@@ -8,3 +8,5 @@ GROUPS
   Rendering
 DEPENDS
   VTK::RenderingCore
+PRIVATE_DEPENDS
+  VTK::opengl # this depends is required to define VTK_USE_X and VTK_USE_COCOA
