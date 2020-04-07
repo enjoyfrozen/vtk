@@ -56,7 +56,7 @@ vtkBYUReader::~vtkBYUReader()
 int vtkBYUReader::CanReadFile(const char* filename)
 {
   int result;
-  FILE* fp = vtksys::SystemTools::Fopen(filename, "r");
+  FILE* fp = vtksys::SystemTools::Fopen(filename, "rb");
   if (fp == nullptr)
     return 0;
 
@@ -98,7 +98,7 @@ int vtkBYUReader::RequestData(vtkInformation* vtkNotUsed(request),
     vtkErrorMacro(<< "No GeometryFileName specified!");
     return 0;
   }
-  if ((geomFp = vtksys::SystemTools::Fopen(this->GeometryFileName, "r")) == nullptr)
+  if ((geomFp = vtksys::SystemTools::Fopen(this->GeometryFileName, "rb")) == nullptr)
   {
     vtkErrorMacro(<< "Geometry file: " << this->GeometryFileName << " not found");
     return 0;
@@ -266,7 +266,7 @@ void vtkBYUReader::ReadDisplacementFile(int numPts, vtkInformation* outInfo)
 
   if (this->ReadDisplacement && this->DisplacementFileName)
   {
-    if (!(dispFp = vtksys::SystemTools::Fopen(this->DisplacementFileName, "r")))
+    if (!(dispFp = vtksys::SystemTools::Fopen(this->DisplacementFileName, "rb")))
     {
       vtkErrorMacro(<< "Couldn't open displacement file");
       return;
@@ -313,7 +313,7 @@ void vtkBYUReader::ReadScalarFile(int numPts, vtkInformation* outInfo)
 
   if (this->ReadScalar && this->ScalarFileName)
   {
-    if (!(scalarFp = vtksys::SystemTools::Fopen(this->ScalarFileName, "r")))
+    if (!(scalarFp = vtksys::SystemTools::Fopen(this->ScalarFileName, "rb")))
     {
       vtkErrorMacro(<< "Couldn't open scalar file");
       return;
@@ -360,7 +360,7 @@ void vtkBYUReader::ReadTextureFile(int numPts, vtkInformation* outInfo)
 
   if (this->ReadTexture && this->TextureFileName)
   {
-    if (!(textureFp = vtksys::SystemTools::Fopen(this->TextureFileName, "r")))
+    if (!(textureFp = vtksys::SystemTools::Fopen(this->TextureFileName, "rb")))
     {
       vtkErrorMacro(<< "Couldn't open texture file");
       return;

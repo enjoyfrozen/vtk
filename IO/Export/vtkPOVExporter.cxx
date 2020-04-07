@@ -167,7 +167,7 @@ void vtkPOVExporter::WriteData()
   }
 
   // try opening the file
-  this->FilePtr = vtksys::SystemTools::Fopen(this->FileName, "w");
+  this->FilePtr = vtksys::SystemTools::Fopen(this->FileName, "wb");
   if (this->FilePtr == nullptr)
   {
     vtkErrorMacro(<< "Cannot open " << this->FileName);

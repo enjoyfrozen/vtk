@@ -76,7 +76,7 @@ void vtkBYUWriter::WriteData()
     return;
   }
 
-  if ((geomFp = vtksys::SystemTools::Fopen(this->GeometryFileName, "w")) == nullptr)
+  if ((geomFp = vtksys::SystemTools::Fopen(this->GeometryFileName, "wb")) == nullptr)
   {
     vtkErrorMacro(<< "Couldn't open geometry file: " << this->GeometryFileName);
     this->SetErrorCode(vtkErrorCode::CannotOpenFileError);
@@ -258,7 +258,7 @@ void vtkBYUWriter::WriteDisplacementFile(int numPts)
   if (this->WriteDisplacement && this->DisplacementFileName &&
     (inVectors = input->GetPointData()->GetVectors()) != nullptr)
   {
-    if (!(dispFp = vtksys::SystemTools::Fopen(this->DisplacementFileName, "w")))
+    if (!(dispFp = vtksys::SystemTools::Fopen(this->DisplacementFileName, "wb")))
     {
       vtkErrorMacro(<< "Couldn't open displacement file");
       this->SetErrorCode(vtkErrorCode::CannotOpenFileError);
@@ -307,7 +307,7 @@ void vtkBYUWriter::WriteScalarFile(int numPts)
   if (this->WriteScalar && this->ScalarFileName &&
     (inScalars = input->GetPointData()->GetScalars()) != nullptr)
   {
-    if (!(scalarFp = vtksys::SystemTools::Fopen(this->ScalarFileName, "w")))
+    if (!(scalarFp = vtksys::SystemTools::Fopen(this->ScalarFileName, "wb")))
     {
       vtkErrorMacro(<< "Couldn't open scalar file");
       this->SetErrorCode(vtkErrorCode::CannotOpenFileError);
@@ -356,7 +356,7 @@ void vtkBYUWriter::WriteTextureFile(int numPts)
   if (this->WriteTexture && this->TextureFileName &&
     (inTCoords = input->GetPointData()->GetTCoords()) != nullptr)
   {
-    if (!(textureFp = vtksys::SystemTools::Fopen(this->TextureFileName, "w")))
+    if (!(textureFp = vtksys::SystemTools::Fopen(this->TextureFileName, "wb")))
     {
       vtkErrorMacro(<< "Couldn't open texture file");
       this->SetErrorCode(vtkErrorCode::CannotOpenFileError);

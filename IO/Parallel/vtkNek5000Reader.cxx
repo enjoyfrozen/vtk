@@ -1805,7 +1805,7 @@ bool vtkNek5000Reader::objectHasExtraData()
 int vtkNek5000Reader::CanReadFile(const char* fname)
 {
   FILE* fp;
-  if ((fp = vtksys::SystemTools::Fopen(fname, "r")) == nullptr)
+  if ((fp = vtksys::SystemTools::Fopen(fname, "rb")) == nullptr)
   {
     return 0;
   }

@@ -94,7 +94,7 @@ int vtkMoleculeReaderBase::RequestData(vtkInformation* vtkNotUsed(request),
   }
 
   FILE* fp;
-  if ((fp = vtksys::SystemTools::Fopen(this->FileName, "r")) == nullptr)
+  if ((fp = vtksys::SystemTools::Fopen(this->FileName, "rb")) == nullptr)
   {
     vtkErrorMacro(<< "Unable to open " << this->FileName);
     return 0;
