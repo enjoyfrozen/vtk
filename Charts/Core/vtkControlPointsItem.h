@@ -94,6 +94,15 @@ public:
   vtkSetMacro(ScreenPointRadius, float);
   //@}
 
+  //@{
+  /**
+   * Get/Set the falg to draw points
+   * Default is true
+   */
+  vtkGetMacro(DrawPoints, bool);
+  vtkSetMacro(DrawPoints, bool);
+  //@}
+
   /**
    * Paint the points with a fixed size (cosmetic) which doesn't depend
    * on the scene zoom factor. Selected and unselected points are drawn
@@ -486,6 +495,7 @@ protected:
   vtkTransform2D* Transform;
   float ScreenPointRadius;
 
+  bool DrawPoints = true;
   bool StrokeMode;
   bool SwitchPointsMode;
   bool MouseMoved;
