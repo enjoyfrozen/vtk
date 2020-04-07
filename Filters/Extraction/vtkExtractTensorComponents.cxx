@@ -222,11 +222,15 @@ int vtkExtractTensorComponents::RequestData(vtkInformation* vtkNotUsed(request),
             tensor[1] * tensor[3] * tensor[8] + tensor[1] * tensor[5] * tensor[6] +
             tensor[2] * tensor[3] * tensor[7] - tensor[2] * tensor[4] * tensor[6];
         }
-        else //if ( this->ScalarMode == VTK_EXTRACT_NONNEGATIVE_DETERMINANT )
+        else if ( this->ScalarMode == VTK_EXTRACT_NONNEGATIVE_DETERMINANT )
         {
           s = fabs(tensor[0] * tensor[4] * tensor[8] - tensor[0] * tensor[5] * tensor[7] -
                    tensor[1] * tensor[3] * tensor[8] + tensor[1] * tensor[5] * tensor[6] +
                    tensor[2] * tensor[3] * tensor[7] - tensor[2] * tensor[4] * tensor[6]);
+        }
+        else //if ( this->ScalarMode == VTK_EXTRACT_TRACE )
+        {
+          s = tensor[0] + tensor[4] + tensor[8];
         }
         newScalars->SetTuple(ptId, &s);
       } // if extract scalars
@@ -304,9 +308,17 @@ void vtkExtractTensorComponents::PrintSelf(ostream& os, vtkIndent indent)
   {
     os << "VTK_EXTRACT_EFFECTIVE_STRESS\n";
   }
-  else
+  else if (this->ScalarMode == VTK_EXTRACT_DETERMINANT)
   {
     os << "VTK_EXTRACT_DETERMINANT\n";
+  }
+  else if (this->ScalarMode == VTK_EXTRACT_NONNEGATIVE_DETERMINANT)
+  {
+    os << "VTK_EXTRACT_NONNEGATIVE_DETERMINANT\n";
+  }
+  else //if (this->ScalarMode == VTK_EXTRACT_TRACE)
+  {
+    os << "VTK_EXTRACT_TRACE\n";
   }
 
   os << indent << "Scalar Components: \n";
