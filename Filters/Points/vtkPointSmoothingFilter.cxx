@@ -46,6 +46,32 @@ vtkCxxSetObjectMacro(vtkPointSmoothingFilter, Plane, vtkPlane);
 //----------------------------------------------------------------------------
 namespace
 {
+  template <typename DataT>
+  struct PadFrameFieldArray
+  {
+    DataT* InTensors; //6-component tuples
+    double *OutTensors; //9-component padded tensors
+
+    PadFrameFieldArray(DataT* tIn, double *tOut) : InTensors(tIn), OutTensors(tOut)
+    {}
+
+    void operator()(vtkIdType ptId, vtkIdType endPtId)
+    {
+      double *tensor = this->OutTensors + 9*ptId;
+      const auto tensors = vtk::DataArrayTupleRange<6>(this->InTensors, ptId, endPtId);
+      for (const auto tuple : tensors)
+      {
+        for (auto i=0; i<6; ++i)
+        {
+          tensor[i] = tuple[i];
+        }
+        vtkMath::TensorFromSymmetricTensor(tensor);
+        ++ptId; //move to the next point
+        tensor += 9; //move to next output tensor
+      }
+    }
+  };
+
   //--------------------------------------------------------------------------
   // Machinery for extracting eigenfunctions. Needed if smoothing mode is set
   // to Tensors.
@@ -96,60 +122,83 @@ namespace
       eTensor[7] = w[2] * v[1][2];
       eTensor[8] = w[2] * v[2][2];
     }
+
+    void operator()(vtkIdType ptId, vtkIdType endPtId)
+    {
+      double tensor[9];
+      double *t = this->OutTensors + 9*ptId;
+
+      if ( this->InTensors->GetNumberOfComponents() == 9 )
+      {
+        const auto tensors = vtk::DataArrayTupleRange<9>(this->InTensors, ptId, endPtId);
+        for (const auto tuple : tensors)
+        {
+          for (auto i=0; i<9; ++i)
+          {
+            tensor[i] = tuple[i];
+          }
+          this->Extract(tensor,t);
+          ++ptId; //move to the next point
+          t += 9; //move to next output tensor
+        }
+      }
+      else // 6 component symmetric tensor
+      {
+        const auto tensors = vtk::DataArrayTupleRange<6>(this->InTensors, ptId, endPtId);
+        for (const auto tuple : tensors)
+        {
+          for (auto i=0; i<6; ++i)
+          {
+            tensor[i] = tuple[i];
+          }
+          vtkMath::TensorFromSymmetricTensor(tensor);
+          this->Extract(tensor,t);
+          ++ptId; //move to the next point
+          t += 9; //move to next output tensor
+        }
+      }
+    }
   };
 
-  template <typename DataT>
-  struct Extract6Eigenfunctions : public ExtractEigenfunctions<DataT>
+  // Hooks into dispatcher vtkArrayDispatch by providing a callable generic
+  struct FrameFieldWorker
   {
-    Extract6Eigenfunctions(DataT* tIn, double *tOut) :
-      ExtractEigenfunctions<DataT>(tIn,tOut)
-    {}
-
-    void operator()(vtkIdType ptId, vtkIdType endPtId)
+    vtkDoubleArray *PaddedTensors;
+    FrameFieldWorker()
     {
-      const auto tuples = vtk::DataArrayTupleRange<6>(this->InTensors, ptId, endPtId);
-      double *t = this->OutTensors + 6*ptId;
-      double tensor[9];
-
-      for (const auto tuple : tuples)
-      {
-        for (auto i=0; i<6; ++i)
-        {
-          tensor[i] = tuple[i];
-        }
-        vtkMath::TensorFromSymmetricTensor(tensor);
-        this->Extract(tensor,t);
-        ++ptId; //move to the next point
-        t += 6; //move to next output tensor
-      }
+      this->PaddedTensors = vtkDoubleArray::New();
     }
-  };//Extract6Eigenfunctions - 6 components
 
-  template <typename DataT>
-  struct Extract9Eigenfunctions : public ExtractEigenfunctions<DataT>
+    template <typename DataT>
+    void operator()(DataT* tensors)
+    {
+      vtkIdType numPts = tensors->GetNumberOfTuples();
+      this->PaddedTensors->SetNumberOfComponents(9);
+      this->PaddedTensors->SetNumberOfTuples(numPts);
+      PadFrameFieldArray<DataT> pad(tensors,this->PaddedTensors->GetPointer(0));
+      vtkSMPTools::For(0, numPts, pad);
+    }
+  };
+
+  // Centralize the dispatch to avoid duplication
+  vtkDataArray* PadFrameField(vtkDataArray *tensors)
   {
-    Extract9Eigenfunctions(DataT* tIn, double *tOut) :
-      ExtractEigenfunctions<DataT>(tIn,tOut)
-    {}
-
-    void operator()(vtkIdType ptId, vtkIdType endPtId)
+    if ( tensors->GetNumberOfComponents() == 9 )
     {
-      const auto tuples = vtk::DataArrayTupleRange<9>(this->InTensors, ptId, endPtId);
-      double *t = this->OutTensors + 9*ptId;
-      double tensor[9];
-
-      for (const auto tuple : tuples)
-      {
-        for (auto i=0; i<9; ++i)
-        {
-          tensor[i] = tuple[i];
-        }
-        this->Extract(tensor,t);
-        ++ptId; //move to the next point
-        t += 9; //move to next output tensor
-      }
+      return tensors;
     }
-  };//Extract9Eigenfunctions - 9 components
+    else
+    {
+      using vtkArrayDispatch::Reals;
+      using PadFrameFieldDispatch = vtkArrayDispatch::DispatchByValueType<Reals>;
+      FrameFieldWorker padWorker;
+      if (!PadFrameFieldDispatch::Execute(tensors, padWorker))
+      { // Fallback to slowpath for other point types
+        padWorker(tensors);
+      }
+      return padWorker.PaddedTensors;
+    }
+  }
 
   // Hooks into dispatcher vtkArrayDispatch by providing a callable generic
   struct EigenWorker
@@ -162,32 +211,25 @@ namespace
     }
 
     template <typename DataT>
-    void operator()(DataT* tensor, vtkIdType numPts)
+    void operator()(DataT* tensors)
     {
+      vtkIdType numPts = tensors->GetNumberOfTuples();
       this->Eigens->SetNumberOfComponents(9);
       this->Eigens->SetNumberOfTuples(numPts);
-      if ( tensor->GetNumberOfComponents() == 9 )
-      {
-        Extract9Eigenfunctions<DataT> extract9(tensor,this->Eigens->GetPointer(0));
-        vtkSMPTools::For(0, numPts, extract9);
-      }
-      else
-      {
-        Extract6Eigenfunctions<DataT> extract6(tensor,this->Eigens->GetPointer(0));
-        vtkSMPTools::For(0, numPts, extract6);
-      }
+      ExtractEigenfunctions<DataT> extract(tensors,this->Eigens->GetPointer(0));
+      vtkSMPTools::For(0, numPts, extract);
     }
   };
 
   // Centralize the dispatch to avoid duplication
-  vtkDataArray* ComputeEigenvalues(vtkDataArray *tensors, vtkIdType numPts)
+  vtkDataArray* ComputeEigenvalues(vtkDataArray *tensors)
   {
     using vtkArrayDispatch::Reals;
     using EigenDispatch = vtkArrayDispatch::DispatchByValueType<Reals>;
     EigenWorker eigenWorker;
-    if (!EigenDispatch::Execute(tensors, eigenWorker, numPts))
+    if (!EigenDispatch::Execute(tensors, eigenWorker))
     { // Fallback to slowpath for other point types
-      eigenWorker(tensors, numPts);
+      eigenWorker(tensors);
     }
     return eigenWorker.Eigens;
   }
@@ -213,19 +255,42 @@ namespace
 
     void operator()(vtkIdType ptId, vtkIdType endPtId)
     {
-      const auto tensors = vtk::DataArrayTupleRange<9>(this->Tensors);
       double &min = this->LocalDetMin.Local();
       double &max = this->LocalDetMax.Local();
       double det;
 
-      for (const auto tensor : tensors)
+      if ( this->Tensors->GetNumberOfComponents() == 9 )
       {
-        det = fabs(tensor[0] * tensor[4] * tensor[8] - tensor[0] * tensor[5] * tensor[7] -
-                   tensor[1] * tensor[3] * tensor[8] + tensor[1] * tensor[5] * tensor[6] +
-                   tensor[2] * tensor[3] * tensor[7] - tensor[2] * tensor[4] * tensor[6]);
+        const auto tensors = vtk::DataArrayTupleRange<9>(this->Tensors);
+        for (const auto tensor : tensors)
+        {
+          det = fabs(tensor[0] * tensor[4] * tensor[8] - tensor[0] * tensor[5] * tensor[7] -
+                     tensor[1] * tensor[3] * tensor[8] + tensor[1] * tensor[5] * tensor[6] +
+                     tensor[2] * tensor[3] * tensor[7] - tensor[2] * tensor[4] * tensor[6]);
 
-        min = std::min(det, min);
-        max = std::max(det, max);
+          min = std::min(det, min);
+          max = std::max(det, max);
+        }
+      }
+      else //6-component symmetric tensor
+      {
+        const auto tensors = vtk::DataArrayTupleRange<6>(this->Tensors);
+        double tensor[9];
+        for (const auto tuple : tensors)
+        {
+          for (auto i=0; i<6; ++i)
+          {
+            tensor[i] = tuple[i];
+          }
+          vtkMath::TensorFromSymmetricTensor(tensor);
+
+          det = fabs(tensor[0] * tensor[4] * tensor[8] - tensor[0] * tensor[5] * tensor[7] -
+                     tensor[1] * tensor[3] * tensor[8] + tensor[1] * tensor[5] * tensor[6] +
+                     tensor[2] * tensor[3] * tensor[7] - tensor[2] * tensor[4] * tensor[6]);
+
+          min = std::min(det, min);
+          max = std::max(det, max);
+        }
       }
     }
 
@@ -418,6 +483,7 @@ namespace
   };
 
   // Forces on nearby points are moderated by distance and scalar values.
+  // The local transformation due to scalar is a uniform transformation.
   struct ScalarDisplacement : public DisplacePoint
   {
     double Range[2];
@@ -479,53 +545,87 @@ namespace
       this->DetRange[1] = detRange[2];
     }
 
-    // Tensor represented by columnar eigenvectors. Project normalized
-    // vector vec against the three eigenvectors and return length.
-    double ComputeTensorLength(double vec[3], double tensor[9])
+    //--------------------------------------------------------------------------
+    // Average two 3x3 tensors represented as 9 entries in a contiguous array
+    inline void AverageTensors(const double *t0, const double *t1, double *tAve)
     {
-      double dot = vtkMath::Dot(vec,tensor);
-      double len = dot * dot;
+      tAve[0] = 0.5 * (t0[0] + t1[0]);
+      tAve[1] = 0.5 * (t0[1] + t1[1]);
+      tAve[2] = 0.5 * (t0[2] + t1[2]);
+      tAve[3] = 0.5 * (t0[3] + t1[3]);
+      tAve[4] = 0.5 * (t0[4] + t1[4]);
+      tAve[5] = 0.5 * (t0[5] + t1[5]);
+      tAve[6] = 0.5 * (t0[6] + t1[6]);
+      tAve[7] = 0.5 * (t0[7] + t1[7]);
+      tAve[8] = 0.5 * (t0[8] + t1[8]);
+    }
 
-      dot = vtkMath::Dot(vec,tensor+3);
-      len += (dot * dot);
+    //--------------------------------------------------------------------------
+    // Invert 3x3 symmetric, positive definite matrix. Matrices are a pointer to
+    // 9 entries in a contiguous array, three columns in order.
+    inline void Invert3x3(double *m, double *mI)
+    {
+      double detF = vtkMath::Determinant3x3(m,m+3,m+6);
+      if ( detF == 0.0 )
+      {
+        mI[0] = mI[1] = mI[2] = mI[3] = mI[4] = mI[5] = mI[6] = mI[7] = mI[8] = 0.0;
+        return;
+      }
 
-      dot = vtkMath::Dot(vec,tensor+6);
-      len += (dot * dot);
+      detF = 1.0/detF;
+      mI[0] = detF * (m[8]*m[4]-m[5]*m[7]);
+      mI[1] = detF * (-(m[8]*m[1]-m[2]*m[7]));
+      mI[2] = detF * (m[5]*m[1]-m[2]*m[4]);
+      mI[3] = detF * (-(m[8]*m[3]-m[5]*m[6]));
+      mI[4] = detF * (m[8]*m[0]-m[2]*m[6]);
+      mI[5] = detF * (-(m[5]*m[0]-m[2]*m[3]));
+      mI[6] = detF * (m[7]*m[3]-m[4]*m[6] );
+      mI[7] = detF * (-(m[7]*m[0]-m[1]*m[6]));
+      mI[8] = detF * (m[4]*m[0]-m[1]*m[3]);
+    }
 
-      return sqrt(len);
+    void TransformForceVector(const double *tI, const double *fVec, double *newfVec)
+    {
+      newfVec[0] = tI[0]*fVec[0] + tI[3]*fVec[1] + tI[6]*fVec[2];
+      newfVec[1] = tI[1]*fVec[0] + tI[4]*fVec[1] + tI[7]*fVec[2];
+      newfVec[2] = tI[2]*fVec[0] + tI[5]*fVec[1] + tI[8]*fVec[2];
     }
 
     void operator()(vtkIdType p0, double x[3], vtkIdType numNeis,
                     const vtkIdType *neis, const double *neiPts,
                     double disp[3]) override
     {
-      double fVec[3], len;
+      double y[3], fVec[3], len;
       double tl0, tl1, tl, force, sf, t0[9], t1[9];
       vtkIdType neiId;
+      double tAve[9], tI[9];
       disp[0] = disp[1] = disp[2] = 0.0;
+
       this->Data->GetTuple(p0,t0);
       for (auto i=0; i<numNeis; ++i)
       {
         neiId = neis[i];
         if ( neiId >= 0 ) //valid connection to another point
         {
-          fVec[0] = neiPts[3*i] - x[0];
-          fVec[1] = neiPts[3*i+1] - x[1];
-          fVec[2] = neiPts[3*i+2] - x[2];
-          if ( (len=vtkMath::Normalize(fVec)) == 0.0 )
-            {//points coincident, bump them apart
-            fVec[0] = this->RandomSeq->GetValue(); this->RandomSeq->Next();
-          }
+          y[0] = neiPts[3*i] - x[0];
+          y[1] = neiPts[3*i+1] - x[1];
+          y[2] = neiPts[3*i+2] - x[2];
+
           this->Data->GetTuple(neiId,t1);
-          tl0 = this->ComputeTensorLength(fVec,t0);
-          tl1 = this->ComputeTensorLength(fVec,t1);
-          tl = (tl1 > tl0 ? tl1 : tl0);
-          sf = tl / this->PackingRadius;
-          force = this->ParticleForce(len/(this->PackingFactor*this->PackingRadius),
-                                      this->AttractionFactor);
-          disp[0] += (sf * force * fVec[0]);
-          disp[1] += (sf * force * fVec[1]);
-          disp[2] += (sf * force * fVec[2]);
+          this->AverageTensors(t0,t1,tAve);
+          this->Invert3x3(tAve,tI);
+          this->TransformForceVector(tI,y,fVec);
+          if ( (len=vtkMath::Norm(fVec)) == 0.0 )
+            {//points coincident, bump them apart
+            fVec[0] = len = this->RandomSeq->GetValue(); this->RandomSeq->Next();
+          }
+
+          force = this->ParticleForce(len,this->AttractionFactor) /
+            (2.0*this->PackingFactor*len);
+
+          disp[0] += (force * fVec[0]);
+          disp[1] += (force * fVec[1]);
+          disp[2] += (force * fVec[2]);
         }
       }
     }
@@ -1156,11 +1256,9 @@ RequestData(vtkInformation* vtkNotUsed(request),
   else if ( smoothingMode == TENSOR_SMOOTHING || smoothingMode == FRAME_FIELD_SMOOTHING )
   {
     double detRange[2];
-    if ( smoothingMode == TENSOR_SMOOTHING )
-    {
-      computedFrameField = ComputeEigenvalues(inTensors, numPts);
-    }
-    CharacterizeTensor(computedFrameField, numPts, detRange);
+    computedFrameField = ( smoothingMode == TENSOR_SMOOTHING ?
+                           ComputeEigenvalues(inTensors) : PadFrameField(this->FrameFieldArray));
+    CharacterizeTensor(computedFrameField.Get(), numPts, detRange);
     cout << "Det Range: (" << detRange[0] << "," <<detRange[1] << ")\n";
     disp = new TensorDisplacement(computedFrameField.Get(),radius,1.0,
                                   this->PackingFactor,this->AttractionFactor, detRange);

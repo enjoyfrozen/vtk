@@ -7,63 +7,46 @@ from vtk.util.misc import vtkGetDataRoot
 VTK_DATA_ROOT = vtkGetDataRoot()
 
 # Control test resolution
-res = 50
+NPts = 1500
+math = vtk.vtkMath()
+math.RandomSeed(31415)
 
 # Controls the plane normal and view plane normal
-#normal = [0,0,1]
-normal = [0.1,0.1,1]
-#normal = [.8,1,1]
-
-# Generate a sizing field. Use a synthetic volume with stress
-# tensors.
-ptLoad = vtk.vtkPointLoad()
-ptLoad.SetModelBounds(-0.5,0.5, -0.5,0.5, -0.5,0.5)
-ptLoad.SetSampleDimensions(res,res,res)
-ptLoad.Update()
-
-sizeField = ptLoad.GetOutput()
-bounds = sizeField.GetBounds()
-length = sizeField.GetLength()
-center = [(bounds[1]+bounds[0])/2.0, (bounds[3]+bounds[2])/2.0, (bounds[5]+bounds[4])/2.0]
-
-# Cut the data (which has tensors) with a plane
+normal = [0,0,1]
+center = [0,0,0]
 plane = vtk.vtkPlane()
 plane.SetOrigin(center)
 plane.SetNormal(normal)
 
-# Create a single voxel the same size as the volume.
-vox = vtk.vtkImageData()
-vox.SetDimensions(2,2,2)
-vox.SetOrigin(-0.5,-0.5,-0.5)
-vox.SetSpacing(1,1,1)
+# Create a synthetic dataset
+pts = vtk.vtkPoints()
+pts.SetNumberOfPoints(NPts)
+verts = vtk.vtkCellArray()
+scalars = vtk.vtkFloatArray()
+scalars.SetNumberOfTuples(NPts)
+tensors = vtk.vtkFloatArray()
+tensors.SetNumberOfComponents(6)
+tensors.SetNumberOfTuples(NPts)
 
-# Cut the voxel to produce a polygon
-cut = vtk.vtkCutter()
-cut.SetInputData(vox)
-cut.SetCutFunction(plane)
-cut.Update()
+for i in range(0,NPts):
+    pts.SetPoint(i,math.Random(-1,1),math.Random(-1,1),0.0)
+    conn = [i]
+    verts.InsertNextCell(1,conn)
+    scalars.SetTuple1(i, math.Random(2,5))
+    tensors.SetTuple6(i, math.Random(1,3),math.Random(-1,1),math.Random(-1,1),
+                      math.Random(1,3),math.Random(-1,1),1)
 
-# Now create points on the polygon
-sampler = vtk.vtkPolyDataPointSampler()
-sampler.SetInputConnection(cut.GetOutputPort())
-sampler.SetDistance(0.025)
-sampler.SetPointGenerationModeToRandom()
-sampler.GenerateVertexPointsOff()
-sampler.GenerateEdgePointsOff()
-sampler.GenerateInteriorPointsOn()
-sampler.Update()
-
-# Use these points to probe for tensor data
-probe = vtk.vtkProbeFilter()
-probe.SetInputConnection(sampler.GetOutputPort())
-probe.SetSourceConnection(ptLoad.GetOutputPort())
-probe.Update()
+pdata = vtk.vtkPolyData()
+pdata.SetPoints(pts)
+pdata.SetVerts(verts)
+pdata.GetPointData().SetScalars(scalars)
+pdata.GetPointData().SetTensors(tensors)
 
 # Extract some tensor information
 textract = vtk.vtkExtractTensorComponents()
-textract.SetInputConnection(probe.GetOutputPort())
+textract.SetInputData(pdata)
 textract.ExtractScalarsOn()
-textract.ScalarIsNonNegativeDeterminant()
+textract.ScalarIsDeterminant()
 textract.PassTensorsToOutputOn()
 textract.Update()
 
@@ -78,7 +61,7 @@ sph.Update()
 
 # First show the points unsmoothed
 smooth0 = vtk.vtkPointSmoothingFilter()
-smooth0.SetInputConnection(textract.GetOutputPort())
+smooth0.SetInputData(pdata)
 smooth0.SetNumberOfIterations(0) #sends input to output
 smooth0.SetSmoothingModeToDefault()
 smooth0.Update()
@@ -87,7 +70,7 @@ glyph0 = vtk.vtkGlyph3D()
 glyph0.SetInputConnection(smooth0.GetOutputPort())
 glyph0.SetSourceConnection(sph.GetOutputPort())
 glyph0.SetScaleModeToDataScalingOff()
-glyph0.SetScaleFactor(0.025)
+glyph0.SetScaleFactor(0.1)
 
 gMapper0 = vtk.vtkPolyDataMapper()
 gMapper0.SetInputConnection(glyph0.GetOutputPort())
@@ -100,16 +83,15 @@ gActor0.GetProperty().SetOpacity(1)
 
 # Now the geometric behavior
 smooth1 = vtk.vtkPointSmoothingFilter()
-smooth1.SetInputConnection(textract.GetOutputPort())
+smooth1.SetInputData(pdata)
 smooth1.SetSmoothingModeToGeometric()
 smooth1.SetNumberOfIterations(20)
-smooth1.SetNumberOfSubIterations(10)
-smooth1.SetPackingFactor(1.0)
+smooth1.SetNumberOfSubIterations(100)
 smooth1.SetMaximumStepSize(0.01)
 smooth1.SetNeighborhoodSize(24)
-smooth1.EnableConstraintsOn()
-smooth1.SetFixedAngle(45)
-smooth1.SetBoundaryAngle(110)
+smooth1.EnableConstraintsOff()
+smooth1.SetFixedAngle(50)
+smooth1.SetBoundaryAngle(100)
 smooth1.GenerateConstraintScalarsOn()
 smooth1.Update()
 
@@ -117,13 +99,13 @@ glyph1 = vtk.vtkGlyph3D()
 glyph1.SetInputConnection(smooth1.GetOutputPort())
 glyph1.SetSourceConnection(sph.GetOutputPort())
 glyph1.SetScaleModeToDataScalingOff()
-glyph1.SetScaleFactor(0.025)
+glyph1.SetScaleFactor(0.1)
 
 gMapper1 = vtk.vtkPolyDataMapper()
 gMapper1.SetInputConnection(glyph1.GetOutputPort())
 gMapper1.SetColorModeToMapScalars()
 gMapper1.SetScalarModeToUsePointFieldData()
-gMapper1.SetArrayAccessMode(1) #access by name
+gMapper1.SetArrayAccessMode(1) #by name
 gMapper1.SetArrayName("Constraint Scalars")
 gMapper1.SetScalarRange(0,2)
 
@@ -134,33 +116,28 @@ gActor1.GetProperty().SetOpacity(1)
 
 # Now explicitly the Uniform behavior
 smooth2 = vtk.vtkPointSmoothingFilter()
-smooth2.SetInputConnection(textract.GetOutputPort())
+smooth2.SetInputData(pdata)
 smooth2.SetSmoothingModeToUniform()
-smooth2.SetNumberOfIterations(40)
+smooth2.SetNumberOfIterations(80)
 smooth2.SetNumberOfSubIterations(10)
-smooth2.SetMaximumStepSize(0.001)
-smooth2.SetNeighborhoodSize(24)
-smooth2.SetPackingFactor(1.5)
-smooth2.SetAttractionFactor(0.5)
 smooth2.EnableConstraintsOn()
-smooth2.SetFixedAngle(45)
-smooth2.SetBoundaryAngle(105)
+smooth2.SetMaximumStepSize(0.01)
+smooth2.SetNeighborhoodSize(20)
 smooth2.GenerateConstraintScalarsOn()
-smooth2.SetMotionConstraintToPlane()
-smooth2.SetPlane(plane)
+smooth2.SetPackingFactor(1.5)
 smooth2.Update()
 
 glyph2 = vtk.vtkGlyph3D()
 glyph2.SetInputConnection(smooth2.GetOutputPort())
 glyph2.SetSourceConnection(sph.GetOutputPort())
 glyph2.SetScaleModeToDataScalingOff()
-glyph2.SetScaleFactor(0.025)
+glyph2.SetScaleFactor(0.1)
+glyph2.Update()
 
 gMapper2 = vtk.vtkPolyDataMapper()
 gMapper2.SetInputConnection(glyph2.GetOutputPort())
-gMapper2.SetColorModeToMapScalars()
 gMapper2.SetScalarModeToUsePointFieldData()
-gMapper2.SetArrayAccessMode(1) #access by name
+gMapper2.SetArrayAccessMode(1) #by name
 gMapper2.SetArrayName("Constraint Scalars")
 gMapper2.SetScalarRange(0,2)
 
@@ -171,37 +148,27 @@ gActor2.GetProperty().SetOpacity(1)
 
 # Now explicitly the Scalar behavior
 smooth3 = vtk.vtkPointSmoothingFilter()
-smooth3.SetInputConnection(textract.GetOutputPort())
+smooth3.SetInputData(pdata)
 smooth3.SetSmoothingModeToScalars()
-smooth3.SetNumberOfIterations(100)
-smooth3.SetNumberOfSubIterations(40)
-smooth3.SetMaximumStepSize(0.001)
-smooth3.SetNeighborhoodSize(24)
-smooth3.SetPackingFactor(1.5)
-smooth3.SetAttractionFactor(0.5)
-smooth3.EnableConstraintsOn()
-smooth3.SetFixedAngle(45)
+smooth3.SetNumberOfIterations(80)
+smooth3.SetNumberOfSubIterations(20)
+smooth3.SetMaximumStepSize(0.01)
+smooth3.SetNeighborhoodSize(18)
+smooth3.EnableConstraintsOff()
+smooth3.SetFixedAngle(50)
 smooth3.SetBoundaryAngle(100)
 smooth3.GenerateConstraintScalarsOn()
-smooth3.SetMotionConstraintToPlane()
-smooth3.SetPlane(plane)
+smooth3.SetPackingFactor(1.5)
 smooth3.Update()
 
 glyph3 = vtk.vtkGlyph3D()
 glyph3.SetInputConnection(smooth3.GetOutputPort())
 glyph3.SetSourceConnection(sph.GetOutputPort())
-glyph3.SetColorModeToColorByScalar()
-glyph3.SetScaleFactor(1)
-
-lut = vtk.vtkLookupTable()
-lut.SetHueRange(0.6, 0)
-lut.SetSaturationRange(1.0, 0)
-lut.SetValueRange(0.5, 1.0)
+glyph3.SetScaleFactor(0.01)
 
 gMapper3 = vtk.vtkPolyDataMapper()
 gMapper3.SetInputConnection(glyph3.GetOutputPort())
-gMapper3.SetScalarRange(smooth3.GetOutput().GetScalarRange())
-gMapper3.SetLookupTable(lut)
+gMapper3.SetScalarRange(2,5)
 
 gActor3 = vtk.vtkActor()
 gActor3.SetMapper(gMapper3)
@@ -210,18 +177,13 @@ gActor3.GetProperty().SetOpacity(1)
 
 # Now explicitly the Tensor behavior
 smooth4 = vtk.vtkPointSmoothingFilter()
-smooth4.SetInputConnection(textract.GetOutputPort())
+smooth4.SetInputData(pdata)
 smooth4.SetSmoothingModeToTensors()
-smooth4.SetNumberOfIterations(80)
-smooth4.SetNumberOfSubIterations(20)
-smooth4.SetMaximumStepSize(0.001)
-smooth4.SetNeighborhoodSize(24)
-smooth4.SetPackingFactor(1)
-smooth4.SetAttractionFactor(0.25)
-smooth4.EnableConstraintsOn()
-smooth4.SetFixedAngle(45)
-smooth4.SetBoundaryAngle(100)
-smooth4.GenerateConstraintScalarsOn()
+smooth4.SetNumberOfIterations(40)
+smooth4.SetNumberOfSubIterations(10)
+smooth4.SetMaximumStepSize(0.01)
+smooth4.SetNeighborhoodSize(18)
+smooth4.SetPackingFactor(0.75)
 smooth4.SetMotionConstraintToPlane()
 smooth4.SetPlane(plane)
 smooth4.Update()
@@ -229,11 +191,11 @@ smooth4.Update()
 glyph4 = vtk.vtkTensorGlyph()
 glyph4.SetInputConnection(smooth4.GetOutputPort())
 glyph4.SetSourceConnection(sph.GetOutputPort())
-glyph4.SetScaleFactor(0.1)
+glyph4.SetScaleFactor(0.025)
 
 gMapper4 = vtk.vtkPolyDataMapper()
 gMapper4.SetInputConnection(glyph4.GetOutputPort())
-gMapper3.SetScalarRange(smooth4.GetOutput().GetScalarRange())
+gMapper4.SetScalarRange(2,5)
 
 gActor4 = vtk.vtkActor()
 gActor4.SetMapper(gMapper4)
@@ -242,17 +204,15 @@ gActor4.GetProperty().SetOpacity(1)
 
 # Now explicitly the Frame Field behavior
 smooth5 = vtk.vtkPointSmoothingFilter()
-smooth5.SetInputConnection(textract.GetOutputPort())
-smooth5.SetSmoothingModeToTensors()
-smooth5.SetNumberOfIterations(80)
+smooth5.SetInputData(pdata)
+smooth5.SetSmoothingModeToFrameField()
+smooth5.SetFrameFieldArray(tensors)
+smooth5.SetMaximumStepSize(0.01)
+smooth5.SetNumberOfIterations(40)
 smooth5.SetNumberOfSubIterations(10)
-smooth5.SetMaximumStepSize(0.001)
-smooth5.SetNeighborhoodSize(12)
-smooth5.SetPackingFactor(1.5)
-smooth5.SetAttractionFactor(0.25)
-smooth5.EnableConstraintsOff()
-smooth5.SetFixedAngle(45)
-smooth5.SetBoundaryAngle(105)
+smooth5.SetMaximumStepSize(0.01)
+smooth5.SetNeighborhoodSize(18)
+smooth5.SetPackingFactor(1)
 smooth5.SetMotionConstraintToPlane()
 smooth5.SetPlane(plane)
 smooth5.Update()
@@ -260,10 +220,11 @@ smooth5.Update()
 glyph5 = vtk.vtkTensorGlyph()
 glyph5.SetInputConnection(smooth5.GetOutputPort())
 glyph5.SetSourceConnection(sph.GetOutputPort())
-glyph5.SetScaleFactor(0.05)
+glyph5.SetScaleFactor(0.025)
 
 gMapper5 = vtk.vtkPolyDataMapper()
 gMapper5.SetInputConnection(glyph5.GetOutputPort())
+gMapper5.SetScalarRange(2,5)
 
 gActor5 = vtk.vtkActor()
 gActor5.SetMapper(gMapper5)
@@ -272,7 +233,7 @@ gActor5.GetProperty().SetOpacity(1)
 
 # A outline around the data helps for context
 outline = vtk.vtkOutlineFilter()
-outline.SetInputConnection(ptLoad.GetOutputPort())
+outline.SetInputData(pdata)
 
 outlineMapper = vtk.vtkPolyDataMapper()
 outlineMapper.SetInputConnection(outline.GetOutputPort())
