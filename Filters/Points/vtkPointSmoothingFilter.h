@@ -43,8 +43,12 @@
  * the larger the neighborhood size, the greater the reduction in high
  * frequency information. (The memory and/or computational requirements of
  * the algorithm may also significantly increase.) The PackingRadius (and
- * modified PackingFactor) controls what points are considered close. The
+ * PackingFactor) controls what points are considered close. The
  * PackingRadius can be computed automatically, or specified by the user.
+ * (The product of PackingRadius*PackingFactor is referred to as the scaling
+ * factor alpha in the paper cited below. This provides a convenient way to
+ * combine automatic PackingRadius computation based on average between
+ * particle neighborhoods, and then adjust it with the PackingFactor.)
  *
  * Any vtkPointSet type can be provided as input, and the output will contain
  * the same number of new points each of which is adjusted to a new position.

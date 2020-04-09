@@ -591,38 +591,39 @@ namespace
       newfVec[2] = tI[2]*fVec[0] + tI[5]*fVec[1] + tI[8]*fVec[2];
     }
 
-    void operator()(vtkIdType p0, double x[3], vtkIdType numNeis,
+    void operator()(vtkIdType pb, double px[3], vtkIdType numNeis,
                     const vtkIdType *neis, const double *neiPts,
                     double disp[3]) override
     {
-      double y[3], fVec[3], len;
-      double tl0, tl1, tl, force, sf, t0[9], t1[9];
-      vtkIdType neiId;
-      double tAve[9], tI[9];
+      double twoAlpha = 2.0 * this->PackingRadius * this->PackingFactor;
+      double y[3], x[3], r, fVec[3];
+      double tl0, tl1, tl, force, tb[9], ta[9];
+      double tAve[9], DI[9];
       disp[0] = disp[1] = disp[2] = 0.0;
+      vtkIdType neiId;
 
-      this->Data->GetTuple(p0,t0);
+      this->Data->GetTuple(pb,tb);
       for (auto i=0; i<numNeis; ++i)
       {
         neiId = neis[i];
         if ( neiId >= 0 ) //valid connection to another point
         {
-          y[0] = neiPts[3*i] - x[0];
-          y[1] = neiPts[3*i+1] - x[1];
-          y[2] = neiPts[3*i+2] - x[2];
+          y[0] = neiPts[3*i] - px[0];
+          y[1] = neiPts[3*i+1] - px[1];
+          y[2] = neiPts[3*i+2] - px[2];
 
-          this->Data->GetTuple(neiId,t1);
-          this->AverageTensors(t0,t1,tAve);
-          this->Invert3x3(tAve,tI);
-          this->TransformForceVector(tI,y,fVec);
-          if ( (len=vtkMath::Norm(fVec)) == 0.0 )
-            {//points coincident, bump them apart
-            fVec[0] = len = this->RandomSeq->GetValue(); this->RandomSeq->Next();
-          }
+          this->Data->GetTuple(neiId,ta);
+          this->AverageTensors(ta,tb,tAve);
+          this->Invert3x3(tAve,DI);
+          this->TransformForceVector(DI,y,x);
+          x[0] /= twoAlpha;
+          x[1] /= twoAlpha;
+          x[2] /= twoAlpha;
+          r = vtkMath::Norm(x);
 
-          force = this->ParticleForce(len,this->AttractionFactor) /
-            (2.0*this->PackingFactor*len);
-
+          // Compute final force vector
+          force = this->ParticleForce(r,this->AttractionFactor) / (twoAlpha*r);
+          this->TransformForceVector(DI,x,fVec);
           disp[0] += (force * fVec[0]);
           disp[1] += (force * fVec[1]);
           disp[2] += (force * fVec[2]);
@@ -1018,9 +1019,9 @@ namespace
             neiPts[3*i+1] = inPts[neiId][1];
             neiPts[3*i+2] = inPts[neiId][2];
           }
-        }
+        }//neighborhood coordinates
 
-        // Now compute a displacement for the current point
+        // Now compute a displacement for the current point in this neighborhood
         x[0] = inPts[ptId][0];
         x[1] = inPts[ptId][1];
         x[2] = inPts[ptId][2];
@@ -1042,11 +1043,11 @@ namespace
               vtkPlane::ProjectVector(disp,x,normal,disp);
             }
           }
-        }
+        }//if constraints
 
         // Control the size of the step
         double len = vtkMath::Norm(disp);
-        if ( len > this->MaximumStepSize )
+        if ( len > 0.0 && len > this->MaximumStepSize )
         {
           disp[0] *= (this->MaximumStepSize / len);
           disp[1] *= (this->MaximumStepSize / len);
@@ -1066,7 +1067,7 @@ namespace
 
         // Update the output points buffer
         outPts[ptId][0] = x[0];
-        outPts[ptId][1] = x[1]; + disp[1];
+        outPts[ptId][1] = x[1];
         outPts[ptId][2] = x[2];
 
       }//for all points in this batch
