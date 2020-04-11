@@ -145,6 +145,12 @@ public:
   //@}
 
   /**
+   * Convenience method to get the vtkImageReslice filter used by this
+   * widget.
+   */
+  vtkGetObjectMacro(Reslice, vtkImageReslice);
+
+  /**
    * This method modifies the texture pipeline in order to generate texture
    * coordinates.
    */

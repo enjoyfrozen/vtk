@@ -54,9 +54,9 @@ class TestTensorWidget(vtk.test.Testing.vtkTest):
         # Create a representation for the widget
         bbox = [-1,1,-1,1,-1,1]
         rep = vtk.vtkTensorRepresentation()
-        tensProp = rep.GetEllipsoidProperty()
-        tensProp.SetColor(0.4,0.4,0.8)
-        tensProp.SetRepresentationToWireframe()
+        rep.GetEllipsoidProperty().SetColor(0,0,0)
+        rep.GetEllipsoidProperty().SetRepresentationToWireframe()
+        rep.GetOutlineProperty().SetColor(0,0,0)
         rep.SetPlaceFactor(1)
         rep.PlaceWidget(bbox)
 
@@ -69,7 +69,7 @@ class TestTensorWidget(vtk.test.Testing.vtkTest):
 
         # Add the actors to the renderer, set the background and size
         #
-        ren.SetBackground(0.1, 0.2, 0.4)
+        ren.SetBackground(1,1,1)
         renWin.SetSize(300, 300)
 
         # render and interact with data

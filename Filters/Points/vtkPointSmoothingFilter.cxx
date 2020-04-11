@@ -502,7 +502,7 @@ namespace
                     const vtkIdType *neis, const double *neiPts,
                     double disp[3]) override
     {
-      double len, force, s, s0, s1, sf;
+      double len, force, s0, s1, s, sf;
       double fVec[3];
       vtkIdType neiId;
       disp[0] = disp[1] = disp[2] = 0.0;
@@ -513,9 +513,7 @@ namespace
         if ( neiId >= 0 ) //valid connection to another point
         {
           this->Data->GetTuple(neiId,&s1);
-          //         s = 0.5*(s0+s1); //average
-          s = (s1 > s0 ? s1 : s0);
-          sf = (s - this->Range[0]) / (this->ScalarAverage - this->Range[0]);
+          sf = 1.0 / (0.5 * (s0+s1)); //average of two scalars
           fVec[0] = neiPts[3*i] - x[0];
           fVec[1] = neiPts[3*i+1] - x[1];
           fVec[2] = neiPts[3*i+2] - x[2];
