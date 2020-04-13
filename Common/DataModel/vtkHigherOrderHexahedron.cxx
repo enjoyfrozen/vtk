@@ -675,6 +675,21 @@ int vtkHigherOrderHexahedron::PointIndexFromIJK(int i, int j, int k, const int* 
   return offset + (i - 1) + (order[0] - 1) * ((j - 1) + (order[1] - 1) * ((k - 1)));
 }
 
+vtkIdType vtkHigherOrderHexahedron::NodeNumberingMappingFromVTK8To9(
+  const vtkIdType numPts, const vtkIdType node_id_vtk8)
+{
+  const int numPtsPerEdgeWithoutCorners =
+    static_cast<int>(round(std::cbrt(static_cast<int>(numPts)))) - 2;
+
+  int offset = 8 + 10 * numPtsPerEdgeWithoutCorners;
+  if ((node_id_vtk8 < offset) || (node_id_vtk8 >= offset + 2 * numPtsPerEdgeWithoutCorners))
+    return node_id_vtk8;
+  else if (node_id_vtk8 < offset + numPtsPerEdgeWithoutCorners)
+    return node_id_vtk8 + numPtsPerEdgeWithoutCorners;
+  else
+    return node_id_vtk8 - numPtsPerEdgeWithoutCorners;
+}
+
 /**\brief Given the index, \a subCell, of a linear approximating-hex, translate pcoords from that
  * hex into this nonlinear hex.
  *
