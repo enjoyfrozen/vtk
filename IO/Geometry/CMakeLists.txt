@@ -15,6 +15,7 @@ set(classes
   vtkMCubesReader
   vtkMCubesWriter
   vtkMFIXReader
+  vtkMeshReader
   vtkMoleculeReaderBase
   vtkOBJReader
   vtkOBJWriter
