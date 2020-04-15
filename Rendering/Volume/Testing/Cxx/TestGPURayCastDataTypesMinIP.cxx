@@ -43,7 +43,7 @@
 
 namespace
 {
-typedef struct
+typedef struct VTKData
 {
   vtkSmartPointer<vtkGPUVolumeRayCastMapper> volumeMapper[4][4];
   vtkSmartPointer<vtkVolumeProperty> volumeProperty[4][4];
