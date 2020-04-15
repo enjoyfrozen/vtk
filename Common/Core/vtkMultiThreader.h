@@ -27,6 +27,7 @@
 
 #include "vtkCommonCoreModule.h" // For export macro
 #include "vtkObject.h"
+#include "vtkThreads.h" // for VTK_MAX_THREADS
 
 #include <mutex> // For std::mutex
 
