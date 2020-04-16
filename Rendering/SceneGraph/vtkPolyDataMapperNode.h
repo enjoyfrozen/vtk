@@ -40,7 +40,7 @@ public:
   vtkTypeMacro(vtkPolyDataMapperNode, vtkMapperNode);
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  typedef struct
+  typedef struct vtkPDConnectivity
   {
     std::vector<unsigned int> vertex_index;
     std::vector<unsigned int> vertex_reverse;
