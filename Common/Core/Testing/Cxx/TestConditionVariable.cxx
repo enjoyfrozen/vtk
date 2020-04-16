@@ -5,7 +5,7 @@
 #include <atomic>
 #include <cstdlib>
 
-typedef struct
+typedef struct vtkThreadUserData
 {
   vtkMutexLock* Lock;
   vtkConditionVariable* Condition;
