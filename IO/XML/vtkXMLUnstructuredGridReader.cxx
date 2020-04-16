@@ -304,7 +304,8 @@ int vtkXMLUnstructuredGridReader::ReadPieceData()
 
     // Permute node numbering on higher order hexahedra for legacy files (see
     // https://gitlab.kitware.com/vtk/vtk/-/merge_requests/6678 )
-    if (this->GetFileMajorVersion() == 2 && this->GetFileMinorVersion() < 1)
+    if (this->GetFileMajorVersion() < 2 ||
+      (this->GetFileMajorVersion() == 2 && this->GetFileMinorVersion() < 1))
     {
       vtkUpdateCellsV8toV9(output);
     }
