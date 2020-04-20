@@ -92,7 +92,7 @@ void vtkTDxQtUnixDevices::ProcessEvent(vtkTDxUnixDeviceXEvent* e)
       else
       {
         cout << "device initialized on window" << winId << hex << winId << dec;
-        emit CreateDevice(device);
+        Q_EMIT CreateDevice(device);
       }
     }
     else
