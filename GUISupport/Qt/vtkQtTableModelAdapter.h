@@ -126,7 +126,7 @@ public:
   void SetIconSize(int w, int h);
   void SetIconSheetSize(int w, int h);
 
-signals:
+public Q_SLOTS:
   void selectionDropped(vtkSelection*);
 
 private:
