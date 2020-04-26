@@ -19,3 +19,12 @@ set(classes
 
 vtk_module_add_module(VTK::FiltersStatistics
   CLASSES ${classes})
+
+if(MINGW AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+  if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+    set_source_files_properties(
+      vtkPCAStatistics.cxx
+      PROPERTIES
+        COMPILE_FLAGS -Wa,-mbig-obj)
+  endif()
+endif()
