@@ -504,18 +504,12 @@ if(MINGW AND CMAKE_BUILD_TYPE STREQUAL "Debug")
   if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     set_source_files_properties(
       vtkGenericDataArray.cxx
-      PROPERTIES
-        COMPILE_FLAGS -Wa,-mbig-obj)
-    set_source_files_properties(
       vtkDataArray.cxx
       PROPERTIES
         COMPILE_FLAGS -Wa,-mbig-obj)
   else()
     set_source_files_properties(
       vtkGenericDataArray.cxx
-      PROPERTIES
-        COMPILE_FLAGS -Og)
-    set_source_files_properties(
       vtkDataArray.cxx
       PROPERTIES
         COMPILE_FLAGS -Og)
