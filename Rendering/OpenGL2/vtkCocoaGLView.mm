@@ -131,6 +131,9 @@
 
   if (_myVTKRenderWindow && _myVTKRenderWindow->GetMapped())
   {
+    // update DPI for font rendering
+    NSWindow* window = [self window];
+    [self modifyDPIForBackingScaleFactorOfWindow:window];
     _myVTKRenderWindow->Render();
   }
 }
