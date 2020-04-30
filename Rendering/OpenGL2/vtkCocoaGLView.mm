@@ -131,6 +131,9 @@
 
   if (_myVTKRenderWindow && _myVTKRenderWindow->GetMapped())
   {
+    // update DPI for font rendering
+    NSWindow* window = [self window];
+    [self modifyDPIForBackingScaleFactorOfWindow:window];
     _myVTKRenderWindow->Render();
   }
 }
@@ -551,7 +554,16 @@ static const char* vtkMacKeyCodeToKeySymTable[128] = { nullptr, nullptr, nullptr
 {
   if (window)
   {
-    CGFloat backingScaleFactor = [window backingScaleFactor];
+    // Convert from points to pixels.
+    CGFloat backingScaleFactor = 1.0;
+    NSRect viewRect = [self frame];
+    NSRect backingViewRect = [self convertRectToBacking:viewRect];
+    CGFloat viewHeight = NSHeight(viewRect);
+    CGFloat backingViewHeight = NSHeight(backingViewRect);
+    if (viewHeight > 0.0 && backingViewHeight > 0.0)
+    {
+      backingScaleFactor = backingViewHeight / viewHeight;
+    }
     assert(backingScaleFactor >= 1.0);
 
     vtkCocoaRenderWindow* renderWindow = [self getVTKRenderWindow];
