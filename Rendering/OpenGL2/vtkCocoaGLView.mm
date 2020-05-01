@@ -551,7 +551,22 @@ static const char* vtkMacKeyCodeToKeySymTable[128] = { nullptr, nullptr, nullptr
 {
   if (window)
   {
-    CGFloat backingScaleFactor = [window backingScaleFactor];
+    // Convert from points to pixels.
+    NSRect viewRect = [self frame];
+    NSRect backingViewRect = [self convertRectToBacking:viewRect];
+    CGFloat viewHeight = NSHeight(viewRect);
+    CGFloat backingViewHeight = NSHeight(backingViewRect);
+    CGFloat backingScaleFactor;
+    if (viewHeight > 0.0 && backingViewHeight > 0.0)
+    {
+      // the scale factor based on convertRectToBacking
+      backingScaleFactor = backingViewHeight / viewHeight;
+    }
+    else
+    {
+      // fall back to less reliable method
+      backingScaleFactor = [window backingScaleFactor];
+    }
     assert(backingScaleFactor >= 1.0);
 
     vtkCocoaRenderWindow* renderWindow = [self getVTKRenderWindow];
