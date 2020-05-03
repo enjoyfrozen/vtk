@@ -144,6 +144,7 @@ set(shader_files
   glsl/vtkPolyData2DVS.glsl
   glsl/vtkPolyDataFS.glsl
   glsl/vtkPolyDataVS.glsl
+  glsl/vtkPolyDataEdgesGS.glsl
   glsl/vtkPolyDataWideLineGS.glsl
   glsl/vtkSSAAPassFS.glsl
   glsl/vtkSimpleMotionBlurPassFS.glsl

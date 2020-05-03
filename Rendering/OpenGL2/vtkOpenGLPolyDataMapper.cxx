@@ -65,6 +65,7 @@
 #include "vtkUnsignedIntArray.h"
 
 // Bring in our fragment lit shader symbols.
+#include "vtkPolyDataEdgesGS.h"
 #include "vtkPolyDataFS.h"
 #include "vtkPolyDataVS.h"
 #include "vtkPolyDataWideLineGS.h"
@@ -86,7 +87,7 @@ vtkOpenGLPolyDataMapper::vtkOpenGLPolyDataMapper()
   this->CurrentInput = nullptr;
   this->TempMatrix4 = vtkMatrix4x4::New();
   this->TempMatrix3 = vtkMatrix3x3::New();
-  this->DrawingEdgesOrVertices = false;
+  this->DrawingVertices = false;
   this->ForceTextureCoordinates = false;
 
   this->PrimitiveIDOffset = 0;
@@ -96,6 +97,9 @@ vtkOpenGLPolyDataMapper::vtkOpenGLPolyDataMapper()
   this->CellScalarBuffer = nullptr;
   this->CellNormalTexture = nullptr;
   this->CellNormalBuffer = nullptr;
+
+  this->EdgeTexture = nullptr;
+  this->EdgeBuffer = nullptr;
 
   this->HaveCellScalars = false;
   this->HaveCellNormals = false;
@@ -149,6 +153,17 @@ vtkOpenGLPolyDataMapper::~vtkOpenGLPolyDataMapper()
   { // Resources released previously.
     this->CellScalarBuffer->Delete();
     this->CellScalarBuffer = nullptr;
+  }
+
+  if (this->EdgeTexture)
+  { // Resources released previously.
+    this->EdgeTexture->Delete();
+    this->EdgeTexture = nullptr;
+  }
+  if (this->EdgeBuffer)
+  { // Resources released previously.
+    this->EdgeBuffer->Delete();
+    this->EdgeBuffer = nullptr;
   }
 
   if (this->CellNormalTexture)
@@ -206,6 +221,14 @@ void vtkOpenGLPolyDataMapper::ReleaseGraphicsResources(vtkWindow* win)
   if (this->CellNormalBuffer)
   {
     this->CellNormalBuffer->ReleaseGraphicsResources();
+  }
+  if (this->EdgeTexture)
+  {
+    this->EdgeTexture->ReleaseGraphicsResources(win);
+  }
+  if (this->EdgeBuffer)
+  {
+    this->EdgeBuffer->ReleaseGraphicsResources();
   }
   this->TimerQuery->ReleaseGraphicsResources();
   this->VBOBuildState.Clear();
@@ -374,6 +397,17 @@ bool vtkOpenGLPolyDataMapper::HaveWideLines(vtkRenderer* ren, vtkActor* actor)
   return false;
 }
 
+bool vtkOpenGLPolyDataMapper::DrawingEdges(vtkRenderer*, vtkActor* actor)
+{
+  if (actor->GetProperty()->GetEdgeVisibility() &&
+    this->GetOpenGLMode(
+      actor->GetProperty()->GetRepresentation(), this->LastBoundBO->PrimitiveType) == GL_TRIANGLES)
+  {
+    return true;
+  }
+  return false;
+}
+
 //-----------------------------------------------------------------------------
 vtkMTimeType vtkOpenGLPolyDataMapper::GetRenderPassStageMTime(vtkActor* actor)
 {
@@ -535,7 +569,11 @@ void vtkOpenGLPolyDataMapper::GetShaderTemplate(
   }
   else
   {
-    if (this->HaveWideLines(ren, actor))
+    if (this->DrawingEdges(ren, actor))
+    {
+      shaders[vtkShader::Geometry]->SetSource(vtkPolyDataEdgesGS);
+    }
+    else if (this->HaveWideLines(ren, actor))
     {
       shaders[vtkShader::Geometry]->SetSource(vtkPolyDataWideLineGS);
     }
@@ -606,6 +644,104 @@ void vtkOpenGLPolyDataMapper::ReplaceShaderCustomUniforms(
 }
 
 //------------------------------------------------------------------------------
+void vtkOpenGLPolyDataMapper::ReplaceShaderEdges(
+  std::map<vtkShader::Type, vtkShader*> shaders, vtkRenderer* ren, vtkActor* actor)
+{
+  if (this->DrawingEdges(ren, actor))
+  {
+    if (this->LastBoundBO->PrimitiveType == PrimitiveTris)
+    {
+      std::string GSSource = shaders[vtkShader::Geometry]->GetSource();
+
+      vtkShaderProgram::Substitute(
+        GSSource, "//VTK::Edges::Dec", "uniform samplerBuffer edgeTexture;");
+      vtkShaderProgram::Substitute(GSSource, "//VTK::Edges::Impl",
+        "float edgeValues = 255.0*texelFetch(edgeTexture, gl_PrimitiveIDIn).r;\n"
+        // "if (edgeValues < 4.0) edgeEqn[2] = vec4(0.0, -1.0, 0.0, -10);\n"
+        // "if (mod(edgeValues, 4.0) < 2.0) edgeEqn[1] = vec4(0.0, -1.0, 0.0, -10);\n"
+        // "if (mod(edgeValues, 2.0) < 1.0) edgeEqn[0] = vec4(0.0, -1.0, 0.0, -10);\n"
+        "if (edgeValues < 4.0) edgeEqn[2].z = lineWidth;\n"
+        "if (mod(edgeValues, 4.0) < 2.0) edgeEqn[1].z = lineWidth;\n"
+        "if (mod(edgeValues, 2.0) < 1.0) edgeEqn[0].z = lineWidth;\n");
+
+      shaders[vtkShader::Geometry]->SetSource(GSSource);
+    }
+
+    // discard pixels that are outside the polygon and not an edge
+
+    std::string FSSource = shaders[vtkShader::Fragment]->GetSource();
+
+    vtkShaderProgram::Substitute(FSSource, "//VTK::Edges::Dec",
+      "in vec4 edgeEqn[3];\n"
+      "uniform float lineWidth;\n"
+      "uniform vec3 edgeColor;\n");
+
+    std::string fsimpl = "float edist[3];\n"
+                         "edist[0] = dot(edgeEqn[0].xy, gl_FragCoord.xy) + edgeEqn[0].w;\n"
+                         "edist[1] = dot(edgeEqn[1].xy, gl_FragCoord.xy) + edgeEqn[1].w;\n"
+                         "edist[2] = dot(edgeEqn[2].xy, gl_FragCoord.xy) + edgeEqn[2].w;\n"
+
+                         // "if (abs(edist[0]) > 0.5*lineWidth && abs(edist[1]) > 0.5*lineWidth &&
+                         // abs(edist[2]) > 0.5*lineWidth) discard;\n"
+
+                         "if (edist[0] < -0.5 && edgeEqn[0].z > 0.0) discard;\n"
+                         "if (edist[1] < -0.5 && edgeEqn[1].z > 0.0) discard;\n"
+                         "if (edist[2] < -0.5 && edgeEqn[2].z > 0.0) discard;\n"
+
+                         "edist[0] += edgeEqn[0].z;\n"
+                         "edist[1] += edgeEqn[1].z;\n"
+                         "edist[2] += edgeEqn[2].z;\n"
+
+                         "if ( min( min( edist[0], edist[1]), edist[2]) < 0.5*lineWidth) {\n";
+
+    if (actor->GetProperty()->GetRenderLinesAsTubes())
+    {
+      fsimpl += "  diffuseColor = diffuseIntensity*edgeColor;\n"
+                "  ambientColor = ambientIntensity*edgeColor; }\n"
+        // " else { discard; }\n" // this yields wireframe only
+        ;
+    }
+    else
+    {
+      fsimpl += "  diffuseColor = vec3(0.0);\n"
+                "  ambientColor = edgeColor; }\n"
+        // " else { discard; }\n" // this yields wireframe only
+        ;
+    }
+    vtkShaderProgram::Substitute(FSSource, "//VTK::Edges::Impl", fsimpl);
+
+    // even more fake tubes, for surface with edges this implementation
+    // just adjusts the normal calculation but not the zbuffer
+    if (actor->GetProperty()->GetRenderLinesAsTubes())
+    {
+
+      vtkShaderProgram::Substitute(FSSource, "//VTK::Normal::Impl",
+        "//VTK::Normal::Impl\n"
+        " if (edist[0] < 0.5*lineWidth) {\n"
+        "  float rdist = 2.0*edist[0]/lineWidth;\n"
+        "  float lenZ = clamp(sqrt(1.0 - rdist*rdist),0.0,1.0);\n"
+        "  vec3 tnorm = cross(normalVCVSOutput, cross(vec3(edgeEqn[0].xy,0.0), "
+        "normalVCVSOutput));\n"
+        "  normalVCVSOutput = normalize(rdist*tnorm + normalVCVSOutput*lenZ); }\n"
+        " if (edist[1] < 0.5*lineWidth) {\n"
+        "  float rdist = 2.0*edist[1]/lineWidth;\n"
+        "  float lenZ = clamp(sqrt(1.0 - rdist*rdist),0.0,1.0);\n"
+        "  vec3 tnorm = cross(normalVCVSOutput, cross(vec3(edgeEqn[1].xy,0.0), "
+        "normalVCVSOutput));\n"
+        "  normalVCVSOutput = normalize(rdist*tnorm + normalVCVSOutput*lenZ); }\n"
+        " if (edist[2] < 0.5*lineWidth) {\n"
+        "  float rdist = 2.0*edist[2]/lineWidth;\n"
+        "  float lenZ = clamp(sqrt(1.0 - rdist*rdist),0.0,1.0);\n"
+        "  vec3 tnorm = cross(normalVCVSOutput, cross(vec3(edgeEqn[2].xy,0.0), "
+        "normalVCVSOutput));\n"
+        "  normalVCVSOutput = normalize(rdist*tnorm + normalVCVSOutput*lenZ); }\n");
+    }
+
+    shaders[vtkShader::Fragment]->SetSource(FSSource);
+  }
+}
+
+//------------------------------------------------------------------------------
 void vtkOpenGLPolyDataMapper::ReplaceShaderColor(
   std::map<vtkShader::Type, vtkShader*> shaders, vtkRenderer* ren, vtkActor* actor)
 {
@@ -645,7 +781,7 @@ void vtkOpenGLPolyDataMapper::ReplaceShaderColor(
   }
 
   // handle color point attributes
-  if (this->VBOs->GetNumberOfComponents("scalarColor") != 0 && !this->DrawingEdgesOrVertices)
+  if (this->VBOs->GetNumberOfComponents("scalarColor") != 0 && !this->DrawingVertices)
   {
     vtkShaderProgram::Substitute(VSSource, "//VTK::Color::Dec",
       "in vec4 scalarColor;\n"
@@ -665,7 +801,7 @@ void vtkOpenGLPolyDataMapper::ReplaceShaderColor(
   }
   // handle point color texture map coloring
   else if (this->InterpolateScalarsBeforeMapping && this->ColorCoordinates &&
-    !this->DrawingEdgesOrVertices)
+    !this->DrawingVertices)
   {
     colorImpl += "  vec4 texColor = texture(colortexture, tcoordVCVSOutput.st);\n"
                  "  vec3 ambientColor = ambientIntensity * texColor.rgb;\n"
@@ -673,7 +809,7 @@ void vtkOpenGLPolyDataMapper::ReplaceShaderColor(
                  "  float opacity = opacityUniform * texColor.a;";
   }
   // are we doing cell scalar coloring by texture?
-  else if (this->HaveCellScalars && !this->DrawingEdgesOrVertices && !pointPicking)
+  else if (this->HaveCellScalars && !this->DrawingVertices && !pointPicking)
   {
     colorImpl +=
       "  vec4 texColor = texelFetchBuffer(textureC, gl_PrimitiveID + PrimitiveIDOffset);\n"
@@ -688,7 +824,7 @@ void vtkOpenGLPolyDataMapper::ReplaceShaderColor(
                  "  vec3 diffuseColor = diffuseIntensity * diffuseColorUniform;\n"
                  "  float opacity = opacityUniform;\n";
 
-    if (actor->GetBackfaceProperty() && !this->DrawingEdgesOrVertices)
+    if (actor->GetBackfaceProperty() && !this->DrawingVertices)
     {
       colorDec += "uniform float opacityUniformBF; // the fragment opacity\n"
                   "uniform float ambientIntensityBF; // the material ambient\n"
@@ -717,7 +853,7 @@ void vtkOpenGLPolyDataMapper::ReplaceShaderColor(
     }
   }
 
-  if (this->HaveCellScalars && !this->DrawingEdgesOrVertices)
+  if (this->HaveCellScalars && !this->DrawingVertices)
   {
     colorDec += "uniform samplerBuffer textureC;\n";
   }
@@ -813,7 +949,7 @@ void vtkOpenGLPolyDataMapper::ReplaceShaderLight(
     bool emissive = false;
     toString.clear();
 
-    if (this->HaveTCoords(this->CurrentInput) && !this->DrawingEdgesOrVertices)
+    if (this->HaveTCoords(this->CurrentInput) && !this->DrawingVertices)
     {
       for (auto& t : textures)
       {
@@ -1195,7 +1331,7 @@ void vtkOpenGLPolyDataMapper::ReplaceShaderLight(
 void vtkOpenGLPolyDataMapper::ReplaceShaderTCoord(
   std::map<vtkShader::Type, vtkShader*> shaders, vtkRenderer*, vtkActor* actor)
 {
-  if (this->DrawingEdgesOrVertices)
+  if (this->DrawingVertices)
   {
     return;
   }
@@ -1775,7 +1911,7 @@ void vtkOpenGLPolyDataMapper::ReplaceShaderNormal(
         return tex.second == "normalTex";
       }) != textures.end();
       if (normalTex && this->VBOs->GetNumberOfComponents("tangentMC") == 3 &&
-        !this->DrawingEdgesOrVertices)
+        !this->DrawingVertices)
       {
         vtkShaderProgram::Substitute(VSSource, "//VTK::Normal::Dec",
           "//VTK::Normal::Dec\n"
@@ -2010,6 +2146,7 @@ void vtkOpenGLPolyDataMapper::ReplaceShaderValues(
   this->ReplaceShaderRenderPass(shaders, ren, actor, true);
   this->ReplaceShaderCustomUniforms(shaders, actor);
   this->ReplaceShaderColor(shaders, ren, actor);
+  this->ReplaceShaderEdges(shaders, ren, actor);
   this->ReplaceShaderNormal(shaders, ren, actor);
   this->ReplaceShaderLight(shaders, ren, actor);
   this->ReplaceShaderTCoord(shaders, ren, actor);
@@ -2294,6 +2431,26 @@ void vtkOpenGLPolyDataMapper::SetMapperShaderParameters(
     }
   }
 
+  if (cellBO.Program->IsUniformUsed("edgeTexture"))
+  {
+    int tunit = this->EdgeTexture->GetTextureUnit();
+    cellBO.Program->SetUniformi("edgeTexture", tunit);
+  }
+  if (this->DrawingEdges(ren, actor))
+  {
+    float lw = actor->GetProperty()->GetLineWidth();
+    cellBO.Program->SetUniformf("lineWidth", lw < 1.1 ? 1.1 : lw);
+    int vp[4];
+    glGetIntegerv(GL_VIEWPORT, vp);
+    float dims[4];
+    dims[0] = vp[0];
+    dims[1] = vp[1];
+    dims[2] = vp[2];
+    dims[3] = vp[3];
+    cellBO.Program->SetUniform4f("vpDims", dims);
+    cellBO.Program->SetUniform3f("edgeColor", actor->GetProperty()->GetEdgeColor());
+  }
+
   if ((this->HaveCellScalars) && cellBO.Program->IsUniformUsed("textureC"))
   {
     int tunit = this->CellScalarTexture->GetTextureUnit();
@@ -2570,24 +2727,19 @@ void vtkOpenGLPolyDataMapper::SetPropertyShaderParameters(
   {
     // Query the property for some of the properties that can be applied.
     float opacity = static_cast<float>(ppty->GetOpacity());
-    double* aColor = this->DrawingEdgesOrVertices ? ppty->GetEdgeColor() : ppty->GetAmbientColor();
-    aColor = cellBO.PrimitiveType == PrimitiveVertices ? ppty->GetVertexColor() : aColor;
-    double aIntensity =
-      (this->DrawingEdgesOrVertices && !this->DrawingTubesOrSpheres(cellBO, actor))
+    double* aColor = this->DrawingVertices ? ppty->GetVertexColor() : ppty->GetAmbientColor();
+    double aIntensity = (this->DrawingVertices && !this->DrawingTubesOrSpheres(cellBO, actor))
       ? 1.0
       : ppty->GetAmbient();
 
-    double* dColor = this->DrawingEdgesOrVertices ? ppty->GetEdgeColor() : ppty->GetDiffuseColor();
-    dColor = cellBO.PrimitiveType == PrimitiveVertices ? ppty->GetVertexColor() : dColor;
-    double dIntensity =
-      (this->DrawingEdgesOrVertices && !this->DrawingTubesOrSpheres(cellBO, actor))
+    double* dColor = this->DrawingVertices ? ppty->GetVertexColor() : ppty->GetDiffuseColor();
+    double dIntensity = (this->DrawingVertices && !this->DrawingTubesOrSpheres(cellBO, actor))
       ? 0.0
       : ppty->GetDiffuse();
 
     double* sColor = ppty->GetSpecularColor();
-    double sIntensity = (this->DrawingEdgesOrVertices && !this->DrawingTubes(cellBO, actor))
-      ? 0.0
-      : ppty->GetSpecular();
+    double sIntensity =
+      (this->DrawingVertices && !this->DrawingTubes(cellBO, actor)) ? 0.0 : ppty->GetSpecular();
     double specularPower = ppty->GetSpecularPower();
 
     // these are always set
@@ -2700,10 +2852,6 @@ void vtkOpenGLPolyDataMapper::GetCoincidentParameters(
     else if (primType == PrimitiveTris || primType == PrimitiveTriStrips)
     {
       this->GetCoincidentTopologyPolygonOffsetParameters(f, u);
-    }
-    if (primType == PrimitiveTrisEdges || primType == PrimitiveTriStripsEdges)
-    {
-      this->GetCoincidentTopologyLineOffsetParameters(f, u);
     }
     factor = f;
     offset = u;
@@ -2843,6 +2991,10 @@ void vtkOpenGLPolyDataMapper::RenderPieceStart(vtkRenderer* ren, vtkActor* actor
   {
     this->CellNormalTexture->Activate();
   }
+  if (this->EdgeValues.size())
+  {
+    this->EdgeTexture->Activate();
+  }
 
   // If we are coloring by texture, then load the texture map.
   // Use Map as indicator, because texture hangs around.
@@ -2884,7 +3036,7 @@ void vtkOpenGLPolyDataMapper::RenderPieceDraw(vtkRenderer* ren, vtkActor* actor)
   for (int i = PrimitiveStart;
        i < (draw_surface_with_edges ? PrimitiveEnd : PrimitiveTriStrips + 1); i++)
   {
-    this->DrawingEdgesOrVertices = (i > PrimitiveTriStrips ? true : false);
+    this->DrawingVertices = (i > PrimitiveTriStrips ? true : false);
     if (this->Primitives[i].IBO->IndexCount)
     {
       GLenum mode = this->GetOpenGLMode(representation, i);
@@ -2955,6 +3107,10 @@ void vtkOpenGLPolyDataMapper::RenderPieceFinish(vtkRenderer* ren, vtkActor*)
     }
   }
 
+  if (this->EdgeValues.size())
+  {
+    this->EdgeTexture->Deactivate();
+  }
   if (this->HaveCellScalars)
   {
     this->CellScalarTexture->Deactivate();
@@ -3330,7 +3486,7 @@ void vtkOpenGLPolyDataMapper::BuildBufferObjects(vtkRenderer* ren, vtkActor* act
 }
 
 //-------------------------------------------------------------------------
-void vtkOpenGLPolyDataMapper::BuildIBO(vtkRenderer* /* ren */, vtkActor* act, vtkPolyData* poly)
+void vtkOpenGLPolyDataMapper::BuildIBO(vtkRenderer* ren, vtkActor* act, vtkPolyData* poly)
 {
   vtkCellArray* prims[4];
   prims[0] = poly->GetVerts();
@@ -3340,10 +3496,25 @@ void vtkOpenGLPolyDataMapper::BuildIBO(vtkRenderer* /* ren */, vtkActor* act, vt
   int representation = act->GetProperty()->GetRepresentation();
 
   vtkDataArray* ef = poly->GetPointData()->GetAttribute(vtkDataSetAttributes::EDGEFLAG);
+  if (ef)
+  {
+    if (ef->GetNumberOfComponents() != 1)
+    {
+      vtkDebugMacro(<< "Currently only 1d edge flags are supported.");
+      ef = nullptr;
+    }
+    else if (!ef->IsA("vtkUnsignedCharArray"))
+    {
+      vtkDebugMacro(<< "Currently only unsigned char edge flags are supported.");
+      ef = nullptr;
+    }
+  }
+
   vtkProperty* prop = act->GetProperty();
 
   bool draw_surface_with_edges =
     (prop->GetEdgeVisibility() && prop->GetRepresentation() == VTK_SURFACE);
+  this->EdgeValues.clear();
 
   // do we really need to rebuild the IBO? Since the operation is costly we
   // construst a string of values that impact the IBO and see if that string has
@@ -3377,19 +3548,6 @@ void vtkOpenGLPolyDataMapper::BuildIBO(vtkRenderer* /* ren */, vtkActor* act, vt
       {
         if (ef)
         {
-          if (ef->GetNumberOfComponents() != 1)
-          {
-            vtkDebugMacro(<< "Currently only 1d edge flags are supported.");
-            ef = nullptr;
-          }
-          if (!ef->IsA("vtkUnsignedCharArray"))
-          {
-            vtkDebugMacro(<< "Currently only unsigned char edge flags are supported.");
-            ef = nullptr;
-          }
-        }
-        if (ef)
-        {
           this->Primitives[PrimitiveTris].IBO->CreateEdgeFlagIndexBuffer(prims[2], ef);
         }
         else
@@ -3400,36 +3558,32 @@ void vtkOpenGLPolyDataMapper::BuildIBO(vtkRenderer* /* ren */, vtkActor* act, vt
       }
       else // SURFACE
       {
-        this->Primitives[PrimitiveTris].IBO->CreateTriangleIndexBuffer(prims[2], poly->GetPoints());
+        if (draw_surface_with_edges)
+        {
+          this->Primitives[PrimitiveTris].IBO->CreateTriangleIndexBuffer(
+            prims[2], poly->GetPoints(), &this->EdgeValues, ef);
+          if (this->EdgeValues.size())
+          {
+            if (!this->EdgeTexture)
+            {
+              this->EdgeTexture = vtkTextureObject::New();
+              this->EdgeBuffer = vtkOpenGLBufferObject::New();
+              this->EdgeBuffer->SetType(vtkOpenGLBufferObject::TextureBuffer);
+            }
+            this->EdgeTexture->SetContext(static_cast<vtkOpenGLRenderWindow*>(ren->GetVTKWindow()));
+            this->EdgeBuffer->Upload(this->EdgeValues, vtkOpenGLBufferObject::TextureBuffer);
+            this->EdgeTexture->CreateTextureBuffer(
+              static_cast<unsigned int>(this->EdgeValues.size()), 1, VTK_UNSIGNED_CHAR,
+              this->EdgeBuffer);
+          }
+        }
+        else
+        {
+          this->Primitives[PrimitiveTris].IBO->CreateTriangleIndexBuffer(
+            prims[2], poly->GetPoints(), nullptr, nullptr);
+        }
         this->Primitives[PrimitiveTriStrips].IBO->CreateStripIndexBuffer(prims[3], false);
       }
-    }
-
-    // when drawing edges also build the edge IBOs
-    if (draw_surface_with_edges)
-    {
-      if (ef)
-      {
-        if (ef->GetNumberOfComponents() != 1)
-        {
-          vtkDebugMacro(<< "Currently only 1d edge flags are supported.");
-          ef = nullptr;
-        }
-        else if (!ef->IsA("vtkUnsignedCharArray"))
-        {
-          vtkDebugMacro(<< "Currently only unsigned char edge flags are supported.");
-          ef = nullptr;
-        }
-      }
-      if (ef)
-      {
-        this->Primitives[PrimitiveTrisEdges].IBO->CreateEdgeFlagIndexBuffer(prims[2], ef);
-      }
-      else
-      {
-        this->Primitives[PrimitiveTrisEdges].IBO->CreateTriangleLineIndexBuffer(prims[2]);
-      }
-      this->Primitives[PrimitiveTriStripsEdges].IBO->CreateStripIndexBuffer(prims[3], true);
     }
 
     if (prop->GetVertexVisibility())
@@ -3472,8 +3626,7 @@ int vtkOpenGLPolyDataMapper::GetOpenGLMode(int representation, int primType)
   {
     return GL_POINTS;
   }
-  if (representation == VTK_WIREFRAME || primType == PrimitiveLines ||
-    primType == PrimitiveTrisEdges || primType == PrimitiveTriStripsEdges)
+  if (representation == VTK_WIREFRAME || primType == PrimitiveLines)
   {
     return GL_LINES;
   }
