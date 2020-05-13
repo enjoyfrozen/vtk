@@ -14,10 +14,11 @@
 =========================================================================*/
 /**
  * @class   vtkStreamSurface
- * @brief   advect a stream surface in a vector field
+ * @brief   Advect a stream surface in a vector field
  *
- * depending on UseIterativeSeeding, the simple or iterative version is called
- * the iterative version produces the good surfaces, but takes longer
+ * vtkStreamSurface is a surface streamer that generates a surface using the vectors in the input.
+ * Depending on the UseIterativeSeeding parameter, the simple or iterative version is called.
+ * The iterative version produces better surfaces, but takes longer.
  *
  * @par Thanks:
  * Developed by Roxana Bujack and Karen Tsai at Los Alamos National Laboratory under LDRD 20190143ER
