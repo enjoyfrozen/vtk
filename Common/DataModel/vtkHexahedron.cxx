@@ -28,9 +28,7 @@
 #include "vtkQuad.h"
 
 #include <cassert>
-#ifndef VTK_LEGACY_REMOVE // needed temporarily in deprecated methods
 #include <vector>
-#endif
 
 vtkStandardNewMacro(vtkHexahedron);
 
@@ -997,7 +995,6 @@ void vtkHexahedron::GetEdgeToAdjacentFaces(vtkIdType edgeId, const vtkIdType*& p
   pts = edgeToAdjacentFaces[edgeId];
 }
 
-#ifndef VTK_LEGACY_REMOVE
 //------------------------------------------------------------------------------
 void vtkHexahedron::GetEdgePoints(int edgeId, int*& pts)
 {
@@ -1015,7 +1012,6 @@ void vtkHexahedron::GetFacePoints(int faceId, int*& pts)
   static std::vector<int> tmp(std::begin(faces[faceId]), std::end(faces[faceId]));
   pts = tmp.data();
 }
-#endif
 
 //------------------------------------------------------------------------------
 void vtkHexahedron::GetEdgePoints(vtkIdType edgeId, const vtkIdType*& pts)
