@@ -30,15 +30,15 @@
 #ifndef vtkDispatcher_Private_h
 #define vtkDispatcher_Private_h
 
-#include "vtkLegacy.h" // For VTK_LEGACY_REMOVE
-
-#ifndef VTK_LEGACY_REMOVE
 #ifndef __VTK_WRAP__
+
+#include "vtkDeprecation.h" // for VTK_DEPRECATED_IN_9_0_0
 
 #include <cassert>
 #include <memory>
 #include <typeinfo>
 
+VTK_DEPRECATED_IN_9_0_0("Use vtkArrayDispatch")
 namespace vtkDispatcherPrivate
 {
 ////////////////////////////////////////////////////////////////////////////////
@@ -194,6 +194,7 @@ private:
 
 }
 
+VTK_DEPRECATED_IN_9_0_0("Use vtkArrayDispatch")
 namespace vtkDoubleDispatcherPrivate
 {
 
@@ -355,6 +356,7 @@ private:
 };
 }
 
+VTK_DEPRECATED_IN_9_0_0("Use vtkArrayDispatch")
 namespace vtkDispatcherCommon
 {
 
@@ -463,6 +465,5 @@ inline bool operator>=(const TypeInfo& lhs, const TypeInfo& rhs)
 }
 
 #endif // wrapping
-#endif // legacy remove
 #endif // vtkDispatcherPrivate_h
 // VTK-HeaderTest-Exclude: vtkDispatcher_Private.h
