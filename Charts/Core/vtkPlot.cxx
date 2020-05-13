@@ -78,7 +78,6 @@ bool vtkPlot::PaintLegend(vtkContext2D*, const vtkRectf&, int)
   return false;
 }
 
-#ifndef VTK_LEGACY_REMOVE
 //------------------------------------------------------------------------------
 vtkIdType vtkPlot::GetNearestPoint(
   const vtkVector2f& point, const vtkVector2f& tolerance, vtkVector2f* location)
@@ -100,19 +99,11 @@ vtkIdType vtkPlot::GetNearestPoint(
     return -1;
   }
 }
-#endif // VTK_LEGACY_REMOVE
 
 //------------------------------------------------------------------------------
-vtkIdType vtkPlot::GetNearestPoint(
-#ifndef VTK_LEGACY_REMOVE
-  const vtkVector2f& point, const vtkVector2f& tolerance, vtkVector2f* location,
-#else
-  const vtkVector2f& vtkNotUsed(point), const vtkVector2f& vtkNotUsed(tolerance),
-  vtkVector2f* vtkNotUsed(location),
-#endif // VTK_LEGACY_REMOVE
-  vtkIdType* vtkNotUsed(segmentId))
+vtkIdType vtkPlot::GetNearestPoint(const vtkVector2f& point, const vtkVector2f& tolerance,
+  vtkVector2f* location, vtkIdType* vtkNotUsed(segmentId))
 {
-#ifndef VTK_LEGACY_REMOVE
   if (!this->LegacyRecursionFlag)
   {
     this->LegacyRecursionFlag = true;
@@ -128,7 +119,6 @@ vtkIdType vtkPlot::GetNearestPoint(
     }
     return ret;
   }
-#endif // VTK_LEGACY_REMOVE
   return -1;
 }
 
