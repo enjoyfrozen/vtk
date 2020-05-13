@@ -14,11 +14,11 @@
 =========================================================================*/
 /**
  * @class   vtkVectorFieldTopology
- * @brief   extract the topological skeleton as output datasets
+ * @brief   Extract the topological skeleton as output datasets
  *
- * the output is the critical points and the 1D separatrices (lines)
- * if the data is 3D and the user enables ComputeSurfaces, also the 2D separatrices are computed
- * (surfaces)
+ * vtkVectorFieldTopology is a filter that extracts the critical points and the 1D separatrices
+ * (lines) If the data is 3D and the user enables ComputeSurfaces, also the 2D separatrices are
+ * computed (surfaces)
  *
  * @par Thanks:
  * Developed by Roxana Bujack and Karen Tsai at Los Alamos National Laboratory under LDRD 20190143ER
@@ -89,6 +89,7 @@ public:
   vtkGetMacro(UseIterativeSeeding, bool);
   //@}
 
+  //@{
   /**
    * Specify/see if the separatring surfaces (separatrices in 3D) are computed or not
    */
@@ -174,12 +175,12 @@ private:
    */
   enum CriticalType3D
   {
-    Degenerate3D = -1,
-    Sink3D = 0,
-    Saddle13D = 1,
-    Saddle23D = 2,
-    Source3D = 3,
-    Center3D = 4
+    DEGENERATE3D = -1,
+    SINK3D = 0,
+    SADDLE13D = 1,
+    SADDLE23D = 2,
+    SOURCE3D = 3,
+    CENTER3D = 4
   };
 
   /**
@@ -188,11 +189,11 @@ private:
    */
   enum CriticalType2D
   {
-    Degenerate2D = -1,
-    Sink2D = 0,
-    Saddle2D = 1,
-    Source2D = 2,
-    Center2D = 3
+    DEGENERATE2D = -1,
+    SINK2D = 0,
+    SADDLE2D = 1,
+    SOURCE2D = 2,
+    CENTER2D = 3
   };
 
   /**

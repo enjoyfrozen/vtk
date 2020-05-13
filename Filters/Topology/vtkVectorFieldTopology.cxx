@@ -89,6 +89,7 @@ int vtkVectorFieldTopology::FillInputPortInformation(int port, vtkInformation* i
   return 1;
 }
 
+//----------------------------------------------------------------------------
 int vtkVectorFieldTopology::FillOutputPortInformation(int port, vtkInformation* info)
 {
   if (port < 3)
@@ -102,21 +103,21 @@ int vtkVectorFieldTopology::FillOutputPortInformation(int port, vtkInformation* 
 int vtkVectorFieldTopology::Classify2D(int countReal, int countComplex, int countPos, int countNeg)
 {
   // make simple type that corresponds to the number of positive eigenvalues
-  // source 2, saddle 1, sink 0, (center 3)
+  // SOURCE2D 2, SADDLE2D 1, SINK2D 0, (CENTER2D 3)
   // in analogy to ttk, where the type corresponds to the down directions
-  int critType = Degenerate2D;
+  int critType = DEGENERATE2D;
   if (countPos + countNeg == 2)
   {
     switch (countPos)
     {
       case 0:
-        critType = Sink2D;
+        critType = SINK2D;
         break;
       case 1:
-        critType = Saddle2D;
+        critType = SADDLE2D;
         break;
       case 2:
-        critType = Source2D;
+        critType = SOURCE2D;
         break;
       default:
         break;
@@ -124,7 +125,7 @@ int vtkVectorFieldTopology::Classify2D(int countReal, int countComplex, int coun
   }
   if (countComplex == 2)
   {
-    critType = Center2D;
+    critType = CENTER2D;
   }
   return critType;
 }
@@ -133,28 +134,28 @@ int vtkVectorFieldTopology::Classify2D(int countReal, int countComplex, int coun
 int vtkVectorFieldTopology::Classify3D(int countReal, int countComplex, int countPos, int countNeg)
 {
   // make simple type that corresponds to the number of positive eigenvalues
-  // source 3, saddle 2 or 1, sink 0, (center 4)
+  // SOURCE3D 3, SADDLE23D 2, SADDLE13D 1, SINK3D 0, (CENTER3D 4)
   // in analogy to ttk, where the type corresponds to the down directions
-  int critType = Degenerate3D;
+  int critType = DEGENERATE3D;
   if (countComplex > 0)
   {
-    critType = Center3D;
+    critType = CENTER3D;
   }
   if (countPos + countNeg == 3)
   {
     switch (countPos)
     {
       case 0:
-        critType = Sink3D;
+        critType = SINK3D;
         break;
       case 1:
-        critType = Saddle13D;
+        critType = SADDLE13D;
         break;
       case 2:
-        critType = Saddle23D;
+        critType = SADDLE23D;
         break;
       case 3:
-        critType = Source3D;
+        critType = SOURCE3D;
         break;
       default:
         break;
