@@ -688,7 +688,6 @@ void vtkPlotStacked::GetUnscaledInputBounds(double bounds[4])
 vtkIdType vtkPlotStacked::GetNearestPoint(const vtkVector2f& point, const vtkVector2f& tol,
   vtkVector2f* location, vtkIdType* vtkNotUsed(segmentId))
 {
-#ifndef VTK_LEGACY_REMOVE
   if (!this->LegacyRecursionFlag)
   {
     this->LegacyRecursionFlag = true;
@@ -704,7 +703,6 @@ vtkIdType vtkPlotStacked::GetNearestPoint(const vtkVector2f& point, const vtkVec
       return ret;
     }
   }
-#endif // VTK_LEGACY_REMOVE
 
   return this->Private->GetNearestPoint(point, tol, location);
 }

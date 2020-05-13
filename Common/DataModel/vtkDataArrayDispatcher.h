@@ -54,18 +54,16 @@
 #ifndef vtkDataArrayDispatcher_h
 #define vtkDataArrayDispatcher_h
 
-#include "vtkLegacy.h" // for VTK_LEGACY_REMOVE
-
-#ifndef VTK_LEGACY_REMOVE
-
-#include "vtkDataArray.h" //required for constructor of the vtkDataArrayFunctor
-#include "vtkType.h"      //Required for vtkIdType
-#include <map>            //Required for the storage of template params to runtime params
+#include "vtkDataArray.h"   //required for constructor of the vtkDataArrayFunctor
+#include "vtkDeprecation.h" // for VTK_DEPRECATED_IN_9_0_0
+#include "vtkType.h"        //Required for vtkIdType
+#include <map>              //Required for the storage of template params to runtime params
 
 ////////////////////////////////////////////////////////////////////////////////
 // Object that is passed to all functor that are used with this class
 // This allows the user the ability to find info about the size
 ////////////////////////////////////////////////////////////////////////////////
+VTK_DEPRECATED_IN_9_0_0("Use vtkArrayDispatch")
 template <typename T>
 struct vtkDataArrayDispatcherPointer
 {
@@ -86,6 +84,7 @@ struct vtkDataArrayDispatcherPointer
 ////////////////////////////////////////////////////////////////////////////////
 // class template FunctorDispatcher
 ////////////////////////////////////////////////////////////////////////////////
+VTK_DEPRECATED_IN_9_0_0("Use vtkArrayDispatch")
 template <class DefaultFunctorType, typename ReturnType = void>
 class vtkDataArrayDispatcher
 {
@@ -137,6 +136,7 @@ protected:
 // We are making all these method non-inline to reduce compile time overhead
 
 //----------------------------------------------------------------------------
+VTK_DEPRECATED_IN_9_0_0("Use vtkArrayDispatch")
 template <class DefaultFunctorType, typename ReturnType>
 vtkDataArrayDispatcher<DefaultFunctorType, ReturnType>::vtkDataArrayDispatcher(
   DefaultFunctorType& fun)
@@ -147,6 +147,7 @@ vtkDataArrayDispatcher<DefaultFunctorType, ReturnType>::vtkDataArrayDispatcher(
 }
 
 //----------------------------------------------------------------------------
+VTK_DEPRECATED_IN_9_0_0("Use vtkArrayDispatch")
 template <class DefaultFunctorType, typename ReturnType>
 vtkDataArrayDispatcher<DefaultFunctorType, ReturnType>::vtkDataArrayDispatcher()
   : DefaultFunctor(new DefaultFunctorType())
@@ -156,6 +157,7 @@ vtkDataArrayDispatcher<DefaultFunctorType, ReturnType>::vtkDataArrayDispatcher()
 }
 
 //----------------------------------------------------------------------------
+VTK_DEPRECATED_IN_9_0_0("Use vtkArrayDispatch")
 template <class DefaultFunctorType, typename ReturnType>
 vtkDataArrayDispatcher<DefaultFunctorType, ReturnType>::~vtkDataArrayDispatcher()
 {
@@ -166,6 +168,7 @@ vtkDataArrayDispatcher<DefaultFunctorType, ReturnType>::~vtkDataArrayDispatcher(
 }
 
 //----------------------------------------------------------------------------
+VTK_DEPRECATED_IN_9_0_0("Use vtkArrayDispatch")
 template <class DefaultFunctorType, typename ReturnType>
 ReturnType vtkDataArrayDispatcher<DefaultFunctorType, ReturnType>::Go(vtkDataArray* lhs)
 {
@@ -176,6 +179,5 @@ ReturnType vtkDataArrayDispatcher<DefaultFunctorType, ReturnType>::Go(vtkDataArr
   return ReturnType();
 }
 
-#endif // legacy
 #endif // vtkDataArrayDispatcher_h
 // VTK-HeaderTest-Exclude: vtkDataArrayDispatcher.h

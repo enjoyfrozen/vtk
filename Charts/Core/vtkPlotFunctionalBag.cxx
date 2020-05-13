@@ -259,7 +259,6 @@ bool vtkPlotFunctionalBag::PaintLegend(vtkContext2D* painter, const vtkRectf& re
 vtkIdType vtkPlotFunctionalBag::GetNearestPoint(
   const vtkVector2f& point, const vtkVector2f& tol, vtkVector2f* location, vtkIdType* segmentId)
 {
-#ifndef VTK_LEGACY_REMOVE
   if (!this->LegacyRecursionFlag)
   {
     this->LegacyRecursionFlag = true;
@@ -275,7 +274,6 @@ vtkIdType vtkPlotFunctionalBag::GetNearestPoint(
       return ret;
     }
   }
-#endif // VTK_LEGACY_REMOVE
 
   if (this->BagPoints->GetNumberOfPoints() == 0)
   {

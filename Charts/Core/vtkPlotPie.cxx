@@ -192,15 +192,9 @@ vtkColorSeries* vtkPlotPie::GetColorSeries()
 }
 
 //------------------------------------------------------------------------------
-vtkIdType vtkPlotPie::GetNearestPoint(const vtkVector2f& point,
-#ifndef VTK_LEGACY_REMOVE
-  const vtkVector2f& tolerance,
-#else
-  const vtkVector2f& vtkNotUsed(tolerance),
-#endif // VTK_LEGACY_REMOVE
+vtkIdType vtkPlotPie::GetNearestPoint(const vtkVector2f& point, const vtkVector2f& tolerance,
   vtkVector2f* value, vtkIdType* vtkNotUsed(segmentId))
 {
-#ifndef VTK_LEGACY_REMOVE
   if (!this->LegacyRecursionFlag)
   {
     this->LegacyRecursionFlag = true;
@@ -216,7 +210,6 @@ vtkIdType vtkPlotPie::GetNearestPoint(const vtkVector2f& point,
       return retLegacy;
     }
   }
-#endif // VTK_LEGACY_REMOVE
 
   float x = point.GetX() - this->Private->CenterX;
   float y = point.GetY() - this->Private->CenterY;

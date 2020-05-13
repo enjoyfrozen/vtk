@@ -27,9 +27,7 @@
 #include "vtkUnstructuredGrid.h"
 
 #include <cassert>
-#ifndef VTK_LEGACY_REMOVE // needed temporarily in deprecated methods
 #include <vector>
-#endif
 
 vtkStandardNewMacro(vtkWedge);
 
@@ -1032,7 +1030,6 @@ void vtkWedge::GetEdgeToAdjacentFaces(vtkIdType edgeId, const vtkIdType*& pts)
   pts = edgeToAdjacentFaces[edgeId];
 }
 
-#ifndef VTK_LEGACY_REMOVE
 //------------------------------------------------------------------------------
 void vtkWedge::GetEdgePoints(int edgeId, int*& pts)
 {
@@ -1050,7 +1047,6 @@ void vtkWedge::GetFacePoints(int faceId, int*& pts)
   static std::vector<int> tmp(std::begin(faces[faceId]), std::end(faces[faceId]));
   pts = tmp.data();
 }
-#endif
 
 //------------------------------------------------------------------------------
 void vtkWedge::GetEdgePoints(vtkIdType edgeId, const vtkIdType*& pts)
