@@ -757,15 +757,9 @@ void vtkPlotBar::GetColor(double rgb[3])
 }
 
 //------------------------------------------------------------------------------
-vtkIdType vtkPlotBar::GetNearestPoint(const vtkVector2f& point,
-#ifndef VTK_LEGACY_REMOVE
-  const vtkVector2f& tolerance,
-#else
-  const vtkVector2f& vtkNotUsed(tolerance),
-#endif // VTK_LEGACY_REMOVE
+vtkIdType vtkPlotBar::GetNearestPoint(const vtkVector2f& point, const vtkVector2f& tolerance,
   vtkVector2f* location, vtkIdType* segmentIndex)
 {
-#ifndef VTK_LEGACY_REMOVE
   if (!this->LegacyRecursionFlag)
   {
     this->LegacyRecursionFlag = true;
@@ -781,7 +775,6 @@ vtkIdType vtkPlotBar::GetNearestPoint(const vtkVector2f& point,
       return ret;
     }
   }
-#endif // VTK_LEGACY_REMOVE
 
   return this->Private->GetNearestPoint(
     point, location, this->Width, this->Offset, this->Orientation, segmentIndex);

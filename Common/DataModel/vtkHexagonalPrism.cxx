@@ -30,9 +30,7 @@
 #include "vtkQuad.h"
 
 #include <cassert>
-#ifndef VTK_LEGACY_REMOVE // needed temporarily in deprecated methods
 #include <vector>
-#endif
 
 vtkStandardNewMacro(vtkHexagonalPrism);
 
@@ -676,7 +674,6 @@ const vtkIdType* vtkHexagonalPrism::GetEdgeArray(vtkIdType edgeId)
   return edges[edgeId];
 }
 
-#ifndef VTK_LEGACY_REMOVE
 //------------------------------------------------------------------------------
 void vtkHexagonalPrism::GetEdgePoints(int edgeId, int*& pts)
 {
@@ -694,7 +691,6 @@ void vtkHexagonalPrism::GetFacePoints(int faceId, int*& pts)
   static std::vector<int> tmp(std::begin(faces[faceId]), std::end(faces[faceId]));
   pts = tmp.data();
 }
-#endif
 
 //------------------------------------------------------------------------------
 vtkCell* vtkHexagonalPrism::GetEdge(int edgeId)

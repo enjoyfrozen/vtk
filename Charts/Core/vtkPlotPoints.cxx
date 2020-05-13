@@ -350,7 +350,6 @@ void vtkPlotPoints::CreateSortedPoints()
 vtkIdType vtkPlotPoints::GetNearestPoint(const vtkVector2f& point, const vtkVector2f& tol,
   vtkVector2f* location, vtkIdType* vtkNotUsed(segmentId))
 {
-#ifndef VTK_LEGACY_REMOVE
   if (!this->LegacyRecursionFlag)
   {
     this->LegacyRecursionFlag = true;
@@ -366,7 +365,6 @@ vtkIdType vtkPlotPoints::GetNearestPoint(const vtkVector2f& point, const vtkVect
       return ret;
     }
   }
-#endif // VTK_LEGACY_REMOVE
 
   // Right now doing a simple bisector search of the array.
   if (!this->Points)
