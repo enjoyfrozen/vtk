@@ -12,6 +12,10 @@
      PURPOSE.  See the above copyright notice for more information.
 
 =========================================================================*/
+
+// Hide VTK_DEPRECATED_IN_9_0_0() warnings for this class.
+#define VTK_DEPRECATION_LEVEL 0
+
 #include "vtkVoxel.h"
 
 #include "vtkBox.h"
@@ -27,9 +31,7 @@
 #include "vtkPoints.h"
 
 #include <cassert>
-#ifndef VTK_LEGACY_REMOVE // needed temporarily in deprecated methods
 #include <vector>
-#endif
 
 vtkStandardNewMacro(vtkVoxel);
 
@@ -788,7 +790,6 @@ void vtkVoxel::GetEdgeToAdjacentFaces(vtkIdType edgeId, const vtkIdType*& pts)
   pts = edgeToAdjacentFaces[edgeId];
 }
 
-#ifndef VTK_LEGACY_REMOVE
 //------------------------------------------------------------------------------
 void vtkVoxel::GetEdgePoints(int edgeId, int*& pts)
 {
@@ -806,7 +807,6 @@ void vtkVoxel::GetFacePoints(int faceId, int*& pts)
   static std::vector<int> tmp(std::begin(faces[faceId]), std::end(faces[faceId]));
   pts = tmp.data();
 }
-#endif
 
 //------------------------------------------------------------------------------
 const vtkIdType* vtkVoxel::GetEdgeToAdjacentFacesArray(vtkIdType edgeId)
