@@ -58,7 +58,6 @@ vtkStandardNewMacro(vtkVectorFieldTopology);
 //----------------------------------------------------------------------------
 vtkVectorFieldTopology::vtkVectorFieldTopology()
 {
-  // number of input ports is 1
   this->SetNumberOfInputPorts(1);
   this->SetNumberOfOutputPorts(3);
 }
@@ -105,19 +104,19 @@ int vtkVectorFieldTopology::Classify2D(int countReal, int countComplex, int coun
   // make simple type that corresponds to the number of positive eigenvalues
   // SOURCE2D 2, SADDLE2D 1, SINK2D 0, (CENTER2D 3)
   // in analogy to ttk, where the type corresponds to the down directions
-  int critType = DEGENERATE2D;
+  int critType = vtkVectorFieldTopology::DEGENERATE2D;
   if (countPos + countNeg == 2)
   {
     switch (countPos)
     {
       case 0:
-        critType = SINK2D;
+        critType = vtkVectorFieldTopology::SINK2D;
         break;
       case 1:
-        critType = SADDLE2D;
+        critType = vtkVectorFieldTopology::SADDLE2D;
         break;
       case 2:
-        critType = SOURCE2D;
+        critType = vtkVectorFieldTopology::SOURCE2D;
         break;
       default:
         break;
@@ -125,7 +124,7 @@ int vtkVectorFieldTopology::Classify2D(int countReal, int countComplex, int coun
   }
   if (countComplex == 2)
   {
-    critType = CENTER2D;
+    critType = vtkVectorFieldTopology::CENTER2D;
   }
   return critType;
 }
@@ -136,26 +135,26 @@ int vtkVectorFieldTopology::Classify3D(int countReal, int countComplex, int coun
   // make simple type that corresponds to the number of positive eigenvalues
   // SOURCE3D 3, SADDLE23D 2, SADDLE13D 1, SINK3D 0, (CENTER3D 4)
   // in analogy to ttk, where the type corresponds to the down directions
-  int critType = DEGENERATE3D;
+  int critType = vtkVectorFieldTopology::DEGENERATE3D;
   if (countComplex > 0)
   {
-    critType = CENTER3D;
+    critType = vtkVectorFieldTopology::CENTER3D;
   }
   if (countPos + countNeg == 3)
   {
     switch (countPos)
     {
       case 0:
-        critType = SINK3D;
+        critType = vtkVectorFieldTopology::SINK3D;
         break;
       case 1:
-        critType = SADDLE13D;
+        critType = vtkVectorFieldTopology::SADDLE13D;
         break;
       case 2:
-        critType = SADDLE23D;
+        critType = vtkVectorFieldTopology::SADDLE23D;
         break;
       case 3:
-        critType = SOURCE3D;
+        critType = vtkVectorFieldTopology::SOURCE3D;
         break;
       default:
         break;
@@ -168,8 +167,6 @@ int vtkVectorFieldTopology::Classify3D(int countReal, int countComplex, int coun
 int vtkVectorFieldTopology::ComputeCriticalPoints2D(
   vtkSmartPointer<vtkPolyData> criticalPoints, vtkSmartPointer<vtkUnstructuredGrid> tridataset)
 {
-  std::map<std::string, int> criticalPtsMap;
-  int criticalPointCounter = 0;
   for (int cellId = 0; cellId < tridataset->GetNumberOfCells(); cellId++)
   {
     auto cell = tridataset->GetCell(cellId);
@@ -193,31 +190,38 @@ int vtkVectorFieldTopology::ComputeCriticalPoints2D(
       }
     }
 
-    valueMatrix->Invert();
-    double zeroBase[3] = { -values[0][0], -values[0][1], -values[0][2] };
-    valueMatrix->MultiplyPoint(zeroBase, zeroBase);
-
-    double zeroPos[3] = { coords[0][0] + zeroBase[0] * (coords[1][0] - coords[0][0]) +
-        zeroBase[1] * (coords[2][0] - coords[0][0]),
-      coords[0][1] + zeroBase[0] * (coords[1][1] - coords[0][1]) +
-        zeroBase[1] * (coords[2][1] - coords[0][1]),
-      coords[0][2] + zeroBase[0] * (coords[1][2] - coords[0][2]) +
-        zeroBase[1] * (coords[2][2] - coords[0][2]) };
-
-    // Check if zeroPos is inside the cell
-    if (zeroBase[0] >= -epsilon && zeroBase[1] >= -epsilon &&
-      zeroBase[0] + zeroBase[1] <= 1.0 + epsilon)
+    if (valueMatrix->Determinant() != 0)
     {
-      std::string zeroPos_str = "(" + std::to_string(zeroPos[0]) + "," +
-        std::to_string(zeroPos[1]) + "," + std::to_string(zeroPos[2]) + ")";
-      if (criticalPtsMap.find(zeroPos_str) == criticalPtsMap.end())
+      valueMatrix->Invert();
+      double zeroBase[3] = { -values[0][0], -values[0][1], -values[0][2] };
+      valueMatrix->MultiplyPoint(zeroBase, zeroBase);
+
+      double zeroPos[3] = { coords[0][0] + zeroBase[0] * (coords[1][0] - coords[0][0]) +
+          zeroBase[1] * (coords[2][0] - coords[0][0]),
+        coords[0][1] + zeroBase[0] * (coords[1][1] - coords[0][1]) +
+          zeroBase[1] * (coords[2][1] - coords[0][1]),
+        coords[0][2] + zeroBase[0] * (coords[1][2] - coords[0][2]) +
+          zeroBase[1] * (coords[2][2] - coords[0][2]) };
+
+      // Check if zeroPos is inside the cell
+      if (valueMatrix->Determinant() != 0 && zeroBase[0] >= -epsilon && zeroBase[1] >= -epsilon &&
+        zeroBase[0] + zeroBase[1] <= 1.0 + epsilon)
       {
-        criticalPtsMap.insert(std::pair<std::string, int>(zeroPos_str, 0));
-        criticalPoints->GetPoints()->InsertNextPoint(zeroPos);
-        vtkNew<vtkVertex> vertex;
-        vertex->GetPointIds()->SetId(0, criticalPointCounter);
-        criticalPoints->GetVerts()->InsertNextCell(vertex);
-        criticalPointCounter++;
+        bool isNewPoint = 1;
+        for (int i = 0; i < criticalPoints->GetNumberOfPoints(); ++i)
+        {
+          if (vtkMath::Distance2BetweenPoints(zeroPos, criticalPoints->GetPoint(i)) < epsilon)
+          {
+            isNewPoint = 0;
+          }
+        }
+        if (isNewPoint)
+        {
+          criticalPoints->GetPoints()->InsertNextPoint(zeroPos);
+          vtkNew<vtkVertex> vertex;
+          vertex->GetPointIds()->SetId(0, criticalPoints->GetNumberOfPoints() - 1);
+          criticalPoints->GetVerts()->InsertNextCell(vertex);
+        }
       }
     }
   }
@@ -252,35 +256,40 @@ int vtkVectorFieldTopology::ComputeCriticalPoints3D(
         valueMatrix->SetElement(j, i, values[3][j] - values[i][j]);
       }
     }
-    valueMatrix->Invert();
-    double zeroBase[3] = { values[3][0], values[3][1], values[3][2] };
-    valueMatrix->MultiplyPoint(zeroBase, zeroBase);
 
-    double zeroPos[3] = { coords[0][0] * zeroBase[0] + coords[1][0] * zeroBase[1] +
-        coords[2][0] * zeroBase[2] + coords[3][0] * (1.0 - zeroBase[0] - zeroBase[1] - zeroBase[2]),
-      coords[0][1] * zeroBase[0] + coords[1][1] * zeroBase[1] + coords[2][1] * zeroBase[2] +
-        coords[3][1] * (1.0 - zeroBase[0] - zeroBase[1] - zeroBase[2]),
-      coords[0][2] * zeroBase[0] + coords[1][2] * zeroBase[1] + coords[2][2] * zeroBase[2] +
-        coords[3][2] * (1.0 - zeroBase[0] - zeroBase[1] - zeroBase[2]) };
-
-    // Check if zeroPos is inside the cell
-    if (zeroBase[0] >= -epsilon && zeroBase[1] >= -epsilon && zeroBase[2] >= -epsilon &&
-      zeroBase[0] + zeroBase[1] + zeroBase[2] <= 1.0 + epsilon)
+    if (valueMatrix->Determinant() != 0)
     {
-      bool isNewPoint = 1;
-      for (int i = 0; i < criticalPoints->GetNumberOfPoints(); ++i)
+      valueMatrix->Invert();
+      double zeroBase[3] = { values[3][0], values[3][1], values[3][2] };
+      valueMatrix->MultiplyPoint(zeroBase, zeroBase);
+
+      double zeroPos[3] = { coords[0][0] * zeroBase[0] + coords[1][0] * zeroBase[1] +
+          coords[2][0] * zeroBase[2] +
+          coords[3][0] * (1.0 - zeroBase[0] - zeroBase[1] - zeroBase[2]),
+        coords[0][1] * zeroBase[0] + coords[1][1] * zeroBase[1] + coords[2][1] * zeroBase[2] +
+          coords[3][1] * (1.0 - zeroBase[0] - zeroBase[1] - zeroBase[2]),
+        coords[0][2] * zeroBase[0] + coords[1][2] * zeroBase[1] + coords[2][2] * zeroBase[2] +
+          coords[3][2] * (1.0 - zeroBase[0] - zeroBase[1] - zeroBase[2]) };
+
+      // Check if zeroPos is inside the cell
+      if (valueMatrix->Determinant() != 0 && zeroBase[0] >= -epsilon && zeroBase[1] >= -epsilon &&
+        zeroBase[2] >= -epsilon && zeroBase[0] + zeroBase[1] + zeroBase[2] <= 1.0 + epsilon)
       {
-        if (sqrt(vtkMath::Distance2BetweenPoints(zeroPos, criticalPoints->GetPoint(i))) < 1e-5)
+        bool isNewPoint = 1;
+        for (int i = 0; i < criticalPoints->GetNumberOfPoints(); ++i)
         {
-          isNewPoint = 0;
+          if (vtkMath::Distance2BetweenPoints(zeroPos, criticalPoints->GetPoint(i)) < epsilon)
+          {
+            isNewPoint = 0;
+          }
         }
-      }
-      if (isNewPoint)
-      {
-        criticalPoints->GetPoints()->InsertNextPoint(zeroPos);
-        vtkNew<vtkVertex> vertex;
-        vertex->GetPointIds()->SetId(0, criticalPoints->GetNumberOfPoints() - 1);
-        criticalPoints->GetVerts()->InsertNextCell(vertex);
+        if (isNewPoint)
+        {
+          criticalPoints->GetPoints()->InsertNextPoint(zeroPos);
+          vtkNew<vtkVertex> vertex;
+          vertex->GetPointIds()->SetId(0, criticalPoints->GetNumberOfPoints() - 1);
+          criticalPoints->GetVerts()->InsertNextCell(vertex);
+        }
       }
     }
   }
@@ -333,7 +342,8 @@ int vtkVectorFieldTopology::ComputeSurface(bool isBackward, double normal[3], do
   appendSurfaces->AddInputData(streamSurfaces);
   appendSurfaces->Update();
   streamSurfaces->DeepCopy(appendSurfaces->GetOutput());
-  return 1;
+
+  return (streamSurfaces != nullptr);
 }
 
 //----------------------------------------------------------------------------
@@ -449,7 +459,7 @@ int vtkVectorFieldTopology::ComputeSeparatrices(vtkSmartPointer<vtkPolyData> cri
           vtkNew<vtkVertex> vertex1;
           vertex1->GetPointIds()->SetId(0, seedPointsFw->GetNumberOfPoints() - 1);
           seedCellsFw->InsertNextCell(vertex1);
-          if (computeSurfaces and dataset->GetDataDimension() == 3)
+          if (computeSurfaces && dataset->GetDataDimension() == 3)
           {
             ComputeSurface(1, normal, criticalPoints->GetPoint(pointId), surfaces, dataset,
               integrationStepUnit, dist, stepSize, maxNumSteps, useIterativeSeeding);
@@ -472,7 +482,7 @@ int vtkVectorFieldTopology::ComputeSeparatrices(vtkSmartPointer<vtkPolyData> cri
           vtkNew<vtkVertex> vertex1;
           vertex1->GetPointIds()->SetId(0, seedPointsBw->GetNumberOfPoints() - 1);
           seedCellsBw->InsertNextCell(vertex1);
-          if (computeSurfaces and dataset->GetDataDimension() == 3)
+          if (computeSurfaces && dataset->GetDataDimension() == 3)
           {
             ComputeSurface(0, normal, criticalPoints->GetPoint(pointId), surfaces, dataset,
               integrationStepUnit, dist, stepSize, maxNumSteps, useIterativeSeeding);
@@ -544,7 +554,7 @@ int vtkVectorFieldTopology::ComputeSeparatrices(vtkSmartPointer<vtkPolyData> cri
   separatrices->DeepCopy(appendFilter->GetOutput());
 
   // probe arrays to output surfaces
-  if (computeSurfaces and dataset->GetDataDimension() == 3)
+  if (computeSurfaces && dataset->GetDataDimension() == 3)
   {
     probe->SetInputData(surfaces);
     probe->SetSourceData(dataset);

@@ -271,7 +271,7 @@ int vtkStreamSurface::AdvectIterative(vtkImageData* field, vtkPolyData* seeds, v
     }
     if (currentSeeds == nullptr)
     {
-      vtkErrorMacro("circle is empty.");
+      vtkErrorMacro("Circle is empty, output may not be correct.");
       return 0;
     }
   }
