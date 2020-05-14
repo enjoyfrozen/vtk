@@ -60,7 +60,7 @@ int vtkStreamSurface::AdvectIterative(vtkImageData* field, vtkPolyData* seeds, v
 {
   // adapt dist if cell unit was selected
   double distThreshold = this->InitialIntegrationStep;
-  if (this->IntegrationStepUnit == 2)
+  if (this->IntegrationStepUnit == CELL_LENGTH_UNIT)
   {
     distThreshold *= sqrt(static_cast<double>(field->GetCell(0)->GetLength2()));
   }
