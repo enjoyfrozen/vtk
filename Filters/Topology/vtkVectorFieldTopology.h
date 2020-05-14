@@ -100,10 +100,10 @@ public:
 protected:
   vtkVectorFieldTopology();
   ~vtkVectorFieldTopology();
+
   int FillInputPortInformation(int port, vtkInformation* info) override;
   int FillOutputPortInformation(int port, vtkInformation* info) override;
   int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
-  int IntegrationStepUnit = vtkStreamTracer::CELL_LENGTH_UNIT;
 
 private:
   vtkVectorFieldTopology(const vtkVectorFieldTopology&) = delete;
@@ -114,6 +114,7 @@ private:
    *  if this location is inside the triangle, we have found a critical point
    * @param criticalPoints: list of the locations where the vf is zero
    * @param tridataset: input vector field after triangulation
+   * @return 1 if successful, 0 if not
    */
   int ComputeCriticalPoints2D(
     vtkSmartPointer<vtkPolyData> criticalPoints, vtkSmartPointer<vtkUnstructuredGrid> tridataset);
@@ -123,6 +124,7 @@ private:
    *  if this location is inside the tetrahedron, we have found a critical point
    * @param criticalPoints: list of the locations where the vf is zero
    * @param tridataset: input vector field after tetrahedrization
+   * @return 1 if successfully terminated
    */
   int ComputeCriticalPoints3D(
     vtkSmartPointer<vtkPolyData> criticalPoints, vtkSmartPointer<vtkUnstructuredGrid> tridataset);
@@ -142,6 +144,7 @@ private:
    * @param computeSurfaces: depending on this boolen the separatring surfaces are computed or not
    * @param useIterativeSeeding: depending on this boolen the separatring surfaces  are computed
    * either good or fast
+   * @return 1 if successfully terminated
    */
   int ComputeSeparatrices(vtkSmartPointer<vtkPolyData> criticalPoints,
     vtkSmartPointer<vtkPolyData> separatrices, vtkSmartPointer<vtkPolyData> surfaces,
@@ -163,6 +166,7 @@ private:
    * @param maxNumSteps: maximal number of integration steps
    * @param useIterativeSeeding: depending on this boolen the separatring surfaces  are computed
    * either good or fast
+   * @return 1 if successful, 0 if empty
    */
   int ComputeSurface(bool isBackward, double normal[3], double zeroPos[3],
     vtkSmartPointer<vtkPolyData> streamSurfaces, vtkSmartPointer<vtkImageData> dataset,
@@ -202,6 +206,7 @@ private:
    * @param countReal: number of complex valued eigenvalues
    * @param countPos: number of positive eigenvalues
    * @param countNeg: number of negative eigenvalues
+   * @return type of critical point: SOURCE3D 3, SADDLE23D 2, SADDLE13D 1, SINK3D 0, (CENTER3D 4)
    */
   static int Classify3D(int countReal, int countComplex, int countPos, int countNeg);
 
@@ -211,6 +216,7 @@ private:
    * @param countReal: number of complex valued eigenvalues
    * @param countPos: number of positive eigenvalues
    * @param countNeg: number of negative eigenvalues
+   * @return type of critical point: SOURCE2D 2, SADDLE2D 1, SINK2D 0, (CENTER2D 3)
    */
   static int Classify2D(int countReal, int countComplex, int countPos, int countNeg);
 
@@ -238,6 +244,15 @@ private:
    * depending on this boolen the separatring surfaces (separatrices in 3D) are computed or not
    */
   bool ComputeSurfaces = false;
+
+  /**
+   * Analogous to integration step unit in vtkStreamTracer
+   * Specify a uniform integration step unit for MinimumIntegrationStep,
+   * InitialIntegrationStep, and MaximumIntegrationStep. NOTE: The valid
+   * unit is now limited to only LENGTH_UNIT (1) and CELL_LENGTH_UNIT (2),
+   * EXCLUDING the previously-supported TIME_UNIT.
+   */
+  int IntegrationStepUnit = vtkStreamTracer::CELL_LENGTH_UNIT;
 
   vtkNew<vtkStreamSurface> StreamSurface;
   vtkNew<vtkGradientFilter> GradientFilter;

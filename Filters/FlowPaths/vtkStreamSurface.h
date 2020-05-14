@@ -52,6 +52,7 @@ public:
 protected:
   vtkStreamSurface();
   ~vtkStreamSurface();
+
   int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
 private:
@@ -63,6 +64,7 @@ private:
    * field is the vector values dataset in which the streamsurface is advected
    * seeds is the polydata with the start curve
    * output is the final streamsurface
+   * @return 1 if successful, 0 if empty
    */
   int AdvectSimple(vtkImageData* field, vtkPolyData* seeds, vtkPolyData* output);
 
@@ -76,6 +78,7 @@ private:
    * @param field: vector field in which the surfave is advected
    * @param seeds: initial values
    * @param output: the final surface
+   * @return 1 if successful, 0 if not
    */
   int AdvectIterative(vtkImageData* field, vtkPolyData* seeds, vtkPolyData* output);
 
