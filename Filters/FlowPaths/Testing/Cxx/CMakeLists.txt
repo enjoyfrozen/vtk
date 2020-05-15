@@ -3,6 +3,7 @@ vtk_add_test_cxx(vtkFiltersFlowPathsCxxTests tests
   TestEvenlySpacedStreamlines2D.cxx
   TestStreamTracer.cxx,NO_VALID
   TestStreamTracerSurface.cxx
+  TestStreamSurface.cxx
   TestAMRInterpolatedVelocityField.cxx,NO_VALID
   TestParallelVectors.cxx
   TestParticleTracers.cxx,NO_VALID
