@@ -33,7 +33,7 @@
 
 vtkStandardNewMacro(vtkAdaptiveTemporalInterpolator);
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 class vtkAdaptiveTemporalInterpolator::ResamplingHelperImpl
 {
 public:
@@ -108,28 +108,25 @@ public:
   vtkNew<vtkPMergeArrays> appendAttributes;
 };
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkAdaptiveTemporalInterpolator::vtkAdaptiveTemporalInterpolator()
 {
   this->ResampleImpl = nullptr;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkAdaptiveTemporalInterpolator::~vtkAdaptiveTemporalInterpolator()
 {
-  if (this->ResampleImpl != nullptr)
-  {
-    delete this->ResampleImpl;
-  }
+  delete this->ResampleImpl;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkAdaptiveTemporalInterpolator::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkDataSet* vtkAdaptiveTemporalInterpolator ::InterpolateDataSet(
   vtkDataSet* in1, vtkDataSet* in2, double ratio)
 {
@@ -359,7 +356,7 @@ vtkDataSet* vtkAdaptiveTemporalInterpolator ::InterpolateDataSet(
   return output;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkPointSet* vtkAdaptiveTemporalInterpolator::ResampleDataObject(
   vtkPointSet*& a, vtkPointSet*& b, int sourceInput)
 {

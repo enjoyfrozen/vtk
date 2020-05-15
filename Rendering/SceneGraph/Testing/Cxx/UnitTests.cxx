@@ -32,10 +32,10 @@
 #include <string>
 namespace
 {
-std::string resultS = "";
+std::string resultS;
 }
 
-//-----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // ViewNode subclasses specialized for this test
 class vtkMyActorNode : public vtkActorNode
 {

@@ -78,10 +78,10 @@ struct GeneratePoints
       this->EdgeTable->InitEdgeInsertion(this->NumPts);
     }
   }
-  virtual ~GeneratePoints() {}
+  virtual ~GeneratePoints() = default;
 
   // Driver function
-  int operator()(void)
+  int operator()()
   {
     vtkIdType npts;
     const vtkIdType* pts;
@@ -529,7 +529,7 @@ struct RandomGeneration : public GeneratePoints
 
 } // anonymous namespace
 
-//------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkPolyDataPointSampler::vtkPolyDataPointSampler()
 {
   this->Distance = 0.01;
@@ -544,7 +544,7 @@ vtkPolyDataPointSampler::vtkPolyDataPointSampler()
   this->InterpolatePointData = false;
 }
 
-//------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkPolyDataPointSampler::RequestData(vtkInformation* vtkNotUsed(request),
   vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
@@ -626,7 +626,7 @@ int vtkPolyDataPointSampler::RequestData(vtkInformation* vtkNotUsed(request),
   return 1;
 }
 
-//------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkPolyDataPointSampler::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);

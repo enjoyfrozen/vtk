@@ -41,6 +41,22 @@
 //----------------------------------------------------------------------------
 @synthesize rolloverTrackingArea = _rolloverTrackingArea;
 
+//------------------------------------------------------------------------------
+- (void)commonInit
+{
+  // Force Cocoa into "multi threaded mode" because VTK spawns pthreads.
+  // Apple's docs say: "If you intend to use Cocoa calls, you must force
+  // Cocoa into its multithreaded mode before detaching any POSIX threads.
+  // To do this, simply detach an NSThread and have it promptly exit.
+  // This is enough to ensure that the locks needed by the Cocoa
+  // frameworks are put in place"
+  if ([NSThread isMultiThreaded] == NO)
+  {
+    [NSThread detachNewThreadSelector:@selector(emptyMethod:) toTarget:self withObject:nil];
+  }
+  [self registerForDraggedTypes:@[ (NSString*)kUTTypeFileURL ]];
+}
+
 //----------------------------------------------------------------------------
 // Overridden (from NSView).
 // designated initializer
@@ -49,18 +65,7 @@
   self = [super initWithFrame:frameRect];
   if (self)
   {
-    // Force Cocoa into "multi threaded mode" because VTK spawns pthreads.
-    // Apple's docs say: "If you intend to use Cocoa calls, you must force
-    // Cocoa into its multithreaded mode before detaching any POSIX threads.
-    // To do this, simply detach an NSThread and have it promptly exit.
-    // This is enough to ensure that the locks needed by the Cocoa
-    // frameworks are put in place"
-    if ([NSThread isMultiThreaded] == NO)
-    {
-      [NSThread detachNewThreadSelector:@selector(emptyMethod:) toTarget:self withObject:nil];
-    }
-
-    [self registerForDraggedTypes:@[ (NSString*)kUTTypeFileURL ]];
+    [self commonInit];
   }
   return self;
 }
@@ -73,18 +78,7 @@
   self = [super initWithCoder:decoder];
   if (self)
   {
-    // Force Cocoa into "multi threaded mode" because VTK spawns pthreads.
-    // Apple's docs say: "If you intend to use Cocoa calls, you must force
-    // Cocoa into its multithreaded mode before detaching any POSIX threads.
-    // To do this, simply detach an NSThread and have it promptly exit.
-    // This is enough to ensure that the locks needed by the Cocoa
-    // frameworks are put in place"
-    if ([NSThread isMultiThreaded] == NO)
-    {
-      [NSThread detachNewThreadSelector:@selector(emptyMethod:) toTarget:self withObject:nil];
-    }
-
-    [self registerForDraggedTypes:@[ (NSString*)kUTTypeFileURL ]];
+    [self commonInit];
   }
   return self;
 }
@@ -549,19 +543,31 @@ static const char* vtkMacKeyCodeToKeySymTable[128] = { nullptr, nullptr, nullptr
 // Private
 - (void)modifyDPIForBackingScaleFactorOfWindow:(/*nullable*/ NSWindow*)window
 {
-  if (window)
+  // Convert from points to pixels.
+  NSRect viewRect = [self frame];
+  NSRect backingViewRect = [self convertRectToBacking:viewRect];
+  CGFloat viewHeight = NSHeight(viewRect);
+  CGFloat backingViewHeight = NSHeight(backingViewRect);
+  CGFloat backingScaleFactor = 1.0;
+  if (viewHeight > 0.0 && backingViewHeight > 0.0)
   {
-    CGFloat backingScaleFactor = [window backingScaleFactor];
-    assert(backingScaleFactor >= 1.0);
+    // the scale factor based on convertRectToBacking
+    backingScaleFactor = backingViewHeight / viewHeight;
+  }
+  else if (window)
+  {
+    // fall back to less reliable method
+    backingScaleFactor = [window backingScaleFactor];
+  }
+  assert(backingScaleFactor >= 1.0);
 
-    vtkCocoaRenderWindow* renderWindow = [self getVTKRenderWindow];
-    if (renderWindow)
-    {
-      // Ordinarily, DPI is hardcoded to 72, but in order for vtkTextActors
-      // to have the correct apparent size, we adjust it per the NSWindow's
-      // scaling factor.
-      renderWindow->SetDPI(lround(72.0 * backingScaleFactor));
-    }
+  vtkCocoaRenderWindow* renderWindow = [self getVTKRenderWindow];
+  if (renderWindow)
+  {
+    // Ordinarily, DPI is hardcoded to 72, but in order for vtkTextActors
+    // to have the correct apparent size, we adjust it per the NSWindow's
+    // scaling factor.
+    renderWindow->SetDPI(lround(72.0 * backingScaleFactor));
   }
 }
 

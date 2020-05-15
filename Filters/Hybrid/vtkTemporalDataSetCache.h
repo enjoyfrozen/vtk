@@ -79,7 +79,7 @@ protected:
 
   int CacheSize;
 
-  typedef std::map<double, std::pair<unsigned long, vtkDataObject*> > CacheType;
+  typedef std::map<double, std::pair<unsigned long, vtkDataObject*>> CacheType;
   CacheType Cache;
   std::vector<double> TimeStepValues;
   /**
@@ -105,7 +105,7 @@ private:
   vtkTemporalDataSetCache(const vtkTemporalDataSetCache&) = delete;
   void operator=(const vtkTemporalDataSetCache&) = delete;
 
-  void ReplaceCacheItem(vtkDataObject* input, double inTime, vtkMTimeType dTime);
+  void ReplaceCacheItem(vtkDataObject* input, double inTime, vtkMTimeType outputUpdateTime);
   bool CacheInMemkind;
   bool IsASource;
 

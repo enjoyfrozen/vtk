@@ -247,7 +247,7 @@ int PIOAdaptor::initializeGlobal(const char* PIOFileName)
       std::size_t pos2 = fileCandidate[i].size();
       std::string timeStr = fileCandidate[i].substr(pos1, pos2);
       double time = 0.0;
-      if (timeStr.size() > 0)
+      if (!timeStr.empty())
       {
         char* p;
         std::strtol(timeStr.c_str(), &p, 10);
@@ -269,7 +269,7 @@ int PIOAdaptor::initializeGlobal(const char* PIOFileName)
     vtkGenericWarningMacro("Dump directory does not exist: " << this->dumpDirectory);
     return 0;
   }
-  if (this->dumpFileName.size() == 0)
+  if (this->dumpFileName.empty())
   {
     vtkGenericWarningMacro("No files exist with the base name :" << this->dumpBaseName);
     return 0;
@@ -297,6 +297,16 @@ int PIOAdaptor::initializeGlobal(const char* PIOFileName)
       {
         this->hasTracers = true;
       }
+
+      // Default variable names that are initially enabled for loading if pres
+      if ((strcmp(pioName, "tev") == 0) || (strcmp(pioName, "pres") == 0) ||
+        (strcmp(pioName, "rho") == 0) || (strcmp(pioName, "rade") == 0) ||
+        (strcmp(pioName, "cell_energy") == 0) || (strcmp(pioName, "kemax") == 0) ||
+        (strcmp(pioName, "vel") == 0) || (strcmp(pioName, "eng") == 0))
+      {
+        this->variableDefault.emplace_back(pioName);
+      }
+
       if (pioField[i].length == numberOfCells && pioField[i].cdata_len == 0)
       {
         // index = 0 is scalar, index = 1 is vector, index = -1 is request from input deck
@@ -318,16 +328,6 @@ int PIOAdaptor::initializeGlobal(const char* PIOFileName)
       }
     }
     sort(this->variableName.begin(), this->variableName.end());
-
-    // Default variable names that are initially enabled for loading
-    this->variableDefault.emplace_back("tev");
-    this->variableDefault.emplace_back("prs");
-    this->variableDefault.emplace_back("rho");
-    this->variableDefault.emplace_back("rade");
-    this->variableDefault.emplace_back("cell_energy");
-    this->variableDefault.emplace_back("kemax");
-    this->variableDefault.emplace_back("vel");
-    this->variableDefault.emplace_back("eng");
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -501,7 +501,7 @@ void PIOAdaptor::create_geometry(vtkMultiBlockDataSet* grid)
   std::valarray<int> numcell;
   std::valarray<double> simCycle;
   std::valarray<double> simTime;
-  std::valarray<std::valarray<double> > center;
+  std::valarray<std::valarray<double>> center;
 
   this->pioData->set_scalar_field(histsize, "hist_size");
   this->pioData->set_scalar_field(daughter, "cell_daughter");
@@ -615,8 +615,8 @@ void PIOAdaptor::create_tracer_UG(vtkMultiBlockDataSet* grid)
   std::valarray<int> tracer_num_pnts;
   std::valarray<int> tracer_num_vars;
   std::valarray<int> tracer_record_count;
-  std::valarray<std::valarray<double> > tracer_position;
-  std::valarray<std::valarray<double> > tracer_data;
+  std::valarray<std::valarray<double>> tracer_position;
+  std::valarray<std::valarray<double>> tracer_data;
 
   this->pioData->set_scalar_field(tracer_num_pnts, "tracer_num_pnts");
   this->pioData->set_scalar_field(tracer_num_vars, "tracer_num_vars");
@@ -1140,7 +1140,7 @@ void PIOAdaptor::create_amr_HTG(vtkMultiBlockDataSet* grid,
   // Locate the level 1 cells which are the top level AMR for a grid position
   // Count the number of nodes and leaves in each level 1 cell for load balance
   int64_t* level1_index = new int64_t[numberOfTrees];
-  std::vector<std::pair<int, int> > treeCount;
+  std::vector<std::pair<int, int>> treeCount;
   std::vector<int> _myHyperTree;
 
   int planeSize = gridSize[1] * gridSize[0];
@@ -1231,7 +1231,7 @@ void PIOAdaptor::load_variable_data(
         static_cast<int>(this->pioData->VarMMap.count(this->variableName[var].c_str()));
       double** dataVector = new double*[numberOfComponents];
       std::valarray<double> scalarArray;
-      std::valarray<std::valarray<double> > vectorArray;
+      std::valarray<std::valarray<double>> vectorArray;
 
       if (numberOfComponents == 1)
       {

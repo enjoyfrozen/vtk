@@ -164,10 +164,15 @@ public:
 
   //@{
   /**
-   * Set the size of the window in screen coordinates in pixels.
+   * Set the size (width and height) of the rendering window in
+   * screen coordinates (in pixels). This resizes the operating
+   * system's view/window and redraws it.
+   *
+   * If the size has changed, this method will fire
+   * vtkCommand::WindowResizeEvent.
    */
-  void SetSize(int a[2]) override;
-  void SetSize(int, int) override;
+  void SetSize(int width, int height) override;
+  void SetSize(int a[2]) override { this->SetSize(a[0], a[1]); }
   //@}
 
   /**
@@ -434,6 +439,11 @@ public:
    */
   void ReleaseGraphicsResources(vtkWindow*) override;
 
+  // set this to true if the destination framebuffer requires a multisamped
+  // buffer to be resolved prior to blitting
+  vtkSetMacro(BlitRequiresResolve, bool);
+  vtkGetMacro(BlitRequiresResolve, bool);
+
 protected:
   vtkOpenGLRenderWindow();
   ~vtkOpenGLRenderWindow() override;
@@ -457,6 +467,10 @@ protected:
    */
   int CreateOffScreenFramebuffer(int width, int height);
   vtkOpenGLFramebufferObject* OffScreenFramebuffer;
+
+  // used when we need to recolv a multisampled
+  // framebuffer
+  vtkOpenGLFramebufferObject* ResolveFramebuffer;
 
   /**
    * Create a not-off-screen window.
@@ -512,6 +526,13 @@ protected:
 
   // keep track of in case we need to recreate the framebuffer
   int LastMultiSamples;
+
+  int ScreenSize[2];
+
+  // set this to true if the destination framebuffer
+  // requires a multisamped buffer to be resolved
+  // prior to blitting
+  bool BlitRequiresResolve;
 
 private:
   vtkOpenGLRenderWindow(const vtkOpenGLRenderWindow&) = delete;

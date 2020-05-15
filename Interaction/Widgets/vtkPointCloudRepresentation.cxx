@@ -16,10 +16,14 @@
 #include "vtkActor.h"
 #include "vtkActor2D.h"
 #include "vtkCallbackCommand.h"
+#include "vtkCamera.h"
 #include "vtkCellArray.h"
 #include "vtkDataSetMapper.h"
 #include "vtkFloatArray.h"
 #include "vtkGlyphSource2D.h"
+#include "vtkHardwareSelector.h"
+#include "vtkIdTypeArray.h"
+#include "vtkInformation.h"
 #include "vtkInteractorObserver.h"
 #include "vtkMapper2D.h"
 #include "vtkObjectFactory.h"
@@ -37,12 +41,117 @@
 #include "vtkPropCollection.h"
 #include "vtkProperty2D.h"
 #include "vtkRenderer.h"
+#include "vtkSelection.h"
+#include "vtkSelectionNode.h"
 #include "vtkWindow.h"
-#
 
 vtkStandardNewMacro(vtkPointCloudRepresentation);
 
-//-------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+// Abstract class to hide the details of picking
+struct vtkPointCloudPicker
+{
+  vtkPointCloudRepresentation* Representation;
+  vtkPointPicker* PointPicker;
+
+  vtkPointCloudPicker(vtkPointCloudRepresentation* rep)
+    : Representation(rep)
+  {
+    this->PointPicker = vtkPointPicker::New();
+    this->PointPicker->PickFromListOn();
+  }
+  ~vtkPointCloudPicker() { this->PointPicker->Delete(); }
+
+  // Need these to update the picking process
+  void InitializePickList() { this->PointPicker->InitializePickList(); }
+  void AddPickList(vtkProp* p) { this->PointPicker->AddPickList(p); }
+
+  // Does the dirty work of picking
+  vtkIdType Pick(int X, int Y, vtkRenderer* ren, double dispCoords[3], double worldCoords[4])
+  {
+    vtkPointCloudRepresentation* rep = this->Representation;
+    vtkIdType ptId = (-1);
+
+    // Depending on mode, pick appropriately
+    if (this->Representation->PickingMode == vtkPointCloudRepresentation::SOFTWARE_PICKING)
+    {
+      double tol = rep->SoftwarePickingTolerance * rep->InitialLength;
+      this->PointPicker->SetTolerance(tol);
+      vtkAssemblyPath* path = rep->GetAssemblyPath(X, Y, 0., this->PointPicker);
+      if (path != nullptr)
+      {
+        ptId = this->PointPicker->GetPointId();
+        this->PointPicker->GetPickPosition(worldCoords);
+        vtkInteractorObserver::ComputeWorldToDisplay(
+          ren, worldCoords[0], worldCoords[1], worldCoords[2], dispCoords);
+      }
+    }
+    else // HARDWARE_PICKING
+    {
+      // Setup pick process
+      int tol = rep->HardwarePickingTolerance;
+      vtkPoints* pcPoints = rep->PointCloud->GetPoints();
+      vtkIdType numPts = rep->PointCloud->GetNumberOfPoints();
+      int* winSize = ren->GetSize();
+      double pos[3], x[3];
+      ren->GetActiveCamera()->GetPosition(pos);
+
+      // Have to instantiate the hardware selector every time or nasty memory leaks occur
+      vtkNew<vtkHardwareSelector> selector;
+      selector->UpdateMaximumPointId(numPts);
+      selector->SetRenderer(ren);
+      int xmin = ((X - tol) < 0 ? 0 : (X - tol));
+      int ymin = ((Y - tol) < 0 ? 0 : (Y - tol));
+      int xmax = ((X + tol) >= winSize[0] ? (winSize[0] - 1) : (X + tol));
+      int ymax = ((Y + tol) >= winSize[1] ? (winSize[1] - 1) : (Y + tol));
+      selector->SetArea(xmin, ymin, xmax, ymax);
+
+      // We have to temporarily turn off the outline and selection actor
+      // so they are not picked,
+      rep->OutlineActor->VisibilityOff();
+      rep->SelectionActor->VisibilityOff();
+      vtkSmartPointer<vtkSelection> sel;
+      sel.TakeReference(selector->Select());
+      rep->SelectionActor->VisibilityOn();
+      rep->OutlineActor->VisibilityOn();
+
+      // Select points, compare with camera position
+      double dist2, minDist2 = VTK_DOUBLE_MAX;
+      const vtkIdType numNodes = sel->GetNumberOfNodes();
+      for (vtkIdType nodeId = 0; nodeId < numNodes; ++nodeId)
+      {
+        vtkSelectionNode* node = sel->GetNode(nodeId);
+        vtkIdTypeArray* selIds = vtkArrayDownCast<vtkIdTypeArray>(node->GetSelectionList());
+        if (selIds)
+        {
+          vtkIdType numIds = selIds->GetNumberOfTuples();
+          for (vtkIdType i = 0; i < numIds; ++i)
+          {
+            vtkIdType pid = selIds->GetValue(i);
+            pcPoints->GetPoint(pid, x);
+            dist2 = vtkMath::Distance2BetweenPoints(x, pos);
+            if (dist2 < minDist2)
+            {
+              minDist2 = dist2;
+              ptId = pid;
+            }
+          } // for all points in selection
+        }   // if selection ids found
+      }     // for all selection nodes
+      if (ptId >= 0)
+      {
+        pcPoints->GetPoint(ptId, worldCoords);
+        dispCoords[0] = static_cast<double>(X);
+        dispCoords[1] = static_cast<double>(Y);
+        dispCoords[2] = 0.0;
+      }
+    } // hardware selection
+
+    return ptId;
+  }
+};
+
+//------------------------------------------------------------------------------
 vtkPointCloudRepresentation::vtkPointCloudRepresentation()
 {
   // Internal state
@@ -53,15 +162,16 @@ vtkPointCloudRepresentation::vtkPointCloudRepresentation()
   this->PointId = (-1);
   this->PointCoordinates[0] = this->PointCoordinates[1] = this->PointCoordinates[2] = 0.0;
   this->InteractionState = vtkPointCloudRepresentation::Outside;
-  this->Tolerance = 0.0001; // fraction of bounding box
 
   // Manage the picking stuff. Note that for huge point clouds the picking may not
   // be fast enough: TODO: use a rendering-based point picker, or further accelerate
   // vtkPointPicker with the use of a point locator.
+  this->PickingMode = HARDWARE_PICKING;
+  this->HardwarePickingTolerance = 2;      // in pixels
+  this->SoftwarePickingTolerance = 0.0001; // fraction of bounding box
   this->OutlinePicker = vtkPicker::New();
   this->OutlinePicker->PickFromListOn();
-  this->PointPicker = vtkPointPicker::New();
-  this->PointPicker->PickFromListOn();
+  this->PointCloudPicker = new vtkPointCloudPicker(this);
 
   // The outline around the points
   this->OutlineFilter = vtkOutlineFilter::New();
@@ -89,7 +199,7 @@ vtkPointCloudRepresentation::vtkPointCloudRepresentation()
   this->SelectionActor->SetProperty(this->SelectionProperty);
 }
 
-//-------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkPointCloudRepresentation::~vtkPointCloudRepresentation()
 {
   if (this->PointCloud)
@@ -99,7 +209,7 @@ vtkPointCloudRepresentation::~vtkPointCloudRepresentation()
     this->PointCloudActor->Delete();
   }
   this->OutlinePicker->Delete();
-  this->PointPicker->Delete();
+  delete this->PointCloudPicker;
   this->OutlineFilter->Delete();
   this->OutlineMapper->Delete();
   this->OutlineActor->Delete();
@@ -109,7 +219,7 @@ vtkPointCloudRepresentation::~vtkPointCloudRepresentation()
   this->SelectionProperty->Delete();
 }
 
-//----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkPointCloudRepresentation::CreateDefaultProperties()
 {
   this->SelectionProperty = vtkProperty2D::New();
@@ -117,7 +227,7 @@ void vtkPointCloudRepresentation::CreateDefaultProperties()
   this->SelectionProperty->SetLineWidth(1.0);
 }
 
-//-------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkPointCloudRepresentation::PlacePointCloud(vtkActor* a)
 {
   // Return if nothing has changed
@@ -167,8 +277,8 @@ void vtkPointCloudRepresentation::PlacePointCloud(vtkActor* a)
   this->OutlinePicker->InitializePickList();
   this->OutlinePicker->AddPickList(a);
 
-  this->PointPicker->InitializePickList();
-  this->PointPicker->AddPickList(a);
+  this->PointCloudPicker->InitializePickList();
+  this->PointCloudPicker->AddPickList(a);
 
   this->PlaceWidget(pc->GetBounds());
 
@@ -177,7 +287,7 @@ void vtkPointCloudRepresentation::PlacePointCloud(vtkActor* a)
   this->Modified();
 }
 
-//-------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // If specifying point set, create our own actor and mapper
 void vtkPointCloudRepresentation::PlacePointCloud(vtkPointSet* pc)
 {
@@ -208,7 +318,7 @@ void vtkPointCloudRepresentation::PlacePointCloud(vtkPointSet* pc)
   this->PlacePointCloud(actor);
 }
 
-//-------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 double* vtkPointCloudRepresentation::GetBounds()
 {
   if (this->PointCloudActor)
@@ -221,40 +331,36 @@ double* vtkPointCloudRepresentation::GetBounds()
   }
 }
 
-//-------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkPointCloudRepresentation::ComputeInteractionState(int X, int Y, int vtkNotUsed(modify))
 {
-  // Need a tolerance for picking
-  double tol = this->Tolerance * this->InitialLength;
+  if (!this->Renderer || !this->PointCloudActor || !this->PointCloud)
+  {
+    this->InteractionState = vtkPointCloudRepresentation::Outside;
+    return this->InteractionState;
+  }
 
-  // First pick the bounding box
-  this->OutlinePicker->SetTolerance(tol);
+  // First pick the bounding box to see if we should proceed further. If so,
+  // perform a point pick.
+  this->PointId = (-1);
   vtkAssemblyPath* path = this->GetAssemblyPath(X, Y, 0., this->OutlinePicker);
   if (path != nullptr)
   {
-    this->InteractionState = vtkPointCloudRepresentation::OverOutline;
     this->OutlineActor->VisibilityOn();
-    // Now see if we can pick a point (with the appropriate tolerance)
-    this->PointPicker->SetTolerance(tol);
-    //    this->PointPicker->SetTolerance(0.004);
-    path = this->GetAssemblyPath(X, Y, 0., this->PointPicker);
-    if (path != nullptr)
+    this->InteractionState = vtkPointCloudRepresentation::OverOutline;
+    double pD[4], pW[4];
+    this->PointId = this->PointCloudPicker->Pick(X, Y, this->Renderer, pD, pW);
+    if (this->PointId >= 0)
     {
       this->InteractionState = vtkPointCloudRepresentation::Over;
-      // Create a tolerance and update the pick position
-      double center[4], p[4];
-      this->PointId = this->PointPicker->GetPointId();
-      this->PointPicker->GetPickPosition(p); // in world coordinates
-      vtkInteractorObserver::ComputeWorldToDisplay(this->Renderer, p[0], p[1], p[2], center);
-      this->PointCoordinates[0] = p[0];
-      this->PointCoordinates[1] = p[1];
-      this->PointCoordinates[2] = p[2];
-      this->SelectionShape->SetCenter(center);
+      this->PointCoordinates[0] = pW[0];
+      this->PointCoordinates[1] = pW[1];
+      this->PointCoordinates[2] = pW[2];
+      this->SelectionShape->SetCenter(pD);
       this->SelectionActor->VisibilityOn();
     }
     else
     {
-      this->PointId = (-1);
       this->SelectionActor->VisibilityOff();
     }
   }
@@ -267,14 +373,14 @@ int vtkPointCloudRepresentation::ComputeInteractionState(int X, int Y, int vtkNo
   return this->InteractionState;
 }
 
-//-------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkPointCloudRepresentation::GetActors2D(vtkPropCollection* pc)
 {
   pc->AddItem(this->SelectionActor);
   this->Superclass::GetActors2D(pc);
 }
 
-//-------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkPointCloudRepresentation::ReleaseGraphicsResources(vtkWindow* w)
 {
   if (this->PointCloudActor)
@@ -282,9 +388,10 @@ void vtkPointCloudRepresentation::ReleaseGraphicsResources(vtkWindow* w)
     this->PointCloudActor->ReleaseGraphicsResources(w);
   }
   this->OutlineActor->ReleaseGraphicsResources(w);
+  this->SelectionActor->ReleaseGraphicsResources(w);
 }
 
-//----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkPointCloudRepresentation::RenderOpaqueGeometry(vtkViewport* viewport)
 {
   int count = 0;
@@ -300,7 +407,7 @@ int vtkPointCloudRepresentation::RenderOpaqueGeometry(vtkViewport* viewport)
   return count;
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkPointCloudRepresentation::RenderTranslucentPolygonalGeometry(vtkViewport* viewport)
 {
   int count = 0;
@@ -316,7 +423,7 @@ int vtkPointCloudRepresentation::RenderTranslucentPolygonalGeometry(vtkViewport*
   return count;
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkTypeBool vtkPointCloudRepresentation::HasTranslucentPolygonalGeometry()
 {
   int result = 0;
@@ -333,7 +440,7 @@ vtkTypeBool vtkPointCloudRepresentation::HasTranslucentPolygonalGeometry()
   return result;
 }
 
-//-------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkPointCloudRepresentation::RenderOverlay(vtkViewport* v)
 {
   int count = 0;
@@ -348,7 +455,7 @@ int vtkPointCloudRepresentation::RenderOverlay(vtkViewport* v)
   return count;
 }
 
-//----------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkPointCloudRepresentation::RegisterPickers()
 {
   vtkPickingManager* pm = this->GetPickingManager();
@@ -356,10 +463,10 @@ void vtkPointCloudRepresentation::RegisterPickers()
   {
     return;
   }
-  pm->AddPicker(this->PointPicker, this);
+  pm->AddPicker(this->OutlinePicker, this);
 }
 
-//-------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkPointCloudRepresentation::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
@@ -378,7 +485,10 @@ void vtkPointCloudRepresentation::PrintSelf(ostream& os, vtkIndent indent)
      << this->PointCoordinates[1] << "," << this->PointCoordinates[2] << ")\n";
 
   os << indent << "Highlighting: " << (this->Highlighting ? "On" : "Off") << "\n";
-  os << indent << "Tolerance: " << this->Tolerance << "\n";
+
+  os << indent << "Picking Mode: " << this->PickingMode << "\n";
+  os << indent << "Hardware Picking Tolerance: " << this->HardwarePickingTolerance << "\n";
+  os << indent << "Software Picking Tolerance: " << this->SoftwarePickingTolerance << "\n";
 
   if (this->SelectionProperty)
   {

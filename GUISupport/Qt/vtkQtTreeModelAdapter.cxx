@@ -250,7 +250,7 @@ void vtkQtTreeModelAdapter::GenerateVTKIndexToQtModelIndex(
   it->Delete();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 QVariant vtkQtTreeModelAdapterArrayValue(vtkAbstractArray* arr, vtkIdType i, vtkIdType j)
 {
   int comps = arr->GetNumberOfComponents();
@@ -547,7 +547,7 @@ QMimeData* vtkQtTreeModelAdapter::mimeData(const QModelIndexList& indexes) const
 {
   // Only supports dragging single item right now ...
 
-  if (indexes.size() == 0)
+  if (indexes.empty())
   {
     return nullptr;
   }

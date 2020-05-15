@@ -17,8 +17,12 @@ set(classes
   vtkStrahlerMetric
   vtkStreamingStatistics)
 
+set(headers
+  vtkStatisticsAlgorithmPrivate.h)
+
 vtk_module_add_module(VTK::FiltersStatistics
-  CLASSES ${classes})
+  CLASSES ${classes}
+  HEADERS ${headers})
 
 if(MINGW AND CMAKE_BUILD_TYPE STREQUAL "Debug")
   if(CMAKE_SIZEOF_VOID_P EQUAL 8)

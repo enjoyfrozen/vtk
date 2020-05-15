@@ -136,7 +136,7 @@ struct vtkLabeledContourMapper::Private
   std::vector<LabelMetric> LabelMetrics;
 
   // One LabelInfo per label groups by isoline.
-  std::vector<std::vector<LabelInfo> > LabelInfos;
+  std::vector<std::vector<LabelInfo>> LabelInfos;
 
   // Info for calculating display coordinates:
   vtkTuple<double, 16> AMVP;               // actor-model-view-projection matrix
@@ -721,7 +721,7 @@ bool vtkLabeledContourMapper::PlaceLabels()
 bool vtkLabeledContourMapper::ResolveLabels()
 {
   typedef std::vector<LabelInfo>::iterator InnerIterator;
-  typedef std::vector<std::vector<LabelInfo> >::iterator OuterIterator;
+  typedef std::vector<std::vector<LabelInfo>>::iterator OuterIterator;
 
   bool removedA = false;
   bool removedB = false;
@@ -948,7 +948,7 @@ bool vtkLabeledContourMapper::BuildStencilQuads()
   unsigned int eIndex = 0; // index array element
 
   typedef std::vector<LabelInfo>::const_iterator InnerIterator;
-  typedef std::vector<std::vector<LabelInfo> >::const_iterator OuterIterator;
+  typedef std::vector<std::vector<LabelInfo>>::const_iterator OuterIterator;
 
   for (OuterIterator out = this->Internal->LabelInfos.begin(),
                      outEnd = this->Internal->LabelInfos.end();
@@ -1093,7 +1093,7 @@ bool vtkLabeledContourMapper::Private::SetViewInfo(vtkRenderer* ren, vtkActor* a
 
   if (vtkWindow* win = ren->GetVTKWindow())
   {
-    int* size = win->GetSize();
+    const int* size = win->GetSize();
     this->WindowSize[0] = size[0];
     this->WindowSize[1] = size[1];
 

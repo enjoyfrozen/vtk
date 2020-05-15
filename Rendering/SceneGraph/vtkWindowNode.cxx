@@ -26,7 +26,7 @@
 //============================================================================
 vtkStandardNewMacro(vtkWindowNode);
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkWindowNode::vtkWindowNode()
 {
   this->Size[0] = 0;
@@ -35,7 +35,7 @@ vtkWindowNode::vtkWindowNode()
   this->ZBuffer = vtkFloatArray::New();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkWindowNode::~vtkWindowNode()
 {
   this->ColorBuffer->Delete();
@@ -44,13 +44,13 @@ vtkWindowNode::~vtkWindowNode()
   this->ZBuffer = nullptr;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkWindowNode::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkWindowNode::Build(bool prepass)
 {
   if (prepass)
@@ -67,7 +67,7 @@ void vtkWindowNode::Build(bool prepass)
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkWindowNode::Synchronize(bool prepass)
 {
   if (prepass)
@@ -97,7 +97,7 @@ void vtkWindowNode::Synchronize(bool prepass)
       GetPosition()   vtkWindow       virtual
       GetScreenSize()=0       vtkWindow       pure virtual
     */
-    int* sz = mine->GetSize();
+    const int* sz = mine->GetSize();
     this->Size[0] = sz[0];
     this->Size[1] = sz[1];
     /*

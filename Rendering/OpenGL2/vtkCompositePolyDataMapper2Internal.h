@@ -1,3 +1,31 @@
+/*=========================================================================
+
+  Program:   Visualization Toolkit
+  Module:    vtkCameraPass.h
+
+  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+  All rights reserved.
+  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
+
+     This software is distributed WITHOUT ANY WARRANTY; without even
+     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+     PURPOSE.  See the above copyright notice for more information.
+
+=========================================================================*/
+
+#ifndef vtkCompositeMapperHelper2_h
+#define vtkCompositeMapperHelper2_h
+
+#ifndef __VTK_WRAP__
+
+#include "vtkColor.h"
+#include "vtkOpenGL.h"
+#include "vtkOpenGLPolyDataMapper.h"
+#include "vtkRenderingOpenGL2Module.h"
+
+class vtkPolyData;
+class vtkCompositePolyDataMapper2;
+
 // this class encapsulates values tied to a
 // polydata
 class vtkCompositeMapperHelperData
@@ -120,7 +148,7 @@ protected:
   std::vector<vtkPolyData*> RenderedList;
 
   // used by the hardware selector
-  std::vector<std::vector<unsigned int> > PickPixels;
+  std::vector<std::vector<unsigned int>> PickPixels;
 
   std::map<vtkAbstractArray*, vtkDataArray*> ColorArrayMap;
 
@@ -128,4 +156,8 @@ private:
   vtkCompositeMapperHelper2(const vtkCompositeMapperHelper2&) = delete;
   void operator=(const vtkCompositeMapperHelper2&) = delete;
 };
+
+#endif
+
+#endif
 // VTK-HeaderTest-Exclude: vtkCompositePolyDataMapper2Internal.h

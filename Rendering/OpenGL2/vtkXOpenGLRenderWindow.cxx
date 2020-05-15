@@ -264,8 +264,6 @@ XVisualInfo* vtkXOpenGLRenderWindow::GetDesiredVisualInfo()
 vtkXOpenGLRenderWindow::vtkXOpenGLRenderWindow()
 {
   this->ParentId = static_cast<Window>(0);
-  this->ScreenSize[0] = 0;
-  this->ScreenSize[1] = 0;
   this->OwnDisplay = 0;
   this->CursorHidden = 0;
   this->ForceMakeCurrent = 0;
@@ -893,8 +891,7 @@ void vtkXOpenGLRenderWindow::PrefFullScreen()
   }
   else
   {
-    int* size;
-    size = this->GetScreenSize();
+    const int* size = this->GetScreenSize();
     this->Size[0] = size[0];
     this->Size[1] = size[1];
   }
@@ -1089,7 +1086,7 @@ void vtkXOpenGLRenderWindow::MakeCurrent()
   }
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Description:
 // Tells if this window is the current OpenGL context for the calling thread.
 bool vtkXOpenGLRenderWindow::IsCurrent()
@@ -1132,7 +1129,7 @@ void vtkXOpenGLRenderWindow::SetForceMakeCurrent()
   this->ForceMakeCurrent = 1;
 }
 
-int vtkXOpenGLRenderWindowFoundMatch;
+vtkTypeBool vtkXOpenGLRenderWindowFoundMatch;
 
 extern "C"
 {
@@ -1159,7 +1156,7 @@ void* vtkXOpenGLRenderWindow::GetGenericContext()
   return static_cast<void*>(gc);
 }
 
-int vtkXOpenGLRenderWindow::GetEventPending()
+vtkTypeBool vtkXOpenGLRenderWindow::GetEventPending()
 {
   XEvent report;
 
@@ -1438,7 +1435,7 @@ void vtkXOpenGLRenderWindow::CloseDisplay()
   }
 }
 
-int vtkXOpenGLRenderWindow::IsDirect()
+vtkTypeBool vtkXOpenGLRenderWindow::IsDirect()
 {
   this->MakeCurrent();
   this->UsingHardware = 0;
@@ -1522,7 +1519,7 @@ void vtkXOpenGLRenderWindow::Render()
   this->vtkOpenGLRenderWindow::Render();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkXOpenGLRenderWindow::HideCursor()
 {
   static char blankBits[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1550,7 +1547,7 @@ void vtkXOpenGLRenderWindow::HideCursor()
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkXOpenGLRenderWindow::ShowCursor()
 {
   if (!this->DisplayId || !this->WindowId)

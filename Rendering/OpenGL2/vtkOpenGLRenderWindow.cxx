@@ -142,7 +142,7 @@ private:
 };
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkOpenGLRenderWindow::SetGlobalMaximumNumberOfMultiSamples(int val)
 {
   if (val == vtkOpenGLRenderWindowGlobalMaximumNumberOfMultiSamples)
@@ -152,20 +152,21 @@ void vtkOpenGLRenderWindow::SetGlobalMaximumNumberOfMultiSamples(int val)
   vtkOpenGLRenderWindowGlobalMaximumNumberOfMultiSamples = val;
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkOpenGLRenderWindow::GetGlobalMaximumNumberOfMultiSamples()
 {
   return vtkOpenGLRenderWindowGlobalMaximumNumberOfMultiSamples;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 const char* vtkOpenGLRenderWindow::GetRenderingBackend()
 {
   return "OpenGL2";
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkOpenGLRenderWindow::vtkOpenGLRenderWindow()
+  : BlitRequiresResolve(false)
 {
   this->State = vtkOpenGLState::New();
 
@@ -179,6 +180,8 @@ vtkOpenGLRenderWindow::vtkOpenGLRenderWindow()
 
   this->OffScreenFramebuffer = vtkOpenGLFramebufferObject::New();
   this->OffScreenFramebuffer->SetContext(this);
+  this->ResolveFramebuffer = vtkOpenGLFramebufferObject::New();
+  this->ResolveFramebuffer->SetContext(this);
 
   this->BackLeftBuffer = static_cast<unsigned int>(GL_BACK_LEFT);
   this->BackRightBuffer = static_cast<unsigned int>(GL_BACK_RIGHT);
@@ -204,16 +207,24 @@ vtkOpenGLRenderWindow::vtkOpenGLRenderWindow()
   this->NoiseTextureObject = nullptr;
   this->FirstRenderTime = -1;
   this->LastMultiSamples = -1;
+
+  this->ScreenSize[0] = 0;
+  this->ScreenSize[1] = 0;
 }
 
 // free up memory & close the window
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkOpenGLRenderWindow::~vtkOpenGLRenderWindow()
 {
   if (this->OffScreenFramebuffer)
   {
     this->OffScreenFramebuffer->Delete();
     this->OffScreenFramebuffer = nullptr;
+  }
+  if (this->ResolveFramebuffer)
+  {
+    this->ResolveFramebuffer->Delete();
+    this->ResolveFramebuffer = nullptr;
   }
 
   if (this->DrawPixelsTextureObject != nullptr)
@@ -240,6 +251,7 @@ vtkOpenGLRenderWindow::~vtkOpenGLRenderWindow()
   this->State->Delete();
 }
 
+//------------------------------------------------------------------------------
 const char* vtkOpenGLRenderWindow::ReportCapabilities()
 {
   this->MakeCurrent();
@@ -280,12 +292,13 @@ const char* vtkOpenGLRenderWindow::ReportCapabilities()
   return this->Capabilities;
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkOpenGLRenderWindow::ReleaseGraphicsResources(vtkWindow* renWin)
 {
   this->PushContext();
 
   this->OffScreenFramebuffer->ReleaseGraphicsResources(renWin);
+  this->ResolveFramebuffer->ReleaseGraphicsResources(renWin);
 
   // release the registered resources
   if (this->NoiseTextureObject)
@@ -336,25 +349,25 @@ void vtkOpenGLRenderWindow::ReleaseGraphicsResources(vtkWindow* renWin)
   this->Initialized = false;
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkMTimeType vtkOpenGLRenderWindow::GetContextCreationTime()
 {
   return this->ContextCreationTime.GetMTime();
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkOpenGLShaderCache* vtkOpenGLRenderWindow::GetShaderCache()
 {
   return this->GetState()->GetShaderCache();
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkOpenGLVertexBufferObjectCache* vtkOpenGLRenderWindow::GetVBOCache()
 {
   return this->GetState()->GetVBOCache();
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Description:
 // Return the OpenGL name of the back left buffer.
 // It is GL_BACK_LEFT if GL is bound to the window-system-provided
@@ -366,7 +379,7 @@ unsigned int vtkOpenGLRenderWindow::GetBackLeftBuffer()
   return this->BackLeftBuffer;
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Description:
 // Return the OpenGL name of the back right buffer.
 // It is GL_BACK_RIGHT if GL is bound to the window-system-provided
@@ -378,7 +391,7 @@ unsigned int vtkOpenGLRenderWindow::GetBackRightBuffer()
   return this->BackRightBuffer;
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Description:
 // Return the OpenGL name of the front left buffer.
 // It is GL_FRONT_LEFT if GL is bound to the window-system-provided
@@ -390,7 +403,7 @@ unsigned int vtkOpenGLRenderWindow::GetFrontLeftBuffer()
   return this->FrontLeftBuffer;
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Description:
 // Return the OpenGL name of the front right buffer.
 // It is GL_FRONT_RIGHT if GL is bound to the window-system-provided
@@ -402,7 +415,7 @@ unsigned int vtkOpenGLRenderWindow::GetFrontRightBuffer()
   return this->FrontRightBuffer;
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Description:
 // Return the OpenGL name of the back left buffer.
 // It is GL_BACK if GL is bound to the window-system-provided
@@ -414,7 +427,7 @@ unsigned int vtkOpenGLRenderWindow::GetBackBuffer()
   return this->BackLeftBuffer;
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Description:
 // Return the OpenGL name of the front left buffer.
 // It is GL_FRONT if GL is bound to the window-system-provided
@@ -426,28 +439,25 @@ unsigned int vtkOpenGLRenderWindow::GetFrontBuffer()
   return this->FrontLeftBuffer;
 }
 
-void vtkOpenGLRenderWindow::SetSize(int a[2])
+//------------------------------------------------------------------------------
+void vtkOpenGLRenderWindow::SetSize(int width, int height)
 {
-  this->SetSize(a[0], a[1]);
-}
-
-void vtkOpenGLRenderWindow::SetSize(int x, int y)
-{
-  if (this->Size[0] == x && this->Size[1] == y)
+  if (this->Size[0] == width && this->Size[1] == height)
   {
     // Nothing should've happened in the superclass but one never knows...
-    this->Superclass::SetSize(x, y);
+    this->Superclass::SetSize(width, height);
     return;
   }
 
-  this->Superclass::SetSize(x, y);
+  this->Superclass::SetSize(width, height);
   if (this->UseOffScreenBuffers && this->OffScreenFramebuffer)
   {
     // resize the framebuffer
-    this->OffScreenFramebuffer->Resize(x, y);
+    this->OffScreenFramebuffer->Resize(width, height);
   }
 }
 
+//------------------------------------------------------------------------------
 void vtkOpenGLRenderWindow::OpenGLInit()
 {
   this->OpenGLInitContext();
@@ -462,6 +472,7 @@ void vtkOpenGLRenderWindow::OpenGLInit()
   }
 }
 
+//------------------------------------------------------------------------------
 void vtkOpenGLRenderWindow::OpenGLInitState()
 {
   this->GetState()->Initialize(this);
@@ -490,6 +501,7 @@ void vtkOpenGLRenderWindow::OpenGLInitState()
   this->SetAlphaBitPlanes(rgba[3]);
 }
 
+//------------------------------------------------------------------------------
 int vtkOpenGLRenderWindow::GetDefaultTextureInternalFormat(
   int vtktype, int numComponents, bool needInt, bool needFloat, bool needSRGB)
 {
@@ -497,6 +509,7 @@ int vtkOpenGLRenderWindow::GetDefaultTextureInternalFormat(
     vtktype, numComponents, needInt, needFloat, needSRGB);
 }
 
+//------------------------------------------------------------------------------
 void vtkOpenGLRenderWindow::GetOpenGLVersion(int& major, int& minor)
 {
   int glMajorVersion = 2;
@@ -512,7 +525,7 @@ void vtkOpenGLRenderWindow::GetOpenGLVersion(int& major, int& minor)
   minor = glMinorVersion;
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 bool vtkOpenGLRenderWindow::InitializeFromCurrentContext()
 {
   int frameBufferBinding = 0;
@@ -548,7 +561,7 @@ bool vtkOpenGLRenderWindow::InitializeFromCurrentContext()
   return true;
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkOpenGLRenderWindow::OpenGLInitContext()
 {
   this->ContextCreationTime.Modified();
@@ -610,12 +623,14 @@ void vtkOpenGLRenderWindow::OpenGLInitContext()
   }
 }
 
+//------------------------------------------------------------------------------
 void vtkOpenGLRenderWindow::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
   os << indent << "DefaultFrameBufferId: " << this->DefaultFrameBufferId << endl;
 }
 
+//------------------------------------------------------------------------------
 int vtkOpenGLRenderWindow::GetDepthBufferSize()
 {
   GLint size;
@@ -646,6 +661,7 @@ int vtkOpenGLRenderWindow::GetDepthBufferSize()
   }
 }
 
+//------------------------------------------------------------------------------
 bool vtkOpenGLRenderWindow::GetUsingSRGBColorSpace()
 {
   if (this->Initialized)
@@ -691,6 +707,7 @@ bool vtkOpenGLRenderWindow::GetUsingSRGBColorSpace()
   return false;
 }
 
+//------------------------------------------------------------------------------
 int vtkOpenGLRenderWindow::GetColorBufferSizes(int* rgba)
 {
   GLint size;
@@ -767,6 +784,7 @@ int vtkOpenGLRenderWindow::GetColorBufferSizes(int* rgba)
   }
 }
 
+//------------------------------------------------------------------------------
 int vtkOpenGLRenderWindow::GetColorBufferInternalFormat(int attachmentPoint)
 {
   int format = 0;
@@ -800,6 +818,7 @@ int vtkOpenGLRenderWindow::GetColorBufferInternalFormat(int attachmentPoint)
   return format;
 }
 
+//------------------------------------------------------------------------------
 unsigned char* vtkOpenGLRenderWindow::GetPixelData(
   int x1, int y1, int x2, int y2, int front, int right)
 {
@@ -837,6 +856,7 @@ unsigned char* vtkOpenGLRenderWindow::GetPixelData(
   return ucdata;
 }
 
+//------------------------------------------------------------------------------
 int vtkOpenGLRenderWindow::GetPixelData(
   int x1, int y1, int x2, int y2, int front, vtkUnsignedCharArray* data, int right)
 {
@@ -880,6 +900,7 @@ int vtkOpenGLRenderWindow::GetPixelData(
   return this->ReadPixels(rect, front, GL_RGB, GL_UNSIGNED_BYTE, data->GetPointer(0), right);
 }
 
+//------------------------------------------------------------------------------
 // does the current read buffer require resolving for reading pixels
 bool vtkOpenGLRenderWindow::GetBufferNeedsResolving()
 {
@@ -890,6 +911,7 @@ bool vtkOpenGLRenderWindow::GetBufferNeedsResolving()
   return false;
 }
 
+//------------------------------------------------------------------------------
 int vtkOpenGLRenderWindow::ReadPixels(
   const vtkRecti& rect, int front, int glformat, int gltype, void* data, int right)
 {
@@ -920,37 +942,24 @@ int vtkOpenGLRenderWindow::ReadPixels(
 
   if (resolveMSAA)
   {
-    vtkNew<vtkOpenGLFramebufferObject> resolvedFBO;
-    resolvedFBO->SetContext(this);
     this->GetState()->PushFramebufferBindings();
-    resolvedFBO->PopulateFramebuffer(rect.GetWidth(), rect.GetHeight(),
-      /* useTextures = */ true,
-      /* numberOfColorAttachments = */ 1,
-      /* colorDataType = */ VTK_UNSIGNED_CHAR,
-      /* wantDepthAttachment = */ false,
-      /* depthBitplanes = */ 0,
-      /* multisamples = */ 0);
-
-    // PopulateFramebuffer changes active read/write buffer bindings,
-    // hence we restore the read buffer bindings to read from the original
-    // frame buffer.
-    this->GetState()->PopReadFramebufferBinding();
+    int* fbsize = this->OffScreenFramebuffer->GetLastSize();
+    this->ResolveFramebuffer->Resize(fbsize[0], fbsize[1]);
+    this->ResolveFramebuffer->Bind(GL_DRAW_FRAMEBUFFER);
 
     // Now blit to resolve the MSAA and get an anti-aliased rendering in
     // resolvedFBO.
     // Note: extents are (x-min, x-max, y-min, y-max).
     const int srcExtents[4] = { rect.GetLeft(), rect.GetRight(), rect.GetBottom(), rect.GetTop() };
-    const int destExtents[4] = { 0, rect.GetWidth(), 0, rect.GetHeight() };
-    vtkOpenGLFramebufferObject::Blit(srcExtents, destExtents, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    vtkOpenGLFramebufferObject::Blit(srcExtents, srcExtents, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
     // Now make the resolvedFBO the read buffer and read from it.
-    this->GetState()->PushReadFramebufferBinding();
-    resolvedFBO->Bind(GL_READ_FRAMEBUFFER);
-    resolvedFBO->ActivateReadBuffer(0);
+    this->ResolveFramebuffer->Bind(GL_READ_FRAMEBUFFER);
+    this->ResolveFramebuffer->ActivateReadBuffer(0);
 
-    // read pixels from the resolvedFBO. Note, the resolvedFBO has different
-    // dimensions than the render window, hence different read extents.
-    glReadPixels(0, 0, rect.GetWidth(), rect.GetHeight(), glformat, gltype, data);
+    // read pixels from the resolvedFBO.
+    glReadPixels(
+      rect.GetLeft(), rect.GetBottom(), rect.GetWidth(), rect.GetHeight(), glformat, gltype, data);
 
     // restore bindings and release the resolvedFBO.
     this->GetState()->PopFramebufferBindings();
@@ -971,11 +980,13 @@ int vtkOpenGLRenderWindow::ReadPixels(
   }
 }
 
+//------------------------------------------------------------------------------
 void vtkOpenGLRenderWindow::End()
 {
   this->GetState()->PopFramebufferBindings();
 }
 
+//------------------------------------------------------------------------------
 // for crystal eyes in stereo we have to blit here as well
 void vtkOpenGLRenderWindow::StereoMidpoint()
 {
@@ -998,12 +1009,31 @@ void vtkOpenGLRenderWindow::StereoMidpoint()
   }
 }
 
+//------------------------------------------------------------------------------
 void vtkOpenGLRenderWindow::Frame()
 {
   if (!this->UseOffScreenBuffers)
   {
     this->GetState()->PushFramebufferBindings();
     this->OffScreenFramebuffer->Bind(GL_READ_FRAMEBUFFER);
+    int* fbsize = this->OffScreenFramebuffer->GetLastSize();
+
+    // recall Blit upper right corner is exclusive of the range
+    const int srcExtents[4] = { 0, fbsize[0], 0, fbsize[1] };
+
+    if (this->MultiSamples && this->BlitRequiresResolve)
+    {
+      this->GetState()->vtkglViewport(0, 0, fbsize[0], fbsize[1]);
+      this->GetState()->vtkglScissor(0, 0, fbsize[0], fbsize[1]);
+
+      this->ResolveFramebuffer->Resize(fbsize[0], fbsize[1]);
+      this->ResolveFramebuffer->Bind(GL_DRAW_FRAMEBUFFER);
+      vtkOpenGLFramebufferObject::Blit(srcExtents, srcExtents, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+      this->ResolveFramebuffer->Bind(GL_READ_FRAMEBUFFER);
+    }
+
+    this->GetState()->vtkglViewport(0, 0, this->Size[0], this->Size[1]);
+    this->GetState()->vtkglScissor(0, 0, this->Size[0], this->Size[1]);
 
     this->GetState()->vtkglBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->DefaultFrameBufferId);
     if (this->StereoRender && this->StereoType == VTK_STEREO_CRYSTAL_EYES)
@@ -1015,17 +1045,13 @@ void vtkOpenGLRenderWindow::Frame()
       this->GetState()->vtkglDrawBuffer(this->GetBackLeftBuffer());
     }
 
-    int* fbsize = this->OffScreenFramebuffer->GetLastSize();
-    // recall Blit upper right corner is exclusive of the range
-    const int srcExtents[4] = { 0, fbsize[0], 0, fbsize[1] };
     const int destExtents[4] = { 0, this->Size[0], 0, this->Size[1] };
-    this->GetState()->vtkglViewport(0, 0, this->Size[0], this->Size[1]);
-    this->GetState()->vtkglScissor(0, 0, this->Size[0], this->Size[1]);
     vtkOpenGLFramebufferObject::Blit(srcExtents, destExtents, GL_COLOR_BUFFER_BIT, GL_LINEAR);
     this->GetState()->PopFramebufferBindings();
   }
 }
 
+//------------------------------------------------------------------------------
 // Begin the rendering process.
 void vtkOpenGLRenderWindow::Start()
 {
@@ -1059,6 +1085,7 @@ void vtkOpenGLRenderWindow::Start()
   this->OffScreenFramebuffer->Bind();
 }
 
+//------------------------------------------------------------------------------
 int vtkOpenGLRenderWindow::SetPixelData(
   int x1, int y1, int x2, int y2, vtkUnsignedCharArray* data, int front, int right)
 {
@@ -1100,6 +1127,7 @@ int vtkOpenGLRenderWindow::SetPixelData(
   return this->SetPixelData(x1, y1, x2, y2, data->GetPointer(0), front, right);
 }
 
+//------------------------------------------------------------------------------
 // draw (and stretch as needed) the data to the current viewport
 void vtkOpenGLRenderWindow::DrawPixels(
   int srcWidth, int srcHeight, int numComponents, int dataType, void* data)
@@ -1120,6 +1148,7 @@ void vtkOpenGLRenderWindow::DrawPixels(
   this->DrawPixelsTextureObject->CopyToFrameBuffer(nullptr, nullptr);
 }
 
+//------------------------------------------------------------------------------
 // very generic call to draw pixel data to a region of the window
 void vtkOpenGLRenderWindow::DrawPixels(int dstXmin, int dstYmin, int dstXmax, int dstYmax,
   int srcXmin, int srcYmin, int srcXmax, int srcYmax, int srcWidth, int srcHeight,
@@ -1142,6 +1171,7 @@ void vtkOpenGLRenderWindow::DrawPixels(int dstXmin, int dstYmin, int dstXmax, in
     dstYmin, dstXmax, dstYmax, this->GetSize()[0], this->GetSize()[1], nullptr, nullptr);
 }
 
+//------------------------------------------------------------------------------
 // less generic version, old API
 void vtkOpenGLRenderWindow::DrawPixels(
   int x1, int y1, int x2, int y2, int numComponents, int dataType, void* data)
@@ -1179,6 +1209,7 @@ void vtkOpenGLRenderWindow::DrawPixels(
     numComponents, dataType, data);
 }
 
+//------------------------------------------------------------------------------
 int vtkOpenGLRenderWindow::SetPixelData(
   int x1, int y1, int x2, int y2, unsigned char* data, int front, int right)
 {
@@ -1212,6 +1243,7 @@ int vtkOpenGLRenderWindow::SetPixelData(
   }
 }
 
+//------------------------------------------------------------------------------
 float* vtkOpenGLRenderWindow::GetRGBAPixelData(int x1, int y1, int x2, int y2, int front, int right)
 {
 
@@ -1250,6 +1282,7 @@ float* vtkOpenGLRenderWindow::GetRGBAPixelData(int x1, int y1, int x2, int y2, i
   return fdata;
 }
 
+//------------------------------------------------------------------------------
 int vtkOpenGLRenderWindow::GetRGBAPixelData(
   int x1, int y1, int x2, int y2, int front, vtkFloatArray* data, int right)
 {
@@ -1293,11 +1326,13 @@ int vtkOpenGLRenderWindow::GetRGBAPixelData(
   return this->ReadPixels(rect, front, GL_RGBA, GL_FLOAT, data->GetPointer(0), right);
 }
 
+//------------------------------------------------------------------------------
 void vtkOpenGLRenderWindow::ReleaseRGBAPixelData(float* data)
 {
   delete[] data;
 }
 
+//------------------------------------------------------------------------------
 int vtkOpenGLRenderWindow::SetRGBAPixelData(
   int x1, int y1, int x2, int y2, vtkFloatArray* data, int front, int blend, int right)
 {
@@ -1340,6 +1375,7 @@ int vtkOpenGLRenderWindow::SetRGBAPixelData(
   return this->SetRGBAPixelData(x1, y1, x2, y2, data->GetPointer(0), front, blend, right);
 }
 
+//------------------------------------------------------------------------------
 int vtkOpenGLRenderWindow::SetRGBAPixelData(
   int x1, int y1, int x2, int y2, float* data, int front, int blend, int right)
 {
@@ -1381,6 +1417,7 @@ int vtkOpenGLRenderWindow::SetRGBAPixelData(
   }
 }
 
+//------------------------------------------------------------------------------
 unsigned char* vtkOpenGLRenderWindow::GetRGBACharPixelData(
   int x1, int y1, int x2, int y2, int front, int right)
 {
@@ -1419,6 +1456,7 @@ unsigned char* vtkOpenGLRenderWindow::GetRGBACharPixelData(
   return ucdata;
 }
 
+//------------------------------------------------------------------------------
 int vtkOpenGLRenderWindow::GetRGBACharPixelData(
   int x1, int y1, int x2, int y2, int front, vtkUnsignedCharArray* data, int right)
 {
@@ -1462,6 +1500,7 @@ int vtkOpenGLRenderWindow::GetRGBACharPixelData(
   return this->ReadPixels(rect, front, GL_RGBA, GL_UNSIGNED_BYTE, data->GetPointer(0), right);
 }
 
+//------------------------------------------------------------------------------
 int vtkOpenGLRenderWindow::SetRGBACharPixelData(
   int x1, int y1, int x2, int y2, vtkUnsignedCharArray* data, int front, int blend, int right)
 {
@@ -1505,6 +1544,7 @@ int vtkOpenGLRenderWindow::SetRGBACharPixelData(
   return this->SetRGBACharPixelData(x1, y1, x2, y2, data->GetPointer(0), front, blend, right);
 }
 
+//------------------------------------------------------------------------------
 int vtkOpenGLRenderWindow::SetRGBACharPixelData(
   int x1, int y1, int x2, int y2, unsigned char* data, int front, int blend, int right)
 {
@@ -1549,6 +1589,7 @@ int vtkOpenGLRenderWindow::SetRGBACharPixelData(
   }
 }
 
+//------------------------------------------------------------------------------
 int vtkOpenGLRenderWindow::GetZbufferData(int x1, int y1, int x2, int y2, float* z_data)
 {
   int y_low;
@@ -1599,38 +1640,24 @@ int vtkOpenGLRenderWindow::GetZbufferData(int x1, int y1, int x2, int y2, float*
   if (resolveMSAA)
   {
     vtkRecti rect(x_low, y_low, width, height);
-
-    vtkNew<vtkOpenGLFramebufferObject> resolvedFBO;
-    resolvedFBO->SetContext(this);
     this->GetState()->PushFramebufferBindings();
-    resolvedFBO->PopulateFramebuffer(width, height,
-      /* useTextures = */ true,
-      /* numberOfColorAttachments = */ 1,
-      /* colorDataType = */ VTK_UNSIGNED_CHAR,
-      /* wantDepthAttachment = */ true,
-      /* depthBitplanes = */ 32,
-      /* multisamples = */ 0);
-
-    // PopulateFramebuffer changes active read/write buffer bindings,
-    // hence we restore the read buffer bindings to read from the original
-    // frame buffer.
-    this->GetState()->PopReadFramebufferBinding();
+    int* fbsize = this->OffScreenFramebuffer->GetLastSize();
+    this->ResolveFramebuffer->Resize(fbsize[0], fbsize[1]);
+    this->ResolveFramebuffer->Bind(GL_DRAW_FRAMEBUFFER);
 
     // Now blit to resolve the MSAA and get an anti-aliased rendering in
     // resolvedFBO.
     // Note: extents are (x-min, x-max, y-min, y-max).
     const int srcExtents[4] = { rect.GetLeft(), rect.GetRight(), rect.GetBottom(), rect.GetTop() };
-    const int destExtents[4] = { 0, rect.GetWidth(), 0, rect.GetHeight() };
-    vtkOpenGLFramebufferObject::Blit(srcExtents, destExtents, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+    vtkOpenGLFramebufferObject::Blit(srcExtents, srcExtents, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 
     // Now make the resolvedFBO the read buffer and read from it.
-    this->GetState()->PushReadFramebufferBinding();
-    resolvedFBO->Bind(GL_READ_FRAMEBUFFER);
-    resolvedFBO->ActivateReadBuffer(0);
+    this->ResolveFramebuffer->Bind(GL_READ_FRAMEBUFFER);
+    this->ResolveFramebuffer->ActivateReadBuffer(0);
 
-    // read pixels from the resolvedFBO. Note, the resolvedFBO has different
-    // dimensions than the render window, hence different read extents.
-    glReadPixels(0, 0, width, height, GL_DEPTH_COMPONENT, GL_FLOAT, z_data);
+    // read pixels from the resolvedFBO.
+    glReadPixels(
+      rect.GetLeft(), rect.GetBottom(), width, height, GL_DEPTH_COMPONENT, GL_FLOAT, z_data);
 
     // restore bindings and release the resolvedFBO.
     this->GetState()->PopFramebufferBindings();
@@ -1650,6 +1677,7 @@ int vtkOpenGLRenderWindow::GetZbufferData(int x1, int y1, int x2, int y2, float*
   }
 }
 
+//------------------------------------------------------------------------------
 float* vtkOpenGLRenderWindow::GetZbufferData(int x1, int y1, int x2, int y2)
 {
   float* z_data;
@@ -1664,6 +1692,7 @@ float* vtkOpenGLRenderWindow::GetZbufferData(int x1, int y1, int x2, int y2)
   return z_data;
 }
 
+//------------------------------------------------------------------------------
 int vtkOpenGLRenderWindow::GetZbufferData(int x1, int y1, int x2, int y2, vtkFloatArray* buffer)
 {
   int width, height;
@@ -1679,6 +1708,7 @@ int vtkOpenGLRenderWindow::GetZbufferData(int x1, int y1, int x2, int y2, vtkFlo
   return this->GetZbufferData(x1, y1, x2, y2, buffer->GetPointer(0));
 }
 
+//------------------------------------------------------------------------------
 int vtkOpenGLRenderWindow::SetZbufferData(int x1, int y1, int x2, int y2, vtkFloatArray* buffer)
 {
   int width, height;
@@ -1693,6 +1723,7 @@ int vtkOpenGLRenderWindow::SetZbufferData(int x1, int y1, int x2, int y2, vtkFlo
   return this->SetZbufferData(x1, y1, x2, y2, buffer->GetPointer(0));
 }
 
+//------------------------------------------------------------------------------
 int vtkOpenGLRenderWindow::SetZbufferData(int x1, int y1, int x2, int y2, float* buffer)
 {
   vtkOpenGLState* ostate = this->GetState();
@@ -1744,22 +1775,25 @@ int vtkOpenGLRenderWindow::SetZbufferData(int x1, int y1, int x2, int y2, float*
   return VTK_OK;
 }
 
+//------------------------------------------------------------------------------
 void vtkOpenGLRenderWindow::ActivateTexture(vtkTextureObject* texture)
 {
   this->GetState()->ActivateTexture(texture);
 }
 
+//------------------------------------------------------------------------------
 void vtkOpenGLRenderWindow::DeactivateTexture(vtkTextureObject* texture)
 {
   this->GetState()->DeactivateTexture(texture);
 }
 
+//------------------------------------------------------------------------------
 int vtkOpenGLRenderWindow::GetTextureUnitForTexture(vtkTextureObject* texture)
 {
   return this->GetState()->GetTextureUnitForTexture(texture);
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Description:
 // Create an offScreen window based on OpenGL framebuffer extension.
 // Return if the creation was successful or not.
@@ -1798,7 +1832,11 @@ int vtkOpenGLRenderWindow::CreateOffScreenFramebuffer(int width, int height)
     }
     this->GetState()->PushFramebufferBindings();
     this->OffScreenFramebuffer->PopulateFramebuffer(width, height,
-      true,                 // textures
+#ifdef GL_TEXTURE_2D_MULTISAMPLE
+      true, // textures
+#else
+      this->MultiSamples ? false : true, // textures
+#endif
       1, VTK_UNSIGNED_CHAR, // 1 color buffer uchar
       true, 32,             // depth buffer
       this->MultiSamples, this->StencilCapable != 0 ? true : false);
@@ -1810,10 +1848,21 @@ int vtkOpenGLRenderWindow::CreateOffScreenFramebuffer(int width, int height)
     this->OffScreenFramebuffer->Resize(width, height);
   }
 
+  if (!this->ResolveFramebuffer->GetFBOIndex())
+  {
+    this->GetState()->PushFramebufferBindings();
+    this->ResolveFramebuffer->PopulateFramebuffer(width, height,
+      true,                 // textures
+      1, VTK_UNSIGNED_CHAR, // 1 color buffer uchar
+      true, 32,             // depth buffer
+      0, this->StencilCapable != 0 ? true : false);
+    this->GetState()->PopFramebufferBindings();
+  }
+
   return 1;
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Description:
 // Returns its texture unit manager object. A new one will be created if one
 // hasn't already been set up.
@@ -1822,7 +1871,7 @@ vtkTextureUnitManager* vtkOpenGLRenderWindow::GetTextureUnitManager()
   return this->GetState()->GetTextureUnitManager();
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Description:
 // Block the thread until the actual rendering is finished().
 // Useful for measurement only.
@@ -1831,7 +1880,7 @@ void vtkOpenGLRenderWindow::WaitForCompletion()
   glFinish();
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkOpenGLRenderWindow::SaveGLState()
 {
   // For now just query the active texture unit
@@ -1849,7 +1898,7 @@ void vtkOpenGLRenderWindow::SaveGLState()
   }
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkOpenGLRenderWindow::RestoreGLState()
 {
   // Prevent making GL calls unless we have a valid context
@@ -1863,7 +1912,7 @@ void vtkOpenGLRenderWindow::RestoreGLState()
   }
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkOpenGLRenderWindow::SupportsOpenGL()
 {
   if (this->OpenGLSupportTested)
@@ -1935,6 +1984,7 @@ int vtkOpenGLRenderWindow::SupportsOpenGL()
   return this->OpenGLSupportResult;
 }
 
+//------------------------------------------------------------------------------
 vtkOpenGLBufferObject* vtkOpenGLRenderWindow::GetTQuad2DVBO()
 {
   if (!this->TQuad2DVBO || !this->TQuad2DVBO->GetHandle())
@@ -1956,6 +2006,7 @@ vtkOpenGLBufferObject* vtkOpenGLRenderWindow::GetTQuad2DVBO()
   return this->TQuad2DVBO;
 }
 
+//------------------------------------------------------------------------------
 int vtkOpenGLRenderWindow::GetNoiseTextureUnit()
 {
   if (!this->NoiseTextureObject)
@@ -2000,6 +2051,7 @@ int vtkOpenGLRenderWindow::GetNoiseTextureUnit()
   return this->GetTextureUnitForTexture(this->NoiseTextureObject);
 }
 
+//------------------------------------------------------------------------------
 void vtkOpenGLRenderWindow::Render()
 {
   this->Superclass::Render();
