@@ -13,6 +13,7 @@ DEPENDS
   VTK::CommonDataModel
   VTK::CommonExecutionModel
   VTK::CommonMath
+  VTK::FiltersModeling
 PRIVATE_DEPENDS
   VTK::FiltersCore
   VTK::FiltersGeneral

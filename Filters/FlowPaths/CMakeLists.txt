@@ -16,6 +16,7 @@ set(classes
   vtkParticleTracer
   vtkParticleTracerBase
   vtkStreaklineFilter
+  vtkStreamSurface
   vtkStreamTracer
   vtkTemporalInterpolatedVelocityField
   vtkVortexCore)
