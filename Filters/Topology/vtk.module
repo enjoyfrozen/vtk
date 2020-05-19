@@ -16,4 +16,6 @@ DEPENDS
   VTK::eigen
 TEST_DEPENDS
   VTK::IOLegacy
+  VTK::FiltersSources
+  VTK::ImagingCore
   VTK::TestingRendering
