@@ -28,8 +28,11 @@ RTW::OSPRayBackend* rtwOSPRayBackend = nullptr;
 
 void rtwInit()
 {
+ const bool isSkipVisRTX = vtksys::SystemTools::GetEnv("VTK_DEBUG_SKIP_VISRTX_CHECK") != nullptr;
+ const bool isSkipOSPRay = vtksys::SystemTools::GetEnv("VTK_DEBUG_SKIP_OSPRAY_CHECK") != nullptr;
+
 #ifdef VTK_ENABLE_VISRTX
-  if (!rtwVisRTXBackend)
+  if (!rtwVisRTXBackend && !isSkipVisRTX)
   {
     rtwVisRTXBackend = new RTW::VisRTXBackend();
     if (rtwVisRTXBackend->Init() != RTW_NO_ERROR)
@@ -42,7 +45,7 @@ void rtwInit()
   }
 #endif
 #ifdef VTK_ENABLE_OSPRAY
-  if (!rtwOSPRayBackend)
+  if (!rtwOSPRayBackend && !isSkipOSPRay)
   {
     rtwOSPRayBackend = new RTW::OSPRayBackend();
     if (rtwOSPRayBackend->Init() != RTW_NO_ERROR)
