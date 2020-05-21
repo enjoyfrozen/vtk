@@ -99,7 +99,8 @@ int vtkVectorFieldTopology::FillOutputPortInformation(int port, vtkInformation* 
 }
 
 //----------------------------------------------------------------------------
-int vtkVectorFieldTopology::Classify2D(int countReal, int countComplex, int countPos, int countNeg)
+int vtkVectorFieldTopology::Classify2D(
+  int vtkNotUsed(countReal), int countComplex, int countPos, int countNeg)
 {
   // make simple type that corresponds to the number of positive eigenvalues
   // SOURCE2D 2, SADDLE2D 1, SINK2D 0, (CENTER2D 3)
@@ -130,7 +131,8 @@ int vtkVectorFieldTopology::Classify2D(int countReal, int countComplex, int coun
 }
 
 //----------------------------------------------------------------------------
-int vtkVectorFieldTopology::Classify3D(int countReal, int countComplex, int countPos, int countNeg)
+int vtkVectorFieldTopology::Classify3D(
+  int vtkNotUsed(countReal), int countComplex, int countPos, int countNeg)
 {
   // make simple type that corresponds to the number of positive eigenvalues
   // SOURCE3D 3, SADDLE23D 2, SADDLE13D 1, SINK3D 0, (CENTER3D 4)
@@ -299,7 +301,8 @@ int vtkVectorFieldTopology::ComputeCriticalPoints3D(
 //----------------------------------------------------------------------------
 int vtkVectorFieldTopology::ComputeSurface(bool isBackward, double normal[3], double zeroPos[3],
   vtkSmartPointer<vtkPolyData> streamSurfaces, vtkSmartPointer<vtkImageData> dataset,
-  int integrationStepUnit, double dist, double stepSize, int maxNumSteps, bool useIterativeSeeding)
+  int vtkNotUsed(integrationStepUnit), double dist, double vtkNotUsed(stepSize), int maxNumSteps,
+  bool useIterativeSeeding)
 {
   // generate circle and add first point again in the back to avoid gap
   vtkNew<vtkRegularPolygonSource> circle;

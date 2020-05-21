@@ -51,7 +51,7 @@ public:
 
 protected:
   vtkStreamSurface();
-  ~vtkStreamSurface();
+  ~vtkStreamSurface() override;
 
   int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 

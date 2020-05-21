@@ -99,7 +99,7 @@ public:
 
 protected:
   vtkVectorFieldTopology();
-  ~vtkVectorFieldTopology();
+  ~vtkVectorFieldTopology() override;
 
   int FillInputPortInformation(int port, vtkInformation* info) override;
   int FillOutputPortInformation(int port, vtkInformation* info) override;
