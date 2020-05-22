@@ -27,6 +27,7 @@
 #include "vtkRenderWindowInteractor.h"
 #include "vtkRenderer.h"
 #include "vtkStreamSurface.h"
+#include "vtkVectorFieldTopology.h"
 #include "vtkWarpScalar.h"
 
 int TestVectorFieldTopology(int argc, char* argv[])
@@ -39,38 +40,22 @@ int TestVectorFieldTopology(int argc, char* argv[])
   calc->AddCoordinateScalarVariable("coordsX", 0);
   calc->AddCoordinateScalarVariable("coordsY", 1);
   calc->AddCoordinateScalarVariable("coordsZ", 2);
-  calc->SetFunction("coordsX*iHat + coordsY*jHat + 0.5*(coordsZ^2+coordsX+coordsY)*kHat");
+  calc->SetFunction("(coordsX+coordsZ)*iHat + coordsY*jHat + (coordsX-coordsZ)*kHat");
   calc->SetInputConnection(wavelet->GetOutputPort());
   calc->Update();
 
-  vtkNew<vtkRegularPolygonSource> circle;
-  circle->SetNumberOfSides(6);
-  circle->SetRadius(1);
-  circle->SetCenter(0, 0, 0);
-  circle->SetNormal(0, 0, 1);
-  circle->Update();
-  circle->GetOutput()->GetPoints()->InsertNextPoint(circle->GetOutput()->GetPoint(0));
+  vtkNew<vtkVectorFieldTopology> topology;
+  topology->SetInputData(calc->GetOutput());
+  topology->SetIntegrationStepUnit(1);
+  topology->SetSeparatrixDistance(1);
+  topology->SetIntegrationStepSize(1);
+  topology->SetMaxNumSteps(1000);
+  topology->SetComputeSurfaces(1);
+  topology->SetUseIterativeSeeding(1);
 
-  vtkNew<vtkStreamSurface> stream;
-  stream->SetMaximumPropagation(100);
-  stream->SetMaximumNumberOfSteps(100);
-  stream->SetInputConnection(0, calc->GetOutputPort());
-  stream->SetInputConnection(1, circle->GetOutputPort());
-  stream->SetInitialIntegrationStep(1);
-  stream->SetIntegrationStepUnit(1);
-  stream->SetIntegratorTypeToRungeKutta4();
-  stream->SetUseIterativeSeeding(1);
-
-  vtkNew<vtkDataSetMapper> streamMapper;
-  streamMapper->SetInputConnection(stream->GetOutputPort());
-
+  // the bounding box
   vtkNew<vtkDataSetMapper> waveletMapper;
   waveletMapper->SetInputConnection(wavelet->GetOutputPort());
-
-  vtkNew<vtkActor> streamActor;
-  streamActor->SetMapper(streamMapper);
-  streamActor->GetProperty()->SetColor(0.1, 0.1, 0.1);
-  streamActor->GetProperty()->SetRepresentationToWireframe();
 
   vtkNew<vtkActor> waveletActor;
   waveletActor->SetMapper(waveletMapper);
@@ -78,9 +63,40 @@ int TestVectorFieldTopology(int argc, char* argv[])
   waveletActor->GetProperty()->SetOpacity(0.1);
   waveletActor->GetProperty()->SetRepresentationToSurface();
 
+  // the critical points
+  vtkNew<vtkDataSetMapper> pointMapper;
+  pointMapper->SetInputConnection(topology->GetOutputPort(0));
+
+  vtkNew<vtkActor> pointActor;
+  pointActor->SetMapper(pointMapper);
+  pointActor->GetProperty()->SetColor(0.1, 0.1, 0.1);
+  pointActor->GetProperty()->SetPointSize(20.);
+  pointActor->GetProperty()->SetRenderPointsAsSpheres(1);
+
+  // the separating lines
+  vtkNew<vtkDataSetMapper> lineMapper;
+  lineMapper->SetInputConnection(topology->GetOutputPort(1));
+
+  vtkNew<vtkActor> lineActor;
+  lineActor->SetMapper(lineMapper);
+  lineActor->GetProperty()->SetColor(0.2, 0.2, 0.2);
+  lineActor->GetProperty()->SetLineWidth(10.);
+  lineActor->GetProperty()->SetRenderLinesAsTubes(1);
+
+  // the separating surfaces
+  vtkNew<vtkDataSetMapper> surfaceMapper;
+  surfaceMapper->SetInputConnection(topology->GetOutputPort(2));
+
+  vtkNew<vtkActor> surfaceActor;
+  surfaceActor->SetMapper(surfaceMapper);
+  surfaceActor->GetProperty()->SetColor(0.1, 0.1, 0.1);
+  surfaceActor->GetProperty()->SetRepresentationToWireframe();
+
   vtkNew<vtkRenderer> renderer;
   renderer->AddActor(waveletActor);
-  renderer->AddActor(streamActor);
+  renderer->AddActor(pointActor);
+  renderer->AddActor(lineActor);
+  renderer->AddActor(surfaceActor);
   renderer->ResetCamera();
   renderer->SetBackground(1., 1., 1.);
 
