@@ -18,4 +18,6 @@ TEST_DEPENDS
   VTK::IOLegacy
   VTK::FiltersSources
   VTK::ImagingCore
+  VTK::RenderingOpenGL2
+  VTK::TestingCore
   VTK::TestingRendering
