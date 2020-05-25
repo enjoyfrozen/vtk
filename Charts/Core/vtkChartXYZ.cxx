@@ -46,8 +46,7 @@ vtkStandardNewMacro(vtkChartXYZ);
 
 //------------------------------------------------------------------------------
 vtkChartXYZ::vtkChartXYZ()
-  : Geometry(0, 0, 10, 10)
-  , IsX(false)
+  : IsX(false)
   , Angle(0)
 {
   this->Pen->SetWidth(5);
@@ -73,6 +72,12 @@ vtkChartXYZ::vtkChartXYZ()
     vtkNew<vtkAxis> axis;
     this->Axes[i] = axis;
   }
+  // default margins.
+  this->Geometry.SetX(20);
+  this->Geometry.SetY(20);
+  this->ClippingPlanesEnabled = true;
+  this->AxesRescalingWhenRotating = true;
+  this->ScaleBoxWithPlot = false;
 }
 
 //------------------------------------------------------------------------------
@@ -139,9 +144,10 @@ vtkColor4ub vtkChartXYZ::GetAxisColor()
   return this->AxisPen->GetColorObject();
 }
 
-//------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 void vtkChartXYZ::SetGeometry(const vtkRectf& bounds)
 {
+  const bool changed = this->Geometry != bounds;
   this->Geometry = bounds;
 
   this->Axes[0]->SetPoint1(vtkVector2f(this->Geometry.GetX(), this->Geometry.GetY()));
@@ -162,9 +168,18 @@ void vtkChartXYZ::SetGeometry(const vtkRectf& bounds)
   {
     this->Axes[2]->SetPoint2(vtkVector2f(this->Geometry.GetX(), this->Geometry.GetWidth()));
   }
+  if (changed && Scene)
+  {
+    RecalculateTransform();
+    Scene->SetDirty(true);
+  }
 }
 
-//------------------------------------------------------------------------------
+vtkRectf vtkChartXYZ::GetGeometry()
+{
+  return Geometry;
+}
+//-----------------------------------------------------------------------------
 void vtkChartXYZ::RecalculateBounds()
 {
   if (this->Plots.empty())
@@ -178,6 +193,10 @@ void vtkChartXYZ::RecalculateBounds()
   // Need to calculate the bounds in three dimensions and set up the axes.
   for (unsigned int i = 0; i < this->Plots.size(); ++i)
   {
+    if (!this->Plots[i])
+    {
+      continue;
+    }
     std::vector<vtkVector3f> const& points = this->Plots[i]->GetPoints();
     for (unsigned int j = 0; j < points.size(); ++j)
     {
@@ -222,6 +241,10 @@ void vtkChartXYZ::Update()
       vtkIdTypeArray* idArray = vtkArrayDownCast<vtkIdTypeArray>(node->GetSelectionList());
       for (size_t i = 0; i < this->Plots.size(); ++i)
       {
+        if (!this->Plots[i])
+        {
+          continue;
+        }
         this->Plots[i]->SetSelection(idArray);
       }
     }
@@ -250,48 +273,54 @@ bool vtkChartXYZ::Paint(vtkContext2D* painter)
   {
     resizeHappened = this->CheckForSceneResize();
   }
+  if (AxesRescalingWhenRotating)
+  {
+    this->RescaleAxes();
+  }
 
   // Calculate the transforms required for the current rotation.
   this->CalculateTransforms();
 
-  // Set up clipping planes
-  for (int i = 0; i < 6; i++)
+  if (ClippingPlanesEnabled)
   {
-    double planeEquation[4];
-    this->GetClippingPlaneEquation(i, planeEquation);
-    context->EnableClippingPlane(i, planeEquation);
+    // Set up clipping planes
+    for (int i = 0; i < 6; i++)
+    {
+      double planeEquation[4];
+      this->GetClippingPlaneEquation(i, planeEquation);
+      context->EnableClippingPlane(i, planeEquation);
+    }
   }
 
   // Draw plots
-  context->PushMatrix();
-  context->AppendTransform(this->ContextTransform);
-  this->PaintChildren(painter);
-
-  // Remove clipping planes
-  for (int i = 0; i < 6; i++)
   {
-    context->DisableClippingPlane(i);
+    context->PushMatrix();
+    context->AppendTransform(this->ContextTransform);
+    this->PaintChildren(painter);
+
+    // Remove clipping planes
+    for (int i = 0; i < 6; i++)
+    {
+      context->DisableClippingPlane(i);
+    }
+    // Pop the ContextTransform now that we're done drawing data within the axes
+    context->PopMatrix();
   }
 
-  // Calculate the bounds of the data within the axes
-  this->ComputeDataBounds();
-
-  // Pop the ContextTransform now that we're done drawing data within the axes
-  context->PopMatrix();
-
   // Draw the axes, tick marks, and labels
-  this->DrawAxes(context);
+  {
+    context->PushMatrix();
+    context->AppendTransform(this->Box);
+    this->DrawAxes(context);
+    context->PopMatrix();
+  }
   if (this->DrawAxesDecoration)
   {
+    // Calculate the bounds of the data within the axes
+    this->ComputeDataBounds();
     this->DetermineWhichAxesToLabel();
     this->DrawTickMarks(painter);
     this->DrawAxesLabels(painter);
-  }
-
-  // If necessary, rescale the axes so they fits our scene nicely
-  if (resizeHappened)
-  {
-    this->RescaleAxes();
   }
 
   return true;
@@ -300,8 +329,6 @@ bool vtkChartXYZ::Paint(vtkContext2D* painter)
 //------------------------------------------------------------------------------
 void vtkChartXYZ::DrawAxes(vtkContext3D* context)
 {
-  context->PushMatrix();
-  context->AppendTransform(this->Box);
   context->ApplyPen(this->AxisPen);
 
   vtkVector3f box[4];
@@ -654,6 +681,7 @@ void vtkChartXYZ::DrawTickMarks(vtkContext2D* painter)
       context->DrawPoints(tickPoints[0].GetData(), static_cast<int>(tickPoints.size()));
       this->TickLabelOffset[axis][0] = labelOffset[0];
       this->TickLabelOffset[axis][1] = labelOffset[1];
+      context->PopMatrix();
     }
   }
 
@@ -911,8 +939,14 @@ bool vtkChartXYZ::MouseWheelEvent(const vtkContextMouseEvent&, int delta)
 {
   // Ten "wheels" to double/halve zoom level
   float scaling = pow(2.0f, delta / 10.0f);
-  this->Scale->Scale(scaling, scaling, scaling);
-
+  if (ScaleBoxWithPlot)
+  {
+    this->BoxScale->Scale(scaling, scaling, scaling);
+  }
+  else
+  {
+    this->Scale->Scale(scaling, scaling, scaling);
+  }
   // Mark the scene as dirty
   this->Scene->SetDirty(true);
 
@@ -1116,35 +1150,35 @@ void vtkChartXYZ::CalculateTransforms()
   // Calculate the correct translation vector so that rotation and scale
   // are applied about the middle of the axes box.
   vtkVector3f translation(
-    (this->Axes[0]->GetPosition2()[0] - this->Axes[0]->GetPosition1()[0]) / 2.0 +
-      this->Axes[0]->GetPosition1()[0],
-    (this->Axes[1]->GetPosition2()[1] - this->Axes[1]->GetPosition1()[1]) / 2.0 +
-      this->Axes[1]->GetPosition1()[1],
-    (this->Axes[2]->GetPosition2()[1] - this->Axes[2]->GetPosition1()[1]) / 2.0 +
-      this->Axes[2]->GetPosition1()[1]);
+    (this->Axes[0]->GetPosition2()[0] - this->Axes[0]->GetPosition1()[0]) / 2.0,
+    (this->Axes[1]->GetPosition2()[1] - this->Axes[1]->GetPosition1()[1]) / 2.0,
+    (this->Axes[2]->GetPosition2()[1] - this->Axes[2]->GetPosition1()[1]) /
+      2.0); // center the plots around the origin so that we can rotate them.
   vtkVector3f mtranslation = -1.0 * translation;
 
   this->ContextTransform->Identity();
-  this->ContextTransform->Concatenate(this->Translation);
-  this->ContextTransform->Translate(translation.GetData());
-  this->ContextTransform->Concatenate(this->Rotation);
-  this->ContextTransform->Concatenate(this->BoxScale);
-  if (this->AutoRotate)
   {
-    if (this->IsX)
+    this->ContextTransform->Translate(translation.GetData());
+    this->ContextTransform->Concatenate(
+      this->Rotation); // -> this is changed by dragging with the left mouse button
+    this->ContextTransform->Concatenate(this->BoxScale);
+    if (this->AutoRotate)
     {
-      this->ContextTransform->RotateX(this->Angle);
+      if (this->IsX)
+      {
+        this->ContextTransform->RotateX(this->Angle);
+      }
+      else
+      {
+        this->ContextTransform->RotateY(this->Angle);
+      }
     }
-    else
-    {
-      this->ContextTransform->RotateY(this->Angle);
-    }
+    this->ContextTransform->Concatenate(this->Scale);
+    this->ContextTransform->Concatenate(this->Translation); // -> this is for panning
+    this->ContextTransform->Translate(mtranslation.GetData());
   }
-  this->ContextTransform->Concatenate(this->Scale);
-  this->ContextTransform->Translate(mtranslation.GetData());
-  this->ContextTransform->Translate(this->Axes[0]->GetPosition1()[0] - this->Geometry.GetX(),
-    this->Axes[1]->GetPosition1()[1] - this->Geometry.GetY(), this->Axes[2]->GetPosition1()[1]);
-  this->ContextTransform->Concatenate(this->PlotTransform);
+  this->ContextTransform->Concatenate(
+    this->PlotTransform); // -> this takes account of the dimensions of the model
 
   // Next construct the transform for the box axes.
   double scale[3] = { 300, 300, 300 };
@@ -1163,6 +1197,8 @@ void vtkChartXYZ::CalculateTransforms()
   this->Box->Identity();
   this->Box->PostMultiply();
   this->Box->Translate(-0.5, -0.5, -0.5);
+  this->Box->Scale(scale);
+  this->Box->Translate(this->Axes[0]->GetPosition1()[0], this->Axes[1]->GetPosition1()[1], 0);
   this->Box->Concatenate(this->Rotation);
   this->Box->Concatenate(this->BoxScale);
   if (this->AutoRotate)
@@ -1176,11 +1212,12 @@ void vtkChartXYZ::CalculateTransforms()
       this->Box->RotateY(this->Angle);
     }
   }
-  this->Box->Translate(0.5, 0.5, 0.5);
-  this->Box->Scale(scale);
-  this->Box->Translate(
-    Axes[0]->GetPosition1()[0], Axes[1]->GetPosition1()[1], Axes[2]->GetPosition1()[1]);
+  this->Box->Translate(scale[0] / 2.0, scale[1] / 2.0, scale[2] / 2.0);
 
+  if (!ClippingPlanesEnabled)
+  {
+    return;
+  }
   // setup clipping planes
   this->BoundingCube->RemoveAllItems();
   vtkVector3d cube[8];
@@ -1272,13 +1309,14 @@ void vtkChartXYZ::ScaleUpAxes()
 
   while (shouldScaleUp)
   {
-    for (int i = 0; i < 14; ++i)
+    for (int i = 0; i < 8; ++i)
     {
       point[0] = this->AxesBoundaryPoints[i][0];
       point[1] = this->AxesBoundaryPoints[i][1];
       point[2] = this->AxesBoundaryPoints[i][2];
       this->FutureBox->TransformPoint(point, point);
-      if (point[0] < 0 || point[0] > sceneWidth || point[1] < 0 || point[1] > sceneHeight)
+      if (point[0] < Geometry.GetX() || point[0] > sceneWidth - Geometry.GetX() ||
+        point[1] < Geometry.GetY() || point[1] > sceneHeight - Geometry.GetY())
       {
         shouldScaleUp = false;
       }
@@ -1319,13 +1357,14 @@ void vtkChartXYZ::ScaleDownAxes()
   while (shouldScaleDown)
   {
     shouldScaleDown = false;
-    for (int i = 0; i < 14; ++i)
+    for (int i = 0; i < 8; ++i)
     {
       point[0] = this->AxesBoundaryPoints[i][0];
       point[1] = this->AxesBoundaryPoints[i][1];
       point[2] = this->AxesBoundaryPoints[i][2];
       this->FutureBox->TransformPoint(point, point);
-      if (point[0] < 0 || point[0] > sceneWidth || point[1] < 0 || point[1] > sceneHeight)
+      if (point[0] < Geometry.GetX() || point[0] > sceneWidth - Geometry.GetX() ||
+        point[1] < Geometry.GetY() || point[1] > sceneHeight - Geometry.GetY())
       {
         shouldScaleDown = true;
         break;
@@ -1361,17 +1400,19 @@ void vtkChartXYZ::InitializeFutureBox()
       scale[i] = this->Axes[i]->GetPosition2()[1] - this->Axes[i]->GetPosition1()[1];
   }
 
+  // we will apply the exact same steps on the actual box later.
   this->FutureBoxScale->DeepCopy(this->BoxScale);
 
   this->FutureBox->Identity();
   this->FutureBox->PostMultiply();
   this->FutureBox->Translate(-0.5, -0.5, -0.5);
+  this->FutureBox->Scale(scale);
+  this->FutureBox->Translate(this->Axes[0]->GetPosition1()[0], this->Axes[1]->GetPosition1()[1], 0);
   this->FutureBox->Concatenate(this->Rotation);
   this->FutureBox->Concatenate(this->FutureBoxScale);
-  this->FutureBox->Translate(0.5, 0.5, 0.5);
-  this->FutureBox->Scale(scale);
-  this->FutureBox->Translate(this->Axes[0]->GetPosition1()[0], this->Axes[1]->GetPosition1()[1],
-    this->Axes[2]->GetPosition1()[1]);
+  this->FutureBox->Translate(scale[0] / 2.0, scale[1] / 2.0, scale[2] / 2.0);
+  // invariant: at this point the Box-transform should be identical to the FutureBox-transform. If
+  // not RescaleAxes() will be faulty.
 }
 
 //------------------------------------------------------------------------------
@@ -1379,47 +1420,39 @@ bool vtkChartXYZ::CheckForSceneResize()
 {
   int currentWidth = this->Scene->GetSceneWidth();
   int currentHeight = this->Scene->GetSceneHeight();
+
+  std::size_t margin_topbottom = Geometry.GetY();
+  std::size_t margin_sides = Geometry.GetX();
+
+  if (currentWidth < 2 * margin_sides || currentHeight < 2 * margin_topbottom)
+  {
+    return false;
+  }
+
   if (this->SceneWidth != currentWidth || this->SceneHeight != currentHeight)
   {
-    // treat the initial render as a special case, as the scene size
-    // has not been recorded yet
-    if (this->SceneWidth > 0)
-    {
-      int dx = (currentWidth - this->SceneWidth) / 2;
-      int dy = (currentHeight - this->SceneHeight) / 2;
 
-      vtkVector2f axisPt = this->Axes[0]->GetPosition1();
-      axisPt[0] += dx;
-      axisPt[1] += dy;
-      this->Axes[0]->SetPoint1(axisPt);
-      axisPt = this->Axes[0]->GetPosition2();
-      axisPt[0] += dx;
-      axisPt[1] += dy;
-      this->Axes[0]->SetPoint2(axisPt);
-      axisPt = this->Axes[1]->GetPosition1();
-      axisPt[0] += dx;
-      axisPt[1] += dy;
-      this->Axes[1]->SetPoint1(axisPt);
-      axisPt = this->Axes[1]->GetPosition2();
-      axisPt[0] += dx;
-      axisPt[1] += dy;
-      this->Axes[1]->SetPoint2(axisPt);
-      axisPt = this->Axes[2]->GetPosition1();
-      axisPt[0] += dx;
-      this->Axes[2]->SetPoint1(axisPt);
-      axisPt = this->Axes[2]->GetPosition2();
-      axisPt[0] += dx;
-      this->Axes[2]->SetPoint2(axisPt);
-      this->RecalculateTransform();
+    this->Axes[0]->SetPoint1(vtkVector2f(margin_sides, 0));
+    this->Axes[0]->SetPoint2(vtkVector2f(currentWidth - margin_sides, 0));
+
+    this->Axes[1]->SetPoint1(vtkVector2f(0, margin_topbottom));
+    this->Axes[1]->SetPoint2(vtkVector2f(0, currentHeight - margin_topbottom));
+
+    // Z is faked, largely to get valid ranges and rounded numbers...
+    this->Axes[2]->SetPoint1(vtkVector2f(0, 0));
+    if (this->IsX)
+    {
+      this->Axes[2]->SetPoint2(vtkVector2f(0, currentHeight));
     }
     else
     {
-      this->SceneWidth = currentWidth;
-      this->SceneHeight = currentHeight;
-      this->InitializeFutureBox();
-      this->ScaleUpAxes();
-      this->ScaleDownAxes();
+      this->Axes[2]->SetPoint2(vtkVector2f(0, currentWidth));
     }
+    this->SceneWidth = currentWidth;
+    this->SceneHeight = currentHeight;
+    this->RecalculateTransform(); // this uses those axes-points
+    // recalculatetransform will be called anyway in Paint() in case the Paint was triggered by
+    // another cause than a geometry-change.
     return true;
   }
   return false;
@@ -1428,19 +1461,9 @@ bool vtkChartXYZ::CheckForSceneResize()
 //------------------------------------------------------------------------------
 void vtkChartXYZ::RescaleAxes()
 {
-  int currentWidth = this->Scene->GetSceneWidth();
-  int currentHeight = this->Scene->GetSceneHeight();
   this->InitializeFutureBox();
-  if (currentWidth * currentHeight < this->SceneWidth * this->SceneHeight)
-  {
-    this->ScaleDownAxes();
-  }
-  else
-  {
-    this->ScaleUpAxes();
-  }
-  this->SceneWidth = currentWidth;
-  this->SceneHeight = currentHeight;
+  this->ScaleUpAxes();
+  this->ScaleDownAxes();
 }
 
 //------------------------------------------------------------------------------
@@ -1553,8 +1576,19 @@ vtkIdType vtkChartXYZ::AddPlot(vtkPlot3D* plot)
   }
   this->AddItem(plot);
   plot->SetChart(this);
-  this->Plots.push_back(plot);
-  vtkIdType plotIndex = static_cast<vtkIdType>(this->Plots.size() - 1);
+
+  vtkIdType plotIndex;
+  if (freeplaces.empty())
+  {
+    this->Plots.push_back(plot);
+    plotIndex = static_cast<vtkIdType>(this->Plots.size() - 1);
+  }
+  else
+  {
+    plotIndex = *freeplaces.rbegin();
+    freeplaces.pop_back();
+    this->Plots[plotIndex] = plot;
+  }
 
   // the first plot added to the chart defines the names of the axes
   if (plotIndex == 0)
@@ -1572,6 +1606,36 @@ vtkIdType vtkChartXYZ::AddPlot(vtkPlot3D* plot)
     this->Scene->SetDirty(true);
   }
   return plotIndex;
+}
+bool vtkChartXYZ::RemovePlot(vtkPlot3D* plot)
+{
+  if (plot == nullptr)
+  {
+    return -1;
+  }
+  bool ret = false;
+  for (unsigned int i = 0; i < this->Plots.size(); ++i)
+  {
+    if (this->Plots[i] == plot)
+    {
+      this->Plots[i] = 0;
+      freeplaces.push_back(i);
+      ret = true;
+    }
+  }
+  if (!ret)
+  {
+    return ret;
+  }
+  this->RemoveItem(plot);
+  this->RecalculateBounds();
+
+  // Mark the scene as dirty
+  if (this->Scene)
+  {
+    this->Scene->SetDirty(true);
+  }
+  return ret;
 }
 
 //------------------------------------------------------------------------------
@@ -1604,4 +1668,34 @@ void vtkChartXYZ::GetClippingPlaneEquation(int i, double* planeEquation)
     planeEquation[2] = normal[2];
     planeEquation[3] = -(normal[0] * origin[0] + normal[1] * origin[1] + normal[2] * origin[2]);
   }
+}
+
+void vtkChartXYZ::SetClippingPlanesEnabled(bool v)
+{
+  ClippingPlanesEnabled = v;
+}
+
+bool vtkChartXYZ::GetClippingPlanesEnabled() const
+{
+  return ClippingPlanesEnabled;
+}
+
+void vtkChartXYZ::SetAxesRescalingWhenRotating(bool v)
+{
+  AxesRescalingWhenRotating = v;
+}
+
+bool vtkChartXYZ::GetAxesRescalingWhenRotating() const
+{
+  return AxesRescalingWhenRotating;
+}
+
+void vtkChartXYZ::SetScaleBoxWithPlot(bool v)
+{
+  ScaleBoxWithPlot = v;
+}
+
+bool vtkChartXYZ::GetScaleBoxWithPlot()
+{
+  return ScaleBoxWithPlot;
 }
