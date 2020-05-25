@@ -46,8 +46,6 @@ vtkStandardNewMacro(vtkChartXYZ);
 
 //------------------------------------------------------------------------------
 vtkChartXYZ::vtkChartXYZ()
-  : IsX(false)
-  , Angle(0)
 {
   this->Pen->SetWidth(5);
   this->Pen->SetColor(0, 0, 0, 255);
@@ -63,21 +61,12 @@ vtkChartXYZ::vtkChartXYZ()
   this->SceneWidth = 0;
   this->SceneHeight = 0;
   this->InitializeAxesBoundaryPoints();
-  this->AutoRotate = false;
-  this->DrawAxesDecoration = true;
-  this->FitToScene = true;
   this->Axes.resize(3);
   for (unsigned int i = 0; i < 3; ++i)
   {
     vtkNew<vtkAxis> axis;
     this->Axes[i] = axis;
   }
-  // default margins.
-  this->Geometry.SetX(20);
-  this->Geometry.SetY(20);
-  this->ClippingPlanesEnabled = true;
-  this->AxesRescalingWhenRotating = true;
-  this->ScaleBoxWithPlot = false;
 }
 
 //------------------------------------------------------------------------------
@@ -150,24 +139,6 @@ void vtkChartXYZ::SetGeometry(const vtkRectf& bounds)
   const bool changed = this->Geometry != bounds;
   this->Geometry = bounds;
 
-  this->Axes[0]->SetPoint1(vtkVector2f(this->Geometry.GetX(), this->Geometry.GetY()));
-  this->Axes[0]->SetPoint2(
-    vtkVector2f(this->Geometry.GetX() + this->Geometry.GetWidth(), this->Geometry.GetY()));
-
-  this->Axes[1]->SetPoint1(vtkVector2f(this->Geometry.GetX(), this->Geometry.GetY()));
-  this->Axes[1]->SetPoint2(
-    vtkVector2f(this->Geometry.GetX(), this->Geometry.GetY() + this->Geometry.GetHeight()));
-
-  // Z is faked, largely to get valid ranges and rounded numbers...
-  this->Axes[2]->SetPoint1(vtkVector2f(this->Geometry.GetX(), 0));
-  if (this->IsX)
-  {
-    this->Axes[2]->SetPoint2(vtkVector2f(this->Geometry.GetX(), this->Geometry.GetHeight()));
-  }
-  else
-  {
-    this->Axes[2]->SetPoint2(vtkVector2f(this->Geometry.GetX(), this->Geometry.GetWidth()));
-  }
   if (changed && Scene)
   {
     RecalculateTransform();
@@ -179,6 +150,7 @@ vtkRectf vtkChartXYZ::GetGeometry()
 {
   return Geometry;
 }
+
 //-----------------------------------------------------------------------------
 void vtkChartXYZ::RecalculateBounds()
 {
@@ -227,6 +199,13 @@ void vtkChartXYZ::RecalculateBounds()
 void vtkChartXYZ::PrintSelf(ostream& os, vtkIndent indent)
 {
   Superclass::PrintSelf(os, indent);
+  os << indent << "IsX: " << this->IsX << endl;
+  os << indent << "AutoRotate: " << this->AutoRotate << endl;
+  os << indent << "DrawAxesDecoration: " << this->DrawAxesDecoration << endl;
+  os << indent << "FitToScene: " << this->FitToScene << endl;
+  os << indent << "ClippingPlanesEnabled: " << this->ClippingPlanesEnabled << endl;
+  os << indent << "AxesRescalingWhenRotating: " << this->AxesRescalingWhenRotating << endl;
+  os << indent << "ScaleBoxWithPlot: " << this->ScaleBoxWithPlot << endl;
 }
 
 //------------------------------------------------------------------------------
@@ -1157,6 +1136,7 @@ void vtkChartXYZ::CalculateTransforms()
   vtkVector3f mtranslation = -1.0 * translation;
 
   this->ContextTransform->Identity();
+  this->ContextTransform->Translate(this->Geometry.GetX(), this->Geometry.GetY(), 0);
   {
     this->ContextTransform->Translate(translation.GetData());
     this->ContextTransform->Concatenate(
@@ -1198,7 +1178,6 @@ void vtkChartXYZ::CalculateTransforms()
   this->Box->PostMultiply();
   this->Box->Translate(-0.5, -0.5, -0.5);
   this->Box->Scale(scale);
-  this->Box->Translate(this->Axes[0]->GetPosition1()[0], this->Axes[1]->GetPosition1()[1], 0);
   this->Box->Concatenate(this->Rotation);
   this->Box->Concatenate(this->BoxScale);
   if (this->AutoRotate)
@@ -1212,6 +1191,7 @@ void vtkChartXYZ::CalculateTransforms()
       this->Box->RotateY(this->Angle);
     }
   }
+  this->Box->Translate(this->Geometry.GetX(), this->Geometry.GetY(), 0);
   this->Box->Translate(scale[0] / 2.0, scale[1] / 2.0, scale[2] / 2.0);
 
   if (!ClippingPlanesEnabled)
@@ -1407,9 +1387,9 @@ void vtkChartXYZ::InitializeFutureBox()
   this->FutureBox->PostMultiply();
   this->FutureBox->Translate(-0.5, -0.5, -0.5);
   this->FutureBox->Scale(scale);
-  this->FutureBox->Translate(this->Axes[0]->GetPosition1()[0], this->Axes[1]->GetPosition1()[1], 0);
   this->FutureBox->Concatenate(this->Rotation);
   this->FutureBox->Concatenate(this->FutureBoxScale);
+  this->FutureBox->Translate(this->Geometry.GetX(), this->Geometry.GetY(), 0);
   this->FutureBox->Translate(scale[0] / 2.0, scale[1] / 2.0, scale[2] / 2.0);
   // invariant: at this point the Box-transform should be identical to the FutureBox-transform. If
   // not RescaleAxes() will be faulty.
@@ -1432,21 +1412,21 @@ bool vtkChartXYZ::CheckForSceneResize()
   if (this->SceneWidth != currentWidth || this->SceneHeight != currentHeight)
   {
 
-    this->Axes[0]->SetPoint1(vtkVector2f(margin_sides, 0));
-    this->Axes[0]->SetPoint2(vtkVector2f(currentWidth - margin_sides, 0));
+    this->Axes[0]->SetPoint1(vtkVector2f(0, 0));
+    this->Axes[0]->SetPoint2(vtkVector2f(currentWidth - 2 * margin_sides, 0));
 
-    this->Axes[1]->SetPoint1(vtkVector2f(0, margin_topbottom));
-    this->Axes[1]->SetPoint2(vtkVector2f(0, currentHeight - margin_topbottom));
+    this->Axes[1]->SetPoint1(vtkVector2f(0, 0));
+    this->Axes[1]->SetPoint2(vtkVector2f(0, currentHeight - 2 * margin_topbottom));
 
     // Z is faked, largely to get valid ranges and rounded numbers...
     this->Axes[2]->SetPoint1(vtkVector2f(0, 0));
     if (this->IsX)
     {
-      this->Axes[2]->SetPoint2(vtkVector2f(0, currentHeight));
+      this->Axes[2]->SetPoint2(vtkVector2f(0, currentHeight - 2 * margin_topbottom));
     }
     else
     {
-      this->Axes[2]->SetPoint2(vtkVector2f(0, currentWidth));
+      this->Axes[2]->SetPoint2(vtkVector2f(0, currentWidth - 2 * margin_sides));
     }
     this->SceneWidth = currentWidth;
     this->SceneHeight = currentHeight;
@@ -1484,6 +1464,8 @@ void vtkChartXYZ::InitializeAxesBoundaryPoints()
     }
   }
 
+  /*
+  // optional additional boundary points
   for (int i = 0; i < 3; ++i)
   {
     this->AxesBoundaryPoints[currentPoint][0] = 0.5;
@@ -1496,7 +1478,7 @@ void vtkChartXYZ::InitializeAxesBoundaryPoints()
     this->AxesBoundaryPoints[currentPoint][2] = 0.5;
     this->AxesBoundaryPoints[currentPoint][i] -= sqrt(0.75);
     ++currentPoint;
-  }
+    }*/
 }
 
 //------------------------------------------------------------------------------
@@ -1558,7 +1540,6 @@ bool vtkChartXYZ::CalculatePlotTransform(
   float zScale = (z->GetUnscaledMaximum() - z->GetUnscaledMinimum()) / (max[1] - min[1]);
 
   transform->Identity();
-  transform->Translate(this->Geometry.GetX(), this->Geometry.GetY(), 0);
   // Get the scale for the plot area from the x and y axes
   transform->Scale(1.0 / xScale, 1.0 / yScale, 1.0 / zScale);
   transform->Translate(

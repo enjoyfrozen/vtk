@@ -353,7 +353,7 @@ protected:
   /**
    * The size and position of this chart.
    */
-  vtkRectf Geometry;
+  vtkRectf Geometry = vtkRectf(40, 40, 120, 120);
 
   /**
    * The 3 axes of this chart.
@@ -364,31 +364,31 @@ protected:
    * This boolean indicates whether or not we're using this chart to rotate
    * on a timer.
    */
-  bool AutoRotate;
+  bool AutoRotate = false;
 
   /**
    * When we're in AutoRotate mode, this boolean tells us if we should rotate
    * about the X axis or the Y axis.
    */
-  bool IsX;
+  bool IsX = false;
 
   /**
    * When we're in AutoRotate mode, this value tells the chart how much it
    * should be rotated.
    */
-  double Angle;
+  double Angle = 0;
 
   /**
    * This boolean indicates whether or not we should draw tick marks
    * and axes labels.
    */
-  bool DrawAxesDecoration;
+  bool DrawAxesDecoration = true;
 
   /**
    * This boolean indicates whether or not we should automatically resize the
    * chart so that it snugly fills up the scene.
    */
-  bool FitToScene;
+  bool FitToScene = true;
 
   /**
    * This is the transform that is applied when rendering data from the plots.
@@ -530,17 +530,17 @@ protected:
   /**
    * Hide data outside the box.
    */
-  bool ClippingPlanesEnabled;
+  bool ClippingPlanesEnabled = true;
 
   /**
    * When rotating do not try to scale up or down everything in order to fit.
    */
-  bool AxesRescalingWhenRotating;
+  bool AxesRescalingWhenRotating = true;
 
   /**
    * When rotating the mousewheel, scale not only the plot but also the box.
    */
-  bool ScaleBoxWithPlot;
+  bool ScaleBoxWithPlot = true;
 
 private:
   vtkChartXYZ(const vtkChartXYZ&) = delete;
