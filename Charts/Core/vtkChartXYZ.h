@@ -29,7 +29,8 @@
 #include "vtkNew.h"          // For ivars
 #include "vtkRect.h"         // For vtkRectf ivars
 #include "vtkSmartPointer.h" // For ivars
-#include <vector>            // For ivars
+#include <array>
+#include <vector> // For ivars
 
 class vtkAnnotationLink;
 class vtkAxis;
@@ -55,10 +56,20 @@ public:
    * This method also sets up the end points of the axes of the chart.
    * For this reason, if you call SetAroundX(), you should call SetGeometry()
    * afterwards.
+   *
+   * This method will result in a plot with a fixed size. If you want it to scale
+   * with the scene then use SetMargins.
    */
   void SetGeometry(const vtkRectf& bounds);
 
-  vtkRectf GetGeometry();
+  /**
+   * Set the margins in pixels ordered top right bottom left
+   * The box will be drawn inside those margins, but the labels and textdecorations will still
+   * escape. Note that the width and height automatically adapt to those of the scene.
+   *
+   * If you want a fixed size instead then use SetGeometry.
+   */
+  void SetMargins(const std::array<std::size_t, 4>& margins);
 
   /**
    * Set the rotation angle for the chart (AutoRotate mode only).
@@ -180,18 +191,20 @@ public:
    * Hide data outside the box.
    */
   void SetClippingPlanesEnabled(bool);
-  bool GetClippingPlanesEnabled() const;
 
   /**
-   * When rotating do not try to scale up or down everything in order to fit.
+   * Check whether data outside the box will be hidden or not.
    */
-  void SetAxesRescalingWhenRotating(bool);
-  bool GetAxesRescalingWhenRotating() const;
+  bool GetClippingPlanesEnabled() const;
 
   /**
    * When rotating the mousewheel, scale not only the plot but also the box.
    */
   void SetScaleBoxWithPlot(bool);
+
+  /**
+   * Check whether scaling the plot will also scale the box.
+   */
   bool GetScaleBoxWithPlot();
 
 protected:
@@ -351,7 +364,43 @@ protected:
   void GetClippingPlaneEquation(int i, double* planeEquation);
 
   /**
+   * Gets the current margin left in pixels irrespective of the size-strategy used.
+   */
+  std::size_t GetMarginLeft() const;
+
+  /**
+   * Gets the current margin top in pixels irrespective of the size-strategy used.
+   */
+  std::size_t GetMarginBottom() const;
+
+  /**
+   * Gets the current width of the plot in pixels irrespective of the size-strategy used.
+   */
+  std::size_t GetPlotWidth() const;
+
+  /**
+   * Gets the current height of the plot in pixels irrespective of the size-strategy used.
+   */
+  std::size_t GetPlotHeight() const;
+
+  /**
+   * Specifies how to calculate the size of the chart in function of the size of the scene.
+   */
+  enum
+  {
+    USE_MARGINS_AND_SCENESIZE,
+    USE_GEOMETRY
+  } SizeStrategy = USE_GEOMETRY;
+
+  /**
+   * The margins in pixels for the box ordered top right bottom left
+   * Applicable only when SizeStrategy == USE_MARGINS_AND_SCENESIZE
+   */
+  std::array<std::size_t, 4> margins = { 40, 40, 40, 40 };
+
+  /**
    * The size and position of this chart.
+   * Applicable only when SizeStrategy == USE_GEOMETRY
    */
   vtkRectf Geometry = vtkRectf(40, 40, 120, 120);
 
@@ -531,11 +580,6 @@ protected:
    * Hide data outside the box.
    */
   bool ClippingPlanesEnabled = true;
-
-  /**
-   * When rotating do not try to scale up or down everything in order to fit.
-   */
-  bool AxesRescalingWhenRotating = true;
 
   /**
    * When rotating the mousewheel, scale not only the plot but also the box.

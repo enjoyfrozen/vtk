@@ -133,22 +133,63 @@ vtkColor4ub vtkChartXYZ::GetAxisColor()
   return this->AxisPen->GetColorObject();
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkChartXYZ::SetGeometry(const vtkRectf& bounds)
 {
-  const bool changed = this->Geometry != bounds;
-  this->Geometry = bounds;
-
-  if (changed && Scene)
+  if (this->Geometry == bounds && SizeStrategy == USE_GEOMETRY)
   {
-    RecalculateTransform();
+    return;
+  }
+  SizeStrategy = USE_GEOMETRY;
+  this->Geometry = bounds;
+  if (this->Scene)
+  {
     Scene->SetDirty(true);
   }
 }
 
-vtkRectf vtkChartXYZ::GetGeometry()
+//-----------------------------------------------------------------------------
+void vtkChartXYZ::SetMargins(const std::array<std::size_t, 4>& margins)
 {
-  return Geometry;
+  if (this->margins == margins && SizeStrategy == USE_MARGINS_AND_SCENESIZE)
+  {
+    return;
+  }
+  SizeStrategy = USE_MARGINS_AND_SCENESIZE;
+  this->margins = margins;
+
+  if (this->Scene)
+  {
+    Scene->SetDirty(true);
+  }
+}
+
+//------------------------------------------------------------------------------
+std::size_t vtkChartXYZ::GetMarginLeft() const
+{
+  return SizeStrategy == USE_GEOMETRY ? this->Geometry.GetX() : this->margins[3];
+}
+
+//------------------------------------------------------------------------------
+std::size_t vtkChartXYZ::GetMarginBottom() const
+{
+  return SizeStrategy == USE_GEOMETRY ? this->Geometry.GetY() : this->margins[2];
+}
+
+//------------------------------------------------------------------------------
+std::size_t vtkChartXYZ::GetPlotWidth() const
+{
+  return SizeStrategy == USE_GEOMETRY
+    ? this->Geometry.GetWidth()
+    : (this->Scene->GetSceneWidth() - this->margins[1] - this->margins[3]);
+}
+
+//------------------------------------------------------------------------------
+std::size_t vtkChartXYZ::GetPlotHeight() const
+{
+  return SizeStrategy == USE_GEOMETRY
+    ? this->Geometry.GetHeight()
+    : (this->Scene->GetSceneHeight() - this->margins[0] - this->margins[2]);
 }
 
 //-----------------------------------------------------------------------------
@@ -204,8 +245,21 @@ void vtkChartXYZ::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "DrawAxesDecoration: " << this->DrawAxesDecoration << endl;
   os << indent << "FitToScene: " << this->FitToScene << endl;
   os << indent << "ClippingPlanesEnabled: " << this->ClippingPlanesEnabled << endl;
-  os << indent << "AxesRescalingWhenRotating: " << this->AxesRescalingWhenRotating << endl;
   os << indent << "ScaleBoxWithPlot: " << this->ScaleBoxWithPlot << endl;
+  if (SizeStrategy == USE_GEOMETRY)
+  {
+    os << indent << "Margin-Top: " << this->margins[0] << endl;
+    os << indent << "Margin-Right: " << this->margins[1] << endl;
+    os << indent << "Margin-Bottom: " << this->margins[2] << endl;
+    os << indent << "Margin-Left: " << this->margins[3] << endl;
+  }
+  else
+  {
+    os << indent << "Geometry.GetX: " << this->Geometry.GetX() << endl;
+    os << indent << "Geometry.GetY: " << this->Geometry.GetY() << endl;
+    os << indent << "Geometry.GetWidth: " << this->Geometry.GetWidth() << endl;
+    os << indent << "Geometry.GetHeight: " << this->Geometry.GetHeight() << endl;
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -233,8 +287,10 @@ void vtkChartXYZ::Update()
 //------------------------------------------------------------------------------
 bool vtkChartXYZ::Paint(vtkContext2D* painter)
 {
-  if (!this->Visible)
+  if (!this->Visible || Scene == nullptr)
+  {
     return false;
+  }
 
   this->Update();
 
@@ -247,12 +303,9 @@ bool vtkChartXYZ::Paint(vtkContext2D* painter)
   this->Update();
 
   // Check if the scene changed size
-  bool resizeHappened = false;
+
+  this->CheckForSceneResize();
   if (this->FitToScene)
-  {
-    resizeHappened = this->CheckForSceneResize();
-  }
-  if (AxesRescalingWhenRotating)
   {
     this->RescaleAxes();
   }
@@ -1136,7 +1189,7 @@ void vtkChartXYZ::CalculateTransforms()
   vtkVector3f mtranslation = -1.0 * translation;
 
   this->ContextTransform->Identity();
-  this->ContextTransform->Translate(this->Geometry.GetX(), this->Geometry.GetY(), 0);
+  this->ContextTransform->Translate(GetMarginLeft(), GetMarginBottom(), 0);
   {
     this->ContextTransform->Translate(translation.GetData());
     this->ContextTransform->Concatenate(
@@ -1191,7 +1244,7 @@ void vtkChartXYZ::CalculateTransforms()
       this->Box->RotateY(this->Angle);
     }
   }
-  this->Box->Translate(this->Geometry.GetX(), this->Geometry.GetY(), 0);
+  this->Box->Translate(GetMarginLeft(), GetMarginBottom(), 0);
   this->Box->Translate(scale[0] / 2.0, scale[1] / 2.0, scale[2] / 2.0);
 
   if (!ClippingPlanesEnabled)
@@ -1280,8 +1333,8 @@ void vtkChartXYZ::CalculateTransforms()
 void vtkChartXYZ::ScaleUpAxes()
 {
   float point[3];
-  int sceneWidth = this->Scene->GetSceneWidth();
-  int sceneHeight = this->Scene->GetSceneHeight();
+  float limits[4] = { float(GetMarginLeft()), float(GetMarginLeft() + GetPlotWidth()),
+    float(GetMarginBottom()), float(GetMarginBottom() + GetPlotHeight()) };
   float scaleStep = pow(2.0f, 1.0f / 10.0f);
   float stepBack = pow(2.0f, -1.0f / 10.0f);
   int numSteps = 0;
@@ -1295,8 +1348,8 @@ void vtkChartXYZ::ScaleUpAxes()
       point[1] = this->AxesBoundaryPoints[i][1];
       point[2] = this->AxesBoundaryPoints[i][2];
       this->FutureBox->TransformPoint(point, point);
-      if (point[0] < Geometry.GetX() || point[0] > sceneWidth - Geometry.GetX() ||
-        point[1] < Geometry.GetY() || point[1] > sceneHeight - Geometry.GetY())
+      if (point[0] < limits[0] || point[0] > limits[1] || point[1] < limits[2] ||
+        point[1] > limits[3])
       {
         shouldScaleUp = false;
       }
@@ -1314,8 +1367,10 @@ void vtkChartXYZ::ScaleUpAxes()
   }
   // this while loop overshoots the mark by one step,
   // so we take a step back afterwards.
-  this->FutureBoxScale->Scale(stepBack, stepBack, stepBack);
-
+  if (numSteps > 0)
+  {
+    this->FutureBoxScale->Scale(stepBack, stepBack, stepBack);
+  }
   if (numSteps > 1)
   {
     this->ZoomAxes(numSteps - 1);
@@ -1327,9 +1382,8 @@ void vtkChartXYZ::ScaleUpAxes()
 void vtkChartXYZ::ScaleDownAxes()
 {
   float point[3];
-  int sceneWidth = this->Scene->GetSceneWidth();
-  int sceneHeight = this->Scene->GetSceneHeight();
-
+  float limits[4] = { float(GetMarginLeft()), float(GetMarginLeft() + GetPlotWidth()),
+    float(GetMarginBottom()), float(GetMarginBottom() + GetPlotHeight()) };
   float scaleStep = pow(2.0f, -1.0f / 10.0f);
   int numSteps = 0;
   bool shouldScaleDown = true;
@@ -1343,8 +1397,8 @@ void vtkChartXYZ::ScaleDownAxes()
       point[1] = this->AxesBoundaryPoints[i][1];
       point[2] = this->AxesBoundaryPoints[i][2];
       this->FutureBox->TransformPoint(point, point);
-      if (point[0] < Geometry.GetX() || point[0] > sceneWidth - Geometry.GetX() ||
-        point[1] < Geometry.GetY() || point[1] > sceneHeight - Geometry.GetY())
+      if (point[0] < limits[0] || point[0] > limits[1] || point[1] < limits[2] ||
+        point[1] > limits[3])
       {
         shouldScaleDown = true;
         break;
@@ -1389,7 +1443,7 @@ void vtkChartXYZ::InitializeFutureBox()
   this->FutureBox->Scale(scale);
   this->FutureBox->Concatenate(this->Rotation);
   this->FutureBox->Concatenate(this->FutureBoxScale);
-  this->FutureBox->Translate(this->Geometry.GetX(), this->Geometry.GetY(), 0);
+  this->FutureBox->Translate(GetMarginLeft(), GetMarginBottom(), 0);
   this->FutureBox->Translate(scale[0] / 2.0, scale[1] / 2.0, scale[2] / 2.0);
   // invariant: at this point the Box-transform should be identical to the FutureBox-transform. If
   // not RescaleAxes() will be faulty.
@@ -1398,36 +1452,28 @@ void vtkChartXYZ::InitializeFutureBox()
 //------------------------------------------------------------------------------
 bool vtkChartXYZ::CheckForSceneResize()
 {
-  int currentWidth = this->Scene->GetSceneWidth();
-  int currentHeight = this->Scene->GetSceneHeight();
-
-  std::size_t margin_topbottom = Geometry.GetY();
-  std::size_t margin_sides = Geometry.GetX();
-
-  if (currentWidth < 2 * margin_sides || currentHeight < 2 * margin_topbottom)
-  {
-    return false;
-  }
+  const int currentWidth = this->Scene->GetSceneWidth();
+  const int currentHeight = this->Scene->GetSceneHeight();
 
   if (this->SceneWidth != currentWidth || this->SceneHeight != currentHeight)
   {
-
     this->Axes[0]->SetPoint1(vtkVector2f(0, 0));
-    this->Axes[0]->SetPoint2(vtkVector2f(currentWidth - 2 * margin_sides, 0));
+    this->Axes[0]->SetPoint2(vtkVector2f(GetPlotWidth(), 0));
 
     this->Axes[1]->SetPoint1(vtkVector2f(0, 0));
-    this->Axes[1]->SetPoint2(vtkVector2f(0, currentHeight - 2 * margin_topbottom));
+    this->Axes[1]->SetPoint2(vtkVector2f(0, GetPlotHeight()));
 
     // Z is faked, largely to get valid ranges and rounded numbers...
     this->Axes[2]->SetPoint1(vtkVector2f(0, 0));
     if (this->IsX)
     {
-      this->Axes[2]->SetPoint2(vtkVector2f(0, currentHeight - 2 * margin_topbottom));
+      this->Axes[2]->SetPoint2(vtkVector2f(0, GetPlotHeight()));
     }
     else
     {
-      this->Axes[2]->SetPoint2(vtkVector2f(0, currentWidth - 2 * margin_sides));
+      this->Axes[2]->SetPoint2(vtkVector2f(0, GetPlotWidth()));
     }
+
     this->SceneWidth = currentWidth;
     this->SceneHeight = currentHeight;
     this->RecalculateTransform(); // this uses those axes-points
@@ -1441,6 +1487,10 @@ bool vtkChartXYZ::CheckForSceneResize()
 //------------------------------------------------------------------------------
 void vtkChartXYZ::RescaleAxes()
 {
+  if (this->SceneWidth == 0 || this->SceneHeight == 0)
+  {
+    return;
+  }
   this->InitializeFutureBox();
   this->ScaleUpAxes();
   this->ScaleDownAxes();
@@ -1463,22 +1513,6 @@ void vtkChartXYZ::InitializeAxesBoundaryPoints()
       }
     }
   }
-
-  /*
-  // optional additional boundary points
-  for (int i = 0; i < 3; ++i)
-  {
-    this->AxesBoundaryPoints[currentPoint][0] = 0.5;
-    this->AxesBoundaryPoints[currentPoint][1] = 0.5;
-    this->AxesBoundaryPoints[currentPoint][2] = 0.5;
-    this->AxesBoundaryPoints[currentPoint][i] += sqrt(0.75);
-    ++currentPoint;
-    this->AxesBoundaryPoints[currentPoint][0] = 0.5;
-    this->AxesBoundaryPoints[currentPoint][1] = 0.5;
-    this->AxesBoundaryPoints[currentPoint][2] = 0.5;
-    this->AxesBoundaryPoints[currentPoint][i] -= sqrt(0.75);
-    ++currentPoint;
-    }*/
 }
 
 //------------------------------------------------------------------------------
@@ -1588,6 +1622,8 @@ vtkIdType vtkChartXYZ::AddPlot(vtkPlot3D* plot)
   }
   return plotIndex;
 }
+
+//------------------------------------------------------------------------------
 bool vtkChartXYZ::RemovePlot(vtkPlot3D* plot)
 {
   if (plot == nullptr)
@@ -1629,7 +1665,15 @@ void vtkChartXYZ::ClearPlots()
 //------------------------------------------------------------------------------
 void vtkChartXYZ::SetFitToScene(bool b)
 {
+  if (this->FitToScene == b)
+  {
+    return;
+  }
   this->FitToScene = b;
+  if (this->Scene)
+  {
+    this->Scene->SetDirty(true);
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -1651,31 +1695,33 @@ void vtkChartXYZ::GetClippingPlaneEquation(int i, double* planeEquation)
   }
 }
 
+//------------------------------------------------------------------------------
 void vtkChartXYZ::SetClippingPlanesEnabled(bool v)
 {
+  if (this->ClippingPlanesEnabled == v)
+  {
+    return;
+  }
   ClippingPlanesEnabled = v;
+  if (this->Scene)
+  {
+    Scene->SetDirty(true);
+  }
 }
 
+//------------------------------------------------------------------------------
 bool vtkChartXYZ::GetClippingPlanesEnabled() const
 {
   return ClippingPlanesEnabled;
 }
 
-void vtkChartXYZ::SetAxesRescalingWhenRotating(bool v)
-{
-  AxesRescalingWhenRotating = v;
-}
-
-bool vtkChartXYZ::GetAxesRescalingWhenRotating() const
-{
-  return AxesRescalingWhenRotating;
-}
-
+//------------------------------------------------------------------------------
 void vtkChartXYZ::SetScaleBoxWithPlot(bool v)
 {
   ScaleBoxWithPlot = v;
 }
 
+//------------------------------------------------------------------------------
 bool vtkChartXYZ::GetScaleBoxWithPlot()
 {
   return ScaleBoxWithPlot;
