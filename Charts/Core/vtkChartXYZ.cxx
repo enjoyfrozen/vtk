@@ -179,17 +179,29 @@ std::size_t vtkChartXYZ::GetMarginBottom() const
 //------------------------------------------------------------------------------
 std::size_t vtkChartXYZ::GetPlotWidth() const
 {
-  return SizeStrategy == USE_GEOMETRY
-    ? this->Geometry.GetWidth()
-    : (this->Scene->GetSceneWidth() - this->margins[1] - this->margins[3]);
+  if (SizeStrategy == USE_GEOMETRY)
+  {
+    return this->Geometry.GetWidth();
+  }
+  if (this->margins[1] + this->margins[3] > this->Scene->GetSceneWidth())
+  {
+    return 0;
+  }
+  return this->Scene->GetSceneWidth() - this->margins[1] - this->margins[3];
 }
 
 //------------------------------------------------------------------------------
 std::size_t vtkChartXYZ::GetPlotHeight() const
 {
-  return SizeStrategy == USE_GEOMETRY
-    ? this->Geometry.GetHeight()
-    : (this->Scene->GetSceneHeight() - this->margins[0] - this->margins[2]);
+  if (SizeStrategy == USE_GEOMETRY)
+  {
+    return this->Geometry.GetHeight();
+  }
+  if (this->margins[0] + this->margins[2] > this->Scene->GetSceneHeight())
+  {
+    return 0;
+  }
+  return this->Scene->GetSceneHeight() - this->margins[0] - this->margins[2];
 }
 
 //-----------------------------------------------------------------------------
