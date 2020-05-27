@@ -137,14 +137,14 @@ void vtkChartXYZ::SetGeometry(const vtkRectf& bounds)
 }
 
 //-----------------------------------------------------------------------------
-void vtkChartXYZ::SetMargins(const std::array<std::size_t, 4>& margins)
+void vtkChartXYZ::SetMargins(const std::array<std::size_t, 4>& margins_)
 {
-  if (this->margins == margins && SizeStrategy == USE_MARGINS_AND_SCENESIZE)
+  if (this->margins == margins_ && SizeStrategy == USE_MARGINS_AND_SCENESIZE)
   {
     return;
   }
   SizeStrategy = USE_MARGINS_AND_SCENESIZE;
-  this->margins = margins;
+  this->margins = margins_;
 
   if (this->Scene)
   {
@@ -171,11 +171,11 @@ std::size_t vtkChartXYZ::GetPlotWidth() const
   {
     return this->Geometry.GetWidth();
   }
-  if (this->margins[1] + this->margins[3] > this->Scene->GetSceneWidth())
+  if (this->margins[1] + this->margins[3] > std::size_t(this->Scene->GetSceneWidth()))
   {
     return 0;
   }
-  return this->Scene->GetSceneWidth() - this->margins[1] - this->margins[3];
+  return std::size_t(this->Scene->GetSceneWidth()) - this->margins[1] - this->margins[3];
 }
 
 //------------------------------------------------------------------------------
@@ -185,11 +185,11 @@ std::size_t vtkChartXYZ::GetPlotHeight() const
   {
     return this->Geometry.GetHeight();
   }
-  if (this->margins[0] + this->margins[2] > this->Scene->GetSceneHeight())
+  if (this->margins[0] + this->margins[2] > std::size_t(his->Scene->GetSceneHeight()))
   {
     return 0;
   }
-  return this->Scene->GetSceneHeight() - this->margins[0] - this->margins[2];
+  return std::size_t(this->Scene->GetSceneHeight()) - this->margins[0] - this->margins[2];
 }
 
 //-----------------------------------------------------------------------------
