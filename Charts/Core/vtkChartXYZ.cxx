@@ -73,21 +73,9 @@ vtkChartXYZ::vtkChartXYZ()
 vtkChartXYZ::~vtkChartXYZ() = default;
 
 //------------------------------------------------------------------------------
-void vtkChartXYZ::SetAngle(double angle)
-{
-  this->Angle = angle;
-}
-
-//------------------------------------------------------------------------------
 void vtkChartXYZ::SetAroundX(bool IsX_)
 {
   this->IsX = IsX_;
-}
-
-//------------------------------------------------------------------------------
-void vtkChartXYZ::SetAutoRotate(bool b)
-{
-  this->AutoRotate = b;
 }
 
 //------------------------------------------------------------------------------
@@ -1719,22 +1707,4 @@ void vtkChartXYZ::SetClippingPlanesEnabled(bool v)
   {
     Scene->SetDirty(true);
   }
-}
-
-//------------------------------------------------------------------------------
-bool vtkChartXYZ::GetClippingPlanesEnabled() const
-{
-  return ClippingPlanesEnabled;
-}
-
-//------------------------------------------------------------------------------
-void vtkChartXYZ::SetScaleBoxWithPlot(bool v)
-{
-  ScaleBoxWithPlot = v;
-}
-
-//------------------------------------------------------------------------------
-bool vtkChartXYZ::GetScaleBoxWithPlot()
-{
-  return ScaleBoxWithPlot;
 }

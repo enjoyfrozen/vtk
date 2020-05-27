@@ -74,7 +74,7 @@ public:
   /**
    * Set the rotation angle for the chart (AutoRotate mode only).
    */
-  void SetAngle(double angle);
+  vtkSetMacro(Angle, double);
 
   /**
    * Set whether or not we're rotating about the X axis.
@@ -108,7 +108,7 @@ public:
    * Set whether or not we're using this chart to rotate on a timer.
    * Default value is false.
    */
-  void SetAutoRotate(bool b);
+  vtkSetMacro(AutoRotate, bool);
 
   /**
    * Set whether or not axes labels & tick marks should be drawn.
@@ -195,17 +195,17 @@ public:
   /**
    * Check whether data outside the box will be hidden or not.
    */
-  bool GetClippingPlanesEnabled() const;
+  vtkGetMacro(ClippingPlanesEnabled, bool);
 
   /**
    * When rotating the mousewheel, scale not only the plot but also the box.
    */
-  void SetScaleBoxWithPlot(bool);
+  vtkSetMacro(ScaleBoxWithPlot, bool);
 
   /**
    * Check whether scaling the plot will also scale the box.
    */
-  bool GetScaleBoxWithPlot();
+  vtkGetMacro(ScaleBoxWithPlot, bool);
 
 protected:
   vtkChartXYZ();
@@ -576,6 +576,7 @@ protected:
    * A bounding box surrounding the currently rendered data points.
    */
   double DataBounds[4];
+
   /**
    * Hide data outside the box.
    */
