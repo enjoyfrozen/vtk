@@ -1456,6 +1456,163 @@ int vtkEnSightGoldBinaryReader::ReadScalarsPerNode(const char* fileName, const c
 }
 
 //------------------------------------------------------------------------------
+int vtkEnSightGoldBinaryReader::ReadAsymmetricTensorsPerNode(const char* fileName, const char* description,
+  int timeStep, vtkMultiBlockDataSet* compositeOutput)
+{
+  char line[80];
+  int partId, realId, numPts, i, lineRead;
+  vtkFloatArray* tensors;
+  float *comp1, *comp2, *comp3, *comp4, *comp5, *comp6, *comp7, *comp8, *comp9;
+  float tuple[9];
+  vtkDataSet* output;
+
+  // Initialize
+  //
+  if (!fileName)
+  {
+    vtkErrorMacro("nullptr TensorPerNode variable file name");
+    return 0;
+  }
+  std::string sfilename;
+  if (this->FilePath)
+  {
+    sfilename = this->FilePath;
+    if (sfilename.at(sfilename.length() - 1) != '/')
+    {
+      sfilename += "/";
+    }
+    sfilename += fileName;
+    vtkDebugMacro("full path to tensor per node file: " << sfilename.c_str());
+  }
+  else
+  {
+    sfilename = fileName;
+  }
+
+  if (this->OpenFile(sfilename.c_str()) == 0)
+  {
+    vtkErrorMacro("Unable to open file: " << sfilename.c_str());
+    return 0;
+  }
+
+  if (this->UseFileSets)
+  {
+    this->AddFileIndexToCache(fileName);
+
+    i = this->SeekToCachedTimeStep(fileName, timeStep - 1);
+    // start w/ the number of TS we skipped, not the one we are at
+    // if we are not at the appropriate time step yet, we keep searching
+    for (; i < timeStep - 1; i++)
+    {
+      this->ReadLine(line);
+      while (strncmp(line, "BEGIN TIME STEP", 15) != 0)
+      {
+        this->ReadLine(line);
+      }
+      // found a time step -> cache it
+      this->AddTimeStepToCache(fileName, i, this->GoldIFile->tellg());
+
+      this->ReadLine(line); // skip the description line
+
+      while (this->ReadLine(line) && strncmp(line, "part", 4) == 0)
+      {
+        this->ReadPartId(&partId);
+        partId--; // EnSight starts #ing with 1.
+        realId = this->InsertNewPartId(partId);
+        output = this->GetDataSetFromBlock(compositeOutput, realId);
+        numPts = output->GetNumberOfPoints();
+        if (numPts)
+        {
+          this->ReadLine(line); // "coordinates" or "block"
+          // Skip over comp1, comp2, ... comp6
+          this->GoldIFile->seekg(sizeof(float) * 9 * numPts, ios::cur);
+        }
+      }
+    }
+    this->ReadLine(line);
+    while (strncmp(line, "BEGIN TIME STEP", 15) != 0)
+    {
+      this->ReadLine(line);
+    }
+  }
+
+  this->ReadLine(line); // skip the description line
+  lineRead = this->ReadLine(line);
+
+  while (lineRead && strncmp(line, "part", 4) == 0)
+  {
+    this->ReadPartId(&partId);
+    partId--; // EnSight starts #ing with 1.
+    realId = this->InsertNewPartId(partId);
+    output = this->GetDataSetFromBlock(compositeOutput, realId);
+    numPts = output->GetNumberOfPoints();
+    if (numPts)
+    {
+      tensors = vtkFloatArray::New();
+      this->ReadLine(line); // "coordinates" or "block"
+      tensors->SetNumberOfComponents(9);
+      tensors->SetNumberOfTuples(numPts);
+      comp1 = new float[numPts];
+      comp2 = new float[numPts];
+      comp3 = new float[numPts];
+      comp4 = new float[numPts];
+      comp5 = new float[numPts];
+      comp6 = new float[numPts];
+      comp7 = new float[numPts];
+      comp8 = new float[numPts];
+      comp9 = new float[numPts];
+      this->ReadFloatArray(comp1, numPts);
+      this->ReadFloatArray(comp2, numPts);
+      this->ReadFloatArray(comp3, numPts);
+      this->ReadFloatArray(comp4, numPts);
+      this->ReadFloatArray(comp5, numPts);
+      this->ReadFloatArray(comp6, numPts);
+      this->ReadFloatArray(comp7, numPts);
+      this->ReadFloatArray(comp8, numPts);
+      this->ReadFloatArray(comp9, numPts);
+      for (i = 0; i < numPts; i++)
+      {
+        tuple[0] = comp1[i];
+        tuple[1] = comp2[i];
+        tuple[2] = comp3[i];
+        tuple[3] = comp4[i];
+        tuple[4] = comp5[i];
+        tuple[5] = comp6[i];
+        tuple[6] = comp7[i];
+        tuple[7] = comp8[i];
+        tuple[8] = comp9[i];
+        tensors->InsertTuple(i, tuple);
+      }
+      tensors->SetName(description);
+      output->GetPointData()->AddArray(tensors);
+      tensors->Delete();
+      delete[] comp1;
+      delete[] comp2;
+      delete[] comp3;
+      delete[] comp4;
+      delete[] comp5;
+      delete[] comp6;
+      delete[] comp7;
+      delete[] comp8;
+      delete[] comp9;
+    }
+
+    this->GoldIFile->peek();
+    if (this->GoldIFile->eof())
+    {
+      lineRead = 0;
+      continue;
+    }
+    lineRead = this->ReadLine(line);
+  }
+
+  delete this->GoldIFile;
+  this->GoldIFile = nullptr;
+
+  return 1;
+}
+
+//------------------------------------------------------------------------------
 int vtkEnSightGoldBinaryReader::ReadVectorsPerNode(const char* fileName, const char* description,
   int timeStep, vtkMultiBlockDataSet* compositeOutput, int measured)
 {
