@@ -173,7 +173,7 @@ protected:
    * returned; otherwise 1.
    */
   virtual int ReadAsymmetricTensorsPerNode(
-    const char* fileName, const char* description, int timeStep, vtkMultiBlockDataSet* output){};
+    const char* fileName, const char* description, int timeStep, vtkMultiBlockDataSet* output) = 0;
 
   /**
    * Read tensors per node for this dataset.  If an error occurred, 0 is
@@ -201,7 +201,7 @@ protected:
    * returned; otherwise 1.
    */
   virtual int ReadAsymmetricTensorsPerElement(
-    const char* fileName, const char* description, int timeStep, vtkMultiBlockDataSet* output){};
+    const char* fileName, const char* description, int timeStep, vtkMultiBlockDataSet* output) = 0;
 
   /**
    * Read tensors per element for this dataset.  If an error occurred, 0 is
