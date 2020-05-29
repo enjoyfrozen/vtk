@@ -987,6 +987,8 @@ int vtkEnSight6Reader::ReadTensorsPerNode(const char* fileName, const char* desc
   this->RemoveLeadingBlanks(line);
   while (lineRead && strncmp(line, "part", 4) == 0)
   {
+    assert(false)
+    // code below does not make sens and is not tested TODO
     sscanf(line, " part %d", &partId);
     partId--;
     int realId = this->InsertNewPartId(partId);
@@ -1439,6 +1441,8 @@ int vtkEnSight6Reader::ReadTensorsPerElement(const char* fileName, const char* d
 
   while (lineRead && strncmp(line, "part", 4) == 0)
   {
+    assert(false);
+    // Code belows does not make sense and is not tested TODO
     tensors = vtkFloatArray::New();
     sscanf(line, " part %d", &partId);
     partId--; // EnSight starts #ing with 1.
