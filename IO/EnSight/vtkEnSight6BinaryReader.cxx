@@ -1309,6 +1309,176 @@ int vtkEnSight6BinaryReader::ReadVectorsPerNode(const char* fileName, const char
 }
 
 //------------------------------------------------------------------------------
+int vtkEnSight6BinaryReader::ReadAsymmetricTensorsPerNode(const char* fileName, const char* description,
+  int timeStep, vtkMultiBlockDataSet* compositeOutput)
+{
+  char line[80];
+  int partId, realId, numPts, i;
+  vtkFloatArray* tensors;
+  float tensor[9];
+  float* tensorsRead;
+  long pos;
+  vtkDataSet* output;
+  int lineRead;
+
+  // Initialize
+  //
+  if (!fileName)
+  {
+    vtkErrorMacro("nullptr TensorSymmPerNode variable file name");
+    return 0;
+  }
+  std::string sfilename;
+  if (this->FilePath)
+  {
+    sfilename = this->FilePath;
+    if (sfilename.at(sfilename.length() - 1) != '/')
+    {
+      sfilename += "/";
+    }
+    sfilename += fileName;
+    vtkDebugMacro("full path to tensor symm per node file: " << sfilename.c_str());
+  }
+  else
+  {
+    sfilename = fileName;
+  }
+
+  if (this->OpenFile(sfilename.c_str()) == 0)
+  {
+    vtkErrorMacro("Unable to open file: " << sfilename.c_str());
+    return 0;
+  }
+
+  if (this->UseFileSets)
+  {
+    for (i = 0; i < timeStep - 1; i++)
+    {
+      // Complex reading code just to drop them, there must be a better way to do that !
+      // TODO 
+      this->ReadLine(line);
+      while (strncmp(line, "BEGIN TIME STEP", 15) != 0)
+      {
+        this->ReadLine(line);
+      }
+      this->ReadLine(line); // skip the description line
+
+      pos = this->BinaryIFile->tellg();
+      this->ReadLine(line); // 1st data line or part #
+      if (strncmp(line, "part", 4) != 0)
+      {
+        this->BinaryIFile->seekg(pos, ios::beg);
+        numPts = this->UnstructuredPoints->GetNumberOfPoints();
+        tensorsRead = new float[numPts * 9];
+        this->ReadFloatArray(tensorsRead, numPts * 9);
+
+        delete[] tensorsRead;
+      }
+
+      // vectors for structured parts
+      while (this->ReadLine(line) && strncmp(line, "part", 4) == 0)
+      {
+        sscanf(line, " part %d", &partId);
+        partId--;
+        realId = this->InsertNewPartId(partId);
+        this->ReadLine(line); // block
+        numPts = this->GetDataSetFromBlock(compositeOutput, realId)->GetNumberOfPoints();
+        tensorsRead = new float[numPts * 9];
+        this->ReadFloatArray(tensorsRead, numPts * 9);
+
+        delete[] tensorsRead;
+      }
+    }
+    this->ReadLine(line);
+    while (strncmp(line, "BEGIN TIME STEP", 15) != 0)
+    {
+      this->ReadLine(line);
+    }
+  }
+
+  this->ReadLine(line); // skip the description line
+
+  pos = this->BinaryIFile->tellg();
+  lineRead = this->ReadLine(line); // 1st data line or part #
+  if (strncmp(line, "part", 4) != 0)
+  {
+    this->BinaryIFile->seekg(pos, ios::beg);
+    numPts = this->UnstructuredPoints->GetNumberOfPoints();
+    tensors = vtkFloatArray::New();
+    tensors->SetNumberOfTuples(numPts);
+    tensors->SetNumberOfComponents(9);
+    tensors->Allocate(numPts * 9);
+    tensorsRead = new float[numPts * 9];
+    this->ReadFloatArray(tensorsRead, numPts * 9);
+    for (i = 0; i < numPts; i++)
+    {
+      tensor[0] = tensorsRead[6 * i];
+      tensor[1] = tensorsRead[6 * i + 1];
+      tensor[2] = tensorsRead[6 * i + 2];
+      tensor[3] = tensorsRead[6 * i + 3];
+      tensor[4] = tensorsRead[6 * i + 4];
+      tensor[5] = tensorsRead[6 * i + 5];
+      tensor[6] = tensorsRead[6 * i + 6];
+      tensor[7] = tensorsRead[6 * i + 7];
+      tensor[8] = tensorsRead[6 * i + 8];
+      tensors->InsertTuple(i, tensor);
+    }
+
+    for (i = 0; i < this->UnstructuredPartIds->GetNumberOfIds(); i++)
+    {
+      partId = this->UnstructuredPartIds->GetId(i);
+      tensors->SetName(description);
+      this->GetDataSetFromBlock(compositeOutput, partId)->GetPointData()->AddArray(tensors);
+    }
+    tensors->Delete();
+    delete[] tensorsRead;
+  }
+
+  // vectors for structured parts
+  while (lineRead && strncmp(line, "part", 4) == 0)
+  {
+    sscanf(line, " part %d", &partId);
+    partId--;
+    realId = this->InsertNewPartId(partId);
+    output = this->GetDataSetFromBlock(compositeOutput, realId);
+    this->ReadLine(line); // block
+    numPts = output->GetNumberOfPoints();
+    tensors = vtkFloatArray::New();
+    tensors->SetNumberOfTuples(numPts);
+    tensors->SetNumberOfComponents(9);
+    tensors->Allocate(numPts * 9);
+    tensorsRead = new float[numPts * 9];
+    this->ReadFloatArray(tensorsRead, numPts * 9);
+
+    for (i = 0; i < numPts; i++)
+    {
+      tensor[0] = tensorsRead[6 * i];
+      tensor[1] = tensorsRead[6 * i + 1];
+      tensor[2] = tensorsRead[6 * i + 2];
+      tensor[3] = tensorsRead[6 * i + 3];
+      tensor[4] = tensorsRead[6 * i + 4];
+      tensor[5] = tensorsRead[6 * i + 5];
+      tensor[6] = tensorsRead[6 * i + 6];
+      tensor[7] = tensorsRead[6 * i + 7];
+      tensor[8] = tensorsRead[6 * i + 8];
+      tensors->InsertTuple(i, tensor);
+    }
+
+    tensors->SetName(description);
+    output->GetPointData()->AddArray(tensors);
+    tensors->Delete();
+    delete[] tensorsRead;
+
+    lineRead = this->ReadLine(line);
+  }
+
+  delete this->BinaryIFile;
+  this->BinaryIFile = nullptr;
+
+  return 1;
+}
+
+//------------------------------------------------------------------------------
 int vtkEnSight6BinaryReader::ReadTensorsPerNode(const char* fileName, const char* description,
   int timeStep, vtkMultiBlockDataSet* compositeOutput)
 {
@@ -1354,6 +1524,8 @@ int vtkEnSight6BinaryReader::ReadTensorsPerNode(const char* fileName, const char
   {
     for (i = 0; i < timeStep - 1; i++)
     {
+      // Complex reading code just to drop them, there must be a better way to do that !
+      // TODO 
       this->ReadLine(line);
       while (strncmp(line, "BEGIN TIME STEP", 15) != 0)
       {
@@ -1840,6 +2012,196 @@ int vtkEnSight6BinaryReader::ReadVectorsPerElement(const char* fileName, const c
 }
 
 //------------------------------------------------------------------------------
+int vtkEnSight6BinaryReader::ReadAsymmetricTensorsPerElement(const char* fileName, const char* description,
+  int timeStep, vtkMultiBlockDataSet* compositeOutput)
+{
+  char line[80];
+  int partId, realId, numCells, numCellsPerElement, i, idx;
+  vtkFloatArray* tensors;
+  int elementType;
+  float tensor[9];
+  float* tensorsRead;
+  int lineRead;
+  vtkDataSet* output;
+
+  // Initialize
+  //
+  if (!fileName)
+  {
+    vtkErrorMacro("nullptr TensorPerElement variable file name");
+    return 0;
+  }
+  std::string sfilename;
+  if (this->FilePath)
+  {
+    sfilename = this->FilePath;
+    if (sfilename.at(sfilename.length() - 1) != '/')
+    {
+      sfilename += "/";
+    }
+    sfilename += fileName;
+    vtkDebugMacro("full path to tensor per element file: " << sfilename.c_str());
+  }
+  else
+  {
+    sfilename = fileName;
+  }
+
+  if (this->OpenFile(sfilename.c_str()) == 0)
+  {
+    vtkErrorMacro("Unable to open file: " << sfilename.c_str());
+    return 0;
+  }
+
+  if (this->UseFileSets)
+  {
+    for (i = 0; i < timeStep - 1; i++)
+    {
+      // Complex reading code just to drop them, there must be a better way to do that !
+      // TODO 
+      this->ReadLine(line);
+      while (strncmp(line, "BEGIN TIME STEP", 15) != 0)
+      {
+        this->ReadLine(line);
+      }
+      this->ReadLine(line); // skip the description line
+      lineRead = this->ReadLine(line);
+
+      while (lineRead && strncmp(line, "part", 4) == 0)
+      {
+        sscanf(line, " part %d", &partId);
+        partId--; // EnSight starts #ing with 1.
+        realId = this->InsertNewPartId(partId);
+        numCells = this->GetDataSetFromBlock(compositeOutput, realId)->GetNumberOfCells();
+        lineRead = this->ReadLine(line); // element type or "block"
+
+        // need to find out from CellIds how many cells we have of this element
+        // type (and what their ids are) -- IF THIS IS NOT A BLOCK SECTION
+        if (strcmp(line, "block") != 0)
+        {
+          while (
+            lineRead && strncmp(line, "part", 4) != 0 && strncmp(line, "END TIME STEP", 13) != 0)
+          {
+            elementType = this->GetElementType(line);
+            if (elementType < 0)
+            {
+              vtkErrorMacro("invalid element type");
+              delete this->BinaryIFile;
+              this->BinaryIFile = nullptr;
+              return 0;
+            }
+            idx = this->UnstructuredPartIds->IsId(realId);
+            numCellsPerElement = this->GetCellIds(idx, elementType)->GetNumberOfIds();
+            tensorsRead = new float[numCellsPerElement * 9];
+            this->ReadFloatArray(tensorsRead, numCellsPerElement * 9);
+
+            delete[] tensorsRead;
+            lineRead = this->ReadLine(line);
+          } // end while
+        }
+        else
+        {
+          tensorsRead = new float[numCells * 9];
+          this->ReadFloatArray(tensorsRead, numCells * 9);
+
+          delete[] tensorsRead;
+          lineRead = this->ReadLine(line);
+        }
+      }
+    }
+    this->ReadLine(line);
+    while (strncmp(line, "BEGIN TIME STEP", 15) != 0)
+    {
+      this->ReadLine(line);
+    }
+  }
+
+  this->ReadLine(line); // skip the description line
+  lineRead = this->ReadLine(line);
+
+  while (lineRead && strncmp(line, "part", 4) == 0)
+  {
+    tensors = vtkFloatArray::New();
+    sscanf(line, " part %d", &partId);
+    partId--; // EnSight starts #ing with 1.
+    realId = this->InsertNewPartId(partId);
+    output = this->GetDataSetFromBlock(compositeOutput, realId);
+    numCells = output->GetNumberOfCells();
+    lineRead = this->ReadLine(line); // element type or "block"
+    tensors->SetNumberOfTuples(numCells);
+    tensors->SetNumberOfComponents(9);
+    tensors->Allocate(numCells * 9);
+
+    // need to find out from CellIds how many cells we have of this element
+    // type (and what their ids are) -- IF THIS IS NOT A BLOCK SECTION
+    if (strcmp(line, "block") != 0)
+    {
+      while (lineRead && strncmp(line, "part", 4) != 0 && strncmp(line, "END TIME STEP", 13) != 0)
+      {
+        elementType = this->GetElementType(line);
+        if (elementType < 0)
+        {
+          vtkErrorMacro("invalid element type");
+          delete this->BinaryIFile;
+          this->BinaryIFile = nullptr;
+          return 0;
+        }
+        idx = this->UnstructuredPartIds->IsId(realId);
+        numCellsPerElement = this->GetCellIds(idx, elementType)->GetNumberOfIds();
+        tensorsRead = new float[numCellsPerElement * 9];
+        this->ReadFloatArray(tensorsRead, numCellsPerElement * 9);
+
+        for (i = 0; i < numCellsPerElement; i++)
+        {
+          tensor[0] = tensorsRead[6 * i];
+          tensor[1] = tensorsRead[6 * i + 1];
+          tensor[2] = tensorsRead[6 * i + 2];
+          tensor[3] = tensorsRead[6 * i + 3];
+          tensor[4] = tensorsRead[6 * i + 4];
+          tensor[5] = tensorsRead[6 * i + 5];
+          tensor[6] = tensorsRead[6 * i + 6];
+          tensor[7] = tensorsRead[6 * i + 7];
+          tensor[8] = tensorsRead[6 * i + 8];
+
+          tensors->InsertTuple(this->GetCellIds(idx, elementType)->GetId(i), tensor);
+        }
+        delete[] tensorsRead;
+        lineRead = this->ReadLine(line);
+      } // end while
+    }
+    else
+    {
+      tensorsRead = new float[numCells * 9];
+      this->ReadFloatArray(tensorsRead, numCells * 9);
+
+      for (i = 0; i < numCells; i++)
+      {
+        tensor[0] = tensorsRead[6 * i];
+        tensor[1] = tensorsRead[6 * i + 1];
+        tensor[2] = tensorsRead[6 * i + 2];
+        tensor[3] = tensorsRead[6 * i + 3];
+        tensor[4] = tensorsRead[6 * i + 4];
+        tensor[5] = tensorsRead[6 * i + 5];
+        tensor[6] = tensorsRead[6 * i + 6];
+        tensor[7] = tensorsRead[6 * i + 7];
+        tensor[8] = tensorsRead[6 * i + 8];
+        tensors->InsertTuple(i, tensor);
+      }
+      delete[] tensorsRead;
+      lineRead = this->ReadLine(line);
+    }
+    tensors->SetName(description);
+    output->GetCellData()->AddArray(tensors);
+    tensors->Delete();
+  }
+
+  delete this->BinaryIFile;
+  this->BinaryIFile = nullptr;
+
+  return 1;
+}
+
+//------------------------------------------------------------------------------
 int vtkEnSight6BinaryReader::ReadTensorsPerElement(const char* fileName, const char* description,
   int timeStep, vtkMultiBlockDataSet* compositeOutput)
 {
@@ -1885,6 +2247,8 @@ int vtkEnSight6BinaryReader::ReadTensorsPerElement(const char* fileName, const c
   {
     for (i = 0; i < timeStep - 1; i++)
     {
+      // Complex reading code just to drop them, there must be a better way to do that !
+      // TODO 
       this->ReadLine(line);
       while (strncmp(line, "BEGIN TIME STEP", 15) != 0)
       {
