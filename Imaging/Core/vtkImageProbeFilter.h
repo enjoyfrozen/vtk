@@ -14,68 +14,37 @@
 =========================================================================*/
 /**
  * @class   vtkImageProbeFilter
- * @brief   sample data values at specified point locations
+ * @brief   sample image values at specified point locations
  *
- * vtkImageProbeFilter is a filter that computes point attributes (e.g., scalars,
- * vectors, etc.) at specified point positions. The filter has two inputs:
- * the Input and Source. The Input geometric structure is passed through the
- * filter. The point attributes are computed at the Input point positions
- * by interpolating into the source data. For example, we can compute data
- * values on a plane (plane specified as Input) from a volume (Source).
- * The cell data of the source data is copied to the output based on in
- * which source cell each input point is. If an array of the same name exists
- * both in source's point and cell data, only the one from the point data is
- * probed.
+ * vtkImageProbeFilter is a filter that interpolates point attributes (e.g.,
+ * scalars, vectors, etc.) at specified point positions within an image.
+ * This filter has two inputs: the Input and Source. The Input geometric
+ * structure is passed through the filter, and the Output point attributes
+ * are interpolated from the Source point attributes (where the Source is
+ * a vtkImageData).
  *
- * This filter can be used to resample data, or convert one dataset form into
- * another. For example, an unstructured grid (vtkUnstructuredGrid) can be
- * probed with a volume (three-dimensional vtkImageData), and then volume
- * rendering techniques can be used to visualize the results. Another example:
- * a line or curve can be used to probe data to produce x-y plots along
- * that line or curve.
+ * This filter can be used to resample an image onto a set of arbitrarily
+ * placed sample points.  For example, if you have a surface data set
+ * (i.e. a vtkPolyData that has been tesselated so that its points are
+ * very closely spaced), you can color the polydata from the image points.
  *
- * @warning
- * A critical algorithmic component of vtkImageProbeFilter is the manner in which
- * it finds the cell containing a probe point. By default, the
- * vtkDataSet::FindCell() method is used, which in turn uses a
- * vtkPointLocator to perform an accelerated search. However, using a
- * vtkPointLocator may fail to identify an enclosing cell in some cases. A
- * more robust but slower approach is to use a vtkCellLocator to perform the
- * the FindCell() operation (via specification of the
- * CellLocatorPrototype). Finally, more advanced searches can be configured
- * by specifying an instance of vtkFindCellStrategy. (Note: image data
- * probing never uses a locator since finding a containing cell is a simple,
- * fast operation. This specifying a vtkFindCellStrategy or cell locator
- * prototype has no effect.)
- *
- * @warning
- * The vtkImageProbeFilter, once it finds the cell containing a query point, uses
- * the cell's interpolation functions to perform the interpolate / compute
- * the point attributes. Note that other interpolation processes with
- * different kernels are available: vtkPointInterpolator and
- * vtkSPHInterpolator. vtkPointInterpolator supports a variety of generalized
- * kernels, while vtkSPHInterpolator supports a variety of SPH interpolation
- * kernels.
- *
- * @sa
- * vtkFindCellStrategy vtkPointLocator vtkCellLocator vtkStaticPointLocator
- * vtkStaticCellLocator vtkPointInterpolator vtkSPHInterpolator
+ * In general, this filter is similar to vtkProbeFilter except that the
+ * Source data is always an image.  The advantages that it provides over
+ * vtkProbeFilter is that it is faster, and it can take advantage of
+ * advanced image interpolation techniques.
  */
 
 #ifndef vtkImageProbeFilter_h
 #define vtkImageProbeFilter_h
 
 #include "vtkDataSetAlgorithm.h"
-#include "vtkDataSetAttributes.h" // needed for vtkDataSetAttributes::FieldList
+#include "vtkDataSetAttributes.h" // For vtkDataSetAttributes::FieldList
 #include "vtkImagingCoreModule.h" // For export macro
 
-class vtkAbstractCellLocator;
-class vtkCell;
 class vtkCharArray;
 class vtkIdTypeArray;
 class vtkImageData;
 class vtkPointData;
-class vtkFindCellStrategy;
 
 class VTKIMAGINGCORE_EXPORT vtkImageProbeFilter : public vtkDataSetAlgorithm
 {
@@ -105,33 +74,6 @@ public:
 
   //@{
   /**
-   * Control whether the source point data is to be treated as categorical. If
-   * the data is categorical, then the resultant data will be determined by
-   * a nearest neighbor interpolation scheme.
-   */
-  vtkSetMacro(CategoricalData, vtkTypeBool);
-  vtkGetMacro(CategoricalData, vtkTypeBool);
-  vtkBooleanMacro(CategoricalData, vtkTypeBool);
-  //@}
-
-  //@{
-  /**
-   * This flag is used only when a piece is requested to update.  By default
-   * the flag is off.  Because no spatial correspondence between input pieces
-   * and source pieces is known, all of the source has to be requested no
-   * matter what piece of the output is requested.  When there is a spatial
-   * correspondence, the user/application can set this flag.  This hint allows
-   * the breakup of the probe operation to be much more efficient.  When piece
-   * m of n is requested for update by the user, then only n of m needs to
-   * be requested of the source.
-   */
-  vtkSetMacro(SpatialMatch, vtkTypeBool);
-  vtkGetMacro(SpatialMatch, vtkTypeBool);
-  vtkBooleanMacro(SpatialMatch, vtkTypeBool);
-  //@}
-
-  //@{
-  /**
    * Get the list of point ids in the output that contain attribute data
    * interpolated from the source.
    */
@@ -157,6 +99,7 @@ public:
   vtkBooleanMacro(PassCellArrays, vtkTypeBool);
   vtkGetMacro(PassCellArrays, vtkTypeBool);
   //@}
+
   //@{
   /**
    * Shallow copy the input point data arrays to the output
@@ -198,33 +141,11 @@ public:
   vtkGetMacro(ComputeTolerance, bool);
   //@}
 
-  //@{
-  /**
-   * Set / get the strategy used to perform the FindCell() operation. When
-   * specified, the strategy is used in preference to a cell locator
-   * prototype. When neither a strategy or cell locator prototype is defined,
-   * then the vtkDataSet::FindCell() method is used.
-   */
-  virtual void SetFindCellStrategy(vtkFindCellStrategy*);
-  vtkGetObjectMacro(FindCellStrategy, vtkFindCellStrategy);
-  //@}
-
-  //@{
-  /**
-   * Set/Get the prototype cell locator to perform the FindCell() operation.
-   * (A prototype is used as an object factory to instantiate an instance of
-   * the prototype to perform the FindCell() operation). If a prototype, and
-   * a vtkFindCellStrategy are not defined, the vtkDataSet::FindCell() is
-   * used. If a vtkFindCellStrategy is not defined, then the prototype is
-   * used.
-   */
-  virtual void SetCellLocatorPrototype(vtkAbstractCellLocator*);
-  vtkGetObjectMacro(CellLocatorPrototype, vtkAbstractCellLocator);
-  //@}
-
 protected:
   vtkImageProbeFilter();
   ~vtkImageProbeFilter() override;
+
+  int FillInputPortInformation(int port, vtkInformation* info) override;
 
   int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
   int RequestInformation(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
@@ -234,38 +155,37 @@ protected:
    * Call at end of RequestData() to pass attribute data respecting the
    * PassCellArrays, PassPointArrays, PassFieldArrays flags.
    */
-  void PassAttributeData(vtkDataSet* input, vtkDataObject* source, vtkDataSet* output);
+  void PassAttributeData(vtkDataSet* input, vtkDataSet* output);
 
   /**
    * Equivalent to calling BuildFieldList(); InitializeForProbing(); DoProbing().
    */
-  void Probe(vtkDataSet* input, vtkDataSet* source, vtkDataSet* output);
+  void Probe(vtkDataSet* input, vtkImageData* source, vtkDataSet* output);
 
   /**
-   * Build the field lists. This is required before calling
-   * InitializeForProbing().
+   * Build the field lists. Call this before calling InitializeForProbing().
    */
-  void BuildFieldList(vtkDataSet* source);
+  void BuildFieldList(vtkImageData* source);
 
   /**
-   * Initializes output and various arrays which keep track for probing status.
+   * Initialize various arrays which keep track of probing status.
    */
   virtual void InitializeForProbing(vtkDataSet* input, vtkDataSet* output);
+
+  /**
+   * Initialize all point attributes to zero.
+   */
   virtual void InitializeOutputArrays(vtkPointData* outPD, vtkIdType numPts);
 
   /**
    * Probe appropriate points
    * srcIdx is the index in the PointList for the given source.
    */
-  void DoProbing(vtkDataSet* input, int srcIdx, vtkDataSet* source, vtkDataSet* output);
-
-  vtkTypeBool CategoricalData;
+  void DoProbing(vtkDataSet* input, int srcIdx, vtkImageData* source, vtkDataSet* output);
 
   vtkTypeBool PassCellArrays;
   vtkTypeBool PassPointArrays;
   vtkTypeBool PassFieldArrays;
-
-  vtkTypeBool SpatialMatch;
 
   double Tolerance;
   bool ComputeTolerance;
@@ -273,10 +193,6 @@ protected:
   char* ValidPointMaskArrayName;
   vtkIdTypeArray* ValidPoints;
   vtkCharArray* MaskPoints;
-
-  // Support various methods to support the FindCell() operation
-  vtkAbstractCellLocator* CellLocatorPrototype;
-  vtkFindCellStrategy* FindCellStrategy;
 
   vtkDataSetAttributes::FieldList* CellList;
   vtkDataSetAttributes::FieldList* PointList;
@@ -287,16 +203,7 @@ private:
 
   // Probe only those points that are marked as not-probed by the MaskPoints
   // array.
-  void ProbeEmptyPoints(vtkDataSet* input, int srcIdx, vtkDataSet* source, vtkDataSet* output);
-
-  // A faster implementation for vtkImageData input.
-  void ProbePointsImageData(
-    vtkImageData* input, int srcIdx, vtkDataSet* source, vtkImageData* output);
-  void ProbeImagePointsInCell(vtkCell* cell, vtkIdType cellId, vtkDataSet* source, int srcBlockId,
-    const double start[3], const double spacing[3], const int dim[3], vtkPointData* outPD,
-    char* maskArray, double* wtsBuff);
-
-  class ProbeImageDataWorklet;
+  void ProbeEmptyPoints(vtkDataSet* input, int srcIdx, vtkImageData* source, vtkDataSet* output);
 
   class vtkVectorOfArrays;
   vtkVectorOfArrays* CellArrays;
