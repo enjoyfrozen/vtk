@@ -1487,7 +1487,13 @@ int vtkEnSightGoldBinaryReader::ReadAsymmetricTensorsPerNode(const char* fileNam
     return 0;
   }
 
-  char line[80];
+  std::string line;
+  line.resize(80);
+
+  // C++11 compatible way to get a pointer to underlying data
+  // data() could be used with C++17
+  char* linePtr = &line[0];
+
   if (this->UseFileSets)
   {
     this->AddFileIndexToCache(fileName);
@@ -1496,17 +1502,17 @@ int vtkEnSightGoldBinaryReader::ReadAsymmetricTensorsPerNode(const char* fileNam
     // if we are not at the appropriate time step yet, we keep searching
     for (int i = this->SeekToCachedTimeStep(fileName, timeStep - 1); i < timeStep - 1; i++)
     {
-      this->ReadLine(line);
-      while (strncmp(line, "BEGIN TIME STEP", 15) != 0)
+      this->ReadLine(linePtr);
+      while (line.compare(0, 15, "BEGIN TIME STEP") != 0)
       {
-        this->ReadLine(line);
+        this->ReadLine(linePtr);
       }
       // found a time step -> cache it
       this->AddTimeStepToCache(fileName, i, this->GoldIFile->tellg());
 
-      this->ReadLine(line); // skip the description line
+      this->ReadLine(linePtr); // skip the description line
 
-      while (this->ReadLine(line) && strncmp(line, "part", 4) == 0)
+      while (this->ReadLine(linePtr) && line.compare(0, 4, "part") == 0)
       {
         int partId;
         this->ReadPartId(&partId);
@@ -1516,23 +1522,23 @@ int vtkEnSightGoldBinaryReader::ReadAsymmetricTensorsPerNode(const char* fileNam
         int numPts = output->GetNumberOfPoints();
         if (numPts != 0)
         {
-          this->ReadLine(line); // "coordinates" or "block"
+          this->ReadLine(linePtr); // "coordinates" or "block"
           // Skip over comp1, comp2, ... comp9
           this->GoldIFile->seekg(sizeof(float) * 9 * numPts, ios::cur);
         }
       }
     }
-    this->ReadLine(line);
-    while (strncmp(line, "BEGIN TIME STEP", 15) != 0)
+    this->ReadLine(linePtr);
+    while (line.compare(0, 15, "BEGIN TIME STEP") != 0)
     {
-      this->ReadLine(line);
+      this->ReadLine(linePtr);
     }
   }
 
-  this->ReadLine(line); // skip the description line
-  int lineRead = this->ReadLine(line);
+  this->ReadLine(linePtr); // skip the description line
+  int lineRead = this->ReadLine(linePtr);
 
-  while (lineRead && strncmp(line, "part", 4) == 0)
+  while (lineRead && line.compare(0, 4, "part") == 0)
   {
     int partId;
     this->ReadPartId(&partId);
@@ -1543,7 +1549,7 @@ int vtkEnSightGoldBinaryReader::ReadAsymmetricTensorsPerNode(const char* fileNam
     if (numPts != 0)
     {
       vtkNew<vtkFloatArray> tensors;
-      this->ReadLine(line); // "coordinates" or "block"
+      this->ReadLine(linePtr); // "coordinates" or "block"
       tensors->SetNumberOfComponents(9);
       tensors->SetNumberOfTuples(numPts);
       tensors->SetName(description);
@@ -1588,7 +1594,7 @@ int vtkEnSightGoldBinaryReader::ReadAsymmetricTensorsPerNode(const char* fileNam
       lineRead = 0;
       continue;
     }
-    lineRead = this->ReadLine(line);
+    lineRead = this->ReadLine(linePtr);
   }
 
   delete this->GoldIFile;
@@ -2430,7 +2436,13 @@ int vtkEnSightGoldBinaryReader::ReadAsymmetricTensorsPerElement(const char* file
     return 0;
   }
 
-  char line[80];
+  std::string line;
+  line.resize(80);
+
+  // C++11 compatible way to get a pointer to underlying data
+  // data() could be used with C++17
+  char* linePtr = &line[0];
+
   if (this->UseFileSets)
   {
     this->AddFileIndexToCache(fileName);
@@ -2439,18 +2451,18 @@ int vtkEnSightGoldBinaryReader::ReadAsymmetricTensorsPerElement(const char* file
     // if we are not at the appropriate time step yet, we keep searching
     for (int i = this->SeekToCachedTimeStep(fileName, timeStep - 1); i < timeStep - 1; i++)
     {
-      this->ReadLine(line);
-      while (strncmp(line, "BEGIN TIME STEP", 15) != 0)
+      this->ReadLine(linePtr);
+      while (line.compare(0, 15, "BEGIN TIME STEP") != 0)
       {
-        this->ReadLine(line);
+        this->ReadLine(linePtr);
       }
       // found a time step -> cache it
       this->AddTimeStepToCache(fileName, i, this->GoldIFile->tellg());
 
-      this->ReadLine(line);                // skip the description line
-      int lineRead = this->ReadLine(line); // "part"
+      this->ReadLine(linePtr);                // skip the description line
+      int lineRead = this->ReadLine(linePtr); // "part"
 
-      while (lineRead && strncmp(line, "part", 4) == 0)
+      while (lineRead && line.compare(0, 4, "part") == 0)
       {
         int partId;
         this->ReadPartId(&partId);
@@ -2460,23 +2472,23 @@ int vtkEnSightGoldBinaryReader::ReadAsymmetricTensorsPerElement(const char* file
         int numCells = output->GetNumberOfCells();
         if (numCells != 0)
         {
-          this->ReadLine(line); // element type or "block"
+          this->ReadLine(linePtr); // element type or "block"
 
           // need to find out from CellIds how many cells we have of this
           // element type (and what their ids are) -- IF THIS IS NOT A BLOCK
           // SECTION
-          if (strncmp(line, "block", 5) == 0)
+          if (line.compare(0, 5, "block") == 0)
           {
             // Skip comp1 - comp9
             this->GoldIFile->seekg(sizeof(float) * 9 * numCells, ios::cur);
-            lineRead = this->ReadLine(line);
+            lineRead = this->ReadLine(linePtr);
           }
           else
           {
-            while (
-              lineRead && strncmp(line, "part", 4) != 0 && strncmp(line, "END TIME STEP", 13) != 0)
+            while (lineRead && line.compare(0, 4, "part") != 0 &&
+              line.compare(0, 13, "END TIME STEP") != 0)
             {
-              int elementType = this->GetElementType(line);
+              int elementType = this->GetElementType(linePtr);
               if (elementType == -1)
               {
                 vtkErrorMacro("Unknown element type \"" << line << "\"");
@@ -2488,27 +2500,27 @@ int vtkEnSightGoldBinaryReader::ReadAsymmetricTensorsPerElement(const char* file
               int numCellsPerElement = this->GetCellIds(idx, elementType)->GetNumberOfIds();
               // Skip over comp1->comp9
               this->GoldIFile->seekg(sizeof(float) * 9 * numCellsPerElement, ios::cur);
-              lineRead = this->ReadLine(line);
+              lineRead = this->ReadLine(linePtr);
             } // end while
           }   // end else
         }     // end if (numCells)
         else
         {
-          lineRead = this->ReadLine(line);
+          lineRead = this->ReadLine(linePtr);
         }
       }
     }
-    this->ReadLine(line);
-    while (strncmp(line, "BEGIN TIME STEP", 15) != 0)
+    this->ReadLine(linePtr);
+    while (line.compare(0, 15, "BEGIN TIME STEP") != 0)
     {
-      this->ReadLine(line);
+      this->ReadLine(linePtr);
     }
   }
 
-  this->ReadLine(line);                // skip the description line
-  int lineRead = this->ReadLine(line); // "part"
+  this->ReadLine(linePtr);                // skip the description line
+  int lineRead = this->ReadLine(linePtr); // "part"
 
-  while (lineRead && strncmp(line, "part", 4) == 0)
+  while (lineRead && line.compare(0, 4, "part") == 0)
   {
     int partId;
     this->ReadPartId(&partId);
@@ -2519,14 +2531,14 @@ int vtkEnSightGoldBinaryReader::ReadAsymmetricTensorsPerElement(const char* file
     if (numCells)
     {
       vtkNew<vtkFloatArray> tensors;
-      this->ReadLine(line); // element type or "block"
+      this->ReadLine(linePtr); // element type or "block"
       tensors->SetNumberOfComponents(9);
       tensors->SetNumberOfTuples(numCells);
       tensors->SetName(description);
 
       // need to find out from CellIds how many cells we have of this element
       // type (and what their ids are) -- IF THIS IS NOT A BLOCK SECTION
-      if (strncmp(line, "block", 5) == 0)
+      if (line.compare(0, 5, "block") == 0)
       {
         std::vector<float> comp1(numCells);
         std::vector<float> comp2(numCells);
@@ -2567,14 +2579,15 @@ int vtkEnSightGoldBinaryReader::ReadAsymmetricTensorsPerElement(const char* file
         }
         else
         {
-          lineRead = this->ReadLine(line);
+          lineRead = this->ReadLine(linePtr);
         }
       }
       else
       {
-        while (lineRead && strncmp(line, "part", 4) != 0 && strncmp(line, "END TIME STEP", 13) != 0)
+        while (
+          lineRead && line.compare(0, 4, "part") != 0 && line.compare(0, 13, "END TIME STEP") != 0)
         {
-          int elementType = this->GetElementType(line);
+          int elementType = this->GetElementType(linePtr);
           if (elementType == -1)
           {
             vtkErrorMacro("Unknown element type \"" << line << "\"");
@@ -2623,7 +2636,7 @@ int vtkEnSightGoldBinaryReader::ReadAsymmetricTensorsPerElement(const char* file
           }
           else
           {
-            lineRead = this->ReadLine(line);
+            lineRead = this->ReadLine(linePtr);
           }
         } // end while
       }   // end else
@@ -2638,7 +2651,7 @@ int vtkEnSightGoldBinaryReader::ReadAsymmetricTensorsPerElement(const char* file
       }
       else
       {
-        lineRead = this->ReadLine(line);
+        lineRead = this->ReadLine(linePtr);
       }
     }
   }
