@@ -203,7 +203,10 @@ private:
 
   // Probe only those points that are marked as not-probed by the MaskPoints
   // array.
-  void ProbeEmptyPoints(vtkDataSet* input, int srcIdx, vtkImageData* source, vtkDataSet* output);
+  void ProbePoints(vtkDataSet* input, vtkImageData* source, int srcIdx, vtkPointData* outPD,
+    char* maskArray, vtkIdList* pointIds, vtkIdType startId, vtkIdType endId, bool baseThread);
+
+  class ProbePointsWorklet;
 
   class vtkVectorOfArrays;
   vtkVectorOfArrays* CellArrays;

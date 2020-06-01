@@ -308,6 +308,63 @@ void vtkImageProbeFilter::InitializeOutputArrays(vtkPointData* outPD, vtkIdType 
 }
 
 //----------------------------------------------------------------------------
+namespace
+{
+
+// Thread local storage
+struct ProbePointsThreadLocal
+{
+  ProbePointsThreadLocal()
+  {
+    // BaseThread will be set 'true' for the thread that gets the first piece
+    this->BaseThread = false;
+    this->PointIds = vtkSmartPointer<vtkIdList>::New();
+    this->PointIds->SetNumberOfIds(8);
+  }
+
+  bool BaseThread;
+  vtkSmartPointer<vtkIdList> PointIds;
+};
+
+}
+
+//----------------------------------------------------------------------------
+class vtkImageProbeFilter::ProbePointsWorklet
+{
+public:
+  ProbePointsWorklet(vtkImageProbeFilter* probeFilter, vtkDataSet* input, vtkImageData* source,
+    int srcIdx, vtkPointData* outPD, char* maskArray)
+    : ProbeFilter(probeFilter)
+    , Input(input)
+    , Source(source)
+    , BlockId(srcIdx)
+    , OutPointData(outPD)
+    , MaskArray(maskArray)
+  {
+  }
+
+  void operator()(vtkIdType startId, vtkIdType endId)
+  {
+    if (startId == 0)
+    {
+      this->Thread.Local().BaseThread = true;
+    }
+    this->ProbeFilter->ProbePoints(this->Input, this->Source, this->BlockId, this->OutPointData,
+      this->MaskArray, this->Thread.Local().PointIds.GetPointer(), startId, endId,
+      this->Thread.Local().BaseThread);
+  }
+
+private:
+  vtkImageProbeFilter* ProbeFilter;
+  vtkDataSet* Input;
+  vtkImageData* Source;
+  int BlockId;
+  vtkPointData* OutPointData;
+  char* MaskArray;
+  vtkSMPThreadLocal<ProbePointsThreadLocal> Thread;
+};
+
+//----------------------------------------------------------------------------
 void vtkImageProbeFilter::DoProbing(
   vtkDataSet* input, int srcIdx, vtkImageData* source, vtkDataSet* output)
 {
@@ -318,7 +375,24 @@ void vtkImageProbeFilter::DoProbing(
     return;
   }
 
-  this->ProbeEmptyPoints(input, srcIdx, source, output);
+  vtkDebugMacro(<< "Probing data");
+
+  vtkPointData* outPD = output->GetPointData();
+  char* maskArray = this->MaskPoints->GetPointer(0);
+
+  // Estimate the granularity for multithreading
+  int threads = vtkSMPTools::GetEstimatedNumberOfThreads();
+  vtkIdType numPts = input->GetNumberOfPoints();
+  vtkIdType grain = numPts / threads;
+  vtkIdType minGrain = 1000;
+  vtkIdType maxGrain = 1000;
+  grain = vtkMath::ClampValue(grain, minGrain, maxGrain);
+
+  // Multithread the execution
+  ProbePointsWorklet worklet(this, input, source, srcIdx, outPD, maskArray);
+  vtkSMPTools::For(0, numPts, grain, worklet);
+
+  this->MaskPoints->Modified();
 }
 
 //----------------------------------------------------------------------------
@@ -335,18 +409,12 @@ void vtkImageProbeFilter::Probe(vtkDataSet* input, vtkImageData* source, vtkData
 }
 
 //----------------------------------------------------------------------------
-void vtkImageProbeFilter::ProbeEmptyPoints(
-  vtkDataSet* input, int srcIdx, vtkImageData* source, vtkDataSet* output)
+void vtkImageProbeFilter::ProbePoints(vtkDataSet* input, vtkImageData* source, int srcIdx,
+  vtkPointData* outPD, char* maskArray, vtkIdList* pointIds, vtkIdType startId, vtkIdType endId,
+  bool baseThread)
 {
-  vtkDebugMacro(<< "Probing data");
-
   vtkPointData* pd = source->GetPointData();
   vtkCellData* cd = source->GetCellData();
-
-  vtkIdType numPts = input->GetNumberOfPoints();
-  vtkPointData* outPD = output->GetPointData();
-
-  char* maskArray = this->MaskPoints->GetPointer(0);
 
   // Get image information
   double spacing[3], origin[3];
@@ -375,19 +443,15 @@ void vtkImageProbeFilter::ProbeEmptyPoints(
     boundCheck[2 * i + 1] = extent[2 * i + 1] + tol / spacing[i];
   }
 
-  // Create list of pointids for voxel cell
-  vtkNew<vtkIdList> pointIds;
-  pointIds->SetNumberOfIds(8);
-
   // Loop over all input points, interpolating source data
-  int abort = 0;
-  vtkIdType progressInterval = numPts / 20 + 1;
-  for (vtkIdType ptId = 0; ptId < numPts && !abort; ptId++)
+  vtkIdType progressInterval = endId / 20 + 1;
+  for (vtkIdType ptId = startId; ptId < endId && !GetAbortExecute(); ptId++)
   {
-    if (!(ptId % progressInterval))
+    if (baseThread && !(ptId % progressInterval))
     {
-      this->UpdateProgress(static_cast<double>(ptId) / numPts);
-      abort = GetAbortExecute();
+      // This is not ideal, because if the base thread executes more than one piece,
+      // then the progress will repeat its 0.0 to 1.0 progression for each piece.
+      this->UpdateProgress(static_cast<double>(ptId) / endId);
     }
 
     if (maskArray[ptId] == static_cast<char>(1))
