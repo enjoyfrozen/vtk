@@ -13,6 +13,7 @@
 
 =========================================================================*/
 
+#include "vtkImageProbeFilter.h"
 #include "vtkProbeFilter.h"
 
 #include "vtkCamera.h"
@@ -67,7 +68,7 @@ int TestProbeFilterImageInput(int argc, char* argv[])
   delaunay3D->SetInputConnection(pointSource->GetOutputPort());
 
   // probe into img using unstructured grif geometry
-  vtkNew<vtkProbeFilter> probe1;
+  vtkNew<vtkImageProbeFilter> probe1;
   probe1->SetSourceData(img);
   probe1->SetInputConnection(delaunay3D->GetOutputPort());
 
