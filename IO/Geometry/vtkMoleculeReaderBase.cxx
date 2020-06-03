@@ -15,8 +15,6 @@
 #include "vtkMoleculeReaderBase.h"
 
 #include "vtkCellArray.h"
-#include "vtkCellType.h"
-#include "vtkDataArray.h"
 #include "vtkFloatArray.h"
 #include "vtkIdTypeArray.h"
 #include "vtkInformation.h"
