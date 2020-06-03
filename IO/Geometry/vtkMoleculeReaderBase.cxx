@@ -121,6 +121,7 @@ vtkMoleculeReaderBase::vtkMoleculeReaderBase()
   this->SecondaryStructuresBegin = nullptr;
   this->SecondaryStructuresEnd = nullptr;
   this->IsHetatm = nullptr;
+  this->Model = nullptr;
   this->NumberOfAtoms = 0;
 
   this->SetNumberOfInputPorts(0);
@@ -174,6 +175,10 @@ vtkMoleculeReaderBase::~vtkMoleculeReaderBase()
   if (this->IsHetatm)
   {
     this->IsHetatm->Delete();
+  }
+  if (this->Model)
+  {
+    this->Model->Delete();
   }
 }
 
@@ -317,6 +322,17 @@ int vtkMoleculeReaderBase::ReadMolecule(FILE* fp, vtkPolyData* output)
   }
   this->IsHetatm->SetName("ishetatm");
   output->GetPointData()->AddArray(this->IsHetatm);
+
+  if (!this->Model)
+  {
+    this->Model = vtkUnsignedIntArray::New();
+  }
+  else
+  {
+    this->Model->Reset();
+  }
+  this->Model->SetName("model");
+  output->GetPointData()->AddArray(this->Model);
 
   if (!this->Points)
   {

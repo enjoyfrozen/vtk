@@ -28,6 +28,7 @@
 
 #include "vtkIOGeometryModule.h" // For export macro
 #include "vtkPolyDataAlgorithm.h"
+#include "vtkUnsignedIntArray.h"
 
 class vtkCellArray;
 class vtkFloatArray;
@@ -93,6 +94,7 @@ protected:
   vtkUnsignedCharArray* SecondaryStructuresBegin;
   vtkUnsignedCharArray* SecondaryStructuresEnd;
   vtkUnsignedCharArray* IsHetatm;
+  vtkUnsignedIntArray* Model;
 
   virtual void ReadSpecificMolecule(FILE* fp) = 0;
 
