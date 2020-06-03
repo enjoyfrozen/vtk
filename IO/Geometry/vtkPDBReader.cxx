@@ -142,6 +142,8 @@ void vtkPDBReader::ReadSpecificMolecule(FILE* fp)
   this->IsHetatm->Squeeze();
   this->Model->Squeeze();
 
+  this->NumberOfModels = currentModelNumber;
+
   int len = this->Points->GetNumberOfPoints();
   this->SecondaryStructures->SetNumberOfValues(len);
   this->SecondaryStructuresBegin->SetNumberOfValues(len);

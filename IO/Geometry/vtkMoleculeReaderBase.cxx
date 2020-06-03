@@ -123,6 +123,7 @@ vtkMoleculeReaderBase::vtkMoleculeReaderBase()
   this->IsHetatm = nullptr;
   this->Model = nullptr;
   this->NumberOfAtoms = 0;
+  this->NumberOfModels = 0;
 
   this->SetNumberOfInputPorts(0);
   this->SetNumberOfOutputPorts(2);

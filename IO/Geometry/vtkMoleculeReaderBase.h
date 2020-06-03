@@ -66,6 +66,8 @@ public:
 
   vtkGetMacro(NumberOfAtoms, int);
 
+  vtkGetMacro(NumberOfModels, unsigned int);
+
 protected:
   vtkMoleculeReaderBase();
   ~vtkMoleculeReaderBase() override;
@@ -74,6 +76,7 @@ protected:
   double BScale;
   double HBScale;
   int NumberOfAtoms;
+  unsigned int NumberOfModels;
 
   int FillOutputPortInformation(int, vtkInformation*) override;
   int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;

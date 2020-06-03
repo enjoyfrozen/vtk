@@ -21,6 +21,7 @@ vtk_add_test_cxx(vtkIOGeometryCxxTests tests
   TestSimplePointsReaderWriter.cxx,NO_VALID
   TestHoudiniPolyDataWriter.cxx,NO_VALID
   UnitTestSTLWriter.cxx,NO_VALID
+  TestPDBReader.cxx,NO_VALID
   )
 
 LIST(APPEND tecplotFiles
