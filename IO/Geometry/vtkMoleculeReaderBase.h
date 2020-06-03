@@ -94,7 +94,7 @@ protected:
   vtkUnsignedCharArray* SecondaryStructuresBegin;
   vtkUnsignedCharArray* SecondaryStructuresEnd;
   vtkUnsignedCharArray* IsHetatm;
-  vtkUnsignedIntArray* Model;
+  vtkSmartPointer<vtkUnsignedIntArray> Model;
 
   virtual void ReadSpecificMolecule(FILE* fp) = 0;
 

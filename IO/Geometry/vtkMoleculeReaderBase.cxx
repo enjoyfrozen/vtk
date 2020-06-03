@@ -176,10 +176,6 @@ vtkMoleculeReaderBase::~vtkMoleculeReaderBase()
   {
     this->IsHetatm->Delete();
   }
-  if (this->Model)
-  {
-    this->Model->Delete();
-  }
 }
 
 int vtkMoleculeReaderBase::FillOutputPortInformation(int port, vtkInformation* info)
