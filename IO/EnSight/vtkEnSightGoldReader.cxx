@@ -1553,7 +1553,7 @@ int vtkEnSightGoldReader::ReadTensorsPerElement(const char* fileName, const char
   //
   if (!fileName)
   {
-    vtkErrorMacro("nullptr TensorPerElement variable file name");
+    vtkErrorMacro("Empty TensorPerElement variable file name");
     return 0;
   }
   std::string sfilename;

@@ -121,7 +121,7 @@ protected:
     vtkMultiBlockDataSet* output) override;
 
   /**
-   * Read tensors per element for this dataset.  If an error occurred, 0 is
+   * Read asymmetric tensors per element for this dataset.  If an error occurred, 0 is
    * returned; otherwise 1.
    */
   int ReadAsymmetricTensorsPerElement(const char* fileName, const char* description, int timeStep,
