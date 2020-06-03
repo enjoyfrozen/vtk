@@ -18,9 +18,7 @@
 #include "vtkIdTypeArray.h"
 #include "vtkIntArray.h"
 #include "vtkObjectFactory.h"
-#include "vtkPoints.h"
 #include "vtkStringArray.h"
-#include "vtkTable.h"
 #include "vtkUnsignedCharArray.h"
 
 #include <algorithm>
@@ -66,7 +64,7 @@ void vtkPDBReader::ReadSpecificMolecule(FILE* fp)
 
   // Read PDB file until we encounter a command starting with "END" which is not "ENDMDL"
   while (fgets(linebuf, sizeof linebuf, fp) != nullptr &&
-    (strncmp("END", linebuf, 3) != 0 && strncmp("ENDMDL", linebuf, 6) != 0))
+    !(strncmp("END", linebuf, 3) == 0 && strncmp("ENDMDL", linebuf, 6) != 0))
   {
     char elem[3] = { 0 };
     char c[7] = { 0 };
