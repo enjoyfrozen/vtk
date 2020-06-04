@@ -805,7 +805,7 @@ int vtkEnSightGoldReader::ReadAsymmetricTensorsPerNode(const char* fileName,
   if (this->FilePath)
   {
     fileNameString = this->FilePath;
-    if (fileNameString.at(fileNameString.length() - 1) != '/')
+    if (fileNameString.at(fileNameString.back()) != '/')
     {
       fileNameString += "/";
     }
@@ -1397,7 +1397,7 @@ int vtkEnSightGoldReader::ReadAsymmetricTensorsPerElement(const char* fileName,
   if (this->FilePath)
   {
     fileNameString = this->FilePath;
-    if (fileNameString.at(fileNameString.length() - 1) != '/')
+    if (fileNameString.at(fileNameString.back()) != '/')
     {
       fileNameString += "/";
     }
@@ -1426,7 +1426,7 @@ int vtkEnSightGoldReader::ReadAsymmetricTensorsPerElement(const char* fileName,
   char* linePtr = &line[0];
   if (this->UseFileSets)
   {
-    int realTimeStep = timeStep - 1;
+    const int realTimeStep = timeStep - 1;
     // Try to find the nearest time step for which we know the offset
     int j = 0;
     for (int i = realTimeStep; i >= 0; i--)
@@ -1451,8 +1451,7 @@ int vtkEnSightGoldReader::ReadAsymmetricTensorsPerElement(const char* fileName,
       }
       if (this->FileOffsets->Map.find(fileName) == this->FileOffsets->Map.end())
       {
-        std::map<int, long> tsMap;
-        this->FileOffsets->Map[fileName] = tsMap;
+        this->FileOffsets->Map[fileName] = std::map<int, long>();
       }
       this->FileOffsets->Map[fileName][j] = this->IS->tellg();
     }

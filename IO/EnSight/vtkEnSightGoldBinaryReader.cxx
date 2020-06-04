@@ -1469,7 +1469,7 @@ int vtkEnSightGoldBinaryReader::ReadAsymmetricTensorsPerNode(const char* fileNam
   if (this->FilePath)
   {
     fileNameString = this->FilePath;
-    if (fileNameString.at(fileNameString.length() - 1) != '/')
+    if (fileNameString.at(fileNameString.back()) != '/')
     {
       fileNameString += "/";
     }
@@ -1516,7 +1516,7 @@ int vtkEnSightGoldBinaryReader::ReadAsymmetricTensorsPerNode(const char* fileNam
       {
         int partId;
         this->ReadPartId(&partId);
-        partId--; // EnSight starts #ing with 1.
+        partId--; // EnSight starts numbering with 1.
         int realId = this->InsertNewPartId(partId);
         vtkDataSet* output = this->GetDataSetFromBlock(compositeOutput, realId);
         int numPts = output->GetNumberOfPoints();
@@ -1542,7 +1542,7 @@ int vtkEnSightGoldBinaryReader::ReadAsymmetricTensorsPerNode(const char* fileNam
   {
     int partId;
     this->ReadPartId(&partId);
-    partId--; // EnSight starts #ing with 1.
+    partId--; // EnSight starts numbering with 1.
     int realId = this->InsertNewPartId(partId);
     vtkDataSet* output = this->GetDataSetFromBlock(compositeOutput, realId);
     int numPts = output->GetNumberOfPoints();
@@ -1553,36 +1553,19 @@ int vtkEnSightGoldBinaryReader::ReadAsymmetricTensorsPerNode(const char* fileNam
       tensors->SetNumberOfComponents(9);
       tensors->SetNumberOfTuples(numPts);
       tensors->SetName(description);
-      std::vector<float> comp1(numPts);
-      std::vector<float> comp2(numPts);
-      std::vector<float> comp3(numPts);
-      std::vector<float> comp4(numPts);
-      std::vector<float> comp5(numPts);
-      std::vector<float> comp6(numPts);
-      std::vector<float> comp7(numPts);
-      std::vector<float> comp8(numPts);
-      std::vector<float> comp9(numPts);
-      this->ReadFloatArray(comp1.data(), numPts);
-      this->ReadFloatArray(comp2.data(), numPts);
-      this->ReadFloatArray(comp3.data(), numPts);
-      this->ReadFloatArray(comp4.data(), numPts);
-      this->ReadFloatArray(comp5.data(), numPts);
-      this->ReadFloatArray(comp6.data(), numPts);
-      this->ReadFloatArray(comp7.data(), numPts);
-      this->ReadFloatArray(comp8.data(), numPts);
-      this->ReadFloatArray(comp9.data(), numPts);
-      float tuple[9];
+      std::array<std::vector<float>, 9> comps;
+      for (size_t compIdx = 0; compIdx < comps.size(); compIdx++)
+      {
+        comps[compIdx].resize(numPts);
+        this->ReadFloatArray(comps[compIdx].data(), numPts);
+      }
       for (int i = 0; i < numPts; i++)
       {
-        tuple[0] = comp1[i];
-        tuple[1] = comp2[i];
-        tuple[2] = comp3[i];
-        tuple[3] = comp4[i];
-        tuple[4] = comp5[i];
-        tuple[5] = comp6[i];
-        tuple[6] = comp7[i];
-        tuple[7] = comp8[i];
-        tuple[8] = comp9[i];
+        float tuple[9];
+        for (size_t compIdx = 0; compIdx < comps.size(); compIdx++)
+        {
+          tuple[compIdx] = comps[compIdx][i];
+        }
         tensors->InsertTuple(i, tuple);
       }
       output->GetPointData()->AddArray(tensors);
@@ -2418,7 +2401,7 @@ int vtkEnSightGoldBinaryReader::ReadAsymmetricTensorsPerElement(const char* file
   if (this->FilePath)
   {
     fileNameString = this->FilePath;
-    if (fileNameString.at(fileNameString.length() - 1) != '/')
+    if (fileNameString.at(fileNameString.back()) != '/')
     {
       fileNameString += "/";
     }
@@ -2466,7 +2449,7 @@ int vtkEnSightGoldBinaryReader::ReadAsymmetricTensorsPerElement(const char* file
       {
         int partId;
         this->ReadPartId(&partId);
-        partId--; // EnSight starts #ing with 1.
+        partId--; // EnSight starts numbering with 1.
         int realId = this->InsertNewPartId(partId);
         vtkDataSet* output = this->GetDataSetFromBlock(compositeOutput, realId);
         int numCells = output->GetNumberOfCells();
@@ -2524,7 +2507,7 @@ int vtkEnSightGoldBinaryReader::ReadAsymmetricTensorsPerElement(const char* file
   {
     int partId;
     this->ReadPartId(&partId);
-    partId--; // EnSight starts #ing with 1.
+    partId--; // EnSight starts numbering with 1.
     int realId = this->InsertNewPartId(partId);
     vtkDataSet* output = this->GetDataSetFromBlock(compositeOutput, realId);
     int numCells = output->GetNumberOfCells();
@@ -2540,36 +2523,19 @@ int vtkEnSightGoldBinaryReader::ReadAsymmetricTensorsPerElement(const char* file
       // type (and what their ids are) -- IF THIS IS NOT A BLOCK SECTION
       if (line.compare(0, 5, "block") == 0)
       {
-        std::vector<float> comp1(numCells);
-        std::vector<float> comp2(numCells);
-        std::vector<float> comp3(numCells);
-        std::vector<float> comp4(numCells);
-        std::vector<float> comp5(numCells);
-        std::vector<float> comp6(numCells);
-        std::vector<float> comp7(numCells);
-        std::vector<float> comp8(numCells);
-        std::vector<float> comp9(numCells);
-        this->ReadFloatArray(comp1.data(), numCells);
-        this->ReadFloatArray(comp2.data(), numCells);
-        this->ReadFloatArray(comp3.data(), numCells);
-        this->ReadFloatArray(comp4.data(), numCells);
-        this->ReadFloatArray(comp5.data(), numCells);
-        this->ReadFloatArray(comp6.data(), numCells);
-        this->ReadFloatArray(comp7.data(), numCells);
-        this->ReadFloatArray(comp8.data(), numCells);
-        this->ReadFloatArray(comp9.data(), numCells);
-        float tuple[9];
+        std::array<std::vector<float>, 9> comps;
+        for (size_t compIdx = 0; compIdx < comps.size(); compIdx++)
+        {
+          comps[compIdx].resize(numCells);
+          this->ReadFloatArray(comps[compIdx].data(), numCells);
+        }
         for (int i = 0; i < numCells; i++)
         {
-          tuple[0] = comp1[i];
-          tuple[1] = comp2[i];
-          tuple[2] = comp3[i];
-          tuple[3] = comp4[i];
-          tuple[4] = comp5[i];
-          tuple[5] = comp6[i];
-          tuple[6] = comp7[i];
-          tuple[7] = comp8[i];
-          tuple[8] = comp9[i];
+          float tuple[9];
+          for (size_t compIdx = 0; compIdx < comps.size(); compIdx++)
+          {
+            tuple[compIdx] = comps[compIdx][i];
+          }
           tensors->InsertTuple(i, tuple);
         }
         this->GoldIFile->peek();
@@ -2597,36 +2563,20 @@ int vtkEnSightGoldBinaryReader::ReadAsymmetricTensorsPerElement(const char* file
           }
           int idx = this->UnstructuredPartIds->IsId(realId);
           int numCellsPerElement = this->GetCellIds(idx, elementType)->GetNumberOfIds();
-          std::vector<float> comp1(numCellsPerElement);
-          std::vector<float> comp2(numCellsPerElement);
-          std::vector<float> comp3(numCellsPerElement);
-          std::vector<float> comp4(numCellsPerElement);
-          std::vector<float> comp5(numCellsPerElement);
-          std::vector<float> comp6(numCellsPerElement);
-          std::vector<float> comp7(numCellsPerElement);
-          std::vector<float> comp8(numCellsPerElement);
-          std::vector<float> comp9(numCellsPerElement);
-          this->ReadFloatArray(comp1.data(), numCellsPerElement);
-          this->ReadFloatArray(comp2.data(), numCellsPerElement);
-          this->ReadFloatArray(comp3.data(), numCellsPerElement);
-          this->ReadFloatArray(comp4.data(), numCellsPerElement);
-          this->ReadFloatArray(comp5.data(), numCellsPerElement);
-          this->ReadFloatArray(comp6.data(), numCellsPerElement);
-          this->ReadFloatArray(comp7.data(), numCellsPerElement);
-          this->ReadFloatArray(comp8.data(), numCellsPerElement);
-          this->ReadFloatArray(comp9.data(), numCellsPerElement);
-          float tuple[9];
-          for (int i = 0; i < numCellsPerElement; i++)
+
+          std::array<std::vector<float>, 9> comps;
+          for (size_t compIdx = 0; compIdx < comps.size(); compIdx++)
           {
-            tuple[0] = comp1[i];
-            tuple[1] = comp2[i];
-            tuple[2] = comp3[i];
-            tuple[3] = comp4[i];
-            tuple[4] = comp5[i];
-            tuple[5] = comp6[i];
-            tuple[6] = comp7[i];
-            tuple[7] = comp8[i];
-            tuple[8] = comp9[i];
+            comps[compIdx].resize(numCellsPerElement);
+            this->ReadFloatArray(comps[compIdx].data(), numCellsPerElement);
+          }
+          for (int i = 0; i < numCells; i++)
+          {
+            float tuple[9];
+            for (size_t compIdx = 0; compIdx < comps.size(); compIdx++)
+            {
+              tuple[compIdx] = comps[compIdx][i];
+            }
             tensors->InsertTuple(this->GetCellIds(idx, elementType)->GetId(i), tuple);
           }
           this->GoldIFile->peek();
