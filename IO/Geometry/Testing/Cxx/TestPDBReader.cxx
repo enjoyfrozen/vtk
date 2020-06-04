@@ -17,7 +17,7 @@
 #include "vtkPolyData.h"
 #include "vtkTestUtilities.h"
 
-int TestPdb(const char* dataFileName, const int validNumberOfAtoms, const int validNumberOfModels,
+int TestPdb(const char* pdbFileName, const int validNumberOfAtoms, const int validNumberOfModels,
   int argc, char** argv);
 
 /**
@@ -29,8 +29,9 @@ int TestPDBReader(int argc, char** argv)
   constexpr int VALID_NUMBER_OF_MODELS_6VWW = 3;
 
   // Test PDB 6vww
+  const char* fileName6vww = vtkTestUtilities::ExpandDataFileName(argc, argv, "Data/6VWW.pdb");
   const int testResult6vww =
-    TestPdb("Data/6VWW.pdb", VALID_NUMBER_OF_ATOMS_6VWW, VALID_NUMBER_OF_MODELS_6VWW, argc, argv);
+    TestPdb(fileName6vww, VALID_NUMBER_OF_ATOMS_6VWW, VALID_NUMBER_OF_MODELS_6VWW, argc, argv);
 
   if (testResult6vww != 0)
   {
@@ -43,14 +44,11 @@ int TestPDBReader(int argc, char** argv)
 /**
  * @brief Test a PDB file.
  */
-int TestPdb(const char* dataFileName, const int validNumberOfAtoms, const int validNumberOfModels,
+int TestPdb(const char* pdbFileName, const int validNumberOfAtoms, const int validNumberOfModels,
   int argc, char** argv)
 {
-  // Read test file
-  const char* pdbFileName = vtkTestUtilities::ExpandDataFileName(argc, argv, dataFileName);
-
   const auto pdbReader = vtkSmartPointer<vtkPDBReader>::New();
-  pdbReader->SetFileName(dataFileName);
+  pdbReader->SetFileName(pdbFileName);
   pdbReader->Update();
 
   const unsigned int numberOfAtoms = pdbReader->GetNumberOfAtoms();
@@ -58,7 +56,7 @@ int TestPdb(const char* dataFileName, const int validNumberOfAtoms, const int va
 
   if (numberOfAtoms != validNumberOfAtoms)
   {
-    std::cerr << "Invalid number of atoms for " << dataFileName << '.' << std::endl;
+    std::cerr << "Invalid number of atoms for " << pdbFileName << '.' << std::endl;
     std::cerr << "Found " << numberOfAtoms << ", but " << validNumberOfAtoms << " required."
               << std::endl;
     return EXIT_FAILURE;
@@ -66,7 +64,7 @@ int TestPdb(const char* dataFileName, const int validNumberOfAtoms, const int va
 
   if (numberOfModels != validNumberOfModels)
   {
-    std::cerr << "Invalid number of models for " << dataFileName << std::endl;
+    std::cerr << "Invalid number of models for " << pdbFileName << std::endl;
     std::cerr << "Found " << numberOfModels << ", but " << validNumberOfModels << " required."
               << std::endl;
     return EXIT_FAILURE;

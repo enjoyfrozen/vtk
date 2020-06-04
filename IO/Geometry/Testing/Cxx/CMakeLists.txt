@@ -21,7 +21,6 @@ vtk_add_test_cxx(vtkIOGeometryCxxTests tests
   TestSimplePointsReaderWriter.cxx,NO_VALID
   TestHoudiniPolyDataWriter.cxx,NO_VALID
   UnitTestSTLWriter.cxx,NO_VALID
-  TestPDBReader.cxx,NO_VALID
   )
 
 LIST(APPEND tecplotFiles
@@ -159,6 +158,10 @@ vtk_add_test_cxx(vtkIOGeometryCxxTests tests
 
 vtk_add_test_cxx(vtkIOGeometryCxxTests tests
   TestGLTFReaderReadTriangleStripIndices,TestGLTFReaderGeometry.cxx DATA{../Data/glTF/PrimitiveModes/Mesh_PrimitiveMode_TRIANGLE_STRIP_2.gltf,Mesh_PrimitiveMode_11.bin}
+)
+
+vtk_add_test_cxx(vtkIOGeometryCxxTests tests
+  TestPDBReader,TestPDBReader.cxx NO_VALID DATA{${_vtk_build_TEST_INPUT_DATA_DIRECTORY}/Data/6VWW.pdb}
 )
 
 if(enable_large_data_tests)
