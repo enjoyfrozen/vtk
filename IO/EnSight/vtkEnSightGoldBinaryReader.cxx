@@ -30,6 +30,7 @@
 #include "vtksys/Encoding.hxx"
 #include "vtksys/FStream.hxx"
 
+#include <array>
 #include <cctype>
 #include <map>
 #include <string>
