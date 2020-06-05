@@ -320,7 +320,7 @@ int vtkMoleculeReaderBase::ReadMolecule(FILE* fp, vtkPolyData* output)
 
   if (!this->Model)
   {
-    this->Model = vtkUnsignedIntArray::New();
+    this->Model = vtkSmartPointer<vtkUnsignedIntArray>::New();
   }
   else
   {
