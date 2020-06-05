@@ -23,7 +23,7 @@ int TestPdb(const char* pdbFileName, const int validNumberOfAtoms, const int val
 /**
  * @brief Test entry point.
  */
-int TestPDBReader(int argc, char** argv)
+int TestPDBReader(int argc, char* argv[])
 {
   constexpr int VALID_NUMBER_OF_ATOMS_6VWW = 18027;
   constexpr int VALID_NUMBER_OF_MODELS_6VWW = 3;
