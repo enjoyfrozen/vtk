@@ -25,8 +25,8 @@ int TestPdb(const char* pdbFileName, const int validNumberOfAtoms, const int val
  */
 int TestPDBReader(int argc, char* argv[])
 {
-  constexpr int VALID_NUMBER_OF_ATOMS_6VWW = 18027;
-  constexpr int VALID_NUMBER_OF_MODELS_6VWW = 3;
+  constexpr unsigned int VALID_NUMBER_OF_ATOMS_6VWW = 18027;
+  constexpr unsigned int VALID_NUMBER_OF_MODELS_6VWW = 3;
 
   // Test PDB 6vww
   const char* fileName6vww = vtkTestUtilities::ExpandDataFileName(argc, argv, "Data/6VWW.pdb");
