@@ -25,6 +25,7 @@ int TestPdb(const char* pdbFileName, const unsigned int validNumberOfAtoms,
  */
 int TestPDBReader(int argc, char* argv[])
 {
+  // Validation data
   constexpr unsigned int VALID_NUMBER_OF_ATOMS_6VWW = 18027;
   constexpr unsigned int VALID_NUMBER_OF_MODELS_6VWW = 3;
 
@@ -43,6 +44,9 @@ int TestPDBReader(int argc, char* argv[])
 
 /**
  * @brief Test a PDB file.
+ * @param pdbFileName File name of the PDB file to read for testing.
+ * @param validNumberOfAtoms The amount of atoms the PDB should have to be valid.
+ * @param validNumberOfModels The amount of models the PDB should have to be valid.
  */
 int TestPdb(const char* pdbFileName, const unsigned int validNumberOfAtoms,
   const unsigned int validNumberOfModels)
@@ -54,6 +58,7 @@ int TestPdb(const char* pdbFileName, const unsigned int validNumberOfAtoms,
   const unsigned int numberOfAtoms = pdbReader->GetNumberOfAtoms();
   const unsigned int numberOfModels = pdbReader->GetNumberOfModels();
 
+  // Check the number of atoms
   if (numberOfAtoms != validNumberOfAtoms)
   {
     std::cerr << "Invalid number of atoms for " << pdbFileName << '.' << std::endl;
@@ -62,6 +67,7 @@ int TestPdb(const char* pdbFileName, const unsigned int validNumberOfAtoms,
     return EXIT_FAILURE;
   }
 
+  // Check the number of models
   if (numberOfModels != validNumberOfModels)
   {
     std::cerr << "Invalid number of models for " << pdbFileName << std::endl;
