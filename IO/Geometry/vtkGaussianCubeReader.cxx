@@ -257,6 +257,13 @@ void vtkGaussianCubeReader::ReadSpecificMolecule(FILE* fp)
     this->SecondaryStructuresEnd->InsertNextValue(0);
     this->IsHetatm->InsertNextValue(0);
   }
+
+  // We only have one submodel
+  this->Model->SetNumberOfValues(this->NumberOfAtoms);
+  for (vtkIdType i = 0; i < this->NumberOfAtoms; ++i)
+  {
+    this->Model->SetValue(i, 1);
+  }
 }
 
 //------------------------------------------------------------------------------
