@@ -17,8 +17,8 @@
 #include "vtkPolyData.h"
 #include "vtkTestUtilities.h"
 
-int TestPdb(const char* pdbFileName, const int validNumberOfAtoms, const int validNumberOfModels,
-  int argc, char** argv);
+int TestPdb(const char* pdbFileName, const unsigned int validNumberOfAtoms,
+  const unsigned int validNumberOfModels);
 
 /**
  * @brief Test entry point.
@@ -31,7 +31,7 @@ int TestPDBReader(int argc, char* argv[])
   // Test PDB 6vww
   const char* fileName6vww = vtkTestUtilities::ExpandDataFileName(argc, argv, "Data/6VWW.pdb");
   const int testResult6vww =
-    TestPdb(fileName6vww, VALID_NUMBER_OF_ATOMS_6VWW, VALID_NUMBER_OF_MODELS_6VWW, argc, argv);
+    TestPdb(fileName6vww, VALID_NUMBER_OF_ATOMS_6VWW, VALID_NUMBER_OF_MODELS_6VWW);
 
   if (testResult6vww != 0)
   {
@@ -44,8 +44,8 @@ int TestPDBReader(int argc, char* argv[])
 /**
  * @brief Test a PDB file.
  */
-int TestPdb(const char* pdbFileName, const int validNumberOfAtoms, const int validNumberOfModels,
-  int argc, char** argv)
+int TestPdb(const char* pdbFileName, const unsigned int validNumberOfAtoms,
+  const unsigned int validNumberOfModels)
 {
   const auto pdbReader = vtkSmartPointer<vtkPDBReader>::New();
   pdbReader->SetFileName(pdbFileName);
