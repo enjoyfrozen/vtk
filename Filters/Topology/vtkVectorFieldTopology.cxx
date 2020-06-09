@@ -17,6 +17,7 @@
 // VTK includes
 #include <vtkAppendPolyData.h>
 #include <vtkCellArray.h>
+#include <vtkCellData.h>
 #include <vtkDataSetTriangleFilter.h>
 #include <vtkDoubleArray.h>
 #include <vtkGradientFilter.h>
@@ -24,6 +25,7 @@
 #include <vtkInformation.h>
 #include <vtkInformationVector.h>
 #include <vtkIntersectionPolyDataFilter.h>
+#include <vtkLine.h>
 #include <vtkMath.h>
 #include <vtkMatrix3x3.h>
 #include <vtkNew.h>
@@ -299,10 +301,10 @@ int vtkVectorFieldTopology::ComputeCriticalPoints3D(
 }
 
 //----------------------------------------------------------------------------
-int vtkVectorFieldTopology::ComputeSurface(bool isBackward, double normal[3], double zeroPos[3],
-  vtkSmartPointer<vtkPolyData> streamSurfaces, vtkSmartPointer<vtkImageData> dataset,
-  int vtkNotUsed(integrationStepUnit), double dist, double vtkNotUsed(stepSize), int maxNumSteps,
-  bool useIterativeSeeding)
+int vtkVectorFieldTopology::ComputeSurface(int numberOfSeparatingSurfaces, bool isBackward,
+  double normal[3], double zeroPos[3], vtkSmartPointer<vtkPolyData> streamSurfaces,
+  vtkSmartPointer<vtkImageData> dataset, int vtkNotUsed(integrationStepUnit), double dist,
+  double vtkNotUsed(stepSize), int maxNumSteps, bool useIterativeSeeding)
 {
   // generate circle and add first point again in the back to avoid gap
   vtkNew<vtkRegularPolygonSource> circle;
@@ -339,6 +341,12 @@ int vtkVectorFieldTopology::ComputeSurface(bool isBackward, double normal[3], do
   this->StreamSurface->SetMaximumPropagation(dist * maxNumSteps);
   this->StreamSurface->Update();
 
+  for (int i = 0; i < StreamSurface->GetOutput()->GetNumberOfPoints(); ++i)
+  {
+    StreamSurface->GetOutput()->GetPointData()->GetArray("index")->SetTuple1(
+      i, numberOfSeparatingSurfaces);
+  }
+
   // add current surface to existing surfaces
   vtkNew<vtkAppendPolyData> appendSurfaces;
   appendSurfaces->AddInputData(this->StreamSurface->GetOutput());
@@ -373,16 +381,18 @@ int vtkVectorFieldTopology::ComputeSeparatrices(vtkSmartPointer<vtkPolyData> cri
   probe->SetSourceData(graddataset);
   probe->Update();
 
-  vtkNew<vtkPolyData> seedsFw;
-  vtkNew<vtkPoints> seedPointsFw;
-  vtkNew<vtkCellArray> seedCellsFw;
-  seedsFw->SetPoints(seedPointsFw);
-  seedsFw->SetVerts(seedCellsFw);
-  vtkNew<vtkPolyData> seedsBw;
-  vtkNew<vtkPoints> seedPointsBw;
-  vtkNew<vtkCellArray> seedCellsBw;
-  seedsBw->SetPoints(seedPointsBw);
-  seedsBw->SetVerts(seedCellsBw);
+  vtkNew<vtkStreamTracer> streamTracer;
+  streamTracer->SetInputData(dataset);
+  streamTracer->SetIntegratorTypeToRungeKutta4();
+  streamTracer->SetIntegrationStepUnit(this->IntegrationStepUnit);
+  streamTracer->SetInitialIntegrationStep(this->IntegrationStepSize);
+  streamTracer->SetComputeVorticity(0);
+  streamTracer->SetMaximumNumberOfSteps(maxNumSteps);
+  streamTracer->SetMaximumPropagation(dist * maxNumSteps);
+  streamTracer->SetTerminalSpeed(epsilon);
+
+  int numberOfSeparatingLines = 0;
+  int numberOfSeparatingSurfaces = 0;
 
   for (int pointId = 0; pointId < criticalPoints->GetNumberOfPoints(); pointId++)
   {
@@ -443,118 +453,134 @@ int vtkVectorFieldTopology::ComputeSeparatrices(vtkSmartPointer<vtkPolyData> cri
     {
       for (int i = 0; i < dataset->GetDataDimension(); i++)
       {
+
         double normal[] = { real(eigenS.eigenvectors().col(i)[0]),
           real(eigenS.eigenvectors().col(i)[1]), real(eigenS.eigenvectors().col(i)[2]) };
-        if (real(eigenS.eigenvalues()[i]) > 0 && countPos == 1)
-        {
-          seedPointsFw->InsertNextPoint(
-            dist * real(eigenS.eigenvectors().col(i)[0]) + criticalPoints->GetPoint(pointId)[0],
-            dist * real(eigenS.eigenvectors().col(i)[1]) + criticalPoints->GetPoint(pointId)[1],
-            dist * real(eigenS.eigenvectors().col(i)[2]) + criticalPoints->GetPoint(pointId)[2]);
-          vtkNew<vtkVertex> vertex0;
-          vertex0->GetPointIds()->SetId(0, seedPointsFw->GetNumberOfPoints() - 1);
-          seedCellsFw->InsertNextCell(vertex0);
 
-          seedPointsFw->InsertNextPoint(
-            -dist * real(eigenS.eigenvectors().col(i)[0]) + criticalPoints->GetPoint(pointId)[0],
-            -dist * real(eigenS.eigenvectors().col(i)[1]) + criticalPoints->GetPoint(pointId)[1],
-            -dist * real(eigenS.eigenvectors().col(i)[2]) + criticalPoints->GetPoint(pointId)[2]);
-          vtkNew<vtkVertex> vertex1;
-          vertex1->GetPointIds()->SetId(0, seedPointsFw->GetNumberOfPoints() - 1);
-          seedCellsFw->InsertNextCell(vertex1);
-          if (computeSurfaces && dataset->GetDataDimension() == 3)
+        bool isForward = real(eigenS.eigenvalues()[i]) > 0 && countPos == 1;
+        bool isBackward = real(eigenS.eigenvalues()[i]) < 0 && countNeg == 1;
+        if (isForward or isBackward)
+        {
+          // insert two seeds
+          for (int j = 0; j < 2; j++)
           {
-            ComputeSurface(1, normal, criticalPoints->GetPoint(pointId), surfaces, dataset,
-              integrationStepUnit, dist, stepSize, maxNumSteps, useIterativeSeeding);
+            // insert seed with small offset
+            vtkNew<vtkPolyData> seeds;
+            vtkNew<vtkPoints> seedPoints;
+            vtkNew<vtkCellArray> seedCells;
+            seeds->SetPoints(seedPoints);
+            seeds->SetVerts(seedCells);
+
+            seedPoints->InsertNextPoint(pow(-1, j) * dist * real(eigenS.eigenvectors().col(i)[0]) +
+                criticalPoints->GetPoint(pointId)[0],
+              pow(-1, j) * dist * real(eigenS.eigenvectors().col(i)[1]) +
+                criticalPoints->GetPoint(pointId)[1],
+              pow(-1, j) * dist * real(eigenS.eigenvectors().col(i)[2]) +
+                criticalPoints->GetPoint(pointId)[2]);
+            vtkNew<vtkVertex> vertex;
+            vertex->GetPointIds()->SetId(0, seedPoints->GetNumberOfPoints() - 1);
+            seedCells->InsertNextCell(vertex);
+
+            // integrate
+            streamTracer->SetIntegrationDirection(isBackward);
+            streamTracer->SetSourceData(seeds);
+            streamTracer->Update();
+
+            // close gap to the critical point at the end
+            int closestCriticalPointToEnd = 0;
+            double p[3];
+            double q[3];
+            for (int j = 0; j < criticalPoints->GetNumberOfPoints(); j++)
+            {
+              vtkMath::Subtract(streamTracer->GetOutput()->GetPoint(
+                                  streamTracer->GetOutput()->GetNumberOfPoints() - 1),
+                criticalPoints->GetPoint(closestCriticalPointToEnd), p);
+              vtkMath::Subtract(streamTracer->GetOutput()->GetPoint(
+                                  streamTracer->GetOutput()->GetNumberOfPoints() - 1),
+                criticalPoints->GetPoint(j), p);
+              if (vtkMath::Norm(p) < dist)
+              {
+                closestCriticalPointToEnd = j;
+              }
+            }
+            vtkMath::Subtract(streamTracer->GetOutput()->GetPoint(
+                                streamTracer->GetOutput()->GetNumberOfPoints() - 1),
+              criticalPoints->GetPoint(closestCriticalPointToEnd), p);
+            if (vtkMath::Norm(p) < dist)
+            {
+              streamTracer->GetOutput()->GetPoints()->InsertNextPoint(
+                criticalPoints->GetPoint(closestCriticalPointToEnd));
+              for (int j = 0; j < streamTracer->GetOutput()->GetPointData()->GetNumberOfArrays();
+                   j++)
+              {
+                streamTracer->GetOutput()->GetPointData()->GetArray(j)->InsertNextTuple(
+                  streamTracer->GetOutput()->GetPointData()->GetArray(j)->GetTuple(
+                    closestCriticalPointToEnd));
+              }
+              vtkNew<vtkLine> line;
+              line->GetPointIds()->SetId(0, streamTracer->GetOutput()->GetNumberOfPoints() - 1);
+              line->GetPointIds()->SetId(1, streamTracer->GetOutput()->GetNumberOfPoints() - 2);
+              streamTracer->GetOutput()->GetLines()->InsertNextCell(line);
+              for (int j = 0; j < streamTracer->GetOutput()->GetCellData()->GetNumberOfArrays();
+                   j++)
+              {
+                streamTracer->GetOutput()->GetCellData()->GetArray(j)->InsertNextTuple(
+                  streamTracer->GetOutput()->GetCellData()->GetArray(j)->GetTuple(0));
+              }
+            }
+
+            // close gap to the critical point at the beginning
+            streamTracer->GetOutput()->GetPoints()->InsertNextPoint(
+              criticalPoints->GetPoint(pointId));
+            for (int j = 0; j < streamTracer->GetOutput()->GetPointData()->GetNumberOfArrays(); j++)
+            {
+              streamTracer->GetOutput()->GetPointData()->GetArray(j)->InsertNextTuple(
+                streamTracer->GetOutput()->GetPointData()->GetArray(j)->GetTuple(0));
+            }
+            vtkNew<vtkLine> line;
+            line->GetPointIds()->SetId(0, streamTracer->GetOutput()->GetNumberOfPoints() - 1);
+            line->GetPointIds()->SetId(1, 0);
+            streamTracer->GetOutput()->GetLines()->InsertNextCell(line);
+            for (int j = 0; j < streamTracer->GetOutput()->GetCellData()->GetNumberOfArrays(); j++)
+            {
+              streamTracer->GetOutput()->GetCellData()->GetArray(j)->InsertNextTuple(
+                streamTracer->GetOutput()->GetCellData()->GetArray(j)->GetTuple(0));
+            }
+
+            // fill arrays
+            vtkNew<vtkDoubleArray> iterationArray;
+            iterationArray->SetName("iteration");
+            iterationArray->SetNumberOfTuples(streamTracer->GetOutput()->GetNumberOfPoints());
+            streamTracer->GetOutput()->GetPointData()->AddArray(iterationArray);
+            vtkNew<vtkDoubleArray> indexArray;
+            indexArray->SetName("index");
+            indexArray->SetNumberOfTuples(streamTracer->GetOutput()->GetNumberOfPoints());
+            streamTracer->GetOutput()->GetPointData()->AddArray(indexArray);
+            for (int i = 0; i < streamTracer->GetOutput()->GetNumberOfPoints(); i++)
+            {
+              iterationArray->SetTuple1(i, i + 1);
+              indexArray->SetTuple1(i, numberOfSeparatingLines);
+            }
+            iterationArray->SetTuple1(streamTracer->GetOutput()->GetNumberOfPoints() - 1, 0);
+
+            // combine lines
+            vtkNew<vtkAppendPolyData> appendFilter;
+            appendFilter->AddInputData(separatrices);
+            appendFilter->AddInputData(streamTracer->GetOutput());
+            appendFilter->Update();
+            separatrices->DeepCopy(appendFilter->GetOutput());
+            numberOfSeparatingLines++;
           }
-        }
-        if (real(eigenS.eigenvalues()[i]) < 0 && countNeg == 1)
-        {
-          seedPointsBw->InsertNextPoint(
-            dist * real(eigenS.eigenvectors().col(i)[0]) + criticalPoints->GetPoint(pointId)[0],
-            dist * real(eigenS.eigenvectors().col(i)[1]) + criticalPoints->GetPoint(pointId)[1],
-            dist * real(eigenS.eigenvectors().col(i)[2]) + criticalPoints->GetPoint(pointId)[2]);
-          vtkNew<vtkVertex> vertex0;
-          vertex0->GetPointIds()->SetId(0, seedPointsBw->GetNumberOfPoints() - 1);
-          seedCellsBw->InsertNextCell(vertex0);
-
-          seedPointsBw->InsertNextPoint(
-            -dist * real(eigenS.eigenvectors().col(i)[0]) + criticalPoints->GetPoint(pointId)[0],
-            -dist * real(eigenS.eigenvectors().col(i)[1]) + criticalPoints->GetPoint(pointId)[1],
-            -dist * real(eigenS.eigenvectors().col(i)[2]) + criticalPoints->GetPoint(pointId)[2]);
-          vtkNew<vtkVertex> vertex1;
-          vertex1->GetPointIds()->SetId(0, seedPointsBw->GetNumberOfPoints() - 1);
-          seedCellsBw->InsertNextCell(vertex1);
           if (computeSurfaces && dataset->GetDataDimension() == 3)
           {
-            ComputeSurface(0, normal, criticalPoints->GetPoint(pointId), surfaces, dataset,
-              integrationStepUnit, dist, stepSize, maxNumSteps, useIterativeSeeding);
+            ComputeSurface(numberOfSeparatingSurfaces++, isForward, normal,
+              criticalPoints->GetPoint(pointId), surfaces, dataset, integrationStepUnit, dist,
+              stepSize, maxNumSteps, useIterativeSeeding);
           }
         }
       }
     }
   }
-
-  vtkNew<vtkStreamTracer> streamTracerFw;
-  streamTracerFw->SetInputData(dataset);
-  streamTracerFw->SetSourceData(seedsFw);
-  streamTracerFw->SetIntegratorTypeToRungeKutta4();
-  streamTracerFw->SetIntegrationStepUnit(this->IntegrationStepUnit);
-  streamTracerFw->SetInitialIntegrationStep(this->IntegrationStepSize);
-  streamTracerFw->SetIntegrationDirectionToForward();
-  streamTracerFw->SetComputeVorticity(0);
-  streamTracerFw->SetMaximumNumberOfSteps(maxNumSteps);
-  streamTracerFw->SetMaximumPropagation(dist * maxNumSteps);
-  streamTracerFw->SetTerminalSpeed(epsilon);
-  streamTracerFw->Update();
-
-  vtkNew<vtkDoubleArray> iterationArrayFw;
-  iterationArrayFw->SetName("iteration");
-  iterationArrayFw->SetNumberOfTuples(streamTracerFw->GetOutput()->GetNumberOfPoints());
-  streamTracerFw->GetOutput()->GetPointData()->AddArray(iterationArrayFw);
-  vtkNew<vtkDoubleArray> indexArrayFw;
-  indexArrayFw->SetName("index");
-  indexArrayFw->SetNumberOfTuples(streamTracerFw->GetOutput()->GetNumberOfPoints());
-  streamTracerFw->GetOutput()->GetPointData()->AddArray(indexArrayFw);
-  for (int i = 0; i < streamTracerFw->GetOutput()->GetNumberOfPoints(); i++)
-  {
-    iterationArrayFw->SetTuple1(i, i);
-    indexArrayFw->SetTuple1(i, 0);
-  }
-
-  vtkNew<vtkStreamTracer> streamTracerBw;
-  streamTracerBw->SetInputData(dataset);
-  streamTracerBw->SetSourceData(seedsBw);
-  streamTracerBw->SetIntegratorTypeToRungeKutta4();
-  streamTracerBw->SetIntegrationStepUnit(this->IntegrationStepUnit);
-  streamTracerBw->SetInitialIntegrationStep(this->IntegrationStepSize);
-  streamTracerBw->SetIntegrationDirectionToBackward();
-  streamTracerBw->SetComputeVorticity(0);
-  streamTracerBw->SetMaximumNumberOfSteps(maxNumSteps);
-  streamTracerBw->SetMaximumPropagation(dist * maxNumSteps);
-  streamTracerBw->SetTerminalSpeed(epsilon);
-  streamTracerBw->Update();
-
-  vtkNew<vtkDoubleArray> iterationArrayBw;
-  iterationArrayBw->SetName("iteration");
-  iterationArrayBw->SetNumberOfTuples(streamTracerBw->GetOutput()->GetNumberOfPoints());
-  streamTracerBw->GetOutput()->GetPointData()->AddArray(iterationArrayBw);
-  vtkNew<vtkDoubleArray> indexArrayBw;
-  indexArrayBw->SetName("index");
-  indexArrayBw->SetNumberOfTuples(streamTracerBw->GetOutput()->GetNumberOfPoints());
-  streamTracerBw->GetOutput()->GetPointData()->AddArray(indexArrayBw);
-  for (int i = 0; i < streamTracerBw->GetOutput()->GetNumberOfPoints(); i++)
-  {
-    iterationArrayBw->SetTuple1(i, i);
-    indexArrayBw->SetTuple1(i, 0);
-  }
-
-  // combine lines
-  vtkNew<vtkAppendPolyData> appendFilter;
-  appendFilter->AddInputData(streamTracerFw->GetOutput());
-  appendFilter->AddInputData(streamTracerBw->GetOutput());
-  appendFilter->Update();
-  separatrices->DeepCopy(appendFilter->GetOutput());
 
   // probe arrays to output surfaces
   if (computeSurfaces && dataset->GetDataDimension() == 3)

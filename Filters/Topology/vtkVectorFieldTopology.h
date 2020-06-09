@@ -168,10 +168,10 @@ private:
    * either good or fast
    * @return 1 if successful, 0 if empty
    */
-  int ComputeSurface(bool isBackward, double normal[3], double zeroPos[3],
-    vtkSmartPointer<vtkPolyData> streamSurfaces, vtkSmartPointer<vtkImageData> dataset,
-    int integrationStepUnit, double dist, double stepSize, int maxNumSteps,
-    bool useIterativeSeeding);
+  int ComputeSurface(int numberOfSeparatingSurfaces, bool isBackward, double normal[3],
+    double zeroPos[3], vtkSmartPointer<vtkPolyData> streamSurfaces,
+    vtkSmartPointer<vtkImageData> dataset, int integrationStepUnit, double dist, double stepSize,
+    int maxNumSteps, bool useIterativeSeeding);
 
   /**
    * simple type that corresponds to the number of positive eigenvalues
