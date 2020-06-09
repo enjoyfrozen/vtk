@@ -150,12 +150,12 @@ void vtkPDBReader::ReadSpecificMolecule(FILE* fp)
   this->SecondaryStructuresEnd->SetNumberOfValues(len);
 
   // Assign secondary structures
-  for (unsigned int i = 0; i < this->Points->GetNumberOfPoints(); i++)
+  for (vtkIdType i = 0; i < this->Points->GetNumberOfPoints(); i++)
   {
     this->SecondaryStructures->SetValue(i, 'c');
     resi = this->Residue->GetValue(i);
 
-    for (unsigned int j = 0; j < Sheets->GetNumberOfTuples(); j++)
+    for (vtkIdType j = 0; j < Sheets->GetNumberOfTuples(); j++)
     {
       int sheet[4];
       Sheets->GetTypedTuple(j, sheet);
@@ -172,7 +172,7 @@ void vtkPDBReader::ReadSpecificMolecule(FILE* fp)
         this->SecondaryStructuresEnd->SetValue(i, true);
     }
 
-    for (unsigned int j = 0; j < Helix->GetNumberOfTuples(); j++)
+    for (vtkIdType j = 0; j < Helix->GetNumberOfTuples(); j++)
     {
       int helix[4];
       Helix->GetTypedTuple(j, helix);

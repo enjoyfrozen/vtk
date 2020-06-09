@@ -233,11 +233,11 @@ int vtkGaussianCubeReader::RequestData(vtkInformation* vtkNotUsed(request),
 //------------------------------------------------------------------------------
 void vtkGaussianCubeReader::ReadSpecificMolecule(FILE* fp)
 {
-  int i, j;
+  int j;
   float x[3];
   float dummy;
 
-  for (i = 0; i < this->NumberOfAtoms; i++)
+  for (int i = 0; i < this->NumberOfAtoms; i++)
   {
     if (fscanf(fp, "%d %f %f %f %f", &j, &dummy, x, x + 1, x + 2) != 5)
     {
@@ -260,7 +260,7 @@ void vtkGaussianCubeReader::ReadSpecificMolecule(FILE* fp)
 
   // We only have one submodel
   this->Model->SetNumberOfValues(this->NumberOfAtoms);
-  for (vtkIdType i = 0; i < this->NumberOfAtoms; ++i)
+  for (int i = 0; i < this->NumberOfAtoms; ++i)
   {
     this->Model->SetValue(i, 1);
   }
