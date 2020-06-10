@@ -10,6 +10,14 @@ DEPENDS
   VTK::CommonCore
   VTK::CommonDataModel
   VTK::CommonExecutionModel
+  VTK::FiltersFlowPaths
+  VTK::FiltersModeling
+  VTK::FiltersSources
+  VTK::eigen
 TEST_DEPENDS
   VTK::IOLegacy
+  VTK::FiltersSources
+  VTK::ImagingCore
+  VTK::RenderingOpenGL2
+  VTK::TestingCore
   VTK::TestingRendering

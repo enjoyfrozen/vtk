@@ -1,4 +1,7 @@
 vtk_add_test_cxx(vtkFiltersTopologyCxxTests tests
   TestFiberSurface.cxx,NO_VALID
+  TestVectorFieldTopology.cxx
   )
-vtk_test_cxx_executable(vtkFiltersTopologyCxxTests tests)
+vtk_test_cxx_executable(vtkFiltersTopologyCxxTests tests
+  RENDERING_FACTORY
+)
