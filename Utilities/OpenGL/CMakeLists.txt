@@ -1,20 +1,13 @@
 include(vtkOpenGLOptions)
 
-# The variable OpenGL_GL_PREFERENCE is used in the FindOpenGL CMake module.
-if (OpenGL_GL_PREFERENCE STREQUAL "")
-  set(OpenGL_GL_PREFERENCE "GLVND")
-endif ()
-
 set(opengl_components)
 set(opengl_optional_components)
 if (VTK_USE_X)
   # XXX(nvidia): It seems that on some Ubuntu installations with manually
   # installed nVidia drivers, GLX is not found. Investigation is necessary.
 
-  if (OpenGL_GL_PREFERENCE STREQUAL "GLVND")
-    list(APPEND opengl_optional_components GLX)
-    list(APPEND opengl_targets OpenGL::GLX)
-  endif ()
+  list(APPEND opengl_optional_components GLX)
+  list(APPEND opengl_targets OpenGL::GLX)
 endif ()
 if (VTK_OPENGL_USE_GLES)
   list(APPEND opengl_components GLES3)
@@ -24,7 +17,14 @@ else ()
   if (WIN32)
     list(APPEND opengl_targets OpenGL::GL)
   else ()
-    if (OpenGL_GL_PREFERENCE STREQUAL "LEGACY")
+    set(use_legacy ON)
+    if (POLICY CMP0072)
+      cmake_policy(GET CMP0072 opengl_policy)
+      if (opengl_policy STREQUAL "NEW")
+        set(use_legacy OFF)
+      endif ()
+    endif ()
+    if (use_legacy)
       list(APPEND opengl_targets OpenGL::GL)
     else ()
       list(APPEND opengl_targets OpenGL::OpenGL)
