@@ -14,8 +14,7 @@
 =========================================================================*/
 /**
  * @class   vtkDataArrayTemplate
- *
- * vtkDataArrayTemplate is deprecated, use vtkAOSDataArrayTemplate instead.
+ * @brief   vtkDataArrayTemplate is deprecated, use vtkAOSDataArrayTemplate instead.
  */
 
 #ifndef vtkDataArrayTemplate_h
