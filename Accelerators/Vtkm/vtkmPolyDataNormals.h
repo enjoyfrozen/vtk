@@ -37,27 +37,40 @@
  * if you know that you have a triangle mesh which does not require splitting
  * nor consistency check on the cell orientations.
  *
-*/
+ */
 
 #ifndef vtkmPolyDataNormals_h
 #define vtkmPolyDataNormals_h
 
-#include "vtkPolyDataNormals.h"
 #include "vtkAcceleratorsVTKmModule.h" // for export macro
+#include "vtkPolyDataNormals.h"
 
 class VTKACCELERATORSVTKM_EXPORT vtkmPolyDataNormals : public vtkPolyDataNormals
 {
 public:
-  vtkTypeMacro(vtkmPolyDataNormals, vtkPolyDataNormals)
+  vtkTypeMacro(vtkmPolyDataNormals, vtkPolyDataNormals);
   void PrintSelf(ostream& os, vtkIndent indent) override;
   static vtkmPolyDataNormals* New();
 
+  //@{
+  /**
+   * When this flag is off (the default), then the computation will fall back
+   * to the serial VTK version if VTK-m fails to run. When the flag is on,
+   * the filter will generate an error if VTK-m fails to run. This is mostly
+   * useful in testing to make sure the expected algorithm is run.
+   */
+  vtkGetMacro(ForceVTKm, vtkTypeBool);
+  vtkSetMacro(ForceVTKm, vtkTypeBool);
+  vtkBooleanMacro(ForceVTKm, vtkTypeBool);
+  //@}
+
 protected:
   vtkmPolyDataNormals();
-  ~vtkmPolyDataNormals();
+  ~vtkmPolyDataNormals() override;
 
-  int RequestData(vtkInformation*, vtkInformationVector**,
-                  vtkInformationVector*) override;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+
+  vtkTypeBool ForceVTKm = false;
 
 private:
   vtkmPolyDataNormals(const vtkmPolyDataNormals&) = delete;

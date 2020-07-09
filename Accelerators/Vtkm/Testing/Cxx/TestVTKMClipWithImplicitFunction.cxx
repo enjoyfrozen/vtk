@@ -21,13 +21,12 @@
 #include "vtkPointData.h"
 #include "vtkPolyData.h"
 #include "vtkPolyDataMapper.h"
+#include "vtkRTAnalyticSource.h"
 #include "vtkRegressionTestImage.h"
-#include "vtkRenderer.h"
 #include "vtkRenderWindow.h"
 #include "vtkRenderWindowInteractor.h"
-#include "vtkRTAnalyticSource.h"
+#include "vtkRenderer.h"
 #include "vtkSphere.h"
-
 
 int TestVTKMClipWithImplicitFunction(int argc, char* argv[])
 {
@@ -39,6 +38,7 @@ int TestVTKMClipWithImplicitFunction(int argc, char* argv[])
   sphere->SetCenter(0, 0, 0);
   sphere->SetRadius(10);
   vtkNew<vtkmClip> clip;
+  clip->ForceVTKmOn();
   clip->SetInputConnection(wavelet->GetOutputPort());
   clip->SetClipFunction(sphere);
 

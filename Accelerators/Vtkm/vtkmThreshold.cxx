@@ -26,43 +26,34 @@
 
 #include "vtkmlib/ArrayConverters.h"
 #include "vtkmlib/DataSetConverters.h"
-#include "vtkmlib/Storage.h"
 #include "vtkmlib/UnstructuredGridConverter.h"
 
-#include "vtkmCellSetExplicit.h"
-#include "vtkmCellSetSingleType.h"
 #include "vtkmFilterPolicy.h"
 
 #include <vtkm/filter/Threshold.h>
+#include <vtkm/filter/Threshold.hxx>
 
-vtkStandardNewMacro(vtkmThreshold)
-
-//------------------------------------------------------------------------------
-vtkmThreshold::vtkmThreshold()
-{
-}
+vtkStandardNewMacro(vtkmThreshold);
 
 //------------------------------------------------------------------------------
-vtkmThreshold::~vtkmThreshold()
-{
-}
+vtkmThreshold::vtkmThreshold() = default;
 
 //------------------------------------------------------------------------------
-int vtkmThreshold::RequestData(vtkInformation* request,
-                               vtkInformationVector** inputVector,
-                               vtkInformationVector* outputVector)
+vtkmThreshold::~vtkmThreshold() = default;
+
+//------------------------------------------------------------------------------
+int vtkmThreshold::RequestData(
+  vtkInformation* request, vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
   vtkInformation* inInfo = inputVector[0]->GetInformationObject(0);
   vtkInformation* outInfo = outputVector->GetInformationObject(0);
-  vtkDataSet* input =
-      vtkDataSet::SafeDownCast(inInfo->Get(vtkDataObject::DATA_OBJECT()));
+  vtkDataSet* input = vtkDataSet::SafeDownCast(inInfo->Get(vtkDataObject::DATA_OBJECT()));
 
-  vtkUnstructuredGrid* output = vtkUnstructuredGrid::SafeDownCast(
-      outInfo->Get(vtkDataObject::DATA_OBJECT()));
+  vtkUnstructuredGrid* output =
+    vtkUnstructuredGrid::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
 
   vtkDataArray* inputArray = this->GetInputArrayToProcess(0, inputVector);
-  if (inputArray == nullptr || inputArray->GetName() == nullptr ||
-      inputArray->GetName()[0] == '\0')
+  if (inputArray == nullptr || inputArray->GetName() == nullptr || inputArray->GetName()[0] == '\0')
   {
     vtkErrorMacro("Invalid input array.");
     return 0;
@@ -73,12 +64,11 @@ int vtkmThreshold::RequestData(vtkInformation* request,
     // convert the input dataset to a vtkm::cont::DataSet
     auto in = tovtkm::Convert(input, tovtkm::FieldsFlag::PointsAndCells);
 
-    vtkmInputFilterPolicy policy;
     vtkm::filter::Threshold filter;
     filter.SetActiveField(inputArray->GetName());
     filter.SetLowerThreshold(this->GetLowerThreshold());
     filter.SetUpperThreshold(this->GetUpperThreshold());
-    auto result = filter.Execute(in, policy);
+    auto result = filter.Execute(in);
 
     // now we are done the algorithm and conversion of arrays so
     // convert back the dataset to VTK
@@ -90,9 +80,17 @@ int vtkmThreshold::RequestData(vtkInformation* request,
   }
   catch (const vtkm::cont::Error& e)
   {
-    vtkWarningMacro(<< "VTK-m error: " << e.GetMessage()
-                    << "Falling back to serial implementation");
-    return this->Superclass::RequestData(request, inputVector, outputVector);
+    if (this->ForceVTKm)
+    {
+      vtkErrorMacro(<< "VTK-m error: " << e.GetMessage());
+      return 0;
+    }
+    else
+    {
+      vtkWarningMacro(<< "VTK-m error: " << e.GetMessage()
+                      << "Falling back to serial implementation");
+      return this->Superclass::RequestData(request, inputVector, outputVector);
+    }
   }
 
   return 1;

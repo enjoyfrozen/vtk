@@ -18,11 +18,11 @@
 #include "vtkDataSetSurfaceFilter.h"
 #include "vtkNew.h"
 #include "vtkPolyDataMapper.h"
+#include "vtkRTAnalyticSource.h"
 #include "vtkRegressionTestImage.h"
-#include "vtkRenderer.h"
 #include "vtkRenderWindow.h"
 #include "vtkRenderWindowInteractor.h"
-#include "vtkRTAnalyticSource.h"
+#include "vtkRenderer.h"
 #include "vtkSphereSource.h"
 #include "vtkTriangleFilter.h"
 
@@ -43,6 +43,7 @@ int TestVTKMExtractVOI(int argc, char* argv[])
   rt->SetWholeExtent(-50, 50, -50, 50, 0, 0);
 
   vtkNew<vtkmExtractVOI> voi;
+  voi->ForceVTKmOn();
   voi->SetInputConnection(rt->GetOutputPort());
   voi->SetVOI(-11, 39, 5, 45, 0, 0);
   voi->SetSampleRate(5, 5, 1);

@@ -20,20 +20,20 @@
  * unstructured grid data files in vtk format. See text for format details.
  * @warning
  * Binary files written on one system may not be readable on other systems.
-*/
+ */
 
 #ifndef vtkUnstructuredGridWriter_h
 #define vtkUnstructuredGridWriter_h
 
-#include "vtkIOLegacyModule.h" // For export macro
 #include "vtkDataWriter.h"
+#include "vtkIOLegacyModule.h" // For export macro
 class vtkUnstructuredGrid;
 
 class VTKIOLEGACY_EXPORT vtkUnstructuredGridWriter : public vtkDataWriter
 {
 public:
-  static vtkUnstructuredGridWriter *New();
-  vtkTypeMacro(vtkUnstructuredGridWriter,vtkDataWriter);
+  static vtkUnstructuredGridWriter* New();
+  vtkTypeMacro(vtkUnstructuredGridWriter, vtkDataWriter);
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
   //@{
@@ -45,15 +45,14 @@ public:
   //@}
 
 protected:
-  vtkUnstructuredGridWriter() {}
-  ~vtkUnstructuredGridWriter() override {}
+  vtkUnstructuredGridWriter() = default;
+  ~vtkUnstructuredGridWriter() override = default;
 
   void WriteData() override;
 
-  int WriteCellsAndFaces(ostream *fp, vtkUnstructuredGrid *grid,
-                         const char *label);
+  int WriteCellsAndFaces(ostream* fp, vtkUnstructuredGrid* grid, const char* label);
 
-  int FillInputPortInformation(int port, vtkInformation *info) override;
+  int FillInputPortInformation(int port, vtkInformation* info) override;
 
 private:
   vtkUnstructuredGridWriter(const vtkUnstructuredGridWriter&) = delete;

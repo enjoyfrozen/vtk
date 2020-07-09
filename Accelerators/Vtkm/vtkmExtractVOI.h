@@ -31,27 +31,39 @@
  * for image processing, subsampling large volumes to reduce data size, or
  * extracting regions of a volume with interesting data.
  *
-*/
+ */
 #ifndef vtkmExtractVOI_h
 #define vtkmExtractVOI_h
 
-#include "vtkExtractVOI.h"
 #include "vtkAcceleratorsVTKmModule.h" // for export macro
-
+#include "vtkExtractVOI.h"
 
 class VTKACCELERATORSVTKM_EXPORT vtkmExtractVOI : public vtkExtractVOI
 {
 public:
-  vtkTypeMacro(vtkmExtractVOI, vtkExtractVOI)
+  vtkTypeMacro(vtkmExtractVOI, vtkExtractVOI);
   void PrintSelf(ostream& os, vtkIndent indent) override;
   static vtkmExtractVOI* New();
 
+  //@{
+  /**
+   * When this flag is off (the default), then the computation will fall back
+   * to the serial VTK version if VTK-m fails to run. When the flag is on,
+   * the filter will generate an error if VTK-m fails to run. This is mostly
+   * useful in testing to make sure the expected algorithm is run.
+   */
+  vtkGetMacro(ForceVTKm, vtkTypeBool);
+  vtkSetMacro(ForceVTKm, vtkTypeBool);
+  vtkBooleanMacro(ForceVTKm, vtkTypeBool);
+  //@}
+
 protected:
   vtkmExtractVOI();
-  ~vtkmExtractVOI();
+  ~vtkmExtractVOI() override;
 
-  int RequestData(vtkInformation*, vtkInformationVector**,
-                  vtkInformationVector*) override;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+
+  vtkTypeBool ForceVTKm = false;
 
 private:
   vtkmExtractVOI(const vtkmExtractVOI&) = delete;

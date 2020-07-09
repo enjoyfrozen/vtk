@@ -42,28 +42,40 @@
  * are therefore weighted by the triangle area. This is not more nor less
  * correct than normalizing them before adding them, but it is much faster.
  *
-*/
+ */
 
 #ifndef vtkmTriangleMeshPointNormals_h
 #define vtkmTriangleMeshPointNormals_h
 
-#include "vtkTriangleMeshPointNormals.h"
 #include "vtkAcceleratorsVTKmModule.h" // for export macro
+#include "vtkTriangleMeshPointNormals.h"
 
-class VTKACCELERATORSVTKM_EXPORT vtkmTriangleMeshPointNormals
-  : public vtkTriangleMeshPointNormals
+class VTKACCELERATORSVTKM_EXPORT vtkmTriangleMeshPointNormals : public vtkTriangleMeshPointNormals
 {
 public:
-  vtkTypeMacro(vtkmTriangleMeshPointNormals, vtkTriangleMeshPointNormals)
+  vtkTypeMacro(vtkmTriangleMeshPointNormals, vtkTriangleMeshPointNormals);
   void PrintSelf(ostream& os, vtkIndent indent) override;
   static vtkmTriangleMeshPointNormals* New();
 
+  //@{
+  /**
+   * When this flag is off (the default), then the computation will fall back
+   * to the serial VTK version if VTK-m fails to run. When the flag is on,
+   * the filter will generate an error if VTK-m fails to run. This is mostly
+   * useful in testing to make sure the expected algorithm is run.
+   */
+  vtkGetMacro(ForceVTKm, vtkTypeBool);
+  vtkSetMacro(ForceVTKm, vtkTypeBool);
+  vtkBooleanMacro(ForceVTKm, vtkTypeBool);
+  //@}
+
 protected:
   vtkmTriangleMeshPointNormals();
-  ~vtkmTriangleMeshPointNormals();
+  ~vtkmTriangleMeshPointNormals() override;
 
-  int RequestData(vtkInformation*, vtkInformationVector**,
-                  vtkInformationVector*) override;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+
+  vtkTypeBool ForceVTKm = false;
 
 private:
   vtkmTriangleMeshPointNormals(const vtkmTriangleMeshPointNormals&) = delete;

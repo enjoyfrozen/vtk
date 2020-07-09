@@ -32,7 +32,8 @@
 
 class vtkImplicitFunction;
 
-namespace tovtkm {
+namespace tovtkm
+{
 
 class ImplicitFunctionConverter;
 
@@ -42,47 +43,60 @@ class VTKACCELERATORSVTKM_EXPORT vtkmClip : public vtkUnstructuredGridAlgorithm
 {
 public:
   static vtkmClip* New();
-  vtkTypeMacro(vtkmClip, vtkUnstructuredGridAlgorithm)
-  void PrintSelf(ostream &os, vtkIndent indent) override;
+  vtkTypeMacro(vtkmClip, vtkUnstructuredGridAlgorithm);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
    * The scalar value to use when clipping the dataset. Values greater than
    * ClipValue are preserved in the output dataset. Default is 0.
    */
-  vtkGetMacro(ClipValue, double)
-  vtkSetMacro(ClipValue, double)
+  vtkGetMacro(ClipValue, double);
+  vtkSetMacro(ClipValue, double);
 
   /**
    * If true, all input point data arrays will be mapped onto the output
    * dataset. Default is true.
    */
-  vtkGetMacro(ComputeScalars, bool)
-  vtkSetMacro(ComputeScalars, bool)
+  vtkGetMacro(ComputeScalars, bool);
+  vtkSetMacro(ComputeScalars, bool);
 
   /**
    * Set the implicit function with which to perform the clipping. If set,
    * \c ClipValue is ignored and the clipping is performed using the implicit
    * function.
    */
-  void SetClipFunction(vtkImplicitFunction *);
+  void SetClipFunction(vtkImplicitFunction*);
   vtkGetObjectMacro(ClipFunction, vtkImplicitFunction);
 
   vtkMTimeType GetMTime() override;
 
+  //@{
+  /**
+   * When this flag is off (the default), then the computation will fall back
+   * to the serial VTK version if VTK-m fails to run. When the flag is on,
+   * the filter will generate an error if VTK-m fails to run. This is mostly
+   * useful in testing to make sure the expected algorithm is run.
+   */
+  vtkGetMacro(ForceVTKm, vtkTypeBool);
+  vtkSetMacro(ForceVTKm, vtkTypeBool);
+  vtkBooleanMacro(ForceVTKm, vtkTypeBool);
+  //@}
+
 protected:
   vtkmClip();
-  ~vtkmClip();
+  ~vtkmClip() override;
 
-  int RequestData(vtkInformation*, vtkInformationVector**,
-                  vtkInformationVector*) override;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
   int FillInputPortInformation(int port, vtkInformation* info) override;
 
   double ClipValue;
   bool ComputeScalars;
 
-  vtkImplicitFunction *ClipFunction;
+  vtkImplicitFunction* ClipFunction;
   std::unique_ptr<tovtkm::ImplicitFunctionConverter> ClipFunctionConverter;
+
+  vtkTypeBool ForceVTKm = false;
 
 private:
   vtkmClip(const vtkmClip&) = delete;

@@ -23,28 +23,13 @@
 
 #include "vtkmlib/ArrayConverters.h"
 #include "vtkmlib/ImageDataConverter.h"
-#include "vtkmlib/Storage.h"
 
-#include "vtkmCellSetExplicit.h"
-#include "vtkmCellSetSingleType.h"
 #include "vtkmFilterPolicy.h"
 
 #include "vtkm/filter/ExtractStructured.h"
+#include "vtkm/filter/ExtractStructured.hxx"
 
-
-namespace {
-
-struct InputFilterPolicy : public vtkmInputFilterPolicy
-{
-  using StructuredCellSetList =
-    vtkm::ListTagBase<vtkm::cont::CellSetStructured<1>,
-                      vtkm::cont::CellSetStructured<2>,
-                      vtkm::cont::CellSetStructured<3>>;
-};
-
-}
-
-vtkStandardNewMacro(vtkmExtractVOI)
+vtkStandardNewMacro(vtkmExtractVOI);
 
 //------------------------------------------------------------------------------
 void vtkmExtractVOI::PrintSelf(ostream& os, vtkIndent indent)
@@ -58,17 +43,13 @@ vtkmExtractVOI::~vtkmExtractVOI() = default;
 
 //------------------------------------------------------------------------------
 int vtkmExtractVOI::RequestData(
-  vtkInformation *request,
-  vtkInformationVector **inputVector,
-  vtkInformationVector *outputVector)
+  vtkInformation* request, vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
   vtkInformation* inInfo = inputVector[0]->GetInformationObject(0);
   vtkInformation* outInfo = outputVector->GetInformationObject(0);
 
-  vtkImageData* input =
-    vtkImageData::SafeDownCast(inInfo->Get(vtkDataObject::DATA_OBJECT()));
-  vtkImageData* output =
-    vtkImageData::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
+  vtkImageData* input = vtkImageData::SafeDownCast(inInfo->Get(vtkDataObject::DATA_OBJECT()));
+  vtkImageData* output = vtkImageData::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
 
   try
   {
@@ -85,12 +66,11 @@ int vtkmExtractVOI::RequestData(
     }
 
     // apply the filter
-    vtkm::filter::PolicyBase<InputFilterPolicy> policy;
     vtkm::filter::ExtractStructured filter;
     filter.SetVOI(voi[0], voi[1], voi[2], voi[3], voi[4], voi[5]);
     filter.SetSampleRate(this->SampleRate[0], this->SampleRate[1], this->SampleRate[2]);
-    filter.SetIncludeBoundary( (this->IncludeBoundary != 0 ) );
-    auto result = filter.Execute(in, policy);
+    filter.SetIncludeBoundary((this->IncludeBoundary != 0));
+    auto result = filter.Execute(in);
 
     // convert back to vtkImageData
     int outExtents[6];
@@ -103,9 +83,16 @@ int vtkmExtractVOI::RequestData(
   }
   catch (const vtkm::cont::Error& e)
   {
-    vtkErrorMacro(<< "VTK-m error: " << e.GetMessage()
-                  << "Falling back to vtkExtractVOI");
-    return this->Superclass::RequestData(request, inputVector, outputVector);
+    if (this->ForceVTKm)
+    {
+      vtkErrorMacro(<< "VTK-m error: " << e.GetMessage());
+      return 0;
+    }
+    else
+    {
+      vtkWarningMacro(<< "VTK-m error: " << e.GetMessage() << "Falling back to vtkExtractVOI");
+      return this->Superclass::RequestData(request, inputVector, outputVector);
+    }
   }
 
   return 1;

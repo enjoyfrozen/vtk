@@ -23,33 +23,45 @@
  * can be oriented arbitrarily. A typical example is to generate scalars based
  * on elevation or height above a plane.
  *
-*/
+ */
 
 #ifndef vtkmPointElevation_h
 #define vtkmPointElevation_h
 
-#include "vtkElevationFilter.h"
 #include "vtkAcceleratorsVTKmModule.h" // required for correct export
+#include "vtkElevationFilter.h"
 
 class VTKACCELERATORSVTKM_EXPORT vtkmPointElevation : public vtkElevationFilter
 {
 public:
-  vtkTypeMacro(vtkmPointElevation, vtkElevationFilter)
+  vtkTypeMacro(vtkmPointElevation, vtkElevationFilter);
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
   static vtkmPointElevation* New();
 
+  //@{
+  /**
+   * When this flag is off (the default), then the computation will fall back
+   * to the serial VTK version if VTK-m fails to run. When the flag is on,
+   * the filter will generate an error if VTK-m fails to run. This is mostly
+   * useful in testing to make sure the expected algorithm is run.
+   */
+  vtkGetMacro(ForceVTKm, vtkTypeBool);
+  vtkSetMacro(ForceVTKm, vtkTypeBool);
+  vtkBooleanMacro(ForceVTKm, vtkTypeBool);
+  //@}
+
 protected:
   vtkmPointElevation();
-  ~vtkmPointElevation();
+  ~vtkmPointElevation() override;
 
-  virtual int RequestData(vtkInformation* , vtkInformationVector**,
-                          vtkInformationVector*) override;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+
+  vtkTypeBool ForceVTKm = false;
 
 private:
   vtkmPointElevation(const vtkmPointElevation&) = delete;
   void operator=(const vtkmPointElevation&) = delete;
-
 };
 
 #endif // vtkmPointElevation_h

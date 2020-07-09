@@ -32,23 +32,23 @@
 #include "vtkmlib/DataSetConverters.h"
 #include "vtkmlib/ImplicitFunctionConverter.h"
 #include "vtkmlib/PolyDataConverter.h"
-#include "vtkmlib/Storage.h"
 #include "vtkmlib/UnstructuredGridConverter.h"
 
-#include "vtkmCellSetExplicit.h"
-#include "vtkmCellSetSingleType.h"
 #include "vtkmFilterPolicy.h"
 
+#include <vtkm/cont/RuntimeDeviceTracker.h>
+
 #include <vtkm/filter/ClipWithField.h>
+#include <vtkm/filter/ClipWithField.hxx>
 #include <vtkm/filter/ClipWithImplicitFunction.h>
+#include <vtkm/filter/ClipWithImplicitFunction.hxx>
 
 #include <algorithm>
 
-
-vtkStandardNewMacro(vtkmClip)
+vtkStandardNewMacro(vtkmClip);
 
 //------------------------------------------------------------------------------
-void vtkmClip::PrintSelf(std::ostream &os, vtkIndent indent)
+void vtkmClip::PrintSelf(std::ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 
@@ -60,22 +60,20 @@ void vtkmClip::PrintSelf(std::ostream &os, vtkIndent indent)
 
 //------------------------------------------------------------------------------
 vtkmClip::vtkmClip()
-  : ClipValue(0.),
-    ComputeScalars(true),
-    ClipFunction(nullptr),
-    ClipFunctionConverter(new tovtkm::ImplicitFunctionConverter)
+  : ClipValue(0.)
+  , ComputeScalars(true)
+  , ClipFunction(nullptr)
+  , ClipFunctionConverter(new tovtkm::ImplicitFunctionConverter)
 {
   // Clip active point scalars by default
-  this->SetInputArrayToProcess(0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS,
-                               vtkDataSetAttributes::SCALARS);
+  this->SetInputArrayToProcess(
+    0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, vtkDataSetAttributes::SCALARS);
 }
 
 //------------------------------------------------------------------------------
-vtkmClip::~vtkmClip()
-{
-}
+vtkmClip::~vtkmClip() = default;
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkMTimeType vtkmClip::GetMTime()
 {
   vtkMTimeType mTime = this->Superclass::GetMTime();
@@ -86,8 +84,8 @@ vtkMTimeType vtkmClip::GetMTime()
   return mTime;
 }
 
-//----------------------------------------------------------------------------
-void vtkmClip::SetClipFunction(vtkImplicitFunction *clipFunction)
+//------------------------------------------------------------------------------
+void vtkmClip::SetClipFunction(vtkImplicitFunction* clipFunction)
 {
   if (this->ClipFunction != clipFunction)
   {
@@ -98,25 +96,26 @@ void vtkmClip::SetClipFunction(vtkImplicitFunction *clipFunction)
 }
 
 //------------------------------------------------------------------------------
-int vtkmClip::RequestData(vtkInformation *,
-                          vtkInformationVector **inInfoVec,
-                          vtkInformationVector *outInfoVec)
+int vtkmClip::RequestData(
+  vtkInformation*, vtkInformationVector** inInfoVec, vtkInformationVector* outInfoVec)
 {
+  vtkm::cont::ScopedRuntimeDeviceTracker tracker(
+    vtkm::cont::DeviceAdapterTagCuda{}, vtkm::cont::RuntimeDeviceTrackerMode::Disable);
+
   vtkInformation* inInfo = inInfoVec[0]->GetInformationObject(0);
   vtkInformation* outInfo = outInfoVec->GetInformationObject(0);
 
   // Extract data objects from info:
-  vtkDataSet *input =
-    vtkDataSet::SafeDownCast(inInfo->Get(vtkDataObject::DATA_OBJECT()));
-  vtkUnstructuredGrid *output =
+  vtkDataSet* input = vtkDataSet::SafeDownCast(inInfo->Get(vtkDataObject::DATA_OBJECT()));
+  vtkUnstructuredGrid* output =
     vtkUnstructuredGrid::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
 
   // Find the scalar array:
   int assoc = this->GetInputArrayAssociation(0, inInfoVec);
-  vtkDataArray *scalars = this->GetInputArrayToProcess(0, inInfoVec);
-  if (assoc != vtkDataObject::FIELD_ASSOCIATION_POINTS ||
-      scalars == nullptr || scalars->GetName() == nullptr ||
-      scalars->GetName()[0] == '\0')
+  vtkDataArray* scalars = this->GetInputArrayToProcess(0, inInfoVec);
+  if (!this->ClipFunction &&
+    (assoc != vtkDataObject::FIELD_ASSOCIATION_POINTS || scalars == nullptr ||
+      scalars->GetName() == nullptr || scalars->GetName()[0] == '\0'))
   {
     vtkErrorMacro("Invalid scalar array; array missing or not a point array.");
     return 0;
@@ -131,14 +130,12 @@ int vtkmClip::RequestData(vtkInformation *,
   try
   {
     // Convert inputs to vtkm objects:
-    auto fieldsFlag = this->ComputeScalars ?
-                      tovtkm::FieldsFlag::PointsAndCells :
-                      tovtkm::FieldsFlag::None;
+    auto fieldsFlag =
+      this->ComputeScalars ? tovtkm::FieldsFlag::PointsAndCells : tovtkm::FieldsFlag::None;
     auto in = tovtkm::Convert(input, fieldsFlag);
 
     // Run filter:
     vtkm::cont::DataSet result;
-    vtkmInputFilterPolicy policy;
     if (this->ClipFunction)
     {
       vtkm::filter::ClipWithImplicitFunction functionFilter;
@@ -146,7 +143,7 @@ int vtkmClip::RequestData(vtkInformation *,
       if (function.GetValid())
       {
         functionFilter.SetImplicitFunction(function);
-        result = functionFilter.Execute(in, policy);
+        result = functionFilter.Execute(in);
       }
     }
     else
@@ -164,7 +161,7 @@ int vtkmClip::RequestData(vtkInformation *,
 
       fieldFilter.SetActiveField(scalars->GetName(), vtkm::cont::Field::Association::POINTS);
       fieldFilter.SetClipValue(this->ClipValue);
-      result = fieldFilter.Execute(in, policy);
+      result = fieldFilter.Execute(in);
     }
 
     // Convert result to output:
@@ -174,7 +171,7 @@ int vtkmClip::RequestData(vtkInformation *,
       return 0;
     }
 
-    if (this->ComputeScalars)
+    if (!this->ClipFunction && this->ComputeScalars)
     {
       output->GetPointData()->SetActiveScalars(scalars->GetName());
     }
@@ -183,21 +180,29 @@ int vtkmClip::RequestData(vtkInformation *,
   }
   catch (const vtkm::cont::Error& e)
   {
-    vtkWarningMacro(<< "VTK-m error: " << e.GetMessage()
-                    << "Falling back to serial implementation.");
+    if (this->ForceVTKm)
+    {
+      vtkErrorMacro(<< "VTK-m error: " << e.GetMessage());
+      return 0;
+    }
+    else
+    {
+      vtkWarningMacro(<< "VTK-m error: " << e.GetMessage()
+                      << "Falling back to serial implementation.");
 
-    vtkNew<vtkTableBasedClipDataSet> filter;
-    filter->SetClipFunction(this->ClipFunction);
-    filter->SetValue(this->ClipValue);
-    filter->SetInputData(input);
-    filter->Update();
-    output->ShallowCopy(filter->GetOutput());
-    return 1;
+      vtkNew<vtkTableBasedClipDataSet> filter;
+      filter->SetClipFunction(this->ClipFunction);
+      filter->SetValue(this->ClipValue);
+      filter->SetInputData(input);
+      filter->Update();
+      output->ShallowCopy(filter->GetOutput());
+      return 1;
+    }
   }
 }
 
 //------------------------------------------------------------------------------
-int vtkmClip::FillInputPortInformation(int, vtkInformation *info)
+int vtkmClip::FillInputPortInformation(int, vtkInformation* info)
 {
   // These are the types supported by tovtkm::Convert:
   info->Set(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "vtkPolyData");
