@@ -26,7 +26,7 @@
 #if VTK_MODULE_USE_EXTERNAL_vtkeigen
 # define VTK_EIGEN(x) <Eigen/x>
 #else
-# define VTK_EIGEN(x) <vtkeigen/eigen/x>
+# define VTK_EIGEN(x) <vtkeigen/Eigen/x>
 #endif
 
 #endif
