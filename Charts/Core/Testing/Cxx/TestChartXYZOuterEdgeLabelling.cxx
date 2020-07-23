@@ -165,7 +165,9 @@ int TestChartXYZOuterEdgeLabelling(int, char*[])
 
   // Use recorded information to set the initial orientation of the chart and then rotate
   // it left and down to set a 3d view.
-  vtkSmartPointer<vtkInteractorEventRecorder> recorder = vtkSmartPointer<vtkInteractorEventRecorder>::New();
+  vtkSmartPointer<vtkInteractorEventRecorder> recorder =
+    vtkSmartPointer<vtkInteractorEventRecorder>::New();
+
   recorder->SetInteractor(view->GetInteractor());
 
   recorder->ReadFromInputStringOn();
