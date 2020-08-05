@@ -2319,6 +2319,11 @@ bool vtkChartXY::KeyPressEvent(const vtkContextKeyEvent& key)
   return true;
 }
 
+const std::vector<vtkContextTransform*>& vtkChartXY::GetTransforms() const
+{
+  return this->ChartPrivate->PlotCorners;
+}
+
 //------------------------------------------------------------------------------
 bool vtkChartXY::RemovePlotFromCorners(vtkPlot* plot)
 {
