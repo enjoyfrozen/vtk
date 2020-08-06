@@ -143,6 +143,12 @@
  * - vtkCommand::MouseWheelBackwardEvent
  *  - most of the objects return nullptr
  *  - GUISupport/Qt/QVTKOpenGLStereoWidget returns a QWheelEvent*
+ * - vtkCommand::MouseWheelLeftEvent
+ *  - most of the objects return nullptr
+ *  - GUISupport/Qt/QVTKOpenGLWidget returns a QWheelEvent*
+ * - vtkCommand::MouseWheelRightEvent
+ *  - most of the objects return nullptr
+ *  - GUISupport/Qt/QVTKOpenGLWidget returns a QWheelEvent*
  * - vtkCommand::RightButtonPressEvent
  *  - most of the objects return nullptr
  *  - GUISupport/Qt/QVTKOpenGLStereoWidget returns a QMouseEvent*
@@ -262,6 +268,8 @@
     _vtk_add_event(MouseMoveEvent)                                                                 \
     _vtk_add_event(MouseWheelForwardEvent)                                                         \
     _vtk_add_event(MouseWheelBackwardEvent)                                                        \
+    _vtk_add_event(MouseWheelLeftEvent)                                                            \
+    _vtk_add_event(MouseWheelRightEvent)                                                           \
     _vtk_add_event(ActiveCameraEvent)                                                              \
     _vtk_add_event(CreateCameraEvent)                                                              \
     _vtk_add_event(ResetCameraEvent)                                                               \
