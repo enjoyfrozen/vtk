@@ -163,9 +163,6 @@ int Test_rfftfreq()
     }
   }
 
-  //  if(!(frequencies == test1))
-  //    status++;
-
   if (status)
   {
     std::cout << "..FAILED" << std::endl;

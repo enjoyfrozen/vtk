@@ -24,7 +24,7 @@ namespace
 
 int fft_frame_size_bits(int dataSize)
 {
-  int k = 0; // Длина n в битах
+  int k = 0; //  Length n in bits
   while ((1 << k) < dataSize)
     k++;
   return k;
@@ -80,11 +80,10 @@ void fft_in_out_perm(int* perm, int k)
   perm[0] = 0;
   for (int i = 1; i < n; i++)
   {
-    if ((i & (i - 1)) ==
-      0) // Проверка на степень двойки. Если i ей является, то i-1 будет состоять из кучи единиц.
+    if ((i & (i - 1)) == 0) // Double check. If i is, then i-1 will consist of a pile of units.
       high1++;
-    perm[i] = perm[i ^ (1 << high1)];  // Переворачиваем остаток
-    perm[i] |= (1 << (k - high1 - 1)); // Добавляем старший бит
+    perm[i] = perm[i ^ (1 << high1)];  // Turn over the rest
+    perm[i] |= (1 << (k - high1 - 1)); // Add a high bit
   }
 }
 

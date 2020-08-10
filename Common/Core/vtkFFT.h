@@ -17,7 +17,7 @@
  * @brief perform Discrete Fourier Transforms
  *
  * vtkFFT provides methods to perform Discrete Fourier Transforms.
- * These include providing ...
+ * These include providing forward and reverse Fourier transforms.
  */
 
 #ifndef vtkFFT_h

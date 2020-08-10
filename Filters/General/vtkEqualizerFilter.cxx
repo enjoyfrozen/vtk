@@ -411,7 +411,6 @@ void vtkEqualizerFilter::ProcessColumn(
   // fill spectrum table
   std::vector<double> freqArray =
     vtkFFT::rfftfreq(this->Internal->SpectrumSize, 1.0 / this->SamplingFrequency);
-  // assert(freqArray.size() == this->Internal->GetHalfSpectrumSize());
 
   vtkSmartPointer<vtkDoubleArray> freqColumn = vtkSmartPointer<vtkDoubleArray>::New();
   freqColumn->SetNumberOfComponents(1);
@@ -436,8 +435,8 @@ void vtkEqualizerFilter::ProcessColumn(
   for (vtkIdType spectrumId = 0; spectrumId < this->Internal->GetHalfSpectrumSize(); ++spectrumId)
   {
     const ComplexNumber& value = spectrum[spectrumId];
-    // нас интересует только спектр амплитуд, поэтому используем complex_module
-    // делим на число элементов, чтобы амплитуды были в милливольтах, а не в суммах Фурье
+    // we are only interested in amplitude spectrum, so we use complex_module
+    // divide by the number of elements so that the amplitudes are in millivolts, not Fourier sums.
     double modifier = pow(10, 0.05 * this->SpectrumGain);
     double module =
       vtkFFT::complex_module(value) * modifier / this->Internal->GetHalfSpectrumSize();
