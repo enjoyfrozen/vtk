@@ -1692,11 +1692,11 @@ int vtkDataSetSurfaceFilter::UnstructuredGridExecuteInternal(vtkUnstructuredGrid
   }
 
   // Check for a filtering array if cells need to be removed from the surface
-  vtkSignedCharArray* cellsIncluded =
+  vtkSignedCharArray* includedCells =
     (this->FilterTopology && this->GetTopologyFilterArrayName() != nullptr)
     ? vtkArrayDownCast<vtkSignedCharArray>(inputCD->GetArray(this->GetTopologyFilterArrayName()))
     : nullptr;
-  vtkIdType numCellsIncluded = cellsIncluded ? cellsIncluded->GetNumberOfValues() : 0;
+  vtkIdType numIncludedCells = includedCells ? includedCells->GetNumberOfValues() : 0;
 
   // First insert all points.  Points have to come first in poly data.
   for (cellIter->InitTraversal(); !cellIter->IsDoneWithTraversal(); cellIter->GoToNextCell())
@@ -1704,8 +1704,8 @@ int vtkDataSetSurfaceFilter::UnstructuredGridExecuteInternal(vtkUnstructuredGrid
     vtkIdType cellId = cellIter->GetCellId();
 
     // Filter out cells if filtering is enabled
-    if (cellsIncluded &&
-      (cellId < 0 || cellId >= numCellsIncluded || cellsIncluded->GetValue(cellId) != 1))
+    if (includedCells &&
+      (cellId < 0 || cellId >= numIncludedCells || includedCells->GetValue(cellId) < 1))
     {
       continue;
     }
@@ -1754,8 +1754,8 @@ int vtkDataSetSurfaceFilter::UnstructuredGridExecuteInternal(vtkUnstructuredGrid
     progressCount++;
 
     // Filter out cells if filtering is enabled
-    if (cellsIncluded &&
-      (cellId < 0 || cellId >= numCellsIncluded || cellsIncluded->GetValue(cellId) != 1))
+    if (includedCells &&
+      (cellId < 0 || cellId >= numIncludedCells || includedCells->GetValue(cellId) < 1))
     {
       continue;
     }
@@ -2030,8 +2030,8 @@ int vtkDataSetSurfaceFilter::UnstructuredGridExecuteInternal(vtkUnstructuredGrid
     numCellPts = cellIter->GetNumberOfPoints();
 
     // Filter out cells if filtering is enabled
-    if (cellsIncluded &&
-      (cellId < 0 || cellId >= numCellsIncluded || cellsIncluded->GetValue(cellId) != 1))
+    if (includedCells &&
+      (cellId < 0 || cellId >= numIncludedCells || includedCells->GetValue(cellId) < 1))
     {
       continue;
     }
