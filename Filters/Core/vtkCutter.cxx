@@ -748,6 +748,7 @@ void vtkCutter::UnstructuredGridCutter(vtkDataSet* input, vtkPolyData* output)
   double* contourValues = this->ContourValues->GetValues();
   double* contourValuesEnd = contourValues + numContours;
   double* contourIter;
+  vtkUnsignedCharArray* ghostCells = input->GetCellGhostArray();
 
   bool abortExecute = false;
 
@@ -862,6 +863,16 @@ void vtkCutter::UnstructuredGridCutter(vtkDataSet* input, vtkPolyData* output)
           abortExecute = this->CheckAbort();
         }
 
+        {
+          // We skip cells marked as hidden
+          vtkIdType cellId = cellIter->GetCellId();
+          if (ghostCells &&
+            (ghostCells->GetValue(cellId) & vtkDataSetAttributes::CellGhostTypes::HIDDENCELL))
+          {
+            continue;
+          }
+        }
+
         pointIdList = cellIter->GetPointIds();
         numCellPts = pointIdList->GetNumberOfIds();
         ptIds = pointIdList->GetPointer(0);
@@ -941,6 +952,13 @@ void vtkCutter::UnstructuredGridCutter(vtkDataSet* input, vtkPolyData* output)
           vtkDebugMacro(<< "Cutting #" << cellId);
           this->UpdateProgress(static_cast<double>(cellId) / numCuts);
           abortExecute = this->CheckAbort();
+        }
+
+        // We skip cells marked as hidden
+        if (ghostCells &&
+          (ghostCells->GetValue(cellId) & vtkDataSetAttributes::CellGhostTypes::HIDDENCELL))
+        {
+          continue;
         }
 
         // Just fetch the cell type -- least expensive.

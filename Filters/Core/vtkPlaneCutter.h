@@ -169,12 +169,15 @@ public:
 
   ///@{
   /**
-   * Indicate whether to merge coincident points. Merging can take extra time
-   * and produces fewer output points, creating a "watertight" output
-   * surface. On the other hand, merging reduced output data size and may be
-   * just as fast. MergingPoints = off is meaningful only for vtkUnstructuredGrid,
-   * and vtkPolyData that all of its input cells are NOT convex polygons. For all the
-   * other input types, the output has unique points. Default is off.
+   * Indicate whether to merge coincident points. Merging can take extra time and produces fewer
+   * output points, creating a "watertight" output surface. On the other hand, merging reduced
+   * output data size and may be just as fast.
+   *
+   * MergingPoints = off is meaningful only for vtkUnstructuredGrid, and vtkPolyData that all of its
+   * input cells are NOT convex polygons. For all the other input types, the output has unique
+   * points.
+   *
+   * Default is off.
    */
   vtkSetMacro(MergePoints, bool);
   vtkGetMacro(MergePoints, bool);
