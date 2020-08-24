@@ -518,6 +518,7 @@ vtkPlaneCutter::vtkPlaneCutter()
   , DataChanged(true)
 {
   this->InputInfo = vtkInputInfo(nullptr, 0);
+  this->SetTopologyFilterArrayName("vtkInsidedness");
 }
 
 //------------------------------------------------------------------------------
@@ -696,8 +697,10 @@ int vtkPlaneCutter::ExecuteDataSet(vtkDataSet* input, vtkPolyData* output)
   vtkSphereTree* sphereTree = nullptr;
   if (this->BuildTree)
   {
-    auto pair =
-      this->SphereTrees.insert(std::make_pair(input, vtk::TakeSmartPointer(vtkSphereTree::New())));
+    sphereTree = vtkSphereTree::New();
+    sphereTree->SetFilterTopology(this->GetFilterTopology());
+    sphereTree->SetTopologyFilterArrayName(this->GetTopologyFilterArrayName());
+    auto pair = this->SphereTrees.insert(std::make_pair(input, vtk::TakeSmartPointer(sphereTree)));
     sphereTree = pair.first->second.GetPointer();
   }
   bool& canBeFullyProcessed =

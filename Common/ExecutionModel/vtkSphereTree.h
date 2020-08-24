@@ -177,6 +177,27 @@ public:
 
   ///@{
   /**
+   * Should unstructured grids also filter out cells as specified by a 'vtkInsidedness' array?
+   *
+   * Default value is false.
+   */
+  vtkSetMacro(FilterTopology, bool);
+  vtkGetMacro(FilterTopology, bool);
+  vtkBooleanMacro(FilterTopology, bool);
+  //@}
+
+  //@{
+  /**
+   * Name for a 'vtkInsidedness' array used in topology filtering.
+   *
+   * Default value is "vtkInsidedness".
+   */
+  vtkSetStringMacro(TopologyFilterArrayName);
+  vtkGetStringMacro(TopologyFilterArrayName);
+  //@}
+
+  //@{
+  /**
    * Special methods to retrieve the sphere tree data. This is
    * generally used for debugging or with filters like
    * vtkSphereTreeFilter. Both methods return an array of double*
@@ -208,18 +229,22 @@ protected:
   double* TreePtr;
   vtkSphereTreeHierarchy* Hierarchy;
 
+  bool FilterTopology = false;
+  char* TopologyFilterArrayName = nullptr;
+
   // Supporting data members
   double AverageRadius;   // average radius of cell sphere
   double SphereBounds[6]; // the dataset bounds computed from cell spheres
   vtkTimeStamp BuildTime; // time at which tree was built
 
   // Supporting methods
-  void BuildTreeSpheres(vtkDataSet* input);
-  void ExtractCellIds(const unsigned char* selected, vtkIdList* cellIds, vtkIdType numSelected);
+  virtual void BuildTreeSpheres(vtkDataSet* input);
+  virtual void ExtractCellIds(
+    const unsigned char* selected, vtkIdList* cellIds, vtkIdType numSelected);
 
-  void BuildTreeHierarchy(vtkDataSet* input);
-  void BuildStructuredHierarchy(vtkStructuredGrid* input, double* tree);
-  void BuildUnstructuredHierarchy(vtkDataSet* input, double* tree);
+  virtual void BuildTreeHierarchy(vtkDataSet* input);
+  virtual void BuildStructuredHierarchy(vtkStructuredGrid* input, double* tree);
+  virtual void BuildUnstructuredHierarchy(vtkDataSet* input, double* tree);
   int SphereTreeType; // keep track of the type of tree hierarchy generated
 
 private:
