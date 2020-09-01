@@ -18,6 +18,7 @@
 #include <vtkMathUtilities.h>
 
 #include <algorithm>
+#include <array>
 #include <memory>
 
 static bool FuzzyCompare(const ComplexNumber& result, const ComplexNumber& test, double epsilon)
