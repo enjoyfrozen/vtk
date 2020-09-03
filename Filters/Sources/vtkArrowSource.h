@@ -88,6 +88,17 @@ public:
   vtkGetMacro(Invert, bool);
   //@}
 
+  //@{
+  /**
+   * Situate the arrow and scale from the centre.
+   * The centre is the middle of the entire length of the arrow's cylinder and tip.
+   * The default is false.
+   */
+  vtkBooleanMacro(Centralize, bool);
+  vtkSetMacro(Centralize, bool);
+  vtkGetMacro(Centralize, bool);
+  //@}
+
 protected:
   vtkArrowSource();
   ~vtkArrowSource() override = default;
@@ -102,6 +113,7 @@ protected:
   int ShaftResolution;
   double ShaftRadius;
   bool Invert;
+  bool Centralize;
 
 private:
   vtkArrowSource(const vtkArrowSource&) = delete;
