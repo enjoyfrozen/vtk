@@ -388,9 +388,8 @@ void vtkOrientationMarkerWidget::EndInteraction()
 {
   OnLeftButtonUp();
 
-  int NOWHERE =
-    -1000000; // A number large enough to always be offscreen to signal an end to interaction
-  this->Interactor->SetEventPosition(NOWHERE, NOWHERE);
+  // Send a position large enough to always be offscreen to signal an end to the interaction
+  this->Interactor->SetEventPosition(VTK_INT_MAX, VTK_INT_MAX);
   OnMouseMove();
 }
 

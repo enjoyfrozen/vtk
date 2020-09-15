@@ -26,38 +26,37 @@ int TestTextWidgetBackgroundInteractive(int, char*[])
 {
   // Create the RenderWindow, Renderer and both Actors
   //
-  vtkSmartPointer<vtkRenderer> renderer = vtkSmartPointer<vtkRenderer>::New();
-  vtkSmartPointer<vtkRenderWindow> renderWindow = vtkSmartPointer<vtkRenderWindow>::New();
+  vtkNew<vtkRenderer> renderer;
+  vtkNew<vtkRenderWindow> renderWindow;
   renderWindow->AddRenderer(renderer);
 
-  vtkSmartPointer<vtkRenderWindowInteractor> interactor =
-    vtkSmartPointer<vtkRenderWindowInteractor>::New();
+  vtkNew<vtkRenderWindowInteractor> interactor;
   interactor->SetRenderWindow(renderWindow);
 
   // Create a test pipeline
   //
-  vtkSmartPointer<vtkSphereSource> ss = vtkSmartPointer<vtkSphereSource>::New();
-  vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  vtkNew<vtkSphereSource> ss;
+  vtkNew<vtkPolyDataMapper> mapper;
   mapper->SetInputConnection(ss->GetOutputPort());
-  vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
+  vtkNew<vtkActor> actor;
   actor->SetMapper(mapper);
 
   // Create the widget and its representation
   // Default Border Widget
-  vtkSmartPointer<vtkBorderRepresentation> rep = vtkSmartPointer<vtkBorderRepresentation>::New();
+  vtkNew<vtkBorderRepresentation> rep;
   rep->ProportionalResizeOn();
   rep->SetShowBorderToOn();
   // rep->UseBackgroundOn();
   rep->SetBackgroundColor(0.0, 1.0, 0.0);
   rep->SetBackgroundOpacity(0.2);
 
-  vtkSmartPointer<vtkBorderWidget> widget = vtkSmartPointer<vtkBorderWidget>::New();
+  vtkNew<vtkBorderWidget> widget;
   widget->SetInteractor(interactor);
   widget->SetRepresentation(rep);
   widget->SelectableOff();
 
   // Top Left: Default Widget
-  auto tlRep = vtkSmartPointer<vtkTextRepresentation>::New();
+  vtkNew<vtkTextRepresentation> tlRep;
   tlRep->ProportionalResizeOff();
   tlRep->SetShowBorderToOn();
   tlRep->SetPosition(0.05, 0.75);
@@ -66,12 +65,12 @@ int TestTextWidgetBackgroundInteractive(int, char*[])
   tlRep->SetBackgroundColor(1.0, 0.0, 0.0);
   tlRep->SetBackgroundOpacity(0.5);
 
-  auto tlWidget = vtkSmartPointer<vtkTextWidget>::New();
+  vtkNew<vtkTextWidget> tlWidget;
   tlWidget->SetInteractor(interactor);
   tlWidget->SetRepresentation(tlRep);
 
   // Top Right: Always On
-  auto trRep = vtkSmartPointer<vtkTextRepresentation>::New();
+  vtkNew<vtkTextRepresentation> trRep;
   trRep->ProportionalResizeOff();
   trRep->SetShowBorderToOn();
   trRep->SetPosition(0.65, 0.75);
@@ -79,12 +78,12 @@ int TestTextWidgetBackgroundInteractive(int, char*[])
   trRep->UseBackgroundOn();
   trRep->SetBackgroundColor(0.0, 1.0, 0.0);
 
-  auto trWidget = vtkSmartPointer<vtkTextWidget>::New();
+  vtkNew<vtkTextWidget> trWidget;
   trWidget->SetInteractor(interactor);
   trWidget->SetRepresentation(trRep);
 
   // Bottom Right: Auto + Always Border
-  auto brRep = vtkSmartPointer<vtkTextRepresentation>::New();
+  vtkNew<vtkTextRepresentation> brRep;
   brRep->ProportionalResizeOff();
   brRep->SetShowBorderToActive();
   brRep->SetPosition(0.65, 0.05);
@@ -95,7 +94,7 @@ int TestTextWidgetBackgroundInteractive(int, char*[])
   brRep->EnforceNormalizedViewportBoundsOn();
   brRep->SetMinimumNormalizedViewportSize(0.3, 0.2);
 
-  auto brWidget = vtkSmartPointer<vtkTextWidget>::New();
+  vtkNew<vtkTextWidget> brWidget;
   brWidget->SetInteractor(interactor);
   brWidget->SetRepresentation(brRep);
 
