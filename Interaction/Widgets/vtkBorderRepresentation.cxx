@@ -37,6 +37,7 @@ vtkBorderRepresentation::vtkBorderRepresentation()
 
   this->ShowVerticalBorder = BORDER_ON;
   this->ShowHorizontalBorder = BORDER_ON;
+  this->EnforceNormalizedViewportBounds = 0;
   this->ProportionalResize = 0;
   this->Tolerance = 3;
   this->SelectionPoint[0] = this->SelectionPoint[1] = 0.0;
@@ -50,6 +51,10 @@ vtkBorderRepresentation::vtkBorderRepresentation()
   this->Position2Coordinate->SetCoordinateSystemToNormalizedViewport();
   this->Position2Coordinate->SetValue(0.1, 0.1); // may be updated by the subclass
   this->Position2Coordinate->SetReferenceCoordinate(this->PositionCoordinate);
+
+  //
+  // Border
+  //
 
   // Create the geometry in canonical coordinates
   this->BWPoints = vtkPoints::New();
@@ -86,6 +91,44 @@ vtkBorderRepresentation::vtkBorderRepresentation()
   this->BorderProperty = vtkProperty2D::New();
   this->BWActor->SetProperty(this->BorderProperty);
 
+  //
+  // Background
+  //
+
+  this->UseBackground = false;
+  this->BackgroundOpacity = 1.0;
+  this->BackgroundColor[0] = this->BackgroundColor[1] = this->BackgroundColor[2] = 0.3;
+  this->BackgroundProperty = vtkSmartPointer<vtkProperty2D>::New();
+  this->BackgroundProperty->SetColor(
+    this->BackgroundColor[0], this->BackgroundColor[1], this->BackgroundColor[2]);
+
+  this->BGPolyData = vtkSmartPointer<vtkPolyData>::New();
+  this->BGPolyData->SetPoints(this->BWPoints);
+  this->BGPolyData->SetPolys(vtkSmartPointer<vtkCellArray>::New());
+  auto bgPointList = vtkSmartPointer<vtkIdList>::New();
+  bgPointList->InsertNextId(0);
+  bgPointList->InsertNextId(1);
+  bgPointList->InsertNextId(2);
+  bgPointList->InsertNextId(3);
+  this->BGPolyData->InsertNextCell(VTK_QUAD, bgPointList);
+
+  this->BGTransformFilter = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+  this->BGTransformFilter->SetTransform(this->BWTransform);
+  this->BGTransformFilter->SetInputData(this->BGPolyData);
+
+  this->BGMapper = vtkSmartPointer<vtkPolyDataMapper2D>::New();
+  this->BGMapper->SetInputConnection(this->BGTransformFilter->GetOutputPort());
+  this->BGActor = vtkSmartPointer<vtkActor2D>::New();
+  this->BGActor->SetMapper(this->BGMapper);
+  this->BGActor->SetProperty(this->BackgroundProperty);
+  this->BGActor->SetVisibility(this->UseBackground);
+
+  //
+  // Viewport & Settings
+  //
+
+  this->MinimumNormalizedViewportSize[0] = 0.0;
+  this->MinimumNormalizedViewportSize[1] = 0.0;
   this->MinimumSize[0] = 1;
   this->MinimumSize[1] = 1;
   this->MaximumSize[0] = 100000;
@@ -271,6 +314,84 @@ void vtkBorderRepresentation::WidgetInteraction(double eventPos[2])
         par2[1] = par2[1] + delY;
       }
       break;
+  }
+
+  // Enforce bounds to keep the widget on screen and bigger than minimum size
+  if (!this->ProportionalResize && this->EnforceNormalizedViewportBounds)
+  {
+    switch (this->InteractionState)
+    {
+      case vtkBorderRepresentation::AdjustingP0:
+        par1[0] =
+          std::min(std::max(par1[0] /*+ delX*/, 0.0), par2[0] - MinimumNormalizedViewportSize[0]);
+        par1[1] =
+          std::min(std::max(par1[1] /*+ delY*/, 0.0), par2[1] - MinimumNormalizedViewportSize[1]);
+        break;
+      case vtkBorderRepresentation::AdjustingP1:
+        par2[0] =
+          std::min(std::max(par2[0] /*+ delX2*/, par1[0] + MinimumNormalizedViewportSize[0]), 1.0);
+        par1[1] =
+          std::min(std::max(par1[1] /*+ delY2*/, 0.0), par2[1] - MinimumNormalizedViewportSize[1]);
+        break;
+      case vtkBorderRepresentation::AdjustingP2:
+        par2[0] =
+          std::min(std::max(par2[0] /*+ delX*/, par1[0] + MinimumNormalizedViewportSize[0]), 1.0);
+        par2[1] =
+          std::min(std::max(par2[1] /*+ delY*/, par1[1] + MinimumNormalizedViewportSize[1]), 1.0);
+        break;
+      case vtkBorderRepresentation::AdjustingP3:
+        par1[0] =
+          std::min(std::max(par1[0] /*+ delX2*/, 0.0), par2[0] - MinimumNormalizedViewportSize[0]);
+        par2[1] =
+          std::min(std::max(par2[1] /*+ delY2*/, par1[1] + MinimumNormalizedViewportSize[1]), 1.0);
+        break;
+      case vtkBorderRepresentation::AdjustingE0:
+        par1[1] =
+          std::min(std::max(par1[1] /*+ delY*/, 0.0), par2[1] - MinimumNormalizedViewportSize[1]);
+        break;
+      case vtkBorderRepresentation::AdjustingE1:
+        par2[0] =
+          std::min(std::max(par2[0] /*+ delX*/, par1[0] + MinimumNormalizedViewportSize[0]), 1.0);
+        break;
+      case vtkBorderRepresentation::AdjustingE2:
+        par2[1] =
+          std::min(std::max(par2[1] /*+ delY*/, par1[1] + MinimumNormalizedViewportSize[1]), 1.0);
+        break;
+      case vtkBorderRepresentation::AdjustingE3:
+        par1[0] =
+          std::min(std::max(par1[0] /*+ delX*/, 0.0), par2[0] - MinimumNormalizedViewportSize[0]);
+        break;
+      case vtkBorderRepresentation::Inside:
+        if (this->Moving)
+        {
+          // Keep border from moving off normalized screen
+          if (par1[0] < 0.0)
+          {
+            auto delta = -par1[0];
+            par1[0] += delta;
+            par2[0] += delta;
+          }
+          if (par1[1] < 0.0)
+          {
+            auto delta = -par1[1];
+            par1[1] += delta;
+            par2[1] += delta;
+          }
+          if (par2[0] > 1.0)
+          {
+            auto delta = par2[0] - 1.0;
+            par1[0] -= delta;
+            par2[0] -= delta;
+          }
+          if (par2[1] > 1.0)
+          {
+            auto delta = par2[1] - 1.0;
+            par1[1] -= delta;
+            par2[1] -= delta;
+          }
+        }
+        break;
+    }
   }
 
   // Modify the representation
@@ -522,12 +643,14 @@ void vtkBorderRepresentation::BuildRepresentation()
 //------------------------------------------------------------------------------
 void vtkBorderRepresentation::GetActors2D(vtkPropCollection* pc)
 {
+  pc->AddItem(this->BGActor);
   pc->AddItem(this->BWActor);
 }
 
 //------------------------------------------------------------------------------
 void vtkBorderRepresentation::ReleaseGraphicsResources(vtkWindow* w)
 {
+  this->BGActor->ReleaseGraphicsResources(w);
   this->BWActor->ReleaseGraphicsResources(w);
 }
 
@@ -535,33 +658,54 @@ void vtkBorderRepresentation::ReleaseGraphicsResources(vtkWindow* w)
 int vtkBorderRepresentation::RenderOverlay(vtkViewport* w)
 {
   this->BuildRepresentation();
-  if (!this->BWActor->GetVisibility())
+
+  int returnValue = 0;
+  if (this->BGActor->GetVisibility())
   {
-    return 0;
+    returnValue += this->BGActor->RenderOverlay(w);
   }
-  return this->BWActor->RenderOverlay(w);
+  if (this->BWActor->GetVisibility())
+  {
+    returnValue += this->BWActor->RenderOverlay(w);
+  }
+  return returnValue;
 }
 
 //------------------------------------------------------------------------------
 int vtkBorderRepresentation::RenderOpaqueGeometry(vtkViewport* w)
 {
   this->BuildRepresentation();
-  if (!this->BWActor->GetVisibility())
+
+  int returnValue = 0;
+  this->BGActor->SetVisibility(this->UseBackground);
+  if (this->BGActor->GetVisibility())
   {
-    return 0;
+    this->BackgroundProperty->SetOpacity(this->BackgroundOpacity);
+    this->BackgroundProperty->SetColor(this->BackgroundColor);
+    returnValue += this->BGActor->RenderOpaqueGeometry(w);
   }
-  return this->BWActor->RenderOpaqueGeometry(w);
+  if (this->BWActor->GetVisibility())
+  {
+    returnValue += this->BWActor->RenderOpaqueGeometry(w);
+  }
+  return returnValue;
 }
 
 //------------------------------------------------------------------------------
 int vtkBorderRepresentation::RenderTranslucentPolygonalGeometry(vtkViewport* w)
 {
   this->BuildRepresentation();
-  if (!this->BWActor->GetVisibility())
+
+  int returnValue = 0;
+  if (this->BGActor->GetVisibility())
   {
-    return 0;
+    returnValue += this->BGActor->RenderTranslucentPolygonalGeometry(w);
   }
-  return this->BWActor->RenderTranslucentPolygonalGeometry(w);
+  if (this->BWActor->GetVisibility())
+  {
+    returnValue += this->BWActor->RenderTranslucentPolygonalGeometry(w);
+  }
+  return returnValue;
 }
 
 //------------------------------------------------------------------------------
@@ -570,11 +714,17 @@ int vtkBorderRepresentation::RenderTranslucentPolygonalGeometry(vtkViewport* w)
 vtkTypeBool vtkBorderRepresentation::HasTranslucentPolygonalGeometry()
 {
   this->BuildRepresentation();
-  if (!this->BWActor->GetVisibility())
+
+  vtkTypeBool returnValue = false;
+  if (this->BGActor->GetVisibility())
   {
-    return 0;
+    returnValue |= this->BGActor->HasTranslucentPolygonalGeometry();
   }
-  return this->BWActor->HasTranslucentPolygonalGeometry();
+  if (this->BWActor->GetVisibility())
+  {
+    returnValue |= this->BWActor->HasTranslucentPolygonalGeometry();
+  }
+  return returnValue;
 }
 
 //------------------------------------------------------------------------------
@@ -620,7 +770,16 @@ void vtkBorderRepresentation::PrintSelf(ostream& os, vtkIndent indent)
     os << indent << "Border Property: (none)\n";
   }
 
+  os << indent << "UseBackground: " << (this->UseBackground ? "On\n" : "Off\n");
+  os << indent << "Background Color: " << this->BackgroundColor[0] << " "
+     << this->BackgroundColor[1] << " " << this->BackgroundColor[2] << endl;
+  os << indent << "Background Opacity: " << this->BackgroundOpacity << endl;
+
+  os << indent << "Enforce Normalized Viewport Bounds: "
+     << (this->EnforceNormalizedViewportBounds ? "On\n" : "Off\n");
   os << indent << "Proportional Resize: " << (this->ProportionalResize ? "On\n" : "Off\n");
+  os << indent << "Minimum NVP Size: " << this->MinimumNormalizedViewportSize[0] << " "
+     << this->MinimumNormalizedViewportSize[1] << endl;
   os << indent << "Minimum Size: " << this->MinimumSize[0] << " " << this->MinimumSize[1] << endl;
   os << indent << "Maximum Size: " << this->MaximumSize[0] << " " << this->MaximumSize[1] << endl;
 

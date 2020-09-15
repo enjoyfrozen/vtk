@@ -41,6 +41,7 @@
 
 #include "vtkCoordinate.h"               //Because of the viewport coordinate macro
 #include "vtkInteractionWidgetsModule.h" // For export macro
+#include "vtkSmartPointer.h"
 #include "vtkWidgetRepresentation.h"
 
 class vtkPoints;
@@ -136,6 +137,47 @@ public:
 
   //@{
   /**
+   * Turn on/off background.
+   */
+  vtkSetMacro(UseBackground, bool);
+  vtkGetMacro(UseBackground, bool);
+  vtkBooleanMacro(UseBackground, bool);
+  //@}
+
+  //@{
+  /**
+   * Set/Get background color.
+   * Default is: (0.3, 0.3, 0.3).
+   */
+  vtkSetVector3Macro(BackgroundColor, double);
+  vtkGetVector3Macro(BackgroundColor, double);
+  //@}
+
+  //@{
+  /**
+   * Set/Get background opacity.
+   * Default is: 1.0
+   */
+  vtkSetClampMacro(BackgroundOpacity, double, 0.0, 1.0);
+  vtkGetMacro(BackgroundOpacity, double);
+  //@}
+
+  //@{
+  /**
+   * Whether to enforce the minimum normalized viewport size and limit
+   * the normalized viewport coordinates to [0.0 -> 1.0]. This keeps
+   * widgets from being moved offscreen or being scaled down past their
+   * minimum viewport size.
+   *
+   * Note: ProportionalResize must be off for this function to take effect.
+   */
+  vtkSetMacro(EnforceNormalizedViewportBounds, vtkTypeBool);
+  vtkGetMacro(EnforceNormalizedViewportBounds, vtkTypeBool);
+  vtkBooleanMacro(EnforceNormalizedViewportBounds, vtkTypeBool);
+  //@}
+
+  //@{
+  /**
    * Indicate whether resizing operations should keep the x-y directions
    * proportional to one another. Also, if ProportionalResize is on, then
    * the rectangle (Position,Position2) is a bounding rectangle, and the
@@ -145,6 +187,16 @@ public:
   vtkSetMacro(ProportionalResize, vtkTypeBool);
   vtkGetMacro(ProportionalResize, vtkTypeBool);
   vtkBooleanMacro(ProportionalResize, vtkTypeBool);
+  //@}
+
+  //@{
+  /**
+   * Specify a minimum and/or maximum size [0.0 -> 1.0] that this representation
+   * can take. These methods require two values: size values in the x and y
+   * directions, respectively.
+   */
+  vtkSetVector2Macro(MinimumNormalizedViewportSize, double);
+  vtkGetVector2Macro(MinimumNormalizedViewportSize, double);
   //@}
 
   //@{
@@ -248,6 +300,8 @@ protected:
   int ShowVerticalBorder;
   int ShowHorizontalBorder;
   vtkProperty2D* BorderProperty;
+
+  vtkTypeBool EnforceNormalizedViewportBounds;
   vtkTypeBool ProportionalResize;
   int Tolerance;
   vtkTypeBool Moving;
@@ -279,7 +333,18 @@ protected:
   vtkPolyDataMapper2D* BWMapper;
   vtkActor2D* BWActor;
 
+  bool UseBackground;
+  double BackgroundOpacity;
+  double BackgroundColor[3];
+
+  vtkSmartPointer<vtkProperty2D> BackgroundProperty;
+  vtkSmartPointer<vtkPolyData> BGPolyData;
+  vtkSmartPointer<vtkTransformPolyDataFilter> BGTransformFilter;
+  vtkSmartPointer<vtkPolyDataMapper2D> BGMapper;
+  vtkSmartPointer<vtkActor2D> BGActor;
+
   // Constraints on size
+  double MinimumNormalizedViewportSize[2];
   int MinimumSize[2];
   int MaximumSize[2];
 

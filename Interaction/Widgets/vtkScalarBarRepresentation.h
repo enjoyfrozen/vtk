@@ -108,6 +108,25 @@ public:
   int GetOrientation();
   //@}
 
+  //@{
+  /**
+   * Get the PositionCoordinate instance of vtkCoordinate.
+   * This is used for for complicated or relative positioning.
+   * The position variable controls the lower left corner of the Actor2D
+   */
+  vtkViewportCoordinateMacro(Position);
+  //@}
+
+  //@{
+  /**
+   * Access the Position2 instance variable. This variable controls
+   * the upper right corner of the Actor2D. It is by default
+   * relative to Position and in normalized viewport coordinates.
+   * Some 2D actor subclasses ignore the position2 variable
+   */
+  vtkViewportCoordinateMacro(Position2);
+  //@}
+
 protected:
   vtkScalarBarRepresentation();
   ~vtkScalarBarRepresentation() override;
