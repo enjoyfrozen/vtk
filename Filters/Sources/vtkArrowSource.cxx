@@ -35,6 +35,7 @@ vtkArrowSource::vtkArrowSource()
   this->ShaftResolution = 6;
   this->ShaftRadius = 0.03;
   this->Invert = false;
+  this->Centralize = false;
 
   this->SetNumberOfInputPorts(0);
 }
@@ -97,17 +98,41 @@ int vtkArrowSource::RequestData(vtkInformation* vtkNotUsed(request),
   tf2->SetTransform(trans2);
   tf2->SetInputConnection(append->GetOutputPort());
 
+  // used only when this->Centralize is true (we aim to orient and scale from the centre).
+  vtkTransform* trans3 = vtkTransform::New();
+  vtkTransformFilter* tf3 = vtkTransformFilter::New();
+  trans3->Translate(-0.5, 0.0, 0.0);
+  tf3->SetTransform(trans3);
+
   if (piece == 0 && numPieces > 0)
   {
     if (this->Invert)
     {
-      tf2->Update();
-      output->ShallowCopy(tf2->GetOutput());
+      if (this->Centralize)
+      {
+        tf3->SetInputConnection(tf2->GetOutputPort());
+        tf3->Update();
+        output->ShallowCopy(tf3->GetOutput());
+      }
+      else
+      {
+        tf2->Update();
+        output->ShallowCopy(tf2->GetOutput());
+      }
     }
     else
     {
-      append->Update();
-      output->ShallowCopy(append->GetOutput());
+      if (this->Centralize)
+      {
+        tf3->SetInputConnection(append->GetOutputPort());
+        tf3->Update();
+        output->ShallowCopy(tf3->GetOutput());
+      }
+      else
+      {
+        append->Update();
+        output->ShallowCopy(append->GetOutput());
+      }
     }
   }
 
@@ -120,6 +145,8 @@ int vtkArrowSource::RequestData(vtkInformation* vtkNotUsed(request),
   append->Delete();
   tf2->Delete();
   trans2->Delete();
+  tf3->Delete();
+  trans3->Delete();
 
   return 1;
 }
@@ -136,4 +163,5 @@ void vtkArrowSource::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "ShaftRadius: " << this->ShaftRadius << "\n";
 
   os << indent << "Invert: " << this->Invert << "\n";
+  os << indent << "Centralize: " << this->Centralize << "\n";
 }
