@@ -308,7 +308,12 @@ public:
     }
 
     f->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, targetId);
-    const GLenum bufs[1] = { static_cast<GLenum>(targetAttachment) };
+    GLenum bufs[1] = { static_cast<GLenum>(targetAttachment) };
+    if (bufs[0] == GL_BACK)
+    {
+      // Change to GL_BACK_LEFT because GL_BACK is an invalid value for glDrawBuffers
+      bufs[0] = GL_BACK_LEFT;
+    }
     f->glDrawBuffers(1, bufs);
 
     GLboolean scissorTest = f->glIsEnabled(GL_SCISSOR_TEST);
