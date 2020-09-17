@@ -88,6 +88,27 @@ public:
   vtkGetMacro(Invert, bool);
   //@}
 
+  enum ArrowOrigins
+  {
+    Default = 0,
+    Center = 1
+  };
+  
+  //@{
+  /**
+   * Sets and Gets the location used for orienting and scaling the arrow.
+   * Default is set to Default.
+   */
+  vtkSetMacro(ArrowOrigin, int);
+  vtkGetMacro(ArrowOrigin, int);
+  //@}
+
+  
+
+  void SetArrowOriginToDefault() { this->SetArrowOrigin(Default); }
+  void SetArrowOriginToCenter() { this->SetArrowOrigin(Center); }
+  const char* GetArrowOriginAsString();
+
 protected:
   vtkArrowSource();
   ~vtkArrowSource() override = default;
@@ -102,6 +123,7 @@ protected:
   int ShaftResolution;
   double ShaftRadius;
   bool Invert;
+  int ArrowOrigin;
 
 private:
   vtkArrowSource(const vtkArrowSource&) = delete;
