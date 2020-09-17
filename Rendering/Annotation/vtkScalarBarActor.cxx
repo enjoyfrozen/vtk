@@ -42,6 +42,7 @@
 #include "vtkViewport.h"
 #include "vtkWindow.h"
 
+#include <cmath>
 #include <map>
 #include <set>
 #include <vector>
