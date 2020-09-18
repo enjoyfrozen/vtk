@@ -91,6 +91,10 @@ add_definitions(-DVTK_IN_VTK)
 
 include(CheckTypeSize)
 
+if(VTK_USE_TDX) 
+    add_definitions(-DVTK_USE_TDX)
+endif()
+
 option(VTK_USE_MPI "Support MPI" OFF)
 
 option(VTK_SERIAL_TESTS_USE_MPIEXEC "Used on HPC to run serial tests on compute nodes" OFF)
