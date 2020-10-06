@@ -316,8 +316,9 @@ public:
         // todo: if the imageData is empty, we should download the texture from the GPU
         if (vColorTextureMap)
         {
-          t2d = vtkOSPRayMaterialHelpers::VTKToOSPTexture(
-            backend, vColorTextureMap, text->GetUseSRGBColorSpace());
+          bool isSRGB = text->GetUseSRGBColorSpace() ||
+            (forpathtracer && vColorTextureMap->GetScalarType() == VTK_UNSIGNED_CHAR);
+          t2d = vtkOSPRayMaterialHelpers::VTKToOSPTexture(backend, vColorTextureMap, isSRGB);
         }
       }
 
@@ -336,15 +337,6 @@ public:
           ren->GetEnvironmentalBG(bg1);
           bgAlpha = 1.0;
         }
-        if (forpathtracer)
-        {
-          for (int i = 0; i < 3; i++)
-          {
-            // the final image is gamma corrected so the background has to be converted to linear
-            // color space
-            bg1[i] = pow(bg1[i], 2.2);
-          }
-        }
 
         int isize = 1;
         int jsize = 1;
@@ -358,13 +350,6 @@ public:
           else
           {
             ren->GetEnvironmentalBG2(bg2);
-          }
-          if (forpathtracer)
-          {
-            for (int i = 0; i < 3; i++)
-            {
-              bg2[i] = pow(bg2[i], 2.2);
-            }
           }
 
           isize = 256; // todo: configurable
@@ -394,6 +379,8 @@ public:
           ochars[3] = bgAlpha * 255;
         }
 
+        // when using path tracer, the final image is gamma corrected so the background has to be
+        // sampled in linear color space (using OSP_TEXTURE_SRGBA texture format)
         t2d = vtkOSPRayMaterialHelpers::NewTexture2D(backend, osp::vec2i{ jsize, isize },
           (forpathtracer ? OSP_TEXTURE_SRGBA : OSP_TEXTURE_RGBA8), ochars.data(), 0);
       }
@@ -428,11 +415,11 @@ public:
         ospSetVec3f(ospLight, "direction", (float)east[0], (float)east[1], (float)east[2]);
         if (bgMode == 0x2)
         {
-          ospSetInt(ospLight, "visible", 1);
+          ospSetBool(ospLight, "visible", true);
         }
         else
         {
-          ospSetInt(ospLight, "visible", 0); // prevents blending onto backplate in "both" mode
+          ospSetBool(ospLight, "visible", false); // prevents blending onto backplate in "both" mode
         }
         ospCommit(ospLight);
         this->BGLight = ospLight;
@@ -1246,11 +1233,11 @@ void vtkOSPRayRendererNode::Render(bool prepass)
 
     if (ren->GetUseShadows())
     {
-      ospSetInt(oRenderer, "shadowsEnabled", 1);
+      ospSetBool(oRenderer, "shadows", true);
     }
     else
     {
-      ospSetInt(oRenderer, "shadowsEnabled", 0);
+      ospSetBool(oRenderer, "shadows", false);
     }
 
     // todo: this can be expensive and should be cached
@@ -1297,26 +1284,22 @@ void vtkOSPRayRendererNode::Render(bool prepass)
     {
       this->OWorld = ospNewWorld();
       // put the model into a group (collection of models)
+      if (this->Lights.size())
+      {
+        auto data = ospNewSharedData1D(
+          this->Lights.data(), OSP_LIGHT, static_cast<uint32_t>(this->Lights.size()));
+        ospCommit(data);
+        ospSetObject(this->OWorld, "light", data);
+        ospRelease(data);
+      }
       if (this->Instances.size())
       {
-        if (this->Lights.size())
-        {
-          auto data = ospNewSharedData1D(
-            this->Lights.data(), OSP_LIGHT, static_cast<uint32_t>(this->Lights.size()));
-          ospCommit(data);
-          ospSetObject(this->OWorld, "light", data);
-          ospRelease(data);
-        }
         auto instanceData = ospNewSharedData1D(
           this->Instances.data(), OSP_INSTANCE, static_cast<uint32_t>(this->Instances.size()));
         ospCommit(instanceData);
         ospSetObject(this->OWorld, "instance", instanceData);
         ospRelease(instanceData);
         this->OInstanceData = instanceData;
-      }
-      else
-      {
-        ospRemoveParam(this->OWorld, "instance");
       }
       ospCommit(this->OWorld);
       if (this->Cache->HasRoom())

@@ -72,15 +72,15 @@ struct DataArrayToArrayHandle<vtkSOADataArrayTemplate<T>, NumComponents>
   static ArrayHandleType Wrap(vtkSOADataArrayTemplate<T>* input)
   {
     vtkm::Id numValues = input->GetNumberOfTuples();
-    vtkm::cont::internal::Storage<ValueType, vtkm::cont::StorageTagSOA> storage;
+    vtkm::cont::ArrayHandleSOA<ValueType> handle;
     for (vtkm::IdComponent i = 0; i < NumComponents; ++i)
     {
-      storage.SetArray(i,
+      handle.SetArray(i,
         vtkm::cont::make_ArrayHandle<T>(reinterpret_cast<T*>(input->GetComponentArrayPointer(i)),
           numValues, vtkm::CopyFlag::Off));
     }
 
-    return vtkm::cont::ArrayHandleSOA<ValueType>(storage);
+    return handle;
   }
 };
 
@@ -119,6 +119,9 @@ namespace fromvtkm
 
 VTKACCELERATORSVTKMCORE_EXPORT
 vtkDataArray* Convert(const vtkm::cont::Field& input);
+
+VTKACCELERATORSVTKMCORE_EXPORT
+vtkDataArray* Convert(const vtkm::cont::VariantArrayHandle& input, const char* name);
 
 VTKACCELERATORSVTKMCORE_EXPORT
 vtkPoints* Convert(const vtkm::cont::CoordinateSystem& input);

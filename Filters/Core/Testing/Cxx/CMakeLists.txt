@@ -59,9 +59,12 @@ vtk_add_test_cxx(vtkFiltersCoreCxxTests tests
   TestThresholdPoints.cxx,NO_VALID
   TestTransposeTable.cxx,NO_VALID
   TestTriangleMeshPointNormals.cxx
+  TestTubeBender.cxx
   TestTubeFilter.cxx
   TestUnstructuredGridQuadricDecimation.cxx,NO_VALID
   TestUnstructuredGridToExplicitStructuredGrid.cxx
+  TestUnstructuredGridToExplicitStructuredGridEmpty.cxx
+  TestVaryRadiusTubeFilter.cxx
   UnitTestMaskPoints.cxx,NO_VALID
   UnitTestMergeFilter.cxx,NO_VALID
   )

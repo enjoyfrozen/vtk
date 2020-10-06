@@ -655,11 +655,32 @@ const char* vtkVariant::GetTypeAsString() const
   return vtkImageScalarTypeNameMacro(this->Type);
 }
 
+void SetFormattingOnStream(int formatting, std::ostringstream& ostr)
+{
+  switch (formatting)
+  {
+    case (vtkVariant::FIXED_FORMATTING):
+      ostr << std::fixed;
+      return;
+    case (vtkVariant::SCIENTIFIC_FORMATTING):
+      ostr << std::scientific;
+      return;
+    case (vtkVariant::DEFAULT_FORMATTING):
+      // GCC 4.8.1 does not support std::defaultfloat or std::hexfloat
+      VTK_FALLTHROUGH;
+    default:
+      return;
+  }
+}
+
 template <typename iterT>
-vtkStdString vtkVariantArrayToString(iterT* it)
+vtkStdString vtkVariantArrayToString(iterT* it, int formatting, int precision)
 {
   vtkIdType maxInd = it->GetNumberOfValues();
   std::ostringstream ostr;
+  SetFormattingOnStream(formatting, ostr);
+  ostr << std::setprecision(precision);
+
   for (vtkIdType i = 0; i < maxInd; i++)
   {
     if (i > 0)
@@ -671,7 +692,7 @@ vtkStdString vtkVariantArrayToString(iterT* it)
   return ostr.str();
 }
 
-vtkStdString vtkVariant::ToString() const
+vtkStdString vtkVariant::ToString(int formatting, int precision) const
 {
   if (!this->IsValid())
   {
@@ -689,6 +710,8 @@ vtkStdString vtkVariant::ToString() const
   {
     std::ostringstream ostr;
     ostr.imbue(std::locale::classic());
+    SetFormattingOnStream(formatting, ostr);
+    ostr << std::setprecision(precision);
     ostr << this->Data.Float;
     return vtkStdString(ostr.str());
   }
@@ -696,6 +719,8 @@ vtkStdString vtkVariant::ToString() const
   {
     std::ostringstream ostr;
     ostr.imbue(std::locale::classic());
+    SetFormattingOnStream(formatting, ostr);
+    ostr << std::setprecision(precision);
     ostr << this->Data.Double;
     return vtkStdString(ostr.str());
   }
@@ -778,7 +803,8 @@ vtkStdString vtkVariant::ToString() const
     vtkStdString str;
     switch (arr->GetDataType())
     {
-      vtkArrayIteratorTemplateMacro(str = vtkVariantArrayToString(static_cast<VTK_TT*>(iter)));
+      vtkArrayIteratorTemplateMacro(
+        str = vtkVariantArrayToString(static_cast<VTK_TT*>(iter), formatting, precision));
     }
     iter->Delete();
     return str;
@@ -788,7 +814,7 @@ vtkStdString vtkVariant::ToString() const
   return vtkStdString();
 }
 
-vtkUnicodeString vtkVariant::ToUnicodeString() const
+vtkUnicodeString vtkVariant::ToUnicodeString(int formatting, int precision) const
 {
   if (!this->IsValid())
   {
@@ -803,7 +829,7 @@ vtkUnicodeString vtkVariant::ToUnicodeString() const
     return *this->Data.UnicodeString;
   }
 
-  return vtkUnicodeString::from_utf8(this->ToString());
+  return vtkUnicodeString::from_utf8(this->ToString(formatting, precision));
 }
 
 vtkObjectBase* vtkVariant::ToVTKObject() const

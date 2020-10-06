@@ -47,6 +47,7 @@ vtk_add_test_cxx(vtkRenderingOpenGL2CxxTests tests
   TestMultiTexturing.cxx
   TestNormalMapping.cxx
   TestOffscreenRenderingResize.cxx
+  TestOutlineGlowPass.cxx
   TestOrderIndependentTranslucentPass.cxx
   TestPanoramicProjectionPass.cxx,NO_DATA
   TestPBREdgeTint.cxx
@@ -75,6 +76,7 @@ vtk_add_test_cxx(vtkRenderingOpenGL2CxxTests tests
   TestSRGB.cxx
   TestSSAAPass.cxx
   TestSSAOPass.cxx
+  TestSSAOPassWithRenderer.cxx
   TestSurfaceInterpolationSwitch.cxx
   TestTexture16Bits.cxx,NO_DATA
   TestTexture32Bits.cxx,NO_DATA

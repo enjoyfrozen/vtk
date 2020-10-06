@@ -410,8 +410,14 @@ bool vtkOpenGLPolyDataMapper::HaveWideLines(vtkRenderer* ren, vtkActor* actor)
     (this->GetOpenGLMode(this->SelectionType, this->LastBoundBO->PrimitiveType) == GL_LINES);
 }
 
-bool vtkOpenGLPolyDataMapper::DrawingEdges(vtkRenderer*, vtkActor* actor)
+bool vtkOpenGLPolyDataMapper::DrawingEdges(vtkRenderer* ren, vtkActor* actor)
 {
+  vtkHardwareSelector* selector = ren->GetSelector();
+  if (selector && selector->GetFieldAssociation() == vtkDataObject::FIELD_ASSOCIATION_POINTS)
+  {
+    return false;
+  }
+
   if (actor->GetProperty()->GetEdgeVisibility() &&
     this->GetOpenGLMode(
       actor->GetProperty()->GetRepresentation(), this->LastBoundBO->PrimitiveType) == GL_TRIANGLES)
@@ -671,7 +677,8 @@ void vtkOpenGLPolyDataMapper::ReplaceShaderEdges(
         vtkShaderProgram::Substitute(
           GSSource, "//VTK::Edges::Dec", "uniform samplerBuffer edgeTexture;");
         vtkShaderProgram::Substitute(GSSource, "//VTK::Edges::Impl",
-          "float edgeValues = 255.0*texelFetch(edgeTexture, gl_PrimitiveIDIn).r;\n"
+          "float edgeValues = 255.0*texelFetch(edgeTexture, gl_PrimitiveIDIn + "
+          "PrimitiveIDOffset).r;\n"
           "if (edgeValues < 4.0) edgeEqn[2].z = lineWidth;\n"
           "if (mod(edgeValues, 4.0) < 2.0) edgeEqn[1].z = lineWidth;\n"
           "if (mod(edgeValues, 2.0) < 1.0) edgeEqn[0].z = lineWidth;\n");
@@ -3631,16 +3638,20 @@ void vtkOpenGLPolyDataMapper::AppendCellTextures(vtkRenderer* /*ren*/, vtkActor*
     {
       // create the cell scalar array adjusted for ogl Cells
       vtkDataArray* n = this->CurrentInput->GetCellData()->GetNormals();
-      newNorms.reserve(4 * ccmap->GetSize());
+      // Allocate memory to allow for faster direct access methods instead of using push_back to
+      // populate the array.
+      size_t nnSize = newNorms.size(); // Composite mappers can already have values in the array
+      newNorms.resize(nnSize + 4 * ccmap->GetSize(), 0.0f);
       for (size_t i = 0; i < ccmap->GetSize(); i++)
       {
         // RGB32F requires a later version of OpenGL than 3.2
         // with 3.2 we know we have RGBA32F hence the extra value
         double* norms = n->GetTuple(ccmap->GetValue(i));
-        newNorms.push_back(norms[0]);
-        newNorms.push_back(norms[1]);
-        newNorms.push_back(norms[2]);
-        newNorms.push_back(0);
+        newNorms[nnSize + i * 4 + 0] = (norms[0]);
+        newNorms[nnSize + i * 4 + 1] = (norms[1]);
+        newNorms[nnSize + i * 4 + 2] = (norms[2]);
+        /* newNorms[nnSize + i * 4 + 3] = (0); */
+        // Don't set the final value because it is already set faster by the vector resize above.
       }
     }
   }

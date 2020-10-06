@@ -15,6 +15,7 @@ PURPOSE.  See the above copyright notice for more information.
 #include "vtkWin32OpenGLRenderWindow.h"
 
 #include "vtkCommand.h"
+#include "vtkGenericOpenGLRenderWindow.h"
 #include "vtkIdList.h"
 #include "vtkImageData.h"
 #include "vtkNew.h"
@@ -961,8 +962,8 @@ void vtkWin32OpenGLRenderWindow::CreateAWindow()
       wchar_t* wname = new wchar_t[mbstowcs(nullptr, this->WindowName, 32000) + 1];
       mbstowcs(wname, this->WindowName, 32000);
 #endif
-      int x = ((this->Position[0] >= 0) ? this->Position[0] : 5);
-      int y = ((this->Position[1] >= 0) ? this->Position[1] : 5);
+      int x = this->Position[0];
+      int y = this->Position[1];
       int height = ((this->Size[1] > 0) ? this->Size[1] : 300);
       int width = ((this->Size[0] > 0) ? this->Size[0] : 300);
 
@@ -1087,6 +1088,23 @@ void vtkWin32OpenGLRenderWindow::Initialize(void)
       if (result)
       {
         this->GetState()->SetVBOCache(renWin->GetVBOCache());
+      }
+    }
+    else
+    {
+      // when sharing with a Generic window we rely on
+      // the generic window context being current
+      vtkGenericOpenGLRenderWindow* grenWin =
+        vtkGenericOpenGLRenderWindow::SafeDownCast(this->SharedRenderWindow);
+      grenWin->MakeCurrent();
+      HGLRC current = wglGetCurrentContext();
+      if (grenWin && current)
+      {
+        bool result = wglShareLists(current, this->ContextId) == TRUE;
+        if (result)
+        {
+          this->GetState()->SetVBOCache(grenWin->GetVBOCache());
+        }
       }
     }
   }

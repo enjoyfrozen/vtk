@@ -897,6 +897,9 @@ void vtkCompositeMapperHelper2::AppendOneBufferObject(vtkRenderer* ren, vtkActor
     {
       if (draw_surface_with_edges)
       {
+        // have to insert dummy values for points and lines
+        vtkIdType* offsets = hdata->CellCellMap->GetPrimitiveOffsets();
+        this->EdgeValues.resize(offsets[2], 0);
         vtkOpenGLIndexBufferObject::AppendTriangleIndexBuffer(
           this->IndexArray[2], prims[2], poly->GetPoints(), voffset, &this->EdgeValues, ef);
       }
@@ -1424,9 +1427,8 @@ void vtkCompositePolyDataMapper2::SetBlockVisibility(unsigned int index, bool vi
 {
   if (this->CompositeAttributes)
   {
-    unsigned int start_index = 0;
-    auto dataObj = vtkCompositeDataDisplayAttributes::DataObjectFromIndex(
-      index, this->GetInputDataObject(0, 0), start_index);
+    auto dataObj =
+      vtkCompositeDataDisplayAttributes::DataObjectFromIndex(index, this->GetInputDataObject(0, 0));
     if (dataObj)
     {
       this->CompositeAttributes->SetBlockVisibility(dataObj, visible);
@@ -1440,9 +1442,8 @@ bool vtkCompositePolyDataMapper2::GetBlockVisibility(unsigned int index)
 {
   if (this->CompositeAttributes)
   {
-    unsigned int start_index = 0;
-    auto dataObj = vtkCompositeDataDisplayAttributes::DataObjectFromIndex(
-      index, this->GetInputDataObject(0, 0), start_index);
+    auto dataObj =
+      vtkCompositeDataDisplayAttributes::DataObjectFromIndex(index, this->GetInputDataObject(0, 0));
     if (dataObj)
     {
       return this->CompositeAttributes->GetBlockVisibility(dataObj);
@@ -1457,9 +1458,8 @@ void vtkCompositePolyDataMapper2::RemoveBlockVisibility(unsigned int index)
 {
   if (this->CompositeAttributes)
   {
-    unsigned int start_index = 0;
-    auto dataObj = vtkCompositeDataDisplayAttributes::DataObjectFromIndex(
-      index, this->GetInputDataObject(0, 0), start_index);
+    auto dataObj =
+      vtkCompositeDataDisplayAttributes::DataObjectFromIndex(index, this->GetInputDataObject(0, 0));
     if (dataObj)
     {
       this->CompositeAttributes->RemoveBlockVisibility(dataObj);
@@ -1483,9 +1483,8 @@ void vtkCompositePolyDataMapper2::SetBlockColor(unsigned int index, double color
 {
   if (this->CompositeAttributes)
   {
-    unsigned int start_index = 0;
-    auto dataObj = vtkCompositeDataDisplayAttributes::DataObjectFromIndex(
-      index, this->GetInputDataObject(0, 0), start_index);
+    auto dataObj =
+      vtkCompositeDataDisplayAttributes::DataObjectFromIndex(index, this->GetInputDataObject(0, 0));
 
     if (dataObj)
     {
