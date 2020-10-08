@@ -300,7 +300,7 @@ vtkIdType vtkOpenGLCellToVTKCellMap::ConvertOpenGLCellIdToVTKCellId(
   // check if we really are a vert
   if (result < this->CellMapSizes[0])
   {
-    vtkIdType index = result;
+    size_t index = static_cast<size_t>(result);
     if (index < this->CellCellMap.size())
     {
       return this->CellCellMap[index];
@@ -316,7 +316,7 @@ vtkIdType vtkOpenGLCellToVTKCellMap::ConvertOpenGLCellIdToVTKCellId(
   }
   if (result < this->CellMapSizes[1])
   {
-    vtkIdType index = result + this->CellMapSizes[0];
+    size_t index = static_cast<size_t>(result + this->CellMapSizes[0]);
     if (index < this->CellCellMap.size())
     {
       return this->CellCellMap[index];
@@ -336,7 +336,7 @@ vtkIdType vtkOpenGLCellToVTKCellMap::ConvertOpenGLCellIdToVTKCellId(
   }
   if (result < this->CellMapSizes[2])
   {
-    vtkIdType index = result + this->CellMapSizes[1] + this->CellMapSizes[0];
+    size_t index = static_cast<size_t>(result + this->CellMapSizes[1] + this->CellMapSizes[0]);
     if (index < this->CellCellMap.size())
     {
       return this->CellCellMap[index];
@@ -356,8 +356,8 @@ vtkIdType vtkOpenGLCellToVTKCellMap::ConvertOpenGLCellIdToVTKCellId(
   }
   if (result < this->CellMapSizes[3])
   {
-    vtkIdType index =
-      result + this->CellMapSizes[2] + this->CellMapSizes[1] + this->CellMapSizes[0];
+    size_t index = static_cast<size_t>(
+      result + this->CellMapSizes[2] + this->CellMapSizes[1] + this->CellMapSizes[0]);
     if (index < this->CellCellMap.size())
     {
       return this->CellCellMap[index];
