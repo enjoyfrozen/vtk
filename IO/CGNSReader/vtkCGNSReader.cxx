@@ -44,7 +44,6 @@
 #include "vtkMultiProcessController.h"
 #include "vtkNew.h"
 #include "vtkObjectFactory.h"
-#include "vtkPVInformationKeys.h"
 #include "vtkPointData.h"
 #include "vtkPolyhedron.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
@@ -99,6 +98,7 @@ struct duo_t
   }
 
   int& operator[](std::size_t n) { return pair[n]; }
+
 private:
   int pair[2];
 };
@@ -797,8 +797,9 @@ int vtkCGNSReader::vtkPrivate::getGridAndSolutionNames(int base, std::string& gr
     if (ignoreFlowSolutionPointers)
     {
       vtkGenericWarningMacro("`FlowSolutionPointers` in the CGNS file '"
-        << self->FileName << "' "
-                             "refer to invalid solution nodes. Ignoring them.");
+        << self->FileName
+        << "' "
+           "refer to invalid solution nodes. Ignoring them.");
     }
   }
 
@@ -1180,18 +1181,22 @@ int vtkCGNSReader::vtkPrivate::readSolution(const std::string& solutionNameStr, 
   // sanity check: nVals must equal num-points or num-cells.
   if (varCentering == CGNS_ENUMV(CellCenter) && nVals != dataset->GetNumberOfCells())
   {
-    vtkErrorWithObjectMacro(self, "Mismatch in number of cells and number of values "
-                                  "being read from Solution '"
-        << solutionNameStr.c_str() << "'. "
-                                      "Skipping reading. Please report as a bug.");
+    vtkErrorWithObjectMacro(self,
+      "Mismatch in number of cells and number of values "
+      "being read from Solution '"
+        << solutionNameStr.c_str()
+        << "'. "
+           "Skipping reading. Please report as a bug.");
     return CG_ERROR;
   }
   if (varCentering == CGNS_ENUMV(Vertex) && nVals != dataset->GetNumberOfPoints())
   {
-    vtkErrorWithObjectMacro(self, "Mismatch in number of points and number of values "
-                                  "being read from Solution '"
-        << solutionNameStr.c_str() << "'. "
-                                      "Skipping reading. Please report as a bug.");
+    vtkErrorWithObjectMacro(self,
+      "Mismatch in number of points and number of values "
+      "being read from Solution '"
+        << solutionNameStr.c_str()
+        << "'. "
+           "Skipping reading. Please report as a bug.");
     return CG_ERROR;
   }
 
@@ -2513,8 +2518,9 @@ int vtkCGNSReader::GetUnstructuredZone(
         memDim[0] = offsetDataSize;
         memDim[1] = 1;
 
-        if (0 != CGNSRead::get_section_start_offset(this->cgioNum, elemIdList[osec], 1, srcStart,
-                   srcEnd, srcStride, memStart, memEnd, memStride, memDim, localFaceElementsIdx))
+        if (0 !=
+          CGNSRead::get_section_start_offset(this->cgioNum, elemIdList[osec], 1, srcStart, srcEnd,
+            srcStride, memStart, memEnd, memStride, memDim, localFaceElementsIdx))
         {
           // NOTE: the old polygonal layout was replaced in CGNS version 4.0
           // NOTE: support for the old NFACE_n/NGON_n array layout may be deprecated in
@@ -2544,8 +2550,9 @@ int vtkCGNSReader::GetUnstructuredZone(
         memDim[0] = fDataSize;
         memDim[1] = 1;
 
-        if (0 != CGNSRead::get_section_connectivity(this->cgioNum, elemIdList[osec], 1, srcStart,
-                   srcEnd, srcStride, memStart, memEnd, memStride, memDim, localFaceElementsArr))
+        if (0 !=
+          CGNSRead::get_section_connectivity(this->cgioNum, elemIdList[osec], 1, srcStart, srcEnd,
+            srcStride, memStart, memEnd, memStride, memDim, localFaceElementsArr))
         {
           vtkErrorMacro("FAILED to read NGON_n cells\n");
           return 1;
@@ -2643,8 +2650,9 @@ int vtkCGNSReader::GetUnstructuredZone(
         memDim[0] = offsetDataSize;
         memDim[1] = 1;
 
-        if (0 != CGNSRead::get_section_start_offset(this->cgioNum, cgioSectionId, 1, srcStart,
-                   srcEnd, srcStride, memStart, memEnd, memStride, memDim, localCellElementsIdx))
+        if (0 !=
+          CGNSRead::get_section_start_offset(this->cgioNum, cgioSectionId, 1, srcStart, srcEnd,
+            srcStride, memStart, memEnd, memStride, memDim, localCellElementsIdx))
         {
           // NOTE: the old polygonal layout was replaced in CGNS version 4.0
           // NOTE: support for the old NFACE_n/NGON_n array layout may be deprecated in
@@ -2673,8 +2681,9 @@ int vtkCGNSReader::GetUnstructuredZone(
         memDim[0] = eDataSize;
         memDim[1] = 1;
 
-        if (0 != CGNSRead::get_section_connectivity(this->cgioNum, cgioSectionId, 1, srcStart,
-                   srcEnd, srcStride, memStart, memEnd, memStride, memDim, localCellElementsArr))
+        if (0 !=
+          CGNSRead::get_section_connectivity(this->cgioNum, cgioSectionId, 1, srcStart, srcEnd,
+            srcStride, memStart, memEnd, memStride, memDim, localCellElementsArr))
         {
           vtkErrorMacro("FAILED to read NFACE_n cells\n");
           return 1;
@@ -3126,9 +3135,10 @@ int vtkCGNSReader::GetUnstructuredZone(
                   memDim[0] = numFacesToRead + 1;
                   memDim[1] = 1;
 
-                  if (0 != CGNSRead::get_section_start_offset(this->cgioNum, elemIdList[curSec], 1,
-                             srcStart, srcEnd, srcStride, memStart, memEnd, memStride, memDim,
-                             bcFaceElementsIdx.data()))
+                  if (0 !=
+                    CGNSRead::get_section_start_offset(this->cgioNum, elemIdList[curSec], 1,
+                      srcStart, srcEnd, srcStride, memStart, memEnd, memStride, memDim,
+                      bcFaceElementsIdx.data()))
                   {
                     vtkErrorMacro("Partial read of NGON_n ElementStartOffset array for BC FAILED.");
                     return 1;
@@ -3150,9 +3160,10 @@ int vtkCGNSReader::GetUnstructuredZone(
                   memDim[0] = bcFaceElementsIdx[numFacesToRead] - bcFaceElementsIdx[0];
                   memDim[1] = 1;
 
-                  if (0 != CGNSRead::get_section_connectivity(this->cgioNum, elemIdList[curSec], 1,
-                             srcStart, srcEnd, srcStride, memStart, memEnd, memStride, memDim,
-                             bcFaceElementsArr.data()))
+                  if (0 !=
+                    CGNSRead::get_section_connectivity(this->cgioNum, elemIdList[curSec], 1,
+                      srcStart, srcEnd, srcStride, memStart, memEnd, memStride, memDim,
+                      bcFaceElementsArr.data()))
                   {
                     vtkErrorMacro("Partial read of BC NGON_n faces FAILED\n");
                     return 1;
@@ -3195,7 +3206,7 @@ int vtkCGNSReader::GetUnstructuredZone(
                 for (std::size_t sec = 0; sec < ngonSec.size(); sec++)
                 {
                   int curSec = ngonSec[sec];
-                  std::vector<std::pair<vtkIdType, vtkIdType> > faceElemToRead;
+                  std::vector<std::pair<vtkIdType, vtkIdType>> faceElemToRead;
                   //
                   // Compute list of face in current section
                   //------------------------------------------------
@@ -3268,9 +3279,10 @@ int vtkCGNSReader::GetUnstructuredZone(
                     memDim[0] = numFacesToRead + 1;
                     memDim[1] = 1;
 
-                    if (0 != CGNSRead::get_section_start_offset(this->cgioNum, elemIdList[curSec],
-                               1, srcStart, srcEnd, srcStride, memStart, memEnd, memStride, memDim,
-                               bcFaceElementsIdx.data()))
+                    if (0 !=
+                      CGNSRead::get_section_start_offset(this->cgioNum, elemIdList[curSec], 1,
+                        srcStart, srcEnd, srcStride, memStart, memEnd, memStride, memDim,
+                        bcFaceElementsIdx.data()))
                     {
                       vtkErrorMacro(
                         "Partial read of NGON_n ElementStartOffset array for BC FAILED.");
@@ -3293,9 +3305,10 @@ int vtkCGNSReader::GetUnstructuredZone(
                     memDim[0] = bcFaceElementsIdx[numFacesToRead] - bcFaceElementsIdx[0];
                     memDim[1] = 1;
 
-                    if (0 != CGNSRead::get_section_connectivity(this->cgioNum, elemIdList[curSec],
-                               1, srcStart, srcEnd, srcStride, memStart, memEnd, memStride, memDim,
-                               bcFaceElementsArr.data()))
+                    if (0 !=
+                      CGNSRead::get_section_connectivity(this->cgioNum, elemIdList[curSec], 1,
+                        srcStart, srcEnd, srcStride, memStart, memEnd, memStride, memDim,
+                        bcFaceElementsArr.data()))
                     {
                       vtkErrorMacro("Partial read of BC NGON_n faces FAILED\n");
                       return 1;
@@ -3543,9 +3556,10 @@ int vtkCGNSReader::GetUnstructuredZone(
                       memDim[0] = offsetDataSize;
                       memDim[1] = 1;
 
-                      if (0 != CGNSRead::get_section_start_offset(this->cgioNum, elemIdList[curSec],
-                                 1, srcStart, srcEnd, srcStride, memStart, memEnd, memStride,
-                                 memDim, &(bndElementsIdx[0])))
+                      if (0 !=
+                        CGNSRead::get_section_start_offset(this->cgioNum, elemIdList[curSec], 1,
+                          srcStart, srcEnd, srcStride, memStart, memEnd, memStride, memDim,
+                          &(bndElementsIdx[0])))
                       {
                         // no bndElementsIdx read so create it
                         // This is the worst case situation
@@ -3570,9 +3584,10 @@ int vtkCGNSReader::GetUnstructuredZone(
                         memDim[0] = fDataSize;
                         memDim[1] = 1;
 
-                        if (0 != CGNSRead::get_section_connectivity(this->cgioNum,
-                                   elemIdList[curSec], 1, srcStart, srcEnd, srcStride, memStart,
-                                   memEnd, memStride, memDim, &(bndElements[0])))
+                        if (0 !=
+                          CGNSRead::get_section_connectivity(this->cgioNum, elemIdList[curSec], 1,
+                            srcStart, srcEnd, srcStride, memStart, memEnd, memStride, memDim,
+                            &(bndElements[0])))
                         {
                           vtkErrorMacro("FAILED to read MIXED boundary cells\n");
                           return 1;
@@ -3795,7 +3810,7 @@ int vtkCGNSReader::GetUnstructuredZone(
                 for (std::size_t sec = 0; sec < bndSec.size(); sec++)
                 {
                   int curSec = bndSec[sec];
-                  std::vector<std::pair<vtkIdType, vtkIdType> > elemToRead;
+                  std::vector<std::pair<vtkIdType, vtkIdType>> elemToRead;
                   CGNS_ENUMT(ElementType_t) elemType = CGNS_ENUMV(ElementTypeNull);
                   //
                   // Compute list of boundary elements in current section
@@ -3947,9 +3962,10 @@ int vtkCGNSReader::GetUnstructuredZone(
                       memDim[0] = numElemToRead + 1;
                       memDim[1] = 1;
 
-                      if (0 != CGNSRead::get_section_start_offset(this->cgioNum, elemIdList[curSec],
-                                 1, srcStart, srcEnd, srcStride, memStart, memEnd, memStride,
-                                 memDim, &(bndElementsIdx[0])))
+                      if (0 !=
+                        CGNSRead::get_section_start_offset(this->cgioNum, elemIdList[curSec], 1,
+                          srcStart, srcEnd, srcStride, memStart, memEnd, memStride, memDim,
+                          &(bndElementsIdx[0])))
                       {
                         // Fallback to old way because no Offset found
                         cgsize_t fDataSize(0);
@@ -3972,9 +3988,10 @@ int vtkCGNSReader::GetUnstructuredZone(
                         memDim[0] = fDataSize;
                         memDim[1] = 1;
 
-                        if (0 != CGNSRead::get_section_connectivity(this->cgioNum,
-                                   elemIdList[curSec], 1, srcStart, srcEnd, srcStride, memStart,
-                                   memEnd, memStride, memDim, &(bcElementsArr[0])))
+                        if (0 !=
+                          CGNSRead::get_section_connectivity(this->cgioNum, elemIdList[curSec], 1,
+                            srcStart, srcEnd, srcStride, memStart, memEnd, memStride, memDim,
+                            &(bcElementsArr[0])))
                         {
                           vtkErrorMacro("FAILED to read MIXED boundary cells\n");
                           return 1;
@@ -4036,9 +4053,10 @@ int vtkCGNSReader::GetUnstructuredZone(
                         memDim[0] = bndElementsIdx[numElemToRead] - bndElementsIdx[0];
                         memDim[1] = 1;
 
-                        if (0 != CGNSRead::get_section_connectivity(this->cgioNum,
-                                   elemIdList[curSec], 1, srcStart, srcEnd, srcStride, memStart,
-                                   memEnd, memStride, memDim, bcElementsArr.data()))
+                        if (0 !=
+                          CGNSRead::get_section_connectivity(this->cgioNum, elemIdList[curSec], 1,
+                            srcStart, srcEnd, srcStride, memStart, memEnd, memStride, memDim,
+                            bcElementsArr.data()))
                         {
                           vtkErrorMacro("Partial read of MIXED elements FAILED\n");
                           return 1;
@@ -4759,9 +4777,10 @@ int vtkCGNSReader::CanReadFile(const char* name)
     // as long as the 1st digit of the versions are equal
     if ((intFileVersion / 1000) > (CGNS_VERSION / 1000))
     {
-      vtkErrorMacro(<< "The file " << name << " was written with a more recent version"
-                                              "of the CGNS library.  You must update your CGNS"
-                                              "library before trying to read this file.");
+      vtkErrorMacro(<< "The file " << name
+                    << " was written with a more recent version"
+                       "of the CGNS library.  You must update your CGNS"
+                       "library before trying to read this file.");
       ierr = 0;
     }
     // warn only if different in second digit

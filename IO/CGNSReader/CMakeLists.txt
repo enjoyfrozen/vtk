@@ -13,10 +13,7 @@ set(private_headers
   vtkCGNSReaderInternal.h
   vtkFileSeriesHelper.h)
 
-vtk_module_add_module(ParaView::VTKExtensionsCGNSReader
+vtk_module_add_module(VTK::IOCGNSReader
   CLASSES ${classes}
   SOURCES ${sources}
   PRIVATE_HEADERS ${private_headers})
-
-paraview_add_server_manager_xmls(
-  XMLS  resources/CGNSReader.xml)

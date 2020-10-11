@@ -1,6 +1,6 @@
 /*=========================================================================
 
-  Program:   ParaView
+  Program:   Visualization Toolkit
   Module:    vtkFileSeriesHelper.cxx
 
   Copyright (c) Kitware, Inc.

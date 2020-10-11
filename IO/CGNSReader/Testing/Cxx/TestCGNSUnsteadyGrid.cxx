@@ -1,6 +1,6 @@
 /*=========================================================================
 
-  Program:   ParaView
+  Program:   Visualization Toolkit
   Module:    TestCGNSUnsteadyGrid.cxx
 
   Copyright (c) Jakub Benda, CFD support, Czech Republic

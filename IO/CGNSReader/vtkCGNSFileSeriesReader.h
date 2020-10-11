@@ -1,6 +1,6 @@
 /*=========================================================================
 
-  Program:   ParaView
+  Program:   Visualization Toolkit
   Module:    vtkCGNSFileSeriesReader.h
 
   Copyright (c) Kitware, Inc.
@@ -35,9 +35,9 @@
 #ifndef vtkCGNSFileSeriesReader_h
 #define vtkCGNSFileSeriesReader_h
 
+#include "vtkIOCGNSReaderModule.h" // for export macros
 #include "vtkMultiBlockDataSetAlgorithm.h"
-#include "vtkNew.h"                             // for vtkNew.
-#include "vtkPVVTKExtensionsCGNSReaderModule.h" // for export macros
+#include "vtkNew.h" // for vtkNew.
 
 #include <string> // for std::string
 #include <vector> // for std::vector
@@ -47,8 +47,7 @@ class vtkCGNSSubsetInclusionLattice;
 class vtkFileSeriesHelper;
 class vtkMultiProcessController;
 
-class VTKPVVTKEXTENSIONSCGNSREADER_EXPORT vtkCGNSFileSeriesReader
-  : public vtkMultiBlockDataSetAlgorithm
+class VTKIOCGNSREADER_EXPORT vtkCGNSFileSeriesReader : public vtkMultiBlockDataSetAlgorithm
 {
 public:
   static vtkCGNSFileSeriesReader* New();

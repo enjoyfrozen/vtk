@@ -30,15 +30,15 @@
  *
  * @par Thanks:
  * Thanks to .
-*/
+ */
 
 #ifndef vtkCGNSReader_h
 #define vtkCGNSReader_h
 
-#include "vtkCGNSCache.h" // for vtkCGNSCache, caching of mesh and connectivity
+#include "vtkCGNSCache.h"          // for vtkCGNSCache, caching of mesh and connectivity
+#include "vtkIOCGNSReaderModule.h" // for export macro
 #include "vtkMultiBlockDataSetAlgorithm.h"
-#include "vtkNew.h"                             // for vtkNew.
-#include "vtkPVVTKExtensionsCGNSReaderModule.h" // for export macro
+#include "vtkNew.h" // for vtkNew.
 
 class vtkDataSet;
 class vtkDataArraySelection;
@@ -53,7 +53,7 @@ class vtkCGNSMetaData;
 }
 
 class vtkMultiProcessController;
-class VTKPVVTKEXTENSIONSCGNSREADER_EXPORT vtkCGNSReader : public vtkMultiBlockDataSetAlgorithm
+class VTKIOCGNSREADER_EXPORT vtkCGNSReader : public vtkMultiBlockDataSetAlgorithm
 {
 public:
   static vtkCGNSReader* New();

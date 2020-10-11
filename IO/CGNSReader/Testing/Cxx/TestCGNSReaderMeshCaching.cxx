@@ -1,6 +1,6 @@
 /*=========================================================================
 
-  Program:   ParaView
+  Program:   Visualization Toolkit
   Module:    TestGNSReaderMeshCaching.cxx
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen

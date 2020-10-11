@@ -1,21 +1,18 @@
 NAME
-  ParaView::VTKExtensionsCGNSReader
+  VTK::IOCGNSReader
 LIBRARY_NAME
-  vtkPVVTKExtensionsCGNSReader
+  vtkIOCGNSReader
 KIT
-  ParaView::CoreKit
-CONDITION
-  PARAVIEW_ENABLE_NONESSENTIAL
+  VTK::IO
 GROUPS
-  PARAVIEW_CANONICAL
+  StandAlone
 DEPENDS
-  ParaView::VTKExtensionsCore
   VTK::CommonCore
   VTK::CommonDataModel
   VTK::CommonExecutionModel
   VTK::ParallelCore
 PRIVATE_DEPENDS
-  ParaView::cgns
+  VTK::cgns
   VTK::FiltersExtraction
   VTK::ParallelCore
   VTK::hdf5
@@ -25,5 +22,3 @@ TEST_DEPENDS
   VTK::InteractionStyle
   VTK::TestingCore
   VTK::TestingRendering
-TEST_LABELS
-  ParaView

@@ -1,6 +1,6 @@
 /*=========================================================================
 
-  Program:   ParaView
+  Program:   Visualization Toolkit
   Module:    vtkCGNSFileSeriesReader.cxx
 
   Copyright (c) Kitware, Inc.
@@ -54,6 +54,7 @@ public:
     this->Var = val;
   }
   ~SCOPED_SET() { this->Var = this->Prev; }
+
 private:
   SCOPED_SET(const SCOPED_SET&) = delete;
   void operator=(const SCOPED_SET&) = delete;
@@ -298,7 +299,7 @@ namespace
 struct ANode
 {
   std::map<std::string, ANode*> Children;
-  std::vector<vtkSmartPointer<vtkDataSet> > Datasets;
+  std::vector<vtkSmartPointer<vtkDataSet>> Datasets;
   ANode() {}
   ~ANode()
   {

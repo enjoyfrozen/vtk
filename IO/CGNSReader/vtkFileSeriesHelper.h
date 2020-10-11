@@ -1,6 +1,6 @@
 /*=========================================================================
 
-  Program:   ParaView
+  Program:   Visualization Toolkit
   Module:    vtkFileSeriesHelper.h
 
   Copyright (c) Kitware, Inc.
@@ -29,18 +29,18 @@
 
 #include "vtkObject.h"
 
-#include "vtkPVVTKExtensionsCGNSReaderModule.h" // for export macros
-#include "vtkSmartPointer.h"                    // for vtkSmartPointer.
-#include <string>                               // for std::string
-#include <utility>                              // for std::pair
-#include <vector>                               // for std::vector
+#include "vtkIOCGNSReaderModule.h" // for export macros
+#include "vtkSmartPointer.h"       // for vtkSmartPointer.
+#include <string>                  // for std::string
+#include <utility>                 // for std::pair
+#include <vector>                  // for std::vector
 
 class vtkAlgorithm;
 class vtkMultiProcessController;
 class vtkInformation;
 class vtkMultiProcessStream;
 
-class VTKPVVTKEXTENSIONSCGNSREADER_EXPORT vtkFileSeriesHelper : public vtkObject
+class VTKIOCGNSREADER_EXPORT vtkFileSeriesHelper : public vtkObject
 {
 public:
   static vtkFileSeriesHelper* New();
