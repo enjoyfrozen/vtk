@@ -629,7 +629,7 @@ if(CGNS_BUILD_SHARED)
                                RUNTIME DESTINATION bin)
 endif(CGNS_BUILD_SHARED)
 else ()
-vtk_module_add_module(ParaView::cgns
+vtk_module_add_module(VTK::cgns
   SOURCES ${cgns_FILES})
 set_target_properties(cgns PROPERTIES DEFINE_SYMBOL BUILD_DLL)
 endif ()

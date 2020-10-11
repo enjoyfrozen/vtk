@@ -1,5 +1,5 @@
 NAME
-  ParaView::cgns
+  VTK::cgns
 LIBRARY_NAME
   vtkcgns
 DEPENDS
