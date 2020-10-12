@@ -69,7 +69,7 @@ int TestOutput(vtkMultiBlockDataSet* mb, double size)
 
 int TestCGNSUnsteadyGrid(int argc, char* argv[])
 {
-  char* fname = vtkTestUtilities::ExpandDataFileName(argc, argv, "Testing/Data/Example_grids.cgns");
+  char* fname = vtkTestUtilities::ExpandDataFileName(argc, argv, "Data/Example_grids.cgns");
   std::string grids = fname ? fname : "";
   delete[] fname;
 

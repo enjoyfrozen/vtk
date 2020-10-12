@@ -69,8 +69,7 @@ int TestField(vtkMultiBlockDataSet* mb, double value)
 
 int TestCGNSUnsteadyFields(int argc, char* argv[])
 {
-  char* fname =
-    vtkTestUtilities::ExpandDataFileName(argc, argv, "Testing/Data/Example_fields.cgns");
+  char* fname = vtkTestUtilities::ExpandDataFileName(argc, argv, "Data/Example_fields.cgns");
   std::string fields = fname ? fname : "";
   delete[] fname;
 

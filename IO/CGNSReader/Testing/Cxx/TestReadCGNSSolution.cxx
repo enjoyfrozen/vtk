@@ -61,8 +61,7 @@ int TestOutputData(vtkMultiBlockDataSet* mb, int nCells, int nArrays)
 
 int TestReadCGNSSolution(int argc, char* argv[])
 {
-  char* fname =
-    vtkTestUtilities::ExpandDataFileName(argc, argv, "Testing/Data/channelBump_solution.cgns");
+  char* fname = vtkTestUtilities::ExpandDataFileName(argc, argv, "Data/channelBump_solution.cgns");
   std::string solution = fname ? fname : "";
   delete[] fname;
 
