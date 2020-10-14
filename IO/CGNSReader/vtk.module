@@ -3,7 +3,7 @@ NAME
 LIBRARY_NAME
   vtkIOCGNSReader
 KIT
-  VTK::IO
+  VTK::Parallel
 GROUPS
   StandAlone
 DEPENDS
