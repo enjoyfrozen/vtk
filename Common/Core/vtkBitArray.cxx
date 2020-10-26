@@ -18,15 +18,6 @@
 #include "vtkIdList.h"
 #include "vtkObjectFactory.h"
 
-namespace
-{
-// This is used to initialize the last byte of the array when allocating memory
-// to prevent the presence of uninitialized bits that are out of range for the
-// array.
-constexpr unsigned char InitializationMaskForUnusedBitsOfLastByte[8] = { 0xff, 0x80, 0xc0, 0xe0,
-  0xf0, 0xf8, 0xfc, 0xfe };
-} // anonymous namespace
-
 //------------------------------------------------------------------------------
 class vtkBitArrayLookup
 {
@@ -90,6 +81,7 @@ unsigned char* vtkBitArray::WritePointer(vtkIdType id, vtkIdType number)
   if ((--newSize) > this->MaxId)
   {
     this->MaxId = newSize;
+    this->InitializeUnusedBitsInLastByte();
   }
   this->DataChanged();
   return this->Array + id / 8;
@@ -104,7 +96,6 @@ unsigned char* vtkBitArray::WritePointer(vtkIdType id, vtkIdType number)
 // from the supplied array.
 void vtkBitArray::SetArray(unsigned char* array, vtkIdType size, int save, int deleteMethod)
 {
-
   if ((this->Array) && (this->DeleteFunction))
   {
     vtkDebugMacro(<< "Deleting the array...");
@@ -120,6 +111,7 @@ void vtkBitArray::SetArray(unsigned char* array, vtkIdType size, int save, int d
   this->Array = array;
   this->Size = size;
   this->MaxId = size - 1;
+  this->InitializeUnusedBitsInLastByte();
 
   if (save != 0)
   {
@@ -171,8 +163,6 @@ vtkTypeBool vtkBitArray::Allocate(vtkIdType sz, vtkIdType vtkNotUsed(ext))
     this->Size = (sz > 0 ? sz : 1);
     if ((this->Array = new unsigned char[(this->Size + 7) / 8]) == nullptr)
     {
-      this->Array[(this->Size + 7) / 8 - 1] &=
-        InitializationMaskForUnusedBitsOfLastByte[this->Size % 8];
       return 0;
     }
     this->DeleteFunction = ::operator delete[];
@@ -301,11 +291,10 @@ unsigned char* vtkBitArray::ResizeAndExtend(vtkIdType sz)
     }
   }
 
-  newArray[(newSize + 7) / 8 - 1] &= InitializationMaskForUnusedBitsOfLastByte[newSize % 8];
-
   if (newSize < this->Size)
   {
     this->MaxId = newSize - 1;
+    this->InitializeUnusedBitsInLastByte();
   }
   this->Size = newSize;
   this->Array = newArray;
@@ -349,11 +338,10 @@ vtkTypeBool vtkBitArray::Resize(vtkIdType sz)
     }
   }
 
-  newArray[(newSize + 7) / 8 - 1] &= InitializationMaskForUnusedBitsOfLastByte[newSize % 8];
-
   if (newSize < this->Size)
   {
     this->MaxId = newSize - 1;
+    this->InitializeUnusedBitsInLastByte();
   }
   this->Size = newSize;
   this->Array = newArray;
@@ -368,6 +356,17 @@ vtkTypeBool vtkBitArray::Resize(vtkIdType sz)
 void vtkBitArray::SetNumberOfTuples(vtkIdType number)
 {
   this->SetNumberOfValues(number * this->NumberOfComponents);
+}
+
+//------------------------------------------------------------------------------
+bool vtkBitArray::SetNumberOfValues(vtkIdType number)
+{
+  if (!this->Superclass::SetNumberOfValues(number))
+  {
+    return false;
+  }
+  this->InitializeUnusedBitsInLastByte();
+  return true;
 }
 
 //------------------------------------------------------------------------------
@@ -409,9 +408,14 @@ void vtkBitArray::InsertTuple(vtkIdType i, vtkIdType j, vtkAbstractArray* source
 
   vtkIdType loci = i * this->NumberOfComponents;
   vtkIdType locj = j * ba->GetNumberOfComponents();
+  vtkIdType previousMaxId = this->MaxId;
   for (vtkIdType cur = 0; cur < this->NumberOfComponents; cur++)
   {
     this->InsertValue(loci + cur, ba->GetValue(locj + cur));
+  }
+  if (previousMaxId / 8 != this->MaxId / 8)
+  {
+    this->InitializeUnusedBitsInLastByte();
   }
   this->DataChanged();
 }
@@ -439,6 +443,7 @@ void vtkBitArray::InsertTuples(vtkIdList* dstIds, vtkIdList* srcIds, vtkAbstract
     return;
   }
 
+  vtkIdType previousMaxId = this->MaxId;
   for (vtkIdType idIndex = 0; idIndex < numIds; ++idIndex)
   {
     vtkIdType numComp = this->NumberOfComponents;
@@ -448,6 +453,10 @@ void vtkBitArray::InsertTuples(vtkIdList* dstIds, vtkIdList* srcIds, vtkAbstract
     {
       this->InsertValue(dstLoc++, ba->GetValue(srcLoc++));
     }
+  }
+  if (previousMaxId / 8 != this->MaxId / 8)
+  {
+    this->InitializeUnusedBitsInLastByte();
   }
   this->DataChanged();
 }
@@ -477,6 +486,7 @@ void vtkBitArray::InsertTuples(
     return;
   }
 
+  vtkIdType previousMaxId = this->MaxId;
   for (vtkIdType i = 0; i < n; ++i)
   {
     vtkIdType numComp = this->NumberOfComponents;
@@ -487,7 +497,10 @@ void vtkBitArray::InsertTuples(
       this->InsertValue(dstLoc++, sa->GetValue(srcLoc++));
     }
   }
-
+  if (previousMaxId / 8 != this->MaxId / 8)
+  {
+    this->InitializeUnusedBitsInLastByte();
+  }
   this->DataChanged();
 }
 
