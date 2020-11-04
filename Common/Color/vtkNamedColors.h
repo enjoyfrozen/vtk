@@ -87,7 +87,7 @@ public:
   /**
    * Get the number of colors.
    */
-  int GetNumberOfColors();
+  int GetNumberOfColors() VTK_FUTURE_CONST;
 
   /**
    * Reset the colors in the color map to the original colors.

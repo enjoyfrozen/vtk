@@ -166,7 +166,7 @@ public:
   vtkIdType GetNumberOfCells();
   void SetOwner(vtkPointSet* owner) { this->Owner = owner; }
 
-  vtkPoints* GetPoints() { return _grid->GetPoints(); }
+  vtkPoints* GetPoints() VTK_FUTURE_CONST { return _grid->GetPoints(); }
 
 protected:
   MappedGridImpl() = default;
@@ -266,7 +266,10 @@ public:
 
   static MappedGrid* New();
 
-  vtkPoints* GetPoints() override { return this->GetImplementation()->GetPoints(); }
+  vtkPoints* GetPoints() VTK_FUTURE_CONST override
+  {
+    return this->GetImplementation()->GetPoints();
+  }
 
   vtkIdType GetNumberOfPoints() override
   {

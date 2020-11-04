@@ -1015,7 +1015,7 @@ vtkStdString vtkNamedColors::GetSynonyms()
 }
 
 //------------------------------------------------------------------------------
-int vtkNamedColors::GetNumberOfColors()
+int vtkNamedColors::GetNumberOfColors() VTK_FUTURE_CONST
 {
   return static_cast<int>(this->Colors->GetColorMap()->size());
 }

@@ -86,7 +86,7 @@ public:
    * Use SetSize() instead.
    */
   void SetXCoordinates(vtkDataArray* XCoordinates) override;
-  vtkDataArray* GetXCoordinates() override;
+  vtkDataArray* GetXCoordinates() VTK_FUTURE_CONST override;
   /* JB A faire pour les Get !
   const vtkDataArray* GetXCoordinates() const override {
     throw std::domain_error("Cannot use GetZCoordinates on UniformHyperTreeGrid");
@@ -101,7 +101,7 @@ public:
    * Use SetSize() instead.
    */
   void SetYCoordinates(vtkDataArray* YCoordinates) override;
-  vtkDataArray* GetYCoordinates() override;
+  vtkDataArray* GetYCoordinates() VTK_FUTURE_CONST override;
   /* JB A faire pour les Get !
   const vtkDataArray* GetYCoordinates() const override {
     throw std::domain_error("Cannot use GetZCoordinates on UniformHyperTreeGrid");
@@ -116,7 +116,7 @@ public:
    * Use SetSize() instead.
    */
   void SetZCoordinates(vtkDataArray* ZCoordinates) override;
-  vtkDataArray* GetZCoordinates() override;
+  vtkDataArray* GetZCoordinates() VTK_FUTURE_CONST override;
   /* JB A faire pour les Get !
   const vtkDataArray* GetZCoordinates() const override {
     throw std::domain_error("Cannot use GetZCoordinates on UniformHyperTreeGrid");
@@ -189,9 +189,9 @@ protected:
   /**
    * Keep track of whether coordinates have been explicitly computed
    */
-  bool ComputedXCoordinates;
-  bool ComputedYCoordinates;
-  bool ComputedZCoordinates;
+  mutable bool ComputedXCoordinates;
+  mutable bool ComputedYCoordinates;
+  mutable bool ComputedZCoordinates;
   ///@}
 
   unsigned int FindDichotomic(double value, unsigned char dim, double tol) const

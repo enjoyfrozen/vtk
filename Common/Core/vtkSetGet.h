@@ -325,8 +325,8 @@
       this->Modified();                                                                            \
     }                                                                                              \
   }                                                                                                \
-  virtual type Get##name##MinValue() { return min; }                                               \
-  virtual type Get##name##MaxValue() { return max; }
+  virtual type Get##name##MinValue() VTK_FUTURE_CONST { return min; }                              \
+  virtual type Get##name##MaxValue() VTK_FUTURE_CONST { return max; }
 #define vtkSetClampMacroOverride(name, type, min, max)                                             \
   void Set##name(type _arg) override                                                               \
   {                                                                                                \
@@ -437,7 +437,7 @@
 // This macro should be used in the header file.
 //
 #define vtkGetObjectMacro(name, type)                                                              \
-  virtual type* Get##name()                                                                        \
+  virtual type* Get##name() VTK_FUTURE_CONST                                                       \
   {                                                                                                \
     vtkDebugMacro(<< " returning " #name " address " << static_cast<type*>(this->name));           \
     return this->name;                                                                             \

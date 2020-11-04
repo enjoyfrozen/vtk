@@ -186,7 +186,7 @@ void vtkUniformHyperTreeGrid::SetXCoordinates(vtkDataArray* m_XCoordinates)
     (m_XCoordinates->GetNumberOfTuples() - 1);
 }
 
-vtkDataArray* vtkUniformHyperTreeGrid::GetXCoordinates()
+vtkDataArray* vtkUniformHyperTreeGrid::GetXCoordinates() VTK_FUTURE_CONST
 {
   std::cerr << "Bad to call vtkUniformHyperTreeGrid::GetXCoordinates" << std::endl;
   // Compute coordinates only if necessary
@@ -225,7 +225,7 @@ void vtkUniformHyperTreeGrid::SetYCoordinates(vtkDataArray* m_YCoordinates)
     (m_YCoordinates->GetNumberOfTuples() - 1);
 }
 
-vtkDataArray* vtkUniformHyperTreeGrid::GetYCoordinates()
+vtkDataArray* vtkUniformHyperTreeGrid::GetYCoordinates() VTK_FUTURE_CONST
 {
   std::cerr << "Bad to call vtkUniformHyperTreeGrid::GetYCoordinates" << std::endl;
   // Compute coordinates only if necessary
@@ -264,7 +264,7 @@ void vtkUniformHyperTreeGrid::SetZCoordinates(vtkDataArray* m_ZCoordinates)
     (m_ZCoordinates->GetNumberOfTuples() - 1);
 };
 
-vtkDataArray* vtkUniformHyperTreeGrid::GetZCoordinates()
+vtkDataArray* vtkUniformHyperTreeGrid::GetZCoordinates() VTK_FUTURE_CONST
 {
   std::cerr << "Bad to call vtkUniformHyperTreeGrid::GetZCoordinates" << std::endl;
   // Compute coordinates only if necessary
