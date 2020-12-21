@@ -1,4 +1,5 @@
-set(PARAVIEW_ENABLE_ADIOS ON CACHE BOOL "")
+# Modules which require software not in the CI image.
+set(VTK_MODULE_ENABLE_VTK_RenderingRayTracing NO CACHE STRING "") # ospray
 
 if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "offscreen")
   set(VTK_USE_X OFF CACHE BOOL "")
