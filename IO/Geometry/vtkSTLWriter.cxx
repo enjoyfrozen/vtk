@@ -94,6 +94,10 @@ void vtkSTLWriter::WriteData()
       vtkErrorMacro("Ran out of disk space; deleting file: " << this->FileName);
       unlink(this->FileName);
     }
+    else if (this->ErrorCode != vtkErrorCode::NoError)
+    {
+      vtkErrorMacro("Got error code: " << this->ErrorCode << " for: " << this->FileName);
+    }
   }
   else
   {
@@ -102,6 +106,10 @@ void vtkSTLWriter::WriteData()
     {
       vtkErrorMacro("Ran out of disk space; deleting file: " << this->FileName);
       unlink(this->FileName);
+    }
+    else if (this->ErrorCode != vtkErrorCode::NoError)
+    {
+      vtkErrorMacro("Got error code: " << this->ErrorCode << " for: " << this->FileName);
     }
   }
 }
