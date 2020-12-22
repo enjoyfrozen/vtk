@@ -77,6 +77,8 @@
     - git submodule update --init --recursive
     # Load any modules that may be necessary.
     - '[ -n "$MODULES" ] && . /etc/profile.d/modules.sh && module load $MODULES'
+    # FIXME: move the docker image
+    - dnf --setopt=install_weak_deps=False -y install sqlite-devel PEGTL-devel cgnslib-devel
 
 .cmake_build_linux:
     stage: build
