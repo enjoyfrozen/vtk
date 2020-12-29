@@ -206,6 +206,11 @@ def _global_func(impl, array, axis, controller):
                 return dsa.NoneArray;
 
             if res is dsa.NoneArray:
+                # Handle the special case where max_dims is an int.
+                # This is necessary because max_dims is used to dimension
+                # an array elsewhere and an int of 1 is the correct value
+                # for that case. It has the be handled specially here
+                # unfortunately.
                 if isinstance(max_dims, int) and max_dims == 1:
                     # Weird trick to make the array look like a scalar
                     max_dims = ()
