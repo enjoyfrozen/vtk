@@ -181,11 +181,6 @@ vtkFLUENTReader::vtkFLUENTReader()
   this->SubSectionIds = new intVector;
   this->SubSectionSize = new intVector;
 
-  this->ScalarVariableNames = new stringVector;
-  this->ScalarSubSectionIds = new intVector;
-  this->VectorVariableNames = new stringVector;
-  this->VectorSubSectionIds = new intVector;
-
   this->SwapBytes = 0;
   this->GridDimension = 0;
   this->DataPass = 0;
@@ -219,10 +214,6 @@ vtkFLUENTReader::~vtkFLUENTReader()
   delete this->SubSectionZones;
   delete this->SubSectionIds;
   delete this->SubSectionSize;
-  delete this->ScalarVariableNames;
-  delete this->ScalarSubSectionIds;
-  delete this->VectorVariableNames;
-  delete this->VectorSubSectionIds;
   delete this->FluentCaseFile;
   delete this->FluentDataFile;
 
@@ -330,45 +321,49 @@ int vtkFLUENTReader::RequestData(vtkInformation* vtkNotUsed(request),
   // Scalar Data
   for (size_t l = 0; l < this->ScalarDataChunks->value.size(); l++)
   {
-    size_t location = std::find(this->CellZones->value.begin(), this->CellZones->value.end(),
-                        this->ScalarDataChunks->value[l].zoneId) -
-      this->CellZones->value.begin();
-
-    vtkDoubleArray* v = vtkDoubleArray::New();
-    for (size_t m = 0; m < this->ScalarDataChunks->value[l].scalarData.size(); m++)
+    if (this->CellDataArraySelection->ArrayIsEnabled(
+          this->VariableNames->value[this->ScalarDataChunks->value[l].subsectionId].c_str()))
     {
-      v->InsertValue(static_cast<vtkIdType>(m), this->ScalarDataChunks->value[l].scalarData[m]);
+      size_t location = std::find(this->CellZones->value.begin(), this->CellZones->value.end(),
+                          this->ScalarDataChunks->value[l].zoneId) -
+        this->CellZones->value.begin();
+
+      vtkDoubleArray* v = vtkDoubleArray::New();
+      for (size_t m = 0; m < this->ScalarDataChunks->value[l].scalarData.size(); m++)
+      {
+        v->InsertValue(static_cast<vtkIdType>(m), this->ScalarDataChunks->value[l].scalarData[m]);
+      }
+      v->SetName(this->VariableNames->value[this->ScalarDataChunks->value[l].subsectionId].c_str());
+      grid[location]->GetCellData()->AddArray(v);
+      v->Delete();
     }
-    // v->SetName(this->ScalarVariableNames->
-    //           value[l/this->CellZones->value.size()].c_str());
-    v->SetName(this->VariableNames->value[this->ScalarDataChunks->value[l].subsectionId].c_str());
-    grid[location]->GetCellData()->AddArray(v);
-    v->Delete();
   }
   this->ScalarDataChunks->value.clear();
 
   // Vector Data
   for (size_t l = 0; l < this->VectorDataChunks->value.size(); l++)
   {
-    size_t location = std::find(this->CellZones->value.begin(), this->CellZones->value.end(),
-                        this->VectorDataChunks->value[l].zoneId) -
-      this->CellZones->value.begin();
-    vtkDoubleArray* v = vtkDoubleArray::New();
-    v->SetNumberOfComponents(3);
-    for (size_t m = 0; m < this->VectorDataChunks->value[l].iComponentData.size(); m++)
+    if (this->CellDataArraySelection->ArrayIsEnabled(
+          this->VariableNames->value[this->VectorDataChunks->value[l].subsectionId].c_str()))
     {
-      v->InsertComponent(
-        static_cast<vtkIdType>(m), 0, this->VectorDataChunks->value[l].iComponentData[m]);
-      v->InsertComponent(
-        static_cast<vtkIdType>(m), 1, this->VectorDataChunks->value[l].jComponentData[m]);
-      v->InsertComponent(
-        static_cast<vtkIdType>(m), 2, this->VectorDataChunks->value[l].kComponentData[m]);
+      size_t location = std::find(this->CellZones->value.begin(), this->CellZones->value.end(),
+                          this->VectorDataChunks->value[l].zoneId) -
+        this->CellZones->value.begin();
+      vtkDoubleArray* v = vtkDoubleArray::New();
+      v->SetNumberOfComponents(3);
+      for (size_t m = 0; m < this->VectorDataChunks->value[l].iComponentData.size(); m++)
+      {
+        v->InsertComponent(
+          static_cast<vtkIdType>(m), 0, this->VectorDataChunks->value[l].iComponentData[m]);
+        v->InsertComponent(
+          static_cast<vtkIdType>(m), 1, this->VectorDataChunks->value[l].jComponentData[m]);
+        v->InsertComponent(
+          static_cast<vtkIdType>(m), 2, this->VectorDataChunks->value[l].kComponentData[m]);
+      }
+      v->SetName(this->VariableNames->value[this->VectorDataChunks->value[l].subsectionId].c_str());
+      grid[location]->GetCellData()->AddArray(v);
+      v->Delete();
     }
-    // v->SetName(this->VectorVariableNames->
-    //           value[l/this->CellZones->value.size()].c_str());
-    v->SetName(this->VariableNames->value[this->VectorDataChunks->value[l].subsectionId].c_str());
-    grid[location]->GetCellData()->AddArray(v);
-    v->Delete();
   }
   this->VectorDataChunks->value.clear();
 
@@ -422,24 +417,33 @@ int vtkFLUENTReader::RequestInformation(vtkInformation* vtkNotUsed(request),
   {
     this->ParseDataFile();
   }
-  for (size_t i = 0; i < this->SubSectionIds->value.size(); i++)
+  // Add Cell Data Array Selection
+  int emptyNumber = 0;
+  for (size_t i = 0; i < this->ScalarDataChunks->value.size(); i++)
   {
-    if (this->SubSectionSize->value[i] == 1)
+    // Find empty variable name
+    if (this->VariableNames->value[this->ScalarDataChunks->value[i].subsectionId] == "")
     {
-      this->CellDataArraySelection->AddArray(
-        this->VariableNames->value[this->SubSectionIds->value[i]].c_str());
-      this->ScalarVariableNames->value.push_back(
-        this->VariableNames->value[this->SubSectionIds->value[i]]);
-      this->ScalarSubSectionIds->value.push_back(this->SubSectionIds->value[i]);
+      this->VariableNames->value[this->ScalarDataChunks->value[i].subsectionId] =
+        "VAR_NOT_FOUND_" + std::to_string(emptyNumber);
+      emptyNumber++;
     }
-    else if (this->SubSectionSize->value[i] == 3)
+
+    this->CellDataArraySelection->AddArray(
+      this->VariableNames->value[this->ScalarDataChunks->value[i].subsectionId].c_str());
+  }
+  for (size_t i = 0; i < this->VectorDataChunks->value.size(); i++)
+  {
+    // Find empty variable name
+    if (this->VariableNames->value[this->VectorDataChunks->value[i].subsectionId] == "")
     {
-      this->CellDataArraySelection->AddArray(
-        this->VariableNames->value[this->SubSectionIds->value[i]].c_str());
-      this->VectorVariableNames->value.push_back(
-        this->VariableNames->value[this->SubSectionIds->value[i]]);
-      this->VectorSubSectionIds->value.push_back(this->SubSectionIds->value[i]);
+      this->VariableNames->value[this->VectorDataChunks->value[i].subsectionId] =
+        "VAR_NOT_FOUND_" + std::to_string(emptyNumber);
+      emptyNumber++;
     }
+
+    this->CellDataArraySelection->AddArray(
+      this->VariableNames->value[this->VectorDataChunks->value[i].subsectionId].c_str());
   }
   this->NumberOfCells = static_cast<vtkIdType>(this->Cells->value.size());
   return 1;
