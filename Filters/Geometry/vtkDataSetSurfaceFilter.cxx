@@ -1476,7 +1476,7 @@ int vtkDataSetSurfaceFilter::UnstructuredGridExecute(vtkDataSet* dataSetInput, v
 int vtkDataSetSurfaceFilter::UnstructuredGridExecute(
   vtkDataSet* dataSetInput, vtkPolyData* output, vtkGeometryFilterHelper* info)
 {
-  vtkUnstructuredGrid* input = vtkUnstructuredGrid::SafeDownCast(dataSetInput);
+  vtkUnstructuredGridBase* input = vtkUnstructuredGridBase::SafeDownCast(dataSetInput);
 
   // If no info, then compute information about the unstructured grid.
   // Depending on the outcome, we may process the data ourselves, or send over
@@ -1484,7 +1484,8 @@ int vtkDataSetSurfaceFilter::UnstructuredGridExecute(
   bool mayDelegate = (info == nullptr && this->Delegation);
   if (info == nullptr)
   {
-    info = vtkGeometryFilterHelper::CharacterizeUnstructuredGrid(input);
+    info = vtkGeometryFilterHelper::CharacterizeUnstructuredGrid(
+      vtkUnstructuredGrid::SafeDownCast(input));
   }
   bool handleSubdivision = (!info->IsLinear);
 
