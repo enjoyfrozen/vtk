@@ -72,3 +72,10 @@
         paths:
             # Debugging logs
             - build/Testing/Temporary/Last*.log
+
+.cmake_doxygen_artifacts:
+    artifacts:
+        expire_in: 1d
+        when: always
+        paths:
+            - build/install/
