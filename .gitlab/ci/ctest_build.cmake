@@ -8,6 +8,11 @@ ctest_start(APPEND)
 
 set(targets_to_build "all")
 
+if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "doxygen")
+  list(APPEND targets_to_build
+    DoxygenDoc)
+endif ()
+
 foreach (target IN LISTS targets_to_build)
   set(build_args)
   if (NOT target STREQUAL "all")
