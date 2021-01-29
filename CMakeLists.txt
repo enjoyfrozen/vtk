@@ -61,7 +61,7 @@ endif ()
 
 # Setup compiler flags for dynamic analysis
 # Should be included after vtkTesting
-include(vtkCompilerDynamicAnalysisFlags)
+include(vtkSanitize)
 
 set(VTK_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS})
 set(CMAKE_CXX_VISIBILITY_PRESET "hidden")
