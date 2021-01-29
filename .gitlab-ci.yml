@@ -93,6 +93,48 @@ test:fedora33-mpi-python-qt-tbb:
     needs:
         - build:fedora33-mpi-python-qt-tbb
 
+## Sanitizer builds
+
+build:fedora33-asan-mpi-python-qt-tbb:
+    extends:
+        - .fedora33_asan_mpi_python_qt_tbb
+        - .cmake_build_linux
+        - .linux_builder_tags
+        - .cmake_build_artifacts
+        - .run_manually
+
+test:fedora33-asan-mpi-python-qt-tbb:
+    extends:
+        - .fedora33_asan_mpi_python_qt_tbb
+        - .cmake_memcheck_linux
+        - .linux_tester_priv_tags
+        - .cmake_test_artifacts
+        - .run_automatically
+    dependencies:
+        - build:fedora33-asan-mpi-python-qt-tbb
+    needs:
+        - build:fedora33-asan-mpi-python-qt-tbb
+
+build:fedora33-mpi-python-qt-tbb-ubsan:
+    extends:
+        - .fedora33_mpi_python_qt_tbb_ubsan
+        - .cmake_build_linux
+        - .linux_builder_tags
+        - .cmake_build_artifacts
+        - .run_manually
+
+test:fedora33-mpi-python-qt-tbb-ubsan:
+    extends:
+        - .fedora33_mpi_python_qt_tbb_ubsan
+        - .cmake_memcheck_linux
+        - .linux_tester_priv_tags
+        - .cmake_test_artifacts
+        - .run_automatically
+    dependencies:
+        - build:fedora33-mpi-python-qt-tbb-ubsan
+    needs:
+        - build:fedora33-mpi-python-qt-tbb-ubsan
+
 ## Documentation
 
 build:documentation:
