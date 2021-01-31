@@ -16,6 +16,7 @@
 #include <vtkActor.h>
 #include <vtkCamera.h>
 #include <vtkDateToNumeric.h>
+#include <vtkLookupTable.h>
 #include <vtkNew.h>
 #include <vtkPolyDataMapper.h>
 #include <vtkRenderWindow.h>
@@ -35,11 +36,16 @@ int TestDateToNumeric(int argc, char* argv[])
   vtkNew<vtkDateToNumeric> d2n;
   d2n->SetInputConnection(reader->GetOutputPort());
 
+  vtkNew<vtkLookupTable> lut;
+  lut->SetNumberOfColors(256);
+  lut->Build();
+
   vtkNew<vtkPolyDataMapper> mapper;
   mapper->SetInputConnection(d2n->GetOutputPort());
   mapper->ScalarVisibilityOn();
   mapper->SetScalarModeToUseCellFieldData();
   mapper->SetColorModeToMapScalars();
+  mapper->SetLookupTable(lut);
   mapper->SelectColorArray("START_numeric");
   mapper->SetScalarRange(1.5444e9, 1.5921e9);
 
