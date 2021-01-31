@@ -20,6 +20,7 @@
 #include "vtkCompositePolyDataMapper2.h"
 #include "vtkCullerCollection.h"
 #include "vtkInformation.h"
+#include "vtkLookupTable.h"
 #include "vtkMath.h"
 #include "vtkMultiBlockDataSet.h"
 #include "vtkNew.h"
@@ -60,6 +61,11 @@ int TestCompositePolyDataMapper2CellScalars(int argc, char* argv[])
     vtkSmartPointer<vtkCompositePolyDataMapper2>::New();
   vtkNew<vtkCompositeDataDisplayAttributes> cdsa;
   mapper->SetCompositeDataDisplayAttributes(cdsa.GetPointer());
+
+  vtkNew<vtkLookupTable> lut;
+  lut->SetNumberOfColors(256);
+  lut->Build();
+  mapper->SetLookupTable(lut);
 
   int resolution = 18;
   vtkNew<vtkCylinderSource> cyl;
