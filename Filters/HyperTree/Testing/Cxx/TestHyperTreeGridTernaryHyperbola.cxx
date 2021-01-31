@@ -19,8 +19,8 @@
 
 #include "vtkCamera.h"
 #include "vtkCellData.h"
-#include "vtkColorTransferFunction.h"
 #include "vtkContourFilter.h"
+#include "vtkDiscretizableColorTransferFunction.h"
 #include "vtkHyperTreeGrid.h"
 #include "vtkHyperTreeGridGeometry.h"
 #include "vtkHyperTreeGridSource.h"
@@ -72,9 +72,10 @@ int TestHyperTreeGridTernaryHyperbola(int argc, char* argv[])
   contour->SetValue(0, 0);
   contour->SetInputArrayToProcess(0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, "Quadric");
   //  Color transfer function
-  vtkNew<vtkColorTransferFunction> colorFunction;
+  vtkNew<vtkDiscretizableColorTransferFunction> colorFunction;
   colorFunction->AddRGBSegment(-30., 0., 0., 1., 0., 0., 1., 1.);
   colorFunction->AddRGBSegment(VTK_DBL_MIN, 1., 1., 0., 30., 1., 0., 0.);
+  colorFunction->SetNumberOfValues(256);
 
   // Mappers
   vtkMapper::SetResolveCoincidentTopologyToPolygonOffset();

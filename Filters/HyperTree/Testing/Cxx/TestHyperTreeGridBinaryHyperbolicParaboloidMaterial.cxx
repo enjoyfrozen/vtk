@@ -19,7 +19,7 @@
 
 #include "vtkCamera.h"
 #include "vtkCellData.h"
-#include "vtkColorTransferFunction.h"
+#include "vtkDiscretizableColorTransferFunction.h"
 #include "vtkHyperTreeGrid.h"
 #include "vtkHyperTreeGridGeometry.h"
 #include "vtkHyperTreeGridSource.h"
@@ -60,8 +60,9 @@ int TestHyperTreeGridBinaryHyperbolicParaboloidMaterial(int argc, char* argv[])
   pd->GetCellData()->SetActiveScalars("Quadric");
 
   //  Color transfer function
-  vtkNew<vtkColorTransferFunction> colorFunction;
+  vtkNew<vtkDiscretizableColorTransferFunction> colorFunction;
   colorFunction->AddRGBSegment(-90., 0., .4, 1., 0., 1., .4, 0.);
+  colorFunction->SetNumberOfValues(256);
 
   // Mappers
   vtkMapper::SetResolveCoincidentTopologyToPolygonOffset();

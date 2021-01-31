@@ -22,6 +22,7 @@
 #include "vtkHyperTreeGrid.h"
 #include "vtkHyperTreeGridGeometry.h"
 #include "vtkHyperTreeGridSource.h"
+#include "vtkLookupTable.h"
 #include "vtkNew.h"
 #include "vtkPolyData.h"
 #include "vtkPolyDataMapper.h"
@@ -67,14 +68,21 @@ int TestHyperTreeGridTernarySphereMaterial(int argc, char* argv[])
   timer->StopTimer();
   cerr << "Geometry time : " << timer->GetElapsedTime() << endl;
 
+  vtkNew<vtkLookupTable> lut;
+  lut->SetNumberOfColors(256);
+  lut->Build();
+
   // Mappers
   vtkMapper::SetResolveCoincidentTopologyToPolygonOffset();
   vtkNew<vtkPolyDataMapper> mapper1;
   mapper1->SetInputConnection(geometry->GetOutputPort());
   mapper1->SetScalarRange(pd->GetCellData()->GetArray("Depth")->GetRange());
+  mapper1->SetLookupTable(lut);
+
   vtkNew<vtkPolyDataMapper> mapper2;
   mapper2->SetInputConnection(geometry->GetOutputPort());
   mapper2->ScalarVisibilityOff();
+  mapper2->SetLookupTable(lut);
 
   // Actors
   vtkNew<vtkActor> actor1;
