@@ -698,20 +698,12 @@ void vtkOpenGLPolyDataMapper::ReplaceShaderEdges(
     std::string fsimpl =
       // distance gets larger as you go inside the polygon
       "float edist[3];\n"
-      "edist[0] = dot(edgeEqn[0].xy, gl_FragCoord.xy) + edgeEqn[0].w;\n"
-      "edist[1] = dot(edgeEqn[1].xy, gl_FragCoord.xy) + edgeEqn[1].w;\n"
-      "edist[2] = dot(edgeEqn[2].xy, gl_FragCoord.xy) + edgeEqn[2].w;\n"
+      "edist[0] = dot(edgeEqn[0].xy, gl_FragCoord.xy) + edgeEqn[0].w + edgeEqn[0].z;\n"
+      "edist[1] = dot(edgeEqn[1].xy, gl_FragCoord.xy) + edgeEqn[1].w + edgeEqn[1].z;\n"
+      "edist[2] = dot(edgeEqn[2].xy, gl_FragCoord.xy) + edgeEqn[2].w + edgeEqn[2].z;\n"
 
       // "if (abs(edist[0]) > 0.5*lineWidth && abs(edist[1]) > 0.5*lineWidth && abs(edist[2]) >
       // 0.5*lineWidth) discard;\n"
-
-      "if (edist[0] < -0.5 && edgeEqn[0].z > 0.0) discard;\n"
-      "if (edist[1] < -0.5 && edgeEqn[1].z > 0.0) discard;\n"
-      "if (edist[2] < -0.5 && edgeEqn[2].z > 0.0) discard;\n"
-
-      "edist[0] += edgeEqn[0].z;\n"
-      "edist[1] += edgeEqn[1].z;\n"
-      "edist[2] += edgeEqn[2].z;\n"
 
       "float emix = clamp(0.5 + 0.5*lineWidth - min( min( edist[0], edist[1]), edist[2]), 0.0, "
       "1.0);\n";
