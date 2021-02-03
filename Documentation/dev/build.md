@@ -206,6 +206,12 @@ More advanced options:
     build machine with absolute paths, but finding dependencies in
     non-standard locations may require work without passing extra information
     when consuming VTK.
+  * `VTK_UNIFIED_INSTALL_TREE` (default `OFF`): If set, the install tree is
+    understood to be a unified install tree of VTK and all of its dependencies.
+    This is used to guide various decisions which related to the conveniences
+    of such a setup (its value is irrelevant if a relocatable install is
+    requested as such setups assume that dependencies are set up either via a
+    unified tree or some other mechanism such as modules).
   * `VTK_ENABLE_SANITIZER` (default `OFF`): Whether to enable sanitization of
     the VTK codebase or not.
   * `VTK_SANITIZER` (default `address`; requires `VTK_ENABLE_SANITIZER`): The
