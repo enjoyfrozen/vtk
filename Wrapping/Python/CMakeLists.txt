@@ -7,8 +7,8 @@ endif ()
 set(CMAKE_BUILD_RPATH_USE_ORIGIN 1)
 if (UNIX)
   file(RELATIVE_PATH vtkpython_relpath
-    "/prefix/${CMAKE_INSTALL_BINDIR}"
-    "/prefix/${CMAKE_INSTALL_LIBDIR}")
+    "/prefix/${_vtk_build_RUNTIME_DESTINATION}"
+    "/prefix/${_vtk_build_LIBRARY_DESTINATION}")
   if (APPLE)
     set(vtkpython_rpath_prefix
       "@executable_path")
@@ -38,7 +38,7 @@ if (NOT VTK_WHEEL_BUILD)
     install(
       TARGETS     vtkpython
       EXPORT      VTKPython
-      DESTINATION "${CMAKE_INSTALL_BINDIR}")
+      DESTINATION "${_vtk_build_RUNTIME_DESTINATION}")
   endif ()
 
   if (TARGET VTK::ParallelMPI)
@@ -60,7 +60,7 @@ if (NOT VTK_WHEEL_BUILD)
       install(
         TARGETS     pvtkpython
         EXPORT      VTKPython
-        DESTINATION "${CMAKE_INSTALL_BINDIR}")
+        DESTINATION "${_vtk_build_RUNTIME_DESTINATION}")
     endif ()
   endif ()
 endif ()
