@@ -104,7 +104,7 @@ build:fedora33-tidy:
         - .run_manually
     # clang-tidy really hampers compilation cache improvements, so it takes
     # longer.
-    timeout: 120 min
+    timeout: 8 hours
 
 ## Sanitizer builds
 
