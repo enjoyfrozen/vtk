@@ -112,7 +112,5 @@ if (APPLE_IOS)
 endif ()
 
 if(VTK_MODULE_ENABLE_RenderingTDx) 
-  include_directories("../TDx")
   add_definitions(-DVTK_USE_TDX)
-
 endif()

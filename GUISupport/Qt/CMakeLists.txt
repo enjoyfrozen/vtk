@@ -19,7 +19,7 @@ set(classes
   vtkQtTableModelAdapter
   vtkQtTreeModelAdapter)
 
-if (VTK_USE_X AND VTK_MODULE_ENABLE_RenderingTDx)
+if (VTK_USE_X AND TARGET VTK::RenderingTDx)
   list(APPEND classes
     vtkTDxQtUnixDevices)
 endif ()

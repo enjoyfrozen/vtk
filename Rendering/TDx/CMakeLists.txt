@@ -1,11 +1,8 @@
 
-set(classes
-  vtkTDXDevice
-  vtkTDXinteractorStyleGeo)
+set(headers
+  vtkTDXinteractorStyleGeo.h
+  vtkTDXDevice.h)
 
-if (WIN32)
-  list(APPEND classes vtkTDxWinDevice)
-endif ()
 set(classes
   vtkTDXDevice
   vtkTDXinteractorStyleGeo)
@@ -29,6 +26,7 @@ endif ()
   
 vtk_module_add_module(VTK::RenderingTDx
   CLASSES ${classes}
+  HEADERS ${headers}
 )
 
 if (WIN32)
