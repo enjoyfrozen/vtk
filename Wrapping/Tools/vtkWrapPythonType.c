@@ -802,7 +802,7 @@ void vtkWrapPython_GenerateSpecialType(FILE* fp, const char* module, const char*
       "  {\n"
       "    return new %s(*static_cast<const %s*>(obj));\n"
       "  }\n"
-      "  return 0;\n"
+      "  return nullptr;\n"
       "}\n"
       "\n",
       classname, data->Name, data->Name);
