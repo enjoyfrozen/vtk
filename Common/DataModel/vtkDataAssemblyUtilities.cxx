@@ -338,10 +338,11 @@ protected:
   vtkVisitor() = default;
   ~vtkVisitor() override = default;
 
-private:
+public:
   vtkVisitor(const vtkVisitor&) = delete;
   void operator=(const vtkVisitor&) = delete;
 
+private:
   bool TraverseSubtree = false;
 };
 vtkStandardNewMacro(vtkVisitor);
@@ -481,10 +482,11 @@ protected:
   vtkGenerateIdsVisitor() = default;
   ~vtkGenerateIdsVisitor() override = default;
 
-private:
+public:
   vtkGenerateIdsVisitor(const vtkGenerateIdsVisitor&) = delete;
   void operator=(const vtkGenerateIdsVisitor&) = delete;
 
+private:
   std::vector<int> EnabledStack;
 };
 vtkStandardNewMacro(vtkGenerateIdsVisitor);

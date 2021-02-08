@@ -223,7 +223,6 @@ struct FontInfo
   std::set<CharType> Chars;
   std::set<KerningPairType> KerningPairs;
 
-private:
   FontInfo(const FontInfo&) = delete;
   void operator=(const FontInfo&) = delete;
 };
@@ -302,7 +301,6 @@ struct ImageInfo
   std::string Id;
   std::string PNGBase64;
 
-private:
   ImageInfo(const ImageInfo&) = delete;
   void operator=(const ImageInfo&) = delete;
 };
@@ -350,7 +348,6 @@ struct PatternInfo
   std::string ImageId;
   std::string PatternId;
 
-private:
   PatternInfo(const PatternInfo&) = delete;
   void operator=(const PatternInfo&) = delete;
 };
@@ -388,7 +385,6 @@ struct ClipRectInfo
   std::array<int, 4> Rect; // x, y, w, h
   std::string Id;
 
-private:
   ClipRectInfo(const ClipRectInfo&) = delete;
   void operator=(const ClipRectInfo&) = delete;
 };

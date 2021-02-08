@@ -64,10 +64,11 @@ protected:
   void FetchPoints() override;
   void FetchFaces() override;
 
-private:
+public:
   MappedCellIterator(const MappedCellIterator&) = delete;
   void operator=(const MappedCellIterator&) = delete;
 
+private:
   vtkIdType CellId;
   vtkIdType NumberOfCells;
   vtkSmartPointer<I> Impl;
@@ -297,7 +298,7 @@ protected:
   }
   ~MappedGrid() override = default;
 
-private:
+public:
   MappedGrid(const MappedGrid&) = delete;
   void operator=(const MappedGrid&) = delete;
 };

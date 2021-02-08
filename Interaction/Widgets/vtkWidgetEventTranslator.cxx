@@ -69,7 +69,6 @@ struct EventItem
     }
   }
 
-private:
   EventItem() = delete;
 };
 

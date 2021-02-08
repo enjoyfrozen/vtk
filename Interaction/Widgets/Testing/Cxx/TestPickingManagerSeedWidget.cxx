@@ -449,7 +449,6 @@ public:
   vtksys::ofstream performanceReport;
   vtkTimerLog* logTime;
 
-private:
   vtkPMSRecordPerfCallback(const vtkPMSRecordPerfCallback&) = delete;
   void operator=(const vtkPMSRecordPerfCallback&) = delete;
 };

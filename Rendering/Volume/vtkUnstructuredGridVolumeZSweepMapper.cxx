@@ -107,7 +107,7 @@ protected:
   // List structure: only for the pixel list (two-way)
   vtkPixelListEntry* Previous;
 
-private:
+public:
   vtkPixelListEntry(const vtkPixelListEntry& other) = delete;
   vtkPixelListEntry& operator=(const vtkPixelListEntry& other) = delete;
 };
@@ -2018,7 +2018,7 @@ protected:
   double Scalar[2]; // 0: value for positive orientation,
   // 1: value for negative orientation.
 
-private:
+public:
   vtkFace() = delete;
   vtkFace(const vtkFace& other) = delete;
   vtkFace& operator=(const vtkFace& other) = delete;

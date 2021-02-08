@@ -122,7 +122,7 @@ protected:
     return 1;
   }
 
-private:
+public:
   vtkDualCubeSource(const vtkDualCubeSource&) = delete;
   void operator=(const vtkDualCubeSource&) = delete;
 };

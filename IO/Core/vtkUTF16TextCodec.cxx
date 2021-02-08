@@ -105,7 +105,6 @@ public:
   testIterator() = default;
   ~testIterator() override = default;
 
-private:
   testIterator(const testIterator&) = delete;
   testIterator& operator=(const testIterator&) = delete;
 };

@@ -77,7 +77,7 @@ protected:
     }
   }
 
-private:
+public:
   vtkRTAnalyticSource2(const vtkRTAnalyticSource2&) = delete;
   void operator=(const vtkRTAnalyticSource2&) = delete;
 };

@@ -154,7 +154,7 @@ public:
 protected:
   int fd;
 
-private:
+public:
   vtkSLACParticleReaderAutoCloseNetCDF() = delete;
   vtkSLACParticleReaderAutoCloseNetCDF(const vtkSLACParticleReaderAutoCloseNetCDF&) = delete;
   void operator=(const vtkSLACParticleReaderAutoCloseNetCDF&) = delete;

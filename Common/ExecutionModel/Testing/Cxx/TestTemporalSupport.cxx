@@ -172,6 +172,8 @@ public:
 private:
   std::vector<double> TimeSteps;
   bool HasTimeDependentData;
+
+public:
   TestTimeSource(const TestTimeSource&) = delete;
   void operator=(const TestTimeSource&) = delete;
 };
@@ -241,6 +243,8 @@ private:
   double StartTime;
   int TimeIndex;
   int TimeIterations;
+
+public:
   TestTimeFilter(const TestTimeFilter&) = delete;
   void operator=(const TestTimeFilter&) = delete;
 };

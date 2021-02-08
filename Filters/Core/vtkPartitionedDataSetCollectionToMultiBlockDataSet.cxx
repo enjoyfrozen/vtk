@@ -140,7 +140,7 @@ protected:
   vtkSmartPointer<vtkPartitionedDataSetCollection> Input;
   std::set<int> Leaves;
 
-private:
+public:
   vtkPDC2MBVisitor(const vtkPDC2MBVisitor&) = delete;
   void operator=(const vtkPDC2MBVisitor&) = delete;
 };

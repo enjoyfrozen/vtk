@@ -101,6 +101,7 @@ private:
   vtkPickingManager* PickingManager;
   vtkPicker* Picker;
 
+public:
   PickingManagerClient(const PickingManagerClient&) = delete;
   void operator=(const PickingManagerClient&) = delete;
 };

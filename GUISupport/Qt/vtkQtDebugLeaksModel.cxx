@@ -40,7 +40,6 @@ public:
 
   vtkQtDebugLeaksModel& Model;
 
-private:
   qObserver(const qObserver&) = delete;
   void operator=(const qObserver&) = delete;
 };

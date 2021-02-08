@@ -172,10 +172,10 @@ public:
 
   void Reset() { this->Head = this->Data; }
 
-private:
   MyStream(const MyStream&) = delete;
   void operator=(const MyStream&) = delete;
 
+private:
   char* Data;
   char* Head;
   int Size;
@@ -925,6 +925,7 @@ private:
   vtkMPICommunicator::Request Request;
   MyStream* Stream;
 
+public:
   MessageBuffer(const MessageBuffer&) = delete;
   void operator=(const MessageBuffer&) = delete;
 };

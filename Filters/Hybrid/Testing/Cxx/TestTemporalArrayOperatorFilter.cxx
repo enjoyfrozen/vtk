@@ -76,7 +76,7 @@ protected:
     }
   }
 
-private:
+public:
   vtkTemporalRTAnalyticSource(const vtkTemporalRTAnalyticSource&) = delete;
   void operator=(const vtkTemporalRTAnalyticSource&) = delete;
 };

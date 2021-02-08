@@ -51,10 +51,10 @@ public:
    */
   vtkRectf MouseBox;
 
-private:
   MouseActions(MouseActions const&) = delete;
   void operator=(MouseActions const*) = delete;
 
+private:
   short Data[MaxAction];
 };
 //@}

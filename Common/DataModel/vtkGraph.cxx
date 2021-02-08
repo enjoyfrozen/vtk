@@ -65,7 +65,7 @@ protected:
   vtkGraphEdgePoints() = default;
   ~vtkGraphEdgePoints() override = default;
 
-private:
+public:
   vtkGraphEdgePoints(const vtkGraphEdgePoints&) = delete;
   void operator=(const vtkGraphEdgePoints&) = delete;
 };

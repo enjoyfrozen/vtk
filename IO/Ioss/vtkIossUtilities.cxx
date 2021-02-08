@@ -588,7 +588,6 @@ public:
   vtkIossUtilitiesCleanup();
   ~vtkIossUtilitiesCleanup();
 
-private:
   vtkIossUtilitiesCleanup(const vtkIossUtilitiesCleanup&) = delete;
   void operator=(const vtkIossUtilitiesCleanup&) = delete;
 };

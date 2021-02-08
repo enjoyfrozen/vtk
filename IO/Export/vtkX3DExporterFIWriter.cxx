@@ -90,6 +90,7 @@ private:
 
   int WriteToOutputString;
 
+public:
   vtkX3DExporterFIByteWriter(const vtkX3DExporterFIByteWriter&) = delete;
   void operator=(const vtkX3DExporterFIByteWriter&) = delete;
 };

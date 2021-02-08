@@ -204,7 +204,6 @@ public:
       : Atts(atts)
     {
     }
-    void operator=(const Attributes::Header&) = delete;
 
     friend ostream& operator<<(ostream& out, const Attributes::Header& header)
     {
@@ -218,6 +217,7 @@ public:
     }
 
   public:
+    void operator=(const Attributes::Header&) = delete;
     Attributes* Atts;
   };
 

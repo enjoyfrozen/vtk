@@ -179,7 +179,6 @@ public:
   // Pointer to overarching filter
   vtkIntersectionPolyDataFilter* ParentFilter;
 
-protected:
   Impl(const Impl&) = delete;
   void operator=(const Impl&) = delete;
 };

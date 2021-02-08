@@ -769,9 +769,6 @@ private:
   vtkOpenFOAMReaderPrivate();
   ~vtkOpenFOAMReaderPrivate() override;
 
-  vtkOpenFOAMReaderPrivate(const vtkOpenFOAMReaderPrivate&) = delete;
-  void operator=(const vtkOpenFOAMReaderPrivate&) = delete;
-
   // Clear mesh construction
   void ClearInternalMeshes();
   void ClearBoundaryMeshes();
@@ -872,6 +869,10 @@ private:
     const vtkFoamLabelListList*, vtkPoints*);
   bool GetFaceZoneMesh(vtkMultiBlockDataSet* zoneMesh, const vtkFoamLabelListList*, vtkPoints*);
   bool GetPointZoneMesh(vtkMultiBlockDataSet* zoneMesh, vtkPoints*);
+
+public:
+  vtkOpenFOAMReaderPrivate(const vtkOpenFOAMReaderPrivate&) = delete;
+  void operator=(const vtkOpenFOAMReaderPrivate&) = delete;
 };
 
 vtkStandardNewMacro(vtkOpenFOAMReaderPrivate);
@@ -2894,12 +2895,13 @@ private:
   bool Managed;
   const vtkFoamEntry* UpperEntryPtr;
 
-  vtkFoamEntryValue() = delete;
   vtkObjectBase* ToVTKObject() { return this->Superclass::VtkObjectPtr; }
   void Clear();
   void ReadList(vtkFoamIOobject& io);
 
 public:
+  vtkFoamEntryValue() = delete;
+
   // reads primitive int/float lists
   template <typename listT, typename primitiveT>
   class listTraits
@@ -3567,9 +3569,9 @@ private:
   vtkStdString Keyword;
   vtkFoamDict* UpperDictPtr;
 
+public:
   vtkFoamEntry() = delete;
 
-public:
   vtkFoamEntry(vtkFoamDict* upperDictPtr)
     : UpperDictPtr(upperDictPtr)
   {
@@ -3640,9 +3642,9 @@ private:
   vtkFoamToken Token;
   const vtkFoamDict* UpperDictPtr;
 
+public:
   vtkFoamDict(const vtkFoamDict&) = delete;
 
-public:
   explicit vtkFoamDict(const vtkFoamDict* upperDictPtr = nullptr)
     : Superclass()
     , Token()

@@ -74,7 +74,6 @@ public:
   int NumControlPoints;
   acolor* Colors;
 
-private:
   vtkLinearRayIntegratorTransferFunction(const vtkLinearRayIntegratorTransferFunction&) = delete;
   void operator=(const vtkLinearRayIntegratorTransferFunction&) = delete;
 };

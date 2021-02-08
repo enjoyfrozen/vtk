@@ -112,7 +112,7 @@ protected:
   const vtkAMRDataInternals::BlockList* DataBlocks;
   int InternalIdx;
 
-private:
+public:
   AMRLoadedDataIndexIterator(const AMRLoadedDataIndexIterator&) = delete;
   void operator=(const AMRLoadedDataIndexIterator&) = delete;
 };

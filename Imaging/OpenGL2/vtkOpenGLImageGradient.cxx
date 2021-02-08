@@ -86,7 +86,6 @@ public:
   vtkOpenGLGradientCB() = default;
   ~vtkOpenGLGradientCB() override = default;
 
-private:
   vtkOpenGLGradientCB(const vtkOpenGLGradientCB&) = delete;
   void operator=(const vtkOpenGLGradientCB&) = delete;
 };

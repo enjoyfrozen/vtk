@@ -887,7 +887,6 @@ struct ActiveState
   }
   ~ActiveState() = default;
 
-private:
   ActiveState(const ActiveState&) = delete;
   void operator=(const ActiveState&) = delete;
 };
@@ -1158,10 +1157,10 @@ public:
     return static_cast<unsigned int>(this->Motions.size());
   }
 
-private:
   vtkInternals(const vtkInternals&) = delete;
   void operator=(const vtkInternals&) = delete;
 
+private:
   impl::MapOfVectorOfMotions Motions;
   vtkVector2d TimeRange;
   std::vector<std::pair<std::string, vtkSmartPointer<vtkPolyData>>> Geometries;

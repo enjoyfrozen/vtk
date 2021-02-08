@@ -2443,7 +2443,7 @@ protected:
   static int* TestList;
   static int* TestListCanAmbig;
 
-private:
+public:
   vtkTestTessellatorSubdivision(const vtkTestTessellatorSubdivision&) = delete;
   void operator=(const vtkTestTessellatorSubdivision&) = delete;
 };

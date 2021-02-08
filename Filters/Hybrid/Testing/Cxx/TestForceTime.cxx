@@ -85,7 +85,7 @@ protected:
     }
   }
 
-private:
+public:
   vtkTimeRTAnalyticSource(const vtkTimeRTAnalyticSource&) = delete;
   void operator=(const vtkTimeRTAnalyticSource&) = delete;
 };

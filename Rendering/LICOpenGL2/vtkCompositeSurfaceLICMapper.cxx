@@ -85,7 +85,7 @@ protected:
   void ReplaceShaderValues(
     std::map<vtkShader::Type, vtkShader*> shaders, vtkRenderer* ren, vtkActor* act) override;
 
-private:
+public:
   vtkCompositeLICHelper(const vtkCompositeLICHelper&) = delete;
   void operator=(const vtkCompositeLICHelper&) = delete;
 };

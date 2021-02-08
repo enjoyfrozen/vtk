@@ -595,7 +595,7 @@ protected:
   //---------------------------------------------------------------------------
   std::shared_ptr<vtkCompactHyperTreeData> CompactDatas;
 
-private:
+public:
   vtkCompactHyperTree(const vtkCompactHyperTree&) = delete;
   void operator=(const vtkCompactHyperTree&) = delete;
 };

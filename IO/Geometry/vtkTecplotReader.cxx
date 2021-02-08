@@ -371,7 +371,6 @@ public:
     return retval;
   }
 
-private:
   vtkTecplotReaderInternal(const vtkTecplotReaderInternal&) = delete;
   void operator=(const vtkTecplotReaderInternal&) = delete;
 };

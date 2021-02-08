@@ -51,10 +51,10 @@ public:
   vtkUnicodeStringOutputIterator(vtkUnicodeString& outputString);
   ~vtkUnicodeStringOutputIterator() override;
 
-private:
   vtkUnicodeStringOutputIterator(const vtkUnicodeStringOutputIterator&) = delete;
   vtkUnicodeStringOutputIterator& operator=(const vtkUnicodeStringOutputIterator&) = delete;
 
+private:
   vtkUnicodeString& OutputString;
   unsigned int StringPosition;
 };

@@ -52,9 +52,10 @@ public:
   vtkDataSet* Ptr;
   vtkFieldNode* Next;
 
-private:
   vtkFieldNode(const vtkFieldNode&) = delete;
   void operator=(const vtkFieldNode&) = delete;
+
+private:
   char* Name;
 };
 

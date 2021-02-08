@@ -79,10 +79,10 @@ public:
     pen->SetWidth(this->previousLineWidth);
   };
 
-private:
   DrawHintsHelper(const DrawHintsHelper&) = delete;
   void operator=(const DrawHintsHelper&) = delete;
 
+private:
   int previousLineType;
   float previousLineWidth;
 };

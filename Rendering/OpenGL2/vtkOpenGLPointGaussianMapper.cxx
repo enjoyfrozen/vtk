@@ -114,7 +114,7 @@ protected:
   // Does the shader source need to be recomputed
   bool GetNeedToRebuildShaders(vtkOpenGLHelper& cellBO, vtkRenderer* ren, vtkActor* act) override;
 
-private:
+public:
   vtkOpenGLPointGaussianMapperHelper(const vtkOpenGLPointGaussianMapperHelper&) = delete;
   void operator=(const vtkOpenGLPointGaussianMapperHelper&) = delete;
 };

@@ -212,10 +212,11 @@ protected:
     return 1;
   }
 
-private:
+public:
   TestTimeSource(const TestTimeSource&) = delete;
   void operator=(const TestTimeSource&) = delete;
 
+private:
   std::vector<double> TimeSteps;
   int Extent[6];
   double BoundingBox[6];

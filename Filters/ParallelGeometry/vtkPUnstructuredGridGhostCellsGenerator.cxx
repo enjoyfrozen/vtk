@@ -82,7 +82,6 @@ public:
   int CommStep;
   int RecvSize;
 
-private:
   CommDataInfo(const CommDataInfo&) = delete;
   void operator=(const CommDataInfo&) = delete;
 };

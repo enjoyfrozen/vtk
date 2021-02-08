@@ -186,7 +186,7 @@ protected:
     }
   }
 
-private:
+public:
   FindNodesWithNameVisitor(const FindNodesWithNameVisitor&) = delete;
   void operator=(const FindNodesWithNameVisitor&) = delete;
 };

@@ -48,7 +48,7 @@ protected:
   int RequestData(vtkInformation* request, vtkInformationVector** inputVector,
     vtkInformationVector* outputVector) override;
 
-private:
+public:
   vtkDummyImageFilter(const vtkDummyImageFilter&) = delete;
   void operator=(const vtkDummyImageFilter&) = delete;
 };

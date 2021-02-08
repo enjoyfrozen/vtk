@@ -84,10 +84,10 @@ public:
   void Reset() { this->Head = this->Data.data(); }
   int count;
 
-private:
   MessageStream(const MessageStream&) = delete;
   void operator=(const MessageStream&) = delete;
 
+private:
   std::vector<char> Data;
   char* Head;
   int Size;

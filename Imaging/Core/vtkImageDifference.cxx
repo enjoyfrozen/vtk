@@ -158,9 +158,9 @@ public:
   void operator()(vtkIdType begin, vtkIdType end);
   void Reduce();
 
-private:
   vtkImageDifferenceSMPFunctor() = delete;
 
+private:
   vtkImageDifference* Algorithm;
   vtkImageData*** Inputs;
   vtkImageData** Outputs;

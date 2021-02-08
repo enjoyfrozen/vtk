@@ -395,7 +395,6 @@ public:
   // Flush all collector references to the object in an entry.
   void FlushEntryReferences(Entry* e);
 
-private:
   vtkGarbageCollectorImpl(const vtkGarbageCollectorImpl&) = delete;
   void operator=(const vtkGarbageCollectorImpl&) = delete;
 };

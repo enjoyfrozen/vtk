@@ -62,7 +62,7 @@ protected:
 
   vtkTestReferenceLoop* Other;
 
-private:
+public:
   vtkTestReferenceLoop(const vtkTestReferenceLoop&) = delete;
   void operator=(const vtkTestReferenceLoop&) = delete;
 };

@@ -160,7 +160,6 @@ public:
   std::vector<vtkIdType> CellCellMap;
   vtkMTimeType CCMapTime;
 
-private:
   vtkInternalsFloat(const vtkInternalsFloat&) = delete;
   void operator=(const vtkInternalsFloat&) = delete;
 };
@@ -312,7 +311,6 @@ public:
 
   Parameters OriginalState;
 
-private:
   vtkInternalsInvertible(const vtkInternalsInvertible&) = delete;
   void operator=(const vtkInternalsInvertible&) = delete;
 };

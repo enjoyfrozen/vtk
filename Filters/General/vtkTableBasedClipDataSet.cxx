@@ -171,7 +171,7 @@ protected:
 
   int GetKey(int, int);
 
-private:
+public:
   vtkTableBasedClipperEdgeHashTable(const vtkTableBasedClipperEdgeHashTable&) = delete;
   void operator=(const vtkTableBasedClipperEdgeHashTable&) = delete;
 };
@@ -194,7 +194,7 @@ protected:
   vtkTableBasedClipperPointList pt_list;
   vtkTableBasedClipperEdgeHashTable edges;
 
-private:
+public:
   vtkTableBasedClipperDataSetFromVolume(const vtkTableBasedClipperDataSetFromVolume&) = delete;
   void operator=(const vtkTableBasedClipperDataSetFromVolume&) = delete;
 };

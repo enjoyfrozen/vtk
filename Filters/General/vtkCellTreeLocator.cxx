@@ -131,6 +131,7 @@ private:
   unsigned int m_stack[CELLTREE_MAX_DEPTH];
   unsigned int* m_sp; // stack pointer
   const float* m_pos; // 3-D coordinates of the points
+public:
   vtkCellPointTraversal(const vtkCellPointTraversal&) = delete;
   void operator=(vtkCellPointTraversal&) = delete;
 

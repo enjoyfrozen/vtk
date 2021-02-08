@@ -34,7 +34,6 @@ public:
   static vtkTestPoints* New() { VTK_STANDARD_NEW_BODY(vtkTestPoints); }
   vtkTestPoints() = default;
 
-private:
   vtkTestPoints(const vtkTestPoints&) = delete;
   vtkTestPoints& operator=(const vtkTestPoints&) = delete;
 };
@@ -49,7 +48,6 @@ public:
   static vtkTestPoints2* New() { VTK_STANDARD_NEW_BODY(vtkTestPoints2); }
   vtkTestPoints2() = default;
 
-private:
   vtkTestPoints2(const vtkTestPoints2&) = delete;
   vtkTestPoints2& operator=(const vtkTestPoints2&) = delete;
 };
@@ -70,7 +68,6 @@ public:
   const char* GetVTKSourceVersion() override { return VTK_SOURCE_VERSION; }
   const char* GetDescription() override { return "A fine Test Factory"; }
 
-protected:
   TestFactory(const TestFactory&) = delete;
   TestFactory& operator=(const TestFactory&) = delete;
 };

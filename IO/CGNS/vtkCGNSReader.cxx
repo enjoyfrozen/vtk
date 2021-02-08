@@ -296,7 +296,6 @@ public:
     return true;
   }
 
-private:
   BCInformation(const BCInformation&) = delete;
   BCInformation& operator=(const BCInformation&) = delete;
 };
@@ -415,7 +414,6 @@ public:
 
   ~BCInformationUns() = default;
 
-private:
   BCInformationUns(const BCInformationUns&) = delete;
   BCInformationUns& operator=(const BCInformationUns&) = delete;
 };

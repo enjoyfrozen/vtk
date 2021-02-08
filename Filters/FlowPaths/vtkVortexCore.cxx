@@ -234,7 +234,7 @@ protected:
   vtkNew<vtkDoubleArray> Lambda_2CriterionArray;
   vtkNew<vtkDoubleArray> Lambda_ciCriterionArray;
 
-private:
+public:
   vtkParallelVectorsForVortexCore(const vtkParallelVectorsForVortexCore&) = delete;
   void operator=(const vtkParallelVectorsForVortexCore&) = delete;
 };

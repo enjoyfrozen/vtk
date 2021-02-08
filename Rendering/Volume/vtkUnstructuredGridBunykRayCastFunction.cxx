@@ -367,7 +367,7 @@ protected:
   vtkUnstructuredGridBunykRayCastFunction::Triangle* CurrentTriangle;
   vtkIdType CurrentTetra;
 
-private:
+public:
   vtkUnstructuredGridBunykRayCastIterator(const vtkUnstructuredGridBunykRayCastIterator&) = delete;
   void operator=(const vtkUnstructuredGridBunykRayCastIterator&) = delete;
 };

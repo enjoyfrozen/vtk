@@ -109,7 +109,7 @@ protected:
     return false;
   }
 
-private:
+public:
   vtkControlPointsAddPointItem(const vtkControlPointsAddPointItem&) = delete;
   void operator=(const vtkControlPointsAddPointItem&) = delete;
 };

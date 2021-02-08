@@ -88,6 +88,8 @@ private:
   int ParsingComplete() override { return this->Done; }
   int Valid;
   int Done;
+
+public:
   vtkXdmfReaderTester(const vtkXdmfReaderTester&) = delete;
   void operator=(const vtkXdmfReaderTester&) = delete;
 };

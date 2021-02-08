@@ -538,10 +538,11 @@ protected:
   vtkUniformInternals() = default;
   ~vtkUniformInternals() override { RemoveAllUniforms(); }
 
-private:
+public:
   vtkUniformInternals(const vtkUniformInternals&) = delete;
   void operator=(const vtkUniformInternals&) = delete;
 
+private:
   vtkTimeStamp UniformListMTime;
 
   vtkOpenGLUniforms* Parent;

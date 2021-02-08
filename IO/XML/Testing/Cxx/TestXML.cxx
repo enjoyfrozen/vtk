@@ -31,7 +31,7 @@ protected:
   void StartElement(const char*, const char**) override {}
   void EndElement(const char*) override {}
 
-private:
+public:
   vtkMyXML(const vtkMyXML&) = delete;
   void operator=(const vtkMyXML&) = delete;
 };
