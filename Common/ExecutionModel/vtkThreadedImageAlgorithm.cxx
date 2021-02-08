@@ -415,9 +415,9 @@ public:
       this->Inputs, this->Outputs, begin, end, this->NumberOfPieces, this->Extent);
   }
 
-private:
   vtkThreadedImageAlgorithmFunctor() = delete;
 
+private:
   vtkThreadedImageAlgorithm* Algorithm;
   vtkInformation* Request;
   vtkInformationVector** InputsInfo;

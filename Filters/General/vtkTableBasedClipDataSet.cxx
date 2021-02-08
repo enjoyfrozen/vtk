@@ -171,7 +171,7 @@ protected:
 
   int GetKey(int, int);
 
-private:
+public:
   vtkTableBasedClipperEdgeHashTable(const vtkTableBasedClipperEdgeHashTable&) = delete;
   void operator=(const vtkTableBasedClipperEdgeHashTable&) = delete;
 };
