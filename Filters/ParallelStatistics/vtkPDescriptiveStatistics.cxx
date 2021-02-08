@@ -42,7 +42,7 @@ vtkPDescriptiveStatistics::vtkPDescriptiveStatistics()
 //------------------------------------------------------------------------------
 vtkPDescriptiveStatistics::~vtkPDescriptiveStatistics()
 {
-  this->SetController(0);
+  this->SetController(nullptr);
 }
 
 //------------------------------------------------------------------------------
