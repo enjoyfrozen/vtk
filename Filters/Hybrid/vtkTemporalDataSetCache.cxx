@@ -47,6 +47,7 @@ public:
     (void)this->OriginalValue;
 #endif
   }
+  // NOLINTNEXTLINE(modernize-use-default): Configuration-dependent.
   ~vtkTDSCMemkindRAII()
   {
 #ifdef VTK_USE_MEMKIND
