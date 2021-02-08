@@ -53,7 +53,7 @@ class MyProcess : public vtkProcess
 public:
   static MyProcess* New();
 
-  virtual void Execute();
+  void Execute();
 
   void SetArgs(int anArgc, char* anArgv[]);
 
