@@ -494,9 +494,11 @@ vtkObjectBase::vtkMemkindRAII::vtkMemkindRAII(bool newValue)
 }
 
 //------------------------------------------------------------------------------
+#ifdef VTK_USE_MEMKIND
 vtkObjectBase::vtkMemkindRAII::~vtkMemkindRAII()
 {
-#ifdef VTK_USE_MEMKIND
   vtkObjectBase::SetUsingMemkind(this->OriginalValue);
-#endif
 }
+#else
+vtkObjectBase::vtkMemkindRAII::~vtkMemkindRAII() = default;
+#endif
