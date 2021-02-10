@@ -71,7 +71,8 @@
 
 .windows_builder_tags:
     tags:
-        - vtk # Since this is a bare runner, pin to a project.
+        #- vtk # Since this is a bare runner, pin to a project.
+        - paraview # FIXME: use ParaView's runners until VTK gets a machine ported to CI.
         - msvc-19.28
         - nonconcurrent
         - shell
