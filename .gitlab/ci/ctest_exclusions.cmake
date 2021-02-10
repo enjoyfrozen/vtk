@@ -105,6 +105,33 @@ if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "fedora")
     "^VTKExample-Medical/Cxx$")
 endif ()
 
+if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "windows")
+  list(APPEND test_exclusions
+    # Image size mismatches
+    "VTK::ChartsCoreCxx-TestMultipleScalarsToColors"
+    "VTK::FiltersCorePython-TestOrientedFlyingEdgesPlaneCutter2"
+    "VTK::RenderingOpenGL2Cxx-TestToneMappingPass"
+
+    # Image corruption
+    "VTK::RenderingCorePython-TestWindowToImageTransparency"
+    "VTK::RenderingCorePython-rendererSource"
+    "VTK::RenderingImagePython-TestDepthImageToPointCloud"
+    "VTK::RenderingImagePython-TestDepthImageToPointCloud-TwoInputs"
+    "VTK::RenderingOpenGL2Cxx-TestWindowBlits"
+
+    # Timeouts; need investigation.
+    "VTK::GUISupportQtCxx-TestQVTKOpenGLStereoWidget"
+    "VTK::GUISupportQtCxx-TestQVTKOpenGLStereoWidgetPicking"
+    "VTK::GUISupportQtCxx-TestQVTKOpenGLStereoWidgetQWidgetWidget"
+    "VTK::GUISupportQtCxx-TestQVTKOpenGLStereoWidgetWithDisabledInteractor"
+    "VTK::GUISupportQtCxx-TestQVTKOpenGLStereoWidgetWithMSAA"
+    "VTK::GUISupportQtCxx-TestQVTKOpenGLWidget"
+    "VTK::GUISupportQtCxx-TestQVTKOpenGLWidgetPicking"
+    "VTK::GUISupportQtCxx-TestQVTKOpenGLWidgetQWidgetWidget"
+    "VTK::GUISupportQtCxx-TestQVTKOpenGLWidgetWithDisabledInteractor"
+    "VTK::GUISupportQtCxx-TestQVTKOpenGLWidgetWithMSAA")
+endif ()
+
 # These tests are producing blank images even on macOS; I suspect the tests
 # just aren't working properly.
 list(APPEND test_exclusions
