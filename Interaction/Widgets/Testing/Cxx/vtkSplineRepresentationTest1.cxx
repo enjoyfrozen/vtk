@@ -83,7 +83,7 @@ int vtkSplineRepresentationTest1(int, char*[])
     return EXIT_FAILURE;
   }
   node1->SetNumberOfHandles(-1);
-  errorObserver->CheckErrorMessage("ERROR: Invalid npts, must be >= 0\n");
+  errorObserver->CheckErrorMessage("Cannot set a negative number of handles.");
   numHandles = node1->GetNumberOfHandles();
   std::cout << "After setting num handles to -1, got back " << numHandles << std::endl;
   node1->SetNumberOfHandles(0);

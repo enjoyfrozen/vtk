@@ -286,7 +286,6 @@ void vtkSplineRepresentation::CreateDefaultHandles(int npts)
     vtkNew<vtkParametricSpline> spline;
     spline->SetPoints(points);
     this->SetParametricSplineInternal(spline);
-    this->LineMapper->SetInputConnection(this->ParametricFunctionSource->GetOutputPort());
   }
   else
   {
