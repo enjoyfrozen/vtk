@@ -83,7 +83,7 @@ protected:
   vtkAbstractSplineRepresentation();
   ~vtkAbstractSplineRepresentation() override;
 
-  void CleanRepresentation();
+  virtual void CleanRepresentation();
 
   void SetParametricSplineInternal(vtkParametricSpline* spline);
 

@@ -43,8 +43,44 @@ public:
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
+   * Get the latest modified Camera index.
+   */
+  vtkGetMacro(LastModifiedCamera, int);
+
+  using vtkAbstractSplineRepresentation::SetHandlePosition;
+  void SetHandlePosition(int handle, double x, double y, double z) override;
+
+  //@{
+  /**
+   * Set/Get the focal point of the camera handles. Call GetNumberOfHandles
+   * to determine the valid range of handle indices.
+   */
+  virtual void SetHandleFocalPoint(int handle, double x, double y, double z);
+  virtual void SetHandleFocalPoint(int handle, double xyz[3]);
+  virtual void GetHandleFocalPoint(int handle, double xyz[3]);
+  virtual double* GetHandleFocalPoint(int handle);
+  //@}
+
+  //@{
+  /**
+   * Set / Get the current handle position.
+   */
+  virtual void SetCurrentHandlePosition(double x, double y, double z);
+  virtual double* GetCurrentHandlePosition() VTK_SIZEHINT(3);
+  //@}
+
+  //@{
+  /**
+   * Set / Get the current handle focal point.
+   */
+  virtual void SetCurrentHandleFocalPoint(double x, double y, double z);
+  virtual double* GetCurrentHandleFocalPoint() VTK_SIZEHINT(3);
+  //@}
+
+  /**
    * Sets the representation to be a curve interpolating multiple cameras pointing to their focal
    * point. If set to false, the cameras are only represented as spheres.
+   * Default is true.
    */
   void SetDirectional(bool val) override;
 
@@ -75,6 +111,20 @@ public:
    * (useful for the sizing methods).
    */
   void BuildRepresentation() override;
+
+  /**
+   * Redefinition of the parent function in order to call modified() whenever there is
+   * an interaction with the widget.
+   */
+  void WidgetInteraction(double e[2]) override;
+
+  /**
+   * Add a default camera to the path at the index position.
+   * By default, interpolate the position and the focal point from the two surrounding existing
+   * cameras. If no camera exist before this call, create a new one at (0, 0, 0) and looking at (1,
+   * 0, 0). If only one exist, the new camera is a copy of the existing, translated by (1, 1, 1)
+   */
+  void AddDefaultCamera(int index);
 
   /**
    * Add a camera to the path.
@@ -146,6 +196,8 @@ private:
 
   std::vector<vtkSmartPointer<vtkCameraHandleSource>> CameraHandles;
   std::vector<vtkSmartPointer<vtkActor>> HandleActors;
+
+  int LastModifiedCamera;
 };
 
 #endif
