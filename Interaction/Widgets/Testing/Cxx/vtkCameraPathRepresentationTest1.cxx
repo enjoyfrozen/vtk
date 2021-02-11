@@ -18,7 +18,6 @@
 #include "vtkCameraPathRepresentation.h"
 #include "vtkDoubleArray.h"
 #include "vtkParametricSpline.h"
-#include "vtkPlaneSource.h"
 #include "vtkTestErrorObserver.h"
 
 #include <cstdlib>
@@ -26,78 +25,73 @@
 
 int vtkCameraPathRepresentationTest1(int, char*[])
 {
-  vtkNew<vtkCameraPathRepresentation> node1;
+  vtkNew<vtkCameraPathRepresentation> cameraPathRep;
 
   vtkNew<vtkTest::ErrorObserver> errorObserver;
-  node1->AddObserver(vtkCommand::ErrorEvent, errorObserver);
+  cameraPathRep->AddObserver(vtkCommand::ErrorEvent, errorObserver);
 
-  EXERCISE_BASIC_REPRESENTATION_METHODS(vtkCameraPathRepresentation, node1);
+  EXERCISE_BASIC_REPRESENTATION_METHODS(vtkCameraPathRepresentation, cameraPathRep);
 
-  vtkNew<vtkPlaneSource> planeSource;
-  node1->SetPlaneSource(planeSource);
-
-  TEST_SET_GET_BOOLEAN(node1, ProjectToPlane);
-
-  TEST_SET_GET_BOOLEAN(node1, Directional);
+  TEST_SET_GET_BOOLEAN(cameraPathRep, Directional);
 
   // clamped 0-3
-  TEST_SET_GET_INT_RANGE(node1, ProjectionNormal, 1, 2);
-  node1->SetProjectionNormalToXAxes();
-  node1->SetProjectionNormalToYAxes();
-  node1->SetProjectionNormalToZAxes();
-  node1->SetProjectionNormalToOblique();
+  TEST_SET_GET_INT_RANGE(cameraPathRep, ProjectionNormal, 1, 2);
+  cameraPathRep->SetProjectionNormalToXAxes();
+  cameraPathRep->SetProjectionNormalToYAxes();
+  cameraPathRep->SetProjectionNormalToZAxes();
+  cameraPathRep->SetProjectionNormalToOblique();
 
-  TEST_SET_GET_DOUBLE_RANGE(node1, ProjectionPosition, -10.0, 10.0);
+  TEST_SET_GET_DOUBLE_RANGE(cameraPathRep, ProjectionPosition, -10.0, 10.0);
 
   vtkNew<vtkPolyData> pd;
-  node1->GetPolyData(pd);
-  if (pd == nullptr)
+  cameraPathRep->GetPolyData(pd);
+  if (pd->GetNumberOfPoints() == 0)
   {
-    std::cout << "Polydata is null" << std::endl;
+    std::cerr << "Error: Polydata is empty" << std::endl;
+  }
+  vtkSmartPointer<vtkProperty> prop = cameraPathRep->GetHandleProperty();
+  if (prop == nullptr)
+  {
+    std::cerr << "Error: Handle Property is nullptr." << std::endl;
+  }
+  prop = cameraPathRep->GetSelectedHandleProperty();
+  if (prop == nullptr)
+  {
+    std::cerr << "Error: Selected Handle Property is nullptr." << std::endl;
+  }
+  prop = cameraPathRep->GetLineProperty();
+  if (prop == nullptr)
+  {
+    std::cerr << "Error: Line Property is nullptr." << std::endl;
+  }
+  prop = cameraPathRep->GetSelectedLineProperty();
+  if (prop == nullptr)
+  {
+    std::cerr << "Error: Selected Line Property is nullptr." << std::endl;
   }
 
-  vtkSmartPointer<vtkProperty> prop = node1->GetHandleProperty();
-  if (prop == nullptr)
-  {
-    std::cout << "Handle Property is nullptr." << std::endl;
-  }
-  prop = node1->GetSelectedHandleProperty();
-  if (prop == nullptr)
-  {
-    std::cout << "Selected Handle Property is nullptr." << std::endl;
-  }
-
-  prop = node1->GetLineProperty();
-  if (prop == nullptr)
-  {
-    std::cout << "Line Property is nullptr." << std::endl;
-  }
-  prop = node1->GetSelectedLineProperty();
-  if (prop == nullptr)
-  {
-    std::cout << "Selected Line Property is nullptr." << std::endl;
-  }
-
-  node1->SetNumberOfHandles(10);
-  int numHandles = node1->GetNumberOfHandles();
+  cameraPathRep->SetNumberOfHandles(10);
+  int numHandles = cameraPathRep->GetNumberOfHandles();
   if (numHandles != 10)
   {
     std::cerr << "Error in Setting number of Handles to 10, got " << numHandles << std::endl;
     return EXIT_FAILURE;
   }
-  node1->SetNumberOfHandles(-1);
-  errorObserver->CheckErrorMessage("ERROR: Invalid npts, must be >= 0\n");
-  numHandles = node1->GetNumberOfHandles();
-  std::cout << "After setting num handles to -1, got back " << numHandles << std::endl;
-  node1->SetNumberOfHandles(0);
-  numHandles = node1->GetNumberOfHandles();
-  std::cout << "After setting num handles to 0, got back " << numHandles << std::endl;
+
+  cameraPathRep->SetNumberOfHandles(-1);
+  errorObserver->CheckErrorMessage("Cannot set a negative number of handles.");
+  numHandles = cameraPathRep->GetNumberOfHandles();
+  if (numHandles != 10)
+  {
+    std::cerr << "Error: setting NumberOfHandle to -1 should fail without modification"
+              << numHandles << std::endl;
+  }
 
   vtkNew<vtkParametricSpline> pspline;
-  node1->SetNumberOfHandles(10);
-  pspline->SetPoints(node1->GetParametricSpline()->GetPoints());
-  node1->SetParametricSpline(pspline.GetPointer());
-  vtkSmartPointer<vtkParametricSpline> pspline2 = node1->GetParametricSpline();
+  cameraPathRep->SetNumberOfHandles(10);
+  pspline->SetPoints(cameraPathRep->GetParametricSpline()->GetPoints());
+  cameraPathRep->SetParametricSpline(pspline);
+  vtkSmartPointer<vtkParametricSpline> pspline2 = cameraPathRep->GetParametricSpline();
   if (pspline2.GetPointer() != pspline.GetPointer())
   {
     std::cerr << "Error setting/getting parametric spline." << std::endl;
@@ -105,7 +99,7 @@ int vtkCameraPathRepresentationTest1(int, char*[])
   }
 
   numHandles = 5;
-  node1->SetNumberOfHandles(numHandles);
+  cameraPathRep->SetNumberOfHandles(numHandles);
   double x, y, z;
   x = y = z = 0.0;
   double xyz[3] = { 0.0, 0.0, 0.0 };
@@ -113,8 +107,8 @@ int vtkCameraPathRepresentationTest1(int, char*[])
   double hpos2[3];
   for (int h = 0; h < numHandles; h++)
   {
-    node1->SetHandlePosition(h, x, y, z);
-    hpos = node1->GetHandlePosition(h);
+    cameraPathRep->SetHandlePosition(h, x, y, z);
+    hpos = cameraPathRep->GetHandlePosition(h);
     if (!hpos)
     {
       std::cerr << "Null handle position back for handle " << h << std::endl;
@@ -126,26 +120,16 @@ int vtkCameraPathRepresentationTest1(int, char*[])
                 << "), got " << hpos[0] << ", " << hpos[1] << ", " << hpos[2] << std::endl;
       return EXIT_FAILURE;
     }
-    else
-    {
-      std::cout << "Handle " << h << " position = " << hpos[0] << ", " << hpos[1] << ", " << hpos[2]
-                << std::endl;
-    }
-    node1->GetHandlePosition(h, hpos2);
+    cameraPathRep->GetHandlePosition(h, hpos2);
     if (hpos2[0] != x || hpos2[1] != y || hpos2[2] != z)
     {
       std::cerr << "Failure in SetHandlePosition(" << h << "," << x << "," << y << "," << z
                 << "), got " << hpos2[0] << ", " << hpos2[1] << ", " << hpos2[2] << std::endl;
       return EXIT_FAILURE;
     }
-    else
-    {
-      std::cout << "Handle " << h << " position = " << hpos2[0] << ", " << hpos2[1] << ", "
-                << hpos2[2] << std::endl;
-    }
 
-    node1->SetHandlePosition(h, xyz);
-    hpos = node1->GetHandlePosition(h);
+    cameraPathRep->SetHandlePosition(h, xyz);
+    hpos = cameraPathRep->GetHandlePosition(h);
     if (!hpos)
     {
       std::cerr << "Null handle position back for handle " << h << std::endl;
@@ -158,23 +142,13 @@ int vtkCameraPathRepresentationTest1(int, char*[])
                 << hpos[2] << std::endl;
       return EXIT_FAILURE;
     }
-    else
-    {
-      std::cout << "Handle " << h << " position = " << hpos[0] << ", " << hpos[1] << ", " << hpos[2]
-                << std::endl;
-    }
-    node1->GetHandlePosition(h, hpos2);
+    cameraPathRep->GetHandlePosition(h, hpos2);
     if (hpos2[0] != xyz[0] || hpos2[1] != xyz[1] || hpos2[2] != xyz[2])
     {
       std::cerr << "Failure in SetHandlePosition(" << h << ",xyz), , expected " << xyz[0] << ", "
                 << xyz[1] << ", " << xyz[2] << ", got " << hpos2[0] << ", " << hpos2[1] << ", "
                 << hpos2[2] << std::endl;
       return EXIT_FAILURE;
-    }
-    else
-    {
-      std::cout << "Handle " << h << " position xyz = " << hpos2[0] << ", " << hpos2[1] << ", "
-                << hpos2[2] << std::endl;
     }
     x -= 1.0;
     y += 1.0;
@@ -183,7 +157,7 @@ int vtkCameraPathRepresentationTest1(int, char*[])
     xyz[1] -= 1.0;
     xyz[2] += 3.9;
   }
-  vtkSmartPointer<vtkDoubleArray> da = node1->GetHandlePositions();
+  vtkSmartPointer<vtkDoubleArray> da = cameraPathRep->GetHandlePositions();
   if (da == nullptr)
   {
     std::cerr << "HandlePositions array is null!" << std::endl;
@@ -195,16 +169,13 @@ int vtkCameraPathRepresentationTest1(int, char*[])
     {
       double val[3];
       da->GetTypedTuple(i, val);
-      std::cout << i << " = " << val[0] << ", " << val[1] << ", " << val[2] << std::endl;
     }
   }
 
-  node1->SetNumberOfHandles(0);
-  numHandles = node1->GetNumberOfHandles();
-
-  if (numHandles != 0)
+  cameraPathRep->SetNumberOfHandles(0);
+  if (cameraPathRep->GetNumberOfHandles() != 0)
   {
-    std::cerr << "Error resetting the camera path " << numHandles << std::endl;
+    std::cerr << "Fail to reset number of handle" << std::endl;
     return EXIT_FAILURE;
   }
 
@@ -215,8 +186,8 @@ int vtkCameraPathRepresentationTest1(int, char*[])
   {
     vtkNew<vtkCamera> cam;
     cam->SetPosition(x, y, z);
-    node1->AddCameraAt(cam, h);
-    hpos = node1->GetHandlePosition(h);
+    cameraPathRep->AddCameraAt(cam, h);
+    hpos = cameraPathRep->GetHandlePosition(h);
     if (!hpos)
     {
       std::cerr << "Null handle position back for handle " << h << std::endl;
@@ -228,26 +199,16 @@ int vtkCameraPathRepresentationTest1(int, char*[])
                 << "), got " << hpos[0] << ", " << hpos[1] << ", " << hpos[2] << std::endl;
       return EXIT_FAILURE;
     }
-    else
-    {
-      std::cout << "Handle " << h << " position = " << hpos[0] << ", " << hpos[1] << ", " << hpos[2]
-                << std::endl;
-    }
-    node1->GetHandlePosition(h, hpos2);
+    cameraPathRep->GetHandlePosition(h, hpos2);
     if (hpos2[0] != x || hpos2[1] != y || hpos2[2] != z)
     {
       std::cerr << "Failure in SetHandlePosition(" << h << "," << x << "," << y << "," << z
                 << "), got " << hpos2[0] << ", " << hpos2[1] << ", " << hpos2[2] << std::endl;
       return EXIT_FAILURE;
     }
-    else
-    {
-      std::cout << "Handle " << h << " position = " << hpos2[0] << ", " << hpos2[1] << ", "
-                << hpos2[2] << std::endl;
-    }
 
-    node1->SetHandlePosition(h, xyz);
-    hpos = node1->GetHandlePosition(h);
+    cameraPathRep->SetHandlePosition(h, xyz);
+    hpos = cameraPathRep->GetHandlePosition(h);
     if (!hpos)
     {
       std::cerr << "Null handle position back for handle " << h << std::endl;
@@ -260,23 +221,13 @@ int vtkCameraPathRepresentationTest1(int, char*[])
                 << hpos[2] << std::endl;
       return EXIT_FAILURE;
     }
-    else
-    {
-      std::cout << "Handle " << h << " position = " << hpos[0] << ", " << hpos[1] << ", " << hpos[2]
-                << std::endl;
-    }
-    node1->GetHandlePosition(h, hpos2);
+    cameraPathRep->GetHandlePosition(h, hpos2);
     if (hpos2[0] != xyz[0] || hpos2[1] != xyz[1] || hpos2[2] != xyz[2])
     {
       std::cerr << "Failure in SetHandlePosition(" << h << ",xyz), , expected " << xyz[0] << ", "
                 << xyz[1] << ", " << xyz[2] << ", got " << hpos2[0] << ", " << hpos2[1] << ", "
                 << hpos2[2] << std::endl;
       return EXIT_FAILURE;
-    }
-    else
-    {
-      std::cout << "Handle " << h << " position xyz = " << hpos2[0] << ", " << hpos2[1] << ", "
-                << hpos2[2] << std::endl;
     }
     x -= 1.0;
     y += 1.0;
@@ -285,7 +236,7 @@ int vtkCameraPathRepresentationTest1(int, char*[])
     xyz[1] -= 1.0;
     xyz[2] += 3.9;
   }
-  da = node1->GetHandlePositions();
+  da = cameraPathRep->GetHandlePositions();
   if (da == nullptr)
   {
     std::cerr << "HandlePositions array is null!" << std::endl;
@@ -297,21 +248,17 @@ int vtkCameraPathRepresentationTest1(int, char*[])
     {
       double val[3];
       da->GetTypedTuple(i, val);
-      std::cout << i << " = " << val[0] << ", " << val[1] << ", " << val[2] << std::endl;
     }
   }
 
   // 0 is invalid
-  TEST_SET_GET_INT_RANGE(node1, Resolution, 10, 100);
+  TEST_SET_GET_INT_RANGE(cameraPathRep, Resolution, 10, 100);
 
-  TEST_SET_GET_BOOLEAN(node1, Closed);
-  std::cout << "Closed = " << node1->IsClosed() << std::endl;
+  TEST_SET_GET_BOOLEAN(cameraPathRep, Closed);
 
-  std::cout << "Summed Length = " << node1->GetSummedLength();
+  cameraPathRep->DeleteCameraAt(2);
 
-  node1->DeleteCameraAt(2);
-
-  numHandles = node1->GetNumberOfHandles();
+  numHandles = cameraPathRep->GetNumberOfHandles();
 
   if (numHandles != 4)
   {
@@ -323,8 +270,8 @@ int vtkCameraPathRepresentationTest1(int, char*[])
   points->SetNumberOfPoints(2);
   points->SetPoint(0, 3.0, 6.8, -9.9);
   points->SetPoint(1, -3.0, -6.8, 9.9);
-  node1->InitializeHandles(points);
-  da = node1->GetHandlePositions();
+  cameraPathRep->InitializeHandles(points);
+  da = cameraPathRep->GetHandlePositions();
   if (da == nullptr)
   {
     std::cerr << "HandlePositions array is null after initing with vtkPoints!" << std::endl;
@@ -336,11 +283,31 @@ int vtkCameraPathRepresentationTest1(int, char*[])
     {
       double val[3];
       da->GetTypedTuple(i, val);
-      std::cout << i << " = " << val[0] << ", " << val[1] << ", " << val[2] << std::endl;
     }
   }
 
-  node1->SetLineColor(1.0, 0.5, 0.3);
+  cameraPathRep->SetLineColor(1.0, 0.5, 0.3);
+
+  cameraPathRep->SetCurrentHandleFocalPoint(13, 37, 0);
+  if (cameraPathRep->GetLastModifiedCamera() != 1)
+  {
+    std::cerr << "Error: setting focal point did not set LastModifiedCamera" << std::endl;
+  }
+  double fp[3];
+  cameraPathRep->GetHandleFocalPoint(1, fp);
+  if (fp[0] != 13)
+  {
+    std::cerr << "Failed to set current handle focal point" << std::endl;
+  }
+
+  cameraPathRep->SetHandlePosition(0, 13, 37, 0);
+  cameraPathRep->SetCurrentHandleIndex(0);
+
+  auto point = cameraPathRep->GetCurrentHandlePosition();
+  if (point[0] != 13)
+  {
+    std::cerr << "Failed to set current handle position" << std::endl;
+  }
 
   return EXIT_SUCCESS;
 }

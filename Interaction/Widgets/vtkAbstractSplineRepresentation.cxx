@@ -30,19 +30,19 @@ vtkAbstractSplineRepresentation::vtkAbstractSplineRepresentation()
 
   this->LineMapper->SetResolveCoincidentTopologyToPolygonOffset();
   this->LineActor->SetMapper(this->LineMapper);
+  this->LineMapper->SetInputConnection(this->ParametricFunctionSource->GetOutputPort());
 }
 
 //------------------------------------------------------------------------------
 vtkAbstractSplineRepresentation::~vtkAbstractSplineRepresentation()
 {
-  this->SetParametricSplineInternal(nullptr);
+  this->CleanRepresentation();
 }
 
 //------------------------------------------------------------------------------
 void vtkAbstractSplineRepresentation::CleanRepresentation()
 {
-  this->LineMapper->SetInputConnection(nullptr);
-  this->SetParametricSplineInternal(nullptr);
+  this->SetParametricSpline(nullptr);
 }
 
 //------------------------------------------------------------------------------
@@ -62,8 +62,9 @@ void vtkAbstractSplineRepresentation::SetParametricSplineInternal(vtkParametricS
       this->ParametricSpline->Register(this);
       this->ParametricFunctionSource->SetParametricFunction(this->ParametricSpline);
     }
-    this->Modified();
   }
+
+  this->Modified();
 }
 
 //------------------------------------------------------------------------------
