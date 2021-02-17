@@ -14,6 +14,8 @@
 =========================================================================*/
 
 #include "vtkHDFReaderImplementation.h"
+#include <iostream>
+#include <iterator>
 #include <sstream>
 #include <stdexcept>
 #include <type_traits>
@@ -23,6 +25,7 @@
 #include "vtkDoubleArray.h"
 #include "vtkFloatArray.h"
 #include "vtkIntArray.h"
+#include "vtkLogger.h"
 #include "vtkLongArray.h"
 #include "vtkLongLongArray.h"
 #include "vtkShortArray.h"
@@ -35,7 +38,7 @@
 //------------------------------------------------------------------------------
 vtkHDFReader::Implementation::Implementation(vtkHDFReader* reader)
   : File(-1)
-  , VTKGroup(0)
+  , VTKGroup(-1)
   , DataSetType(-1)
   , NumberOfPartitions(-1)
   , Reader(reader)
@@ -66,23 +69,29 @@ bool vtkHDFReader::Implementation::Open(const char* fileName)
     {
       this->Close();
     }
-    if ((this->File = H5Fopen(this->FileName.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT) < 0))
+    if ((this->File = H5Fopen(this->FileName.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT)) < 0)
     {
       vtkErrorWithObjectMacro(this->Reader, "Error oppening " << fileName);
       return false;
     }
-    // open all relevant groups
-    std::array<const char*, 3> groupNames = { "VTKHDF", "VTKHDF/PointData", "VTKHDF/CellData" };
-    std::array<hid_t*, 3> groups = { &this->VTKGroup, &this->AttributeDataGroup[0],
-      &this->AttributeDataGroup[1] };
-    for (int i = 0; i < groups.size(); ++i)
+    if ((this->VTKGroup = H5Gopen(this->File, "/VTKHDF", H5P_DEFAULT)) < 0)
     {
-      if ((*groups[i] = H5Gopen(this->File, groupNames[i], H5P_DEFAULT)) < 0)
-      {
-        vtkErrorWithObjectMacro(this->Reader, "Error oppening " << groupNames[i]);
-        return false;
-      }
+      vtkErrorWithObjectMacro(this->Reader, "Error opening /VTKHDF");
+      return false;
     }
+    std::array<const char*, 2> groupNames = { "/VTKHDF/PointData", "/VTKHDF/CellData" };
+    // turn off error logging
+    H5E_auto_t f;
+    void* client_data;
+    H5Eget_auto(H5E_DEFAULT, &f, &client_data);
+    H5Eset_auto(H5E_DEFAULT, nullptr, nullptr);
+    // try to open cell or point group. Its OK if they don't exist.
+    for (int i = 0; i < this->AttributeDataGroup.size(); ++i)
+    {
+      this->AttributeDataGroup[i] = H5Gopen(this->File, groupNames[i], H5P_DEFAULT);
+    }
+    // turn on error logging
+    H5Eset_auto(H5E_DEFAULT, f, client_data);
     if (!GetAttribute("Version", this->Version.size(), &this->Version[0]))
     {
       return false;
@@ -145,7 +154,111 @@ bool vtkHDFReader::Implementation::Open(const char* fileName)
       error = H5Dclose(dataset) < 0 || error;
     }
   }
-  return error;
+  this->BuildTypeReaderMap();
+  return !error;
+}
+
+//------------------------------------------------------------------------------
+vtkHDFReader::Implementation::TypeDescription vtkHDFReader::Implementation::GetTypeDescription(
+  hid_t type)
+{
+  TypeDescription td;
+  td.Class = H5Tget_class(type);
+  td.Size = H5Tget_size(type);
+  if (td.Class == H5T_INTEGER)
+  {
+    td.Sign = H5Tget_sign(type);
+  }
+  return td;
+}
+
+//------------------------------------------------------------------------------
+void vtkHDFReader::Implementation::BuildTypeReaderMap()
+{
+  this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_CHAR)] =
+    &vtkHDFReader::Implementation::GetArray<char>;
+  this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_UCHAR)] =
+    &vtkHDFReader::Implementation::GetArray<unsigned char>;
+  this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_SHORT)] =
+    &vtkHDFReader::Implementation::GetArray<short>;
+  this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_USHORT)] =
+    &vtkHDFReader::Implementation::GetArray<unsigned short>;
+  this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_INT)] =
+    &vtkHDFReader::Implementation::GetArray<int>;
+  this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_UINT)] =
+    &vtkHDFReader::Implementation::GetArray<unsigned int>;
+  this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_LONG)] =
+    &vtkHDFReader::Implementation::GetArray<long>;
+  this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_ULONG)] =
+    &vtkHDFReader::Implementation::GetArray<unsigned long>;
+  this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_LLONG)] =
+    &vtkHDFReader::Implementation::GetArray<long long>;
+  this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_ULLONG)] =
+    &vtkHDFReader::Implementation::GetArray<unsigned long long>;
+  this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_FLOAT)] =
+    &vtkHDFReader::Implementation::GetArray<float>;
+  this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_DOUBLE)] =
+    &vtkHDFReader::Implementation::GetArray<double>;
+}
+
+//------------------------------------------------------------------------------
+template <typename T>
+hid_t vtkHDFReader::Implementation::TemplateToNativeType()
+{
+  hid_t hdfType = -1;
+  if (std::is_same<T, char>::value)
+  {
+    hdfType = H5T_NATIVE_CHAR;
+  }
+  else if (std::is_same<T, unsigned char>::value)
+  {
+    hdfType = H5T_NATIVE_UCHAR;
+  }
+  if (std::is_same<T, short>::value)
+  {
+    hdfType = H5T_NATIVE_SHORT;
+  }
+  else if (std::is_same<T, unsigned short>::value)
+  {
+    hdfType = H5T_NATIVE_USHORT;
+  }
+  else if (std::is_same<T, int>::value)
+  {
+    hdfType = H5T_NATIVE_INT;
+  }
+  else if (std::is_same<T, unsigned int>::value)
+  {
+    hdfType = H5T_NATIVE_UINT;
+  }
+  else if (std::is_same<T, long>::value)
+  {
+    hdfType = H5T_NATIVE_LONG;
+  }
+  else if (std::is_same<T, unsigned long>::value)
+  {
+    hdfType = H5T_NATIVE_ULONG;
+  }
+  else if (std::is_same<T, long long>::value)
+  {
+    hdfType = H5T_NATIVE_LLONG;
+  }
+  else if (std::is_same<T, unsigned long long>::value)
+  {
+    hdfType = H5T_NATIVE_ULLONG;
+  }
+  else if (std::is_same<T, float>::value)
+  {
+    hdfType = H5T_NATIVE_FLOAT;
+  }
+  else if (std::is_same<T, double>::value)
+  {
+    hdfType = H5T_NATIVE_DOUBLE;
+  }
+  else
+  {
+    vtkErrorWithObjectMacro(this->Reader, "Invalid type: " << typeid(T).name());
+  }
+  return hdfType;
 }
 
 //------------------------------------------------------------------------------
@@ -172,22 +285,6 @@ void vtkHDFReader::Implementation::Close()
     H5Fclose(this->File);
     this->File = -1;
   }
-}
-
-//------------------------------------------------------------------------------
-template <typename T>
-hid_t vtkHDFReader::Implementation::TemplateToHDFType()
-{
-  hid_t hdfType = -1;
-  if (std::is_same<T, int>::value)
-  {
-    hdfType = H5T_NATIVE_INT;
-  }
-  else if (std::is_same<T, double>::value)
-  {
-    hdfType = H5T_NATIVE_DOUBLE;
-  }
-  return hdfType;
 }
 
 //------------------------------------------------------------------------------
@@ -247,13 +344,13 @@ bool vtkHDFReader::Implementation::GetPartitionExtent(hsize_t partitionIndex, in
   {
     error = H5Dclose(dataset) < 0 || error;
   }
-  return error;
+  return !error;
 }
 
 //------------------------------------------------------------------------------
 template <typename T>
 bool vtkHDFReader::Implementation::GetAttribute(
-  const char* attributeName, int dimExpected, T* value)
+  const char* attributeName, int numberOfElements, T* value)
 {
   hid_t attr = -1;
   hid_t space = -1;
@@ -268,30 +365,30 @@ bool vtkHDFReader::Implementation::GetAttribute(
     {
       throw std::runtime_error(std::string(attributeName) + " attribute: get_space error");
     }
-    int rank;
-    if ((rank = H5Sget_simple_extent_ndims(space)) < 0)
+    int ndims;
+    if ((ndims = H5Sget_simple_extent_ndims(space)) < 0)
     {
       throw std::runtime_error(
         std::string(attributeName) + " attribute: get_simple_extent_ndims error");
     }
-    if (rank != 1)
+    if (ndims != 1)
     {
       throw std::runtime_error(std::string(attributeName) + " attribute should have rank 1");
     }
-    hsize_t dims;
-    if (H5Sget_simple_extent_dims(space, &dims, nullptr) < 0)
+    hsize_t ne;
+    if (H5Sget_simple_extent_dims(space, &ne, nullptr) < 0)
     {
       throw std::runtime_error(std::string("Cannot find dimension for ") + attributeName);
     }
 
-    if (dims != dimExpected)
+    if (ne != numberOfElements)
     {
       std::ostringstream ostr;
-      ostr << attributeName << " attribute should have " << dimExpected << " dimensions";
+      ostr << attributeName << " attribute should have " << numberOfElements << " dimensions";
       throw std::runtime_error(ostr.str().c_str());
     }
     hid_t hdfType = 0;
-    if ((hdfType = this->TemplateToHDFType<T>()) < 0)
+    if ((hdfType = this->TemplateToNativeType<T>()) < 0)
     {
       throw std::runtime_error(std::string("Native type not implemented: ") + typeid(T).name());
     }
@@ -313,58 +410,7 @@ bool vtkHDFReader::Implementation::GetAttribute(
   {
     error = H5Aclose(attr) < 0 || error;
   }
-  return error;
-}
-
-//------------------------------------------------------------------------------
-hid_t vtkHDFReader::Implementation::GetArrayInfo(
-  int attributeType, const char* name, hid_t* type, int* components)
-{
-  hid_t group = this->AttributeDataGroup[attributeType];
-  bool error = false;
-  hid_t dataset = -1;
-  hid_t dataspace = -1;
-  try
-  {
-    if ((dataset = H5Dopen(group, name, H5P_DEFAULT)) < 0)
-    {
-      throw std::runtime_error(std::string("Cannot open ") + name);
-    }
-    if ((dataspace = H5Dget_space(dataset)) < 0)
-    {
-      throw std::runtime_error(std::string("Cannot get space for dataset ") + name);
-    }
-    if ((*type = H5Tget_native_type(dataspace, H5T_DIR_ASCEND)) < 0)
-    {
-      throw std::runtime_error(std::string("Cannot get type for dataset ") + name);
-    }
-    int rank;
-    if ((rank = H5Sget_simple_extent_ndims(dataspace)) < 0)
-    {
-      throw std::runtime_error(std::string(name) + " dataset: get_simple_extent_ndims error");
-    }
-    std::vector<hsize_t> dims(rank, 0);
-    if (H5Sget_simple_extent_dims(dataspace, &dims[0], nullptr) < 0)
-    {
-      throw std::runtime_error(std::string("Cannot find dimension for ") + name);
-    }
-    *components = dims[dims.size() - 1];
-  }
-  catch (const std::exception& e)
-  {
-    vtkErrorWithObjectMacro(this->Reader, << e.what());
-    error = true;
-  }
-  if (dataspace >= 0)
-  {
-    error = H5Sclose(dataspace) < 0 || error;
-  }
-  if (error && dataset >= 0)
-  {
-    H5Dclose(dataset);
-    dataset = -1;
-  }
-  return dataset;
+  return !error;
 }
 
 //------------------------------------------------------------------------------
@@ -389,85 +435,127 @@ std::vector<std::string> vtkHDFReader::Implementation::GetArrayNames(int attribu
 {
   std::vector<std::string> array;
   hid_t group = this->AttributeDataGroup[attributeType];
-  H5Literate(group, H5_INDEX_NAME, H5_ITER_NATIVE, NULL, AddName, &array);
+  if (group > 0)
+  {
+    H5Literate(group, H5_INDEX_NAME, H5_ITER_NATIVE, NULL, AddName, &array);
+  }
   return array;
 }
 
 //------------------------------------------------------------------------------
-vtkDataArray* vtkHDFReader::Implementation::GetArray(
-  hid_t dataset, hid_t type, int attributeType, int* wholeExtent, int numberOfComponents)
+hid_t vtkHDFReader::Implementation::OpenDataSet(
+  hid_t group, const char* name, int gridNdims, hid_t* nativeType, int* numberOfComponents)
 {
+  bool error = false;
+  hid_t dataset = -1;
+  hid_t dataspace = -1;
+  hid_t datatype = -1;
+  try
+  {
+    if ((dataset = H5Dopen(group, name, H5P_DEFAULT)) < 0)
+    {
+      throw std::runtime_error(std::string("Cannot open ") + name);
+    }
+    if ((datatype = H5Dget_type(dataset)) < 0)
+    {
+      throw std::runtime_error(std::string("Cannot get_type for dataset: ") + name);
+    }
+    if ((dataspace = H5Dget_space(dataset)) < 0)
+    {
+      throw std::runtime_error(std::string("Cannot get space for dataset ") + name);
+    }
+    if ((*nativeType = H5Tget_native_type(datatype, H5T_DIR_ASCEND)) < 0)
+    {
+      throw std::runtime_error(std::string("Cannot get type for dataset ") + name);
+    }
+    int ndims;
+    if ((ndims = H5Sget_simple_extent_ndims(dataspace)) < 0)
+    {
+      throw std::runtime_error(std::string(name) + " dataset: get_simple_extent_ndims error");
+    }
+    else if (ndims < gridNdims)
+    {
+      std::ostringstream ostr;
+      ostr << name << " dataset: Expecting rank >= " << gridNdims << ", got: " << ndims;
+      throw std::runtime_error(ostr.str());
+    }
+    if (ndims == gridNdims)
+    {
+      *numberOfComponents = 1;
+    }
+    else
+    {
+      std::vector<hsize_t> dims(ndims, 0);
+      if (H5Sget_simple_extent_dims(dataspace, &dims[0], nullptr) < 0)
+      {
+        throw std::runtime_error(std::string("Cannot find dimension for ") + name);
+      }
+      *numberOfComponents = dims[dims.size() - 1];
+    }
+  }
+  catch (const std::exception& e)
+  {
+    vtkErrorWithObjectMacro(this->Reader, << e.what());
+    error = true;
+  }
+  if (dataspace >= 0)
+  {
+    error = H5Sclose(dataspace) < 0 || error;
+  }
+  if (datatype >= 0)
+  {
+    error = H5Tclose(datatype) < 0 || error;
+  }
+  if (error && dataset >= 0)
+  {
+    H5Dclose(dataset);
+    dataset = -1;
+  }
+  return dataset;
+}
+
+//------------------------------------------------------------------------------
+vtkDataArray* vtkHDFReader::Implementation::GetArray(
+  int attributeType, const char* name, int* fileExtent)
+{
+  hid_t dataset = -1;
+  hid_t nativeType = -1;
+  int numberOfComponents = 0;
+  const int gridNdims = 3;
+  if ((dataset = this->OpenDataSet(this->AttributeDataGroup[attributeType], name, gridNdims,
+         &nativeType, &numberOfComponents)) < 0)
+  {
+    return nullptr;
+  }
   vtkDataArray* array = nullptr;
-  if (type == H5T_NATIVE_CHAR)
+  auto it = this->TypeReaderMap.find(this->GetTypeDescription(nativeType));
+  if (it == this->TypeReaderMap.end())
   {
-    array = this->GetArray<char>(dataset, attributeType, wholeExtent, numberOfComponents);
+    vtkErrorWithObjectMacro(this->Reader, "Unknown native datatype: " << nativeType);
   }
-  else if (type == H5T_NATIVE_SCHAR)
+  else
   {
-    array = this->GetArray<char>(dataset, attributeType, wholeExtent, numberOfComponents);
+    array = (this->*(it->second))(attributeType, dataset, fileExtent, numberOfComponents);
   }
-  else if (type == H5T_NATIVE_UCHAR)
-  {
-    array = this->GetArray<unsigned char>(dataset, attributeType, wholeExtent, numberOfComponents);
-  }
-  else if (type == H5T_NATIVE_SHORT)
-  {
-    array = this->GetArray<short>(dataset, attributeType, wholeExtent, numberOfComponents);
-  }
-  else if (type == H5T_NATIVE_USHORT)
-  {
-    array = this->GetArray<unsigned short>(dataset, attributeType, wholeExtent, numberOfComponents);
-  }
-  else if (type == H5T_NATIVE_INT)
-  {
-    array = this->GetArray<int>(dataset, attributeType, wholeExtent, numberOfComponents);
-  }
-  else if (type == H5T_NATIVE_UINT)
-  {
-    array = this->GetArray<unsigned int>(dataset, attributeType, wholeExtent, numberOfComponents);
-  }
-  else if (type == H5T_NATIVE_LONG)
-  {
-    array = this->GetArray<long>(dataset, attributeType, wholeExtent, numberOfComponents);
-  }
-  else if (type == H5T_NATIVE_ULONG)
-  {
-    array = this->GetArray<unsigned long>(dataset, attributeType, wholeExtent, numberOfComponents);
-  }
-  else if (type == H5T_NATIVE_LLONG)
-  {
-    array = this->GetArray<long long>(dataset, attributeType, wholeExtent, numberOfComponents);
-  }
-  else if (type == H5T_NATIVE_ULLONG)
-  {
-    array =
-      this->GetArray<unsigned long long>(dataset, attributeType, wholeExtent, numberOfComponents);
-  }
-  else if (type == H5T_NATIVE_FLOAT)
-  {
-    array = this->GetArray<float>(dataset, attributeType, wholeExtent, numberOfComponents);
-  }
-  else if (type == H5T_NATIVE_DOUBLE)
-  {
-    array = this->GetArray<double>(dataset, attributeType, wholeExtent, numberOfComponents);
-  }
+  H5Dclose(dataset);
+  H5Tclose(nativeType);
   return array;
 }
 
 //------------------------------------------------------------------------------
 template <typename T>
 vtkDataArray* vtkHDFReader::Implementation::GetArray(
-  hid_t dataset, int attributeType, int* wholeExtent, int numberOfComponents)
+  int attributeType, hid_t dataset, int* fileExtent, int numberOfComponents)
 {
   int pointAdjustment = (attributeType == vtkDataObject::POINT ? 1 : 0);
-  int numberOfTuples = (wholeExtent[1] - wholeExtent[0] + pointAdjustment) *
-    (wholeExtent[3] - wholeExtent[2] + pointAdjustment) *
-    (wholeExtent[5] - wholeExtent[4] + pointAdjustment);
+  int numberOfTuples = (fileExtent[1] - fileExtent[0] + pointAdjustment) *
+    (fileExtent[3] - fileExtent[2] + pointAdjustment) *
+    (fileExtent[5] - fileExtent[4] + pointAdjustment);
   auto array = vtkAOSDataArrayTemplate<T>::New();
   array->SetNumberOfComponents(numberOfComponents);
   array->SetNumberOfTuples(numberOfTuples);
   T* data = array->GetPointer(0);
-  if (!this->GetArray(dataset, attributeType, wholeExtent, numberOfComponents, data))
+  if (!this->GetArray(attributeType, dataset, fileExtent, numberOfComponents, data))
   {
     array->Delete();
     array = nullptr;
@@ -477,22 +565,43 @@ vtkDataArray* vtkHDFReader::Implementation::GetArray(
 
 //------------------------------------------------------------------------------
 template <typename T>
-bool vtkHDFReader::Implementation::GetArray(
-  hid_t dataset, int attributeType, int* wholeExtent, int numberOfComponents, T* data)
+bool vtkHDFReader::Implementation::GetPartitionInfo(
+  const char* name, int partition, int numberOfElements, T* value)
 {
+  hid_t dataset = -1;
+  hid_t nativeType = -1;
+  int numberOfComponents = 0;
+  if ((dataset = this->OpenDataSet(this->VTKGroup, name, 1, &nativeType, &numberOfComponents)) < 0)
+  {
+    return false;
+  }
+
+  H5Dclose(dataset);
+  H5Tclose(nativeType);
+  return true;
+}
+
+//------------------------------------------------------------------------------
+template <typename T>
+bool vtkHDFReader::Implementation::GetArray(
+  int attributeType, hid_t dataset, int* fileExtent, int numberOfComponents, T* data)
+{
+  hid_t nativeType = TemplateToNativeType<T>();
   hid_t memspace = -1;
   hid_t dataspace = -1;
-  const int RANK = 4;
   bool error = false;
   try
   {
     // create the memory space, reverse axis order for VTK fortran order
     int pointAdjustment = (attributeType == vtkDataObject::POINT ? 1 : 0);
-    std::array<hsize_t, RANK> dimsm = { static_cast<hsize_t>(
-                                          wholeExtent[5] - wholeExtent[4] + pointAdjustment),
-      static_cast<hsize_t>(wholeExtent[3] - wholeExtent[2] + pointAdjustment),
-      static_cast<hsize_t>(wholeExtent[1] = wholeExtent[0] + pointAdjustment),
-      static_cast<hsize_t>(numberOfComponents) };
+    std::vector<hsize_t> dimsm = { static_cast<hsize_t>(
+                                     fileExtent[5] - fileExtent[4] + pointAdjustment),
+      static_cast<hsize_t>(fileExtent[3] - fileExtent[2] + pointAdjustment),
+      static_cast<hsize_t>(fileExtent[1] - fileExtent[0] + pointAdjustment) };
+    if (numberOfComponents > 1)
+    {
+      dimsm.push_back(static_cast<hsize_t>(numberOfComponents));
+    }
     if ((memspace = H5Screate_simple(dimsm.size(), &dimsm[0], NULL)) < 0)
     {
       throw std::runtime_error("Error H5Screate_simple for memory space");
@@ -503,7 +612,7 @@ bool vtkHDFReader::Implementation::GetArray(
       throw std::runtime_error("Error H5Dget_space for imagedata");
     }
     // read hyperslab
-    if (H5Dread(dataset, H5T_NATIVE_INT, memspace, dataspace, H5P_DEFAULT, data) < 0)
+    if (H5Dread(dataset, nativeType, memspace, dataspace, H5P_DEFAULT, data) < 0)
     {
       throw std::runtime_error(std::string("Error reading imagedata"));
     }
@@ -521,7 +630,7 @@ bool vtkHDFReader::Implementation::GetArray(
   {
     error = H5Sclose(dataspace) < 0 || error;
   }
-  return error;
+  return !error;
 }
 
 //------------------------------------------------------------------------------

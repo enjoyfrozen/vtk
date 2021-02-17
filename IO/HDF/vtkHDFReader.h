@@ -70,8 +70,8 @@ public:
    * Get the data array selection tables used to configure which data
    * arrays are loaded by the reader.
    */
-  vtkGetObjectMacro(PointDataArraySelection, vtkDataArraySelection);
-  vtkGetObjectMacro(CellDataArraySelection, vtkDataArraySelection);
+  virtual vtkDataArraySelection* GetPointDataArraySelection();
+  virtual vtkDataArraySelection* GetCellDataArraySelection();
   //@}
 
   //@{
@@ -87,6 +87,11 @@ public:
    * Get the name of the point or cell array with the given index in
    * the input.
    */
+  /**
+   * How many attribute types we have. This always returns 2: point and cell
+   * attribute types.
+   */
+  constexpr static int GetNumberOfAttributeTypes() { return 2; }
   const char* GetPointArrayName(int index);
   const char* GetCellArrayName(int index);
   //@}
@@ -147,8 +152,8 @@ protected:
   char* FileName;
 
   // The array selections.
-  vtkDataArraySelection* PointDataArraySelection;
-  vtkDataArraySelection* CellDataArraySelection;
+  // in the same order as vtkDataObject::AttributeTypes: POINT, CELL
+  vtkDataArraySelection* DataArraySelection[2];
 
   // The observer to modify this object when the array selections are
   // modified.

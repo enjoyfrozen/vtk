@@ -24,6 +24,7 @@
 #include "vtkHDFReader.h"
 #include "vtk_hdf5.h"
 #include <array>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -34,43 +35,95 @@ class vtkHDFReader::Implementation
 public:
   Implementation(vtkHDFReader* reader);
   virtual ~Implementation();
+  /**
+   * Opens this VTK HDF file and checks if it is valid.
+   */
   bool Open(const char* fileName);
+  /**
+   * Closes the VTK HDF file and releases any allocated resources.
+   */
   void Close();
   /**
    * Type of vtkDataSet stored by the HDF file, such as VTK_IMAGE_DATA or
    * VTK_UNSTRUCTURED_GRID, from vtkTypes.h
    */
   int GetDataSetType() { return this->DataSetType; }
-  int GetNumberOfPartitions() { return NumberOfPartitions; }
-  int GetNumberOfAttributeTypes() { return AttributeDataGroup.size(); }
+  /**
+   * Returns the version of the VTK HDF implementation.
+   */
   const std::array<int, 2>& GetVersion() { return this->Version; }
+  /**
+   * Reads an attribute from the /VTKHDF group
+   */
   template <typename T>
-  bool GetAttribute(const char* attributeName, int dim, T* value);
+  bool GetAttribute(const char* attributeName, int numberOfElements, T* value);
+  /**
+   * Returns the number of partitions for this dataset.
+   */
+  int GetNumberOfPartitions() { return NumberOfPartitions; }
+  /**
+   * Reads information about 'partition' from dataset 'name'.
+   * It reads 'numberOfElements' values of type 'T'
+   */
+  template <typename T>
+  bool GetPartitionInfo(const char* name, int partition, int numberOfElements, T* value);
+  /**
+   * For an ImageData, sets the extent for 'partitionIndex'. Returns
+   * true for success and false otherwise.
+   */
   bool GetPartitionExtent(hsize_t partitionIndex, int* extent);
   /**
-   * Returns the native type of the array (hdf dataset) and sets the number of
-   * components.
+   * Returns the names of arrays for 'attributeType' (point or cell).
    */
-  hid_t GetArrayInfo(int attributeType, const char* name, hid_t* type, int* components);
   std::vector<std::string> GetArrayNames(int attributeType);
   /**
-   * Creates a new vtkDataArray that has to be deleted by the user.
+   * Reads and returns a new vtkDataArray of the correct type
+   * that has to be deleted by the user.
    */
-  vtkDataArray* GetArray(
-    hid_t dataset, hid_t type, int attributeType, int* wholeExtent, int numberOfComponents);
+  vtkDataArray* GetArray(int attributeType, const char* name, int* fileExtent);
 
 protected:
+  struct TypeDescription
+  {
+    int Class;
+    int Size;
+    int Sign;
+    TypeDescription()
+      : Class(H5T_NO_CLASS)
+      , Size(0)
+      , Sign(H5T_SGN_ERROR)
+    {
+    }
+    bool operator<(const TypeDescription& other) const
+    {
+      return Class < other.Class || (Class == other.Class && Size < other.Size) ||
+        (Class == other.Class && Size == other.Size && Sign < other.Sign);
+    }
+  };
+
+protected:
+  /**
+   * Opens the hdf5 dataset given the 'group'
+   * and 'name'.
+   * Returns the hdf dataset and sets 'nativeType' and the 'numberOfComponents'.
+   */
+  hid_t OpenDataSet(
+    hid_t group, const char* name, int gridNdims, hid_t* nativeType, int* numberOfComponents);
   /**
    * Convert C++ template type T to HDF5 native type
    */
   template <typename T>
-  hid_t TemplateToHDFType();
+  hid_t TemplateToNativeType();
+  /**
+   * Reads a vtkDataArray of type T from the attributeType, dataset
+   * The dataset is expected to have nativeType.
+   */
   template <typename T>
-  vtkDataArray* GetArray(
-    hid_t dataset, int attributeType, int* wholeExtent, int numberOfComponents);
+  vtkDataArray* GetArray(int attributeType, hid_t dataset, int* fileExtent, int numberOfComponents);
   template <typename T>
-  bool GetArray(
-    hid_t dataset, int attributeType, int* wholeExtent, int numberOfComponents, T* data);
+  bool GetArray(int attributeType, hid_t dataset, int* fileExtent, int numberOfComponents, T* data);
+  void BuildTypeReaderMap();
+  TypeDescription GetTypeDescription(hid_t type);
 
 private:
   std::string FileName;
@@ -82,6 +135,9 @@ private:
   int NumberOfPartitions;
   std::array<int, 2> Version;
   vtkHDFReader* Reader;
+  using ArrayReader = vtkDataArray* (vtkHDFReader::Implementation::*)(int attributeType,
+    hid_t dataset, int* fileExtent, int numberOfComponents);
+  std::map<TypeDescription, ArrayReader> TypeReaderMap;
 };
 
 //------------------------------------------------------------------------------
