@@ -30,6 +30,10 @@
 
 class vtkDataArray;
 
+/**
+ * Implementation for the vtkHDFReader. Opens, closes and
+ * reads information from a VTK HDF file.
+ */
 class vtkHDFReader::Implementation
 {
 public:
@@ -83,6 +87,9 @@ public:
   vtkDataArray* GetArray(int attributeType, const char* name, int* fileExtent);
 
 protected:
+  /**
+   * Used to store HDF native types in a map
+   */
   struct TypeDescription
   {
     int Class;
@@ -114,15 +121,25 @@ protected:
    */
   template <typename T>
   hid_t TemplateToNativeType();
+  //@{
   /**
    * Reads a vtkDataArray of type T from the attributeType, dataset
-   * The dataset is expected to have nativeType.
+   * The array has type 'T' and 'numberOfComponents'. We are reading
+   * fileExtent slab from the array.
    */
   template <typename T>
   vtkDataArray* GetArray(int attributeType, hid_t dataset, int* fileExtent, int numberOfComponents);
   template <typename T>
   bool GetArray(int attributeType, hid_t dataset, int* fileExtent, int numberOfComponents, T* data);
+  //@}
+  /**
+   * Builds a map between native types and GetArray routines for that type.
+   */
   void BuildTypeReaderMap();
+  /**
+   * Associates a struc of three integers with HDF type. This can be used as
+   * key in a map.
+   */
   TypeDescription GetTypeDescription(hid_t type);
 
 private:

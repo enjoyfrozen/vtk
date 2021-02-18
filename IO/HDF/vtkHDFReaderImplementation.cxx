@@ -36,6 +36,37 @@
 #include "vtkUnsignedShortArray.h"
 
 //------------------------------------------------------------------------------
+namespace
+{
+herr_t AddName(hid_t group, const char* name, const H5L_info_t* info, void* op_data)
+{
+  auto array = static_cast<std::vector<std::string>*>(op_data);
+  herr_t status = -1;
+  H5O_info_t infobuf;
+  if ((status = H5Oget_info_by_name(group, name, &infobuf, H5P_DEFAULT)) >= 0 &&
+    infobuf.type == H5O_TYPE_DATASET)
+  {
+    array->push_back(name);
+  }
+  return status;
+}
+};
+
+//------------------------------------------------------------------------------
+vtkHDFReader::Implementation::TypeDescription vtkHDFReader::Implementation::GetTypeDescription(
+  hid_t type)
+{
+  TypeDescription td;
+  td.Class = H5Tget_class(type);
+  td.Size = H5Tget_size(type);
+  if (td.Class == H5T_INTEGER)
+  {
+    td.Sign = H5Tget_sign(type);
+  }
+  return td;
+}
+
+//------------------------------------------------------------------------------
 vtkHDFReader::Implementation::Implementation(vtkHDFReader* reader)
   : File(-1)
   , VTKGroup(-1)
@@ -159,17 +190,29 @@ bool vtkHDFReader::Implementation::Open(const char* fileName)
 }
 
 //------------------------------------------------------------------------------
-vtkHDFReader::Implementation::TypeDescription vtkHDFReader::Implementation::GetTypeDescription(
-  hid_t type)
+void vtkHDFReader::Implementation::Close()
 {
-  TypeDescription td;
-  td.Class = H5Tget_class(type);
-  td.Size = H5Tget_size(type);
-  if (td.Class == H5T_INTEGER)
+  this->DataSetType = -1;
+  this->NumberOfPartitions = 0;
+  std::fill(this->Version.begin(), this->Version.end(), 0);
+  for (int i = 0; i < this->AttributeDataGroup.size(); ++i)
   {
-    td.Sign = H5Tget_sign(type);
+    if (this->AttributeDataGroup[i] >= 0)
+    {
+      H5Gclose(this->AttributeDataGroup[i]);
+      this->AttributeDataGroup[i] = -1;
+    }
   }
-  return td;
+  if (this->VTKGroup >= 0)
+  {
+    H5Gclose(this->VTKGroup);
+    this->VTKGroup = -1;
+  }
+  if (this->File >= 0)
+  {
+    H5Fclose(this->File);
+    this->File = -1;
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -259,32 +302,6 @@ hid_t vtkHDFReader::Implementation::TemplateToNativeType()
     vtkErrorWithObjectMacro(this->Reader, "Invalid type: " << typeid(T).name());
   }
   return hdfType;
-}
-
-//------------------------------------------------------------------------------
-void vtkHDFReader::Implementation::Close()
-{
-  this->DataSetType = -1;
-  this->NumberOfPartitions = 0;
-  std::fill(this->Version.begin(), this->Version.end(), 0);
-  for (int i = 0; i < this->AttributeDataGroup.size(); ++i)
-  {
-    if (this->AttributeDataGroup[i] >= 0)
-    {
-      H5Gclose(this->AttributeDataGroup[i]);
-      this->AttributeDataGroup[i] = -1;
-    }
-  }
-  if (this->VTKGroup >= 0)
-  {
-    H5Gclose(this->VTKGroup);
-    this->VTKGroup = -1;
-  }
-  if (this->File >= 0)
-  {
-    H5Fclose(this->File);
-    this->File = -1;
-  }
 }
 
 //------------------------------------------------------------------------------
@@ -412,23 +429,6 @@ bool vtkHDFReader::Implementation::GetAttribute(
   }
   return !error;
 }
-
-//------------------------------------------------------------------------------
-namespace
-{
-herr_t AddName(hid_t group, const char* name, const H5L_info_t* info, void* op_data)
-{
-  auto array = static_cast<std::vector<std::string>*>(op_data);
-  herr_t status = -1;
-  H5O_info_t infobuf;
-  if ((status = H5Oget_info_by_name(group, name, &infobuf, H5P_DEFAULT)) >= 0 &&
-    infobuf.type == H5O_TYPE_DATASET)
-  {
-    array->push_back(name);
-  }
-  return status;
-}
-};
 
 //------------------------------------------------------------------------------
 std::vector<std::string> vtkHDFReader::Implementation::GetArrayNames(int attributeType)
