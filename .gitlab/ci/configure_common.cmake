@@ -20,6 +20,9 @@ set(VTK_ENABLE_REMOTE_MODULES OFF CACHE BOOL "")
 # We run the install right after the build. Avoid rerunning it when installing.
 set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY "ON" CACHE BOOL "")
 
+# Install VTK.
+set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "")
+
 include("${CMAKE_CURRENT_LIST_DIR}/configure_options.cmake")
 
 # Default to Release builds.
