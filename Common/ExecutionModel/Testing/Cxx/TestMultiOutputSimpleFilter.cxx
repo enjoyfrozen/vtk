@@ -29,7 +29,6 @@ public:
 
 protected:
   vtkTestAlgorithm()
-    : Superclass()
   {
     this->SetNumberOfOutputPorts(2);
   }
