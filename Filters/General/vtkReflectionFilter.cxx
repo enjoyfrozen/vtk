@@ -40,7 +40,7 @@ namespace
  * method to determine which arrays from a field data can be flipped.
  * Only 3/6/9 component signed data array are considered flippable.
  */
-static void FindFlippableArrays(
+void FindFlippableArrays(
   vtkFieldData* fd, std::vector<std::pair<vtkIdType, int>>& flippableArrays)
 {
   // Find all flippable arrays

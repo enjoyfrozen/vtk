@@ -38,9 +38,9 @@ vtkStandardNewMacro(vtkPyramid);
 
 namespace
 {
-static const double VTK_DIVERGED = 1.e6;
-static const int VTK_MAX_ITERATION = 10;
-static const double VTK_CONVERGED = 1.e-03;
+const double VTK_DIVERGED = 1.e6;
+const int VTK_MAX_ITERATION = 10;
+const double VTK_CONVERGED = 1.e-03;
 }
 
 //------------------------------------------------------------------------------
@@ -56,7 +56,7 @@ namespace
 //   | /\ |
 //   |/__\|
 //   0    1
-static constexpr vtkIdType edges[vtkPyramid::NumberOfEdges][2] = {
+constexpr vtkIdType edges[vtkPyramid::NumberOfEdges][2] = {
   { 0, 1 }, // 0
   { 1, 2 }, // 1
   { 2, 3 }, // 2
@@ -66,14 +66,14 @@ static constexpr vtkIdType edges[vtkPyramid::NumberOfEdges][2] = {
   { 2, 4 }, // 6
   { 3, 4 }, // 7
 };
-static constexpr vtkIdType faces[vtkPyramid::NumberOfFaces][vtkPyramid::MaximumFaceSize + 1] = {
+constexpr vtkIdType faces[vtkPyramid::NumberOfFaces][vtkPyramid::MaximumFaceSize + 1] = {
   { 0, 3, 2, 1, -1 },  // 0
   { 0, 1, 4, -1, -1 }, // 1
   { 1, 2, 4, -1, -1 }, // 2
   { 2, 3, 4, -1, -1 }, // 3
   { 3, 0, 4, -1, -1 }, // 4
 };
-static constexpr vtkIdType edgeToAdjacentFaces[vtkPyramid::NumberOfEdges][2] = {
+constexpr vtkIdType edgeToAdjacentFaces[vtkPyramid::NumberOfEdges][2] = {
   { 0, 1 }, // 0
   { 0, 2 }, // 1
   { 0, 3 }, // 2
@@ -83,7 +83,7 @@ static constexpr vtkIdType edgeToAdjacentFaces[vtkPyramid::NumberOfEdges][2] = {
   { 2, 3 }, // 6
   { 3, 4 }, // 7
 };
-static constexpr vtkIdType faceToAdjacentFaces[vtkPyramid::NumberOfFaces]
+constexpr vtkIdType faceToAdjacentFaces[vtkPyramid::NumberOfFaces]
                                               [vtkPyramid::MaximumFaceSize] = {
                                                 { 4, 3, 2, 1 },  // 0
                                                 { 0, 2, 4, -1 }, // 1
@@ -91,7 +91,7 @@ static constexpr vtkIdType faceToAdjacentFaces[vtkPyramid::NumberOfFaces]
                                                 { 0, 4, 2, -1 }, // 3
                                                 { 0, 1, 3, -1 }, // 4
                                               };
-static constexpr vtkIdType pointToIncidentEdges[vtkPyramid::NumberOfPoints]
+constexpr vtkIdType pointToIncidentEdges[vtkPyramid::NumberOfPoints]
                                                [vtkPyramid::MaximumValence] = {
                                                  { 0, 4, 3, -1 }, // 0
                                                  { 0, 1, 5, -1 }, // 1
@@ -99,7 +99,7 @@ static constexpr vtkIdType pointToIncidentEdges[vtkPyramid::NumberOfPoints]
                                                  { 2, 3, 7, -1 }, // 3
                                                  { 4, 5, 6, 7 },  // 4
                                                };
-static constexpr vtkIdType pointToIncidentFaces[vtkPyramid::NumberOfPoints]
+constexpr vtkIdType pointToIncidentFaces[vtkPyramid::NumberOfPoints]
                                                [vtkPyramid::MaximumValence] = {
                                                  { 1, 4, 0, -1 }, // 0
                                                  { 0, 2, 1, -1 }, // 1
@@ -107,7 +107,7 @@ static constexpr vtkIdType pointToIncidentFaces[vtkPyramid::NumberOfPoints]
                                                  { 0, 4, 3, -1 }, // 3
                                                  { 1, 2, 3, 4 },  // 4
                                                };
-static constexpr vtkIdType pointToOneRingPoints[vtkPyramid::NumberOfPoints]
+constexpr vtkIdType pointToOneRingPoints[vtkPyramid::NumberOfPoints]
                                                [vtkPyramid::MaximumValence] = {
                                                  { 1, 4, 3, -1 }, // 0
                                                  { 0, 2, 4, -1 }, // 1
@@ -115,14 +115,14 @@ static constexpr vtkIdType pointToOneRingPoints[vtkPyramid::NumberOfPoints]
                                                  { 2, 0, 4, -1 }, // 3
                                                  { 0, 1, 2, 3 },  // 4
                                                };
-static constexpr vtkIdType numberOfPointsInFace[vtkPyramid::NumberOfFaces] = {
+constexpr vtkIdType numberOfPointsInFace[vtkPyramid::NumberOfFaces] = {
   4, // 0
   3, // 1
   3, // 2
   3, // 3
   3  // 4
 };
-static constexpr vtkIdType valenceAtPoint[vtkPyramid::NumberOfPoints] = {
+constexpr vtkIdType valenceAtPoint[vtkPyramid::NumberOfPoints] = {
   4, // 0
   3, // 1
   3, // 2
@@ -136,7 +136,7 @@ struct TRIANGLE_CASES_t
   EDGE_LIST edges[13];
 };
 using TRIANGLE_CASES = struct TRIANGLE_CASES_t;
-static TRIANGLE_CASES triCases[] = {
+TRIANGLE_CASES triCases[] = {
   { { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 } }, // 0
   { { 3, 4, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 } },    // 1
   { { 5, 1, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 } },    // 2

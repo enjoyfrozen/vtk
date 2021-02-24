@@ -38,7 +38,7 @@
 
 namespace
 {
-static constexpr vtkIdType Collisions[72] = { 6, 0, 6, 0, 4, 4, 6, 0, 10, 7, // 0
+constexpr vtkIdType Collisions[72] = { 6, 0, 6, 0, 4, 4, 6, 0, 10, 7, // 0
   4, 0, 0, 7, 9, 0, 0, 5, 5, 0,                                              // 10
   0, 0, 5, 9, 0, 6, 0, 6, 4, 4,                                              // 20
   0, 6, 1, 0, 4, 8, 7, 7, 1, 7,                                              // 30

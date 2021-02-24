@@ -65,7 +65,7 @@ const int BlocksPerLevel[2] = { 2, 2 };
 // (level,imin,imax,jmin,jmax,kmin,kmax)
 // Where imin,imax,jmin,jmax,kmin,kmax are defined w.r.t. a virtual grid
 // that covers the entire domain at level 0.
-static int Patches[4][7] = { { 0, 0, 2, 0, 5, 0, 5 }, { 0, 2, 5, 0, 5, 0, 5 },
+int Patches[4][7] = { { 0, 0, 2, 0, 5, 0, 5 }, { 0, 2, 5, 0, 5, 0, 5 },
   { 1, 1, 4, 2, 4, 0, 5 }, { 1, 2, 4, 0, 2, 0, 5 } };
 
 // Define the number of dimensions for the root level virtual grid
