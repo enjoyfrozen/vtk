@@ -890,7 +890,7 @@ void vtkPointLocator::BuildLocator()
 
   // Allocate the bins/buckets and initialize
   this->HashTable = new vtkIdListPtr[numBuckets];
-  memset(this->HashTable, 0, numBuckets * sizeof(vtkIdListPtr));
+  memset(this->HashTable, 0, numBuckets * sizeof(*this->HashTable));
 
   // Compute local variables (for performance reasons)
   // Setup internal data members for more efficient processing.
@@ -1159,7 +1159,7 @@ int vtkPointLocator::InitPointInsertion(
 
   // Initialize bins/buckets
   this->HashTable = new vtkIdListPtr[this->NumberOfBuckets];
-  memset(this->HashTable, 0, this->NumberOfBuckets * sizeof(vtkIdListPtr));
+  memset(this->HashTable, 0, this->NumberOfBuckets * sizeof(*this->HashTable));
 
   //  Compute width of bucket in three directions
   //
