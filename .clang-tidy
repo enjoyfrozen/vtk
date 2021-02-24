@@ -94,7 +94,6 @@ readability-*,\
 -readability-redundant-control-flow,\
 -readability-redundant-preprocessor,\
 -readability-redundant-smartptr-get,\
--readability-redundant-string-cstr,\
 -readability-redundant-string-init,\
 -readability-simplify-boolean-expr,\
 -readability-static-accessed-through-instance,\
