@@ -126,13 +126,13 @@ This function parses the name from a testspec. The calling scope has
 _vtk_test_parse_name(<TESTSPEC>)
 ~~~
 #]==]
-function (_vtk_test_parse_name name)
+function (_vtk_test_parse_name name ext)
   if (name AND name MATCHES "^([^,]*),(.*)$")
     set(test_name "${CMAKE_MATCH_1}" PARENT_SCOPE)
-    set(test_file "${CMAKE_MATCH_2}" PARENT_SCOPE)
+    set(test_file "${CMAKE_MATCH_2}.${ext}" PARENT_SCOPE)
   else ()
     set(test_name "${name}" PARENT_SCOPE)
-    set(test_file "${name}" PARENT_SCOPE)
+    set(test_file "${name}.${ext}" PARENT_SCOPE)
   endif ()
 endfunction ()
 
@@ -289,7 +289,7 @@ function (vtk_add_test_cxx exename _tests)
 
   foreach (name IN LISTS names)
     _vtk_test_set_options("${cxx_options}" "local_" ${_${name}_options})
-    _vtk_test_parse_name("${name}")
+    _vtk_test_parse_name("${name}" "cxx")
 
     set(_D "")
     if (NOT local_NO_DATA)
@@ -317,7 +317,7 @@ function (vtk_add_test_cxx exename _tests)
     ExternalData_add_test("${_vtk_build_TEST_DATA_TARGET}"
       NAME    "${_vtk_build_test}Cxx-${vtk_test_prefix}${test_name}"
       COMMAND "${_vtk_test_cxx_pre_args}" "$<TARGET_FILE:${exename}>"
-              "${test_file}"
+              "${test_name}"
               ${args}
               ${${_vtk_build_test}_ARGS}
               ${${name}_ARGS}
@@ -392,7 +392,7 @@ function (vtk_add_test_mpi exename _tests)
 
   foreach (name IN LISTS names)
     _vtk_test_set_options("${mpi_options}" "local_" ${_${name}_options})
-    _vtk_test_parse_name(${name})
+    _vtk_test_parse_name(${name} "cxx")
 
     set(_D "")
     set(_T "")
@@ -417,7 +417,7 @@ function (vtk_add_test_mpi exename _tests)
               "${MPIEXEC_NUMPROC_FLAG}" "${numprocs}"
               ${MPIEXEC_PREFLAGS}
               "$<TARGET_FILE:${exename}>"
-              "${test_file}"
+              "${test_name}"
               ${_D} ${_T} ${_V}
               ${args}
               ${${_vtk_build_test}_ARGS}
@@ -583,7 +583,7 @@ function (vtk_add_test_python)
 
   foreach (name IN LISTS names)
     _vtk_test_set_options("${python_options}" "local_" ${_${name}_options})
-    _vtk_test_parse_name(${name})
+    _vtk_test_parse_name(${name} "py")
 
     set(_D "")
     if (NOT local_NO_DATA)
@@ -636,7 +636,7 @@ function (vtk_add_test_python)
                  COMMAND ${_vtk_test_python_pre_args}
                          "${_vtk_testing_python_exe}" ${_vtk_test_python_args} --enable-bt
                          ${rtImageTest}
-                         "${_vtk_build_TEST_FILE_DIRECTORY}/${test_file}.py"
+                         "${_vtk_build_TEST_FILE_DIRECTORY}/${test_file}"
                          ${args}
                          ${${_vtk_build_test}_ARGS}
                          ${${name}_ARGS}
