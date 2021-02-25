@@ -14,6 +14,7 @@
 =========================================================================*/
 
 #include "vtkHDFReader.h"
+#include "vtkImageData.h"
 #include "vtkNew.h"
 #include "vtkTesting.h"
 #include <string>
@@ -29,7 +30,7 @@ int TestHDFReader(int argc, char* argv[])
   }
 
   std::string dataRoot = testHelper->GetDataRoot();
-  std::string fileName = dataRoot + "/Data/wavelet-vti.hdf";
+  std::string fileName = dataRoot + "/Data/mandelbrot-vti.hdf";
   vtkNew<vtkHDFReader> reader;
   if (!reader->CanReadFile(fileName.c_str()))
   {
@@ -37,5 +38,20 @@ int TestHDFReader(int argc, char* argv[])
   }
   reader->SetFileName(fileName.c_str());
   reader->Update();
+  vtkImageData* data = vtkImageData::SafeDownCast(reader->GetOutput());
+  if (data == nullptr)
+  {
+    std::cerr << "Error: not vtkImageData" << std::endl;
+    return EXIT_FAILURE;
+  }
+  int* dims = data->GetDimensions();
+  if (dims[0] != 20 || dims[1] != 21 || dims[2] != 22)
+  {
+    std::cerr << "Error: vtkImageData with wrong dimensions: "
+              << "expecting [19, 20, 21] got  [" << dims[0] << ", " << dims[1] << ", " << dims[2]
+              << "]" << std::endl;
+    return EXIT_FAILURE;
+  }
+
   return EXIT_SUCCESS;
 }

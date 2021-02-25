@@ -14,7 +14,7 @@
 =========================================================================*/
 /**
  * @class   vtkHDFReader
- * @brief   Superclass for VTK's HDF format readers.
+ * @brief   VTK's HDF format reader.
  *
  */
 

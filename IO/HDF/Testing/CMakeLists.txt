@@ -1,5 +1,5 @@
 vtk_module_test_data(
-  Data/wavelet-vti.hdf
+  Data/mandelbrot-vti.hdf
   )
 
 add_subdirectory(Cxx)
