@@ -330,6 +330,7 @@ int vtkHDFReader::RequestInformation(vtkInformation* vtkNotUsed(request),
       return 0;
     }
     outInfo->Set(vtkDataObject::SPACING(), this->Spacing, 3);
+    outInfo->Set(CAN_PRODUCE_SUB_EXTENT(), 1);
   }
 
   for (int i = 0; i < vtkHDFReader::GetNumberOfAttributeTypes(); ++i)
@@ -363,10 +364,35 @@ int vtkHDFReader::RequestData(vtkInformation* vtkNotUsed(request),
   std::vector<std::string> cellArrays;
   if (dataSetType == VTK_IMAGE_DATA)
   {
+    std::array<int, 6> updateExtent;
+    outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT(), &updateExtent[0]);
+
+    /*
+    // For debugging
+    int numPieces = outInfo->Get(
+      vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES());
+    int piece = outInfo->Get(
+      vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER());
+    int numGhosts = outInfo->Get(
+      vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_GHOST_LEVELS());
+
+    if (piece == 0)
+    {
+      cout << "Piece:" << piece << " " << numPieces << " " << numGhosts << endl;
+      cout << "Extent: "
+           << updateExtent[0] << " "
+           << updateExtent[1] << " "
+           << updateExtent[2] << " "
+           << updateExtent[3] << " "
+           << updateExtent[4] << " "
+           << updateExtent[5] << endl;
+    }
+    */
+
     vtkImageData* imageData = vtkImageData::SafeDownCast(output);
     imageData->SetOrigin(this->Origin);
     imageData->SetSpacing(this->Spacing);
-    imageData->SetExtent(this->WholeExtent);
+    imageData->SetExtent(&updateExtent[0]);
     // in the same order as vtkDataObject::AttributeTypes: POINT, CELL
     for (int attributeType = 0; attributeType < this->GetNumberOfAttributeTypes(); ++attributeType)
     {
@@ -374,8 +400,9 @@ int vtkHDFReader::RequestData(vtkInformation* vtkNotUsed(request),
       for (auto name : names)
       {
         vtkDataArray* array = nullptr;
-        if ((array = this->Impl->GetArray(attributeType, name.c_str(), this->WholeExtent)) ==
-          nullptr)
+        std::array<hsize_t, 6> fileExtent;
+        std::copy(updateExtent.begin(), updateExtent.end(), fileExtent.begin());
+        if ((array = this->Impl->GetArray(attributeType, name.c_str(), &fileExtent[0])) == nullptr)
         {
           vtkErrorMacro("Error reading array " << name);
           return 0;

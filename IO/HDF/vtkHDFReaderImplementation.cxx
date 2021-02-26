@@ -444,7 +444,7 @@ std::vector<std::string> vtkHDFReader::Implementation::GetArrayNames(int attribu
 
 //------------------------------------------------------------------------------
 hid_t vtkHDFReader::Implementation::OpenDataSet(
-  hid_t group, const char* name, int gridNdims, hid_t* nativeType, int* numberOfComponents)
+  hid_t group, const char* name, int gridNdims, hid_t* nativeType, hsize_t* numberOfComponents)
 {
   bool error = false;
   hid_t dataset = -1;
@@ -516,11 +516,11 @@ hid_t vtkHDFReader::Implementation::OpenDataSet(
 
 //------------------------------------------------------------------------------
 vtkDataArray* vtkHDFReader::Implementation::GetArray(
-  int attributeType, const char* name, int* fileExtent)
+  int attributeType, const char* name, hsize_t* fileExtent)
 {
   hid_t dataset = -1;
   hid_t nativeType = -1;
-  int numberOfComponents = 0;
+  hsize_t numberOfComponents = 0;
   const int gridNdims = 3;
   if ((dataset = this->OpenDataSet(this->AttributeDataGroup[attributeType], name, gridNdims,
          &nativeType, &numberOfComponents)) < 0)
@@ -545,7 +545,7 @@ vtkDataArray* vtkHDFReader::Implementation::GetArray(
 //------------------------------------------------------------------------------
 template <typename T>
 vtkDataArray* vtkHDFReader::Implementation::GetArray(
-  int attributeType, hid_t dataset, int* fileExtent, int numberOfComponents)
+  int attributeType, hid_t dataset, hsize_t* fileExtent, hsize_t numberOfComponents)
 {
   int pointAdjustment = (attributeType == vtkDataObject::POINT ? 1 : 0);
   int numberOfTuples = (fileExtent[1] - fileExtent[0] + pointAdjustment) *
@@ -570,7 +570,7 @@ bool vtkHDFReader::Implementation::GetPartitionInfo(
 {
   hid_t dataset = -1;
   hid_t nativeType = -1;
-  int numberOfComponents = 0;
+  hsize_t numberOfComponents = 0;
   if ((dataset = this->OpenDataSet(this->VTKGroup, name, 1, &nativeType, &numberOfComponents)) < 0)
   {
     return false;
@@ -584,37 +584,51 @@ bool vtkHDFReader::Implementation::GetPartitionInfo(
 //------------------------------------------------------------------------------
 template <typename T>
 bool vtkHDFReader::Implementation::GetArray(
-  int attributeType, hid_t dataset, int* fileExtent, int numberOfComponents, T* data)
+  int attributeType, hid_t dataset, hsize_t* fileExtent, hsize_t numberOfComponents, T* data)
 {
   hid_t nativeType = TemplateToNativeType<T>();
   hid_t memspace = -1;
-  hid_t dataspace = -1;
+  hid_t filespace = -1;
   bool error = false;
   try
   {
     // create the memory space, reverse axis order for VTK fortran order
     int pointAdjustment = (attributeType == vtkDataObject::POINT ? 1 : 0);
-    std::vector<hsize_t> dimsm = { static_cast<hsize_t>(
-                                     fileExtent[5] - fileExtent[4] + pointAdjustment),
-      static_cast<hsize_t>(fileExtent[3] - fileExtent[2] + pointAdjustment),
-      static_cast<hsize_t>(fileExtent[1] - fileExtent[0] + pointAdjustment) };
+    std::vector<hsize_t> count = { fileExtent[5] - fileExtent[4] + pointAdjustment,
+      fileExtent[3] - fileExtent[2] + pointAdjustment,
+      fileExtent[1] - fileExtent[0] + pointAdjustment },
+                         start = { fileExtent[4], fileExtent[2], fileExtent[0] };
     if (numberOfComponents > 1)
     {
-      dimsm.push_back(static_cast<hsize_t>(numberOfComponents));
+      count.push_back(numberOfComponents);
+      start.push_back(0);
     }
-    if ((memspace = H5Screate_simple(dimsm.size(), &dimsm[0], NULL)) < 0)
+    if ((memspace = H5Screate_simple(count.size(), &count[0], NULL)) < 0)
     {
       throw std::runtime_error("Error H5Screate_simple for memory space");
     }
-    // create the file dataspace
-    if ((dataspace = H5Dget_space(dataset)) < 0)
+    // create the filespace and select the required fileExtent
+    if ((filespace = H5Dget_space(dataset)) < 0)
     {
       throw std::runtime_error("Error H5Dget_space for imagedata");
     }
-    // read hyperslab
-    if (H5Dread(dataset, nativeType, memspace, dataspace, H5P_DEFAULT, data) < 0)
+    if (H5Sselect_hyperslab(filespace, H5S_SELECT_SET, &start[0], nullptr, &count[0], nullptr) < 0)
     {
-      throw std::runtime_error(std::string("Error reading imagedata"));
+      std::ostringstream ostr;
+      ostr << "Error selecting hyperslab, "
+           << "start: " << start[0] << ", " << start[1] << ", " << start[2]
+           << " count: " << count[0] << ", " << count[1] << ", " << count[2];
+      throw std::runtime_error(ostr.str());
+    }
+
+    // read hyperslab
+    if (H5Dread(dataset, nativeType, memspace, filespace, H5P_DEFAULT, data) < 0)
+    {
+      std::ostringstream ostr;
+      ostr << "Error H5Dread "
+           << "start: " << start[0] << ", " << start[1] << ", " << start[2]
+           << " count: " << count[0] << ", " << count[1] << ", " << count[2];
+      throw std::runtime_error(ostr.str());
     }
   }
   catch (const std::exception& e)
@@ -626,9 +640,9 @@ bool vtkHDFReader::Implementation::GetArray(
   {
     error = H5Sclose(memspace) < 0 || error;
   }
-  if (dataspace >= 0)
+  if (filespace >= 0)
   {
-    error = H5Sclose(dataspace) < 0 || error;
+    error = H5Sclose(filespace) < 0 || error;
   }
   return !error;
 }

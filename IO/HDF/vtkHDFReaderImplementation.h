@@ -84,7 +84,7 @@ public:
    * Reads and returns a new vtkDataArray of the correct type
    * that has to be deleted by the user.
    */
-  vtkDataArray* GetArray(int attributeType, const char* name, int* fileExtent);
+  vtkDataArray* GetArray(int attributeType, const char* name, hsize_t* fileExtent);
 
 protected:
   /**
@@ -115,7 +115,7 @@ protected:
    * Returns the hdf dataset and sets 'nativeType' and the 'numberOfComponents'.
    */
   hid_t OpenDataSet(
-    hid_t group, const char* name, int gridNdims, hid_t* nativeType, int* numberOfComponents);
+    hid_t group, const char* name, int gridNdims, hid_t* nativeType, hsize_t* numberOfComponents);
   /**
    * Convert C++ template type T to HDF5 native type
    */
@@ -128,9 +128,11 @@ protected:
    * fileExtent slab from the array.
    */
   template <typename T>
-  vtkDataArray* GetArray(int attributeType, hid_t dataset, int* fileExtent, int numberOfComponents);
+  vtkDataArray* GetArray(
+    int attributeType, hid_t dataset, hsize_t* fileExtent, hsize_t numberOfComponents);
   template <typename T>
-  bool GetArray(int attributeType, hid_t dataset, int* fileExtent, int numberOfComponents, T* data);
+  bool GetArray(
+    int attributeType, hid_t dataset, hsize_t* fileExtent, hsize_t numberOfComponents, T* data);
   //@}
   /**
    * Builds a map between native types and GetArray routines for that type.
@@ -153,7 +155,7 @@ private:
   std::array<int, 2> Version;
   vtkHDFReader* Reader;
   using ArrayReader = vtkDataArray* (vtkHDFReader::Implementation::*)(int attributeType,
-    hid_t dataset, int* fileExtent, int numberOfComponents);
+    hid_t dataset, hsize_t* fileExtent, hsize_t numberOfComponents);
   std::map<TypeDescription, ArrayReader> TypeReaderMap;
 };
 
