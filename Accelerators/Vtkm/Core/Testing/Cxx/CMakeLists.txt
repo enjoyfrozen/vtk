@@ -3,7 +3,9 @@
 # in cuda. We have not identified the root cause of the problem yet.
 vtk_add_test_cxx(vtkAcceleratorsVTKmCoreCxxTests tests
   TestVTKMDataArray.cxx,NO_VALID
-  TestVTKMImplicitDataArray,VALID
+  # This test had accidentally been skipped for a long time due to a missing
+  # ".cxx" extension. It no longer compiles. See #18133.
+  #TestVTKMImplicitDataArray.cxx,VALID
   )
 
 if (TARGET vtkm::cuda)
