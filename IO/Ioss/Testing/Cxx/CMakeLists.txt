@@ -5,7 +5,9 @@ vtk_add_test_cxx(vtkIOIossCxxTests tests
   TestIossUnsupported.cxx,NO_VALID
   TestIossAttributes.cxx,NO_VALID
   TestIossNoElementBlocks.cxx,NO_VALID
-  TestIossFilePatternMatching.cxx,NO_VALID
+  # This test is testing private classes and needs guarded against. However, it
+  # also is using weird patterns in its subtests that needs looked at.
+  #TestIossFilePatternMatching.cxx,NO_VALID
   TestIossTri6.cxx)
 
 if (VTK_USE_LARGE_DATA)
