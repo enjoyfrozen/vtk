@@ -41,11 +41,6 @@ set(impl_classes
   vtkmWarpVector
   )
 
-foreach (class IN LISTS impl_classes)
-  list(APPEND sources "${class}.cxx")
-  list(APPEND headers "${class}.h")
-endforeach ()
-
 list(APPEND sources
   "vtkmClipInstantiationsWithField.cxx"
   "vtkmClipInstantiationsWithImplicitFunction.cxx")
@@ -76,7 +71,8 @@ endif ()
 vtk_module_add_module(VTK::AcceleratorsVTKmFilters
   ${force_static}
   SOURCES ${sources}
-  HEADERS ${headers})
+  HEADERS ${headers}
+  CLASSES ${classes})
 _vtk_module_real_target(vtkm_accel_target VTK::AcceleratorsVTKmFilters)
 vtkm_add_target_information(${vtkm_accel_target}
                             EXTENDS_VTKM
