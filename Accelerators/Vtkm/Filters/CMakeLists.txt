@@ -41,9 +41,9 @@ set(impl_classes
   vtkmWarpVector
   )
 
-list(APPEND sources
-  "vtkmClipInstantiationsWithField.cxx"
-  "vtkmClipInstantiationsWithImplicitFunction.cxx")
+set(APPEND sources
+  vtkmClipInstantiationsWithField.cxx
+  vtkmClipInstantiationsWithImplicitFunction.cxx)
 
 configure_file(
   "${CMAKE_CURRENT_SOURCE_DIR}/vtkmConfigFilters.h.in"
