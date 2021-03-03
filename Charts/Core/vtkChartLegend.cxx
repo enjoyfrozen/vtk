@@ -298,17 +298,10 @@ bool vtkChartLegend::Hit(const vtkContextMouseEvent& mouse)
   {
     return false;
   }
-  if (this->DragEnabled && mouse.GetPos().GetX() > this->Rect.GetX() &&
+  return (this->DragEnabled && mouse.GetPos().GetX() > this->Rect.GetX() &&
     mouse.GetPos().GetX() < this->Rect.GetX() + this->Rect.GetWidth() &&
     mouse.GetPos().GetY() > this->Rect.GetY() &&
-    mouse.GetPos().GetY() < this->Rect.GetY() + this->Rect.GetHeight())
-  {
-    return true;
-  }
-  else
-  {
-    return false;
-  }
+    mouse.GetPos().GetY() < this->Rect.GetY() + this->Rect.GetHeight());
 }
 
 //------------------------------------------------------------------------------
