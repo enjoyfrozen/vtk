@@ -587,18 +587,14 @@ bool vtkViewTheme::LookupMatchesPointTheme(vtkScalarsToColors* s2c)
   {
     return false;
   }
-  if (lut->GetHueRange()[0] == this->GetPointHueRange()[0] &&
+  return (lut->GetHueRange()[0] == this->GetPointHueRange()[0] &&
     lut->GetHueRange()[1] == this->GetPointHueRange()[1] &&
     lut->GetSaturationRange()[0] == this->GetPointSaturationRange()[0] &&
     lut->GetSaturationRange()[1] == this->GetPointSaturationRange()[1] &&
     lut->GetValueRange()[0] == this->GetPointValueRange()[0] &&
     lut->GetValueRange()[1] == this->GetPointValueRange()[1] &&
     lut->GetAlphaRange()[0] == this->GetPointAlphaRange()[0] &&
-    lut->GetAlphaRange()[1] == this->GetPointAlphaRange()[1])
-  {
-    return true;
-  }
-  return false;
+    lut->GetAlphaRange()[1] == this->GetPointAlphaRange()[1]);
 }
 
 bool vtkViewTheme::LookupMatchesCellTheme(vtkScalarsToColors* s2c)
@@ -612,18 +608,14 @@ bool vtkViewTheme::LookupMatchesCellTheme(vtkScalarsToColors* s2c)
   {
     return false;
   }
-  if (lut->GetHueRange()[0] == this->GetCellHueRange()[0] &&
+  return (lut->GetHueRange()[0] == this->GetCellHueRange()[0] &&
     lut->GetHueRange()[1] == this->GetCellHueRange()[1] &&
     lut->GetSaturationRange()[0] == this->GetCellSaturationRange()[0] &&
     lut->GetSaturationRange()[1] == this->GetCellSaturationRange()[1] &&
     lut->GetValueRange()[0] == this->GetCellValueRange()[0] &&
     lut->GetValueRange()[1] == this->GetCellValueRange()[1] &&
     lut->GetAlphaRange()[0] == this->GetCellAlphaRange()[0] &&
-    lut->GetAlphaRange()[1] == this->GetCellAlphaRange()[1])
-  {
-    return true;
-  }
-  return false;
+    lut->GetAlphaRange()[1] == this->GetCellAlphaRange()[1]);
 }
 
 void vtkViewTheme::PrintSelf(ostream& os, vtkIndent indent)
