@@ -745,7 +745,7 @@ int vtkPolygon::PointInPolygon(double x[3], int numPts, double* pts, double boun
     //  Generate ray
     //
     bool rayOK;
-    for (rayOK = false; rayOK == false;)
+    for (rayOK = false; !rayOK;)
     {
       ray[comps[0]] = vtkMath::Random(-rayMag, rayMag);
       ray[comps[1]] = vtkMath::Random(-rayMag, rayMag);

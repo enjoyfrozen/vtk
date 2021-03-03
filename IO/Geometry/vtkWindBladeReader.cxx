@@ -264,7 +264,7 @@ int vtkWindBladeReader::RequestInformation(vtkInformation* reqInfo,
   if (this->NumberOfVariables == 0)
   {
     // Read the size of the problem and variables in data set
-    if (this->ReadGlobalData() == false)
+    if (!this->ReadGlobalData())
     {
       return 0;
     }
@@ -1629,7 +1629,7 @@ bool vtkWindBladeReader::SetUpGlobalData(const std::string& fileName, std::strin
       {
         lineStr >> this->NumberOfFileVariables;
         this->ReadDataVariables(inStr);
-        if (this->FindVariableOffsets() == false)
+        if (!this->FindVariableOffsets())
         {
           return false;
         }

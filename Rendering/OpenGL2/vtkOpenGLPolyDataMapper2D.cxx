@@ -134,15 +134,10 @@ bool vtkOpenGLPolyDataMapper2D::GetNeedToRebuildShaders(
   // property modified (representation interpolation and lighting)
   // input modified
   // light complexity changed
-  if (cellBO.Program == nullptr || cellBO.ShaderSourceTime < this->GetMTime() ||
+  return (cellBO.Program == nullptr || cellBO.ShaderSourceTime < this->GetMTime() ||
     cellBO.ShaderSourceTime < actor->GetMTime() ||
     cellBO.ShaderSourceTime < this->GetInput()->GetMTime() ||
-    cellBO.ShaderSourceTime < this->PickStateChanged)
-  {
-    return true;
-  }
-
-  return false;
+    cellBO.ShaderSourceTime < this->PickStateChanged);
 }
 
 //------------------------------------------------------------------------------
