@@ -169,17 +169,10 @@ public:
   // needs to refer to the state of the edge.
   bool GeneratePrimitives(unsigned char* ePtr[4])
   {
-    if (*ePtr[0] >= vtkExtractSurfaceAlgorithm::Invalid ||
+    return !(*ePtr[0] >= vtkExtractSurfaceAlgorithm::Invalid ||
       *ePtr[1] >= vtkExtractSurfaceAlgorithm::Invalid ||
       *ePtr[2] >= vtkExtractSurfaceAlgorithm::Invalid ||
-      *ePtr[3] >= vtkExtractSurfaceAlgorithm::Invalid)
-    {
-      return false;
-    }
-    else
-    {
-      return true;
-    }
+      *ePtr[3] >= vtkExtractSurfaceAlgorithm::Invalid);
   }
 
   // Return the number of contouring primitives for a particular edge case number.
@@ -392,7 +385,6 @@ public:
       for (; slice < end; ++slice)
       {
         // It's possible to skip entire slices if there is nothing to generate
-        if (true)
         //          if ( eMD1[3] > eMD0[3] ) //there are triangle primitives!
         {
           for (row = 0, rowPtr = slicePtr; row < this->Algo->Dims[1] - 1; ++row)
