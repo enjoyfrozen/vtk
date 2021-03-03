@@ -40,7 +40,7 @@ struct vtkSMPToolsInit
   }
 };
 
-static bool vtkSMPToolsInitialized = 0;
+static bool vtkSMPToolsInitialized = false;
 static int vtkTBBNumSpecifiedThreads = 0;
 static std::mutex vtkSMPToolsCS;
 
