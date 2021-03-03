@@ -2015,7 +2015,7 @@ inline bool IsCellBoundaryImp(vtkUnstructuredGrid* self, TLinks* links, bool sha
       {
         // check all other lists for inclusion
         bool inAllLists = true;
-        for (auto linkArray = 0; inAllLists == true && linkArray < npts; ++linkArray)
+        for (auto linkArray = 0; inAllLists && linkArray < npts; ++linkArray)
         {
           if (linkArray == minList)
           {
@@ -2119,7 +2119,7 @@ inline void GetCellNeighborsImp(TLinks* links, bool vtkNotUsed(shareable), vtkId
     {
       // check all other lists for inclusion
       bool inAllLists = true;
-      for (auto linkArray = 1; inAllLists == true && linkArray < npts; ++linkArray)
+      for (auto linkArray = 1; inAllLists && linkArray < npts; ++linkArray)
       {
         ncells = links->GetNcells(pts[linkArray]);
         c = links->GetCells(pts[linkArray]);
