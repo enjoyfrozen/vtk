@@ -879,7 +879,7 @@ int vtkCGNSReader::vtkPrivate::getGridAndSolutionNames(int base, std::string& gr
       {
         if (!stepNumbers.empty())
         {
-          if (stepRe.find(nodeName) == true &&
+          if (stepRe.find(nodeName) &&
             stepNumbers.find(atoi(stepRe.match(1).c_str())) != stepNumbers.end())
           {
             // the current nodeName ends with a number that matches the current timestep
@@ -1254,7 +1254,7 @@ int vtkCGNSReader::vtkPrivate::readSolution(const std::string& solutionNameStr, 
     const char* fieldDataType = get_data_type(cgnsVars[ff].dt);
 
     // quick transfer of data because data types is given by cgns database
-    if (cgnsVars[ff].isComponent == false)
+    if (!cgnsVars[ff].isComponent)
     {
       if (cgio_read_data_type(self->cgioNum, cgioVarId, fieldSrcStart, fieldSrcEnd, fieldSrcStride,
             fieldDataType, cellDim, fieldMemDims, fieldMemStart, fieldMemEnd, fieldMemStride,
@@ -1301,7 +1301,7 @@ int vtkCGNSReader::vtkPrivate::readSolution(const std::string& solutionNameStr, 
       continue;
     }
 
-    if (cgnsVars[nv].isComponent == false)
+    if (!cgnsVars[nv].isComponent)
     {
       dsa->AddArray(vtkVars[nv]);
       vtkVars[nv]->Delete();
@@ -1435,7 +1435,7 @@ int vtkCGNSReader::vtkPrivate::readBCData(double nodeId, int cellDim, int physic
         for (std::size_t var = 0; var < cgnsVars.size(); var++)
         {
           vtkVars[var] = nullptr;
-          if (cgnsVars[var].isComponent == false)
+          if (!cgnsVars[var].isComponent)
           {
             switch (cgnsVars[var].dt)
             {
@@ -1528,7 +1528,7 @@ int vtkCGNSReader::vtkPrivate::readBCData(double nodeId, int cellDim, int physic
           if (dataSize == 1 || dataSize == numValues)
           {
             // quick transfer of data because data types is given by cgns database
-            if (cgnsVars[ff].isComponent == false)
+            if (!cgnsVars[ff].isComponent)
             {
               if (cgio_read_all_data_type(self->cgioNum, cgioVarId, fieldDataType,
                     (void*)vtkVars[ff]->GetVoidPointer(0)) != CG_OK)
@@ -1608,7 +1608,7 @@ int vtkCGNSReader::vtkPrivate::readBCData(double nodeId, int cellDim, int physic
             continue;
           }
 
-          if (cgnsVars[nv].isComponent == false)
+          if (!cgnsVars[nv].isComponent)
           {
             dsa->AddArray(vtkVars[nv]);
             vtkVars[nv]->Delete();
@@ -1685,9 +1685,9 @@ int vtkCGNSReader::vtkPrivate::AllocateVtkArray(int physicalDim, vtkIdType nVals
   {
     vtkVars[ff] = nullptr;
 
-    if (cgnsVars[ff].isComponent == false)
+    if (!cgnsVars[ff].isComponent)
     {
-      if (vtkPrivate::IsVarEnabled(varCentering, cgnsVars[ff].name, self) == false)
+      if (!vtkPrivate::IsVarEnabled(varCentering, cgnsVars[ff].name, self))
       {
         continue;
       }
@@ -1724,7 +1724,7 @@ int vtkCGNSReader::vtkPrivate::AllocateVtkArray(int physicalDim, vtkIdType nVals
   {
     vtkDataArray* arr = nullptr;
 
-    if (vtkPrivate::IsVarEnabled(varCentering, iter->name, self) == false)
+    if (!vtkPrivate::IsVarEnabled(varCentering, iter->name, self))
     {
       continue;
     }
@@ -2087,7 +2087,7 @@ int vtkCGNSReader::GetUnstructuredZone(
 
   ////=========================================================================
   const bool warningIdTypeSize = sizeof(cgsize_t) > sizeof(vtkIdType);
-  if (warningIdTypeSize == true)
+  if (warningIdTypeSize)
   {
     vtkWarningMacro(<< "Warning cgsize_t is larger than the size as vtkIdType\n"
                     << "  sizeof vtkIdType = " << sizeof(vtkIdType) << "\n"
@@ -2097,7 +2097,7 @@ int vtkCGNSReader::GetUnstructuredZone(
   }
 ////========================================================================
 #if !defined(VTK_LEGACY_REMOVE)
-  if (this->LoadMesh == false)
+  if (!this->LoadMesh)
   {
     vtkWarningMacro(<< "Ability to not load mesh is currently only supported"
                     << "for curvilinear grids and will be ignored.");
@@ -2940,7 +2940,7 @@ int vtkCGNSReader::GetUnstructuredZone(
               localElements[pos] = localElements[pos] - 1;
             }
           }
-          if (reOrderElements == true)
+          if (reOrderElements)
           {
             CGNSRead::CGNS2VTKorderMonoElem(elementSize, cellType, localElements);
           }
@@ -2995,7 +2995,7 @@ int vtkCGNSReader::GetUnstructuredZone(
             pos += numPointsPerCell;
           }
 
-          if (reOrderElements == true)
+          if (reOrderElements)
           {
             CGNSRead::CGNS2VTKorder(elementSize, &cellsTypes[start - 1], localElements);
           }
@@ -3236,7 +3236,7 @@ int vtkCGNSReader::GetUnstructuredZone(
 
                   for (std::size_t idx = 0; idx < BCElementRead.size(); idx++)
                   {
-                    if (BCElementRead[idx] == true)
+                    if (BCElementRead[idx])
                     {
                       continue;
                     }
@@ -3843,7 +3843,7 @@ int vtkCGNSReader::GetUnstructuredZone(
 
                   for (std::size_t idx = 0; idx < BCElementRead.size(); idx++)
                   {
-                    if (BCElementRead[idx] == true)
+                    if (BCElementRead[idx])
                     {
                       continue;
                     }
@@ -4423,7 +4423,7 @@ int vtkCGNSReader::RequestData(vtkInformation* vtkNotUsed(request),
         this->ActualTimeStep = static_cast<int>(iter - curBaseInfo.times.begin());
       }
     }
-    if (skipBase == true)
+    if (skipBase)
     {
       continue;
     }
@@ -4532,7 +4532,7 @@ int vtkCGNSReader::RequestData(vtkInformation* vtkNotUsed(request),
         famId = 0;
       }
 
-      if (familyName.empty() == false)
+      if (!familyName.empty())
       {
         vtkInformationStringKey* zonefamily = vtkCGNSReader::FAMILY();
         mbase->GetMetaData(zone)->Set(zonefamily, familyName.c_str());
@@ -4678,7 +4678,7 @@ int vtkCGNSReader::RequestInformation(vtkInformation* vtkNotUsed(request),
   for (int base = 0; base < this->Internals->Internal->GetNumberOfBaseNodes(); ++base)
   {
     const CGNSRead::BaseInformation& curBase = this->Internals->Internal->GetBase(base);
-    this->BaseSelection->AddArray(curBase.name, base == 0 ? true : false);
+    this->BaseSelection->AddArray(curBase.name, base == 0);
 
     // add families.
     for (auto& finfo : curBase.family)
