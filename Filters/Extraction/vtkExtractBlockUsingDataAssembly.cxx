@@ -271,7 +271,7 @@ int vtkExtractBlockUsingDataAssembly::RequestData(
         {
           // eventually, here we'll add all data assemblies defined on the input
           // so they can be mapped to the output.
-          input_assemblies.push_back(inputPDC->GetDataAssembly());
+          input_assemblies.emplace_back(inputPDC->GetDataAssembly());
         }
       }
 
