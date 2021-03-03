@@ -69,7 +69,7 @@ int vtkArrayDataReader::RequestData(
     vtkArrayData* array_data = nullptr;
     if (this->ReadFromInputString)
     {
-      array_data = this->Read(this->InputString);
+      array_data = vtkArrayDataReader::Read(this->InputString);
     }
     else
     {
@@ -78,7 +78,7 @@ int vtkArrayDataReader::RequestData(
 
       vtksys::ifstream file(this->FileName, std::ios::binary);
 
-      array_data = this->Read(file);
+      array_data = vtkArrayDataReader::Read(file);
     }
     if (!array_data)
       throw std::runtime_error("Error reading vtkArrayData.");
