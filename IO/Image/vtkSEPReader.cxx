@@ -343,7 +343,9 @@ bool vtkSEPReader::ReadHeader()
         }
         else
         {
-          this->BinaryFilename = path + "/" + value;
+          this->BinaryFilename = path;
+          this->BinaryFilename += '/';
+          this->BinaryFilename += value;
         }
       }
     }
