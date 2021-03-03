@@ -188,10 +188,12 @@ def request_piece(reader, parallel, piece):
 
 
 # ------------------------------------------------------------------------------
-def create_support_imagedata(reader, data, number_of_pieces, vtkhdf_group):
+def create_support_imagedata(reader, data, vtkhdf_group):
     """
-    Create attributes WholeExtent, Origin, Spacing, Direction and a dataset
-    Extents (needed for showing pieces) needed for an ImageData
+    Create attributes WholeExtent, Origin, Spacing, Direction
+    needed for an ImageData. Note that we don't split an
+    image data into pieces. We rely on hdf5 chunking to
+    optimize reading for given number of MPI ranks.
     """
     out_info = reader.GetOutputInformation(0)
     whole_extent = out_info.Get(
@@ -203,10 +205,7 @@ def create_support_imagedata(reader, data, number_of_pieces, vtkhdf_group):
     vtkhdf_group.attrs.create("Spacing", data.GetSpacing())
     vtkhdf_group.attrs.create("Direction",
                               data.GetDirectionMatrix().GetData())
-    extents = vtkhdf_group.create_dataset(
-        "Extents", (number_of_pieces, 6))
-    extents[0, 0:] = data.GetExtent()
-    return (extents, whole_extent)
+    return whole_extent
 
 
 # ------------------------------------------------------------------------------
@@ -376,8 +375,8 @@ def main(args):
         vtkhdf_group = hdffile.create_group("VTKHDF")
         vtkhdf_group.attrs.create("Version", [1, 0])
         if dataset_type == vtk.VTK_IMAGE_DATA:
-            extents, whole_extent = create_support_imagedata(
-                reader, data, number_of_pieces, vtkhdf_group)
+            whole_extent = create_support_imagedata(
+                reader, data, vtkhdf_group)
             extent = data.GetExtent()
         elif dataset_type == vtk.VTK_UNSTRUCTURED_GRID:
             (points, points_size, connectivity, connectivity_size,
@@ -406,7 +405,6 @@ def main(args):
             data = request_piece(reader, parallel, piece)[1]
             if dataset_type == vtk.VTK_IMAGE_DATA:
                 extent = data.GetExtent()
-                extents[piece, 0:] = extent
             elif dataset_type == vtk.VTK_UNSTRUCTURED_GRID:
                 (points_size, connectivity_size,
                  offset_size, types_size) = append_support_unstructuredgrid(
