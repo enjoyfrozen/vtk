@@ -63,7 +63,6 @@ mpi-*,\
 openmp-*,\
 performance-*,\
 -performance-type-promotion-in-math-fn,\
--performance-unnecessary-value-param,\
 portability-*,\
 readability-*,\
 -readability-braces-around-statements,\
