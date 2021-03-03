@@ -68,12 +68,8 @@ bool vtkOpenGLVolumeTransferFunction2D::NeedsUpdate(vtkObject* func,
   {
     return false;
   }
-  if (func->GetMTime() > this->BuildTime || this->TextureObject->GetMTime() > this->BuildTime ||
-    !this->TextureObject->GetHandle())
-  {
-    return true;
-  }
-  return false;
+  return (func->GetMTime() > this->BuildTime || this->TextureObject->GetMTime() > this->BuildTime ||
+    !this->TextureObject->GetHandle());
 }
 
 //------------------------------------------------------------------------------
