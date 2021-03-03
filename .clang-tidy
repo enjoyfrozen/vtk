@@ -78,7 +78,6 @@ readability-*,\
 -readability-qualified-auto,\
 -readability-redundant-declaration,\
 -readability-redundant-preprocessor,\
--readability-uppercase-literal-suffix,\
 -readability-use-anyofallof,\
 "
 #WarningsAsErrors: "*"
