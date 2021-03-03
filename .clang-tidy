@@ -65,7 +65,6 @@ modernize-*,\
 mpi-*,\
 openmp-*,\
 performance-*,\
--performance-noexcept-move-constructor,\
 -performance-type-promotion-in-math-fn,\
 -performance-unnecessary-copy-initialization,\
 -performance-unnecessary-value-param,\
