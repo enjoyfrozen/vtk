@@ -63,11 +63,7 @@ static bool TestTemplate2Macro()
     return false;
   }
   in = 2;
-  if (!RunTemplate2Macro2(NIn, &in, NOut, &out) || out != 2)
-  {
-    return false;
-  }
-  return true;
+  return !(!RunTemplate2Macro2(NIn, &in, NOut, &out) || out != 2);
 }
 
 int TestTemplateMacro(int, char*[])

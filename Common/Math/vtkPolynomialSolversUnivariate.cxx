@@ -115,7 +115,7 @@ ostream& vtkPolynomialSolversUnivariate::PrintPolynomial(ostream& os, double* P,
 // Double precision comparison with 0
 inline bool IsZero(double x)
 {
-  return (fabs(x) < absolute0) ? true : false;
+  return fabs(x) < absolute0;
 }
 
 //------------------------------------------------------------------------------
@@ -136,11 +136,11 @@ inline bool AreEqual(double x, double y, double rTol)
   double absy = fabs(y);
   if (absx > absy)
   {
-    return delta > rTol * absx ? false : true;
+    return delta <= rTol * absx;
   }
   else
   {
-    return delta > rTol * absy ? false : true;
+    return delta <= rTol * absy;
   }
 }
 
@@ -1186,7 +1186,7 @@ static int vtkHabichtOrSturmBisectionSolve(double* P, int d, double* a, double* 
       } // While ub[nloc] - lb[nloc] > tol
 
       bisection[nloc] = false;
-      if (bisect == false)
+      if (!bisect)
       {
         // Move on to next interval.
         continue;

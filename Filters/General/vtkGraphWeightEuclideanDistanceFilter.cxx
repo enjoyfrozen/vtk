@@ -37,11 +37,7 @@ float vtkGraphWeightEuclideanDistanceFilter::ComputeWeight(
 bool vtkGraphWeightEuclideanDistanceFilter::CheckRequirements(vtkGraph* const graph) const
 {
   vtkPoints* points = graph->GetPoints();
-  if (!points)
-  {
-    return false;
-  }
-  return true;
+  return points != nullptr;
 }
 
 //------------------------------------------------------------------------------

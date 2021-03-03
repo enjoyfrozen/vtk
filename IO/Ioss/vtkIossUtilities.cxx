@@ -78,7 +78,7 @@ void Cache::ClearUnused()
   auto iter = internals.CacheMap.begin();
   while (iter != internals.CacheMap.end())
   {
-    if (iter->second.second == false)
+    if (!iter->second.second)
     {
       iter = internals.CacheMap.erase(iter);
     }
