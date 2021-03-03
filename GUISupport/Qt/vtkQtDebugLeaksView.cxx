@@ -89,14 +89,14 @@ vtkQtDebugLeaksView::vtkQtDebugLeaksView(QWidget* p)
 
   this->connect(filterHelpButton, SIGNAL(clicked()), SLOT(onFilterHelp()));
 
-  this->connect(this->Internal->TableView->selectionModel(),
+  vtkQtDebugLeaksView::connect(this->Internal->TableView->selectionModel(),
     SIGNAL(currentRowChanged(const QModelIndex&, const QModelIndex&)), this,
     SLOT(onCurrentRowChanged(const QModelIndex&)));
 
-  this->connect(this->Internal->TableView, SIGNAL(doubleClicked(const QModelIndex&)), this,
+  vtkQtDebugLeaksView::connect(this->Internal->TableView, SIGNAL(doubleClicked(const QModelIndex&)), this,
     SLOT(onRowDoubleClicked(const QModelIndex&)));
 
-  this->connect(this->Internal->ReferenceTableView, SIGNAL(doubleClicked(const QModelIndex&)), this,
+  vtkQtDebugLeaksView::connect(this->Internal->ReferenceTableView, SIGNAL(doubleClicked(const QModelIndex&)), this,
     SLOT(onRowDoubleClicked(const QModelIndex&)));
 
   this->resize(400, 600);

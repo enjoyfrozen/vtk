@@ -1114,7 +1114,7 @@ void vtkFixedPointVolumeRayCastMapper::PerVolumeInitialization(vtkRenderer* ren,
   }
 
   int usingCellColors;
-  this->CurrentScalars = this->GetScalars(input, this->ScalarMode, this->ArrayAccessMode,
+  this->CurrentScalars = vtkFixedPointVolumeRayCastMapper::GetScalars(input, this->ScalarMode, this->ArrayAccessMode,
     this->ArrayId, this->ArrayName, usingCellColors);
 
   if (usingCellColors)

@@ -492,7 +492,7 @@ void vtkUnstructuredGridLinearRayIntegrator::Integrate(vtkDoubleArray* intersect
             }
           }
         }
-        this->IntegrateRay(length, nearcolor, nearcolor[3], farcolor, farcolor[3], color);
+        vtkUnstructuredGridPartialPreIntegration::IntegrateRay(length, nearcolor, nearcolor[3], farcolor, farcolor[3], color);
 
         nearInterpolant = farInterpolant;
       }
@@ -510,7 +510,7 @@ void vtkUnstructuredGridLinearRayIntegrator::Integrate(vtkDoubleArray* intersect
         double length = intersectionLengths->GetValue(i);
         double* nearcolor = nearIntersections->GetTuple(i);
         double* farcolor = farIntersections->GetTuple(i);
-        this->IntegrateRay(length, nearcolor, nearcolor[3] / unitdistance, farcolor,
+        vtkUnstructuredGridPartialPreIntegration::IntegrateRay(length, nearcolor, nearcolor[3] / unitdistance, farcolor,
           farcolor[3] / unitdistance, color);
       }
     }
@@ -521,7 +521,7 @@ void vtkUnstructuredGridLinearRayIntegrator::Integrate(vtkDoubleArray* intersect
         double length = intersectionLengths->GetValue(i);
         double* nearcolor = nearIntersections->GetTuple(i);
         double* farcolor = farIntersections->GetTuple(i);
-        this->IntegrateRay(length, nearcolor[0], nearcolor[1] / unitdistance, farcolor[0],
+        vtkUnstructuredGridPartialPreIntegration::IntegrateRay(length, nearcolor[0], nearcolor[1] / unitdistance, farcolor[0],
           farcolor[1] / unitdistance, color);
       }
     }

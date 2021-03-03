@@ -3250,17 +3250,17 @@ void vtkOpenGLPolyDataMapper::GetCoincidentParameters(
   factor = 0.0;
   offset = 0.0;
   int primType = this->LastBoundBO->PrimitiveType;
-  if (this->GetResolveCoincidentTopology() == VTK_RESOLVE_SHIFT_ZBUFFER &&
+  if (vtkOpenGLPolyDataMapper::GetResolveCoincidentTopology() == VTK_RESOLVE_SHIFT_ZBUFFER &&
     (primType == PrimitiveTris || primType == vtkOpenGLPolyDataMapper::PrimitiveTriStrips))
   {
     // do something rough is better than nothing
-    double zRes = this->GetResolveCoincidentTopologyZShift(); // 0 is no shift 1 is big shift
+    double zRes = vtkOpenGLPolyDataMapper::GetResolveCoincidentTopologyZShift(); // 0 is no shift 1 is big shift
     double f = zRes * 4.0;
     offset = f;
   }
 
   vtkProperty* prop = actor->GetProperty();
-  if ((this->GetResolveCoincidentTopology() == VTK_RESOLVE_POLYGON_OFFSET) ||
+  if ((vtkOpenGLPolyDataMapper::GetResolveCoincidentTopology() == VTK_RESOLVE_POLYGON_OFFSET) ||
     (prop->GetEdgeVisibility() && prop->GetRepresentation() == VTK_SURFACE) ||
     this->DrawingSelection)
   {
@@ -4277,17 +4277,16 @@ void vtkOpenGLPolyDataMapper::BuildSelectionIBO(
   }
 
   // build OpenGL IBO from vtkCellArray list
-  this->SelectionPrimitives[PrimitivePoints].IBO->AppendPointIndexBuffer(
+  vtkOpenGLPolyDataMapper::AppendPointIndexBuffer(
     indices[0], this->SelectionArrays[0], offset);
 
   if (fieldType == vtkSelectionNode::SelectionField::POINT)
   {
-    this->SelectionPrimitives[PrimitiveLines].IBO->AppendPointIndexBuffer(
+    vtkOpenGLPolyDataMapper::AppendPointIndexBuffer(
       indices[1], this->SelectionArrays[1], offset);
-    this->SelectionPrimitives[PrimitiveTris].IBO->AppendPointIndexBuffer(
+    vtkOpenGLPolyDataMapper::ppendPointIndexBuffer(
       indices[2], this->SelectionArrays[2], offset);
-    this->SelectionPrimitives[vtkOpenGLPolyDataMapper::PrimitiveTriStrips]
-      .IBO->AppendPointIndexBuffer(indices[3], this->SelectionArrays[3], offset);
+    vtkOpenGLPolyDataMapper::AppendPointIndexBuffer(indices[3], this->SelectionArrays[3], offset);
     this->SelectionType = VTK_POINTS;
   }
   else
