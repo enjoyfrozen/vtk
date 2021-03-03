@@ -686,11 +686,11 @@ bool vtkLagrangianParticleTracker::FinalizeOutputs(
         }
         if (this->GeneratePolyVertexInteractionOutput)
         {
-          this->InsertPolyVertexCell(pdBlock);
+          vtkLagrangianParticleTracker::InsertPolyVertexCell(pdBlock);
         }
         else
         {
-          this->InsertVertexCells(pdBlock);
+          vtkLagrangianParticleTracker::InsertVertexCells(pdBlock);
         }
       }
     }
@@ -698,11 +698,11 @@ bool vtkLagrangianParticleTracker::FinalizeOutputs(
     {
       if (this->GeneratePolyVertexInteractionOutput)
       {
-        this->InsertPolyVertexCell(pdInteractionOutput);
+        vtkLagrangianParticleTracker::InsertPolyVertexCell(pdInteractionOutput);
       }
       else
       {
-        this->InsertVertexCells(pdInteractionOutput);
+        vtkLagrangianParticleTracker::InsertVertexCells(pdInteractionOutput);
       }
     }
   }
