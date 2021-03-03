@@ -743,7 +743,8 @@ bool vtkGLTFDocumentLoader::LoadAnimationData()
       // Get actual tuple size when loading morphing weights
       unsigned int numberOfComponents = sampler.OutputData->GetNumberOfComponents();
       // If we're loading T/R/S, tuple size is already set (to 3 or 4) in outputdata.
-      if (numberOfComponents == this->GetNumberOfComponentsForType(AccessorType::SCALAR))
+      if (numberOfComponents ==
+        vtkGLTFDocumentLoader::GetNumberOfComponentsForType(AccessorType::SCALAR))
       {
         unsigned int nInput = sampler.InputData->GetNumberOfValues();
         unsigned int nOutput = sampler.OutputData->GetNumberOfValues();
@@ -881,7 +882,7 @@ bool vtkGLTFDocumentLoader::LoadSkinMatrixData()
     vtkArrayDispatch::DispatchByArray<AttributeArrayTypes>::Execute(matrixValues, worker);
 
     size_t totalNumberOfComponents =
-      skin.Joints.size() * this->GetNumberOfComponentsForType(AccessorType::MAT4);
+      skin.Joints.size() * vtkGLTFDocumentLoader::GetNumberOfComponentsForType(AccessorType::MAT4);
     if (!worker.Result ||
       static_cast<size_t>(matrixValues->GetNumberOfValues()) != totalNumberOfComponents)
     {
@@ -959,15 +960,18 @@ bool vtkGLTFDocumentLoader::ApplyAnimation(float t, int animationId, bool forceS
     switch (channel.TargetPath)
     {
       case Animation::Channel::PathType::ROTATION:
-        numberOfComponents = this->GetNumberOfComponentsForType(AccessorType::VEC4);
+        numberOfComponents =
+          vtkGLTFDocumentLoader::GetNumberOfComponentsForType(AccessorType::VEC4);
         target = &(node.Rotation);
         break;
       case Animation::Channel::PathType::TRANSLATION:
-        numberOfComponents = this->GetNumberOfComponentsForType(AccessorType::VEC3);
+        numberOfComponents =
+          vtkGLTFDocumentLoader::GetNumberOfComponentsForType(AccessorType::VEC3);
         target = &(node.Translation);
         break;
       case Animation::Channel::PathType::SCALE:
-        numberOfComponents = this->GetNumberOfComponentsForType(AccessorType::VEC3);
+        numberOfComponents =
+          vtkGLTFDocumentLoader::GetNumberOfComponentsForType(AccessorType::VEC3);
         target = &(node.Scale);
         break;
       case Animation::Channel::PathType::WEIGHTS:
