@@ -419,13 +419,9 @@ bool vtkOpenGLPolyDataMapper::DrawingEdges(vtkRenderer*, vtkActor* actor)
     return false;
   }
 
-  if (actor->GetProperty()->GetEdgeVisibility() &&
+  return (actor->GetProperty()->GetEdgeVisibility() &&
     this->GetOpenGLMode(
-      actor->GetProperty()->GetRepresentation(), this->LastBoundBO->PrimitiveType) == GL_TRIANGLES)
-  {
-    return true;
-  }
-  return false;
+      actor->GetProperty()->GetRepresentation(), this->LastBoundBO->PrimitiveType) == GL_TRIANGLES);
 }
 
 //-----------------------------------------------------------------------------
@@ -3456,7 +3452,7 @@ void vtkOpenGLPolyDataMapper::RenderPieceDraw(vtkRenderer* ren, vtkActor* actor)
                                     : vtkOpenGLPolyDataMapper::PrimitiveTriStrips + 1);
        i++)
   {
-    this->DrawingVertices = (i > vtkOpenGLPolyDataMapper::PrimitiveTriStrips ? true : false);
+    this->DrawingVertices = (i > vtkOpenGLPolyDataMapper::PrimitiveTriStrips);
     this->DrawingSelection = false;
     if (this->Primitives[i].IBO->IndexCount)
     {

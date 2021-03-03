@@ -350,7 +350,7 @@ void vtkValuePass::SetInputArrayToProcess(int fieldAssociation, const char* name
 {
   if (this->PassState->ArrayAccessMode != VTK_GET_ARRAY_BY_NAME ||
     this->PassState->ArrayMode != fieldAssociation ||
-    this->PassState->ArrayName.compare(name) != false)
+    this->PassState->ArrayName.compare(name))
   {
     this->PassState->ArrayMode = fieldAssociation;
     this->PassState->ArrayName = std::string(name);

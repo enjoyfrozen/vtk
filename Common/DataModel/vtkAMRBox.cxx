@@ -217,24 +217,16 @@ bool vtkAMRBox::HasPoint(const vtkAMRBox& box, const double origin[3], const dou
   double min[3] = { bb[0], bb[2], bb[4] };
   double max[3] = { bb[1], bb[3], bb[5] };
 
-  if (x >= min[0] && x <= max[0] && y >= min[1] && y <= max[1] && z >= min[2] && z <= max[2])
-  {
-    return true;
-  }
-  return false;
+  return (x >= min[0] && x <= max[0] && y >= min[1] && y <= max[1] && z >= min[2] && z <= max[2]);
 }
 
 //------------------------------------------------------------------------------
 bool vtkAMRBox::operator==(const vtkAMRBox& other) const
 {
-  if ((this->Empty() && other.Empty()) ||
+  return ((this->Empty() && other.Empty()) ||
     (this->LoCorner[0] == other.LoCorner[0] && this->LoCorner[1] == other.LoCorner[1] &&
       this->LoCorner[2] == other.LoCorner[2] && this->HiCorner[0] == other.HiCorner[0] &&
-      this->HiCorner[1] == other.HiCorner[1] && this->HiCorner[2] == other.HiCorner[2]))
-  {
-    return true;
-  }
-  return false;
+      this->HiCorner[1] == other.HiCorner[1] && this->HiCorner[2] == other.HiCorner[2]));
 }
 
 //------------------------------------------------------------------------------
@@ -321,12 +313,8 @@ bool vtkAMRBox::IntersectBoxAlongDimension(const vtkAMRBox& other, const int q)
 
 bool vtkAMRBox::Intersect(const vtkAMRBox& other)
 {
-  if (!this->IntersectBoxAlongDimension(other, 0) || !this->IntersectBoxAlongDimension(other, 1) ||
-    !this->IntersectBoxAlongDimension(other, 2))
-  {
-    return false;
-  }
-  return true;
+  return (this->IntersectBoxAlongDimension(other, 0) && this->IntersectBoxAlongDimension(other, 1) &&
+    this->IntersectBoxAlongDimension(other, 2));
 }
 
 int vtkAMRBox::GetCellLinearIndex(
@@ -425,11 +413,7 @@ bool vtkAMRBox::DoesBoxIntersectAlongDimension(const vtkAMRBox& other, const int
   minVal = (this->LoCorner[q] < other.LoCorner[q]) ? other.LoCorner[q] : this->LoCorner[q];
   maxVal = (this->HiCorner[q] > other.HiCorner[q]) ? other.HiCorner[q] : this->HiCorner[q];
 
-  if (minVal >= maxVal)
-  {
-    return false;
-  }
-  return true;
+  return minVal < maxVal;
 }
 
 bool vtkAMRBox::DoesIntersect(const vtkAMRBox& other) const

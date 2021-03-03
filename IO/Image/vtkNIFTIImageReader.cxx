@@ -348,12 +348,8 @@ int vtkNIFTIImageReader::CheckNIFTIVersion(const nifti_1_header* hdr)
 //------------------------------------------------------------------------------
 bool vtkNIFTIImageReader::CheckAnalyzeHeader(const nifti_1_header* hdr)
 {
-  if (hdr->sizeof_hdr == 348 ||    // Analyze 7.5 header size
-    hdr->sizeof_hdr == 1543569408) // byte-swapped 348
-  {
-    return true;
-  }
-  return false;
+  return (hdr->sizeof_hdr == 348 ||    // Analyze 7.5 header size
+    hdr->sizeof_hdr == 1543569408); // byte-swapped 348
 }
 
 //------------------------------------------------------------------------------
