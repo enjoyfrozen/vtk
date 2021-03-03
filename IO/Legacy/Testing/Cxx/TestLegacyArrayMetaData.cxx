@@ -129,13 +129,8 @@ bool verify(vtkUnstructuredGrid* grid)
     std::cerr << "Missing information object!\n";
     return false;
   }
-  if (!stringEqual("Ghost level information", array->GetComponentName(0)) ||
-    !stringEqual("N/A", info->Get(vtkDataArray::UNITS_LABEL())))
-  {
-    return false;
-  }
-
-  return true;
+  return (stringEqual("Ghost level information", array->GetComponentName(0)) &&
+    stringEqual("N/A", info->Get(vtkDataArray::UNITS_LABEL())));
 }
 } // end anon namespace
 

@@ -42,11 +42,7 @@ void vtkInformationIntegerRequestKey::CopyDefaultInformation(
 bool vtkInformationIntegerRequestKey::NeedToExecute(
   vtkInformation* pipelineInfo, vtkInformation* dobjInfo)
 {
-  if (!dobjInfo->Has(this->DataKey) || dobjInfo->Get(this->DataKey) != pipelineInfo->Get(this))
-  {
-    return true;
-  }
-  return false;
+  return !dobjInfo->Has(this->DataKey) || dobjInfo->Get(this->DataKey) != pipelineInfo->Get(this);
 }
 
 //------------------------------------------------------------------------------

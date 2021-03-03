@@ -29,14 +29,7 @@ vtkStandardNewMacro(vtkUTF8TextCodec);
 
 bool vtkUTF8TextCodec::CanHandle(const char* testStr)
 {
-  if (0 == strcmp(testStr, "UTF-8"))
-  {
-    return true;
-  }
-  else
-  {
-    return false;
-  }
+  return (0 == strcmp(testStr, "UTF-8"));
 }
 
 namespace

@@ -539,7 +539,7 @@ int vtkExodusIIWriter::CreateNewExodusFile()
 
   if (this->NumberOfProcesses == 1)
   {
-    if (this->WriteAllTimeSteps == false || this->CurrentTimeIndex == 0)
+    if (!this->WriteAllTimeSteps || this->CurrentTimeIndex == 0)
     {
       this->fid = ex_create(this->FileName, EX_CLOBBER, &compWordSize, &IOWordSize);
       if (fid <= 0)
@@ -563,7 +563,7 @@ int vtkExodusIIWriter::CreateNewExodusFile()
   {
     std::ostringstream myFileName;
     myFileName << this->FileName;
-    if (this->WriteAllTimeSteps == false || this->CurrentTimeIndex == 0)
+    if (!this->WriteAllTimeSteps || this->CurrentTimeIndex == 0)
     {
       myFileName << ".";
     }

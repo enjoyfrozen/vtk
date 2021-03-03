@@ -595,7 +595,7 @@ void FindNeighbors(diy::mpi::communicator comm, std::vector<std::vector<double>>
         if (ds)
         {
           const double* ibounds = ds->GetBounds();
-          if ((intersects = (vtkBoundingBox(sbounds).Intersects(ibounds) == 1)) == true)
+          if ((intersects = (vtkBoundingBox(sbounds).Intersects(ibounds) == 1)))
           {
             break;
           }
