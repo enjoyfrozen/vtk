@@ -801,7 +801,7 @@ void vtkCompositeMapperHelper2::AppendOneBufferObject(vtkRenderer* ren, vtkActor
   if (c)
   {
     int cellFlag = 0; // not used
-    vtkAbstractArray* abstractArray = this->GetAbstractScalars(
+    vtkAbstractArray* abstractArray = vtkCompositePolyDataMapper2::GetAbstractScalars(
       poly, this->ScalarMode, this->ArrayAccessMode, this->ArrayId, this->ArrayName, cellFlag);
 
     auto iter = this->ColorArrayMap.find(abstractArray);
@@ -1384,7 +1384,7 @@ bool vtkCompositePolyDataMapper2::RecursiveHasTranslucentGeometry(
   {
     vtkScalarsToColors* lut = this->GetLookupTable();
     int cellFlag;
-    vtkDataArray* scalars = this->GetScalars(
+    vtkDataArray* scalars = vtkCompositePolyDataMapper2::GetScalars(
       pd, this->ScalarMode, this->ArrayAccessMode, this->ArrayId, this->ArrayName, cellFlag);
     if (lut->IsOpaque(scalars, this->ColorMode, this->ArrayComponent) == 0)
     {
@@ -1987,7 +1987,7 @@ void vtkCompositePolyDataMapper2::BuildRenderValues(
       {
         vtkScalarsToColors* lut = this->GetLookupTable();
         int cellFlag;
-        vtkDataArray* scalars = this->GetScalars(
+        vtkDataArray* scalars = vtkCompositePolyDataMapper2::GetScalars(
           pd, this->ScalarMode, this->ArrayAccessMode, this->ArrayId, this->ArrayName, cellFlag);
         if (lut->IsOpaque(scalars, this->ColorMode, this->ArrayComponent) == 0)
         {
