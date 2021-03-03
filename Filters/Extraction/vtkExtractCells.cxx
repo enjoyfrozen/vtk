@@ -412,7 +412,7 @@ public:
   {
     assert(numInputCells > 0);
 
-    if (self->GetAssumeSortedAndUniqueIds() == false && (self->GetMTime() > this->SortTime))
+    if (!self->GetAssumeSortedAndUniqueIds() && (self->GetMTime() > this->SortTime))
     {
       vtkSMPTools::Sort(this->CellIds.begin(), this->CellIds.end());
       auto last = std::unique(this->CellIds.begin(), this->CellIds.end());

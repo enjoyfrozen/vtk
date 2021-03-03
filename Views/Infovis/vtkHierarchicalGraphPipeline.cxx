@@ -154,7 +154,7 @@ void vtkHierarchicalGraphPipeline::SetLabelVisibility(bool vis)
 
 bool vtkHierarchicalGraphPipeline::GetLabelVisibility()
 {
-  return (this->LabelActor->GetVisibility() ? true : false);
+  return this->LabelActor->GetVisibility();
 }
 
 void vtkHierarchicalGraphPipeline::SetLabelTextProperty(vtkTextProperty* prop)
@@ -195,7 +195,7 @@ void vtkHierarchicalGraphPipeline::SetVisibility(bool vis)
 
 bool vtkHierarchicalGraphPipeline::GetVisibility()
 {
-  return this->Actor->GetVisibility() ? true : false;
+  return this->Actor->GetVisibility();
 }
 
 void vtkHierarchicalGraphPipeline::SetSplineType(int type)
