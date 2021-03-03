@@ -157,7 +157,10 @@ bool vtkXMLHierarchicalBoxDataFileConverter::Convert()
       std::string file(dataset->GetAttribute("file"));
       std::string fileNoDir(vtksys::SystemTools::GetFilenameName(file));
       std::string dir(vtksys::SystemTools::GetFilenameWithoutLastExtension(this->OutputFileName));
-      dataset->SetAttribute("file", (dir + '/' + fileNoDir).c_str());
+      std::string filename = dir;
+      filename.append('/');
+      filename.append(fileNoDir);
+      dataset->SetAttribute("file", filename.c_str());
     }
     if (block && block->GetName() && strcmp(block->GetName(), "Block") == 0 &&
       block->GetScalarAttribute("level", level) && level >= 0)
@@ -230,7 +233,7 @@ int vtkXMLHierarchicalBoxDataFileConverter::GetOriginAndSpacing(
           {
             prefix += "/";
           }
-          file = prefix + file;
+          file.insert(0, prefix);
         }
         filenames[level].insert(file);
       }
