@@ -34,10 +34,7 @@ const char* vtkASCIITextCodec::Name()
 
 bool vtkASCIITextCodec::CanHandle(const char* NameStr)
 {
-  if (0 == strcmp(NameStr, "US-ASCII") || 0 == strcmp(NameStr, "ASCII"))
-    return true;
-  else
-    return false;
+  return (0 == strcmp(NameStr, "US-ASCII") || 0 == strcmp(NameStr, "ASCII"));
 }
 
 bool vtkASCIITextCodec::IsValid(istream& InputStream)

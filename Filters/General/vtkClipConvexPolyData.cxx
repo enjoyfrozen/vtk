@@ -602,11 +602,7 @@ bool vtkClipConvexPolyData::HasDegeneracies(vtkPlane* plane)
     totalNumNewVertices += numNewVertices;
   }
 
-  if (totalNumNewVertices < 6)
-  {
-    return true;
-  }
-  return false;
+  return totalNumNewVertices < 6;
 }
 
 //------------------------------------------------------------------------------
