@@ -111,7 +111,7 @@ public:
     {
       vtkNew<vtkMultiBlockDataSet> childMB;
       this->AddToBack(childMB, this->GetCurrentNodeName());
-      this->Stack.push_back(childMB);
+      this->Stack.emplace_back(childMB);
     }
   }
 
