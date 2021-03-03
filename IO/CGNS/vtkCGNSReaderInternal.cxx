@@ -645,7 +645,7 @@ void fillVectorsFromVars(std::vector<CGNSRead::CGNSVariable>& vars,
         vars[n].isComponent = true;
         break;
     }
-    if (vars[n].isComponent == true)
+    if (vars[n].isComponent)
     {
       strcpy(name, vars[n].name);
       name[len] = '\0';
@@ -691,7 +691,7 @@ void fillVectorsFromVars(std::vector<CGNSRead::CGNSVariable>& vars,
     }
     // Check if a variable is present with a similar
     // name as the vector being built
-    if (CGNSRead::isACGNSVariable(vars, iter->name) == true)
+    if (CGNSRead::isACGNSVariable(vars, iter->name))
     {
       // vtkWarningMacro ( "Warning, vector " << iter->name
       //                  << " can't be assembled." << std::endl );
@@ -726,7 +726,7 @@ void fillVectorsFromVars(std::vector<CGNSRead::CGNSVariable>& vars,
     }
   }
   // Remove invalid vectors
-  if (invalid == true)
+  if (invalid)
   {
     vectors.erase(
       std::remove_if(vectors.begin(), vectors.end(), CGNSRead::testValidVector), vectors.end());
@@ -1065,7 +1065,7 @@ static void BroadcastFamilies(vtkMultiProcessController* controller,
     int flags = 0;
     if (rank == 0)
     {
-      if (ite->isBC == true)
+      if (ite->isBC)
       {
         flags = 1;
       }
@@ -1148,11 +1148,11 @@ void vtkCGNSMetaData::Broadcast(vtkMultiProcessController* controller, int rank)
     int flags = 0;
     if (rank == 0)
     {
-      if (ite->useGridPointers == true)
+      if (ite->useGridPointers)
       {
         flags = 1;
       }
-      if (ite->useFlowPointers == true)
+      if (ite->useFlowPointers)
       {
         flags = (flags | 2);
       }
@@ -1189,13 +1189,7 @@ void vtkCGNSMetaData::Broadcast(vtkMultiProcessController* controller, int rank)
 bool ReadBase(vtkCGNSReader* reader, const BaseInformation& baseInfo)
 {
   auto baseSelection = reader->GetBaseSelection();
-  if (!baseSelection->ArrayIsEnabled(baseInfo.name))
-  {
-    // base has not been enabled.
-    return false;
-  }
-
-  return true;
+  return baseSelection->ArrayIsEnabled(baseInfo.name);
 }
 
 //------------------------------------------------------------------------------
@@ -1216,25 +1210,14 @@ bool ReadGridForZone(
 
   // check if the zone's family is enabled.
   auto familySelection = reader->GetFamilySelection();
-  if (familySelection->ArrayExists(zoneInfo.family.c_str()) &&
-    !familySelection->ArrayIsEnabled(zoneInfo.family.c_str()))
-  {
-    return false;
-  }
-
-  return true;
+  return !(familySelection->ArrayExists(zoneInfo.family.c_str()) &&
+    !familySelection->ArrayIsEnabled(zoneInfo.family.c_str()));
 }
 
 //------------------------------------------------------------------------------
 bool ReadPatchesForBase(vtkCGNSReader* reader, const BaseInformation&)
 {
-  if (!reader->GetLoadBndPatch())
-  {
-    // patches have been globally disabled.
-    return false;
-  }
-
-  return true;
+  return reader->GetLoadBndPatch();
 }
 
 //------------------------------------------------------------------------------
@@ -1243,12 +1226,7 @@ bool ReadPatch(vtkCGNSReader* reader, const BaseInformation&, const ZoneInformat
 {
   auto familySelection = reader->GetFamilySelection();
 
-  if (!patchFamilyname.empty() && !familySelection->ArrayIsEnabled(patchFamilyname.c_str()))
-  {
-    return false;
-  }
-
-  return true;
+  return (patchFamilyname.empty() || familySelection->ArrayIsEnabled(patchFamilyname.c_str()));
 }
 
 } // end of namespace

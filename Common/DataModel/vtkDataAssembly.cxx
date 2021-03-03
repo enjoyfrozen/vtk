@@ -356,14 +356,9 @@ bool vtkDataAssembly::IsNodeNameValid(const char* name)
   }
 
   vtksys::RegularExpression regEx("[^a-zA-Z0-9\\-_.]");
-  if (regEx.find(name))
-  {
-    // found a non-acceptable character; names can contain letters,
-    // digits, hyphens, underscores, and periods.
-    return false;
-  }
-
-  return true;
+  // search for non-acceptable characters; names can contain letters,
+  // digits, hyphens, underscores, and periods.
+  return !regEx.find(name);
 }
 
 //------------------------------------------------------------------------------
