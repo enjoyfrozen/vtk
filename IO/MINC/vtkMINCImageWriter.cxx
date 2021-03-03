@@ -990,11 +990,11 @@ int vtkMINCImageWriter::CreateMINCVariables(
       history.append(timestamp.substr(0, timestamp.size() - 1) + ">>>");
       if (this->HistoryAddition)
       {
-        history = history + this->HistoryAddition + "\n";
+        history += this->HistoryAddition + "\n";
       }
       else
       {
-        history = history + "Created by " + this->GetClassName() + "\n";
+        history += "Created by " + this->GetClassName() + "\n";
       }
       vtkMINCImageWriterPutAttributeTextMacro(MIhistory, history.c_str());
     }
