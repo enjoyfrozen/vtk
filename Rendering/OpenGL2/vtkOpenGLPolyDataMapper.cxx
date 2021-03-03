@@ -1589,26 +1589,36 @@ void vtkOpenGLPolyDataMapper::ReplaceShaderTCoord(
       int tcoordComps = this->VBOs->GetNumberOfComponents(it.c_str());
       if (tcoordComps == 1)
       {
-        vsimpl = vsimpl + "vec4 " + it + "Tmp = tcMatrix*vec4(" + it + ",0.0,0.0,1.0);\n" + it +
+        // NOLINTNEXTLINE(performance-inefficient-string-concatenation)
+        vsimpl += "vec4 " + it + "Tmp = tcMatrix*vec4(" + it + ",0.0,0.0,1.0);\n" + it +
+          // NOLINTNEXTLINE(performance-inefficient-string-concatenation)
           "VCVSOutput = " + it + "Tmp.x/" + it + "Tmp.w;\n";
         if (this->SeamlessU)
         {
+          // NOLINTNEXTLINE(performance-inefficient-string-concatenation)
           vsimpl += it + "VCVSOutputU1 = fract(" + it + "VCVSOutput.x);\n" + it +
+            // NOLINTNEXTLINE(performance-inefficient-string-concatenation)
             "VCVSOutputU2 = fract(" + it + "VCVSOutput.x+0.5)-0.5;\n";
         }
       }
       else
       {
-        vsimpl = vsimpl + "vec4 " + it + "Tmp = tcMatrix*vec4(" + it + ",0.0,1.0);\n" + it +
+        // NOLINTNEXTLINE(performance-inefficient-string-concatenation)
+        vsimpl += "vec4 " + it + "Tmp = tcMatrix*vec4(" + it + ",0.0,1.0);\n" + it +
+          // NOLINTNEXTLINE(performance-inefficient-string-concatenation)
           "VCVSOutput = " + it + "Tmp.xy/" + it + "Tmp.w;\n";
         if (this->SeamlessU)
         {
+          // NOLINTNEXTLINE(performance-inefficient-string-concatenation)
           vsimpl += it + "VCVSOutputU1 = fract(" + it + "VCVSOutput.x);\n" + it +
+            // NOLINTNEXTLINE(performance-inefficient-string-concatenation)
             "VCVSOutputU2 = fract(" + it + "VCVSOutput.x+0.5)-0.5;\n";
         }
         if (this->SeamlessV)
         {
+          // NOLINTNEXTLINE(performance-inefficient-string-concatenation)
           vsimpl += it + "VCVSOutputV1 = fract(" + it + "VCVSOutput.y);\n" + it +
+            // NOLINTNEXTLINE(performance-inefficient-string-concatenation)
             "VCVSOutputV2 = fract(" + it + "VCVSOutput.y+0.5)-0.5;\n";
         }
       }
@@ -1618,15 +1628,20 @@ void vtkOpenGLPolyDataMapper::ReplaceShaderTCoord(
   {
     for (const auto& it : tcoordnames)
     {
-      vsimpl = vsimpl + it + "VCVSOutput = " + it + ";\n";
+      // NOLINTNEXTLINE(performance-inefficient-string-concatenation)
+      vsimpl += it + "VCVSOutput = " + it + ";\n";
       if (this->SeamlessU)
       {
+        // NOLINTNEXTLINE(performance-inefficient-string-concatenation)
         vsimpl += it + "VCVSOutputU1 = fract(" + it + "VCVSOutput.x);\n" + it +
+          // NOLINTNEXTLINE(performance-inefficient-string-concatenation)
           "VCVSOutputU2 = fract(" + it + "VCVSOutput.x+0.5)-0.5;\n";
       }
       if (this->SeamlessV)
       {
+        // NOLINTNEXTLINE(performance-inefficient-string-concatenation)
         vsimpl += it + "VCVSOutputV1 = fract(" + it + "VCVSOutput.y);\n" + it +
+          // NOLINTNEXTLINE(performance-inefficient-string-concatenation)
           "VCVSOutputV2 = fract(" + it + "VCVSOutput.y+0.5)-0.5;\n";
       }
     }
@@ -1651,31 +1666,37 @@ void vtkOpenGLPolyDataMapper::ReplaceShaderTCoord(
     {
       tCoordType = "vec2";
     }
-    vsdec = vsdec + "in " + tCoordType + " " + it + ";\n";
-    vsdec = vsdec + "out " + tCoordType + " " + it + "VCVSOutput;\n";
+    // NOLINTNEXTLINE(performance-inefficient-string-concatenation)
+    vsdec += "in " + tCoordType + " " + it + ";\n";
+    // NOLINTNEXTLINE(performance-inefficient-string-concatenation)
+    vsdec += "out " + tCoordType + " " + it + "VCVSOutput;\n";
     if (this->SeamlessU)
     {
-      vsdec = vsdec + "out float " + it + "VCVSOutputU1;\n";
-      vsdec = vsdec + "out float " + it + "VCVSOutputU2;\n";
+      vsdec += "out float " + it + "VCVSOutputU1;\n";
+      vsdec += "out float " + it + "VCVSOutputU2;\n";
     }
     if (this->SeamlessV && tcoordComps > 1)
     {
-      vsdec = vsdec + "out float " + it + "VCVSOutputV1;\n";
-      vsdec = vsdec + "out float " + it + "VCVSOutputV2;\n";
+      vsdec += "out float " + it + "VCVSOutputV1;\n";
+      vsdec += "out float " + it + "VCVSOutputV2;\n";
     }
-    gsdec = gsdec + "in " + tCoordType + " " + it + "VCVSOutput[];\n";
-    gsdec = gsdec + "out " + tCoordType + " " + it + "VCGSOutput;\n";
-    gsimpl = gsimpl + it + "VCGSOutput = " + it + "VCVSOutput[i];\n";
-    fsdec = fsdec + "in " + tCoordType + " " + it + "VCVSOutput;\n";
+    // NOLINTNEXTLINE(performance-inefficient-string-concatenation)
+    gsdec += "in " + tCoordType + " " + it + "VCVSOutput[];\n";
+    // NOLINTNEXTLINE(performance-inefficient-string-concatenation)
+    gsdec += "out " + tCoordType + " " + it + "VCGSOutput;\n";
+    // NOLINTNEXTLINE(performance-inefficient-string-concatenation)
+    gsimpl += it + "VCGSOutput = " + it + "VCVSOutput[i];\n";
+    // NOLINTNEXTLINE(performance-inefficient-string-concatenation)
+    fsdec += "in " + tCoordType + " " + it + "VCVSOutput;\n";
     if (this->SeamlessU)
     {
-      fsdec = fsdec + "in float " + it + "VCVSOutputU1;\n";
-      fsdec = fsdec + "in float " + it + "VCVSOutputU2;\n";
+      fsdec += "in float " + it + "VCVSOutputU1;\n";
+      fsdec += "in float " + it + "VCVSOutputU2;\n";
     }
     if (this->SeamlessV && tcoordComps > 1)
     {
-      fsdec = fsdec + "in float " + it + "VCVSOutputV1;\n";
-      fsdec = fsdec + "in float " + it + "VCVSOutputV2;\n";
+      fsdec += "in float " + it + "VCVSOutputV1;\n";
+      fsdec += "in float " + it + "VCVSOutputV2;\n";
     }
   }
 
