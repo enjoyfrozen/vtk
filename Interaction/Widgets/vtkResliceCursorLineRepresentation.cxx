@@ -111,9 +111,9 @@ int vtkResliceCursorLineRepresentation::ComputeInteractionState(int X, int Y, in
   this->Picker->SetResliceCursorAlgorithm(this->ResliceCursorActor->GetCursorAlgorithm());
   int picked = this->Picker->Pick(X, Y, 0, this->Renderer);
 
-  const bool pickedAxis1 = this->Picker->GetPickedAxis1() ? true : false;
-  const bool pickedAxis2 = this->Picker->GetPickedAxis2() ? true : false;
-  const bool pickedCenter = this->Picker->GetPickedCenter() ? true : false;
+  const bool pickedAxis1 = this->Picker->GetPickedAxis1();
+  const bool pickedAxis2 = this->Picker->GetPickedAxis2();
+  const bool pickedCenter = this->Picker->GetPickedCenter();
   if (picked)
   {
     this->Picker->GetPickPosition(this->StartPickPosition);
