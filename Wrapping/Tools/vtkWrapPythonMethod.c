@@ -643,9 +643,9 @@ void vtkWrapPython_ReturnValue(FILE* fp, ClassInfo* data, ValueInfo* val, int st
       "      }\n"
       "      else\n"
       "      {\n"
-      "        result = %sBuildTuple(tempr%sdata(), tempr%ssize());\n"
+      "        result = vtkPythonArgs::BuildTuple(tempr%sdata(), tempr%ssize());\n"
       "      }\n",
-      member, prefix, member, member);
+      member, member, member);
   }
   else
   {
