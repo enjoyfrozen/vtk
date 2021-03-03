@@ -163,11 +163,7 @@ bool vtkHeatmapItem::IsDirty()
   {
     return false;
   }
-  if (this->Table->GetMTime() > this->HeatmapBuildTime)
-  {
-    return true;
-  }
-  return false;
+  return (this->Table->GetMTime() > this->HeatmapBuildTime);
 }
 
 //------------------------------------------------------------------------------

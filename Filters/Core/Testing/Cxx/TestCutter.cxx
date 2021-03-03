@@ -59,11 +59,7 @@ bool TestStructured(int type)
   cutter->SetGenerateTriangles(1);
   cutter->Update();
   output = vtkPolyData::SafeDownCast(cutter->GetOutputDataObject(0));
-  if (output->GetNumberOfCells() != 7 || output->CheckAttributes())
-  {
-    return false;
-  }
-  return true;
+  return !(output->GetNumberOfCells() != 7 || output->CheckAttributes());
 }
 
 bool TestUnstructured()
@@ -98,11 +94,7 @@ bool TestUnstructured()
   cutter->SetGenerateTriangles(1);
   cutter->Update();
   output = vtkPolyData::SafeDownCast(cutter->GetOutputDataObject(0));
-  if (output->GetNumberOfCells() != 10)
-  {
-    return false;
-  }
-  return true;
+  return (output->GetNumberOfCells() == 10);
 }
 
 int TestCutter(int, char*[])
