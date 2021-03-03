@@ -1314,11 +1314,7 @@ bool vtkOpenGLFramebufferObject::GetFrameBufferStatus(unsigned int mode, const c
     default:
       desc = "Unknown status";
   }
-  if (!ok)
-  {
-    return false;
-  }
-  return true;
+  return ok;
 }
 
 //------------------------------------------------------------------------------

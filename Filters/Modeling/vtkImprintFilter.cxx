@@ -590,10 +590,7 @@ struct ProduceIntersectionPoints
     if (pStart->Classification == PointClassification::Interior &&
       pEnd->Classification == PointClassification::Interior)
     {
-      if (pStart->Cells[0] == pEnd->Cells[0]) // in the same target cell
-        return false;
-      else
-        return true;
+      return (pStart->Cells[0] != pEnd->Cells[0]); // in the same target cell
     }
 
     // Maybe there is an edge intersection point involved.
@@ -601,27 +598,13 @@ struct ProduceIntersectionPoints
     {
       if (pStart->Cells[1] >= 0) // not -1 (undefined)
       {
-        if ((pStart->Cells[1] == pEnd->Cells[0]) ||
-          (pEnd->Cells[1] >= 0 && pStart->Cells[1] == pEnd->Cells[1]))
-        {
-          return false;
-        }
-        else
-        {
-          return true;
-        }
+        return !((pStart->Cells[1] == pEnd->Cells[0]) ||
+          (pEnd->Cells[1] >= 0 && pStart->Cells[1] == pEnd->Cells[1]));
       }
       else if (pEnd->Cells[1] >= 0) // not -1 (undefined)
       {
-        if ((pEnd->Cells[1] == pStart->Cells[0]) ||
-          (pStart->Cells[1] >= 0 && pEnd->Cells[1] == pStart->Cells[1]))
-        {
-          return false;
-        }
-        else
-        {
-          return true;
-        }
+        return !((pEnd->Cells[1] == pStart->Cells[0]) ||
+          (pStart->Cells[1] >= 0 && pEnd->Cells[1] == pStart->Cells[1]));
       }
 
       return true;
