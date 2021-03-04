@@ -217,15 +217,14 @@ def create_support_unstructuredgrid(data, number_of_pieces, vtkhdf_group):
     """
     cells = data.GetCells()
     number_of_connectivity_ids = vtkhdf_group.create_dataset(
-        "NumberOfConnectivityIds", (number_of_pieces, 1), np.int64)
-    number_of_connectivity_ids[
-        0, 0] = cells.GetNumberOfConnectivityIds()
+        "NumberOfConnectivityIds", (number_of_pieces,), np.int64)
+    number_of_connectivity_ids[0] = cells.GetNumberOfConnectivityIds()
     number_of_points = vtkhdf_group.create_dataset(
-        "NumberOfPoints", (number_of_pieces, 1), np.int64)
-    number_of_points[0, 0] = data.GetNumberOfPoints()
+        "NumberOfPoints", (number_of_pieces,), np.int64)
+    number_of_points[0] = data.GetNumberOfPoints()
     number_of_cells = vtkhdf_group.create_dataset(
-        "NumberOfCells", (number_of_pieces, 1), np.int64)
-    number_of_cells[0, 0] = cells.GetNumberOfCells()
+        "NumberOfCells", (number_of_pieces,), np.int64)
+    number_of_cells[0] = cells.GetNumberOfCells()
 
     anp = numpy_support.vtk_to_numpy(data.GetPoints().GetData())
     points = create_dataset(
@@ -258,10 +257,9 @@ def append_support_unstructuredgrid(
     Appends to geometry and connectivity datasets for unstructured grid
     """
     cells = data.GetCells()
-    number_of_connectivity_ids[
-        piece, 0] = cells.GetNumberOfConnectivityIds()
-    number_of_points[piece, 0] = data.GetNumberOfPoints()
-    number_of_cells[piece, 0] = cells.GetNumberOfCells()
+    number_of_connectivity_ids[piece] = cells.GetNumberOfConnectivityIds()
+    number_of_points[piece] = data.GetNumberOfPoints()
+    number_of_cells[piece] = cells.GetNumberOfCells()
     anp = numpy_support.vtk_to_numpy(data.GetPoints().GetData())
     points_size = append_dataset(points, anp, points_size)
     anp = numpy_support.vtk_to_numpy(cells.GetConnectivityArray())
