@@ -279,7 +279,6 @@ int vtkHDFReader::RequestDataObject(vtkInformation*, vtkInformationVector** vtkN
                                      << vtkHDFReaderMinorVersion);
   }
   int dataSetType = this->Impl->GetDataSetType();
-
   if (!output || !output->IsA(typeNameMap[dataSetType].c_str()))
   {
     vtkDataSet* newOutput = nullptr;
@@ -332,6 +331,18 @@ int vtkHDFReader::RequestInformation(vtkInformation* vtkNotUsed(request),
     outInfo->Set(vtkDataObject::SPACING(), this->Spacing, 3);
     outInfo->Set(CAN_PRODUCE_SUB_EXTENT(), 1);
   }
+  else if (dataSetType == VTK_UNSTRUCTURED_GRID)
+  {
+    if (this->Impl->GetNumberOfPartitions() > 1)
+    {
+      outInfo->Set(CAN_HANDLE_PIECE_REQUEST(), 1);
+    }
+  }
+  else
+  {
+    vtkErrorMacro("Invalid dataset type: " << dataSetType);
+    return 0;
+  }
 
   for (int i = 0; i < vtkHDFReader::GetNumberOfAttributeTypes(); ++i)
   {
@@ -367,27 +378,15 @@ int vtkHDFReader::RequestData(vtkInformation* vtkNotUsed(request),
     std::array<int, 6> updateExtent;
     outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT(), &updateExtent[0]);
 
-    /*
     // For debugging
-    int numPieces = outInfo->Get(
-      vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES());
-    int piece = outInfo->Get(
-      vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER());
-    int numGhosts = outInfo->Get(
-      vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_GHOST_LEVELS());
+    int numPieces = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES());
+    int piece = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER());
+    int numGhosts = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_GHOST_LEVELS());
 
-    if (piece == 0)
-    {
-      cout << "Piece:" << piece << " " << numPieces << " " << numGhosts << endl;
-      cout << "Extent: "
-           << updateExtent[0] << " "
-           << updateExtent[1] << " "
-           << updateExtent[2] << " "
-           << updateExtent[3] << " "
-           << updateExtent[4] << " "
-           << updateExtent[5] << endl;
-    }
-    */
+    std::cout << "Piece:" << piece << " " << numPieces << " " << numGhosts
+              << " Extent: " << updateExtent[0] << " " << updateExtent[1] << " " << updateExtent[2]
+              << " " << updateExtent[3] << " " << updateExtent[4] << " " << updateExtent[5]
+              << std::endl;
 
     vtkImageData* imageData = vtkImageData::SafeDownCast(output);
     imageData->SetOrigin(this->Origin);
@@ -415,6 +414,12 @@ int vtkHDFReader::RequestData(vtkInformation* vtkNotUsed(request),
   }
   else if (dataSetType == VTK_UNSTRUCTURED_GRID)
   {
+    // For debugging
+    int numPieces = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES());
+    int piece = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER());
+    int numGhosts = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_GHOST_LEVELS());
+
+    std::cout << "Piece:" << piece << " " << numPieces << " " << numGhosts << std::endl;
   }
   else
   {

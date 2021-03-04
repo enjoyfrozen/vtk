@@ -64,7 +64,7 @@ public:
   /**
    * Returns the number of partitions for this dataset.
    */
-  int GetNumberOfPartitions() { return NumberOfPartitions; }
+  int GetNumberOfPartitions() { return this->NumberOfPartitions; }
   /**
    * Reads information about 'partition' from dataset 'name'.
    * It reads 'numberOfElements' values of type 'T'
@@ -85,6 +85,8 @@ public:
    * that has to be deleted by the user.
    */
   vtkDataArray* GetArray(int attributeType, const char* name, hsize_t* fileExtent);
+
+  std::vector<hsize_t> GetDimensions(const char* dataset);
 
 protected:
   /**
@@ -118,9 +120,18 @@ protected:
     hid_t group, const char* name, int gridNdims, hid_t* nativeType, hsize_t* numberOfComponents);
   /**
    * Convert C++ template type T to HDF5 native type
+   * this can be constexpr in C++17 standard
    */
   template <typename T>
-  hid_t TemplateToNativeType();
+  hid_t TemplateTypeToHdfNativeType();
+  /**
+   * Create a vtkDataArray based on the C++ template type T.
+   * For instance, for a float we create a vtkFloatArray.
+   * this can be constexpr in C++17 standard
+   */
+  template <typename T>
+  vtkDataArray* NewVtkDataArray();
+
   //@{
   /**
    * Reads a vtkDataArray of type T from the attributeType, dataset
