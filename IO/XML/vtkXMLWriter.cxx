@@ -525,7 +525,7 @@ void vtkXMLWriter::SetCompressorType(int compressorType)
   }
   else if (compressorType == ZLIB)
   {
-    if (this->Compressor && !this->Compressor->IsTypeOf("vtkZLibDataCompressor"))
+    if (this->Compressor && !this->Compressor->IsA("vtkZLibDataCompressor"))
     {
       this->Compressor->Delete();
     }
@@ -535,7 +535,7 @@ void vtkXMLWriter::SetCompressorType(int compressorType)
   }
   else if (compressorType == LZ4)
   {
-    if (this->Compressor && !this->Compressor->IsTypeOf("vtkLZ4DataCompressor"))
+    if (this->Compressor && !this->Compressor->IsA("vtkLZ4DataCompressor"))
     {
       this->Compressor->Delete();
     }
@@ -545,7 +545,7 @@ void vtkXMLWriter::SetCompressorType(int compressorType)
   }
   else if (compressorType == LZMA)
   {
-    if (this->Compressor && !this->Compressor->IsTypeOf("vtkLZMADataCompressor"))
+    if (this->Compressor && !this->Compressor->IsA("vtkLZMADataCompressor"))
     {
       this->Compressor->Delete();
     }
@@ -2891,7 +2891,7 @@ void vtkXMLWriter::WriteAttributeIndices(vtkDataSetAttributes* dsa, char** names
   {
     if (attributeIndices[i] >= 0)
     {
-      const char* attrName = dsa->GetAttributeTypeAsString(i);
+      const char* attrName = vtkDataSetAttributes::GetAttributeTypeAsString(i);
       vtkDataArray* a = dsa->GetArray(attributeIndices[i]);
       const char* arrayName = a->GetName();
       if (!arrayName)
