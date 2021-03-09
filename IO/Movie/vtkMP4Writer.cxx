@@ -253,7 +253,7 @@ vtkStandardNewMacro(vtkMP4Writer);
 vtkMP4Writer::vtkMP4Writer()
 {
   this->BitRate = 800000;
-  this->FrameRate = 10;
+  this->Rate = 10;
 
   this->Internals = new vtkMP4WriterInternals();
 }
@@ -284,9 +284,8 @@ void vtkMP4Writer::Start()
   this->Internals->VideoHeight = wExtent[3] - wExtent[2] + 1;
   UINT32 numPixels = this->Internals->VideoWidth * this->Internals->VideoHeight;
   this->Internals->VideoBitRate = this->BitRate;
-  this->Internals->VideoFPS = this->FrameRate;
-  this->Internals->VideoFrameDuration =
-    10 * 1000 * 1000 / this->FrameRate; // in 100s of nanoseconds
+  this->Internals->VideoFPS = this->Rate;
+  this->Internals->VideoFrameDuration = 10 * 1000 * 1000 / this->Rate; // in 100s of nanoseconds
   this->Internals->VideoFrameBuffer = new DWORD[numPixels];
 
   HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
@@ -372,6 +371,6 @@ void vtkMP4Writer::End()
 void vtkMP4Writer::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
-  os << indent << "FrameRate: " << this->FrameRate << endl;
+  os << indent << "Rate: " << this->Rate << endl;
   os << indent << "BitRate: " << this->BitRate << endl;
 }

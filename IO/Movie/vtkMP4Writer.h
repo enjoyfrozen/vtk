@@ -52,8 +52,8 @@ public:
   /**
    * Set/Get the frame rate, in frame/s.
    */
-  vtkSetClampMacro(FrameRate, int, 1, 5000);
-  vtkGetMacro(FrameRate, int);
+  vtkSetClampMacro(Rate, int, 1, 5000);
+  vtkGetMacro(Rate, int);
   //@}
 
   //@{
@@ -72,7 +72,7 @@ protected:
   class vtkMP4WriterInternals;
   vtkMP4WriterInternals* Internals;
 
-  int FrameRate;
+  int Rate;
   int BitRate;
 
 private:
