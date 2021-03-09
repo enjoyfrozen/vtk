@@ -100,7 +100,7 @@ class testIterator : public vtkTextCodec::OutputIterator
 public:
   testIterator& operator++(int) override { return *this; }
   testIterator& operator*() override { return *this; }
-  testIterator& operator=(const vtkUnicodeString::value_type) override { return *this; }
+  testIterator& operator=(const vtkTypeUInt32) override { return *this; }
 
   testIterator() = default;
   ~testIterator() override = default;
@@ -235,7 +235,7 @@ void vtkUTF16TextCodec::ToUnicode(istream& InputStream, vtkTextCodec::OutputIter
   utf16_to_unicode(_bigEndian, InputStream, output);
 }
 
-vtkUnicodeString::value_type vtkUTF16TextCodec::NextUnicode(istream& InputStream)
+vtkTypeUInt32 vtkUTF16TextCodec::NextUnicode(istream& InputStream)
 {
   return utf16_to_unicode_next(_bigEndian, InputStream);
 }

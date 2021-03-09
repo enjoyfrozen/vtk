@@ -123,12 +123,6 @@ inline vtkVariant vtkVariantCreate<vtkStdString>(const vtkStdString& value)
 }
 
 template <>
-inline vtkVariant vtkVariantCreate<vtkUnicodeString>(const vtkUnicodeString& value)
-{
-  return value;
-}
-
-template <>
 inline vtkVariant vtkVariantCreate<vtkVariant>(const vtkVariant& value)
 {
   return value;

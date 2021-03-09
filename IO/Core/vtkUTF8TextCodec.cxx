@@ -47,7 +47,7 @@ class testIterator : public vtkTextCodec::OutputIterator
 public:
   testIterator& operator++(int) override { return *this; }
   testIterator& operator*() override { return *this; }
-  testIterator& operator=(const vtkUnicodeString::value_type) override { return *this; }
+  testIterator& operator=(const vtkTypeUInt32) override { return *this; }
 
   testIterator() = default;
   ~testIterator() override = default;
@@ -88,7 +88,7 @@ void vtkUTF8TextCodec::ToUnicode(istream& InputStream, vtkTextCodec::OutputItera
   {
     while (!InputStream.eof())
     {
-      vtkUnicodeString::value_type CodePoint = this->NextUnicode(InputStream);
+      vtkTypeUInt32 CodePoint = this->NextUnicode(InputStream);
       *Output++ = CodePoint;
     }
   }
@@ -105,7 +105,7 @@ void vtkUTF8TextCodec::ToUnicode(istream& InputStream, vtkTextCodec::OutputItera
   }
 }
 
-vtkUnicodeString::value_type vtkUTF8TextCodec::NextUnicode(istream& InputStream)
+vtkTypeUInt32 vtkUTF8TextCodec::NextUnicode(istream& InputStream)
 {
   istream::char_type c[5];
   c[4] = '\0';

@@ -81,8 +81,7 @@ void vtkRenderedRepresentation::PrepareForRendering(vtkRenderView* view)
   this->Implementation->PropsToRemove.clear();
 }
 
-vtkUnicodeString vtkRenderedRepresentation::GetHoverText(
-  vtkView* view, vtkProp* prop, vtkIdType cell)
+std::string vtkRenderedRepresentation::GetHoverText(vtkView* view, vtkProp* prop, vtkIdType cell)
 {
   vtkSmartPointer<vtkSelection> cellSelect = vtkSmartPointer<vtkSelection>::New();
   vtkSmartPointer<vtkSelectionNode> cellNode = vtkSmartPointer<vtkSelectionNode>::New();
@@ -94,7 +93,7 @@ vtkUnicodeString vtkRenderedRepresentation::GetHoverText(
   cellNode->SetSelectionList(idArr);
   cellSelect->AddNode(cellNode);
   vtkSelection* converted = this->ConvertSelection(view, cellSelect);
-  vtkUnicodeString text = this->GetHoverTextInternal(converted);
+  std::string text = this->GetHoverTextInternal(converted);
   if (converted != cellSelect)
   {
     converted->Delete();

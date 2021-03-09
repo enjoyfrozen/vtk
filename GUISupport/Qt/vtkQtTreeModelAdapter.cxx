@@ -33,7 +33,6 @@
 #include "vtkStdString.h"
 #include "vtkStringArray.h"
 #include "vtkTree.h"
-#include "vtkUnicodeStringArray.h"
 #include "vtkUnsignedCharArray.h"
 #include "vtkVariantArray.h"
 
@@ -264,11 +263,6 @@ QVariant vtkQtTreeModelAdapterArrayValue(vtkAbstractArray* arr, vtkIdType i, vtk
     return QVariant(data->GetValue(i * comps + j));
   }
 
-  if (vtkUnicodeStringArray* const data = vtkArrayDownCast<vtkUnicodeStringArray>(arr))
-  {
-    return QVariant(QString::fromUtf8(data->GetValue(i * comps + j).utf8_str()));
-  }
-
   if (vtkVariantArray* const data = vtkArrayDownCast<vtkVariantArray>(arr))
   {
     return QVariant(QString(data->GetValue(i * comps + j).ToString().c_str()));
@@ -300,7 +294,7 @@ QVariant vtkQtTreeModelAdapter::data(const QModelIndex& idx, int role) const
   vtkAbstractArray* arr = this->Tree->GetVertexData()->GetAbstractArray(column);
   if (role == Qt::DisplayRole)
   {
-    return QString::fromUtf8(arr->GetVariantValue(vertex).ToUnicodeString().utf8_str()).trimmed();
+    return QString::fromUtf8(arr->GetVariantValue(vertex).ToString()).trimmed();
   }
   else if (role == Qt::UserRole)
   {

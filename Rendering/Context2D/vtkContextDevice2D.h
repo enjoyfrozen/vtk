@@ -35,7 +35,6 @@
 class vtkWindow;
 class vtkViewport;
 class vtkStdString;
-class vtkUnicodeString;
 class vtkTextProperty;
 class vtkPoints2D;
 class vtkImageData;
@@ -159,20 +158,6 @@ public:
    * NOTE: This function does not take account of the text rotation or justification.
    */
   virtual void ComputeStringBounds(const vtkStdString& string, float bounds[4]) = 0;
-
-  /**
-   * Draw some text to the screen.
-   */
-  virtual void DrawString(float* point, const vtkUnicodeString& string) = 0;
-
-  /**
-   * Compute the bounds of the supplied string. The bounds will be copied to the
-   * supplied bounds variable, the first two elements are the bottom corner of
-   * the string, and the second two elements are the width and height of the
-   * bounding box.
-   * NOTE: This function does not take account of the text rotation or justification.
-   */
-  virtual void ComputeStringBounds(const vtkUnicodeString& string, float bounds[4]) = 0;
 
   /**
    * Compute the bounds of the supplied string while taking into account the

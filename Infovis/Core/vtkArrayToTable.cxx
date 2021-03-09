@@ -36,7 +36,6 @@
 #include "vtkSparseArray.h"
 #include "vtkStringArray.h"
 #include "vtkTable.h"
-#include "vtkUnicodeStringArray.h"
 #include "vtkUnsignedCharArray.h"
 #include "vtkUnsignedIntArray.h"
 #include "vtkUnsignedLongArray.h"
@@ -206,8 +205,6 @@ int vtkArrayToTable::RequestData(
       return 1;
     if (ConvertVector<vtkStdString, vtkStringArray>(input_array, output_table))
       return 1;
-    if (ConvertVector<vtkUnicodeString, vtkUnicodeStringArray>(input_array, output_table))
-      return 1;
 
     if (ConvertMatrix<double, vtkDoubleArray>(input_array, output_table))
       return 1;
@@ -238,8 +235,6 @@ int vtkArrayToTable::RequestData(
     if (ConvertMatrix<vtkIdType, vtkIdTypeArray>(input_array, output_table))
       return 1;
     if (ConvertMatrix<vtkStdString, vtkStringArray>(input_array, output_table))
-      return 1;
-    if (ConvertMatrix<vtkUnicodeString, vtkUnicodeStringArray>(input_array, output_table))
       return 1;
 
     throw std::runtime_error("Unhandled input array type.");

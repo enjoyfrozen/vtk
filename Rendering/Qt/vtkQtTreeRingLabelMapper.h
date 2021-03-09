@@ -59,7 +59,6 @@ class vtkStringArray;
 class vtkTexture;
 class vtkTextureMapToPlane;
 class vtkTree;
-class vtkUnicodeStringArray;
 
 class VTKRENDERINGQT_EXPORT vtkQtTreeRingLabelMapper : public vtkLabeledDataMapper
 {
@@ -132,11 +131,9 @@ protected:
   vtkQtTreeRingLabelMapper();
   ~vtkQtTreeRingLabelMapper() override;
   void LabelTree(vtkTree* tree, vtkDataArray* sectorInfo, vtkDataArray* numericData,
-    vtkStringArray* stringData, vtkUnicodeStringArray* uStringData, int activeComp, int numComps,
-    vtkViewport* viewport);
+    vtkStringArray* stringData, int activeComp, int numComps, vtkViewport* viewport);
   void GetVertexLabel(vtkIdType vertex, vtkDataArray* numericData, vtkStringArray* stringData,
-    vtkUnicodeStringArray* uStringData, int activeComp, int numComps, char* string,
-    size_t stringSize);
+    int activeComp, int numComps, char* string, size_t stringSize);
 
   // Returns true if the center of the sector is in the window
   // along with the pixel dimensions (width, height)  of the sector

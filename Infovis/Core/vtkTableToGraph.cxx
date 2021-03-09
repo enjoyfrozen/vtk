@@ -535,7 +535,7 @@ int vtkTableToGraph::RequestData(
         // but don't update the vertex table.
         switch (arr->GetDataType())
         {
-          vtkSuperExtraExtendedTemplateMacro(
+          vtkExtraExtendedTemplateMacro(
             vtkTableToGraphFindHiddenVertices(static_cast<VTK_TT*>(arr->GetVoidPointer(0)),
               arr->GetNumberOfTuples(), hiddenMap, curHiddenVertex, domain));
         }
@@ -546,7 +546,7 @@ int vtkTableToGraph::RequestData(
         // auxiliary arrays, and add rows to the vertex table.
         switch (arr->GetDataType())
         {
-          vtkSuperExtraExtendedTemplateMacro(vtkTableToGraphFindVertices(
+          vtkExtraExtendedTemplateMacro(vtkTableToGraphFindVertices(
             static_cast<VTK_TT*>(arr->GetVoidPointer(0)), arr->GetNumberOfTuples(), vertexMap,
             domainArr, labelArr, idArr, curVertex, vertexTable, domain));
         }
@@ -638,7 +638,7 @@ int vtkTableToGraph::RequestData(
         }
         switch (edgeArr->GetDataType())
         {
-          vtkSuperExtraExtendedTemplateMacro(
+          vtkExtraExtendedTemplateMacro(
             vtkTableToGraphFindHiddenVertices(static_cast<VTK_TT*>(edgeArr->GetVoidPointer(0)),
               edgeArr->GetNumberOfTuples(), hiddenMap, curHiddenVertex, domain));
         } // end switch
@@ -736,9 +736,8 @@ int vtkTableToGraph::RequestData(
       }
       switch (columnSource->GetDataType())
       {
-        vtkSuperExtraExtendedTemplateMacro(
-          valueSource =
-            vtkTableToGraphGetValue(static_cast<VTK_TT*>(columnSource->GetVoidPointer(0)), r));
+        vtkExtraExtendedTemplateMacro(valueSource = vtkTableToGraphGetValue(
+                                        static_cast<VTK_TT*>(columnSource->GetVoidPointer(0)), r));
       }
       vtkVariant valueTarget;
       if (!columnTarget)
@@ -748,9 +747,8 @@ int vtkTableToGraph::RequestData(
       }
       switch (columnTarget->GetDataType())
       {
-        vtkSuperExtraExtendedTemplateMacro(
-          valueTarget =
-            vtkTableToGraphGetValue(static_cast<VTK_TT*>(columnTarget->GetVoidPointer(0)), r));
+        vtkExtraExtendedTemplateMacro(valueTarget = vtkTableToGraphGetValue(
+                                        static_cast<VTK_TT*>(columnTarget->GetVoidPointer(0)), r));
       }
       std::pair<vtkStdString, vtkVariant> lookupSource(typeSource, vtkVariant(valueSource));
       std::pair<vtkStdString, vtkVariant> lookupTarget(typeTarget, vtkVariant(valueTarget));

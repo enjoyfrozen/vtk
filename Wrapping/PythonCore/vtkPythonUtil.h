@@ -42,7 +42,6 @@ class vtkPythonNamespaceMap;
 class vtkPythonEnumMap;
 class vtkPythonModuleList;
 class vtkStdString;
-class vtkUnicodeString;
 class vtkVariant;
 
 extern "C" void vtkPythonUtilDelete();

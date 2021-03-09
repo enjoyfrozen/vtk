@@ -3114,7 +3114,6 @@ simple_type_specifier:
 
 type_name:
     StdString { typeSig($<str>1); $<integer>$ = VTK_PARSE_STRING; }
-  | UnicodeString { typeSig($<str>1); $<integer>$ = VTK_PARSE_UNICODE_STRING;}
   | OSTREAM { typeSig($<str>1); $<integer>$ = VTK_PARSE_OSTREAM; }
   | ISTREAM { typeSig($<str>1); $<integer>$ = VTK_PARSE_ISTREAM; }
   | ID { typeSig($<str>1); $<integer>$ = VTK_PARSE_UNKNOWN; }
@@ -4129,10 +4128,6 @@ unsigned int guess_id_type(const char *cp)
         strcmp(cp, "std::string") == 0)
     {
       t = VTK_PARSE_STRING;
-    }
-    else if (strcmp(dp, "vtkUnicodeString") == 0)
-    {
-      t = VTK_PARSE_UNICODE_STRING;
     }
     else if (strncmp(dp, "vtk", 3) == 0)
     {

@@ -35,7 +35,6 @@ resulting in wrapper code that is faster and more compact.
 #include "vtkWrappingPythonCoreModule.h" // For export macro
 
 #include "vtkCompiler.h" // for VTK_USE_EXTERN_TEMPLATE
-#include "vtkUnicodeString.h"
 
 #include <cstring>
 #include <string>
@@ -333,8 +332,6 @@ public:
   static bool GetValue(PyObject* o, const char*& a);
   bool GetValue(std::string& a);
   static bool GetValue(PyObject* o, std::string& a);
-  bool GetValue(vtkUnicodeString& a);
-  static bool GetValue(PyObject* o, vtkUnicodeString& a);
   //@}
 
   //@{
@@ -396,7 +393,6 @@ public:
   bool GetArray(long long* a, size_t n);
   bool GetArray(unsigned long long* a, size_t n);
   bool GetArray(std::string* a, size_t n);
-  bool GetArray(vtkUnicodeString* a, size_t n);
   //@}
 
   //@{
@@ -424,7 +420,6 @@ public:
    * Set the value of an argument that was passed by reference.
    */
   bool SetArgValue(int i, const std::string& a);
-  bool SetArgValue(int i, const vtkUnicodeString& a);
   bool SetArgValue(int i, char a);
   bool SetArgValue(int i, float a);
   bool SetArgValue(int i, double a);
@@ -538,7 +533,6 @@ public:
   static PyObject* BuildValue(const char* v, size_t l);
   static PyObject* BuildValue(const char* v);
   static PyObject* BuildValue(const std::string& v);
-  static PyObject* BuildValue(const vtkUnicodeString& v);
   //@}
 
   /**
@@ -583,7 +577,6 @@ public:
   static PyObject* BuildTuple(const long long* a, size_t n);
   static PyObject* BuildTuple(const unsigned long long* a, size_t n);
   static PyObject* BuildTuple(const std::string* a, size_t n);
-  static PyObject* BuildTuple(const vtkUnicodeString* a, size_t n);
   //@}
 
   /**
@@ -865,17 +858,6 @@ inline PyObject* vtkPythonArgs::BuildValue(const char* a)
 inline PyObject* vtkPythonArgs::BuildValue(const std::string& a)
 {
   return vtkPythonArgs::BuildValue(a.data(), a.size());
-}
-
-inline PyObject* vtkPythonArgs::BuildValue(const vtkUnicodeString& a)
-{
-  std::string s;
-  a.utf8_str(s);
-#ifdef Py_USING_UNICODE
-  return PyUnicode_DecodeUTF8(s.c_str(), static_cast<Py_ssize_t>(s.size()), nullptr);
-#else
-  return PyString_FromStringAndSize(s.c_str(), static_cast<Py_ssize_t>(s.size()));
-#endif
 }
 
 inline PyObject* vtkPythonArgs::BuildValue(char a)

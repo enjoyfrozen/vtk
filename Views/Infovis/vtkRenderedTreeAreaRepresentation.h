@@ -317,7 +317,7 @@ protected:
 
   void UpdateHoverHighlight(vtkView* view, int x, int y);
 
-  vtkUnicodeString GetHoverTextInternal(vtkSelection* sel) override;
+  std::string GetHoverTextInternal(vtkSelection* sel) override;
 
   vtkSmartPointer<vtkWorldPointPicker> Picker;
   vtkSmartPointer<vtkApplyColors> ApplyColors;

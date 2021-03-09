@@ -39,7 +39,6 @@ PURPOSE.  See the above copyright notice for more information.
 
 #include "vtkIOCoreModule.h" // For export macro
 #include "vtkObject.h"
-#include "vtkUnicodeString.h" // for the value type and for function return.
 
 class VTKIOCORE_EXPORT vtkTextCodec : public vtkObject
 {
@@ -74,7 +73,7 @@ public:
   public:
     virtual OutputIterator& operator++(int) = 0;
     virtual OutputIterator& operator*() = 0;
-    virtual OutputIterator& operator=(const vtkUnicodeString::value_type value) = 0;
+    virtual OutputIterator& operator=(const vtkTypeUInt32 value) = 0;
     //@}
 
     OutputIterator() = default;
@@ -93,17 +92,11 @@ public:
   virtual void ToUnicode(istream& InputStream, vtkTextCodec::OutputIterator& output) = 0;
 
   /**
-   * convenience method to take data from the stream and put it into a
-   * vtkUnicodeString.
-   */
-  vtkUnicodeString ToUnicode(istream& inputStream);
-
-  /**
    * Return the next code point from the sequence represented by the stream
    * advancing the stream through however many places needed to assemble that
    * code point.
    */
-  virtual vtkUnicodeString::value_type NextUnicode(istream& inputStream) = 0;
+  virtual vtkTypeUInt32 NextUnicode(istream& inputStream) = 0;
 
 protected:
   vtkTextCodec();

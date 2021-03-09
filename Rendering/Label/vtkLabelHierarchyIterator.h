@@ -31,7 +31,6 @@
 #include "vtkObject.h"
 #include "vtkRenderingLabelModule.h" // For export macro
 #include "vtkStdString.h"            // for std string
-#include "vtkUnicodeString.h"        // for unicode string
 
 class vtkIdTypeArray;
 class vtkLabelHierarchy;
@@ -85,11 +84,6 @@ public:
    * Retrieves the current label string.
    */
   virtual vtkStdString GetLabel();
-
-  /**
-   * Retrieves the current label as a unicode string.
-   */
-  virtual vtkUnicodeString GetUnicodeLabel();
 
   /**
    * Retrieves the current label orientation.

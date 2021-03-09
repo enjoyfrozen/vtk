@@ -30,7 +30,6 @@
 #include "vtkRenderingFreeTypeModule.h" // For export macro
 #include "vtkSmartPointer.h"            // For smart pointer
 #include "vtkTextRenderer.h"            // For Metrics struct
-#include "vtkUnicodeString.h"           // For vtkUnicodeStringValueType
 
 #include <array> // for std::array
 
@@ -127,7 +126,7 @@ public:
    * information is generic and not tied to a single font size, but describes a
    * scalable font defined on the EM square.
    */
-  GlyphOutline GetUnscaledGlyphOutline(vtkTextProperty* tprop, vtkUnicodeStringValueType charId);
+  GlyphOutline GetUnscaledGlyphOutline(vtkTextProperty* tprop, vtkTypeUInt32 charId);
 
   /**
    * Return a 2D vector detailing the unscaled kerning offset for a pair of
@@ -135,8 +134,8 @@ public:
    * not tied to a single font size, but describe a scalable font defined on
    * the EM square.
    */
-  std::array<int, 2> GetUnscaledKerning(vtkTextProperty* tprop, vtkUnicodeStringValueType leftChar,
-    vtkUnicodeStringValueType rightChar);
+  std::array<int, 2> GetUnscaledKerning(
+    vtkTextProperty* tprop, vtkTypeUInt32 leftChar, vtkTypeUInt32 rightChar);
 
   //@{
   /**
@@ -162,7 +161,6 @@ public:
    * @sa GetMetrics
    */
   bool GetBoundingBox(vtkTextProperty* tprop, const vtkStdString& str, int dpi, int bbox[4]);
-  bool GetBoundingBox(vtkTextProperty* tprop, const vtkUnicodeString& str, int dpi, int bbox[4]);
   //@}
 
   //@{
@@ -172,8 +170,6 @@ public:
    */
   bool GetMetrics(
     vtkTextProperty* tprop, const vtkStdString& str, int dpi, vtkTextRenderer::Metrics& metrics);
-  bool GetMetrics(vtkTextProperty* tprop, const vtkUnicodeString& str, int dpi,
-    vtkTextRenderer::Metrics& metrics);
   //@}
 
   //@{
@@ -189,8 +185,6 @@ public:
    */
   bool RenderString(vtkTextProperty* tprop, const vtkStdString& str, int dpi, vtkImageData* data,
     int textDims[2] = nullptr);
-  bool RenderString(vtkTextProperty* tprop, const vtkUnicodeString& str, int dpi,
-    vtkImageData* data, int textDims[2] = nullptr);
   //@}
 
   //@{
@@ -201,7 +195,6 @@ public:
    * property's horizontal and vertical justification options.
    */
   bool StringToPath(vtkTextProperty* tprop, const vtkStdString& str, int dpi, vtkPath* path);
-  bool StringToPath(vtkTextProperty* tprop, const vtkUnicodeString& str, int dpi, vtkPath* path);
   //@}
 
   //@{
@@ -212,8 +205,6 @@ public:
    */
   int GetConstrainedFontSize(
     const vtkStdString& str, vtkTextProperty* tprop, int dpi, int targetWidth, int targetHeight);
-  int GetConstrainedFontSize(const vtkUnicodeString& str, vtkTextProperty* tprop, int dpi,
-    int targetWidth, int targetHeight);
   //@}
 
   /**
@@ -455,7 +446,6 @@ private:
    * and stores it in the MetaData provided.
    */
   bool CalculateBoundingBox(const vtkStdString& str, MetaData& metaData);
-  bool CalculateBoundingBox(const vtkUnicodeString& str, MetaData& metaData);
   template <typename T>
   bool CalculateBoundingBox(const T& str, MetaData& metaData, const T& defaultHeightString);
   //@}

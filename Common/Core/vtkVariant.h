@@ -37,7 +37,6 @@
 #include "vtkStdString.h"
 #include "vtkSystemIncludes.h" // To define ostream
 #include "vtkType.h"           // To define type IDs and VTK_TYPE_USE_* flags
-#include "vtkUnicodeString.h"
 
 //
 // The following should be eventually placed in vtkSetGet.h
@@ -54,7 +53,6 @@
   vtkArrayIteratorTemplateMacroCase(VTK_VARIANT, vtkVariant, call)
 
 class vtkStdString;
-class vtkUnicodeString;
 class vtkObjectBase;
 class vtkAbstractArray;
 class vtkVariant;
@@ -159,11 +157,6 @@ public:
    * Create a string variant from a std string.
    */
   vtkVariant(vtkStdString value);
-
-  /**
-   * Create a Unicode string variant
-   */
-  vtkVariant(const vtkUnicodeString& value);
 
   /**
    * Create a vtkObjectBase variant.
@@ -312,16 +305,6 @@ public:
    */
   vtkStdString ToString(int formatting = DEFAULT_FORMATTING, int precision = 6) const;
 
-  /**
-   * convert the variant to a Unicode string.
-   * Set the formatting argument to either DEFAULT_FORMATTING, FIXED_FORMATTING,
-   * SCIENTIFIC_FORMATTING to control the formatting. Set the precision
-   * argument to control the precision of the output. These two parameters have no effect when the
-   * variant is not a floating-point value or an array of floating-point values.
-   * See the std doc for more information.
-   */
-  vtkUnicodeString ToUnicodeString(int formatting = DEFAULT_FORMATTING, int precision = 6) const;
-
   //@{
   /**
    * Convert the variant to a numeric type:
@@ -433,7 +416,6 @@ private:
 
   union {
     vtkStdString* String;
-    vtkUnicodeString* UnicodeString;
     float Float;
     double Double;
     char Char;

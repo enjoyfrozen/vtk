@@ -362,7 +362,6 @@ bool vtkXdmf3DataSet::VTKToXdmfArray(
     case VTK_UNSIGNED_LONG_LONG:
     case VTK_VARIANT:
     case VTK_OBJECT:
-    case VTK_UNICODE_STRING:
       return false;
     default:
       cerr << "Unrecognized vtk_type";

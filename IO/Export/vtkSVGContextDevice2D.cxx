@@ -38,11 +38,12 @@
 #include "vtkTextProperty.h"
 #include "vtkTextRenderer.h"
 #include "vtkTransform.h"
-#include "vtkUnicodeString.h"
 #include "vtkUnsignedCharArray.h"
 #include "vtkVector.h"
 #include "vtkVectorOperators.h"
 #include "vtkXMLDataElement.h"
+
+#include <vtk_utf8.h>
 
 #include <algorithm>
 #include <cassert>
@@ -188,7 +189,7 @@ struct FontKey
 
 struct FontInfo
 {
-  using CharType = vtkUnicodeString::value_type;
+  using CharType = vtkTypeUInt32;
   using KerningPairType = std::pair<CharType, CharType>;
 
   explicit FontInfo(const std::string& svgId)
@@ -196,27 +197,52 @@ struct FontInfo
   {
   }
 
-  void ProcessString(const vtkUnicodeString& str)
+  void ProcessString(const std::string& str)
   {
-    vtkUnicodeString::const_iterator it = str.begin();
-    vtkUnicodeString::const_iterator end = str.end();
-    if (it == end)
+    // convert UTF-8 string into UCS4 chars
+    // std::string::const_iterator it = utf8::find_invalid(str.begin(), end);
+    if (!str.empty())
     {
-      return;
-    }
+      std::string::const_iterator it = str.begin();
+      std::string::const_iterator end = str.end();
 
-    vtkUnicodeString::const_iterator next = it;
-    std::advance(next, 1);
-    while (next != end)
-    {
-      this->Chars.insert(*it);
-      this->KerningPairs.insert(std::make_pair(*it, *next));
-      std::advance(it, 1);
-      std::advance(next, 1);
-    }
+      vtkTypeUInt32 value = utf8::next(it, end);
+      this->Chars.insert(value);
+      while (it != end)
+      {
+        vtkTypeUInt32 next = utf8::next(it, end);
+        this->Chars.insert(next);
+        this->KerningPairs.insert(std::make_pair(value, next));
+        value = next;
+      }
 
-    // Last char:
-    this->Chars.insert(*it);
+      // std::u32string ucs4;
+      // utf8::utf8to32(str.begin(), str.end(), std::back_inserter(ucs4));
+
+      // std::string::const_iterator next = it;
+      // while (next != end)
+      //{
+      //  vtkTypeUInt32 value = utf8::next(it, end);
+      //  this->Chars.insert(value);
+      //  this->KerningPairs.insert(std::make_pair(*it, *next));
+      //  utf8::unchecked::advance(it, 1);
+      //  utf8::unchecked::advance(next, 1);
+      //}
+
+      // while (next != end)
+      //{
+      //  vtk_utf8::internal::utf_error err_code = vtk_utf8::internal::validate_next(next, end);
+      //  if (err_code != vtk_utf8::internal::UTF8_OK)
+      //  {
+      //    utf8::unchecked::advance(next, 1);
+      //    return result;
+      //  }
+      //}
+
+      // Last char:
+      // this->Chars.insert(ucs4[ucs4.length() - 1]);
+      // this->Chars.insert(*it);
+    }
   }
 
   std::string SVGId;
@@ -1342,18 +1368,6 @@ void vtkSVGContextDevice2D::DrawEllipticArc(
 //------------------------------------------------------------------------------
 void vtkSVGContextDevice2D::DrawString(float* point, const vtkStdString& string)
 {
-  this->DrawString(point, vtkUnicodeString::from_utf8(string));
-}
-
-//------------------------------------------------------------------------------
-void vtkSVGContextDevice2D::ComputeStringBounds(const vtkStdString& string, float bounds[4])
-{
-  this->ComputeStringBounds(vtkUnicodeString::from_utf8(string), bounds);
-}
-
-//------------------------------------------------------------------------------
-void vtkSVGContextDevice2D::DrawString(float* point, const vtkUnicodeString& string)
-{
   vtkTextRenderer* tren = vtkTextRenderer::GetInstance();
   if (!tren)
   {
@@ -1378,8 +1392,7 @@ void vtkSVGContextDevice2D::DrawString(float* point, const vtkUnicodeString& str
     text->SetFloatAttribute("x", 0.f);
     text->SetFloatAttribute("y", 0.f);
 
-    std::string utf8String = string.utf8_str();
-    text->SetCharacterData(utf8String.c_str(), static_cast<int>(utf8String.size()));
+    text->SetCharacterData(string.c_str(), string.length());
   }
   else
   {
@@ -1404,7 +1417,7 @@ void vtkSVGContextDevice2D::DrawString(float* point, const vtkUnicodeString& str
 }
 
 //------------------------------------------------------------------------------
-void vtkSVGContextDevice2D::ComputeStringBounds(const vtkUnicodeString& string, float bounds[4])
+void vtkSVGContextDevice2D::ComputeStringBounds(const vtkStdString& string, float bounds[4])
 {
   vtkTextRenderer* tren = vtkTextRenderer::GetInstance();
   if (!tren)
@@ -1435,7 +1448,7 @@ void vtkSVGContextDevice2D::ComputeStringBounds(const vtkUnicodeString& string, 
 //------------------------------------------------------------------------------
 void vtkSVGContextDevice2D::ComputeJustifiedStringBounds(const char* string, float bounds[4])
 {
-  this->ComputeStringBounds(vtkUnicodeString::from_utf8(string), bounds);
+  this->ComputeStringBounds(vtkStdString(string), bounds);
 }
 
 //------------------------------------------------------------------------------
@@ -2407,16 +2420,17 @@ void vtkSVGContextDevice2D::WriteFonts()
     face->SetAttribute("bbox", BBoxToString(faceMetrics.BoundingBox).c_str());
     face->SetAttribute("alphabetic", "0");
 
-    for (auto charId : info->Chars)
+    for (auto value : info->Chars)
     {
-      GlyphOutline glyphInfo = ftt->GetUnscaledGlyphOutline(key.TextProperty, charId);
-      vtkUnicodeString unicode(1, charId);
+      GlyphOutline glyphInfo = ftt->GetUnscaledGlyphOutline(key.TextProperty, value);
+      std::string text;
+      utf8::append(value, std::back_inserter(text));
 
       vtkNew<vtkXMLDataElement> glyph;
       face->AddNestedElement(glyph);
       glyph->SetName("glyph");
       glyph->SetAttributeEncoding(VTK_ENCODING_UTF_8);
-      glyph->SetAttribute("unicode", unicode.utf8_str());
+      glyph->SetAttribute("unicode", text.c_str());
       glyph->SetIntAttribute("horiz-adv-x", glyphInfo.HorizAdvance);
 
       std::ostringstream d;
@@ -2426,23 +2440,24 @@ void vtkSVGContextDevice2D::WriteFonts()
 
     for (auto charPair : info->KerningPairs)
     {
-      const vtkUnicodeString unicode1(1, charPair.first);
-      const vtkUnicodeString unicode2(1, charPair.second);
       std::array<int, 2> kerning =
         ftt->GetUnscaledKerning(key.TextProperty, charPair.first, charPair.second);
 
-      if (std::abs(kerning[0]) == 0)
+      if (kerning[0] != 0)
       {
-        continue;
-      }
+        std::string left;
+        utf8::append(charPair.first, std::back_inserter(left));
+        std::string right;
+        utf8::append(charPair.second, std::back_inserter(right));
 
-      vtkNew<vtkXMLDataElement> hkern;
-      font->AddNestedElement(hkern);
-      hkern->SetName("hkern");
-      hkern->SetAttributeEncoding(VTK_ENCODING_UTF_8);
-      hkern->SetAttribute("u1", unicode1.utf8_str());
-      hkern->SetAttribute("u2", unicode2.utf8_str());
-      hkern->SetIntAttribute("k", -kerning[0]);
+        vtkNew<vtkXMLDataElement> hkern;
+        font->AddNestedElement(hkern);
+        hkern->SetName("hkern");
+        hkern->SetAttributeEncoding(VTK_ENCODING_UTF_8);
+        hkern->SetAttribute("u1", left.c_str());
+        hkern->SetAttribute("u2", right.c_str());
+        hkern->SetIntAttribute("k", -kerning[0]);
+      }
     }
   }
 }

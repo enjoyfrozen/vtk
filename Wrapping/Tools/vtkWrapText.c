@@ -941,10 +941,6 @@ static void vtkWrapText_PythonTypeSignature(
   else if (vtkWrap_IsString(arg) || vtkWrap_IsCharPointer(arg))
   {
     classname = "string";
-    if ((arg->Type & VTK_PARSE_BASE_TYPE) == VTK_PARSE_UNICODE_STRING)
-    {
-      classname = "unicode";
-    }
   }
   else if (vtkWrap_IsChar(arg))
   {

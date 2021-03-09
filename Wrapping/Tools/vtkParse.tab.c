@@ -5985,19 +5985,11 @@ static YYRESULTTAG yyuserAction(
     break;
 
     case 434:
-
-    {
-      typeSig((((yyGLRStackItem const*)yyvsp)[YYFILL(0)].yystate.yysemantics.yysval.str));
-      ((*yyvalp).integer) = VTK_PARSE_STRING;
-    }
-
-    break;
-
     case 435:
 
     {
       typeSig((((yyGLRStackItem const*)yyvsp)[YYFILL(0)].yystate.yysemantics.yysval.str));
-      ((*yyvalp).integer) = VTK_PARSE_UNICODE_STRING;
+      ((*yyvalp).integer) = VTK_PARSE_STRING;
     }
 
     break;
@@ -9516,10 +9508,6 @@ unsigned int guess_id_type(const char* cp)
     if (strcmp(dp, "vtkStdString") == 0 || strcmp(cp, "std::string") == 0)
     {
       t = VTK_PARSE_STRING;
-    }
-    else if (strcmp(dp, "vtkUnicodeString") == 0)
-    {
-      t = VTK_PARSE_UNICODE_STRING;
     }
     else if (strncmp(dp, "vtk", 3) == 0)
     {

@@ -26,7 +26,6 @@
 #include "vtkVectorOperators.h"
 
 #include "vtkStdString.h"
-#include "vtkUnicodeString.h"
 
 // The embedded fonts
 #include "fonts/vtkEmbeddedFonts.h"
@@ -257,7 +256,7 @@ vtkFreeTypeTools::FaceMetrics vtkFreeTypeTools::GetFaceMetrics(vtkTextProperty* 
 
 //------------------------------------------------------------------------------
 vtkFreeTypeTools::GlyphOutline vtkFreeTypeTools::GetUnscaledGlyphOutline(
-  vtkTextProperty* tprop, vtkUnicodeStringValueType charId)
+  vtkTextProperty* tprop, vtkTypeUInt32 charId)
 {
   size_t tpropCacheId;
   this->MapTextPropertyToId(tprop, &tpropCacheId);
@@ -302,7 +301,7 @@ vtkFreeTypeTools::GlyphOutline vtkFreeTypeTools::GetUnscaledGlyphOutline(
 
 //------------------------------------------------------------------------------
 std::array<int, 2> vtkFreeTypeTools::GetUnscaledKerning(
-  vtkTextProperty* tprop, vtkUnicodeStringValueType leftChar, vtkUnicodeStringValueType rightChar)
+  vtkTextProperty* tprop, vtkTypeUInt32 leftChar, vtkTypeUInt32 rightChar)
 {
   std::array<int, 2> result{ { 0, 0 } };
   if (leftChar == 0 || rightChar == 0)
@@ -509,73 +508,8 @@ bool vtkFreeTypeTools::GetBoundingBox(
 }
 
 //------------------------------------------------------------------------------
-bool vtkFreeTypeTools::GetBoundingBox(
-  vtkTextProperty* tprop, const vtkUnicodeString& str, int dpi, int bbox[4])
-{
-  // We need the tprop and bbox
-  if (!tprop || !bbox)
-  {
-    vtkErrorMacro(<< "Wrong parameters, one of them is nullptr or zero");
-    return false;
-  }
-
-  if (str.empty())
-  {
-    std::fill(bbox, bbox + 4, 0);
-    return true;
-  }
-
-  MetaData metaData;
-  bool result = this->PrepareMetaData(tprop, dpi, metaData);
-  if (result)
-  {
-    result = this->CalculateBoundingBox(str, metaData);
-    if (result)
-    {
-      memcpy(bbox, metaData.bbox.GetData(), sizeof(int) * 4);
-    }
-  }
-  return result;
-}
-
-//------------------------------------------------------------------------------
 bool vtkFreeTypeTools::GetMetrics(
   vtkTextProperty* tprop, const vtkStdString& str, int dpi, vtkTextRenderer::Metrics& metrics)
-{
-  if (!tprop)
-  {
-    vtkErrorMacro(<< "nullptr text property.");
-    return false;
-  }
-
-  if (str.empty())
-  {
-    metrics = vtkTextRenderer::Metrics();
-    return true;
-  }
-
-  MetaData metaData;
-  bool result = this->PrepareMetaData(tprop, dpi, metaData);
-  if (result)
-  {
-    result = this->CalculateBoundingBox(str, metaData);
-    if (result)
-    {
-      metrics.BoundingBox = metaData.bbox;
-      metrics.TopLeft = metaData.TL;
-      metrics.TopRight = metaData.TR;
-      metrics.BottomLeft = metaData.BL;
-      metrics.BottomRight = metaData.BR;
-      metrics.Ascent = metaData.ascent;
-      metrics.Descent = metaData.descent;
-    }
-  }
-  return result;
-}
-
-//------------------------------------------------------------------------------
-bool vtkFreeTypeTools::GetMetrics(
-  vtkTextProperty* tprop, const vtkUnicodeString& str, int dpi, vtkTextRenderer::Metrics& metrics)
 {
   if (!tprop)
   {
@@ -616,13 +550,6 @@ bool vtkFreeTypeTools::RenderString(
 }
 
 //------------------------------------------------------------------------------
-bool vtkFreeTypeTools::RenderString(
-  vtkTextProperty* tprop, const vtkUnicodeString& str, int dpi, vtkImageData* data, int textDims[2])
-{
-  return this->RenderStringInternal(tprop, str, dpi, data, textDims);
-}
-
-//------------------------------------------------------------------------------
 bool vtkFreeTypeTools::StringToPath(
   vtkTextProperty* tprop, const vtkStdString& str, int dpi, vtkPath* path)
 {
@@ -630,28 +557,8 @@ bool vtkFreeTypeTools::StringToPath(
 }
 
 //------------------------------------------------------------------------------
-bool vtkFreeTypeTools::StringToPath(
-  vtkTextProperty* tprop, const vtkUnicodeString& str, int dpi, vtkPath* path)
-{
-  return this->StringToPathInternal(tprop, str, dpi, path);
-}
-
-//------------------------------------------------------------------------------
 int vtkFreeTypeTools::GetConstrainedFontSize(
   const vtkStdString& str, vtkTextProperty* tprop, int dpi, int targetWidth, int targetHeight)
-{
-  MetaData metaData;
-  if (!this->PrepareMetaData(tprop, dpi, metaData))
-  {
-    vtkErrorMacro(<< "Could not prepare metadata.");
-    return false;
-  }
-  return this->FitStringToBBox(str, metaData, targetWidth, targetHeight);
-}
-
-//------------------------------------------------------------------------------
-int vtkFreeTypeTools::GetConstrainedFontSize(
-  const vtkUnicodeString& str, vtkTextProperty* tprop, int dpi, int targetWidth, int targetHeight)
 {
   MetaData metaData;
   if (!this->PrepareMetaData(tprop, dpi, metaData))
@@ -1406,12 +1313,6 @@ bool vtkFreeTypeTools::StringToPathInternal(
 namespace
 {
 const char* DEFAULT_HEIGHT_STRING = "_/7Agfy";
-}
-
-//------------------------------------------------------------------------------
-bool vtkFreeTypeTools::CalculateBoundingBox(const vtkUnicodeString& str, MetaData& metaData)
-{
-  return CalculateBoundingBox(str, metaData, vtkUnicodeString::from_utf8(DEFAULT_HEIGHT_STRING));
 }
 
 //------------------------------------------------------------------------------

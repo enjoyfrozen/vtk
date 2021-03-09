@@ -131,20 +131,6 @@ vtkStdString vtkLabelHierarchyIterator::GetLabel()
   return labelArr->GetVariantValue(this->GetLabelId()).ToString();
 }
 
-vtkUnicodeString vtkLabelHierarchyIterator::GetUnicodeLabel()
-{
-  if (!this->GetHierarchy())
-  {
-    return vtkUnicodeString();
-  }
-  vtkAbstractArray* labelArr = this->GetHierarchy()->GetLabels();
-  if (!labelArr)
-  {
-    return vtkUnicodeString();
-  }
-  return labelArr->GetVariantValue(this->GetLabelId()).ToUnicodeString();
-}
-
 double vtkLabelHierarchyIterator::GetOrientation()
 {
   if (!this->GetHierarchy())
