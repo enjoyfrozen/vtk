@@ -12,10 +12,6 @@
      PURPOSE.  See the above copyright notice for more information.
 
 =========================================================================*/
-// .NAME Test of vtkMP4Writer
-// .SECTION Description
-//
-
 #include "vtkImageCast.h"
 #include "vtkImageData.h"
 #include "vtkImageMandelbrotSource.h"
@@ -24,43 +20,43 @@
 #include "vtkMP4Writer.h"
 #include "vtksys/SystemTools.hxx"
 
+#include "vtkAutoInit.h"
+VTK_MODULE_INIT(vtkIOMovie);
+
 int TestMP4Writer(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 {
-  int err = 0;
-  int cc = 0;
-  int exists = 0;
-  unsigned long length = 0;
-  vtkImageMandelbrotSource* Fractal0 = vtkImageMandelbrotSource::New();
-  Fractal0->SetWholeExtent(0, 247, 0, 247, 0, 0);
-  Fractal0->SetProjectionAxes(0, 1, 2);
-  Fractal0->SetOriginCX(-1.75, -1.25, 0, 0);
-  Fractal0->SetSizeCX(2.5, 2.5, 2, 1.5);
-  Fractal0->SetMaximumNumberOfIterations(100);
+  vtkNew<vtkImageMandelbrotSource> fractal;
+  fractal->SetWholeExtent(0, 247, 0, 247, 0, 0);
+  fractal->SetProjectionAxes(0, 1, 2);
+  fractal->SetOriginCX(-1.75, -1.25, 0, 0);
+  fractal->SetSizeCX(2.5, 2.5, 2, 1.5);
+  fractal->SetMaximumNumberOfIterations(100);
 
-  vtkImageCast* cast = vtkImageCast::New();
-  cast->SetInputConnection(Fractal0->GetOutputPort());
+  vtkNew<vtkImageCast> cast;
+  cast->SetInputConnection(fractal->GetOutputPort());
   cast->SetOutputScalarTypeToUnsignedChar();
 
-  vtkLookupTable* table = vtkLookupTable::New();
+  vtkNew<vtkLookupTable> table;
   table->SetTableRange(0, 100);
   table->SetNumberOfColors(100);
   table->Build();
   table->SetTableValue(99, 0, 0, 0);
 
-  vtkImageMapToColors* colorize = vtkImageMapToColors::New();
+  vtkNew<vtkImageMapToColors> colorize;
   colorize->SetOutputFormatToRGB();
   colorize->SetLookupTable(table);
   colorize->SetInputConnection(cast->GetOutputPort());
 
-  vtkMP4Writer* w = vtkMP4Writer::New();
+  vtkNew<vtkMP4Writer> w;
+
   w->SetInputConnection(colorize->GetOutputPort());
   w->SetFileName("TestMP4Writer.mp4");
   cout << "Writing file TestMP4Writer.mp4..." << endl;
   w->Start();
-  for (cc = 2; cc < 99; cc++)
+  for (int cc = 2; cc < 99; cc++)
   {
     cout << ".";
-    Fractal0->SetMaximumNumberOfIterations(cc);
+    fractal->SetMaximumNumberOfIterations(cc);
     table->SetTableRange(0, cc);
     table->SetNumberOfColors(cc);
     table->ForceBuild();
@@ -70,29 +66,20 @@ int TestMP4Writer(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
   w->End();
   cout << endl;
   cout << "Done writing file TestMP4Writer.mp4..." << endl;
-  w->Delete();
 
-  exists = (int)vtksys::SystemTools::FileExists("TestMP4Writer.mp4");
-  length = vtksys::SystemTools::FileLength("TestMP4Writer.mp4");
-  cout << "TestMP4Writer.mp4 file exists: " << exists << endl;
-  cout << "TestMP4Writer.mp4 file length: " << length << endl;
+  bool exists = (int)vtksys::SystemTools::FileExists("TestMP4Writer.mp4");
+  unsigned long length = vtksys::SystemTools::FileLength("TestMP4Writer.mp4");
+  bool success = true;
   if (!exists)
   {
-    err = 3;
-    cerr << "ERROR: 3 - Test failing because TestMP4Writer.mp4 file doesn't exist..." << endl;
+    success = false;
+    cerr << "Test failing because TestMP4Writer.mp4 file doesn't exist..." << endl;
   }
   if (0 == length)
   {
-    err = 4;
-    cerr << "ERROR: 4 - Test failing because TestMP4Writer.mp4 file has zero length..." << endl;
+    success = false;
+    cerr << "Test failing because TestMP4Writer.mp4 file has zero length..." << endl;
   }
 
-  colorize->Delete();
-  table->Delete();
-  cast->Delete();
-  Fractal0->Delete();
-
-  // err == 0 means test passes...
-  //
-  return err;
+  return success ? 0 : -1;
 }
