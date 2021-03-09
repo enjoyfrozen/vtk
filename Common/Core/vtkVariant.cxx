@@ -29,7 +29,6 @@
 #include "vtkStdString.h"
 #include "vtkStringArray.h"
 #include "vtkType.h"
-#include "vtkUnicodeString.h"
 #include "vtkVariantArray.h"
 
 #include "vtksys/SystemTools.hxx"
@@ -69,9 +68,6 @@ bool vtkVariantStrictWeakOrder::operator()(const vtkVariant& s1, const vtkVarian
   {
     case VTK_STRING:
       return (*(s1.Data.String) < *(s2.Data.String));
-
-    case VTK_UNICODE_STRING:
-      return (*(s1.Data.UnicodeString) < *(s2.Data.UnicodeString));
 
     case VTK_OBJECT:
       return (s1.Data.VTKObject < s2.Data.VTKObject);
@@ -150,9 +146,6 @@ bool vtkVariantStrictEquality::operator()(const vtkVariant& s1, const vtkVariant
       }
       return (*(s1.Data.String) == *(s2.Data.String));
     };
-
-    case VTK_UNICODE_STRING:
-      return (*(s1.Data.UnicodeString) == *(s2.Data.UnicodeString));
 
     case VTK_OBJECT:
       return (s1.Data.VTKObject == s2.Data.VTKObject);
@@ -235,9 +228,6 @@ vtkVariant::vtkVariant(const vtkVariant& other)
       case VTK_STRING:
         this->Data.String = new vtkStdString(*other.Data.String);
         break;
-      case VTK_UNICODE_STRING:
-        this->Data.UnicodeString = new vtkUnicodeString(*other.Data.UnicodeString);
-        break;
       case VTK_OBJECT:
         this->Data.VTKObject->Register(nullptr);
         break;
@@ -255,11 +245,6 @@ vtkVariant::vtkVariant(const vtkVariant& s2, unsigned int type)
     {
       case VTK_STRING:
         this->Data.String = new vtkStdString(s2.ToString());
-        valid = true;
-        break;
-
-      case VTK_UNICODE_STRING:
-        this->Data.UnicodeString = new vtkUnicodeString(s2.ToUnicodeString());
         valid = true;
         break;
 
@@ -346,9 +331,6 @@ vtkVariant& vtkVariant::operator=(const vtkVariant& other)
       case VTK_STRING:
         delete this->Data.String;
         break;
-      case VTK_UNICODE_STRING:
-        delete this->Data.UnicodeString;
-        break;
       case VTK_OBJECT:
         this->Data.VTKObject->Delete();
         break;
@@ -366,9 +348,6 @@ vtkVariant& vtkVariant::operator=(const vtkVariant& other)
       case VTK_STRING:
         this->Data.String = new vtkStdString(*other.Data.String);
         break;
-      case VTK_UNICODE_STRING:
-        this->Data.UnicodeString = new vtkUnicodeString(*other.Data.UnicodeString);
-        break;
       case VTK_OBJECT:
         this->Data.VTKObject->Register(nullptr);
         break;
@@ -385,9 +364,6 @@ vtkVariant::~vtkVariant()
     {
       case VTK_STRING:
         delete this->Data.String;
-        break;
-      case VTK_UNICODE_STRING:
-        delete this->Data.UnicodeString;
         break;
       case VTK_OBJECT:
         this->Data.VTKObject->Delete();
@@ -513,13 +489,6 @@ vtkVariant::vtkVariant(vtkStdString value)
   this->Type = VTK_STRING;
 }
 
-vtkVariant::vtkVariant(const vtkUnicodeString& value)
-{
-  this->Data.UnicodeString = new vtkUnicodeString(value);
-  this->Valid = 1;
-  this->Type = VTK_UNICODE_STRING;
-}
-
 vtkVariant::vtkVariant(vtkObjectBase* value)
 {
   this->Valid = 0;
@@ -541,11 +510,6 @@ bool vtkVariant::IsValid() const
 bool vtkVariant::IsString() const
 {
   return this->Type == VTK_STRING;
-}
-
-bool vtkVariant::IsUnicodeString() const
-{
-  return this->Type == VTK_UNICODE_STRING;
 }
 
 bool vtkVariant::IsNumeric() const
@@ -702,10 +666,6 @@ vtkStdString vtkVariant::ToString(int formatting, int precision) const
   {
     return vtkStdString(*(this->Data.String));
   }
-  if (this->IsUnicodeString())
-  {
-    return vtkUnicodeString(*(this->Data.UnicodeString)).utf8_str();
-  }
   if (this->IsFloat())
   {
     std::ostringstream ostr;
@@ -812,24 +772,6 @@ vtkStdString vtkVariant::ToString(int formatting, int precision) const
   vtkGenericWarningMacro(<< "Cannot convert unknown type (" << this->GetTypeAsString()
                          << ") to a string.");
   return vtkStdString();
-}
-
-vtkUnicodeString vtkVariant::ToUnicodeString(int formatting, int precision) const
-{
-  if (!this->IsValid())
-  {
-    return vtkUnicodeString();
-  }
-  if (this->IsString())
-  {
-    return vtkUnicodeString::from_utf8(*this->Data.String);
-  }
-  if (this->IsUnicodeString())
-  {
-    return *this->Data.UnicodeString;
-  }
-
-  return vtkUnicodeString::from_utf8(this->ToString(formatting, precision));
 }
 
 vtkObjectBase* vtkVariant::ToVTKObject() const
@@ -1044,16 +986,6 @@ ostream& operator<<(ostream& os, const vtkVariant& val)
       if (val.Data.String)
       {
         os << "\"" << val.Data.String->c_str() << "\"";
-      }
-      else
-      {
-        os << "\"\"";
-      }
-      break;
-    case VTK_UNICODE_STRING:
-      if (val.Data.UnicodeString)
-      {
-        os << "\"" << val.Data.UnicodeString->utf8_str() << "\"";
       }
       else
       {

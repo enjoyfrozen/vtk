@@ -183,8 +183,6 @@ set(classes
   vtkStringOutputWindow
   vtkTimePointUtility
   vtkTimeStamp
-  vtkUnicodeString
-  vtkUnicodeStringArray
   vtkUnsignedCharArray
   vtkUnsignedIntArray
   vtkUnsignedLongArray
@@ -394,19 +392,6 @@ if (NOT VTK_LEGACY_REMOVE)
   list(APPEND nowrap_headers
     vtkConfigure.h)
 endif ()
-
-add_custom_command(
-  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/CaseFolding.txt"
-  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/vtkUnicodeString.cmake"
-  COMMAND "${CMAKE_COMMAND}"
-          "-Dsource_dir=${CMAKE_CURRENT_SOURCE_DIR}"
-          "-Dbinary_dir=${CMAKE_CURRENT_BINARY_DIR}"
-          -P "${CMAKE_CURRENT_SOURCE_DIR}/vtkUnicodeString.cmake"
-  OUTPUT  "${CMAKE_CURRENT_BINARY_DIR}/vtkUnicodeCaseFoldData.h")
-
-set_source_files_properties(vtkUnicodeString.cxx
-  PROPERTIES
-    OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/vtkUnicodeCaseFoldData.h")
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/vtkTypeArrays.cmake")
 

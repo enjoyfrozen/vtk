@@ -35,8 +35,6 @@
 #include "vtkShortArray.h"
 #include "vtkSignedCharArray.h"
 #include "vtkStringArray.h"
-#include "vtkUnicodeString.h" // for vtkSuperExtraExtendedTemplateMacro
-#include "vtkUnicodeStringArray.h"
 #include "vtkUnsignedCharArray.h"
 #include "vtkUnsignedIntArray.h"
 #include "vtkUnsignedLongArray.h"
@@ -354,7 +352,6 @@ int vtkAbstractArray::GetDataTypeSize(int type)
 
     case VTK_BIT:
     case VTK_STRING:
-    case VTK_UNICODE_STRING:
       return 0;
 
     default:
@@ -416,9 +413,6 @@ vtkAbstractArray* vtkAbstractArray::CreateArray(int dataType)
 
     case VTK_STRING:
       return vtkStringArray::New();
-
-    case VTK_UNICODE_STRING:
-      return vtkUnicodeStringArray::New();
 
     case VTK_VARIANT:
       return vtkVariantArray::New();
@@ -750,9 +744,8 @@ void vtkAbstractArray::UpdateDiscreteValueSet(double uncertainty, double minimum
   std::vector<std::vector<vtkVariant>> uniques(nc > 1 ? nc + 1 : nc);
   switch (this->GetDataType())
   {
-    vtkSuperExtraExtendedTemplateMacro(
-      SampleProminentValues(uniques, this->MaxId, nc, nt, blockSize, numberOfBlocks,
-        static_cast<VTK_TT*>(this->GetVoidPointer(0)), this->MaxDiscreteValues));
+    vtkExtraExtendedTemplateMacro(SampleProminentValues(uniques, this->MaxId, nc, nt, blockSize,
+      numberOfBlocks, static_cast<VTK_TT*>(this->GetVoidPointer(0)), this->MaxDiscreteValues));
     default:
       vtkErrorMacro("Array type " << this->GetClassName() << " not supported.");
       break;

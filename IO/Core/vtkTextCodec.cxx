@@ -19,6 +19,7 @@ PURPOSE.  See the above copyright notice for more information.
 -------------------------------------------------------------------------*/
 
 #include "vtkTextCodec.h"
+#include <vtk_utf8.h>
 
 const char* vtkTextCodec::Name()
 {
@@ -35,76 +36,41 @@ bool vtkTextCodec::IsValid(istream&)
   return false;
 }
 
-vtkUnicodeString::value_type vtkTextCodec::NextUnicode(istream& inputStream)
-{
-  return NextUTF32CodePoint(inputStream);
-}
-
 vtkTextCodec::~vtkTextCodec() = default;
 
 vtkTextCodec::vtkTextCodec() = default;
 
 namespace
 {
-class vtkUnicodeStringOutputIterator : public vtkTextCodec::OutputIterator
+class vtkStringOutputIterator : public vtkTextCodec::OutputIterator
 {
 public:
-  vtkUnicodeStringOutputIterator& operator++(int) override;
-  vtkUnicodeStringOutputIterator& operator*() override;
-  vtkUnicodeStringOutputIterator& operator=(vtkUnicodeString::value_type value) override;
+  vtkStringOutputIterator& operator++(int) override { return *this; }
+  vtkStringOutputIterator& operator*() override { return *this; }
+  vtkStringOutputIterator& operator=(const vtkTypeUInt32 value) override
+  {
+    utf8::append(value, std::back_inserter(this->Output));
+    return *this;
+  }
 
-  vtkUnicodeStringOutputIterator(vtkUnicodeString& outputString);
-  ~vtkUnicodeStringOutputIterator() override;
+  vtkStringOutputIterator(std::string& output)
+    : Output(output)
+  {
+  }
 
 private:
-  vtkUnicodeStringOutputIterator(const vtkUnicodeStringOutputIterator&) = delete;
-  vtkUnicodeStringOutputIterator& operator=(const vtkUnicodeStringOutputIterator&) = delete;
-
-  vtkUnicodeString& OutputString;
-  unsigned int StringPosition;
+  std::string& Output;
 };
-
-vtkUnicodeStringOutputIterator& vtkUnicodeStringOutputIterator::operator++(int)
-{
-  this->StringPosition++;
-  return *this;
-}
-
-vtkUnicodeStringOutputIterator& vtkUnicodeStringOutputIterator::operator*()
-{
-  return *this;
-}
-
-vtkUnicodeStringOutputIterator& vtkUnicodeStringOutputIterator::operator=(
-  const vtkUnicodeString::value_type value)
-{
-  this->OutputString += value;
-  return *this;
-}
-
-vtkUnicodeStringOutputIterator::vtkUnicodeStringOutputIterator(vtkUnicodeString& outputString)
-  : OutputString(outputString)
-  , StringPosition(0)
-{
-}
-
-vtkUnicodeStringOutputIterator::~vtkUnicodeStringOutputIterator() = default;
 }
 
 std::string vtkTextCodec::ToString(istream& inputStream)
 {
-  return ToUnicode(inputStream).utf8_str();
-}
+  std::string result;
 
-vtkUnicodeString vtkTextCodec::ToUnicode(istream& InputStream)
-{
-  // create an output string stream
-  vtkUnicodeString returnString;
+  vtkStringOutputIterator iterator(result);
+  this->ToUnicode(inputStream, iterator);
 
-  vtkUnicodeStringOutputIterator StringIterator(returnString);
-  this->ToUnicode(InputStream, StringIterator);
-
-  return returnString;
+  return result;
 }
 
 void vtkTextCodec::PrintSelf(ostream& os, vtkIndent indent)

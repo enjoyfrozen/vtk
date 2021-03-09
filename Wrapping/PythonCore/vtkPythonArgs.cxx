@@ -97,22 +97,6 @@ Py_ssize_t vtkPythonGetStringSize(PyObject* o)
   {
     return PyByteArray_GET_SIZE(o);
   }
-#ifdef Py_USING_UNICODE
-  else if (PyUnicode_Check(o))
-  {
-#if PY_VERSION_HEX >= 0x03030000
-    Py_ssize_t size;
-    PyUnicode_AsUTF8AndSize(o, &size);
-    return size;
-#else
-    PyObject* s = _PyUnicode_AsDefaultEncodedString(o, nullptr);
-    if (s)
-    {
-      return PyBytes_GET_SIZE(s);
-    }
-#endif
-  }
-#endif
   return 0;
 }
 
@@ -128,29 +112,6 @@ bool vtkPythonGetStringValue(PyObject* o, const char*& a, const char* exctext)
     a = PyByteArray_AS_STRING(o);
     return true;
   }
-#ifdef Py_USING_UNICODE
-  else if (PyUnicode_Check(o))
-  {
-#if PY_VERSION_HEX >= 0x03030000
-    a = PyUnicode_AsUTF8(o);
-    return true;
-#else
-    PyObject* s = _PyUnicode_AsDefaultEncodedString(o, nullptr);
-    if (s)
-    {
-      a = PyBytes_AS_STRING(s);
-      return true;
-    }
-
-    if (exctext)
-    {
-      // set a more specific error message
-      exctext = "(unicode conversion error)";
-    }
-#endif
-  }
-#endif
-
   if (exctext)
   {
     PyErr_SetString(PyExc_TypeError, exctext);
@@ -168,29 +129,6 @@ inline bool vtkPythonGetStdStringValue(PyObject* o, std::string& a, const char* 
     a = std::string(val, len);
     return true;
   }
-#ifdef Py_USING_UNICODE
-  else if (PyUnicode_Check(o))
-  {
-#if PY_VERSION_HEX >= 0x03030000
-    Py_ssize_t len;
-    const char* val = PyUnicode_AsUTF8AndSize(o, &len);
-    a = std::string(val, len);
-    return true;
-#else
-    PyObject* s = _PyUnicode_AsDefaultEncodedString(o, nullptr);
-    if (s)
-    {
-      char* val;
-      Py_ssize_t len;
-      PyBytes_AsStringAndSize(s, &val, &len);
-      a = std::string(val, len);
-      return true;
-    }
-
-    exctext = "(unicode conversion error)";
-#endif
-  }
-#endif
 
   PyErr_SetString(PyExc_TypeError, exctext);
   return false;
@@ -337,24 +275,6 @@ inline bool vtkPythonGetValue(PyObject* o, std::string& a)
     return true;
   }
   return false;
-}
-
-inline bool vtkPythonGetValue(PyObject* o, vtkUnicodeString& a)
-{
-#ifdef Py_USING_UNICODE
-  PyObject* s = PyUnicode_AsUTF8String(o);
-  if (s)
-  {
-    a = vtkUnicodeString::from_utf8(PyBytes_AS_STRING(s));
-    Py_DECREF(s);
-    return true;
-  }
-  return false;
-#else
-  a.clear();
-  PyErr_SetString(PyExc_TypeError, "python built without unicode support");
-  return false;
-#endif
 }
 
 inline bool vtkPythonGetValue(PyObject* o, char& a)
@@ -928,7 +848,6 @@ VTK_PYTHON_BUILD_TUPLE(unsigned long)
 VTK_PYTHON_BUILD_TUPLE(long long)
 VTK_PYTHON_BUILD_TUPLE(unsigned long long)
 VTK_PYTHON_BUILD_TUPLE(std::string)
-VTK_PYTHON_BUILD_TUPLE(vtkUnicodeString)
 
 //------------------------------------------------------------------------------
 
@@ -1079,7 +998,6 @@ int vtkPythonArgs::GetArgAsEnum(PyObject* o, const char* enumname, bool& valid)
 
 VTK_PYTHON_GET_ARG(const char*)
 VTK_PYTHON_GET_ARG(std::string)
-VTK_PYTHON_GET_ARG(vtkUnicodeString)
 VTK_PYTHON_GET_ARG(char)
 VTK_PYTHON_GET_ARG(bool)
 VTK_PYTHON_GET_ARG(float)
@@ -1125,7 +1043,6 @@ VTK_PYTHON_GET_ARRAY_ARG(unsigned long)
 VTK_PYTHON_GET_ARRAY_ARG(long long)
 VTK_PYTHON_GET_ARRAY_ARG(unsigned long long)
 VTK_PYTHON_GET_ARRAY_ARG(std::string)
-VTK_PYTHON_GET_ARRAY_ARG(vtkUnicodeString)
 
 //------------------------------------------------------------------------------
 // Define all the GetNArray methods in the class.
@@ -1285,7 +1202,6 @@ VTK_PYTHON_GET_BUFFER(unsigned long long, 'Q')
   }
 
 VTK_PYTHON_SET_ARG(const std::string&)
-VTK_PYTHON_SET_ARG(const vtkUnicodeString&)
 VTK_PYTHON_SET_ARG(char)
 VTK_PYTHON_SET_ARG(bool)
 VTK_PYTHON_SET_ARG(float)

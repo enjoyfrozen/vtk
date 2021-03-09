@@ -291,19 +291,7 @@ vtkParallelCoordinatesRepresentation::~vtkParallelCoordinatesRepresentation()
 std::string vtkParallelCoordinatesRepresentation::GetHoverString(vtkView* view, int x, int y)
 {
   std::string result;
-  const char* text = GetHoverText(view, x, y);
-  if (text != nullptr)
-  {
-    result = text;
-  }
 
-  return result;
-}
-
-//------------------------------------------------------------------------------
-// I should fill this out.
-const char* vtkParallelCoordinatesRepresentation::GetHoverText(vtkView* view, int x, int y)
-{
   vtkRenderView* rv = vtkRenderView::SafeDownCast(view);
   if (rv && this->NumberOfAxes > 0)
   {
@@ -326,16 +314,21 @@ const char* vtkParallelCoordinatesRepresentation::GetHoverText(vtkView* view, in
       vtkVariant var(v);
 
       this->SetInternalHoverText(vtkVariant(v).ToString());
-      return this->GetInternalHoverText();
     }
     else if (p[0] > this->Xs[0] && p[1] < this->Xs[this->NumberOfAxes - 1] && p[1] <= this->YMax &&
       p[1] >= this->YMin)
     {
       this->UpdateHoverHighlight(view, x, y);
-      return this->GetInternalHoverText();
+    }
+
+    char* text = this->GetInternalHoverText();
+    if (text != nullptr)
+    {
+      result = text;
     }
   }
-  return nullptr;
+
+  return result;
 }
 
 //------------------------------------------------------------------------------

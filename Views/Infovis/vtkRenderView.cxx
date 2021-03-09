@@ -52,7 +52,6 @@
 #include "vtkTexturedActor2D.h"
 #include "vtkTransform.h"
 #include "vtkTransformCoordinateSystems.h"
-#include "vtkUnicodeString.h"
 #include "vtkViewTheme.h"
 
 #ifdef VTK_USE_QT
@@ -575,21 +574,21 @@ void vtkRenderView::UpdateHoverText()
   // this->Balloon->SetBalloonText(oss.str().c_str());
   // this->Balloon->StartWidgetInteraction(loc);
 
-  vtkUnicodeString hoverText;
+  std::string hoverText;
   for (int i = 0; i < this->GetNumberOfRepresentations(); ++i)
   {
     vtkRenderedRepresentation* rep =
       vtkRenderedRepresentation::SafeDownCast(this->GetRepresentation(i));
     if (rep && this->RenderWindow->GetInteractor())
     {
-      hoverText = rep->GetHoverText(this, prop, cell);
+      hoverText = rep->GetHoverString(this, prop, cell);
       if (!hoverText.empty())
       {
         break;
       }
     }
   }
-  this->Balloon->SetBalloonText(hoverText.utf8_str());
+  this->Balloon->SetBalloonText(hoverText.c_str());
   this->Balloon->StartWidgetInteraction(loc);
   this->InvokeEvent(vtkCommand::HoverEvent, &hoverText);
 }

@@ -37,7 +37,6 @@
 #include "vtkStdString.h"
 #include "vtkSystemIncludes.h" // To define ostream
 #include "vtkType.h"           // To define type IDs and VTK_TYPE_USE_* flags
-#include "vtkUnicodeString.h"
 
 //
 // The following should be eventually placed in vtkSetGet.h
@@ -54,7 +53,6 @@
   vtkArrayIteratorTemplateMacroCase(VTK_VARIANT, vtkVariant, call)
 
 class vtkStdString;
-class vtkUnicodeString;
 class vtkObjectBase;
 class vtkAbstractArray;
 class vtkVariant;
@@ -161,12 +159,6 @@ public:
   vtkVariant(vtkStdString value);
 
   /**
-   * Create a Unicode string variant
-   */
-  VTK_DEPRECATED_IN_9_1_0("Use vtkVariant(vtkStdString value)")
-  vtkVariant(const vtkUnicodeString& value);
-
-  /**
    * Create a vtkObjectBase variant.
    */
   vtkVariant(vtkObjectBase* value);
@@ -190,11 +182,6 @@ public:
    * Get whether the variant is a string.
    */
   bool IsString() const;
-
-  /**
-   * Get whether the variant is a Unicode string.
-   */
-  bool IsUnicodeString() const;
 
   /**
    * Get whether the variant is any numeric type.
@@ -313,18 +300,6 @@ public:
    */
   vtkStdString ToString(int formatting = DEFAULT_FORMATTING, int precision = 6) const;
 
-  /**
-   * convert the variant to a Unicode string.
-   * Set the formatting argument to either DEFAULT_FORMATTING, FIXED_FORMATTING,
-   * SCIENTIFIC_FORMATTING to control the formatting. Set the precision
-   * argument to control the precision of the output. These two parameters have no effect when the
-   * variant is not a floating-point value or an array of floating-point values.
-   * See the std doc for more information.
-   */
-  VTK_DEPRECATED_IN_9_1_0(
-    "Use vtkStdString ToString(int formatting = DEFAULT_FORMATTING, int precision = 6)")
-  vtkUnicodeString ToUnicodeString(int formatting = DEFAULT_FORMATTING, int precision = 6) const;
-
   //@{
   /**
    * Convert the variant to a numeric type:
@@ -436,7 +411,6 @@ private:
 
   union {
     vtkStdString* String;
-    vtkUnicodeString* UnicodeString;
     float Float;
     double Double;
     char Char;

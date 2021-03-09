@@ -58,14 +58,14 @@ class TestString(Testing.vtkTest):
 
     def testPassAndReturnUnicodeByReference(self):
         """Pass a unicode string by const reference"""
-        a = vtk.vtkUnicodeStringArray()
+        a = vtk.vtkStringArray()
         a.InsertNextValue(cedilla)
         u = a.GetValue(0)
         self.assertEqual(u, cedilla)
 
     def testPassBytesAsUnicode(self):
         """Pass 8-bit string when unicode is expected.  Should fail."""
-        a = vtk.vtkUnicodeStringArray()
+        a = vtk.vtkStringArray()
         self.assertRaises(TypeError,
                           a.InsertNextValue, eightbit)
 

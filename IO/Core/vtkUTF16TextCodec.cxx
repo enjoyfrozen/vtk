@@ -100,7 +100,7 @@ class testIterator : public vtkTextCodec::OutputIterator
 public:
   testIterator& operator++(int) override { return *this; }
   testIterator& operator*() override { return *this; }
-  testIterator& operator=(const vtkUnicodeString::value_type) override { return *this; }
+  testIterator& operator=(const vtkTypeUInt32) override { return *this; }
 
   testIterator() = default;
   ~testIterator() override = default;

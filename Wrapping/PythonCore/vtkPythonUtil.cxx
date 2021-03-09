@@ -23,7 +23,6 @@
 #include "vtkSmartPointerBase.h"
 #include "vtkStdString.h"
 #include "vtkToolkits.h"
-#include "vtkUnicodeString.h"
 #include "vtkVariant.h"
 #include "vtkWeakPointer.h"
 #include "vtkWindows.h"
@@ -641,14 +640,6 @@ PyObject* vtkPythonUtil::GetObjectFromObject(PyObject* arg, const char* type)
   union vtkPythonUtilPointerUnion u;
   PyObject* tmp = nullptr;
 
-#ifdef Py_USING_UNICODE
-  if (PyUnicode_Check(arg))
-  {
-    tmp = PyUnicode_AsUTF8String(arg);
-    arg = tmp;
-  }
-#endif
-
   if (PyBytes_Check(arg))
   {
     vtkObjectBase* ptr;
@@ -1031,23 +1022,6 @@ Py_hash_t vtkPythonUtil::VariantHash(const vtkVariant* v)
       h = _Py_HashPointer(v->ToVTKObject());
       break;
     }
-
-#ifdef Py_USING_UNICODE
-    case VTK_UNICODE_STRING:
-    {
-      vtkUnicodeString u = v->ToUnicodeString();
-      const char* s = u.utf8_str();
-      PyObject* tmp = PyUnicode_DecodeUTF8(s, strlen(s), "strict");
-      if (tmp == nullptr)
-      {
-        PyErr_Clear();
-        return 0;
-      }
-      h = PyObject_Hash(tmp);
-      Py_DECREF(tmp);
-      break;
-    }
-#endif
 
     default:
     {

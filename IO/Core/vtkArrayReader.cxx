@@ -25,7 +25,6 @@
 #include "vtkObjectFactory.h"
 #include "vtkSmartPointer.h"
 #include "vtkSparseArray.h"
-#include "vtkUnicodeString.h"
 #include "vtksys/FStream.hxx"
 
 #include <sstream>
@@ -54,21 +53,6 @@ void ExtractValue(istream& stream, vtkStdString& value)
   while ((begin < end) && isspace(value[end - 1]))
     end--;
   value = value.substr(begin, end);
-}
-
-void ExtractValue(istream& stream, vtkUnicodeString& value)
-{
-  std::string buffer;
-  std::getline(stream, buffer);
-  vtkStdString::size_type begin, end;
-  begin = 0;
-  end = buffer.size();
-  while ((begin < end) && isspace(buffer[begin]))
-    begin++;
-  while ((begin < end) && isspace(buffer[end - 1]))
-    end--;
-  buffer = buffer.substr(begin, end);
-  value = vtkUnicodeString::from_utf8(buffer);
 }
 
 void ReadHeader(
@@ -222,64 +206,6 @@ vtkSparseArray<vtkStdString>* ReadSparseArrayBinary<vtkStdString>(istream& strea
   return array;
 }
 
-template <>
-vtkSparseArray<vtkUnicodeString>* ReadSparseArrayBinary<vtkUnicodeString>(istream& stream)
-{
-  // Create the array ...
-  vtkSmartPointer<vtkSparseArray<vtkUnicodeString>> array =
-    vtkSmartPointer<vtkSparseArray<vtkUnicodeString>>::New();
-
-  // Read the file header ...
-  vtkArrayExtents extents;
-  vtkArrayExtents::SizeT non_null_size = 0;
-  bool swap_endian = false;
-  ReadHeader(stream, extents, non_null_size, array);
-  ReadEndianOrderMark(stream, swap_endian);
-
-  // Read the array nullptr value ...
-  std::string null_value;
-  for (int character = stream.get(); stream; character = stream.get())
-  {
-    if (character == 0)
-    {
-      array->SetNullValue(vtkUnicodeString::from_utf8(null_value));
-      break;
-    }
-    else
-    {
-      null_value += static_cast<char>(character);
-    }
-  }
-
-  // Read array coordinates ...
-  array->ReserveStorage(non_null_size);
-
-  for (vtkArray::DimensionT i = 0; i != array->GetDimensions(); ++i)
-  {
-    stream.read(reinterpret_cast<char*>(array->GetCoordinateStorage(i)),
-      non_null_size * sizeof(vtkArray::CoordinateT));
-  }
-
-  // Read array values ...
-  std::string buffer;
-  vtkArray::SizeT n = 0;
-  for (int character = stream.get(); stream; character = stream.get())
-  {
-    if (character == 0)
-    {
-      array->SetValueN(n++, vtkUnicodeString::from_utf8(buffer));
-      buffer.resize(0);
-    }
-    else
-    {
-      buffer += static_cast<char>(character);
-    }
-  }
-
-  array->Register(nullptr);
-  return array;
-}
-
 template <typename ValueT>
 vtkDenseArray<ValueT>* ReadDenseArrayBinary(istream& stream)
 {
@@ -327,40 +253,6 @@ vtkDenseArray<vtkStdString>* ReadDenseArrayBinary<vtkStdString>(istream& stream)
     if (character == 0)
     {
       array->SetValueN(n++, buffer);
-      buffer.resize(0);
-    }
-    else
-    {
-      buffer += static_cast<char>(character);
-    }
-  }
-
-  array->Register(nullptr);
-  return array;
-}
-
-template <>
-vtkDenseArray<vtkUnicodeString>* ReadDenseArrayBinary<vtkUnicodeString>(istream& stream)
-{
-  // Create the array ...
-  vtkSmartPointer<vtkDenseArray<vtkUnicodeString>> array =
-    vtkSmartPointer<vtkDenseArray<vtkUnicodeString>>::New();
-
-  // Read the file header ...
-  vtkArrayExtents extents;
-  vtkArrayExtents::SizeT non_null_size = 0;
-  bool swap_endian = false;
-  ReadHeader(stream, extents, non_null_size, array);
-  ReadEndianOrderMark(stream, swap_endian);
-
-  // Read array values ...
-  std::string buffer;
-  vtkArray::SizeT n = 0;
-  for (int character = stream.get(); stream; character = stream.get())
-  {
-    if (character == 0)
-    {
-      array->SetValueN(n++, vtkUnicodeString::from_utf8(buffer));
       buffer.resize(0);
     }
     else
@@ -600,15 +492,10 @@ vtkArray* vtkArrayReader::Read(istream& stream)
         return (read_binary ? ReadSparseArrayBinary<double>(stream)
                             : ReadSparseArrayAscii<double>(stream));
       }
-      else if (header_type == "string")
+      else if ((header_type == "string") || header_type == "unicode-string")
       {
         return (read_binary ? ReadSparseArrayBinary<vtkStdString>(stream)
                             : ReadSparseArrayAscii<vtkStdString>(stream));
-      }
-      else if (header_type == "unicode-string")
-      {
-        return (read_binary ? ReadSparseArrayBinary<vtkUnicodeString>(stream)
-                            : ReadSparseArrayAscii<vtkUnicodeString>(stream));
       }
       else
       {
@@ -627,15 +514,10 @@ vtkArray* vtkArrayReader::Read(istream& stream)
         return (
           read_binary ? ReadDenseArrayBinary<double>(stream) : ReadDenseArrayAscii<double>(stream));
       }
-      else if (header_type == "string")
+      else if ((header_type == "string") || (header_type == "unicode-string"))
       {
         return (read_binary ? ReadDenseArrayBinary<vtkStdString>(stream)
                             : ReadDenseArrayAscii<vtkStdString>(stream));
-      }
-      else if (header_type == "unicode-string")
-      {
-        return (read_binary ? ReadDenseArrayBinary<vtkUnicodeString>(stream)
-                            : ReadDenseArrayAscii<vtkUnicodeString>(stream));
       }
       else
       {
