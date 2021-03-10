@@ -85,8 +85,8 @@ public:
   void SetDirectional(bool val) override;
 
   /**
-   * Adjust the number of camera handles while keeping
-     the same path.
+   * Adjust the number of camera handles while keeping the same path.
+   * Delete and Allocate Handles as needed.
    */
   void SetNumberOfHandles(int npts) override;
 
@@ -148,7 +148,7 @@ protected:
   /**
    * Delete all camera handles.
    */
-  void ClearCameraHandles();
+  void ClearHandles() override;
 
   /**
    * Creates a new handle from a vtkcamera and
@@ -159,7 +159,7 @@ protected:
   /**
    * Create/Recreate npts default camera handles.
    */
-  void CreateDefaultHandles(int npts);
+  void CreateDefaultHandles(int npts) override;
 
   /**
    * Recreate the handles according to a
@@ -170,6 +170,8 @@ protected:
    * the positions of the new handles.
    */
   void ReconfigureHandles(int newNPts, int oldNPts);
+
+  void ReconfigureHandles(int newNpts) override;
 
   /**
    * Specialized method to insert a camera handle on the camera path.

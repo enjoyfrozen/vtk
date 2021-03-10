@@ -14,6 +14,8 @@
 =========================================================================*/
 #include "vtkAbstractSplineRepresentation.h"
 
+#include "vtkCellPicker.h"
+#include "vtkDataArrayRange.h"
 #include "vtkDoubleArray.h"
 #include "vtkParametricFunctionSource.h"
 #include "vtkParametricSpline.h"
@@ -141,6 +143,95 @@ double vtkAbstractSplineRepresentation::GetSummedLength()
   }
 
   return sum;
+}
+
+//------------------------------------------------------------------------------
+void vtkAbstractSplineRepresentation::SetNumberOfHandles(int npts)
+{
+  if (this->NumberOfHandles == npts)
+  {
+    return;
+  }
+
+  if (npts < 0)
+  {
+    vtkErrorMacro(<< "Cannot set a negative number of handles.");
+    return;
+  }
+
+  vtkDebugMacro(<< "setting NumberOfHandles to " << npts);
+
+  if (npts == 0)
+  {
+    this->ClearHandles();
+    this->NumberOfHandles = 0;
+    this->CleanRepresentation();
+    return;
+  }
+
+  // Ensure no handle is highlighted
+  this->HighlightHandle(nullptr);
+
+  if (this->GetParametricSpline() && this->NumberOfHandles > 1)
+  {
+    this->ReconfigureHandles(npts);
+  }
+  else
+  {
+    // reallocate the handles
+    this->CreateDefaultHandles(npts);
+  }
+
+  this->NumberOfHandles = npts;
+}
+
+//------------------------------------------------------------------------------
+int vtkAbstractSplineRepresentation::InsertHandleOnLine(double* pos)
+{
+  if (this->NumberOfHandles < 2 || pos == nullptr)
+  {
+    return -1;
+  }
+
+  vtkIdType id = this->LinePicker->GetCellId();
+  if (id == -1)
+  {
+    return -1;
+  }
+
+  vtkIdType pickedSubId = this->LinePicker->GetSubId();
+  vtkNew<vtkPolyData> spline;
+  this->GetPolyData(spline);
+  vtkCell* polyline = spline->GetCell(0);
+
+  //@{
+  // unused returned values from EvaluatePosition below.
+  double closest[3];
+  double pcoords[3];
+  double dist2;
+  int npts = polyline->GetNumberOfPoints();
+  double w[npts];
+  //@}
+
+  int subId;
+
+  auto points = this->GetHandlePositions();
+  auto pointsRange = vtk::DataArrayTupleRange<3>(points);
+  int index = 0;
+  for (auto pointRef : pointsRange)
+  {
+    double point[3];
+    pointRef.GetTuple(point);
+    // get subid for given point.
+    polyline->EvaluatePosition(point, closest, subId, pcoords, dist2, w);
+    if (subId > pickedSubId)
+    {
+      break;
+    }
+    index++;
+  }
+
+  return index;
 }
 
 //------------------------------------------------------------------------------
