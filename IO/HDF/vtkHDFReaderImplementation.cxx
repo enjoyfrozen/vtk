@@ -71,7 +71,7 @@ vtkHDFReader::Implementation::Implementation(vtkHDFReader* reader)
   : File(-1)
   , VTKGroup(-1)
   , DataSetType(-1)
-  , NumberOfPartitions(-1)
+  , NumberOfPieces(-1)
   , Reader(reader)
 {
   std::fill(this->AttributeDataGroup.begin(), this->AttributeDataGroup.end(), -1);
@@ -186,13 +186,13 @@ bool vtkHDFReader::Implementation::Open(const char* fileName)
         {
           throw std::runtime_error(std::string(datasetName) + " dataset should have 1 dimension");
         }
-        this->NumberOfPartitions = dims[0];
+        this->NumberOfPieces = dims[0];
       }
       else
       {
         H5Eset_auto(H5E_DEFAULT, f, client_data); // errors on
         this->DataSetType = VTK_IMAGE_DATA;
-        this->NumberOfPartitions = 1;
+        this->NumberOfPieces = 1;
       }
     }
     catch (const std::exception& e)
@@ -213,7 +213,7 @@ bool vtkHDFReader::Implementation::Open(const char* fileName)
 void vtkHDFReader::Implementation::Close()
 {
   this->DataSetType = -1;
-  this->NumberOfPartitions = 0;
+  this->NumberOfPieces = 0;
   std::fill(this->Version.begin(), this->Version.end(), 0);
   for (int i = 0; i < this->AttributeDataGroup.size(); ++i)
   {

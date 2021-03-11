@@ -333,10 +333,7 @@ int vtkHDFReader::RequestInformation(vtkInformation* vtkNotUsed(request),
   }
   else if (dataSetType == VTK_UNSTRUCTURED_GRID)
   {
-    if (this->Impl->GetNumberOfPartitions() > 1)
-    {
-      outInfo->Set(CAN_HANDLE_PIECE_REQUEST(), 1);
-    }
+    outInfo->Set(CAN_HANDLE_PIECE_REQUEST(), 1);
   }
   else
   {
@@ -388,10 +385,10 @@ int vtkHDFReader::RequestData(vtkInformation* vtkNotUsed(request),
               << " " << updateExtent[3] << " " << updateExtent[4] << " " << updateExtent[5]
               << std::endl;
 
-    vtkImageData* imageData = vtkImageData::SafeDownCast(output);
-    imageData->SetOrigin(this->Origin);
-    imageData->SetSpacing(this->Spacing);
-    imageData->SetExtent(&updateExtent[0]);
+    vtkImageData* data = vtkImageData::SafeDownCast(output);
+    data->SetOrigin(this->Origin);
+    data->SetSpacing(this->Spacing);
+    data->SetExtent(&updateExtent[0]);
     // in the same order as vtkDataObject::AttributeTypes: POINT, CELL
     for (int attributeType = 0; attributeType < this->GetNumberOfAttributeTypes(); ++attributeType)
     {
@@ -407,19 +404,29 @@ int vtkHDFReader::RequestData(vtkInformation* vtkNotUsed(request),
           return 0;
         }
         array->SetName(name.c_str());
-        imageData->GetAttributesAsFieldData(attributeType)->AddArray(array);
+        data->GetAttributesAsFieldData(attributeType)->AddArray(array);
         array->Delete();
       }
     }
   }
   else if (dataSetType == VTK_UNSTRUCTURED_GRID)
   {
-    // For debugging
-    int numPieces = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES());
+    vtkUnstructuredGrid* data = vtkUnstructuredGrid::SafeDownCast(output);
+    int memoryPiecesCount =
+      outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES());
     int piece = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER());
     int numGhosts = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_GHOST_LEVELS());
+    // in the file
+    int filePiecesCount = this->Impl->GetNumberOfPieces();
+    int filePiece = piece;
+    while (filePiece < filePiecesCount)
+    {
+      // read the piece and add it to data
+      filePiece += memoryPiecesCount;
+    }
 
-    std::cout << "Piece:" << piece << " " << numPieces << " " << numGhosts << std::endl;
+    std::cout << "Piece: " << piece << " NumRanks: " << numRanks << " NumGhosts: " << numGhosts
+              << std::endl;
   }
   else
   {

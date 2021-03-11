@@ -64,7 +64,7 @@ public:
   /**
    * Returns the number of partitions for this dataset.
    */
-  int GetNumberOfPartitions() { return this->NumberOfPartitions; }
+  int GetNumberOfPieces() { return this->NumberOfPieces; }
   /**
    * Reads information about 'partition' from dataset 'name'.
    * It reads 'numberOfElements' values of type 'T'
@@ -136,7 +136,8 @@ protected:
   /**
    * Reads a vtkDataArray of type T from the attributeType, dataset
    * The array has type 'T' and 'numberOfComponents'. We are reading
-   * fileExtent slab from the array.
+   * fileExtent slab from the array. It returns the array or nullptr
+   * in case of an error.
    */
   template <typename T>
   vtkDataArray* GetArray(
@@ -162,7 +163,7 @@ private:
   // in the same order as vtkDataObject::AttributeTypes: POINT, CELL
   std::array<hid_t, 2> AttributeDataGroup;
   int DataSetType;
-  int NumberOfPartitions;
+  int NumberOfPieces;
   std::array<int, 2> Version;
   vtkHDFReader* Reader;
   using ArrayReader = vtkDataArray* (vtkHDFReader::Implementation::*)(int attributeType,
