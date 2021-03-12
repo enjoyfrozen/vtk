@@ -19,6 +19,7 @@
 
 #include "vtkMPICommunicator.h"
 #include "vtkMPIController.h"
+#include "vtkNew.h"
 #include "vtkObjectFactory.h"
 #include "vtkProcess.h"
 #include "vtkSmartPointer.h"
@@ -107,7 +108,7 @@ int TestXdmf3Parallel(int argc, char** argv)
 
   // Note that this will create a vtkMPIController if MPI
   // is configured, vtkThreadedController otherwise.
-  vtkMPIController* contr = vtkMPIController::New();
+  vtkNew<vtkMPIController> contr;
   contr->Initialize(&argc, &argv, 1);
 
   int numProcs = contr->GetNumberOfProcesses();
@@ -115,7 +116,6 @@ int TestXdmf3Parallel(int argc, char** argv)
   if (numProcs < 2)
   {
     cout << "This test requires at least 2 processes" << endl;
-    contr->Delete();
     return EXIT_FAILURE;
   }
 
@@ -149,7 +149,6 @@ int TestXdmf3Parallel(int argc, char** argv)
 
   p->Delete();
   contr->Finalize();
-  contr->Delete();
   vtkMultiProcessController::SetGlobalController(nullptr);
 
   if (retVal)
