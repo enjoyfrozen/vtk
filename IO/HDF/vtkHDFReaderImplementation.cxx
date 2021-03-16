@@ -21,9 +21,11 @@
 #include <type_traits>
 
 #include "vtkCharArray.h"
+#include "vtkDataArrayRange.h"
 #include "vtkDataObject.h"
 #include "vtkDoubleArray.h"
 #include "vtkFloatArray.h"
+#include "vtkIdTypeArray.h"
 #include "vtkIntArray.h"
 #include "vtkLogger.h"
 #include "vtkLongArray.h"
@@ -239,29 +241,29 @@ void vtkHDFReader::Implementation::Close()
 void vtkHDFReader::Implementation::BuildTypeReaderMap()
 {
   this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_CHAR)] =
-    &vtkHDFReader::Implementation::GetArray<char>;
+    &vtkHDFReader::Implementation::NewArray<char>;
   this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_UCHAR)] =
-    &vtkHDFReader::Implementation::GetArray<unsigned char>;
+    &vtkHDFReader::Implementation::NewArray<unsigned char>;
   this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_SHORT)] =
-    &vtkHDFReader::Implementation::GetArray<short>;
+    &vtkHDFReader::Implementation::NewArray<short>;
   this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_USHORT)] =
-    &vtkHDFReader::Implementation::GetArray<unsigned short>;
+    &vtkHDFReader::Implementation::NewArray<unsigned short>;
   this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_INT)] =
-    &vtkHDFReader::Implementation::GetArray<int>;
+    &vtkHDFReader::Implementation::NewArray<int>;
   this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_UINT)] =
-    &vtkHDFReader::Implementation::GetArray<unsigned int>;
+    &vtkHDFReader::Implementation::NewArray<unsigned int>;
   this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_LONG)] =
-    &vtkHDFReader::Implementation::GetArray<long>;
+    &vtkHDFReader::Implementation::NewArray<long>;
   this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_ULONG)] =
-    &vtkHDFReader::Implementation::GetArray<unsigned long>;
+    &vtkHDFReader::Implementation::NewArray<unsigned long>;
   this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_LLONG)] =
-    &vtkHDFReader::Implementation::GetArray<long long>;
+    &vtkHDFReader::Implementation::NewArray<long long>;
   this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_ULLONG)] =
-    &vtkHDFReader::Implementation::GetArray<unsigned long long>;
+    &vtkHDFReader::Implementation::NewArray<unsigned long long>;
   this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_FLOAT)] =
-    &vtkHDFReader::Implementation::GetArray<float>;
+    &vtkHDFReader::Implementation::NewArray<float>;
   this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_DOUBLE)] =
-    &vtkHDFReader::Implementation::GetArray<double>;
+    &vtkHDFReader::Implementation::NewArray<double>;
 }
 
 //------------------------------------------------------------------------------
@@ -593,15 +595,60 @@ hid_t vtkHDFReader::Implementation::OpenDataSet(
 }
 
 //------------------------------------------------------------------------------
-vtkDataArray* vtkHDFReader::Implementation::GetArray(
-  int attributeType, const char* name, hsize_t* fileExtent)
+vtkDataArray* vtkHDFReader::Implementation::NewArray(
+  int attributeType, const char* name, const std::vector<hsize_t>& fileExtent)
+{
+  return NewArray(this->AttributeDataGroup[attributeType], attributeType, name, fileExtent);
+}
+
+//------------------------------------------------------------------------------
+vtkDataArray* vtkHDFReader::Implementation::NewArray(
+  int attributeType, const char* name, hsize_t offset, hsize_t size)
+{
+  std::vector<hsize_t> fileExtent = { offset, offset + size - 1 };
+  return NewArray(this->AttributeDataGroup[attributeType], attributeType, name, fileExtent);
+}
+
+//------------------------------------------------------------------------------
+vtkDataArray* vtkHDFReader::Implementation::NewMetadataArray(
+  const char* name, hsize_t offset, hsize_t size)
+{
+  std::vector<hsize_t> fileExtent = { offset, offset + size - 1 };
+  return NewArray(this->VTKGroup, vtkDataObject::POINT, name, fileExtent);
+}
+
+//------------------------------------------------------------------------------
+std::vector<vtkIdType> vtkHDFReader::Implementation::GetMetadata(const char* name, hsize_t size)
+{
+  std::vector<vtkIdType> v;
+  std::vector<hsize_t> fileExtent = { 0, size - 1 };
+  vtkDataArray* a = NewArray(this->VTKGroup, vtkDataObject::POINT, name, fileExtent);
+  if (!a)
+  {
+    return v;
+  }
+  auto* ia = vtkAOSDataArrayTemplate<long long>::SafeDownCast(a);
+  if (!ia)
+  {
+    vtkErrorWithObjectMacro(
+      this->Reader, "Error: expected vtkIdTypeArry but got: " << a->GetClassName());
+    return v;
+  }
+  v.resize(ia->GetNumberOfTuples());
+  auto range = vtk::DataArrayValueRange<1>(ia);
+  std::copy(range.begin(), range.end(), v.begin());
+  return v;
+}
+
+//------------------------------------------------------------------------------
+vtkDataArray* vtkHDFReader::Implementation::NewArray(
+  hid_t group, int attributeType, const char* name, const std::vector<hsize_t>& fileExtent)
 {
   hid_t dataset = -1;
   hid_t nativeType = -1;
   hsize_t numberOfComponents = 0;
-  const int gridNdims = 3;
-  if ((dataset = this->OpenDataSet(this->AttributeDataGroup[attributeType], name, gridNdims,
-         &nativeType, &numberOfComponents)) < 0)
+  if ((dataset = this->OpenDataSet(
+         group, name, fileExtent.size() >> 1, &nativeType, &numberOfComponents)) < 0)
   {
     return nullptr;
   }
@@ -622,18 +669,22 @@ vtkDataArray* vtkHDFReader::Implementation::GetArray(
 
 //------------------------------------------------------------------------------
 template <typename T>
-vtkDataArray* vtkHDFReader::Implementation::GetArray(
-  int attributeType, hid_t dataset, hsize_t* fileExtent, hsize_t numberOfComponents)
+vtkDataArray* vtkHDFReader::Implementation::NewArray(int attributeType, hid_t dataset,
+  const std::vector<hsize_t>& fileExtent, hsize_t numberOfComponents)
 {
   int pointAdjustment = (attributeType == vtkDataObject::POINT ? 1 : 0);
-  int numberOfTuples = (fileExtent[1] - fileExtent[0] + pointAdjustment) *
-    (fileExtent[3] - fileExtent[2] + pointAdjustment) *
-    (fileExtent[5] - fileExtent[4] + pointAdjustment);
+  int numberOfTuples = 1;
+  int ndims = fileExtent.size() >> 1;
+  for (int i = 0; i < ndims; ++i)
+  {
+    int j = i << 1;
+    numberOfTuples *= (fileExtent[j + 1] - fileExtent[j] + pointAdjustment);
+  }
   auto array = vtkAOSDataArrayTemplate<T>::SafeDownCast(NewVtkDataArray<T>());
   array->SetNumberOfComponents(numberOfComponents);
   array->SetNumberOfTuples(numberOfTuples);
   T* data = array->GetPointer(0);
-  if (!this->GetArray(attributeType, dataset, fileExtent, numberOfComponents, data))
+  if (!this->NewArray(attributeType, dataset, fileExtent, numberOfComponents, data))
   {
     array->Delete();
     array = nullptr;
@@ -643,26 +694,8 @@ vtkDataArray* vtkHDFReader::Implementation::GetArray(
 
 //------------------------------------------------------------------------------
 template <typename T>
-bool vtkHDFReader::Implementation::GetPartitionInfo(
-  const char* name, int partition, int numberOfElements, T* value)
-{
-  hid_t dataset = -1;
-  hid_t nativeType = -1;
-  hsize_t numberOfComponents = 0;
-  if ((dataset = this->OpenDataSet(this->VTKGroup, name, 1, &nativeType, &numberOfComponents)) < 0)
-  {
-    return false;
-  }
-
-  H5Dclose(dataset);
-  H5Tclose(nativeType);
-  return true;
-}
-
-//------------------------------------------------------------------------------
-template <typename T>
-bool vtkHDFReader::Implementation::GetArray(
-  int attributeType, hid_t dataset, hsize_t* fileExtent, hsize_t numberOfComponents, T* data)
+bool vtkHDFReader::Implementation::NewArray(int attributeType, hid_t dataset,
+  const std::vector<hsize_t>& fileExtent, hsize_t numberOfComponents, T* data)
 {
   hid_t nativeType = TemplateTypeToHdfNativeType<T>();
   hid_t memspace = -1;
@@ -672,10 +705,13 @@ bool vtkHDFReader::Implementation::GetArray(
   {
     // create the memory space, reverse axis order for VTK fortran order
     int pointAdjustment = (attributeType == vtkDataObject::POINT ? 1 : 0);
-    std::vector<hsize_t> count = { fileExtent[5] - fileExtent[4] + pointAdjustment,
-      fileExtent[3] - fileExtent[2] + pointAdjustment,
-      fileExtent[1] - fileExtent[0] + pointAdjustment },
-                         start = { fileExtent[4], fileExtent[2], fileExtent[0] };
+    std::vector<hsize_t> count(fileExtent.size() >> 1), start(fileExtent.size() >> 1);
+    for (int i = 0; i < count.size(); ++i)
+    {
+      int j = (count.size() - 1 - i) << 1;
+      count[i] = fileExtent[j + 1] - fileExtent[j] + pointAdjustment;
+      start[i] = fileExtent[j];
+    }
     if (numberOfComponents > 1)
     {
       count.push_back(numberOfComponents);
@@ -693,9 +729,11 @@ bool vtkHDFReader::Implementation::GetArray(
     if (H5Sselect_hyperslab(filespace, H5S_SELECT_SET, &start[0], nullptr, &count[0], nullptr) < 0)
     {
       std::ostringstream ostr;
-      ostr << "Error selecting hyperslab, "
-           << "start: " << start[0] << ", " << start[1] << ", " << start[2]
-           << " count: " << count[0] << ", " << count[1] << ", " << count[2];
+      std::ostream_iterator<int> oi(ostr, " ");
+      ostr << "Error selecting hyperslab, \nstart: ";
+      std::copy(start.begin(), start.end(), oi);
+      ostr << "\ncount: ";
+      std::copy(count.begin(), count.end(), oi);
       throw std::runtime_error(ostr.str());
     }
 

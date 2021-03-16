@@ -14,6 +14,7 @@
 =========================================================================*/
 #include "vtkHDFReader.h"
 
+#include "vtkAppendDataSets.h"
 #include "vtkArrayIteratorIncludes.h"
 #include "vtkCallbackCommand.h"
 #include "vtkDataArray.h"
@@ -38,12 +39,45 @@
 #include <cassert>
 #include <cctype>
 #include <functional>
-#include <locale> // C++ locale
+#include <locale>
+#include <numeric>
 #include <sstream>
 #include <vector>
 
 vtkStandardNewMacro(vtkHDFReader);
 vtkCxxSetObjectMacro(vtkHDFReader, ReaderErrorObserver, vtkCommand);
+
+namespace
+{
+
+int GetNDims(int* extent)
+{
+  int ndims = 3;
+  if (extent[5] - extent[4] == 0)
+  {
+    --ndims;
+  }
+  if (extent[3] - extent[2] == 0)
+  {
+    --ndims;
+  }
+  return ndims;
+}
+
+std::vector<hsize_t> ReduceDimension(int* updateExtent, int* wholeExtent)
+{
+  int dims = ::GetNDims(wholeExtent);
+  std::vector<hsize_t> v(2 * dims);
+  for (int i = 0; i < dims; ++i)
+  {
+    int j = 2 * i;
+    v[j] = updateExtent[j];
+    v[j + 1] = updateExtent[j + 1];
+  }
+  return v;
+}
+
+}
 
 //----------------------------------------------------------------------------
 vtkHDFReader::vtkHDFReader()
@@ -395,38 +429,136 @@ int vtkHDFReader::RequestData(vtkInformation* vtkNotUsed(request),
       std::vector<std::string> names = this->Impl->GetArrayNames(attributeType);
       for (auto name : names)
       {
-        vtkDataArray* array = nullptr;
-        std::array<hsize_t, 6> fileExtent;
+        vtkSmartPointer<vtkDataArray> array;
+        std::vector<hsize_t> fileExtent = ::ReduceDimension(&updateExtent[0], this->WholeExtent);
         std::copy(updateExtent.begin(), updateExtent.end(), fileExtent.begin());
-        if ((array = this->Impl->GetArray(attributeType, name.c_str(), &fileExtent[0])) == nullptr)
+        if ((array = vtk::TakeSmartPointer(
+               this->Impl->NewArray(attributeType, name.c_str(), fileExtent))) == nullptr)
         {
           vtkErrorMacro("Error reading array " << name);
           return 0;
         }
         array->SetName(name.c_str());
         data->GetAttributesAsFieldData(attributeType)->AddArray(array);
-        array->Delete();
       }
     }
   }
   else if (dataSetType == VTK_UNSTRUCTURED_GRID)
   {
     vtkUnstructuredGrid* data = vtkUnstructuredGrid::SafeDownCast(output);
-    int memoryPiecesCount =
+    int filePieceCount = this->Impl->GetNumberOfPieces();
+    std::vector<vtkIdType> numberOfPoints =
+      this->Impl->GetMetadata("NumberOfPoints", filePieceCount);
+    if (numberOfPoints.size() == 0)
+    {
+      return 0;
+    }
+    std::vector<vtkIdType> numberOfCells = this->Impl->GetMetadata("NumberOfCells", filePieceCount);
+    if (numberOfCells.size() == 0)
+    {
+      return 0;
+    }
+    std::vector<vtkIdType> numberOfConnectivityIds =
+      this->Impl->GetMetadata("NumberOfConnectivityIds", filePieceCount);
+    if (numberOfConnectivityIds.size() == 0)
+    {
+      return 0;
+    }
+    int memoryPieceCount =
       outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES());
     int piece = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER());
     int numGhosts = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_GHOST_LEVELS());
-    // in the file
-    int filePiecesCount = this->Impl->GetNumberOfPieces();
-    int filePiece = piece;
-    while (filePiece < filePiecesCount)
+    vtkNew<vtkUnstructuredGrid> pieceData;
+    vtkNew<vtkAppendDataSets> append;
+    append->AddInputData(data);
+    append->AddInputData(pieceData);
+    for (int filePiece = piece; filePiece < filePieceCount; filePiece += memoryPieceCount)
     {
+      pieceData->Initialize();
       // read the piece and add it to data
-      filePiece += memoryPiecesCount;
+      vtkNew<vtkPoints> points;
+      vtkSmartPointer<vtkDataArray> pointArray;
+      vtkIdType pointOffset = std::accumulate(&numberOfPoints[0], &numberOfPoints[filePiece], 0);
+      if ((pointArray = vtk::TakeSmartPointer(this->Impl->NewMetadataArray(
+             "Points", pointOffset, numberOfPoints[filePiece]))) == nullptr)
+      {
+        vtkErrorMacro("Cannot read the Points array");
+        return 0;
+      }
+      points->SetData(pointArray);
+      pieceData->SetPoints(points);
+      vtkNew<vtkCellArray> cellArray;
+      vtkSmartPointer<vtkDataArray> offsetsArray;
+      vtkSmartPointer<vtkDataArray> connectivityArray;
+      vtkSmartPointer<vtkDataArray> p;
+      vtkUnsignedCharArray* typesArray;
+      // the offsets array has (numberOfCells[i] + 1) elements.
+      vtkIdType offset = std::accumulate(&numberOfCells[0], &numberOfCells[filePiece], filePiece);
+      if ((offsetsArray = vtk::TakeSmartPointer(this->Impl->NewMetadataArray(
+             "Offsets", offset, numberOfCells[filePiece] + 1))) == nullptr)
+      {
+        vtkErrorMacro("Cannot read the Offsets array");
+        return 0;
+      }
+      offset = std::accumulate(&numberOfConnectivityIds[0], &numberOfConnectivityIds[filePiece], 0);
+      if ((connectivityArray = vtk::TakeSmartPointer(this->Impl->NewMetadataArray(
+             "Connectivity", offset, numberOfConnectivityIds[filePiece]))) == nullptr)
+      {
+        vtkErrorMacro("Cannot read the Connectivity array");
+        return 0;
+      }
+      cellArray->SetData(offsetsArray, connectivityArray);
+
+      vtkIdType cellOffset = std::accumulate(&numberOfCells[0], &numberOfCells[filePiece], 0);
+      if ((p = vtk::TakeSmartPointer(this->Impl->NewMetadataArray(
+             "Types", cellOffset, numberOfCells[filePiece]))) == nullptr)
+      {
+        vtkErrorMacro("Cannot read the Types array");
+        return 0;
+      }
+      if ((typesArray = vtkUnsignedCharArray::SafeDownCast(p)) == nullptr)
+      {
+        vtkErrorMacro("Error: The Types array element is not unsigned char.");
+        return 0;
+      }
+      pieceData->SetCells(typesArray, cellArray);
+
+      std::vector<vtkIdType> offsets = { pointOffset, cellOffset };
+      std::vector<std::vector<vtkIdType>*> numberOf = { &numberOfPoints, &numberOfCells };
+      // in the same order as vtkDataObject::AttributeTypes: POINT, CELL
+      for (int attributeType = 0; attributeType < this->GetNumberOfAttributeTypes();
+           ++attributeType)
+      {
+        std::vector<std::string> names = this->Impl->GetArrayNames(attributeType);
+        for (auto name : names)
+        {
+          vtkSmartPointer<vtkDataArray> array;
+          if ((array = vtk::TakeSmartPointer(this->Impl->NewArray(attributeType, name.c_str(),
+                 offsets[attributeType], (*numberOf[attributeType])[filePiece]))) == nullptr)
+          {
+            vtkErrorMacro("Error reading array " << name);
+            return 0;
+          }
+          array->SetName(name.c_str());
+          pieceData->GetAttributesAsFieldData(attributeType)->AddArray(array);
+        }
+      }
+      // append the piece
+      append->Update();
+      data->ShallowCopy(append->GetOutput());
+      std::cout << "NumberOfPoints: " << data->GetNumberOfPoints()
+                << " Piece: " << pieceData->GetNumberOfPoints() << std::endl;
+      std::cout << "NumberOfCells: " << data->GetNumberOfCells()
+                << " Piece: " << pieceData->GetNumberOfCells() << std::endl;
+      std::ostream_iterator<double> oi(std::cout, " ");
+      double* bb = pieceData->GetBounds();
+      std::cout << "Piece Bounds: ";
+      std::copy(bb, bb + 6, oi);
+      std::cout << std::endl;
     }
 
-    std::cout << "Piece: " << piece << " NumRanks: " << numRanks << " NumGhosts: " << numGhosts
-              << std::endl;
+    std::cout << "Piece: " << piece << " MemoryPiecesCount: " << memoryPieceCount
+              << " NumGhosts: " << numGhosts << std::endl;
   }
   else
   {

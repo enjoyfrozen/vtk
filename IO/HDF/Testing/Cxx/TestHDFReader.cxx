@@ -54,6 +54,7 @@ int TestHDFReader(int argc, char* argv[])
   // ImageData file
   // ------------------------------------------------------------
   std::string fileName = dataRoot + "/Data/mandelbrot-vti.hdf";
+  std::cout << "Testing: " << fileName << std::endl;
   vtkNew<vtkHDFReader> reader;
   if (!reader->CanReadFile(fileName.c_str()))
   {
@@ -98,12 +99,19 @@ int TestHDFReader(int argc, char* argv[])
 
   // UnstructuredGrid file
   //------------------------------------------------------------
-  fileName = dataRoot + "/Data/can-vtu.hdf";
-  if (!reader->CanReadFile(fileName.c_str()))
+  std::vector<std::string> fileNames = { dataRoot + "/Data/can-vtu.hdf",
+    dataRoot + "/Data/can-pvtu.hdf" };
+  for (int i = 0; i < fileNames.size(); ++i)
   {
-    return EXIT_FAILURE;
+    std::string fileName = fileNames[i];
+    std::cout << "Testing: " << fileName << std::endl;
+    if (!reader->CanReadFile(fileName.c_str()))
+    {
+      return EXIT_FAILURE;
+    }
+    reader->SetFileName(fileName.c_str());
+    reader->Update();
   }
-  reader->SetFileName(fileName.c_str());
-  reader->Update();
+
   return EXIT_SUCCESS;
 }

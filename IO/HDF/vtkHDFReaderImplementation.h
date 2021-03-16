@@ -66,12 +66,6 @@ public:
    */
   int GetNumberOfPieces() { return this->NumberOfPieces; }
   /**
-   * Reads information about 'partition' from dataset 'name'.
-   * It reads 'numberOfElements' values of type 'T'
-   */
-  template <typename T>
-  bool GetPartitionInfo(const char* name, int partition, int numberOfElements, T* value);
-  /**
    * For an ImageData, sets the extent for 'partitionIndex'. Returns
    * true for success and false otherwise.
    */
@@ -81,10 +75,14 @@ public:
    */
   std::vector<std::string> GetArrayNames(int attributeType);
   /**
-   * Reads and returns a new vtkDataArray of the correct type
-   * that has to be deleted by the user.
+   * Reads and returns a new vtkDataArray of the correct type.
+   * The array has to be deleted by the user.
    */
-  vtkDataArray* GetArray(int attributeType, const char* name, hsize_t* fileExtent);
+  vtkDataArray* NewArray(
+    int attributeType, const char* name, const std::vector<hsize_t>& fileExtent);
+  vtkDataArray* NewArray(int attributeType, const char* name, hsize_t offset, hsize_t size);
+  vtkDataArray* NewMetadataArray(const char* name, hsize_t offset, hsize_t size);
+  std::vector<vtkIdType> GetMetadata(const char* name, hsize_t size);
 
   std::vector<hsize_t> GetDimensions(const char* dataset);
 
@@ -139,12 +137,14 @@ protected:
    * fileExtent slab from the array. It returns the array or nullptr
    * in case of an error.
    */
+  vtkDataArray* NewArray(
+    hid_t group, int attributeType, const char* name, const std::vector<hsize_t>& fileExtent);
   template <typename T>
-  vtkDataArray* GetArray(
-    int attributeType, hid_t dataset, hsize_t* fileExtent, hsize_t numberOfComponents);
+  vtkDataArray* NewArray(int attributeType, hid_t dataset, const std::vector<hsize_t>& fileExtent,
+    hsize_t numberOfComponents);
   template <typename T>
-  bool GetArray(
-    int attributeType, hid_t dataset, hsize_t* fileExtent, hsize_t numberOfComponents, T* data);
+  bool NewArray(int attributeType, hid_t dataset, const std::vector<hsize_t>& fileExtent,
+    hsize_t numberOfComponents, T* data);
   //@}
   /**
    * Builds a map between native types and GetArray routines for that type.
@@ -167,7 +167,7 @@ private:
   std::array<int, 2> Version;
   vtkHDFReader* Reader;
   using ArrayReader = vtkDataArray* (vtkHDFReader::Implementation::*)(int attributeType,
-    hid_t dataset, hsize_t* fileExtent, hsize_t numberOfComponents);
+    hid_t dataset, const std::vector<hsize_t>& fileExtent, hsize_t numberOfComponents);
   std::map<TypeDescription, ArrayReader> TypeReaderMap;
 };
 
