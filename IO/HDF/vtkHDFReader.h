@@ -132,6 +132,9 @@ protected:
   // Setup the output's data with allocation.
   virtual void SetupOutputData();
 
+  bool Read(vtkInformation* outInfo, vtkImageData* data);
+  bool Read(vtkInformation* outInfo, vtkUnstructuredGrid* data);
+
   // Callback registered with the SelectionObserver.
   static void SelectionModifiedCallback(
     vtkObject* caller, unsigned long eid, void* clientdata, void* calldata);
