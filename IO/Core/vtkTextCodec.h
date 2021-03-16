@@ -103,7 +103,15 @@ public:
    * advancing the stream through however many places needed to assemble that
    * code point.
    */
-  virtual vtkUnicodeString::value_type NextUnicode(istream& inputStream) = 0;
+  virtual vtkTypeUInt32 NextUCS4CodePoint(istream& inputStream) = 0;
+
+  /**
+   * Return the next code point from the sequence represented by the stream
+   * advancing the stream through however many places needed to assemble that
+   * code point.
+   */
+  VTK_DEPRECATED_IN_9_1_0("Use vtkTypeUInt32 NextUCS4CodePoint(istream& inputStream)")
+  vtkUnicodeString::value_type NextUnicode(istream& inputStream);
 
 protected:
   vtkTextCodec();

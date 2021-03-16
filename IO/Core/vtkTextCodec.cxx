@@ -35,6 +35,11 @@ bool vtkTextCodec::IsValid(istream&)
   return false;
 }
 
+vtkUnicodeString::value_type vtkTextCodec::NextUnicode(istream& inputStream)
+{
+  return NextUCS4CodePoint(inputStream);
+}
+
 vtkTextCodec::~vtkTextCodec() = default;
 
 vtkTextCodec::vtkTextCodec() = default;
