@@ -229,19 +229,19 @@ def create_support_unstructuredgrid(data, number_of_pieces, vtkhdf_group):
     anp = numpy_support.vtk_to_numpy(data.GetPoints().GetData())
     points = create_dataset(
         "Points", anp, vtkhdf_group, number_of_pieces)
-    points_size = anp.size
+    points_size = anp.shape[0]
     anp = numpy_support.vtk_to_numpy(cells.GetConnectivityArray())
     connectivity = create_dataset(
         "Connectivity", anp, vtkhdf_group, number_of_pieces)
-    connectivity_size = anp.size
+    connectivity_size = anp.shape[0]
     anp = numpy_support.vtk_to_numpy(cells.GetOffsetsArray())
     offset = create_dataset(
         "Offsets", anp, vtkhdf_group, number_of_pieces)
-    offset_size = anp.size
+    offset_size = anp.shape[0]
     anp = numpy_support.vtk_to_numpy(data.GetCellTypesArray())
     types = create_dataset(
         "Types", anp, vtkhdf_group, number_of_pieces)
-    types_size = anp.size
+    types_size = anp.shape[0]
     return (points, points_size, connectivity, connectivity_size,
             offset, offset_size, types, types_size,
             number_of_connectivity_ids, number_of_points, number_of_cells)
@@ -261,7 +261,9 @@ def append_support_unstructuredgrid(
     number_of_points[piece] = data.GetNumberOfPoints()
     number_of_cells[piece] = cells.GetNumberOfCells()
     anp = numpy_support.vtk_to_numpy(data.GetPoints().GetData())
+    old_points_size = points_size
     points_size = append_dataset(points, anp, points_size)
+    print("Append points, old: {}, new: {}".format(old_points_size, points_size))
     anp = numpy_support.vtk_to_numpy(cells.GetConnectivityArray())
     connectivity_size = append_dataset(
         connectivity, anp, connectivity_size)
