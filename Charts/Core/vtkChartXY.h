@@ -36,11 +36,15 @@
 class vtkAxis;
 class vtkChartLegend;
 class vtkIdTypeArray;
+class vtkMultiBlockDataSet;
 class vtkPlot;
 class vtkPlotGrid;
 class vtkTooltipItem;
 
 class vtkChartXYPrivate; // Private class to keep my STL vector in...
+
+#include <map>
+#include <vector>
 
 class VTKCHARTSCORE_EXPORT vtkChartXY : public vtkChart
 {
@@ -201,6 +205,15 @@ public:
    */
   void RemovePlotSelections();
 
+  /**
+   * Try to associate a composite flat index for each plot currently stored.
+   * This will internally compare each node of the tree with with the input of
+   * each plot and if it match this will store the relationship in a map.
+   *
+   * If input is nullptr, then we consider dealing with a simple vtkDataSet.
+   */
+  void FillPlotCompositeIndex(vtkMultiBlockDataSet* mb);
+
   //@{
   /**
    * If true then the axes will be drawn at the origin (scientific style).
@@ -354,9 +367,17 @@ public:
    */
   bool KeyPressEvent(const vtkContextKeyEvent& key) override;
 
+  typedef std::map<unsigned int, vtkSmartPointer<vtkIdTypeArray>> MapIndexToIds;
+
+  /**
+   * Populate the selection node in the annotation link coressponding to the give node
+   * with the supplied selectionIds array for a standard row based selections.
+   */
+  static void MakeSelection(vtkAnnotationLink* link, const MapIndexToIds& selection);
+
   /**
    * Populate the annotation link with the supplied selectionIds array, and set
-   * the appropriate node properties for a standard row based chart selection.
+   * the appropriate node properties for a plot based chart selection.
    */
   static void MakeSelection(vtkAnnotationLink* link, vtkIdTypeArray* selectionIds, vtkPlot* plot);
 
@@ -379,9 +400,19 @@ public:
    * Build a selection based on the supplied selectionMode using the new
    * plotSelection and combining it with the oldSelection. If link is not nullptr
    * then the resulting selection will be set on the link.
+   * This is used in the plot or the column based selection.
    */
   static void BuildSelection(vtkAnnotationLink* link, int selectionMode,
     vtkIdTypeArray* plotSelection, vtkIdTypeArray* oldSelection, vtkPlot* plot);
+
+  /**
+   * Build a selection based on the supplied selectionMode using the new
+   * plotSelection and combining it with the oldSelection. If link is not nullptr
+   * then the resulting selection will be set on the link. This is used in the
+   * standard row based selection, and supports multi-block selection.
+   */
+  static void BuildSelection(
+    int selectionMode, MapIndexToIds& selection, const MapIndexToIds& oldSelection);
 
   /**
    * Combine the SelectionMode with any mouse modifiers to get an effective
