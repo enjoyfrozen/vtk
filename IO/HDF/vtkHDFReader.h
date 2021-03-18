@@ -33,6 +33,8 @@ class vtkInformationVector;
 class vtkInformation;
 class vtkCommand;
 
+#include <vector>
+
 class VTKIOHDF_EXPORT vtkHDFReader : public vtkDataSetAlgorithm
 {
 public:
@@ -82,16 +84,17 @@ public:
   int GetNumberOfCellArrays();
   //@}
 
+  /**
+   * How many attribute types we have. This returns 2: point and cell
+   * attribute types.
+   */
+  constexpr static int GetNumberOfAttributeTypes() { return 2; }
+
   //@{
   /**
    * Get the name of the point or cell array with the given index in
    * the input.
    */
-  /**
-   * How many attribute types we have. This always returns 2: point and cell
-   * attribute types.
-   */
-  constexpr static int GetNumberOfAttributeTypes() { return 2; }
   const char* GetPointArrayName(int index);
   const char* GetCellArrayName(int index);
   //@}
@@ -107,44 +110,54 @@ public:
   void SetCellArrayStatus(const char* name, int status);
   //@}
 
-  //@{
-  /**
-   * Set/get the ErrorObserver for the internal reader
-   * This is useful for applications that want to catch error messages.
-   */
-  void SetReaderErrorObserver(vtkCommand*);
-  vtkGetObjectMacro(ReaderErrorObserver, vtkCommand);
-  //@}
-
 protected:
   vtkHDFReader();
   ~vtkHDFReader() override;
 
-  // Test if the reader can read a file with the given version number.
+  /**
+   * Test if the reader can read a file with the given version number.
+   */
   virtual int CanReadFileVersion(int major, int minor);
 
-  // Setup the output with no data available.  Used in error cases.
-  virtual void SetupEmptyOutput();
-
-  // Setup the output's information.
-  virtual void SetupOutputInformation(vtkInformation* vtkNotUsed(outInfo)) {}
-
-  // Setup the output's data with allocation.
-  virtual void SetupOutputData();
-
+  //@{
+  /**
+   * Reads the 'data' requested in 'outInfo' (through extents or
+   * pieces). Returns 1 if successfull, 0 otherwise.
+   */
   bool Read(vtkInformation* outInfo, vtkImageData* data);
   bool Read(vtkInformation* outInfo, vtkUnstructuredGrid* data);
+  //@}
+  /**
+   * Read 'pieceData' specified by 'filePiece' where
+   * number of points, cells and connectivity ids
+   * store those numbers for all pieces.
+   */
+  bool Read(const std::vector<vtkIdType>& numberOfPoints,
+    const std::vector<vtkIdType>& numberOfCells,
+    const std::vector<vtkIdType>& numberOfConnectivityIds, int filePiece,
+    vtkUnstructuredGrid* pieceData);
 
   // Callback registered with the SelectionObserver.
   static void SelectionModifiedCallback(
     vtkObject* caller, unsigned long eid, void* clientdata, void* calldata);
 
-  int RequestData(vtkInformation* request, vtkInformationVector** inputVector,
+  //@{
+  /**
+   * Standard functions to specify the type, information and read the data from
+   * the file.
+   */
+  int RequestDataObject(vtkInformation* request, vtkInformationVector** inputVector,
     vtkInformationVector* outputVector) override;
   int RequestInformation(vtkInformation* request, vtkInformationVector** inputVector,
     vtkInformationVector* outputVector) override;
-  int RequestDataObject(vtkInformation* request, vtkInformationVector** inputVector,
+  int RequestData(vtkInformation* request, vtkInformationVector** inputVector,
     vtkInformationVector* outputVector) override;
+  //@}
+
+  /**
+   * Print update number of pieces, piece number and ghost levels.
+   */
+  void PrintPieceInformation(vtkInformation* outInfo);
 
 private:
   vtkHDFReader(const vtkHDFReader&) = delete;
@@ -161,38 +174,13 @@ protected:
   // The observer to modify this object when the array selections are
   // modified.
   vtkCallbackCommand* SelectionObserver;
-
-  // Whether there was an error reading the file in RequestInformation.
-  int InformationError;
-
-  // Whether there was an error reading the file in RequestData.
-  int DataError;
-
-  // Whether there was an error reading the HDF.
-  int ReadError;
-
-  // For structured data keep track of dimensions empty of cells.  For
-  // unstructured data these are always zero.  This is used to support
-  // 1-D and 2-D cell data.
-  int AxesEmpty[3];
+  // Used for image data
   int WholeExtent[6];
   double Origin[3];
   double Spacing[3];
 
-  vtkDataObject* GetCurrentOutput();
-  vtkInformation* GetCurrentOutputInformation();
-
   class Implementation;
   Implementation* Impl;
-
-private:
-  int TimeStepWasReadOnce;
-
-  vtkDataObject* CurrentOutput;
-  vtkInformation* CurrentOutputInformation;
-
-private:
-  vtkCommand* ReaderErrorObserver;
 };
 
 #endif

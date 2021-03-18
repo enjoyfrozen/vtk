@@ -20,24 +20,23 @@
 #include "vtkNew.h"
 #include "vtkPointData.h"
 #include "vtkTesting.h"
+#include "vtkXMLImageDataReader.h"
 
 #include <iterator>
 #include <string>
 
-std::array<float, 100> iterationsExpected = { 1.86486, 1.95653, 2.07518, 2.25662, 2.50157, 2.79127,
-  3.00551, 3.02831, 3.05835, 3.09675, 3.14016, 3.1689, 3.1368, 3.03256, 2.88091, 2.71876, 2.57046,
-  2.44094, 2.33208, 2.24341, 1.92419, 2.04571, 2.2997, 2.73842, 3.0154, 3.05095, 3.10242, 3.18099,
-  3.31121, 3.55651, 4.01317, 4.31894, 6.25067, 4.47795, 3.97399, 3.12661, 2.89133, 2.67115, 2.49467,
-  2.35697, 1.98462, 2.27505, 3.00099, 3.03909, 3.09313, 3.17153, 3.29262, 3.49999, 3.92148, 4.10829,
-  4.50946, 5.39993, 9.68122, 11.2083, 4.63469, 4.07338, 3.29798, 3.00397, 2.72288, 2.50939, 2.13683,
-  3.00452, 3.05639, 3.12907, 3.23069, 3.38032, 3.62259, 4.01278, 4.18039, 4.56284, 5.20768, 7.10931,
-  14.029, 10.8399, 5.63, 4.74784, 4.07164, 3.26951, 3.01224, 2.71134, 2.82759, 3.0641, 3.15926,
-  3.28517, 3.45558, 3.70619, 4.03985, 4.30976, 4.80899, 6.08468, 6.95028, 9.04998, 100, 100,
-  7.46957, 6.00287, 5.09513, 3.84623, 3.16721, 2.97355 };
-
 bool FuzzyEqual(float a, float b)
 {
   return vtkMathUtilities::NearlyEqual(a, b, 20 * std::numeric_limits<float>::epsilon());
+}
+
+vtkSmartPointer<vtkImageData> ReadImageData(const std::string& fileName)
+{
+  vtkNew<vtkXMLImageDataReader> reader;
+  reader->SetFileName(fileName.c_str());
+  reader->Update();
+  vtkSmartPointer<vtkImageData> data = vtkImageData::SafeDownCast(reader->GetOutput());
+  return data;
 }
 
 int TestHDFReader(int argc, char* argv[])
@@ -63,6 +62,7 @@ int TestHDFReader(int argc, char* argv[])
   reader->SetFileName(fileName.c_str());
   reader->Update();
   vtkImageData* data = vtkImageData::SafeDownCast(reader->GetOutput());
+  vtkSmartPointer<vtkImageData> original = ReadImageData(dataRoot + "/Data/mandelbrot.vti");
   if (data == nullptr)
   {
     std::cerr << "Error: not vtkImageData" << std::endl;
@@ -76,18 +76,19 @@ int TestHDFReader(int argc, char* argv[])
               << "]" << std::endl;
     return EXIT_FAILURE;
   }
-  vtkDataArray* da = data->GetPointData()->GetArray("Iterations");
-  vtkFloatArray* fa = vtkFloatArray::SafeDownCast(da);
-  if (!fa)
+  vtkFloatArray* df = vtkFloatArray::SafeDownCast(data->GetPointData()->GetArray("Iterations"));
+  if (!df)
   {
     std::cerr << "Error: No Iterations array" << std::endl;
     return EXIT_FAILURE;
   }
-  float* iterationsData = fa->GetPointer(0);
-  for (auto itE = iterationsExpected.begin(), itD = iterationsData; itE != iterationsExpected.end();
+  float* iterationsData = df->GetPointer(0);
+  vtkFloatArray* of = vtkFloatArray::SafeDownCast(original->GetPointData()->GetArray("Iterations"));
+  float* iterationsExpected = of->GetPointer(0);
+  for (auto itE = iterationsExpected, itD = iterationsData; itE != iterationsExpected + 100;
        ++itE, ++itD)
   {
-    if (!vtkMathUtilities::NearlyEqual(*itE, *itD, 100 * std::numeric_limits<float>::epsilon()))
+    if (*itE != *itD)
     {
       std::cerr << "Error: Data in Iterations array does not match expected data: " << *itD << " "
                 << *itE << std::endl;
@@ -101,6 +102,8 @@ int TestHDFReader(int argc, char* argv[])
   //------------------------------------------------------------
   std::vector<std::string> fileNames = { dataRoot + "/Data/can-vtu.hdf",
     dataRoot + "/Data/can-pvtu.hdf" };
+  std::vector<std::string> originalNames = { dataRoot + "/Data/can.vtu",
+    dataRoot + "/Data/can.pvtu" };
   for (int i = 0; i < fileNames.size(); ++i)
   {
     std::string fileName = fileNames[i];

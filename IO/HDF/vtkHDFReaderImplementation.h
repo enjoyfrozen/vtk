@@ -74,16 +74,33 @@ public:
    * Returns the names of arrays for 'attributeType' (point or cell).
    */
   std::vector<std::string> GetArrayNames(int attributeType);
+  //@{
   /**
-   * Reads and returns a new vtkDataArray of the correct type.
+   * Reads and returns a new vtkDataArray. The actual type of the array
+   * depends on the type of the HDF array. The array is read from the PointData
+   * or CellData groups depending on the 'attributeType' parameter.
+   * There are two versions: a first one that reads from a 3D array using a fileExtent,
+   * and a second one that reads from a linear array using an offset and size.
    * The array has to be deleted by the user.
    */
   vtkDataArray* NewArray(
     int attributeType, const char* name, const std::vector<hsize_t>& fileExtent);
   vtkDataArray* NewArray(int attributeType, const char* name, hsize_t offset, hsize_t size);
+  //@}
+
+  //@{
+  /**
+   * Reads a 1D metadata array in a DataArray or a vector of vtkIdType.
+   * We read either the whole array for the vector version or a slice
+   * specified with (offset, size). For an error we return nullptr or an
+   * empty vector.
+   */
   vtkDataArray* NewMetadataArray(const char* name, hsize_t offset, hsize_t size);
   std::vector<vtkIdType> GetMetadata(const char* name, hsize_t size);
-
+  //@}
+  /**
+   * Returns the dimensions of a HDF dataset.
+   */
   std::vector<hsize_t> GetDimensions(const char* dataset);
 
 protected:
