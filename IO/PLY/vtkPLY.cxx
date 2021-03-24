@@ -785,7 +785,7 @@ PlyFile* vtkPLY::ply_read(std::istream* is, int* nelems, char*** elem_names)
 
   /* set return values about the elements */
 
-  elist = (char**)myalloc(sizeof(char*) * plyfile->nelems);
+  elist = (char**)myalloc(static_cast<unsigned int>(sizeof(char*) * plyfile->nelems));
   for (i = 0; i < plyfile->nelems; i++)
     elist[i] = strdup(plyfile->elems[i]->name);
 
