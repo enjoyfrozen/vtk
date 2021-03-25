@@ -97,22 +97,22 @@ int TestImageData(const std::string& dataRoot)
 template <bool parallel>
 int TestUnstructuredGrid(const std::string& dataRoot)
 {
-  std::string fileName, originalName;
+  std::string fileName, expectedName;
   vtkNew<vtkHDFReader> reader;
-  vtkNew<vtkXMLUnstructuredGridReader> originalReader;
-  vtkNew<vtkXMLPUnstructuredGridReader> originalPReader;
+  vtkNew<vtkXMLUnstructuredGridReader> expectedReader;
+  vtkNew<vtkXMLPUnstructuredGridReader> expectedPReader;
   vtkXMLReader* oreader;
   if (parallel)
   {
     fileName = dataRoot + "/Data/can-pvtu.hdf";
-    originalName = dataRoot + "/Data/can.pvtu";
-    oreader = originalPReader;
+    expectedName = dataRoot + "/Data/can.pvtu";
+    oreader = expectedPReader;
   }
   else
   {
     fileName = dataRoot + "/Data/can-vtu.hdf";
-    originalName = dataRoot + "/Data/can.vtu";
-    oreader = originalReader;
+    expectedName = dataRoot + "/Data/can.vtu";
+    oreader = expectedReader;
   }
   std::cout << "Testing: " << fileName << std::endl;
   if (!reader->CanReadFile(fileName.c_str()))
@@ -123,36 +123,52 @@ int TestUnstructuredGrid(const std::string& dataRoot)
   reader->Update();
   vtkUnstructuredGrid* data = vtkUnstructuredGrid::SafeDownCast(reader->GetOutputAsDataSet());
 
-  oreader->SetFileName(originalName.c_str());
+  oreader->SetFileName(expectedName.c_str());
   oreader->Update();
-  vtkUnstructuredGrid* originalData =
+  vtkUnstructuredGrid* expectedData =
     vtkUnstructuredGrid::SafeDownCast(oreader->GetOutputAsDataSet());
 
-  if (data->GetNumberOfPoints() != originalData->GetNumberOfPoints())
+  if (data->GetNumberOfPoints() != expectedData->GetNumberOfPoints())
   {
-    std::cerr << "Expecting " << originalData->GetNumberOfPoints()
+    std::cerr << "Expecting " << expectedData->GetNumberOfPoints()
               << " points but got: " << data->GetNumberOfPoints() << std::endl;
     return EXIT_FAILURE;
   }
 
-  if (data->GetNumberOfCells() != originalData->GetNumberOfCells())
+  if (data->GetNumberOfCells() != expectedData->GetNumberOfCells())
   {
-    std::cerr << "Expecting " << originalData->GetNumberOfCells()
+    std::cerr << "Expecting " << expectedData->GetNumberOfCells()
               << " cells but got: " << data->GetNumberOfCells() << std::endl;
     return EXIT_FAILURE;
   }
   for (int attributeType = 0; attributeType < reader->GetNumberOfAttributeTypes(); ++attributeType)
   {
     int numberRead = data->GetAttributesAsFieldData(attributeType)->GetNumberOfArrays();
-    int numberExpected = originalData->GetAttributesAsFieldData(attributeType)->GetNumberOfArrays();
+    int numberExpected = expectedData->GetAttributesAsFieldData(attributeType)->GetNumberOfArrays();
     if (numberRead != numberExpected)
     {
       std::cerr << "Expecting " << numberExpected << " arrays of type " << attributeType
                 << " but got " << numberRead << std::endl;
       return EXIT_FAILURE;
     }
+    vtkFieldData* fieldData = data->GetAttributesAsFieldData(attributeType);
+    vtkFieldData* expectedFieldData = expectedData->GetAttributesAsFieldData(attributeType);
+    for (int i = 0; i < numberRead; ++i)
+    {
+      vtkAbstractArray* array = fieldData->GetAbstractArray(i);
+      vtkAbstractArray* expectedArray = expectedFieldData->GetAbstractArray(i);
+      if (array->GetNumberOfTuples() != expectedArray->GetNumberOfTuples() ||
+        array->GetNumberOfComponents() != expectedArray->GetNumberOfComponents())
+      {
+        std::cerr << "Array " << array->GetName() << " has different number of "
+                  << "tuples/components: " << array->GetNumberOfTuples() << "/"
+                  << array->GetNumberOfComponents()
+                  << " than expected: " << expectedArray->GetNumberOfTuples() << "/"
+                  << expectedArray->GetNumberOfComponents() << std::endl;
+        return EXIT_FAILURE;
+      }
+    };
   }
-
   return EXIT_SUCCESS;
 }
 
