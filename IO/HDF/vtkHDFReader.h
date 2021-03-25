@@ -85,10 +85,10 @@ public:
   //@}
 
   /**
-   * How many attribute types we have. This returns 2: point and cell
+   * How many attribute types we have. This returns 3: point, cell and field
    * attribute types.
    */
-  constexpr static int GetNumberOfAttributeTypes() { return 2; }
+  constexpr static int GetNumberOfAttributeTypes() { return 3; }
 
   //@{
   /**
@@ -136,6 +136,7 @@ protected:
     const std::vector<vtkIdType>& numberOfCells,
     const std::vector<vtkIdType>& numberOfConnectivityIds, int filePiece,
     vtkUnstructuredGrid* pieceData);
+  bool AppendFieldData(vtkDataSet* data);
 
   // Callback registered with the SelectionObserver.
   static void SelectionModifiedCallback(
@@ -168,8 +169,8 @@ protected:
   char* FileName;
 
   // The array selections.
-  // in the same order as vtkDataObject::AttributeTypes: POINT, CELL
-  vtkDataArraySelection* DataArraySelection[2];
+  // in the same order as vtkDataObject::AttributeTypes: POINT, CELL, FIELD
+  vtkDataArraySelection* DataArraySelection[3];
 
   // The observer to modify this object when the array selections are
   // modified.

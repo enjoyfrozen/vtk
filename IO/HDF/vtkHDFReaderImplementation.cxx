@@ -31,6 +31,7 @@
 #include "vtkLongArray.h"
 #include "vtkLongLongArray.h"
 #include "vtkShortArray.h"
+#include "vtkStringArray.h"
 #include "vtkUnsignedCharArray.h"
 #include "vtkUnsignedIntArray.h"
 #include "vtkUnsignedLongArray.h"
@@ -157,7 +158,8 @@ bool vtkHDFReader::Implementation::Open(const char* fileName)
       vtkErrorWithObjectMacro(this->Reader, "Error opening /VTKHDF");
       return false;
     }
-    std::array<const char*, 2> groupNames = { "/VTKHDF/PointData", "/VTKHDF/CellData" };
+    std::array<const char*, 3> groupNames = { "/VTKHDF/PointData", "/VTKHDF/CellData",
+      "/VTKHDF/FieldData" };
     // turn off error logging and save error function
     H5E_auto_t f;
     void* client_data;
@@ -524,7 +526,7 @@ std::vector<std::string> vtkHDFReader::Implementation::GetArrayNames(int attribu
 
 //------------------------------------------------------------------------------
 hid_t vtkHDFReader::Implementation::OpenDataSet(
-  hid_t group, const char* name, int gridNdims, hid_t* nativeType, hsize_t* numberOfComponents)
+  hid_t group, const char* name, hid_t* nativeType, std::vector<hsize_t>& dims)
 {
   bool error = false;
   hid_t dataset = -1;
@@ -553,24 +555,10 @@ hid_t vtkHDFReader::Implementation::OpenDataSet(
     {
       throw std::runtime_error(std::string(name) + " dataset: get_simple_extent_ndims error");
     }
-    else if (ndims < gridNdims)
+    dims.resize(ndims);
+    if (H5Sget_simple_extent_dims(dataspace, &dims[0], nullptr) < 0)
     {
-      std::ostringstream ostr;
-      ostr << name << " dataset: Expecting rank >= " << gridNdims << ", got: " << ndims;
-      throw std::runtime_error(ostr.str());
-    }
-    if (ndims == gridNdims)
-    {
-      *numberOfComponents = 1;
-    }
-    else
-    {
-      std::vector<hsize_t> dims(ndims, 0);
-      if (H5Sget_simple_extent_dims(dataspace, &dims[0], nullptr) < 0)
-      {
-        throw std::runtime_error(std::string("Cannot find dimension for ") + name);
-      }
-      *numberOfComponents = dims[dims.size() - 1];
+      throw std::runtime_error(std::string("Cannot find dimension for ") + name);
     }
   }
   catch (const std::exception& e)
@@ -610,6 +598,90 @@ vtkDataArray* vtkHDFReader::Implementation::NewArray(
 }
 
 //------------------------------------------------------------------------------
+vtkStringArray* vtkHDFReader::Implementation::NewStringArray(hid_t dataset, hsize_t size)
+{
+  std::vector<char*> rdata(size);
+
+  /*
+   * Create the memory datatype.
+   */
+  hid_t memtype = H5Tcopy(H5T_C_S1);
+  if (H5Tset_size(memtype, H5T_VARIABLE) < 0)
+  {
+    vtkErrorWithObjectMacro(this->Reader, << "Error H5Tset_size");
+    return nullptr;
+  }
+
+  /*
+   * Read the data.
+   */
+  if (H5Dread(dataset, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, &rdata[0]) < 0)
+  {
+    vtkErrorWithObjectMacro(this->Reader, << "Error H5Dread");
+  }
+
+  auto array = vtkStringArray::New();
+  array->SetNumberOfTuples(size);
+  for (int i = 0; i < size; ++i)
+  {
+    array->SetValue(i, rdata[i]);
+  }
+
+  /*
+   * Close and release resources.  Note that H5Dvlen_reclaim works
+   * for variable-length strings as well as variable-length arrays.
+   * Also note that we must still free the array of pointers stored
+   * in rdata, as H5Tvlen_reclaim only frees the data these point to.
+   */
+  hid_t space = H5Dget_space(dataset);
+  if (H5Dvlen_reclaim(memtype, space, H5P_DEFAULT, &rdata[0]) < 0)
+  {
+    vtkErrorWithObjectMacro(this->Reader, << "Error H5Dvlen_reclaim");
+  }
+  H5Sclose(space);
+  return array;
+}
+
+//------------------------------------------------------------------------------
+vtkAbstractArray* vtkHDFReader::Implementation::NewFieldArray(const char* name)
+{
+  hid_t dataset = -1;
+  hid_t nativeType = -1;
+  std::vector<hsize_t> dims;
+  if ((dataset = this->OpenDataSet(
+         this->AttributeDataGroup[vtkDataObject::FIELD], name, &nativeType, dims)) < 0)
+  {
+    return nullptr;
+  }
+  TypeDescription td = GetTypeDescription(nativeType);
+  if (td.Class == H5T_STRING)
+  {
+    vtkStringArray* array = nullptr;
+    if (dims.size() == 1)
+    {
+      array = this->NewStringArray(dataset, dims[0]);
+    }
+    else
+    {
+      vtkErrorWithObjectMacro(this->Reader, << "Error: String array expected "
+                                               "dimensions one but got: "
+                                            << dims.size());
+    }
+    H5Dclose(dataset);
+    H5Tclose(nativeType);
+    return array;
+  }
+  else
+  {
+    // empty fileExtent means read all values from the file
+    // field arrays are always 1D
+    std::vector<hsize_t> fileExtent;
+    return NewArray(
+      this->AttributeDataGroup[vtkDataObject::FIELD], vtkDataObject::FIELD, name, fileExtent);
+  }
+}
+
+//------------------------------------------------------------------------------
 vtkDataArray* vtkHDFReader::Implementation::NewMetadataArray(
   const char* name, hsize_t offset, hsize_t size)
 {
@@ -642,25 +714,66 @@ std::vector<vtkIdType> vtkHDFReader::Implementation::GetMetadata(const char* nam
 
 //------------------------------------------------------------------------------
 vtkDataArray* vtkHDFReader::Implementation::NewArray(
-  hid_t group, int attributeType, const char* name, const std::vector<hsize_t>& fileExtent)
+  hid_t group, int attributeType, const char* name, const std::vector<hsize_t>& parameterExtent)
 {
   hid_t dataset = -1;
   hid_t nativeType = -1;
   hsize_t numberOfComponents = 0;
-  if ((dataset = this->OpenDataSet(
-         group, name, fileExtent.size() >> 1, &nativeType, &numberOfComponents)) < 0)
+  std::vector<hsize_t> dims;
+  std::vector<hsize_t> extent = parameterExtent;
+  if ((dataset = this->OpenDataSet(group, name, &nativeType, dims)) < 0)
   {
     return nullptr;
   }
+
   vtkDataArray* array = nullptr;
-  auto it = this->TypeReaderMap.find(this->GetTypeDescription(nativeType));
-  if (it == this->TypeReaderMap.end())
+  try
   {
-    vtkErrorWithObjectMacro(this->Reader, "Unknown native datatype: " << nativeType);
+    // used for field arrays
+    if (extent.size() == 0)
+    {
+      extent.resize(2, 0);
+      extent[1] = dims[0] - 1;
+      if (dims.size() > 2)
+      {
+        throw std::runtime_error("Field arrays cannot have more than 2 dimensions.");
+      }
+    }
+    if (dims.size() < (extent.size() >> 1))
+    {
+      std::ostringstream ostr;
+      ostr << name << " dataset: Expecting ndims >= " << (extent.size() >> 1)
+           << ", got: " << dims.size();
+      throw std::runtime_error(ostr.str());
+    }
+    if (dims.size() == (extent.size() >> 1))
+    {
+      numberOfComponents = 1;
+    }
+    else
+    {
+      numberOfComponents = dims[dims.size() - 1];
+      if (dims.size() > (extent.size() >> 1) + 1)
+      {
+        std::ostringstream ostr;
+        ostr << name << " dataset: ndims: " << dims.size()
+             << " greater than expected ndims: " << (extent.size() >> 1) << " plus one.";
+        throw std::runtime_error(ostr.str());
+      }
+    }
+    auto it = this->TypeReaderMap.find(this->GetTypeDescription(nativeType));
+    if (it == this->TypeReaderMap.end())
+    {
+      vtkErrorWithObjectMacro(this->Reader, "Unknown native datatype: " << nativeType);
+    }
+    else
+    {
+      array = (this->*(it->second))(attributeType, dataset, extent, numberOfComponents);
+    }
   }
-  else
+  catch (const std::exception& e)
   {
-    array = (this->*(it->second))(attributeType, dataset, fileExtent, numberOfComponents);
+    vtkErrorWithObjectMacro(this->Reader, << e.what());
   }
   H5Dclose(dataset);
   H5Tclose(nativeType);

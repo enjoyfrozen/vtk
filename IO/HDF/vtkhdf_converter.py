@@ -288,29 +288,57 @@ def create_data_arrays(data, dataset_type, vtkhdf_group, attribute_type_names,
         if field_data.GetNumberOfArrays() > 0:
             field_data_group = vtkhdf_group.create_group(
                 attribute_type_name)
-            for field_type in ["Scalars", "Vectors", "Normals",
-                               "Tensors", "TCoords"]:
-                array = getattr(field_data, "Get{}".format(field_type))()
-                if array:
-                    field_data_group.attrs.create(
-                        field_type, np.string_(array.GetName()))
-        for i in range(field_data.GetNumberOfArrays()):
-            array = field_data.GetArray(i)
-            anp = numpy_support.vtk_to_numpy(array)
-            if dataset_type == vtk.VTK_IMAGE_DATA:
-                dset, ndims = create_dataset_imagedata(
-                    array, field_data_group,
-                    extent, whole_extent, attribute_type)
-                all_ndims[attribute_type].append(ndims)
-            elif dataset_type == vtk.VTK_UNSTRUCTURED_GRID:
-                print("piece 0, {} array {} with shape: {}".format(
-                    attribute_type_names[attribute_type], i,
-                    anp.shape))
-                dset = create_dataset(
-                    array.GetName(), anp, field_data_group, number_of_pieces)
-                all_field_datasets_size[attribute_type].append(anp.shape[0])
-            all_field_datasets[attribute_type].append(dset)
+            # only for POINT and CELL attributes
+            if attribute_type < 2:
+                for field_type in ["Scalars", "Vectors", "Normals",
+                                   "Tensors", "TCoords"]:
+                    array = getattr(field_data, "Get{}".format(field_type))()
+                    if array:
+                        field_data_group.attrs.create(
+                            field_type, np.string_(array.GetName()))
 
+            # FIELD attribute
+            if attribute_type == 2:
+                for i in range(field_data.GetNumberOfArrays()):
+                    array = field_data.GetArray(i)
+                    if not array:
+                        array = field_data.GetAbstractArray(i)
+                        if array.GetClassName() == "vtkStringArray":
+                            dtype = h5py.special_dtype(vlen=bytes)
+                            dset = field_data_group.create_dataset(
+                                array.GetName(),
+                                (array.GetNumberOfValues(),), dtype)
+                            for index in range(array.GetNumberOfValues()):
+                                dset[index] = array.GetValue(index)
+                        else:
+                            # don't know how to handle this yet. Just skip it.
+                            print("Error: Don't know how to write "
+                                  "an array of type {}".format(
+                                      array.GetClassName()))
+                    else:
+                        anp = numpy_support.vtk_to_numpy(array)
+                        dset = field_data_group.create_dataset(
+                            array.GetName(), anp.shape, anp.dtype)
+                        dset[0:] = anp
+            else:
+                for i in range(field_data.GetNumberOfArrays()):
+                    array = field_data.GetArray(i)
+                    if dataset_type == vtk.VTK_IMAGE_DATA:
+                        dset, ndims = create_dataset_imagedata(
+                            array, field_data_group,
+                            extent, whole_extent, attribute_type)
+                        all_ndims[attribute_type].append(ndims)
+                    elif dataset_type == vtk.VTK_UNSTRUCTURED_GRID:
+                        anp = numpy_support.vtk_to_numpy(array)
+                        print("piece 0, {} array {} with shape: {}".format(
+                            attribute_type_names[attribute_type], i,
+                            anp.shape))
+                        dset = create_dataset(
+                            array.GetName(), anp, field_data_group,
+                            number_of_pieces)
+                        all_field_datasets_size[attribute_type].append(
+                            anp.shape[0])
+                    all_field_datasets[attribute_type].append(dset)
 
 # ------------------------------------------------------------------------------
 def append_data_arrays(data, dataset_type, piece, attribute_type_names,
@@ -321,23 +349,25 @@ def append_data_arrays(data, dataset_type, piece, attribute_type_names,
     """
     for attribute_type, field_datasets in enumerate(
             all_field_datasets):
-        for i, field_dataset in enumerate(field_datasets):
-            array = data.GetAttributesAsFieldData(
-                attribute_type).GetArray(i)
-            if dataset_type == vtk.VTK_IMAGE_DATA:
-                ndim = all_ndims[attribute_type][i]
-                append_dataset_imagedata(
-                    field_dataset, array,
-                    extent, whole_extent, attribute_type, ndim)
-            elif dataset_type == vtk.VTK_UNSTRUCTURED_GRID:
-                anp = numpy_support.vtk_to_numpy(array)
-                print("piece {} {} array {} with shape {}".format(
-                    piece, attribute_type_names[attribute_type], i,
-                    anp.shape))
-                all_field_datasets_size[
-                    attribute_type][i] = append_dataset(
-                        field_dataset, anp,
-                        all_field_datasets_size[attribute_type][i])
+        # only for POINT and CELL arrays
+        if attribute_type < 2:
+            for i, field_dataset in enumerate(field_datasets):
+                array = data.GetAttributesAsFieldData(
+                    attribute_type).GetArray(i)
+                if dataset_type == vtk.VTK_IMAGE_DATA:
+                    ndim = all_ndims[attribute_type][i]
+                    append_dataset_imagedata(
+                        field_dataset, array,
+                        extent, whole_extent, attribute_type, ndim)
+                elif dataset_type == vtk.VTK_UNSTRUCTURED_GRID:
+                    anp = numpy_support.vtk_to_numpy(array)
+                    print("piece {} {} array {} with shape {}".format(
+                        piece, attribute_type_names[attribute_type], i,
+                        anp.shape))
+                    all_field_datasets_size[
+                        attribute_type][i] = append_dataset(
+                            field_dataset, anp,
+                            all_field_datasets_size[attribute_type][i])
 
 
 # ------------------------------------------------------------------------------
@@ -385,7 +415,7 @@ def main(args):
              number_of_cells) = create_support_unstructuredgrid(
                  data, number_of_pieces, vtkhdf_group)
         # the same order as vtkDataObject::AttributeTypes: POINT, CELL
-        attribute_type_names = ["PointData", "CellData"]
+        attribute_type_names = ["PointData", "CellData", "FieldData"]
         # an HDF dataset for each attribute_type, for each VTK array
         all_field_datasets = [[] for i in range(len(attribute_type_names))]
         # the size of that dataset (used only for unstructured grids)

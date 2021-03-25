@@ -403,6 +403,24 @@ bool vtkHDFReader::Read(vtkInformation* outInfo, vtkImageData* data)
 }
 
 //------------------------------------------------------------------------------
+bool vtkHDFReader::AppendFieldData(vtkDataSet* data)
+{
+  std::vector<std::string> names = this->Impl->GetArrayNames(vtkDataObject::FIELD);
+  for (auto name : names)
+  {
+    vtkSmartPointer<vtkAbstractArray> array;
+    if ((array = vtk::TakeSmartPointer(this->Impl->NewFieldArray(name.c_str()))) == nullptr)
+    {
+      vtkErrorMacro("Error reading array " << name);
+      return 0;
+    }
+    array->SetName(name.c_str());
+    data->GetAttributesAsFieldData(vtkDataObject::FIELD)->AddArray(array);
+  }
+  return 1;
+}
+
+//------------------------------------------------------------------------------
 bool vtkHDFReader::Read(const std::vector<vtkIdType>& numberOfPoints,
   const std::vector<vtkIdType>& numberOfCells,
   const std::vector<vtkIdType>& numberOfConnectivityIds, int filePiece,
@@ -458,8 +476,9 @@ bool vtkHDFReader::Read(const std::vector<vtkIdType>& numberOfPoints,
 
   std::vector<vtkIdType> offsets = { pointOffset, cellOffset };
   std::vector<const std::vector<vtkIdType>*> numberOf = { &numberOfPoints, &numberOfCells };
-  // in the same order as vtkDataObject::AttributeTypes: POINT, CELL
-  for (int attributeType = 0; attributeType < this->GetNumberOfAttributeTypes(); ++attributeType)
+  // in the same order as vtkDataObject::AttributeTypes: POINT, CELL, FIELD
+  // field arrays are only read on node 0
+  for (int attributeType = 0; attributeType < vtkDataObject::FIELD; ++attributeType)
   {
     std::vector<std::string> names = this->Impl->GetArrayNames(attributeType);
     for (auto name : names)
@@ -523,11 +542,12 @@ int vtkHDFReader::RequestData(vtkInformation* vtkNotUsed(request),
   vtkInformationVector** vtkNotUsed(inputVector), vtkInformationVector* outputVector)
 {
   vtkInformation* outInfo = outputVector->GetInformationObject(0);
+  int ok = 1;
   if (!outInfo)
   {
     return 0;
   }
-  vtkDataObject* output = outInfo->Get(vtkDataObject::DATA_OBJECT());
+  vtkDataSet* output = vtkDataSet::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
   if (!output)
   {
     return 0;
@@ -538,18 +558,17 @@ int vtkHDFReader::RequestData(vtkInformation* vtkNotUsed(request),
   if (dataSetType == VTK_IMAGE_DATA)
   {
     vtkImageData* data = vtkImageData::SafeDownCast(output);
-    return this->Read(outInfo, data);
+    ok = this->Read(outInfo, data);
   }
   else if (dataSetType == VTK_UNSTRUCTURED_GRID)
   {
     vtkUnstructuredGrid* data = vtkUnstructuredGrid::SafeDownCast(output);
-    return this->Read(outInfo, data);
+    ok = this->Read(outInfo, data);
   }
   else
   {
     vtkErrorMacro("HDF dataset type unknown: " << dataSetType);
     return 0;
   }
-
-  return 1;
+  return ok && this->AppendFieldData(output);
 }

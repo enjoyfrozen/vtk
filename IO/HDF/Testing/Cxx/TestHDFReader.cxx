@@ -20,7 +20,10 @@
 #include "vtkNew.h"
 #include "vtkPointData.h"
 #include "vtkTesting.h"
+#include "vtkUnstructuredGrid.h"
 #include "vtkXMLImageDataReader.h"
+#include "vtkXMLPUnstructuredGridReader.h"
+#include "vtkXMLUnstructuredGridReader.h"
 
 #include <iterator>
 #include <string>
@@ -39,17 +42,8 @@ vtkSmartPointer<vtkImageData> ReadImageData(const std::string& fileName)
   return data;
 }
 
-int TestHDFReader(int argc, char* argv[])
+int TestImageData(const std::string& dataRoot)
 {
-  vtkNew<vtkTesting> testHelper;
-  testHelper->AddArguments(argc, argv);
-  if (!testHelper->IsFlagSpecified("-D"))
-  {
-    std::cerr << "Error: -D /path/to/data was not specified.";
-    return EXIT_FAILURE;
-  }
-
-  std::string dataRoot = testHelper->GetDataRoot();
   // ImageData file
   // ------------------------------------------------------------
   std::string fileName = dataRoot + "/Data/mandelbrot-vti.hdf";
@@ -97,24 +91,94 @@ int TestHDFReader(int argc, char* argv[])
       return EXIT_FAILURE;
     }
   }
+  return EXIT_SUCCESS;
+}
 
-  // UnstructuredGrid file
-  //------------------------------------------------------------
-  std::vector<std::string> fileNames = { dataRoot + "/Data/can-vtu.hdf",
-    dataRoot + "/Data/can-pvtu.hdf" };
-  std::vector<std::string> originalNames = { dataRoot + "/Data/can.vtu",
-    dataRoot + "/Data/can.pvtu" };
-  for (int i = 0; i < fileNames.size(); ++i)
+template <bool parallel>
+int TestUnstructuredGrid(const std::string& dataRoot)
+{
+  std::string fileName, originalName;
+  vtkNew<vtkHDFReader> reader;
+  vtkNew<vtkXMLUnstructuredGridReader> originalReader;
+  vtkNew<vtkXMLPUnstructuredGridReader> originalPReader;
+  vtkXMLReader* oreader;
+  if (parallel)
   {
-    std::string fileName = fileNames[i];
-    std::cout << "Testing: " << fileName << std::endl;
-    if (!reader->CanReadFile(fileName.c_str()))
-    {
-      return EXIT_FAILURE;
-    }
-    reader->SetFileName(fileName.c_str());
-    reader->Update();
+    fileName = dataRoot + "/Data/can-pvtu.hdf";
+    originalName = dataRoot + "/Data/can.pvtu";
+    oreader = originalPReader;
+  }
+  else
+  {
+    fileName = dataRoot + "/Data/can-vtu.hdf";
+    originalName = dataRoot + "/Data/can.vtu";
+    oreader = originalReader;
+  }
+  std::cout << "Testing: " << fileName << std::endl;
+  if (!reader->CanReadFile(fileName.c_str()))
+  {
+    return EXIT_FAILURE;
+  }
+  reader->SetFileName(fileName.c_str());
+  reader->Update();
+  vtkUnstructuredGrid* data = vtkUnstructuredGrid::SafeDownCast(reader->GetOutputAsDataSet());
+
+  oreader->SetFileName(originalName.c_str());
+  oreader->Update();
+  vtkUnstructuredGrid* originalData =
+    vtkUnstructuredGrid::SafeDownCast(oreader->GetOutputAsDataSet());
+
+  if (data->GetNumberOfPoints() != originalData->GetNumberOfPoints())
+  {
+    std::cerr << "Expecting " << originalData->GetNumberOfPoints()
+              << " points but got: " << data->GetNumberOfPoints() << std::endl;
+    return EXIT_FAILURE;
   }
 
+  if (data->GetNumberOfCells() != originalData->GetNumberOfCells())
+  {
+    std::cerr << "Expecting " << originalData->GetNumberOfCells()
+              << " cells but got: " << data->GetNumberOfCells() << std::endl;
+    return EXIT_FAILURE;
+  }
+  for (int attributeType = 0; attributeType < reader->GetNumberOfAttributeTypes(); ++attributeType)
+  {
+    int numberRead = data->GetAttributesAsFieldData(attributeType)->GetNumberOfArrays();
+    int numberExpected = originalData->GetAttributesAsFieldData(attributeType)->GetNumberOfArrays();
+    if (numberRead != numberExpected)
+    {
+      std::cerr << "Expecting " << numberExpected << " arrays of type " << attributeType
+                << " but got " << numberRead << std::endl;
+      return EXIT_FAILURE;
+    }
+  }
+
+  return EXIT_SUCCESS;
+}
+
+int TestHDFReader(int argc, char* argv[])
+{
+  vtkNew<vtkTesting> testHelper;
+  testHelper->AddArguments(argc, argv);
+  if (!testHelper->IsFlagSpecified("-D"))
+  {
+    std::cerr << "Error: -D /path/to/data was not specified.";
+    return EXIT_FAILURE;
+  }
+
+  std::string dataRoot = testHelper->GetDataRoot();
+  if (TestImageData(dataRoot))
+  {
+    return EXIT_FAILURE;
+  }
+
+  if (TestUnstructuredGrid<false /*parallel*/>(dataRoot))
+  {
+    return EXIT_FAILURE;
+  }
+  if (TestUnstructuredGrid<true /*parallel*/>(dataRoot))
+  {
+    return EXIT_FAILURE;
+  }
   return EXIT_SUCCESS;
 }

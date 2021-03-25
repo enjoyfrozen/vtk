@@ -28,7 +28,9 @@
 #include <string>
 #include <vector>
 
+class vtkAbstractArray;
 class vtkDataArray;
+class vtkStringArray;
 
 /**
  * Implementation for the vtkHDFReader. Opens, closes and
@@ -86,6 +88,7 @@ public:
   vtkDataArray* NewArray(
     int attributeType, const char* name, const std::vector<hsize_t>& fileExtent);
   vtkDataArray* NewArray(int attributeType, const char* name, hsize_t offset, hsize_t size);
+  vtkAbstractArray* NewFieldArray(const char* name);
   //@}
 
   //@{
@@ -129,10 +132,9 @@ protected:
   /**
    * Opens the hdf5 dataset given the 'group'
    * and 'name'.
-   * Returns the hdf dataset and sets 'nativeType' and the 'numberOfComponents'.
+   * Returns the hdf dataset and sets 'nativeType' and 'dims'.
    */
-  hid_t OpenDataSet(
-    hid_t group, const char* name, int gridNdims, hid_t* nativeType, hsize_t* numberOfComponents);
+  hid_t OpenDataSet(hid_t group, const char* name, hid_t* nativeType, std::vector<hsize_t>& dims);
   /**
    * Convert C++ template type T to HDF5 native type
    * this can be constexpr in C++17 standard
@@ -153,6 +155,12 @@ protected:
    * The array has type 'T' and 'numberOfComponents'. We are reading
    * fileExtent slab from the array. It returns the array or nullptr
    * in case of an error.
+   * There are three cases for fileExtent:
+   * fileExtent.size() == 0 - in this case we expect a 1D array and we read
+   *                          the whole array. Used for field arrays.
+   * fileExtent.size()>>1 == ndims - in this case we read a scalar
+   * fileExtent.size()>>1 + 1 == ndims - in this case we read an array with
+   *                           the number of components > 1.
    */
   vtkDataArray* NewArray(
     hid_t group, int attributeType, const char* name, const std::vector<hsize_t>& fileExtent);
@@ -162,6 +170,7 @@ protected:
   template <typename T>
   bool NewArray(int attributeType, hid_t dataset, const std::vector<hsize_t>& fileExtent,
     hsize_t numberOfComponents, T* data);
+  vtkStringArray* NewStringArray(hid_t dataset, hsize_t size);
   //@}
   /**
    * Builds a map between native types and GetArray routines for that type.
@@ -177,8 +186,8 @@ private:
   std::string FileName;
   hid_t File;
   hid_t VTKGroup;
-  // in the same order as vtkDataObject::AttributeTypes: POINT, CELL
-  std::array<hid_t, 2> AttributeDataGroup;
+  // in the same order as vtkDataObject::AttributeTypes: POINT, CELL, FIELD
+  std::array<hid_t, 3> AttributeDataGroup;
   int DataSetType;
   int NumberOfPieces;
   std::array<int, 2> Version;
