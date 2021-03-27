@@ -162,14 +162,13 @@ protected:
    * fileExtent.size()>>1 + 1 == ndims - in this case we read an array with
    *                           the number of components > 1.
    */
+  vtkDataArray* NewArray(hid_t group, const char* name, const std::vector<hsize_t>& fileExtent);
+  template <typename T>
   vtkDataArray* NewArray(
-    hid_t group, int attributeType, const char* name, const std::vector<hsize_t>& fileExtent);
+    hid_t dataset, const std::vector<hsize_t>& fileExtent, hsize_t numberOfComponents);
   template <typename T>
-  vtkDataArray* NewArray(int attributeType, hid_t dataset, const std::vector<hsize_t>& fileExtent,
-    hsize_t numberOfComponents);
-  template <typename T>
-  bool NewArray(int attributeType, hid_t dataset, const std::vector<hsize_t>& fileExtent,
-    hsize_t numberOfComponents, T* data);
+  bool NewArray(
+    hid_t dataset, const std::vector<hsize_t>& fileExtent, hsize_t numberOfComponents, T* data);
   vtkStringArray* NewStringArray(hid_t dataset, hsize_t size);
   //@}
   /**
@@ -192,8 +191,8 @@ private:
   int NumberOfPieces;
   std::array<int, 2> Version;
   vtkHDFReader* Reader;
-  using ArrayReader = vtkDataArray* (vtkHDFReader::Implementation::*)(int attributeType,
-    hid_t dataset, const std::vector<hsize_t>& fileExtent, hsize_t numberOfComponents);
+  using ArrayReader = vtkDataArray* (vtkHDFReader::Implementation::*)(hid_t dataset,
+    const std::vector<hsize_t>& fileExtent, hsize_t numberOfComponents);
   std::map<TypeDescription, ArrayReader> TypeReaderMap;
 };
 

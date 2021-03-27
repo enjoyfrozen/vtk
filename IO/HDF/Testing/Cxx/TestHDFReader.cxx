@@ -155,12 +155,14 @@ int TestUnstructuredGrid(const std::string& dataRoot)
     vtkFieldData* expectedFieldData = expectedData->GetAttributesAsFieldData(attributeType);
     for (int i = 0; i < numberRead; ++i)
     {
-      vtkAbstractArray* array = fieldData->GetAbstractArray(i);
+      // the arrays are not in the same order because listing arrays in creation
+      // order fails. See vtkHDFReader::Implementation::GetArrayNames
       vtkAbstractArray* expectedArray = expectedFieldData->GetAbstractArray(i);
+      vtkAbstractArray* array = fieldData->GetAbstractArray(expectedArray->GetName());
       if (array->GetNumberOfTuples() != expectedArray->GetNumberOfTuples() ||
         array->GetNumberOfComponents() != expectedArray->GetNumberOfComponents())
       {
-        std::cerr << "Array " << array->GetName() << " has different number of "
+        std::cerr << "Array " << array->GetName() << " has a different number of "
                   << "tuples/components: " << array->GetNumberOfTuples() << "/"
                   << array->GetNumberOfComponents()
                   << " than expected: " << expectedArray->GetNumberOfTuples() << "/"
