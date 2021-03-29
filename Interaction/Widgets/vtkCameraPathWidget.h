@@ -18,7 +18,7 @@
  *
  * vtkCameraPathWidget is the vtkAbstractWidget subclass for
  * vtkCameraPathRepresentation which manages the interactions with
- * vtkCameraPathRepresentation. This is based on vtkSplineWidget2.
+ * vtkCameraPathRepresentation.
  * @sa
  * vtkCameraPathRepresentation
  */

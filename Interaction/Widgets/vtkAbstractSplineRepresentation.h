@@ -79,6 +79,12 @@ public:
    */
   double GetSummedLength() override;
 
+  /**
+   * Set the number of handles for this widget,
+   *  while keeping a similar spline.
+   */
+  void SetNumberOfHandles(int npts) override;
+
 protected:
   vtkAbstractSplineRepresentation();
   ~vtkAbstractSplineRepresentation() override;
@@ -86,6 +92,26 @@ protected:
   virtual void CleanRepresentation();
 
   void SetParametricSplineInternal(vtkParametricSpline* spline);
+
+  /**
+   * Specialized method to return the actual index of insertion.
+   */
+  int InsertHandleOnLine(double* pos) override;
+
+  /**
+   * Delete all the handles
+   */
+  virtual void ClearHandles(){};
+
+  /**
+   * Create npts default handles.
+   */
+  virtual void CreateDefaultHandles(int){};
+
+  /**
+   * Update the handles.
+   */
+  virtual void ReconfigureHandles(int){};
 
   // The spline
   vtkParametricSpline* ParametricSpline = nullptr;

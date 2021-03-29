@@ -21,6 +21,7 @@
 #include "vtkParametricFunctionSource.h"
 #include "vtkParametricSpline.h"
 #include "vtkPolyDataMapper.h"
+#include "vtkSetGet.h"
 #include "vtkVector.h"
 #include "vtkVectorOperators.h"
 
@@ -103,7 +104,7 @@ void vtkCameraPathRepresentation::WidgetInteraction(double e[2])
 //------------------------------------------------------------------------------
 void vtkCameraPathRepresentation::AddDefaultCamera(int index)
 {
-  if (index < 0 || index > this->NumberOfHandles)
+  if (index < 0 || index >= this->NumberOfHandles)
   {
     return;
   }
@@ -130,8 +131,8 @@ void vtkCameraPathRepresentation::AddDefaultCamera(int index)
       focalPoint[0] = position[0];
       focalPoint[1] = position[1];
       focalPoint[2] = position[2];
+      break;
     }
-    break;
     // interpolate position and focal point from the two surrounding cameras.
     default:
     {
@@ -143,10 +144,10 @@ void vtkCameraPathRepresentation::AddDefaultCamera(int index)
 
       // calculate the new focal point
       vtkVector3d focusPoint1(this->CameraHandles[firstCameraIndex]->GetDirection());
-      vtkVector3d focusPoint2(this->CameraHandles[index % this->NumberOfHandles]->GetDirection());
+      vtkVector3d focusPoint2(this->CameraHandles[index]->GetDirection());
       focalPoint = (focusPoint1 + focusPoint2) / vtkVector3d(2.0);
+      break;
     }
-    break;
   }
 
   cam->SetPosition(position.GetData());
@@ -161,7 +162,7 @@ void vtkCameraPathRepresentation::AddCameraAt(vtkCamera* camera, int index)
 {
   if (index < 0 || index > this->NumberOfHandles || camera == nullptr)
   {
-    vtkErrorMacro(<< "ERROR: Invalid index or nullptr camera\n");
+    vtkErrorMacro(<< "Invalid index or nullptr camera");
     return;
   }
 
@@ -175,9 +176,11 @@ void vtkCameraPathRepresentation::InsertCamera(vtkCamera* camera, int index)
 {
   if (index < 0 || (size_t)index > this->CameraHandles.size() || camera == nullptr)
   {
-    vtkErrorMacro(<< "ERROR: Invalid index or nullptr camera\n");
+    vtkErrorMacro(<< "Invalid index or camera");
     return;
   }
+
+  vtkDebugMacro(<< "adding Camera at position" << index);
 
   vtkSmartPointer<vtkCameraHandleSource> camHandle = vtkSmartPointer<vtkCameraHandleSource>::New();
   camHandle->SetDirectional(this->Directional);
@@ -199,8 +202,11 @@ void vtkCameraPathRepresentation::DeleteCameraAt(int index)
 {
   if (index < 0 || index >= this->NumberOfHandles)
   {
+    vtkWarningMacro(<< "Cannot delete camera, invalid index (" << index << ")");
     return;
   }
+
+  vtkDebugMacro(<< "deleting Camera at position" << index);
 
   this->SetCurrentHandleIndex(-1);
   this->CameraHandles.erase(this->CameraHandles.begin() + index);
@@ -209,7 +215,6 @@ void vtkCameraPathRepresentation::DeleteCameraAt(int index)
   this->HandleActors.erase(this->HandleActors.begin() + index);
 
   this->LastModifiedCamera = index;
-
   this->UpdateConfiguration(this->NumberOfHandles - 1);
 }
 
@@ -221,34 +226,7 @@ void vtkCameraPathRepresentation::SetNumberOfHandles(int npts)
     return;
   }
 
-  if (npts < 0)
-  {
-    vtkErrorMacro(<< "ERROR: Invalid npts, must be >= 0\n");
-    return;
-  }
-
-  if (npts == 0)
-  {
-    this->ClearCameraHandles();
-    this->NumberOfHandles = 0;
-    this->CleanRepresentation();
-    return;
-  }
-
-  // Ensure no handle is highlighted
-  this->HighlightHandle(nullptr);
-
-  if (this->GetParametricSpline() && this->NumberOfHandles > 1)
-  {
-    this->ReconfigureHandles(npts, this->NumberOfHandles);
-  }
-  else
-  {
-    // reallocate the handles
-    this->CreateDefaultHandles(npts);
-  }
-
-  this->NumberOfHandles = npts;
+  this->Superclass::SetNumberOfHandles(npts);
 
   // -1 means all cameras have been modified lately
   this->LastModifiedCamera = -1;
@@ -263,7 +241,6 @@ void vtkCameraPathRepresentation::SetParametricSpline(vtkParametricSpline* splin
 
   if (!spline || !spline->GetPoints() || spline->GetPoints()->GetNumberOfPoints() < 1)
   {
-    this->SetNumberOfHandles(0);
     return;
   }
 
@@ -279,7 +256,7 @@ void vtkCameraPathRepresentation::SetParametricSpline(vtkParametricSpline* splin
 //------------------------------------------------------------------------------
 void vtkCameraPathRepresentation::CreateDefaultHandles(int npts)
 {
-  this->ClearCameraHandles();
+  this->ClearHandles();
 
   vtkNew<vtkPoints> points;
   points->SetDataType(VTK_DOUBLE);
@@ -327,6 +304,12 @@ void vtkCameraPathRepresentation::CreateDefaultHandles(int npts)
 }
 
 //------------------------------------------------------------------------------
+void vtkCameraPathRepresentation::ReconfigureHandles(int newNPts)
+{
+  this->ReconfigureHandles(newNPts, this->NumberOfHandles);
+}
+
+//------------------------------------------------------------------------------
 void vtkCameraPathRepresentation::ReconfigureHandles(int newNPts, int oldNPts)
 {
   // get old focal points
@@ -342,7 +325,7 @@ void vtkCameraPathRepresentation::ReconfigureHandles(int newNPts, int oldNPts)
   vtkNew<vtkParametricSpline> focalPointsSpline;
   focalPointsSpline->SetPoints(points);
 
-  this->ClearCameraHandles();
+  this->ClearHandles();
 
   double u[3], pt[3];
 
@@ -375,9 +358,9 @@ void vtkCameraPathRepresentation::ReconfigureHandles(int newNPts, int oldNPts)
 //------------------------------------------------------------------------------
 void vtkCameraPathRepresentation::RebuildRepresentation()
 {
-  this->CurrentHandleIndex = this->HighlightHandle(this->GetHandleActor(this->CurrentHandleIndex));
+  this->SetCurrentHandleIndex(
+    this->HighlightHandle(this->GetHandleActor(this->CurrentHandleIndex)));
   this->BuildRepresentation();
-  this->Modified();
 }
 
 //------------------------------------------------------------------------------
@@ -422,23 +405,12 @@ void vtkCameraPathRepresentation::UpdateConfiguration(int npts)
 //------------------------------------------------------------------------------
 int vtkCameraPathRepresentation::InsertHandleOnLine(double* pos)
 {
-  if (this->NumberOfHandles < 2 || pos == nullptr)
+  int index = this->Superclass::InsertHandleOnLine(pos);
+
+  if (pos == nullptr || index < 0)
   {
     return -1;
   }
-
-  vtkIdType id = this->LinePicker->GetCellId();
-  if (id == -1)
-  {
-    return -1;
-  }
-
-  vtkIdType subid = this->LinePicker->GetSubId();
-
-  int index = vtkMath::Floor(
-    subid * (this->NumberOfHandles + this->Closed - 1.0) / static_cast<double>(this->Resolution));
-
-  index++;
 
   // insert new camera
   vtkNew<vtkCamera> cam;
@@ -465,8 +437,9 @@ void vtkCameraPathRepresentation::EraseHandle(const int& index)
 }
 
 //------------------------------------------------------------------------------
-void vtkCameraPathRepresentation::ClearCameraHandles()
+void vtkCameraPathRepresentation::ClearHandles()
 {
+  this->SetCurrentHandleIndex(-1);
   for (vtkActor* actor : this->HandleActors)
   {
     this->HandlePicker->DeletePickList(actor);
@@ -515,7 +488,7 @@ void vtkCameraPathRepresentation::InitializeHandles(vtkPoints* points)
 {
   if (!points)
   {
-    vtkErrorMacro(<< "ERROR: Invalid or nullptr points\n");
+    vtkErrorMacro(<< "Invalid or nullptr points");
     return;
   }
 
@@ -614,16 +587,16 @@ void vtkCameraPathRepresentation::GetHandleFocalPoint(int handle, double xyz[3])
 {
   if (handle < 0 || handle >= this->NumberOfHandles)
   {
-    vtkErrorMacro(<< "vtkCurveRepresentation: handle index out of range.");
+    vtkErrorMacro(<< "handle index out of range.");
     return;
   }
   this->CameraHandles[handle]->GetDirection(xyz);
 }
 
 //------------------------------------------------------------------------------
-double* vtkCameraPathRepresentation::GetHandleFocalPoint(int handle)
+const double* vtkCameraPathRepresentation::GetHandleFocalPoint(int handle)
 {
-  static double focus[3] = { 0, 0, 0 };
+  static constexpr double focus[3] = { 0, 0, 0 };
   if (handle < 0 || handle >= this->NumberOfHandles)
   {
     vtkErrorMacro(<< "handle index out of range.");
@@ -644,9 +617,9 @@ void vtkCameraPathRepresentation::SetCurrentHandlePosition(double x, double y, d
 }
 
 //------------------------------------------------------------------------------
-double* vtkCameraPathRepresentation::GetCurrentHandlePosition()
+const double* vtkCameraPathRepresentation::GetCurrentHandlePosition()
 {
-  static double pos[3] = { 0, 0, 0 };
+  static constexpr double pos[3] = { 0, 0, 0 };
   if (this->CurrentHandleIndex < 0 || this->CurrentHandleIndex >= this->NumberOfHandles)
   {
     return pos;
@@ -665,9 +638,9 @@ void vtkCameraPathRepresentation::SetCurrentHandleFocalPoint(double x, double y,
 }
 
 //------------------------------------------------------------------------------
-double* vtkCameraPathRepresentation::GetCurrentHandleFocalPoint()
+const double* vtkCameraPathRepresentation::GetCurrentHandleFocalPoint()
 {
-  static double focus[3] = { 0, 0, 0 };
+  static constexpr double focus[3] = { 0, 0, 0 };
   if (this->CurrentHandleIndex < 0 || this->CurrentHandleIndex >= this->NumberOfHandles)
   {
     return focus;

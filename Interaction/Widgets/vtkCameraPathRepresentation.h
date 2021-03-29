@@ -58,7 +58,7 @@ public:
   virtual void SetHandleFocalPoint(int handle, double x, double y, double z);
   virtual void SetHandleFocalPoint(int handle, double xyz[3]);
   virtual void GetHandleFocalPoint(int handle, double xyz[3]);
-  virtual double* GetHandleFocalPoint(int handle);
+  virtual const double* GetHandleFocalPoint(int handle);
   //@}
 
   //@{
@@ -66,7 +66,7 @@ public:
    * Set / Get the current handle position.
    */
   virtual void SetCurrentHandlePosition(double x, double y, double z);
-  virtual double* GetCurrentHandlePosition() VTK_SIZEHINT(3);
+  virtual const double* GetCurrentHandlePosition() VTK_SIZEHINT(3);
   //@}
 
   //@{
@@ -74,7 +74,7 @@ public:
    * Set / Get the current handle focal point.
    */
   virtual void SetCurrentHandleFocalPoint(double x, double y, double z);
-  virtual double* GetCurrentHandleFocalPoint() VTK_SIZEHINT(3);
+  virtual const double* GetCurrentHandleFocalPoint() VTK_SIZEHINT(3);
   //@}
 
   /**
@@ -85,8 +85,8 @@ public:
   void SetDirectional(bool val) override;
 
   /**
-   * Adjust the number of camera handles while keeping
-     the same path.
+   * Adjust the number of camera handles while keeping the same path.
+   * Delete and Allocate Handles as needed.
    */
   void SetNumberOfHandles(int npts) override;
 
@@ -132,9 +132,19 @@ public:
   void AddCameraAt(vtkCamera* camera, int index);
 
   /**
+   * Add camera at the end of the path.
+   */
+  void AddCamera(vtkCamera* camera) { this->AddCameraAt(camera, this->GetNumberOfHandles()); }
+
+  /**
    * Remove a camera from the path.
    */
   void DeleteCameraAt(int index);
+
+  /**
+   * Delete all cameras.
+   */
+  void DeleteAllCameras() { this->SetNumberOfHandles(0); }
 
 protected:
   vtkCameraPathRepresentation();
@@ -148,7 +158,7 @@ protected:
   /**
    * Delete all camera handles.
    */
-  void ClearCameraHandles();
+  void ClearHandles() override;
 
   /**
    * Creates a new handle from a vtkcamera and
@@ -159,7 +169,7 @@ protected:
   /**
    * Create/Recreate npts default camera handles.
    */
-  void CreateDefaultHandles(int npts);
+  void CreateDefaultHandles(int npts) override;
 
   /**
    * Recreate the handles according to a
@@ -170,6 +180,8 @@ protected:
    * the positions of the new handles.
    */
   void ReconfigureHandles(int newNPts, int oldNPts);
+
+  void ReconfigureHandles(int newNpts) override;
 
   /**
    * Specialized method to insert a camera handle on the camera path.

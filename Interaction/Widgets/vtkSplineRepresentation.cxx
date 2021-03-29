@@ -116,36 +116,7 @@ void vtkSplineRepresentation::SetNumberOfHandles(int npts)
     return;
   }
 
-  if (npts < 0)
-  {
-    vtkErrorMacro(<< "ERROR: Invalid npts, must be >= 0\n");
-    return;
-  }
-
-  if (npts == 0)
-  {
-    this->ClearHandles();
-    this->NumberOfHandles = 0;
-    this->CleanRepresentation();
-    vtkGenericWarningMacro(
-      << "vtkSplineRepresentation: there is not any point defined at the moment.");
-    return;
-  }
-
-  // Ensure no handle is highlighted
-  this->HighlightHandle(nullptr);
-
-  if (this->GetParametricSpline() && this->NumberOfHandles > 1)
-  {
-    this->ReconfigureHandles(npts);
-  }
-  else
-  {
-    // reallocate the handles
-    this->CreateDefaultHandles(npts);
-  }
-
-  this->NumberOfHandles = npts;
+  this->Superclass::SetNumberOfHandles(npts);
 
   this->RebuildRepresentation();
 }
@@ -172,38 +143,26 @@ void vtkSplineRepresentation::SetParametricSpline(vtkParametricSpline* spline)
 //------------------------------------------------------------------------------
 int vtkSplineRepresentation::InsertHandleOnLine(double* pos)
 {
-  if (this->NumberOfHandles < 2 || pos == nullptr)
+  const int insert_index = this->Superclass::InsertHandleOnLine(pos);
+  if (pos == nullptr || insert_index < 0)
   {
     return -1;
   }
-
-  vtkIdType id = this->LinePicker->GetCellId();
-  if (id == -1)
-  {
-    return -1;
-  }
-
-  vtkIdType subid = this->LinePicker->GetSubId();
 
   vtkNew<vtkPoints> newpoints;
   newpoints->SetDataType(VTK_DOUBLE);
   newpoints->SetNumberOfPoints(this->NumberOfHandles + 1);
 
-  int istart = vtkMath::Floor(
-    subid * (this->NumberOfHandles + this->Closed - 1.0) / static_cast<double>(this->Resolution));
-  int istop = istart + 1;
-  int count = 0;
-  for (int i = 0; i <= istart; ++i)
+  for (int i = 0; i < insert_index; ++i)
   {
-    newpoints->SetPoint(count++, this->PointHandles[i]->GetPosition());
+    newpoints->SetPoint(i, this->PointHandles[i]->GetPosition());
   }
 
-  const int insert_index = count;
-  newpoints->SetPoint(count++, pos);
+  newpoints->SetPoint(insert_index, pos);
 
-  for (int i = istop; i < this->NumberOfHandles; ++i)
+  for (int i = insert_index; i < this->NumberOfHandles; ++i)
   {
-    newpoints->SetPoint(count++, this->PointHandles[i]->GetPosition());
+    newpoints->SetPoint(i + 1, this->PointHandles[i]->GetPosition());
   }
 
   this->InitializeHandles(newpoints);
@@ -225,11 +184,6 @@ void vtkSplineRepresentation::ClearHandles()
 //------------------------------------------------------------------------------
 void vtkSplineRepresentation::AllocateHandles(int npts)
 {
-  if (npts == this->NumberOfHandles)
-  {
-    return;
-  }
-
   this->ClearHandles();
 
   for (int h = 0; h < npts; h++)
@@ -264,7 +218,6 @@ void vtkSplineRepresentation::CreateDefaultHandles(int npts)
   }
   else
   {
-    // Create the handles along a straight line within the bounds of a unit cube
     double x0, y0, z0;
     x0 = y0 = z0 = -0.5;
     double x1, y1, z1;

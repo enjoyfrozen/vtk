@@ -44,7 +44,7 @@ public:
    * Set the number of handles for this widget,
    *  while keeping a similar spline.
    */
-  virtual void SetNumberOfHandles(int npts) override;
+  void SetNumberOfHandles(int npts) override;
 
   /**
    * Set the parametric spline object.
@@ -79,7 +79,7 @@ protected:
   /**
    * Delete all the handles.
    */
-  void ClearHandles();
+  void ClearHandles() override;
 
   /**
    * Allocate/Reallocate the handles according
@@ -89,8 +89,11 @@ protected:
 
   /**
    * Create npts default handles.
+   * If only one handle, create it at (0, 0, 0).
+   * If at least 2 handles, create them evenly spaced along a line
+   * between (-0.5, -0.5, -0.5) and (0.5, 0.5, 0.5).
    */
-  void CreateDefaultHandles(int npts);
+  void CreateDefaultHandles(int npts) override;
 
   /**
    * Recreate the handles according to a
@@ -98,7 +101,7 @@ protected:
    * It uses the current spline to recompute
    * the positions of the new handles.
    */
-  void ReconfigureHandles(int npts);
+  void ReconfigureHandles(int npts) override;
 
   // Specialized methods to access handles
   vtkActor* GetHandleActor(int index) override;
