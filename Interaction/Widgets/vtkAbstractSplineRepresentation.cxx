@@ -21,6 +21,7 @@
 #include "vtkParametricSpline.h"
 #include "vtkPolyDataMapper.h"
 #include "vtkRenderer.h"
+#include "vtkSetGet.h"
 
 //------------------------------------------------------------------------------
 vtkAbstractSplineRepresentation::vtkAbstractSplineRepresentation()
@@ -166,6 +167,7 @@ void vtkAbstractSplineRepresentation::SetNumberOfHandles(int npts)
     this->ClearHandles();
     this->NumberOfHandles = 0;
     this->CleanRepresentation();
+    // vtkWarningMacro(<< "there is not any point defined at the moment.");
     return;
   }
 

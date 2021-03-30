@@ -132,9 +132,19 @@ public:
   void AddCameraAt(vtkCamera* camera, int index);
 
   /**
+   * Add camera at the end of the path.
+   */
+  void AddCamera(vtkCamera* camera) { this->AddCameraAt(camera, this->GetNumberOfHandles()); }
+
+  /**
    * Remove a camera from the path.
    */
   void DeleteCameraAt(int index);
+
+  /**
+   * Delete all cameras.
+   */
+  void DeleteAllCameras() { this->SetNumberOfHandles(0); }
 
 protected:
   vtkCameraPathRepresentation();

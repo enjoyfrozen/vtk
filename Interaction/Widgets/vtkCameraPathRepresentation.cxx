@@ -445,6 +445,7 @@ void vtkCameraPathRepresentation::ClearHandles()
   }
   this->HandleActors.clear();
   this->CameraHandles.clear();
+  this->SetCurrentHandleIndex(-1);
 }
 
 //------------------------------------------------------------------------------
