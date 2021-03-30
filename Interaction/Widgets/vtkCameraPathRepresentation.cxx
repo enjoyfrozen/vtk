@@ -104,7 +104,7 @@ void vtkCameraPathRepresentation::WidgetInteraction(double e[2])
 //------------------------------------------------------------------------------
 void vtkCameraPathRepresentation::AddDefaultCamera(int index)
 {
-  if (index < 0 || index > this->NumberOfHandles)
+  if (index < 0 || index >= this->NumberOfHandles)
   {
     return;
   }
@@ -131,8 +131,8 @@ void vtkCameraPathRepresentation::AddDefaultCamera(int index)
       focalPoint[0] = position[0];
       focalPoint[1] = position[1];
       focalPoint[2] = position[2];
+      break;
     }
-    break;
     // interpolate position and focal point from the two surrounding cameras.
     default:
     {
@@ -144,10 +144,10 @@ void vtkCameraPathRepresentation::AddDefaultCamera(int index)
 
       // calculate the new focal point
       vtkVector3d focusPoint1(this->CameraHandles[firstCameraIndex]->GetDirection());
-      vtkVector3d focusPoint2(this->CameraHandles[index % this->NumberOfHandles]->GetDirection());
+      vtkVector3d focusPoint2(this->CameraHandles[index]->GetDirection());
       focalPoint = (focusPoint1 + focusPoint2) / vtkVector3d(2.0);
+      break;
     }
-    break;
   }
 
   cam->SetPosition(position.GetData());
@@ -586,16 +586,16 @@ void vtkCameraPathRepresentation::GetHandleFocalPoint(int handle, double xyz[3])
 {
   if (handle < 0 || handle >= this->NumberOfHandles)
   {
-    vtkErrorMacro(<< "vtkCurveRepresentation: handle index out of range.");
+    vtkErrorMacro(<< "handle index out of range.");
     return;
   }
   this->CameraHandles[handle]->GetDirection(xyz);
 }
 
 //------------------------------------------------------------------------------
-double* vtkCameraPathRepresentation::GetHandleFocalPoint(int handle)
+const double* vtkCameraPathRepresentation::GetHandleFocalPoint(int handle)
 {
-  static double focus[3] = { 0, 0, 0 };
+  static constexpr double focus[3] = { 0, 0, 0 };
   if (handle < 0 || handle >= this->NumberOfHandles)
   {
     vtkErrorMacro(<< "handle index out of range.");
@@ -616,9 +616,9 @@ void vtkCameraPathRepresentation::SetCurrentHandlePosition(double x, double y, d
 }
 
 //------------------------------------------------------------------------------
-double* vtkCameraPathRepresentation::GetCurrentHandlePosition()
+const double* vtkCameraPathRepresentation::GetCurrentHandlePosition()
 {
-  static double pos[3] = { 0, 0, 0 };
+  static constexpr double pos[3] = { 0, 0, 0 };
   if (this->CurrentHandleIndex < 0 || this->CurrentHandleIndex >= this->NumberOfHandles)
   {
     return pos;
@@ -637,9 +637,9 @@ void vtkCameraPathRepresentation::SetCurrentHandleFocalPoint(double x, double y,
 }
 
 //------------------------------------------------------------------------------
-double* vtkCameraPathRepresentation::GetCurrentHandleFocalPoint()
+const double* vtkCameraPathRepresentation::GetCurrentHandleFocalPoint()
 {
-  static double focus[3] = { 0, 0, 0 };
+  static constexpr double focus[3] = { 0, 0, 0 };
   if (this->CurrentHandleIndex < 0 || this->CurrentHandleIndex >= this->NumberOfHandles)
   {
     return focus;

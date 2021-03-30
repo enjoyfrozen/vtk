@@ -89,6 +89,9 @@ protected:
 
   /**
    * Create npts default handles.
+   * If only one handle, create it at (0, 0, 0).
+   * If at least 2 handles, create them evenly spaced along a line
+   * between (-0.5, -0.5, -0.5) and (0.5, 0.5, 0.5).
    */
   void CreateDefaultHandles(int npts) override;
 

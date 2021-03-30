@@ -218,7 +218,6 @@ void vtkSplineRepresentation::CreateDefaultHandles(int npts)
   }
   else
   {
-    // Create the handles along a straight line within the bounds of a unit cube
     double x0, y0, z0;
     x0 = y0 = z0 = -0.5;
     double x1, y1, z1;

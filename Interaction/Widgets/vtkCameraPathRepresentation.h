@@ -58,7 +58,7 @@ public:
   virtual void SetHandleFocalPoint(int handle, double x, double y, double z);
   virtual void SetHandleFocalPoint(int handle, double xyz[3]);
   virtual void GetHandleFocalPoint(int handle, double xyz[3]);
-  virtual double* GetHandleFocalPoint(int handle);
+  virtual const double* GetHandleFocalPoint(int handle);
   //@}
 
   //@{
@@ -66,7 +66,7 @@ public:
    * Set / Get the current handle position.
    */
   virtual void SetCurrentHandlePosition(double x, double y, double z);
-  virtual double* GetCurrentHandlePosition() VTK_SIZEHINT(3);
+  virtual const double* GetCurrentHandlePosition() VTK_SIZEHINT(3);
   //@}
 
   //@{
@@ -74,7 +74,7 @@ public:
    * Set / Get the current handle focal point.
    */
   virtual void SetCurrentHandleFocalPoint(double x, double y, double z);
-  virtual double* GetCurrentHandleFocalPoint() VTK_SIZEHINT(3);
+  virtual const double* GetCurrentHandleFocalPoint() VTK_SIZEHINT(3);
   //@}
 
   /**

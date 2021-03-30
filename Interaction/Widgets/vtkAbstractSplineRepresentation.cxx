@@ -204,23 +204,21 @@ int vtkAbstractSplineRepresentation::InsertHandleOnLine(double* pos)
   this->GetPolyData(spline);
   vtkCell* polyline = spline->GetCell(0);
 
-  //@{
   // unused returned values from EvaluatePosition below.
   double closest[3];
   double pcoords[3];
   double dist2;
-  int npts = polyline->GetNumberOfPoints();
+  const int npts = polyline->GetNumberOfPoints();
   double w[npts];
-  //@}
 
   int subId;
 
   auto points = this->GetHandlePositions();
-  auto pointsRange = vtk::DataArrayTupleRange<3>(points);
+  const auto pointsRange = vtk::DataArrayTupleRange<3>(points);
   int index = 0;
-  for (auto pointRef : pointsRange)
+  double point[3];
+  for (const auto& pointRef : pointsRange)
   {
-    double point[3];
     pointRef.GetTuple(point);
     // get subid for given point.
     polyline->EvaluatePosition(point, closest, subId, pcoords, dist2, w);
