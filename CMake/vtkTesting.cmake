@@ -1,4 +1,12 @@
-include(vtkExternalData)
+set(VTK_BUILD_TESTING "OFF"
+  CACHE STRING "Build module testing directories")
+set_property(CACHE VTK_BUILD_TESTING
+  PROPERTY
+    STRINGS "ON;OFF;WANT")
+set(BUILD_TESTING OFF)
+if (VTK_BUILD_TESTING)
+  set(BUILD_TESTING ON)
+endif ()
 
 if (NOT EXISTS "${VTK_SOURCE_DIR}/.ExternalData/README.rst")
   # This file is always present in version-controlled source trees
@@ -8,10 +16,14 @@ if (NOT EXISTS "${VTK_SOURCE_DIR}/.ExternalData/README.rst")
   # store configuration.
   set(VTK_BUILD_TESTING OFF)
 endif ()
-include(CTest)
-set_property(CACHE BUILD_TESTING
-  PROPERTY
-    TYPE INTERNAL)
+
+if (VTK_BUILD_TESTING)
+  include(vtkExternalData)
+  include(CTest)
+  set_property(CACHE BUILD_TESTING
+    PROPERTY
+      TYPE INTERNAL)
+endif ()
 
 # Provide an option for tests requiring "large" input data
 option(VTK_USE_LARGE_DATA "Enable tests requiring \"large\" data" OFF)
