@@ -13,6 +13,7 @@
 
 =========================================================================*/
 
+#include "vtkArrayDispatch.h"
 #include "vtkFloatArray.h"
 #include "vtkHDFReader.h"
 #include "vtkImageData.h"
@@ -28,9 +29,57 @@
 #include <iterator>
 #include <string>
 
-bool FuzzyEqual(float a, float b)
+struct CompareVectorWorker
 {
-  return vtkMathUtilities::NearlyEqual(a, b, 20 * std::numeric_limits<float>::epsilon());
+  CompareVectorWorker()
+    : ExitValue(EXIT_SUCCESS)
+  {
+  }
+  template <typename ArrayT, typename ExpectedArrayT>
+  void operator()(ArrayT* array, ExpectedArrayT* expectedArray)
+  {
+    const auto range = vtk::DataArrayTupleRange(array);
+    const auto expectedRange = vtk::DataArrayTupleRange(expectedArray);
+
+    const vtk::TupleIdType numTuples = range.size();
+    const vtk::ComponentIdType numComps = range.GetTupleSize();
+
+    std::cout << "Compare " << array->GetName() << std::endl;
+    for (vtk::TupleIdType tupleId = 0; tupleId < numTuples; ++tupleId)
+    {
+      const auto tuple = range[tupleId];
+      auto expectedTuple = expectedRange[tupleId];
+
+      for (vtk::ComponentIdType compId = 0; compId < numComps; ++compId)
+      {
+        if (tuple[compId] != expectedTuple[compId])
+        {
+          std::cerr << "Expecting " << expectedTuple[compId] << " for tuple/component: " << tupleId
+                    << "/" << compId << " but got: " << tuple[compId] << std::endl;
+          this->ExitValue = EXIT_FAILURE;
+        }
+      }
+    }
+    this->ExitValue = EXIT_SUCCESS;
+  }
+  int ExitValue;
+};
+
+int CompareVectors(vtkDataArray* array, vtkDataArray* expectedArray)
+{
+  using Dispatcher =
+    vtkArrayDispatch::Dispatch2ByValueType<vtkArrayDispatch::AllTypes, vtkArrayDispatch::AllTypes>;
+
+  // Create the functor:
+  CompareVectorWorker worker;
+
+  if (!Dispatcher::Execute(array, expectedArray, worker))
+  {
+    // If Execute(...) fails, the arrays don't match the constraints.
+    // Run the algorithm using the slower vtkDataArray double API instead:
+    worker(array, expectedArray);
+  }
+  return worker.ExitValue;
 }
 
 vtkSmartPointer<vtkImageData> ReadImageData(const std::string& fileName)
@@ -40,6 +89,89 @@ vtkSmartPointer<vtkImageData> ReadImageData(const std::string& fileName)
   reader->Update();
   vtkSmartPointer<vtkImageData> data = vtkImageData::SafeDownCast(reader->GetOutput());
   return data;
+}
+
+int TestDataSet(vtkDataSet* data, vtkDataSet* expectedData)
+{
+  if (data == nullptr || expectedData == nullptr)
+  {
+    std::cerr << "Error: Data not in the format expected." << std::endl;
+    return EXIT_FAILURE;
+  }
+
+  if (data->GetNumberOfPoints() != expectedData->GetNumberOfPoints())
+  {
+    std::cerr << "Expecting " << expectedData->GetNumberOfPoints()
+              << " points but got: " << data->GetNumberOfPoints() << std::endl;
+    return EXIT_FAILURE;
+  }
+
+  if (data->GetNumberOfCells() != expectedData->GetNumberOfCells())
+  {
+    std::cerr << "Expecting " << expectedData->GetNumberOfCells()
+              << " cells but got: " << data->GetNumberOfCells() << std::endl;
+    return EXIT_FAILURE;
+  }
+  for (int attributeType = 0; attributeType < vtkDataObject::FIELD; ++attributeType)
+  {
+    int numberRead = data->GetAttributesAsFieldData(attributeType)->GetNumberOfArrays();
+    int numberExpected = expectedData->GetAttributesAsFieldData(attributeType)->GetNumberOfArrays();
+    if (numberRead != numberExpected)
+    {
+      std::cerr << "Expecting " << numberExpected << " arrays of type " << attributeType
+                << " but got " << numberRead << std::endl;
+      return EXIT_FAILURE;
+    }
+    vtkFieldData* fieldData = data->GetAttributesAsFieldData(attributeType);
+    vtkFieldData* expectedFieldData = expectedData->GetAttributesAsFieldData(attributeType);
+    for (int i = 0; i < numberRead; ++i)
+    {
+      // the arrays are not in the same order because listing arrays in creation
+      // order fails. See vtkHDFReader::Implementation::GetArrayNames
+      vtkAbstractArray* expectedArray = expectedFieldData->GetAbstractArray(i);
+      vtkAbstractArray* array = fieldData->GetAbstractArray(expectedArray->GetName());
+      if (std::string(expectedArray->GetClassName()).compare(array->GetClassName()) != 0 &&
+        // this cases are OK
+        !(std::string(expectedArray->GetClassName()).compare("vtkLongLongArray") == 0 &&
+          std::string(array->GetClassName()).compare("vtkLongArray") == 0 &&
+          sizeof(long long) == sizeof(long)) &&
+        !(std::string(expectedArray->GetClassName()).compare("vtkUnsignedLongLongArray") == 0 &&
+          std::string(array->GetClassName()).compare("vtkUnsignedLongArray") == 0 &&
+          sizeof(unsigned long long) == sizeof(unsigned long)) &&
+        !(std::string(expectedArray->GetClassName()).compare("vtkIdTypeArray") == 0 &&
+          std::string(array->GetClassName()).compare("vtkLongArray") == 0 &&
+          sizeof(vtkIdType) == sizeof(long)))
+      {
+        std::cerr << "Different array type: " << array->GetClassName() << " from expected "
+                  << expectedArray->GetClassName() << " for array: " << expectedArray->GetName()
+                  << std::endl
+                  << "sizeof(long long): " << sizeof(long long) << std::endl
+                  << "sizeof(long): " << sizeof(long) << std::endl;
+        return EXIT_FAILURE;
+      }
+
+      if (array->GetNumberOfTuples() != expectedArray->GetNumberOfTuples() ||
+        array->GetNumberOfComponents() != expectedArray->GetNumberOfComponents())
+      {
+        std::cerr << "Array " << array->GetName() << " has a different number of "
+                  << "tuples/components: " << array->GetNumberOfTuples() << "/"
+                  << array->GetNumberOfComponents()
+                  << " than expected: " << expectedArray->GetNumberOfTuples() << "/"
+                  << expectedArray->GetNumberOfComponents() << std::endl;
+        return EXIT_FAILURE;
+      }
+      vtkDataArray* a = vtkDataArray::SafeDownCast(array);
+      vtkDataArray* ea = vtkDataArray::SafeDownCast(expectedArray);
+      if (a)
+      {
+        if (CompareVectors(a, ea))
+        {
+          return EXIT_FAILURE;
+        }
+      }
+    };
+  }
+  return EXIT_SUCCESS;
 }
 
 int TestImageData(const std::string& dataRoot)
@@ -56,42 +188,21 @@ int TestImageData(const std::string& dataRoot)
   reader->SetFileName(fileName.c_str());
   reader->Update();
   vtkImageData* data = vtkImageData::SafeDownCast(reader->GetOutput());
-  vtkSmartPointer<vtkImageData> original = ReadImageData(dataRoot + "/Data/mandelbrot.vti");
-  if (data == nullptr)
-  {
-    std::cerr << "Error: not vtkImageData" << std::endl;
-    return EXIT_FAILURE;
-  }
+  vtkSmartPointer<vtkImageData> expectedData = ReadImageData(dataRoot + "/Data/mandelbrot.vti");
+
   int* dims = data->GetDimensions();
-  if (dims[0] != 20 || dims[1] != 21 || dims[2] != 22)
+  int* edims = expectedData->GetDimensions();
+  if (dims[0] != edims[0] || dims[1] != edims[1] || dims[2] != edims[2])
   {
     std::cerr << "Error: vtkImageData with wrong dimensions: "
-              << "expecting [19, 20, 21] got  [" << dims[0] << ", " << dims[1] << ", " << dims[2]
-              << "]" << std::endl;
+              << "expecting "
+              << "[" << edims[0] << ", " << edims[1] << ", " << edims[2] << "]"
+              << " got "
+              << "[" << dims[0] << ", " << dims[1] << ", " << dims[2] << "]" << std::endl;
     return EXIT_FAILURE;
   }
-  vtkFloatArray* df = vtkFloatArray::SafeDownCast(data->GetPointData()->GetArray("Iterations"));
-  if (!df)
-  {
-    std::cerr << "Error: No Iterations array" << std::endl;
-    return EXIT_FAILURE;
-  }
-  float* iterationsData = df->GetPointer(0);
-  vtkFloatArray* of = vtkFloatArray::SafeDownCast(original->GetPointData()->GetArray("Iterations"));
-  float* iterationsExpected = of->GetPointer(0);
-  for (auto itE = iterationsExpected, itD = iterationsData; itE != iterationsExpected + 100;
-       ++itE, ++itD)
-  {
-    if (*itE != *itD)
-    {
-      std::cerr << "Error: Data in Iterations array does not match expected data: " << *itD << " "
-                << *itE << std::endl;
-      ;
 
-      return EXIT_FAILURE;
-    }
-  }
-  return EXIT_SUCCESS;
+  return TestDataSet(data, expectedData);
 }
 
 template <bool parallel>
@@ -127,51 +238,7 @@ int TestUnstructuredGrid(const std::string& dataRoot)
   oreader->Update();
   vtkUnstructuredGrid* expectedData =
     vtkUnstructuredGrid::SafeDownCast(oreader->GetOutputAsDataSet());
-
-  if (data->GetNumberOfPoints() != expectedData->GetNumberOfPoints())
-  {
-    std::cerr << "Expecting " << expectedData->GetNumberOfPoints()
-              << " points but got: " << data->GetNumberOfPoints() << std::endl;
-    return EXIT_FAILURE;
-  }
-
-  if (data->GetNumberOfCells() != expectedData->GetNumberOfCells())
-  {
-    std::cerr << "Expecting " << expectedData->GetNumberOfCells()
-              << " cells but got: " << data->GetNumberOfCells() << std::endl;
-    return EXIT_FAILURE;
-  }
-  for (int attributeType = 0; attributeType < reader->GetNumberOfAttributeTypes(); ++attributeType)
-  {
-    int numberRead = data->GetAttributesAsFieldData(attributeType)->GetNumberOfArrays();
-    int numberExpected = expectedData->GetAttributesAsFieldData(attributeType)->GetNumberOfArrays();
-    if (numberRead != numberExpected)
-    {
-      std::cerr << "Expecting " << numberExpected << " arrays of type " << attributeType
-                << " but got " << numberRead << std::endl;
-      return EXIT_FAILURE;
-    }
-    vtkFieldData* fieldData = data->GetAttributesAsFieldData(attributeType);
-    vtkFieldData* expectedFieldData = expectedData->GetAttributesAsFieldData(attributeType);
-    for (int i = 0; i < numberRead; ++i)
-    {
-      // the arrays are not in the same order because listing arrays in creation
-      // order fails. See vtkHDFReader::Implementation::GetArrayNames
-      vtkAbstractArray* expectedArray = expectedFieldData->GetAbstractArray(i);
-      vtkAbstractArray* array = fieldData->GetAbstractArray(expectedArray->GetName());
-      if (array->GetNumberOfTuples() != expectedArray->GetNumberOfTuples() ||
-        array->GetNumberOfComponents() != expectedArray->GetNumberOfComponents())
-      {
-        std::cerr << "Array " << array->GetName() << " has a different number of "
-                  << "tuples/components: " << array->GetNumberOfTuples() << "/"
-                  << array->GetNumberOfComponents()
-                  << " than expected: " << expectedArray->GetNumberOfTuples() << "/"
-                  << expectedArray->GetNumberOfComponents() << std::endl;
-        return EXIT_FAILURE;
-      }
-    };
-  }
-  return EXIT_SUCCESS;
+  return TestDataSet(data, expectedData);
 }
 
 int TestHDFReader(int argc, char* argv[])

@@ -258,10 +258,14 @@ void vtkHDFReader::Implementation::BuildTypeReaderMap()
     &vtkHDFReader::Implementation::NewArray<long>;
   this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_ULONG)] =
     &vtkHDFReader::Implementation::NewArray<unsigned long>;
-  this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_LLONG)] =
-    &vtkHDFReader::Implementation::NewArray<long long>;
-  this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_ULLONG)] =
-    &vtkHDFReader::Implementation::NewArray<unsigned long long>;
+  if (!this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_LLONG)])
+  {
+    // long is the same as long long.
+    this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_LLONG)] =
+      &vtkHDFReader::Implementation::NewArray<long long>;
+    this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_ULLONG)] =
+      &vtkHDFReader::Implementation::NewArray<unsigned long long>;
+  }
   this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_FLOAT)] =
     &vtkHDFReader::Implementation::NewArray<float>;
   this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_DOUBLE)] =
@@ -699,7 +703,7 @@ std::vector<vtkIdType> vtkHDFReader::Implementation::GetMetadata(const char* nam
   {
     return v;
   }
-  auto* ia = vtkAOSDataArrayTemplate<long long>::SafeDownCast(a);
+  auto* ia = vtkAOSDataArrayTemplate<long>::SafeDownCast(a);
   if (!ia)
   {
     vtkErrorWithObjectMacro(
