@@ -369,33 +369,14 @@ def append_data_arrays(data, dataset_type, piece, attribute_type_names,
                             field_dataset, anp,
                             all_field_datasets_size[attribute_type][i])
 
-
 # ------------------------------------------------------------------------------
-def main(args):
-    """
-    Converts a VTK XML file to a VTK HDF file.
-    """
-    parser = argparse.ArgumentParser(
-        description=("Read a vtx/pvtx file and convert it to a hdf "
-                     "file where x is i or u"))
-    parser.add_argument("input", help="Input XML VTK file.")
-    parser.add_argument("--output", help="Output HDF VTK file.")
-    args = parser.parse_args(args)
-
-    if not os.path.exists(args.input):
-        raise RuntimeError("File does not exits: {}".format(args.input))
-
-    input_file = os.path.basename(args.input)
+def convert(input_path, output_file):
+    input_file = os.path.basename(input_path)
     input_file_array = os.path.splitext(input_file)
-    input_file_noext = input_file_array[0]
-    if args.output:
-        output_file = args.output
-    else:
-        output_file = "{}.hdf".format(input_file_noext)
     input_file_ext = input_file_array[1]
 
     (dataset_type, parallel, reader) = setup_reader(input_file_ext)
-    reader.SetFileName(args.input)
+    reader.SetFileName(input_path)
 
     (number_of_pieces, data) = request_piece(reader, parallel, 0)
     with h5py.File(output_file, "w") as hdffile:
@@ -448,6 +429,30 @@ def main(args):
                 data, dataset_type, piece, attribute_type_names,
                 all_field_datasets, all_field_datasets_size,
                 extent, whole_extent, all_ndims)
+
+# ------------------------------------------------------------------------------
+def main(args):
+    """
+    Converts a VTK XML file to a VTK HDF file.
+    """
+    parser = argparse.ArgumentParser(
+        description=("Read a vtx/pvtx file and convert it to a hdf "
+                     "file where x is i or u"))
+    parser.add_argument("input", help="Input XML VTK file.")
+    parser.add_argument("--output", help="Output HDF VTK file.")
+    args = parser.parse_args(args)
+
+    if not os.path.exists(args.input):
+        raise RuntimeError("File does not exits: {}".format(args.input))
+
+    input_file = os.path.basename(args.input)
+    input_file_array = os.path.splitext(input_file)
+    input_file_noext = input_file_array[0]
+    if args.output:
+        output_file = args.output
+    else:
+        output_file = "{}.hdf".format(input_file_noext)
+    convert(args.input, output_file)
 
 
 # ------------------------------------------------------------------------------
