@@ -6,8 +6,8 @@
 // Do not include this file directly. It is only for use
 // from inside the ExodusII reader and its descendants.
 
-#include "vtkExodusIIReader.h"          // for vtkExodusIIReader
-#include "vtkObject.h"                  // for vtkExodusIIReader
+#include "vtkExodusIIReader.h" // for vtkExodusIIReader
+#include "vtkObject.h"
 #include "vtkStdString.h"               // for vtkStdString
 #include "vtkToolkits.h"                // make sure VTK_USE_PARALLEL is properly set
 #include "vtksys/RegularExpression.hxx" // for vtksys::RegularExpression
@@ -32,7 +32,7 @@ class VTKIOEXODUS_EXPORT vtkExodusIIReaderPrivate : public vtkObject
 {
 public:
   static vtkExodusIIReaderPrivate* New();
-  void PrintData(ostream& os, vtkIndent indent);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
   vtkTypeMacro(vtkExodusIIReaderPrivate, vtkObject);
   // virtual void Modified();
 
