@@ -28,6 +28,7 @@
 #ifndef vtkQtSQLDatabase_h
 #define vtkQtSQLDatabase_h
 
+#include "vtkDeprecation.h"           // For deprecation macros
 #include "vtkGUISupportQtSQLModule.h" // For export macro
 #include "vtkSQLDatabase.h"
 
@@ -145,11 +146,18 @@ public:
   //@}
 
   //@{
+  VTK_DEPRECATED_IN_9_1_0("Renamed to DbPort to avoid Windows macro collisions")
+  void SetPort(int port) { this->SetDbPort(port); }
+  VTK_DEPRECATED_IN_9_1_0("Renamed to DbPort to avoid Windows macro collisions")
+  int GetPort() { return this->GetDbPort(); }
+  //@}
+
+  //@{
   /**
    * The port used for connecting to the database.
    */
-  vtkSetClampMacro(Port, int, 0, 65535);
-  vtkGetMacro(Port, int);
+  vtkSetClampMacro(DbPort, int, 0, 65535);
+  vtkGetMacro(DbPort, int);
   //@}
 
   /**
@@ -172,7 +180,7 @@ protected:
   char* HostName;
   char* UserName;
   char* DatabaseName;
-  int Port;
+  int DbPort;
   char* ConnectOptions;
 
   QSqlDatabase QtDatabase;
