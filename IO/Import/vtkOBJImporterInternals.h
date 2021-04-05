@@ -14,13 +14,12 @@
 #define vtkOBJImporterInternals_h
 #ifndef __VTK_WRAP__
 
-#include "vtkActor.h"
-#include "vtkOBJImporter.h"
 #include "vtkPolyDataAlgorithm.h"
-#include <map>
-#include <memory>
-#include <string>
-#include <vector>
+#include <map>    // for std::map
+#include <string> // for std::string
+#include <vector> // for std::vector
+
+class vtkActor;
 
 struct VTKIOIMPORT_EXPORT vtkOBJImportedMaterial
 {

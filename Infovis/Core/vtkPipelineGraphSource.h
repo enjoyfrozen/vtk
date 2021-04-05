@@ -24,9 +24,9 @@
 
 #include "vtkDirectedGraphAlgorithm.h"
 #include "vtkInfovisCoreModule.h" // For export macro
-#include "vtkStdString.h"
 
 class vtkCollection;
+class vtkStdString;
 
 class VTKINFOVISCORE_EXPORT vtkPipelineGraphSource : public vtkDirectedGraphAlgorithm
 {
