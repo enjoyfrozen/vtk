@@ -56,7 +56,7 @@
 #ifndef vtkSurfaceLICInterface_h
 #define vtkSurfaceLICInterface_h
 
-#include "vtkOpenGLPolyDataMapper.h"
+#include "vtkObject.h"
 #include "vtkRenderingLICOpenGL2Module.h" // For export macro
 
 class vtkRenderWindow;
