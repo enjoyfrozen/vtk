@@ -122,4 +122,3 @@ private:
 
 #endif //__VTK_WRAP__
 #endif // vtkOpenGLVolumeLookupTable_h
-// VTK-HeaderTest-Exclude: vtkOpenGLVolumeLookupTable.h

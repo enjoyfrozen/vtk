@@ -599,4 +599,3 @@ private:
 };
 
 #endif
-// VTK-HeaderTest-Exclude: vtkSurfaceLICInterface.h

@@ -212,4 +212,3 @@ private:
 };
 
 #endif // vtkQtSQLDatabase_h
-// VTK-HeaderTest-Exclude: vtkQtSQLDatabase.h
