@@ -35,7 +35,8 @@ class vtkImageResize;
  *
  * \sa vtkVolumeProperty::SetTransferFunction2D
  */
-class vtkOpenGLVolumeTransferFunction2D : public vtkOpenGLVolumeLookupTable
+class VTKRENDERINGVOLUMEOPENGL2_EXPORT vtkOpenGLVolumeTransferFunction2D
+  : public vtkOpenGLVolumeLookupTable
 {
 public:
   vtkTypeMacro(vtkOpenGLVolumeTransferFunction2D, vtkOpenGLVolumeLookupTable);

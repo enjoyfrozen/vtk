@@ -25,7 +25,8 @@
 class vtkOpenGLRenderWindow;
 
 //----------------------------------------------------------------------------
-class vtkOpenGLVolumeOpacityTable : public vtkOpenGLVolumeLookupTable
+class VTKRENDERINGVOLUMEOPENGL2_EXPORT vtkOpenGLVolumeOpacityTable
+  : public vtkOpenGLVolumeLookupTable
 {
 public:
   vtkTypeMacro(vtkOpenGLVolumeOpacityTable, vtkOpenGLVolumeLookupTable);

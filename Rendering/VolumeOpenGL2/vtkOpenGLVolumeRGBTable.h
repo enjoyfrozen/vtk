@@ -23,7 +23,7 @@
 class vtkOpenGLRenderWindow;
 
 //----------------------------------------------------------------------------
-class vtkOpenGLVolumeRGBTable : public vtkOpenGLVolumeLookupTable
+class VTKRENDERINGVOLUMEOPENGL2_EXPORT vtkOpenGLVolumeRGBTable : public vtkOpenGLVolumeLookupTable
 {
 public:
   vtkTypeMacro(vtkOpenGLVolumeRGBTable, vtkOpenGLVolumeLookupTable);
