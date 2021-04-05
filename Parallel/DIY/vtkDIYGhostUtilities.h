@@ -61,11 +61,9 @@
 #include <vector> // For LinkMap
 
 // clang-format off
-#include "vtk_diy2.h"
+#include "vtk_diy2.h" // Third party include
 #include VTK_DIY2(diy/master.hpp)
 // clang-format on
-
-#include "vtkDataArray.h"
 
 class vtkDataArray;
 class vtkDataSet;
@@ -706,6 +704,6 @@ private:
   void operator=(const vtkDIYGhostUtilities&) = delete;
 };
 
-#include "vtkDIYGhostUtilities.txx"
+#include "vtkDIYGhostUtilities.txx" // for template implementations
 
 #endif
