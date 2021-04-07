@@ -16,6 +16,7 @@
 #include "vtkWrapPythonClass.h"
 #include "vtkWrapPythonConstant.h"
 #include "vtkWrapPythonEnum.h"
+#include "vtkWrapPythonMethod.h"
 #include "vtkWrapPythonMethodDef.h"
 #include "vtkWrapPythonTemplate.h"
 #include "vtkWrapPythonType.h"
@@ -63,10 +64,7 @@ const char* vtkWrapPython_GetSuperClass(ClassInfo* data, HierarchyInfo* hinfo)
       supername = cp;
     }
 
-    /* Add QVTKInteractor as the sole exception: It is derived
-     * from vtkObject but does not start with "vtk".  Given its
-     * name, it would be expected to be derived from QObject. */
-    if (vtkWrap_IsVTKObjectBaseType(hinfo, data->Name) || strcmp(data->Name, "QVTKInteractor") == 0)
+    if (vtkWrap_IsVTKObjectBaseType(hinfo, data->Name))
     {
       if (vtkWrap_IsClassWrapped(hinfo, supername) && vtkWrap_IsVTKObjectBaseType(hinfo, supername))
       {
@@ -135,10 +133,6 @@ const char* vtkWrapPython_HasWrappedSuperClass(
 
     /* the order of these conditions is important */
     if (entry->IsTypedef)
-    {
-      break;
-    }
-    else if (strncmp(entry->Name, "vtk", 3) != 0)
     {
       break;
     }
@@ -389,11 +383,20 @@ static void vtkWrapPython_GenerateObjectNew(
   {
     fprintf(fp,
       "static vtkObjectBase *Py%s_StaticNew()\n"
-      "{\n"
+      "{\n",
+      classname);
+
+    if (data->IsDeprecated)
+    {
+      vtkWrapPython_DeprecationWarning(
+        fp, "class", data->Name, data->DeprecatedReason, data->DeprecatedVersion);
+    }
+
+    fprintf(fp,
       "  return %s::New();\n"
       "}\n"
       "\n",
-      classname, data->Name);
+      data->Name);
   }
 
   fprintf(fp,
@@ -504,6 +507,10 @@ void vtkWrapPython_GenerateObjectType(FILE* fp, const char* module, const char* 
 {
   /* Generate the TypeObject */
   fprintf(fp,
+    "#ifdef VTK_PYTHON_NEEDS_DEPRECATION_WARNING_SUPPRESSION\n"
+    "#pragma GCC diagnostic ignored \"-Wdeprecated-declarations\"\n"
+    "#endif\n"
+    "\n"
     "static PyTypeObject Py%s_Type = {\n"
     "  PyVarObject_HEAD_INIT(&PyType_Type, 0)\n"
     "  PYTHON_PACKAGE_SCOPE \"%s.%s\", // tp_name\n"

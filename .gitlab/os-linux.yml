@@ -1,0 +1,240 @@
+# Linux-specific builder configurations and build commands
+
+## Base images
+
+.linux:
+    variables:
+        GIT_CLONE_PATH: $CI_BUILDS_DIR/gitlab-kitware-sciviz-ci
+        GIT_SUBMODULE_STRATEGY: none
+
+.fedora33:
+    extends: .linux
+    image: "kitware/vtk:ci-fedora33-20210219"
+
+.fedora_mpich_addon:
+    variables:
+        MODULES: mpi/mpich-x86_64
+        # Even with SHM size of 512m, SIGBUS still happened. Let's just use the
+        # network instead for reliability.
+        # https://wiki.mpich.org/mpich/index.php/Frequently_Asked_Questions#Q:_Why_MPI_Put_raises_SIGBUS_error_inside_docker.3F
+        MPIR_CVAR_NOLOCAL: 1
+
+.fedora_openmpi_addon:
+    variables:
+        # Needed to work with OpenMPI
+        OMPI_ALLOW_RUN_AS_ROOT: 1
+        OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
+        MODULES: mpi/openmpi-x86_64
+
+.fedora33_doxygen_mpi_python_qt_tbb:
+    extends:
+        - .fedora33
+        - .fedora_mpich_addon
+
+    variables:
+        CMAKE_CONFIGURATION: fedora33_doxygen_mpi_python_qt_tbb
+
+.fedora33_mpi_renderless:
+    extends:
+        - .fedora33
+        - .fedora_mpich_addon
+
+    variables:
+        CMAKE_CONFIGURATION: fedora33_mpi_renderless
+        VTK_INSTALL: 1
+
+.fedora33_mpi_renderless_ext_vtk:
+    extends:
+        - .fedora33
+        - .fedora_mpich_addon
+
+    variables:
+        CMAKE_CONFIGURATION: fedora33_mpi_renderless_ext_vtk
+
+.fedora33_java_mpi_qt_tbb:
+    extends:
+        - .fedora33
+        - .fedora_mpich_addon
+
+    variables:
+        CMAKE_CONFIGURATION: fedora33_java_mpi_qt_tbb
+
+.fedora33_mpi_python_qt_tbb:
+    extends:
+        - .fedora33
+        - .fedora_mpich_addon
+
+    variables:
+        CMAKE_CONFIGURATION: fedora33_mpi_python_qt_tbb
+        VTK_INSTALL: 1
+
+.fedora33_mpi_python_qt_tbb_ext_vtk:
+    extends:
+        - .fedora33
+        - .fedora_mpich_addon
+
+    variables:
+        CMAKE_CONFIGURATION: fedora33_mpi_python_qt_tbb_ext_vtk
+
+.fedora33_tidy:
+    extends:
+        - .fedora33
+        - .fedora_mpich_addon
+
+    variables:
+        CMAKE_CONFIGURATION: fedora33_mpi_python_qt_tbb_tidy
+        # Disabled for now. There are two deprecation warnings currently in the codebase:
+        #   - TBB deprecated header (#18107)
+        #   - a deprecated Python API call
+        # CTEST_NO_WARNINGS_ALLOWED: 1
+
+.fedora_memcheck:
+    variables:
+        CMAKE_BUILD_TYPE: RelWithDebInfo
+
+.fedora_asan_addon:
+    extends: .fedora_memcheck
+
+    variables:
+        CTEST_MEMORYCHECK_TYPE: AddressSanitizer
+        # Disable LeakSanitizer for now. It's catching all kinds of errors that
+        # need investigated or suppressed.
+        # CTEST_MEMORYCHECK_SANITIZER_OPTIONS: detect_leaks=0
+
+.fedora_tsan_addon:
+    extends: .fedora_memcheck
+
+    variables:
+        CTEST_MEMORYCHECK_TYPE: ThreadSanitizer
+
+.fedora_ubsan_addon:
+    extends: .fedora_memcheck
+
+    variables:
+        CTEST_MEMORYCHECK_TYPE: UndefinedBehaviorSanitizer
+
+.fedora33_asan:
+    extends:
+        - .fedora33
+        - .fedora_mpich_addon
+        - .fedora_asan_addon
+
+    variables:
+        CMAKE_CONFIGURATION: fedora33_asan_mpi_python_qt_tbb
+
+.fedora33_tsan:
+    extends:
+        - .fedora33
+        - .fedora_mpich_addon
+        - .fedora_tsan_addon
+
+    variables:
+        CMAKE_CONFIGURATION: fedora33_mpi_qt_tbb_tsan
+
+.fedora33_ubsan:
+    extends:
+        - .fedora33
+        - .fedora_mpich_addon
+        - .fedora_ubsan_addon
+
+    variables:
+        # MPI and Python are currently not part of this list because there are
+        # issues with tests using external executables when testing UBSan
+        # around ASan not being first in the initial library list.
+        CMAKE_CONFIGURATION: fedora33_qt_tbb_ubsan
+
+.linux_builder_tags:
+    tags:
+        - build
+        - docker
+        - linux
+
+.linux_qt_builder_tags:
+    tags:
+        - build
+        - docker
+        - linux
+        - linux-3.17
+
+.linux_tester_tags:
+    tags:
+        - docker
+        - linux
+        - x11
+
+.linux_qt_tester_tags:
+    tags:
+        - docker
+        - linux
+        - linux-3.17
+        - x11
+
+.linux_qt_tester_priv_tags:
+    tags:
+        - docker
+        - linux
+        - linux-3.17
+        - privileged
+        - x11
+
+.linux_tester_priv_tags:
+    tags:
+        - docker
+        - linux
+        - privileged
+        - x11
+
+## Linux-specific scripts
+
+.before_script_linux: &before_script_linux
+    - .gitlab/ci/cmake.sh
+    - .gitlab/ci/ninja.sh
+    - .gitlab/ci/sccache.sh
+    - export PATH=$PWD/.gitlab:$PWD/.gitlab/cmake/bin:$PATH
+    - cmake --version
+    - ninja --version
+    - "git submodule update --init --recursive || :"
+    - git submodule foreach --recursive cmake -P "$PWD/.gitlab/ci/fetch_submodule.cmake"
+    - git submodule sync --recursive
+    - git submodule update --init --recursive
+    # Load any modules that may be necessary.
+    - '[ -n "$MODULES" ] && . /etc/profile.d/modules.sh && module load $MODULES'
+
+.cmake_build_linux:
+    stage: build
+
+    script:
+        - *before_script_linux
+        - sccache --start-server
+        - sccache --show-stats
+        - $LAUNCHER ctest -VV -S .gitlab/ci/ctest_configure.cmake
+        - $LAUNCHER ctest -VV -S .gitlab/ci/ctest_build.cmake &> $GIT_CLONE_PATH/compile_output.log
+        - sccache --show-stats
+
+    interruptible: true
+
+.cmake_test_linux:
+    stage: test
+
+    script:
+        - *before_script_linux
+        - ctest -V --output-on-failure -S .gitlab/ci/ctest_test.cmake
+
+    interruptible: true
+
+.cmake_test_external_linux:
+    stage: test-ext
+
+    script:
+        - *before_script_linux
+        - ctest -V --output-on-failure -S .gitlab/ci/ctest_test_external.cmake
+
+    interruptible: true
+
+.cmake_memcheck_linux:
+    stage: test
+
+    script:
+        - *before_script_linux
+        - "$LAUNCHER ctest --output-on-failure -V -S .gitlab/ci/ctest_memcheck.cmake"
+    interruptible: true

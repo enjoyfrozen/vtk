@@ -105,8 +105,6 @@ set(classes
   vtkCollectionIterator
   vtkCommand
   vtkCommonInformationKeyManager
-  vtkConditionVariable
-  vtkCriticalSection
   vtkDataArray
   vtkDataArrayCollection
   vtkDataArrayCollectionIterator
@@ -159,7 +157,6 @@ set(classes
   vtkMersenneTwister
   vtkMinimalStandardRandomSequence
   vtkMultiThreader
-  vtkMutexLock
   vtkOStrStreamWrapper
   vtkOStreamWrapper
   vtkObject
@@ -179,7 +176,6 @@ set(classes
   vtkScalarsToColors
   vtkShortArray
   vtkSignedCharArray
-  vtkSimpleCriticalSection
   vtkSmartPointerBase
   vtkSortDataArray
   vtkStdString
@@ -201,7 +197,13 @@ set(classes
   vtkWeakPointerBase
   vtkWeakReference
   vtkWindow
-  vtkXMLFileOutputWindow)
+  vtkXMLFileOutputWindow
+
+  # These classes are deprecated.
+  vtkConditionVariable
+  vtkCriticalSection
+  vtkSimpleCriticalSection
+  vtkMutexLock)
 
 set(template_classes
   vtkAOSDataArrayTemplate
@@ -284,8 +286,7 @@ set(headers
   "${CMAKE_CURRENT_BINARY_DIR}/vtkVTK_USE_SCALED_SOA_ARRAYS.h")
 
 set(private_headers
-  "${CMAKE_CURRENT_BINARY_DIR}/vtkFloatingPointExceptionsConfigure.h"
-  vtkMathPrivate.hxx)
+  "${CMAKE_CURRENT_BINARY_DIR}/vtkFloatingPointExceptionsConfigure.h")
 
 set(templates
   vtkArrayIteratorTemplateImplicit.txx)
@@ -361,7 +362,8 @@ endif()
 include(TestBigEndian)
 test_big_endian(VTK_WORDS_BIGENDIAN)
 
-set(nowrap_headers)
+set(nowrap_headers
+  vtkMathPrivate.hxx)
 set(generated_headers
   vtkBuild.h
   vtkDebug.h
@@ -495,11 +497,6 @@ if (vtk_include_dirs)
     PRIVATE
     ${vtk_include_dirs})
 endif ()
-
-# We need to install the private headers so that consumers of VTK
-# can use private headers (vtkMathPrivate.hxx for instance)
-vtk_module_install_headers(
-    FILES   ${private_headers})
 
 vtk_module_link(VTK::CommonCore
   PUBLIC

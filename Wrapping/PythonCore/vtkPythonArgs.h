@@ -333,7 +333,9 @@ public:
   static bool GetValue(PyObject* o, const char*& a);
   bool GetValue(std::string& a);
   static bool GetValue(PyObject* o, std::string& a);
+  VTK_DEPRECATED_IN_9_1_0("Use bool GetValue(std::string& a)")
   bool GetValue(vtkUnicodeString& a);
+  VTK_DEPRECATED_IN_9_1_0("Use static bool GetValue(PyObject* o, std::string& a)")
   static bool GetValue(PyObject* o, vtkUnicodeString& a);
   //@}
 
@@ -379,6 +381,16 @@ public:
 
   //@{
   /**
+   * Get the next argument as file system path.
+   */
+  bool GetFilePath(const char*& a);
+  static bool GetFilePath(PyObject* o, const char*& a);
+  bool GetFilePath(std::string& a);
+  static bool GetFilePath(PyObject* o, std::string& a);
+  //@}
+
+  //@{
+  /**
    * Get the next argument as an array.
    */
   bool GetArray(float* a, size_t n);
@@ -396,6 +408,7 @@ public:
   bool GetArray(long long* a, size_t n);
   bool GetArray(unsigned long long* a, size_t n);
   bool GetArray(std::string* a, size_t n);
+  VTK_DEPRECATED_IN_9_1_0("Use bool GetArray(std::string* a, size_t n)")
   bool GetArray(vtkUnicodeString* a, size_t n);
   //@}
 
@@ -424,6 +437,7 @@ public:
    * Set the value of an argument that was passed by reference.
    */
   bool SetArgValue(int i, const std::string& a);
+  VTK_DEPRECATED_IN_9_1_0("Use bool SetArgValue(int i, const std::string& a)")
   bool SetArgValue(int i, const vtkUnicodeString& a);
   bool SetArgValue(int i, char a);
   bool SetArgValue(int i, float a);
@@ -538,6 +552,7 @@ public:
   static PyObject* BuildValue(const char* v, size_t l);
   static PyObject* BuildValue(const char* v);
   static PyObject* BuildValue(const std::string& v);
+  VTK_DEPRECATED_IN_9_1_0("Use static PyObject* BuildValue(const std::string& v)")
   static PyObject* BuildValue(const vtkUnicodeString& v);
   //@}
 
@@ -583,6 +598,7 @@ public:
   static PyObject* BuildTuple(const long long* a, size_t n);
   static PyObject* BuildTuple(const unsigned long long* a, size_t n);
   static PyObject* BuildTuple(const std::string* a, size_t n);
+  VTK_DEPRECATED_IN_9_1_0("Use static PyObject* BuildTuple(const std::string* a, size_t n)")
   static PyObject* BuildTuple(const vtkUnicodeString* a, size_t n);
   //@}
 

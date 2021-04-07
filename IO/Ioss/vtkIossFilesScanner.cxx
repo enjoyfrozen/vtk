@@ -26,10 +26,10 @@
 
 vtkStandardNewMacro(vtkIossFilesScanner);
 //----------------------------------------------------------------------------
-vtkIossFilesScanner::vtkIossFilesScanner() {}
+vtkIossFilesScanner::vtkIossFilesScanner() = default;
 
 //----------------------------------------------------------------------------
-vtkIossFilesScanner::~vtkIossFilesScanner() {}
+vtkIossFilesScanner::~vtkIossFilesScanner() = default;
 
 //----------------------------------------------------------------------------
 bool vtkIossFilesScanner::IsMetaFile(const std::string& filename)
@@ -42,7 +42,7 @@ bool vtkIossFilesScanner::IsMetaFile(const std::string& filename)
 
   std::string s;
   std::getline(metafile, s);
-  if (s.size() == 0 ||
+  if (s.empty() ||
     s.size() != static_cast<size_t>(std::count_if(s.begin(), s.end(), [](unsigned char c) {
       return std::isprint(c);
     })))
@@ -87,7 +87,7 @@ std::set<std::string> vtkIossFilesScanner::GetFilesFromMetaFile(const std::strin
 std::set<std::string> vtkIossFilesScanner::GetRelatedFiles(
   const std::set<std::string>& originalSet, const std::vector<std::string>& directoryListing)
 {
-  if (originalSet.size() == 0)
+  if (originalSet.empty())
   {
     return originalSet;
   }
@@ -155,6 +155,57 @@ std::set<std::string> vtkIossFilesScanner::GetRelatedFiles(
 
   return result;
 }
+
+//----------------------------------------------------------------------------
+bool vtkIossFilesScanner::DoTestFilePatternMatching()
+{
+  auto verify = [](const std::set<std::string>& original,
+                  const std::vector<std::string>& dir_listing,
+                  const std::set<std::string>& expected) {
+    return (vtkIossFilesScanner::GetRelatedFiles(original, dir_listing) == expected);
+  };
+
+  if (!verify({ "mysimoutput.e-s.000" },
+        { "mysimoutput.e-s.000", "mysimoutput.e-s.001", "mysimoutput.e-s.002" },
+        { "mysimoutput.e-s.000", "mysimoutput.e-s.001", "mysimoutput.e-s.002" }))
+  {
+    return false;
+  }
+
+  if (!verify({ "/tmp/mysimoutput.e-s.000" },
+        { "mysimoutput.e-s.000", "mysimoutput.e-s.001", "mysimoutput.e-s.002" },
+        { "/tmp/mysimoutput.e-s.000", "/tmp/mysimoutput.e-s.001", "/tmp/mysimoutput.e-s.002" }))
+  {
+    return false;
+  }
+
+  if (!verify({ "C:\\Directory\\mysimoutput.e-s.000" },
+        { "mysimoutput.e-s.000", "mysimoutput.e-s.001", "mysimoutput.e-s.002" },
+        { "C:/Directory/mysimoutput.e-s.000", "C:/Directory/mysimoutput.e-s.001",
+          "C:/Directory/mysimoutput.e-s.002" }))
+  {
+    return false;
+  }
+
+  if (!verify({ "/tmp space/mysimoutput.e-s.000" },
+        { "mysimoutput.e-s.000", "mysimoutput.e-s.001", "mysimoutput.e-s.002" },
+        { "/tmp space/mysimoutput.e-s.000", "/tmp space/mysimoutput.e-s.001",
+          "/tmp space/mysimoutput.e-s.002" }))
+  {
+    return false;
+  }
+
+  if (!verify({ "C:\\Directory space\\mysimoutput.e-s.000" },
+        { "mysimoutput.e-s.000", "mysimoutput.e-s.001", "mysimoutput.e-s.002" },
+        { "C:/Directory space/mysimoutput.e-s.000", "C:/Directory space/mysimoutput.e-s.001",
+          "C:/Directory space/mysimoutput.e-s.002" }))
+  {
+    return false;
+  }
+
+  return true;
+}
+
 //----------------------------------------------------------------------------
 void vtkIossFilesScanner::PrintSelf(ostream& os, vtkIndent indent)
 {

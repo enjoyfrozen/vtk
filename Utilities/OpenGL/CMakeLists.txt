@@ -65,6 +65,15 @@ else ()
 
   cmake_policy(POP)
 
+  if ("OpenGL::OpenGL" IN_LIST opengl_targets AND
+      NOT TARGET OpenGL::OpenGL AND
+      "OpenGL::GLX" IN_LIST opengl_targets AND
+      TARGET OpenGL::GLX)
+    message(FATAL_ERROR
+      "It appears as though OpenGL was found, but a GLVND-based install was "
+      "expected and it was not found. Please install GLVND libraries.")
+  endif ()
+
   if (APPLE)
     vtk_module_definitions(VTK::opengl
       INTERFACE

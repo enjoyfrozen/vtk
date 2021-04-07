@@ -150,6 +150,11 @@ public:
   static vtkDataObjectTree* GetData(vtkInformationVector* v, int i = 0);
   //@}
 
+  /**
+   * Overridden to return `VTK_DATA_OBJECT_TREE`.
+   */
+  int GetDataObjectType() override { return VTK_DATA_OBJECT_TREE; }
+
 protected:
   vtkDataObjectTree();
   ~vtkDataObjectTree() override;
@@ -197,6 +202,14 @@ protected:
    * Returns 1 is present, 0 otherwise.
    */
   int HasChildMetaData(unsigned int index);
+
+  /**
+   * When copying structure from another vtkDataObjectTree, this method gets
+   * called for create a new non-leaf for the `other` node. Subclasses can
+   * override this to create a different type of vtkDataObjectTree subclass, if
+   * appropriate. Default implementation, simply calls `NewInstance` on other;
+   */
+  virtual vtkDataObjectTree* CreateForCopyStructure(vtkDataObjectTree* other);
 
   // The internal datastructure. Subclasses need not access this directly.
   vtkDataObjectTreeInternals* Internals;

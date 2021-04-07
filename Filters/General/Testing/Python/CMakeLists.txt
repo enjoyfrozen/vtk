@@ -21,10 +21,13 @@ vtk_add_test_python(
   TestRemovePolyData.py
   TestRemovePolyData2.py
   TestRemovePolyData3.py
+  TestSparseCellLocator.py
   TestSplineFilter.py
   TestStaticCellLocator.py
   TestStaticCellLocatorPlaneIntersection.py
   TestSynchronizeTimeFilter.py,NO_OUTPUT,NO_VALID
+  TestWarpScalar.py,NO_VALID
+  TestWarpVector.py,NO_VALID
   WarpToImage.py
   blankGrid.py
   clipComb.py

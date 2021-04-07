@@ -353,7 +353,7 @@ void WriteDataArrayFallback(ValueType*, vtkDataArray* array, WriteBinaryDataBloc
 
 //------------------------------------------------------------------------------
 // Specialize for string arrays:
-static int vtkXMLWriterWriteBinaryDataBlocks(vtkXMLWriter* writer,
+int vtkXMLWriterWriteBinaryDataBlocks(vtkXMLWriter* writer,
   vtkArrayIteratorTemplate<vtkStdString>* iter, int wordType, size_t outWordSize, size_t numStrings,
   int)
 {
@@ -525,7 +525,7 @@ void vtkXMLWriter::SetCompressorType(int compressorType)
   }
   else if (compressorType == ZLIB)
   {
-    if (this->Compressor && !this->Compressor->IsTypeOf("vtkZLibDataCompressor"))
+    if (this->Compressor)
     {
       this->Compressor->Delete();
     }
@@ -535,7 +535,7 @@ void vtkXMLWriter::SetCompressorType(int compressorType)
   }
   else if (compressorType == LZ4)
   {
-    if (this->Compressor && !this->Compressor->IsTypeOf("vtkLZ4DataCompressor"))
+    if (this->Compressor)
     {
       this->Compressor->Delete();
     }
@@ -545,7 +545,7 @@ void vtkXMLWriter::SetCompressorType(int compressorType)
   }
   else if (compressorType == LZMA)
   {
-    if (this->Compressor && !this->Compressor->IsTypeOf("vtkLZMADataCompressor"))
+    if (this->Compressor)
     {
       this->Compressor->Delete();
     }

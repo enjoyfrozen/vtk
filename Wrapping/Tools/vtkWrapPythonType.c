@@ -175,8 +175,7 @@ static void vtkWrapPython_PrintProtocol(
     {
       if (func->NumberOfParameters == 2 &&
         (func->Parameters[0]->Type & VTK_PARSE_UNQUALIFIED_TYPE) == VTK_PARSE_OSTREAM_REF &&
-        (func->Parameters[1]->Type & VTK_PARSE_BASE_TYPE) == VTK_PARSE_OBJECT &&
-        (func->Parameters[1]->Type & VTK_PARSE_POINTER_MASK) == 0 &&
+        vtkWrap_IsSpecialObject(func->Parameters[1]) &&
         !vtkWrap_IsNonConstRef(func->Parameters[1]) &&
         strcmp(func->Parameters[1]->Class, data->Name) == 0)
       {
@@ -224,9 +223,7 @@ static void vtkWrapPython_RichCompareProtocol(
     {
       /* member function */
       func = data->Functions[i];
-      if (func->NumberOfParameters != 1 ||
-        (func->Parameters[0]->Type & VTK_PARSE_BASE_TYPE) != VTK_PARSE_OBJECT ||
-        (func->Parameters[0]->Type & VTK_PARSE_POINTER_MASK) != 0 ||
+      if (func->NumberOfParameters != 1 || !vtkWrap_IsSpecialObject(func->Parameters[0]) ||
         strcmp(func->Parameters[0]->Class, data->Name) != 0)
       {
         continue;
@@ -236,12 +233,9 @@ static void vtkWrapPython_RichCompareProtocol(
     {
       /* non-member function: both args must be of our type */
       func = finfo->Contents->Functions[i - data->NumberOfFunctions];
-      if (func->NumberOfParameters != 2 ||
-        (func->Parameters[0]->Type & VTK_PARSE_BASE_TYPE) != VTK_PARSE_OBJECT ||
-        (func->Parameters[0]->Type & VTK_PARSE_POINTER_MASK) != 0 ||
+      if (func->NumberOfParameters != 2 || !vtkWrap_IsSpecialObject(func->Parameters[0]) ||
         strcmp(func->Parameters[0]->Class, data->Name) != 0 ||
-        (func->Parameters[1]->Type & VTK_PARSE_BASE_TYPE) != VTK_PARSE_OBJECT ||
-        (func->Parameters[1]->Type & VTK_PARSE_POINTER_MASK) != 0 ||
+        !vtkWrap_IsSpecialObject(func->Parameters[1]) ||
         strcmp(func->Parameters[1]->Class, data->Name) != 0)
       {
         continue;
@@ -512,10 +506,10 @@ static void vtkWrapPython_SequenceProtocol(
     fprintf(fp,
       "static PySequenceMethods Py%s_AsSequence = {\n"
       "  Py%s_SequenceSize, // sq_length\n"
-      "  0, // sq_concat\n"
-      "  0, // sq_repeat\n"
+      "  nullptr, // sq_concat\n"
+      "  nullptr, // sq_repeat\n"
       "  Py%s_SequenceItem, // sq_item\n"
-      "  0, // sq_slice\n",
+      "  nullptr, // sq_slice\n",
       classname, classname, classname);
 
     if (setItemFunc)
@@ -524,14 +518,14 @@ static void vtkWrapPython_SequenceProtocol(
     }
     else
     {
-      fprintf(fp, "  0, // sq_ass_item\n");
+      fprintf(fp, "  nullptr, // sq_ass_item\n");
     }
 
     fprintf(fp,
-      "  0, // sq_ass_slice\n"
-      "  0, // sq_contains\n"
-      "  0, // sq_inplace_concat\n"
-      "  0, // sq_inplace_repeat\n"
+      "  nullptr, // sq_ass_slice\n"
+      "  nullptr, // sq_contains\n"
+      "  nullptr, // sq_inplace_concat\n"
+      "  nullptr, // sq_inplace_repeat\n"
       "};\n\n");
   }
 }
@@ -676,6 +670,10 @@ void vtkWrapPython_GenerateSpecialType(FILE* fp, const char* module, const char*
 
   /* Generate the TypeObject */
   fprintf(fp,
+    "#ifdef VTK_PYTHON_NEEDS_DEPRECATION_WARNING_SUPPRESSION\n"
+    "#pragma GCC diagnostic ignored \"-Wdeprecated-declarations\"\n"
+    "#endif\n"
+    "\n"
     "static PyTypeObject Py%s_Type = {\n"
     "  PyVarObject_HEAD_INIT(&PyType_Type, 0)\n"
     "  PYTHON_PACKAGE_SCOPE \"%s.%s\", // tp_name\n"
@@ -798,14 +796,19 @@ void vtkWrapPython_GenerateSpecialType(FILE* fp, const char* module, const char*
       "  {\n"
       "    return new %s(*static_cast<const %s*>(obj));\n"
       "  }\n"
-      "  return 0;\n"
+      "  return nullptr;\n"
       "}\n"
       "\n",
       classname, data->Name, data->Name);
   }
 
   /* export New method for use by subclasses */
-  fprintf(fp, "extern \"C\" { PyObject *Py%s_TypeNew(); }\n\n", classname);
+  fprintf(fp,
+    "#ifndef DECLARED_Py%s_TypeNew\n"
+    "extern \"C\" { PyObject *Py%s_TypeNew(); }\n"
+    "#define DECLARED_Py%s_TypeNew\n"
+    "#endif\n\n",
+    classname, classname, classname);
 
   /* import New method of the superclass */
   if (has_superclass && !is_external)

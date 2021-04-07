@@ -82,7 +82,7 @@ void vtkASCIITextCodec::ToUnicode(istream& InputStream, vtkTextCodec::OutputIter
   }
 }
 
-vtkUnicodeString::value_type vtkASCIITextCodec::NextUnicode(istream& InputStream)
+vtkTypeUInt32 vtkASCIITextCodec::NextUTF32CodePoint(istream& InputStream)
 {
   vtkTypeUInt32 CodePoint = InputStream.get();
 
@@ -97,10 +97,7 @@ vtkUnicodeString::value_type vtkASCIITextCodec::NextUnicode(istream& InputStream
     return 0;
 }
 
-vtkASCIITextCodec::vtkASCIITextCodec()
-  : vtkTextCodec()
-{
-}
+vtkASCIITextCodec::vtkASCIITextCodec() = default;
 
 vtkASCIITextCodec::~vtkASCIITextCodec() = default;
 

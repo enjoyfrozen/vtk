@@ -80,6 +80,7 @@ set(vtk_cmake_module_files
   FindTBB.cmake
   FindTHEORA.cmake
   Findutf8cpp.cmake
+  FindCGNS.cmake
 
   vtkCMakeBackports.cmake
   vtkDetectLibraryType.cmake
@@ -113,13 +114,13 @@ set(vtk_cmake_patch_files
   patches/3.18/FindPython/Support.cmake
   patches/3.18/FindPython2.cmake
   patches/3.18/FindPython3.cmake
-  patches/99/FindGDAL.cmake
-  patches/99/FindHDF5.cmake
-  patches/99/FindJPEG.cmake
-  patches/99/FindLibArchive.cmake
-  patches/99/FindOpenGL.cmake
-  patches/99/FindSQLite3.cmake
-  patches/99/FindX11.cmake)
+  patches/3.19/FindJPEG.cmake
+  patches/3.19/FindLibArchive.cmake
+  patches/3.19/FindSQLite3.cmake
+  patches/3.19/FindX11.cmake
+  patches/3.20/FindGDAL.cmake
+  patches/3.21/FindHDF5.cmake
+  patches/99/FindOpenGL.cmake)
 
 set(vtk_cmake_files_to_install)
 foreach (vtk_cmake_module_file IN LISTS vtk_cmake_module_files vtk_cmake_patch_files)
@@ -133,10 +134,6 @@ endforeach ()
 
 include(vtkInstallCMakePackageHelpers)
 
-if (NOT DEFINED VTK_RELOCATABLE_INSTALL)
-  option(VTK_RELOCATABLE_INSTALL "Do not embed hard-coded paths into the install" ON)
-  mark_as_advanced(VTK_RELOCATABLE_INSTALL)
-endif ()
 if (NOT VTK_RELOCATABLE_INSTALL)
   list(APPEND vtk_cmake_files_to_install
     "${vtk_cmake_build_dir}/vtk-find-package-helpers.cmake")
