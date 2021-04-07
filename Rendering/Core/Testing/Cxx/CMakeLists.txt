@@ -64,6 +64,7 @@ vtk_add_test_cxx(vtkRenderingCoreCxxTests tests
   TestPointSelection.cxx,NO_VALID
   TestPointSelectionWithCellData.cxx,NO_VALID
   TestPolygonSelection.cxx
+  TestResetCameraScreenSpace.cxx
   TestResetCameraVerticalAspectRatio.cxx
   TestResetCameraVerticalAspectRatioParallel.cxx
   TestSelectVisiblePoints.cxx,NO_VALID
@@ -89,6 +90,7 @@ vtk_add_test_cxx(vtkRenderingCoreCxxTests tests
   TestTStripsTCoords.cxx
   TestWindowToImageFilter.cxx
   TestResizingWindowToImageFilter.cxx
+  TestTextureWrap.cxx
   # TestViewDependentErrorMetric.cxx # Loads of extra deps - move?
   # TestHierarchicalBoxPipeline.cxx  # legacy code
   )

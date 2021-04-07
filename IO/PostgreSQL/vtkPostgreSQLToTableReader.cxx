@@ -1,7 +1,7 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    vtkPostgreSQLToTableReader.h
+  Module:    vtkPostgreSQLToTableReader.cxx
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.
@@ -30,10 +30,10 @@
 vtkStandardNewMacro(vtkPostgreSQLToTableReader);
 
 //------------------------------------------------------------------------------
-vtkPostgreSQLToTableReader::vtkPostgreSQLToTableReader() {}
+vtkPostgreSQLToTableReader::vtkPostgreSQLToTableReader() = default;
 
 //------------------------------------------------------------------------------
-vtkPostgreSQLToTableReader::~vtkPostgreSQLToTableReader() {}
+vtkPostgreSQLToTableReader::~vtkPostgreSQLToTableReader() = default;
 
 //------------------------------------------------------------------------------
 int vtkPostgreSQLToTableReader::RequestData(
@@ -50,7 +50,7 @@ int vtkPostgreSQLToTableReader::RequestData(
     vtkErrorMacro(<< "Wrong type of database for this reader");
     return 1;
   }
-  if (this->TableName == "")
+  if (this->TableName.empty())
   {
     vtkErrorMacro(<< "No table selected");
     return 1;

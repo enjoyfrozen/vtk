@@ -112,6 +112,11 @@ bool QVTKInteractorAdapter::ProcessEvent(QEvent* e, vtkRenderWindowInteractor* i
     return true;
   }
 
+  if (t == QEvent::HoverLeave)
+  {
+    iren->InvokeEvent(vtkCommand::HoverEvent, nullptr);
+  }
+
   // the following events only happen if the interactor is enabled
   if (!iren->GetEnabled())
     return false;
@@ -134,6 +139,7 @@ bool QVTKInteractorAdapter::ProcessEvent(QEvent* e, vtkRenderWindowInteractor* i
     {
       iren->InvokeEvent(vtkCommand::MouseMoveEvent, e2);
     }
+
     else if (t == QEvent::MouseButtonPress)
     {
       switch (e2->button())
@@ -142,7 +148,7 @@ bool QVTKInteractorAdapter::ProcessEvent(QEvent* e, vtkRenderWindowInteractor* i
           iren->InvokeEvent(vtkCommand::LeftButtonPressEvent, e2);
           break;
 
-        case Qt::MidButton:
+        case Qt::MiddleButton:
           iren->InvokeEvent(vtkCommand::MiddleButtonPressEvent, e2);
           break;
 
@@ -162,7 +168,7 @@ bool QVTKInteractorAdapter::ProcessEvent(QEvent* e, vtkRenderWindowInteractor* i
           iren->InvokeEvent(vtkCommand::LeftButtonDoubleClickEvent, e2);
           break;
 
-        case Qt::MidButton:
+        case Qt::MiddleButton:
           iren->InvokeEvent(vtkCommand::MiddleButtonDoubleClickEvent, e2);
           break;
 
@@ -182,7 +188,7 @@ bool QVTKInteractorAdapter::ProcessEvent(QEvent* e, vtkRenderWindowInteractor* i
           iren->InvokeEvent(vtkCommand::LeftButtonReleaseEvent, e2);
           break;
 
-        case Qt::MidButton:
+        case Qt::MiddleButton:
           iren->InvokeEvent(vtkCommand::MiddleButtonReleaseEvent, e2);
           break;
 

@@ -1,7 +1,7 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    vtkAxisFollower.cxx
+  Module:    vtkAxisFollower.h
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.
@@ -132,10 +132,14 @@ public:
    * property, texture map and then mapper. If a property hasn't been
    * assigned, then the actor will create one automatically.
    */
-  int RenderOpaqueGeometry(vtkViewport* viewport) override;
-  int RenderTranslucentPolygonalGeometry(vtkViewport* viewport) override;
   void Render(vtkRenderer* ren) override;
   //@}
+
+  /**
+   * Overriden to disable this function, and use ComputeTransformMatrix instead, as
+   * we need a renderer to compute the transform matrix
+   */
+  virtual void ComputeMatrix() override{};
 
   /**
    * Generate the matrix based on ivars. This method overloads its superclasses

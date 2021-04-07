@@ -26,6 +26,7 @@
 #ifndef vtkParseData_h
 #define vtkParseData_h
 
+#include "vtkParseAttributes.h"
 #include "vtkParseString.h"
 #include "vtkParseType.h"
 #include "vtkWrappingToolsModule.h"
@@ -152,6 +153,7 @@ struct _ValueInfo
   const char* Name;
   const char* Comment;
   const char* Value;       /* for vars or default parameters values */
+  unsigned int Attributes; /* as defined in vtkParseAttributes.h */
   unsigned int Type;       /* as defined in vtkParseType.h   */
   const char* Class;       /* classname for type */
   int Count;               /* total number of values, if known */
@@ -181,14 +183,15 @@ struct _FunctionInfo
   ValueInfo** Parameters;
   ValueInfo* ReturnValue; /* NULL for constructors and destructors */
   int NumberOfPreconds;
-  const char** Preconds;   /* preconditions */
-  const char* Macro;       /* the macro that defined this function */
-  const char* SizeHint;    /* hint the size e.g. for operator[] */
-  const char* Deprecation; /* if not NULL, function is deprecated */
+  const char** Preconds;         /* preconditions */
+  const char* Macro;             /* the macro that defined this function */
+  const char* SizeHint;          /* hint the size e.g. for operator[] */
+  const char* DeprecatedReason;  /* reason for deprecation, or NULL */
+  const char* DeprecatedVersion; /* version of deprecation, or NULL */
   int IsOperator;
   int IsVariadic;
-  int IsLegacy;      /* marked as a legacy method or function */
   int IsExcluded;    /* marked as excluded from wrapping */
+  int IsDeprecated;  /* method or function has been deprecated */
   int IsStatic;      /* methods only */
   int IsVirtual;     /* methods only */
   int IsPureVirtual; /* methods only */
@@ -209,6 +212,7 @@ struct _FunctionInfo
   int ArrayFailure;                 /* legacy */
   int IsPublic;                     /* legacy */
   int IsProtected;                  /* legacy */
+  int IsLegacy;                     /* legacy */
 #endif
 };
 
@@ -256,11 +260,13 @@ typedef struct _ClassInfo
   struct _ClassInfo** Namespaces;
   int NumberOfComments;
   CommentInfo** Comments;
-  const char* Deprecation;
+  const char* DeprecatedReason;
+  const char* DeprecatedVersion;
   int IsAbstract;
   int IsFinal;
   int HasDelete;
   int IsExcluded;
+  int IsDeprecated;
 } ClassInfo;
 
 /**

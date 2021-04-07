@@ -38,12 +38,13 @@ build configuration.
 Required:
 
   * [CMake][cmake]
-    - Version 3.8 or newer, however, the latest version is always recommended
+    - Version 3.12 or newer, however, the latest version is always recommended
   * Supported compiler
     - GCC 4.8 or newer
-    - Clang 4 or newer
-    - Xcode 9 or newer
-    - Visual Studio 2015 or newer
+    - Clang 3.3 or newer
+    - Apple Clang 5.0 (from Xcode 5.0) or newer
+    - Microsoft Visual Studio 2015 or newer
+    - Intel 14.0 or newer
 
 Optional dependencies:
 
@@ -151,9 +152,9 @@ to modify include:
 
   * `BUILD_SHARED_LIBS` (default `ON`): If set, shared libraries will be
     built. This is usually what is wanted.
-  * `VTK_USE_CUDA` (default `OFF`): Whether CUDA support will be available or
+  * `VTK_USE_CUDA` (default `OFF`): Whether [CUDA][cuda] support will be available or
     not.
-  * `VTK_USE_MPI` (default `OFF`): Whether MPI support will be available or
+  * `VTK_USE_MPI` (default `OFF`): Whether [MPI][mpi] support will be available or
     not.
   * `VTK_WRAP_PYTHON` (default `OFF`; requires `VTK_ENABLE_WRAPPING`): Whether
     Python support will be available or not.
@@ -170,13 +171,13 @@ Less common, but variables which may be of interest to some:
     values are `OFF` (no testing), `WANT` (enable tests as possible), and `ON`
     (enable all tests; may error out if features otherwise disabled are
     required by test code).
-  * `VTK_ENABLE_KITS` (default `OFF`): requires CMake 3.12+): Compile VTK into
+  * `VTK_ENABLE_KITS` (default `OFF`): Compile VTK into
     a smaller set of libraries. Can be useful on platforms where VTK takes a
     long time to launch due to expensive disk access.
   * `VTK_ENABLE_WRAPPING` (default `ON`): Whether any wrapping support will be
     available or not.
-  * `VTK_WRAP_JAVA` (default `OFF`; requires `VTK_ENABLE_WRAPPING` and CMake >=
-    3.12): Whether Java support will be available or not.
+  * `VTK_WRAP_JAVA` (default `OFF`; requires `VTK_ENABLE_WRAPPING`):
+    Whether Java support will be available or not.
 
 More advanced options:
 
@@ -206,6 +207,17 @@ More advanced options:
     build machine with absolute paths, but finding dependencies in
     non-standard locations may require work without passing extra information
     when consuming VTK.
+  * `VTK_UNIFIED_INSTALL_TREE` (default `OFF`): If set, the install tree is
+    stipulated to be a unified install tree of VTK and all of its dependencies;
+    a unified tree usually simplifies things including, but not limited to,
+    the Python module paths, library search paths, and plugin searching. This
+    option is irrelevant if a relocatable install is requested as such setups
+    assume that dependencies are set up either via a unified tree or some other
+    mechanism such as modules).
+  * `VTK_ENABLE_SANITIZER` (default `OFF`): Whether to enable sanitization of
+    the VTK codebase or not.
+  * `VTK_SANITIZER` (default `address`; requires `VTK_ENABLE_SANITIZER`): The
+    sanitizer to use.
   * `VTK_USE_LARGE_DATA` (default `OFF`; requires `VTK_BUILD_TESTING`):
     Whether to enable tests which use "large" data or not (usually used to
     reduce the amount of data downloading required for the test suite).
@@ -220,6 +232,11 @@ More advanced options:
   * `VTK_SERIAL_TESTS_USE_MPIEXEC` (default `OFF`): Used on HPC to run
     serial tests on compute nodes. If set, it prefixes serial tests with
     "${MPIEXEC_EXECUTABLE}" "${MPIEXEC_NUMPROC_FLAG}" "1" ${MPIEXEC_PREFLAGS}
+  * `VTK_WINDOWS_PYTHON_DEBUGGABLE` (default `OFF`): Set to `ON` if using a
+    debug build of Python.
+  * `VTK_DLL_PATHS` (default `""`): If set, these paths will be added via
+    Python 3.8's `os.add_dll_directory` mechanism in order to find dependent
+    DLLs when loading VTK's Python modules.
 
 The VTK module system provides a number of variables to control modules which
 are not otherwise controlled by the other options provided.
@@ -318,6 +335,7 @@ The following targets are used to build documentation for VTK:
 [cmake-download]: https://cmake.org/download
 [cmake-find_package-search]: https://cmake.org/cmake/help/latest/command/find_package.html#search-procedure
 [cmake-modules-find]: https://cmake.org/cmake/help/latest/manual/cmake-modules.7.html#find-modules
+[cuda]: https://developer.nvidia.com/cuda-zone
 [ffmpeg]: https://ffmpeg.org
 [git]: https://git-scm.org
 [mesa]: https://www.mesa3d.org

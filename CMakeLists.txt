@@ -45,11 +45,18 @@ include(vtkCompilerExtraFlags)
 include(vtkInitializeBuildType)
 include(vtkSupportMacros)
 include(vtkDownload)
+include(vtkSanitize)
 include(vtkTesting)
 include(vtkMobileDevices)
 include(vtkWrapSettings)
 include(vtkCrossCompiling)
 include(vtkObjectFactory)
+
+option(VTK_RELOCATABLE_INSTALL "Do not embed hard-coded paths into the install" ON)
+mark_as_advanced(VTK_RELOCATABLE_INSTALL)
+cmake_dependent_option(VTK_UNIFIED_INSTALL_TREE "Assume that the install tree contains all of VTK's dependencies" OFF
+  VTK_RELOCATABLE_INSTALL OFF)
+mark_as_advanced(VTK_UNIFIED_INSTALL_TREE)
 
 set(CMAKE_INSTALL_LICENSEDIR ""
   CACHE PATH "License files (DATAROOTDIR/licenses/${CMAKE_PROJECT_NAME}")
@@ -58,10 +65,6 @@ if (NOT CMAKE_INSTALL_LICENSEDIR)
   set(CMAKE_INSTALL_LICENSEDIR
     "${CMAKE_INSTALL_DATAROOTDIR}/licenses/${CMAKE_PROJECT_NAME}")
 endif ()
-
-# Setup compiler flags for dynamic analysis
-# Should be included after vtkTesting
-include(vtkCompilerDynamicAnalysisFlags)
 
 set(VTK_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS})
 set(CMAKE_CXX_VISIBILITY_PRESET "hidden")
@@ -95,17 +98,6 @@ option(VTK_USE_MPI "Support MPI" OFF)
 
 option(VTK_SERIAL_TESTS_USE_MPIEXEC "Used on HPC to run serial tests on compute nodes" OFF)
 mark_as_advanced(VTK_SERIAL_TESTS_USE_MPIEXEC)
-
-
-set(VTK_BUILD_TESTING "OFF"
-  CACHE STRING "Build module testing directories")
-set_property(CACHE VTK_BUILD_TESTING
-  PROPERTY
-    STRINGS "ON;OFF;WANT")
-set(BUILD_TESTING OFF)
-if (VTK_BUILD_TESTING)
-  set(BUILD_TESTING ON)
-endif ()
 
 #-----------------------------------------------------------------------------
 # Add an option to enable memkind
@@ -371,6 +363,9 @@ if (VTK_WRAP_PYTHON)
     "${vtk_required_python_modules}\n")
   get_property(vtk_soabi GLOBAL
     PROPERTY  _vtk_python_soabi)
+  cmake_dependent_option(VTK_WINDOWS_PYTHON_DEBUGGABLE "Append `_d` to Python module names" OFF
+    "WIN32;VTK_WRAP_PYTHON" OFF)
+  mark_as_advanced(VTK_WINDOWS_PYTHON_DEBUGGABLE)
   vtk_module_wrap_python(
     MODULES         ${vtk_modules}
     INSTALL_EXPORT  VTKPython
@@ -380,6 +375,7 @@ if (VTK_WRAP_PYTHON)
     CMAKE_DESTINATION   "${vtk_cmake_destination}"
     INSTALL_HEADERS     "${VTK_INSTALL_SDK}"
     SOABI               "${vtk_soabi}"
+    USE_DEBUG_SUFFIX    "${VTK_WINDOWS_PYTHON_DEBUGGABLE}"
     WRAPPED_MODULES vtk_python_wrapped_modules
     TARGET_SPECIFIC_COMPONENTS "${VTK_TARGET_SPECIFIC_COMPONENTS}"
     TARGET          VTK::vtkpythonmodules)
@@ -404,18 +400,21 @@ if (VTK_WRAP_JAVA)
   add_subdirectory(Wrapping/Java)
 endif ()
 
-ExternalData_Add_Target(VTKData)
+if (VTK_BUILD_TESTING)
+  # Create target to download data from the VTKData group.  This must come after
+  # all tests have been added that reference the group, so we put it last.
+  ExternalData_Add_Target(VTKData)
 
-# Create target to download data from the VTKData group.  This must come after
-# all tests have been added that reference the group, so we put it last.
-if(VTK_DATA_EXCLUDE_FROM_ALL)
-  set_property(TARGET VTKData PROPERTY EXCLUDE_FROM_ALL 1)
-  if(BUILD_TESTING AND NOT VTK_DATA_EXCLUDE_FROM_ALL_NO_WARNING)
-    message(WARNING "VTK_DATA_EXCLUDE_FROM_ALL is ON so test data "
-      "(needed because BUILD_TESTING is ON) may not be available "
-      "without manually building the 'VTKData' target.")
-  endif()
-endif()
+  if (VTK_DATA_EXCLUDE_FROM_ALL)
+    set_property(TARGET VTKData PROPERTY EXCLUDE_FROM_ALL 1)
+    if (NOT VTK_DATA_EXCLUDE_FROM_ALL_NO_WARNING)
+      message(WARNING
+        "VTK_DATA_EXCLUDE_FROM_ALL is ON so test data (needed because "
+        "VTK_BUILD_TESTING is ON) may not be available without manually "
+        "building the 'VTKData' target.")
+    endif ()
+  endif ()
+endif ()
 
 if (VTK_INSTALL_SDK)
   set(vtk_cmake_build_dir
@@ -442,22 +441,22 @@ if (VTK_BUILD_EXAMPLES)
   add_subdirectory(Examples)
 endif ()
 
-if(BUILD_TESTING)
+if (VTK_BUILD_TESTING)
   add_subdirectory(Testing/Install)
-endif()
+endif ()
 
 # The doxygen documentation needs to be aware of all modules.
 option(VTK_BUILD_DOCUMENTATION "Build the VTK documentation" OFF)
-if(VTK_BUILD_DOCUMENTATION)
+if (VTK_BUILD_DOCUMENTATION)
   add_subdirectory(Utilities/Doxygen)
-endif()
+endif ()
 
 # If python wrapping and testing is enabled then add driver scripts to run
 # tests.  Note: Many python tests used to be automatically converted from TCL
 # scripts. Hence the name vtkTclTest2Py
-if(BUILD_TESTING AND VTK_WRAP_PYTHON)
+if (VTK_BUILD_TESTING AND VTK_WRAP_PYTHON)
   add_subdirectory(Utilities/vtkTclTest2Py)
-endif()
+endif ()
 
 if (NOT TARGET uninstall)
   add_custom_target(uninstall
@@ -479,6 +478,17 @@ install(
 if (VTK_WHEEL_BUILD)
   include(vtkWheelFinalization)
 endif ()
+
+# Setup compiler flags for dynamic analysis. This is included late to avoid
+# interfering with any `try_compile` or other things involved with a normal
+# configuration.
+include(vtkSanitizeFlags)
+
+# Some generated code has some warnings that we need to exclude for now.
+configure_file(
+  "${VTK_SOURCE_DIR}/.clang-tidy"
+  "${VTK_BINARY_DIR}/.clang-tidy"
+  COPYONLY)
 
 #-----------------------------------------------------------------------------
 # Do this at the end so the all variables it uses are setup.

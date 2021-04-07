@@ -228,11 +228,8 @@ public:
    * Initialize the underlying libraries for execution. This is
    * not required as it is automatically called before the first
    * execution of any parallel code. However, it can be used to
-   * control the maximum number of threads used when the back-end
-   * supports it (currently Simple and TBB only). Make sure to call
-   * it before any other parallel operation.
-   * When using Kaapi, use the KAAPI_CPUCOUNT env. variable to control
-   * the number of threads used in the thread pool.
+   * control the maximum number of threads used. Make sure to call
+   * it before the parallel operation.
    */
   static void Initialize(int numThreads = 0);
 
@@ -243,6 +240,47 @@ public:
    * available threads.
    */
   static int GetEstimatedNumberOfThreads();
+
+  /**
+   * A convenience method for transforming data. It is a drop in replacement for
+   * std::transform(), it does a binary operation on the input ranges. The data array must have the
+   * same length. The performed transformation is defined by operator() of the functor object.
+   *
+   * Usage example with vtkDataArray:
+   * \code
+   * const auto range0 = vtk::DataArrayValueRange<1>(array0);
+   * auto range1 = vtk::DataArrayValueRange<1>(array1);
+   * vtkSMPTools::Transform(
+   *   range0.cbegin(), range0.cend(), range1.begin(), [](double x, double y) { return x * y; });
+   * \endcode
+   *
+   * Please visit vtkDataArrayRange.h documentation for more information and optimisation.
+   */
+  template <typename InputIt, typename OutputIt, typename Functor>
+  static void Transform(InputIt inBegin, InputIt inEnd, OutputIt outBegin, Functor transform)
+  {
+    vtk::detail::smp::vtkSMPTools_Impl_Transform(inBegin, inEnd, outBegin, transform);
+  }
+
+  /**
+   * A convenience method for filling data. It is a drop in replacement for std::fill(),
+   * it assign the given value to the element in ranges.
+   *
+   * Usage example with vtkDataArray:
+   * \code
+   * // Fill range with its first tuple value
+   * auto range = vtk::DataArrayTupleRange<1>(array);
+   * const auto value = *range.begin();
+   * vtkSMPTools::Fill(range.begin(), range.end(), value);
+   * \endcode
+   *
+   * Please visit vtkDataArrayRange.h documentation for more information and optimisation.
+   */
+  template <typename Iterator, typename T>
+  static void Fill(Iterator begin, Iterator end, const T& value)
+  {
+    vtk::detail::smp::vtkSMPTools_Impl_Fill(begin, end, value);
+  }
 
   /**
    * A convenience method for sorting data. It is a drop in replacement for

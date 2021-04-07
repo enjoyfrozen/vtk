@@ -78,6 +78,20 @@ public:
 
   //@{
   /**
+   * Convenience method to set the background color and the opacity at once
+   */
+  void SetBackgroundRGBA(double rgba[4]);
+  void SetBackgroundRGBA(double r, double g, double b, double a);
+
+  /**
+   * Convenience method to get the background color and the opacity at once
+   */
+  void GetBackgroundRGBA(double rgba[4]);
+  void GetBackgroundRGBA(double& r, double& g, double& b, double& a);
+  //@}
+
+  //@{
+  /**
    * The frame color.
    */
   vtkSetVector3Macro(FrameColor, double);
@@ -243,6 +257,15 @@ public:
   vtkGetMacro(LineOffset, double);
   //@}
 
+  //@{
+  /**
+   * Set/Get the horizontal offset between cells.
+   * Only used by MatplotlibMathTextUtilities
+   */
+  vtkSetMacro(CellOffset, double);
+  vtkGetMacro(CellOffset, double);
+  //@}
+
   /**
    * Shallow copy of a text property.
    */
@@ -272,6 +295,7 @@ protected:
   double Orientation;
   double LineOffset;
   double LineSpacing;
+  double CellOffset;
 
 private:
   vtkTextProperty(const vtkTextProperty&) = delete;

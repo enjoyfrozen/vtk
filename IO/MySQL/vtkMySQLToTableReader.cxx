@@ -1,7 +1,7 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    vtkMySQLToTableReader.h
+  Module:    vtkMySQLToTableReader.cxx
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.
@@ -30,10 +30,10 @@
 vtkStandardNewMacro(vtkMySQLToTableReader);
 
 //------------------------------------------------------------------------------
-vtkMySQLToTableReader::vtkMySQLToTableReader() {}
+vtkMySQLToTableReader::vtkMySQLToTableReader() = default;
 
 //------------------------------------------------------------------------------
-vtkMySQLToTableReader::~vtkMySQLToTableReader() {}
+vtkMySQLToTableReader::~vtkMySQLToTableReader() = default;
 
 //------------------------------------------------------------------------------
 int vtkMySQLToTableReader::RequestData(
@@ -50,7 +50,7 @@ int vtkMySQLToTableReader::RequestData(
     vtkErrorMacro(<< "Wrong type of database for this reader");
     return 1;
   }
-  if (this->TableName == "")
+  if (this->TableName.empty())
   {
     vtkErrorMacro(<< "No table selected");
     return 1;

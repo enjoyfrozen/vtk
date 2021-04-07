@@ -297,6 +297,9 @@ void vtkWrapPython_GenerateMethods(FILE* fp, const char* classname, ClassInfo* d
   /* identify methods that create new instances of objects */
   vtkWrap_FindNewInstanceMethods(data, hinfo);
 
+  /* identify methods that should support __fspath__ protocol */
+  vtkWrap_FindFilePathMethods(data);
+
   /* go through all functions and see which are wrappable */
   for (i = 0; i < data->NumberOfFunctions; i++)
   {
@@ -355,10 +358,6 @@ static void vtkWrapPython_ClassMethodDef(FILE* fp, const char* classname, ClassI
 
   for (fnum = 0; fnum < numberOfWrappedFunctions; fnum++)
   {
-    if (wrappedFunctions[fnum]->IsLegacy)
-    {
-      fprintf(fp, "#if !defined(VTK_LEGACY_REMOVE)\n");
-    }
     if (wrappedFunctions[fnum]->Name)
     {
       /* string literals must be under 2048 chars */
@@ -375,10 +374,6 @@ static void vtkWrapPython_ClassMethodDef(FILE* fp, const char* classname, ClassI
         wrappedFunctions[fnum]->Name);
 
       fprintf(fp, "   \"%s\\n\\n%s\"},\n", signatures, comment);
-    }
-    if (wrappedFunctions[fnum]->IsLegacy)
-    {
-      fprintf(fp, "#endif\n");
     }
   }
 
@@ -529,7 +524,11 @@ static int vtkWrapPython_IsValueWrappable(
       if (vtkWrap_IsSpecialType(hinfo, aClass) ||
         vtkWrapPython_HasWrappedSuperClass(hinfo, aClass, NULL))
       {
-        return 1;
+        // don't allow scoped names (can't wrap nested classes)
+        if (vtkParse_UnscopedNameLength(aClass) == strlen(aClass))
+        {
+          return 1;
+        }
       }
     }
   }

@@ -135,6 +135,55 @@ public:
   void ExecuteTextActorModifiedEvent(vtkObject* obj, unsigned long enumEvent, void* p);
   //@}
 
+  //@{
+  /**
+   * Set/Get the padding between the text and the left border,
+   * in pixels unit.
+   * Default is 0.
+   */
+  vtkSetClampMacro(PaddingLeft, int, 0, 4000);
+  vtkGetMacro(PaddingLeft, int);
+  //@}
+
+  //@{
+  /**
+   * Set/Get the padding between the text and the right border,
+   * in pixels unit.
+   * Default is 0.
+   */
+  vtkSetClampMacro(PaddingRight, int, 0, 4000);
+  vtkGetMacro(PaddingRight, int);
+  //@}
+
+  //@{
+  /**
+   * Set/Get the padding between the text and the top border,
+   * in pixels unit.
+   * Default is 0.
+   */
+  vtkSetClampMacro(PaddingTop, int, 0, 4000);
+  vtkGetMacro(PaddingTop, int);
+  //@}
+
+  //@{
+  /**
+   * Set/Get the padding between the text and the bottom border,
+   * in pixels unit.
+   * Default is 0.
+   */
+  vtkSetClampMacro(PaddingBottom, int, 0, 4000);
+  vtkGetMacro(PaddingBottom, int);
+  //@}
+
+  //@{
+  /**
+   * Set the padding between the text and the left/right/top/bottom
+   * border, in pixels unit.
+   * Default is 0.
+   */
+  void SetPadding(int padding);
+  //@}
+
 protected:
   vtkTextRepresentation();
   ~vtkTextRepresentation() override;
@@ -155,6 +204,11 @@ protected:
 
   // observer to observe internal TextActor and TextProperty
   vtkTextRepresentationObserver* Observer;
+
+  int PaddingLeft = 0;
+  int PaddingRight = 0;
+  int PaddingTop = 0;
+  int PaddingBottom = 0;
 
 private:
   vtkTextRepresentation(const vtkTextRepresentation&) = delete;

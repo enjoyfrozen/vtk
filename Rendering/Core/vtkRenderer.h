@@ -55,6 +55,9 @@ class vtkRendererDelegate;
 class vtkRenderPass;
 class vtkTexture;
 
+class vtkRecti;
+class vtkVector3d;
+
 class VTKRENDERINGCORE_EXPORT vtkRenderer : public vtkViewport
 {
 public:
@@ -386,7 +389,7 @@ public:
 
   /**
    * Automatically set up the camera based on a specified bounding box
-   * (xmin,xmax, ymin,ymax, zmin,zmax). Camera will reposition itself so
+   * (xmin, xmax, ymin, ymax, zmin, zmax). Camera will reposition itself so
    * that its focal point is the center of the bounding box, and adjust its
    * distance and position to preserve its initial view plane normal
    * (i.e., vector defined from camera position to focal point). Note: if
@@ -399,6 +402,38 @@ public:
    * Alternative version of ResetCamera(bounds[6]);
    */
   virtual void ResetCamera(
+    double xmin, double xmax, double ymin, double ymax, double zmin, double zmax);
+
+  /**
+   * Automatically set up the camera based on the visible actors.
+   * Use a screen space bounding box to zoom closer to the data.
+   */
+  virtual void ResetCameraScreenSpace();
+
+  /**
+   * Automatically set up the camera based on a specified bounding box
+   * (xmin, xmax, ymin, ymax, zmin, zmax).
+   * Use a screen space bounding box to zoom closer to the data.
+   */
+  virtual void ResetCameraScreenSpace(const double bounds[6]);
+
+  using vtkViewport::DisplayToWorld;
+
+  /**
+   * Convert a vtkVector3d from display space to world space.
+   */
+  vtkVector3d DisplayToWorld(const vtkVector3d& display);
+
+  /**
+   * Automatically set up the camera focal point and zoom factor to
+   * observe the rect.
+   */
+  void ZoomToBoxUsingViewAngle(const vtkRecti& box);
+
+  /**
+   * Alternative version of ResetCameraScreenSpace(bounds[6]);
+   */
+  virtual void ResetCameraScreenSpace(
     double xmin, double xmax, double ymin, double ymax, double zmin, double zmax);
 
   //@{

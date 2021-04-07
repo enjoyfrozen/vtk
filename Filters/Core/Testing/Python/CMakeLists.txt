@@ -30,18 +30,26 @@ vtk_add_test_python(
   TestElevationFilter.py
   TestFlyingEdges2D.py
   TestFlyingEdges2D2.py
+  TestFlyingEdges2DThinPixel.py
   TestFlyingEdges3D.py
+  TestFlyingEdges3DThinSlice.py
   TestFlyingEdges3DWithInterpolation.py
   TestFlyingEdgesExtents.py
   TestFlyingEdgesPlaneCutter.py
   TestFlyingEdgesPlaneCutterInterpolation.py
+  TestFlyingEdgesPlaneCutterThinSlice.py
   TestGridSynchronizedTemplates3D.py
   TestMarchingSquares.py
   TestMultiObjectMassProperties.py
   TestOrientedFlyingEdgesPlaneCutter.py
   TestOrientedFlyingEdgesPlaneCutter2.py
+  TestPointDataToCellData2.py
   TestPolyDataEdgeConnectivityFilter.py
   TestPolyDataEdgeConnectivityFilter2.py
+  TestPolyDataEdgeConnectivityFilter3.py
+  TestPolyDataEdgeConnectivityFilter4.py
+  TestPolyDataPlaneClipper.py
+  TestPolyDataPlaneClipper2.py
   TestPolyDataPlaneCutter.py
   TestProbeFilterImageInput.py
   TestRectilinearGridPlaneCutter.py
@@ -54,6 +62,7 @@ vtk_add_test_python(
   TestSynchronizedTemplates2D.py
   TestSynchronizedTemplates3D.py
   TestWindowedSincPolyDataFilter.py
+  TestWindowedSincPolyDataFilter2.py
   TestContourGrid.py,NO_VALID
   TestContourPolyData.py,NO_VALID
   TestTensorGlyph.py,NO_RT

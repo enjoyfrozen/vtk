@@ -46,6 +46,11 @@ public:
   void PrintSelf(ostream& os, vtkIndent indent) override;
   vtkTypeMacro(vtkGeoJSONFeature, vtkDataObject);
 
+  /**
+   * Returns `VTK_GEO_JSON_FEATURE`.
+   */
+  int GetDataObjectType() override { return VTK_GEO_JSON_FEATURE; }
+
   //@{
   /**
    * Set/get option to generate the border outlining each polygon,

@@ -71,8 +71,9 @@
  * @section DataAssemblyPathQueries Supported Path Queries
  *
  * `vtkDataAssembly::SelectNodes` can be used find nodes that match the
- * specified query (or queries). The syntax for queries, which is a minimal/simplified
- * subset of XPath location queries, is as follows:
+ * specified query (or queries) using XPath 1.0 syntax.
+ *
+ * For example:
  *
  * * '/' is used as the path separator. If a node name has a `/` it must be
  * escaped using `\\` in the query. Note, escaping is not necessary when using
@@ -218,6 +219,11 @@ public:
   std::string GetNodePath(int id) const;
 
   /**
+   * Return a node id given the path. Returns `-1` if path is not valid.
+   */
+  int GetFirstNodeByPath(const char* path) const;
+
+  /**
    * Add a dataset index to a node. The node id can refer to any
    * valid node in the assembly, including the root.
    *
@@ -230,12 +236,20 @@ public:
   bool AddDataSetIndex(int id, unsigned int dataset_index);
 
   /**
-   * Same as `AddDataSetIndex` except supported adding multiple dataset indices
+   * Same as `AddDataSetIndex` except supports adding multiple dataset indices
    * in one go. Note, a dataset index only gets added once.
    *
    * @returns true if any dataset index was successfully added.
    */
   bool AddDataSetIndices(int id, const std::vector<unsigned int>& dataset_indices);
+
+  /**
+   * Same as `AddDataSetIndices` except this supports adding a contiguous range of dataset
+   * indices in one go.
+   *
+   * @ returns true if any dataset index was successfully added.
+   */
+  bool AddDataSetIndexRange(int id, unsigned int index_start, int count);
 
   /**
    * Removes a dataset index from a node.
@@ -313,6 +327,50 @@ public:
    */
   int GetParent(int id) const;
 
+  /**
+   * Returns true if attribute with the given name is present
+   * on the chosen node.
+   */
+  bool HasAttribute(int id, const char* name) const;
+
+  //@{
+  /**
+   * Set an attribute. Will replace an existing attribute with the same name if
+   * present.
+   */
+  void SetAttribute(int id, const char* name, const char* value);
+  void SetAttribute(int id, const char* name, int value);
+  void SetAttribute(int id, const char* name, unsigned int value);
+#if VTK_ID_TYPE_IMPL != VTK_INT
+  void SetAttribute(int id, const char* name, vtkIdType value);
+#endif
+  //@}
+
+  //@{
+  /**
+   * Get an attribute value. Returns true if a value was provided else false.
+   */
+  bool GetAttribute(int id, const char* name, const char*& value) const;
+  bool GetAttribute(int id, const char* name, int& value) const;
+  bool GetAttribute(int id, const char* name, unsigned int& value) const;
+#if VTK_ID_TYPE_IMPL != VTK_INT
+  bool GetAttribute(int id, const char* name, vtkIdType& value) const;
+#endif
+  //@}
+
+  //@{
+  /**
+   * Get an attribute value. Returns the value associated with the node or the
+   * provided default value.
+   */
+  const char* GetAttributeOrDefault(int id, const char* name, const char* default_value) const;
+  int GetAttributeOrDefault(int id, const char* name, int default_value) const;
+  unsigned int GetAttributeOrDefault(int id, const char* name, unsigned int default_value) const;
+#if VTK_ID_TYPE_IMPL != VTK_INT
+  vtkIdType GetAttributeOrDefault(int id, const char* name, vtkIdType default_value) const;
+#endif
+  //@}
+
   //@{
   /**
    * Visit each node in the assembly for processing. The traversal order can be
@@ -327,6 +385,7 @@ public:
     int traversal_order = vtkDataAssembly::TraversalOrder::DepthFirst) const;
   //@}
 
+  //@{
   /**
    * Returns the dataset indices associated with the node.
    *
@@ -341,6 +400,10 @@ public:
    */
   std::vector<unsigned int> GetDataSetIndices(int id, bool traverse_subtree = true,
     int traversal_order = vtkDataAssembly::TraversalOrder::DepthFirst) const;
+  std::vector<unsigned int> GetDataSetIndices(const std::vector<int>& ids,
+    bool traverse_subtree = true,
+    int traversal_order = vtkDataAssembly::TraversalOrder::DepthFirst) const;
+  //@}
 
   /**
    * Returns ids for nodes matching the path_queries. See Section
@@ -374,6 +437,21 @@ public:
    * Deep copy the `other`.
    */
   void DeepCopy(vtkDataAssembly* other);
+
+  /**
+   * Validates a node name.
+   */
+  static bool IsNodeNameValid(const char* name);
+
+  /**
+   * Converts any string to a string that is a valid node name.
+   */
+  static std::string MakeValidNodeName(const char* name);
+
+  /**
+   * Returns true for node names that are reserved.
+   */
+  static bool IsNodeNameReserved(const char* name);
 
 protected:
   vtkDataAssembly();

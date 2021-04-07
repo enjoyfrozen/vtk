@@ -34,6 +34,7 @@
 #include "vtkPicker.h"
 #include "vtkProp3DCollection.h"
 #include "vtkPropCollection.h"
+#include "vtkRect.h"
 #include "vtkRenderPass.h"
 #include "vtkRenderTimerLog.h"
 #include "vtkRenderWindow.h"
@@ -42,6 +43,7 @@
 #include "vtkSelectionNode.h"
 #include "vtkTexture.h"
 #include "vtkTimerLog.h"
+#include "vtkVectorOperators.h"
 #include "vtkVolume.h"
 
 #include <sstream>
@@ -1326,6 +1328,155 @@ void vtkRenderer::ResetCameraClippingRange(
   bounds[5] = zmax;
 
   this->ResetCameraClippingRange(bounds);
+}
+
+// Automatically set up the camera based on the visible actors.
+// Use a screen space bounding box to zoom closer to the data.
+void vtkRenderer::ResetCameraScreenSpace()
+{
+  double allBounds[6];
+
+  this->ComputeVisiblePropBounds(allBounds);
+
+  if (!vtkMath::AreBoundsInitialized(allBounds))
+  {
+    vtkDebugMacro(<< "Cannot reset camera!");
+  }
+  else
+  {
+    this->ResetCameraScreenSpace(allBounds);
+  }
+
+  // Here to let parallel/distributed compositing intercept
+  // and do the right thing.
+  this->InvokeEvent(vtkCommand::ResetCameraEvent, this);
+}
+
+// Alternative version of ResetCameraScreenSpace(bounds[6]);
+void vtkRenderer::ResetCameraScreenSpace(
+  double xmin, double xmax, double ymin, double ymax, double zmin, double zmax)
+{
+  double bounds[6];
+
+  bounds[0] = xmin;
+  bounds[1] = xmax;
+  bounds[2] = ymin;
+  bounds[3] = ymax;
+  bounds[4] = zmin;
+  bounds[5] = zmax;
+
+  this->ResetCameraScreenSpace(bounds);
+}
+
+// Use a screen space bounding box to zoom closer to the data.
+void vtkRenderer::ResetCameraScreenSpace(const double bounds[6])
+{
+  // Make sure all bounds are visible to project into screen space
+  this->ResetCamera(bounds);
+
+  double expandedBounds[6] = { bounds[0], bounds[1], bounds[2], bounds[3], bounds[4], bounds[5] };
+  this->ExpandBounds(expandedBounds, this->ActiveCamera->GetModelTransformMatrix());
+
+  // 1) Compute the screen space bounding box
+  double xmin = VTK_DOUBLE_MAX;
+  double ymin = VTK_DOUBLE_MAX;
+  double xmax = VTK_DOUBLE_MIN;
+  double ymax = VTK_DOUBLE_MIN;
+  double currentPointDisplay[3];
+  for (int i = 0; i < 2; ++i)
+  {
+    for (int j = 0; j < 2; ++j)
+    {
+      for (int k = 0; k < 2; ++k)
+      {
+        double currentPoint[4] = { expandedBounds[i], expandedBounds[j + 2], expandedBounds[k + 4],
+          1.0 };
+
+        this->SetWorldPoint(currentPoint);
+        this->WorldToDisplay();
+        this->GetDisplayPoint(currentPointDisplay);
+
+        xmin = std::min(currentPointDisplay[0], xmin);
+        xmax = std::max(currentPointDisplay[0], xmax);
+        ymin = std::min(currentPointDisplay[1], ymin);
+        ymax = std::max(currentPointDisplay[1], ymax);
+      }
+    }
+  }
+
+  // Offset a little to make sure bounds are not clipped
+  int offsetX = std::max(static_cast<int>((xmax - xmin) * 0.01), 10);
+  int offsetY = std::max(static_cast<int>((ymax - ymin) * 0.01), 10);
+
+  xmin -= offsetX;
+  xmax += offsetX;
+  ymin -= offsetY;
+  ymax += offsetY;
+
+  // Project the focal point in screen space
+  double fp[4];
+  this->ActiveCamera->GetFocalPoint(fp);
+  fp[3] = 1.0;
+  double fpDisplay[3];
+  this->SetWorldPoint(fp);
+  this->WorldToDisplay();
+  this->GetDisplayPoint(fpDisplay);
+
+  // The focal point must be at the center of the box
+  // So construct a box with fpDisplay at the center
+  int xCenterFocalPoint = static_cast<int>(fpDisplay[0]);
+  int yCenterFocalPoint = static_cast<int>(fpDisplay[1]);
+
+  int xCenterBox = static_cast<int>((xmin + xmax) / 2);
+  int yCenterBox = static_cast<int>((ymin + ymax) / 2);
+
+  int xDiff = 2 * (xCenterFocalPoint - xCenterBox);
+  int yDiff = 2 * (yCenterFocalPoint - yCenterBox);
+
+  int xMaxOffset = std::max(xDiff, 0);
+  int xMinOffset = std::min(xDiff, 0);
+  int yMaxOffset = std::max(yDiff, 0);
+  int yMinOffset = std::min(yDiff, 0);
+
+  xmin += xMinOffset;
+  xmax += xMaxOffset;
+  ymin += yMinOffset;
+  ymax += yMaxOffset;
+  // Now the focal point is at the center of the box
+
+  const vtkRecti box(xmin, ymin, xmax - xmin, ymax - ymin);
+  this->ZoomToBoxUsingViewAngle(box);
+}
+
+// Display to world using vtkVector3d
+vtkVector3d vtkRenderer::DisplayToWorld(const vtkVector3d& display)
+{
+  this->SetDisplayPoint(display[0], display[1], display[2]);
+  this->DisplayToView();
+  this->ViewToWorld();
+
+  vtkVector<double, 4> world4;
+  this->GetWorldPoint(world4.GetData());
+  double invw = 1.0 * world4[3];
+  world4 = world4 * invw;
+  return vtkVector3d(world4.GetData());
+}
+
+void vtkRenderer::ZoomToBoxUsingViewAngle(const vtkRecti& box)
+{
+  const int* size = this->GetSize();
+  double zoomFactor;
+  if (box.GetWidth() > box.GetHeight())
+  {
+    zoomFactor = size[0] / static_cast<double>(box.GetWidth());
+  }
+  else
+  {
+    zoomFactor = size[1] / static_cast<double>(box.GetHeight());
+  }
+
+  vtkCamera* cam = this->GetActiveCamera();
+  cam->Zoom(zoomFactor);
 }
 
 // Specify the rendering window in which to draw. This is automatically set

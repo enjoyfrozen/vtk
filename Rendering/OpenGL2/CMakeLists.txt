@@ -69,12 +69,12 @@ set(classes
   vtkOrderIndependentTranslucentPass
   vtkOutlineGlowPass
   vtkOverlayPass
-  vtkPanoramicProjectionPass
-  vtkPixelBufferObject
-  vtkPointFillPass
   vtkPBRIrradianceTexture
   vtkPBRLUTTexture
   vtkPBRPrefilterTexture
+  vtkPanoramicProjectionPass
+  vtkPixelBufferObject
+  vtkPointFillPass
   vtkRenderPassCollection
   vtkRenderStepsPass
   vtkRenderbuffer
@@ -344,8 +344,8 @@ vtk_module_add_module(VTK::RenderingOpenGL2
   PRIVATE_HEADERS ${private_headers} ${vtk_object_factory_header})
 
 if (VTK_USE_SDL2)
-vtk_module_find_package(PACKAGE SDL2)
-vtk_module_link(VTK::RenderingOpenGL2
+  vtk_module_find_package(PACKAGE SDL2)
+  vtk_module_link(VTK::RenderingOpenGL2
     PUBLIC SDL2::SDL2)
 endif ()
 

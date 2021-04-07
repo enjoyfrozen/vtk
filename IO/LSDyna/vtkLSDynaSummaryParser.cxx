@@ -1,7 +1,7 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    vtkLSDynaSummaryParser.h
+  Module:    vtkLSDynaSummaryParser.cxx
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.
@@ -23,7 +23,7 @@ vtkStandardNewMacro(vtkLSDynaSummaryParser);
 
 namespace
 {
-static void vtkLSTrimWhitespace(std::string& line)
+void vtkLSTrimWhitespace(std::string& line)
 {
   std::string::size_type llen = line.length();
   while (llen &&
