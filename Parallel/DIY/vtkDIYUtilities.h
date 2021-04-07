@@ -27,6 +27,8 @@
 #include "vtkParallelDIYModule.h" // for export macros
 #include "vtkSmartPointer.h"      // needed for vtkSmartPointer
 
+#include <map>    // For Link
+#include <set>    // For Link
 #include <vector> // For GetDataSets
 
 // clang-format off
@@ -149,8 +151,12 @@ public:
    * rank is to be linked to block of global id `globalId` if and
    * only if `linksMap[localId].count(globalId) != 0`.
    */
-  template <class BlockT, class AssignerT, class LinksMapT>
-  static void Link(diy::Master& master, const AssignerT& assigner, const LinksMapT& linksMap);
+  template <class DummyT>
+  static void Link(diy::Master& master, const diy::Assigner& assigner,
+    const std::vector<std::map<int, DummyT>>& linksMap);
+
+  static void Link(
+    diy::Master& master, const diy::Assigner& assigner, const std::vector<std::set<int>>& linksMap);
 
 protected:
   vtkDIYUtilities();
