@@ -79,6 +79,10 @@
         # Allow the server to already be running.
         - "sccache --start-server || :"
         - sccache --show-stats
+        # Build and activate the venv
+        - python3 -m venv $PWD/build/ci-venv
+        - . ./build/ci-venv/bin/activate
+        - pip install -qq -r .gitlab/ci/requirements.txt
         - ctest -VV -S .gitlab/ci/ctest_configure.cmake
         - ctest -VV -S .gitlab/ci/ctest_build.cmake &> $GIT_CLONE_PATH/compile_output.log
         - sccache --show-stats
@@ -90,6 +94,9 @@
 
     script:
         - *before_script_macos
+        # Reuse the venv from the build step (avoids version changes between
+        # build and testing).
+        - . ./build/ci-venv/bin/activate
         - ctest --output-on-failure -V -S .gitlab/ci/ctest_test.cmake
     interruptible: true
     timeout: 2 hours
