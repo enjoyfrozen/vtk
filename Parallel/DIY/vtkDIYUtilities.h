@@ -64,23 +64,23 @@ public:
    */
   static diy::mpi::communicator GetCommunicator(vtkMultiProcessController* controller);
 
-  //@{
+  ///@{
   /**
    * Load/Save a vtkDataSet in a diy::BinaryBuffer.
    */
   static void Save(diy::BinaryBuffer& bb, vtkDataSet*);
   static void Load(diy::BinaryBuffer& bb, vtkDataSet*&);
-  //@}
+  ///@}
 
   static void Save(diy::BinaryBuffer& bb, vtkFieldData*);
   static void Load(diy::BinaryBuffer& bb, vtkFieldData*&);
-  //@{
+  ///@{
   /**
    * Load/Save a vtkDataArray in a diy::BinaryBuffer.
    */
   static void Save(diy::BinaryBuffer& bb, vtkDataArray*);
   static void Load(diy::BinaryBuffer& bb, vtkDataArray*&);
-  //@}
+  ///@}
 
   /**
    * Reduce bounding box.
@@ -120,7 +120,7 @@ public:
   template <class DataSetT = vtkDataSet>
   static std::vector<DataSetT*> GetDataSets(vtkDataObject* dobj);
 
-  //@{
+  ///@{
   /**
    * Extracts points from the input. If input is not a vtkPointSet, it will use
    * an appropriate filter to extract the vtkPoints. If use_cell_centers is
@@ -129,7 +129,7 @@ public:
    */
   static std::vector<vtkSmartPointer<vtkPoints>> ExtractPoints(
     const std::vector<vtkDataSet*>& datasets, bool use_cell_centers);
-  //@}
+  ///@}
 
   /**
    * Convenience method to get local bounds for the data object.
