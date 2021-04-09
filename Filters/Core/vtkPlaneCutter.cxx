@@ -240,7 +240,7 @@ struct CuttingFunctor
     localData.Output = vtkPolyData::New();
     vtkPolyData* output = localData.Output;
 
-    if (this->MergePoints)
+    if (this->GeneratePolygons && this->MergePoints)
     {
       localData.Locator = vtkMergePoints::New();
     }

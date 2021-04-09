@@ -179,7 +179,6 @@ int TestPreserveTopology(int argc, char* argv[])
   }
 
   vtkNew<vtkPlaneCutter> intersectGrid;
-  // vtkNew<vtkCompositeDataGeometryFilter> intersectGridMultiPieceDataJoiner;
   {
     intersectGrid->SetInputConnection(filter2->GetOutputPort());
     intersectGrid->FilterTopologyOn();
@@ -191,8 +190,6 @@ int TestPreserveTopology(int argc, char* argv[])
     intersectGrid->BuildHierarchyOn();
 
     intersectGrid->Update();
-    // intersectGridMultiPieceDataJoiner->SetInputConnection(intersectGrid->GetOutputPort());
-    // intersectGridMultiPieceDataJoiner->Update();
   }
 
   vtkNew<vtkActor> actor;
@@ -206,13 +203,13 @@ int TestPreserveTopology(int argc, char* argv[])
     actor->GetProperty()->SetEdgeColor(1.0, 0.0, 0.1);
     actor->GetProperty()->SetLineWidth(3.0);
     actor->GetProperty()->EdgeVisibilityOn();
+    actor->GetProperty()->RenderLinesAsTubesOn();
     actor->SetMapper(mapper);
   }
 
   vtkNew<vtkActor> intersectActor;
   {
     vtkNew<vtkPolyDataMapper> mapper;
-    // mapper->SetInputConnection(intersectGridMultiPieceDataJoiner->GetOutputPort());
     mapper->SetInputConnection(intersectGrid->GetOutputPort());
     mapper->ScalarVisibilityOn();
 
@@ -221,6 +218,7 @@ int TestPreserveTopology(int argc, char* argv[])
     intersectActor->GetProperty()->SetEdgeColor(1.0, 0.0, 1.0);
     intersectActor->GetProperty()->SetLineWidth(3.0);
     intersectActor->GetProperty()->EdgeVisibilityOn();
+    intersectActor->GetProperty()->RenderLinesAsTubesOn();
     intersectActor->SetMapper(mapper);
   }
 
