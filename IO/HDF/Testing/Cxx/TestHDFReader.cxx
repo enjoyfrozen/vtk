@@ -67,8 +67,7 @@ struct CompareVectorWorker
 
 int CompareVectors(vtkDataArray* array, vtkDataArray* expectedArray)
 {
-  using Dispatcher =
-    vtkArrayDispatch::Dispatch2ByValueType<vtkArrayDispatch::AllTypes, vtkArrayDispatch::AllTypes>;
+  using Dispatcher = vtkArrayDispatch::Dispatch2BySameValueType<vtkArrayDispatch::AllTypes>;
 
   // Create the functor:
   CompareVectorWorker worker;

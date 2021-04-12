@@ -821,9 +821,9 @@ bool vtkHDFReader::Implementation::NewArray(
   {
     // create the memory space, reverse axis order for VTK fortran order
     std::vector<hsize_t> count(fileExtent.size() >> 1), start(fileExtent.size() >> 1);
-    for (int i = 0; i < count.size(); ++i)
+    for (size_t i = 0; i < count.size(); ++i)
     {
-      int j = (count.size() - 1 - i) << 1;
+      size_t j = (count.size() - 1 - i) << 1;
       count[i] = fileExtent[j + 1] - fileExtent[j] + 1;
       start[i] = fileExtent[j];
     }
