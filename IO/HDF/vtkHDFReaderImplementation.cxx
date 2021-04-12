@@ -698,7 +698,7 @@ std::vector<vtkIdType> vtkHDFReader::Implementation::GetMetadata(const char* nam
 {
   std::vector<vtkIdType> v;
   std::vector<hsize_t> fileExtent = { 0, size - 1 };
-  vtkDataArray* a = NewArray(this->VTKGroup, name, fileExtent);
+  auto a = vtk::TakeSmartPointer(NewArray(this->VTKGroup, name, fileExtent));
   if (!a)
   {
     return v;

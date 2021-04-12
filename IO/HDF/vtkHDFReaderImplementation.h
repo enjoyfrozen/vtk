@@ -204,3 +204,4 @@ extern template bool vtkHDFReader::Implementation::GetAttribute<double>(
   const char* attributeName, size_t dim, double* value);
 
 #endif
+// VTK-HeaderTest-Exclude: vtkHDFReaderImplementation.h

@@ -19,7 +19,7 @@ def create_dataset(name, anp, group, number_of_pieces):
     """
     shape = anp.shape
     if number_of_pieces > 1:
-        maxshape = (None, *shape[1:])
+        maxshape = (None,) + shape[1:]
     else:
         maxshape = shape
     dset = group.create_dataset(

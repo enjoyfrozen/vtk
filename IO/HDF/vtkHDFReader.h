@@ -23,6 +23,7 @@
 
 #include "vtkDataSetAlgorithm.h"
 #include "vtkIOHDFModule.h" // For export macro
+#include <vector>           // For storing list of values
 
 class vtkAbstractArray;
 class vtkCallbackCommand;
@@ -32,8 +33,6 @@ class vtkDataSetAttributes;
 class vtkInformationVector;
 class vtkInformation;
 class vtkCommand;
-
-#include <vector>
 
 class VTKIOHDF_EXPORT vtkHDFReader : public vtkDataSetAlgorithm
 {
