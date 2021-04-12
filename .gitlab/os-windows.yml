@@ -80,9 +80,10 @@
 
 .windows_tester_tags:
     tags:
-        - vtk # Since this is a bare runner, pin to a project.
+        #- vtk # Since this is a bare runner, pin to a project.
         - msvc-19.28
         - nonconcurrent
+        - bop
         - shell
         - vs2019
         - windows
