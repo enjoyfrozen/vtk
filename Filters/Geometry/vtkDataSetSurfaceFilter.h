@@ -89,6 +89,8 @@ class vtkCellIterator;
 class vtkPointData;
 class vtkPoints;
 class vtkIdTypeArray;
+class vtkImageData;
+class vtkRectilinearGrid;
 class vtkStructuredGrid;
 class vtkUnstructuredGridBase;
 
@@ -234,6 +236,8 @@ public:
    */
   virtual int DataSetExecute(vtkDataSet* input, vtkPolyData* output);
   virtual int StructuredWithBlankingExecute(vtkStructuredGrid* input, vtkPolyData* output);
+  virtual int StructuredWithBlankingExecute(vtkImageData* input, vtkPolyData* output);
+  virtual int StructuredWithBlankingExecute(vtkRectilinearGrid* input, vtkPolyData* output);
   virtual int UniformGridExecute(vtkDataSet* input, vtkPolyData* output, vtkIdType* ext,
     vtkIdType* wholeExt, bool extractface[6]);
   //@}
@@ -349,6 +353,12 @@ protected:
 
   vtkTypeBool Delegation;
 
+  /**
+   * Implementation of StructuredWithBlankingExecute.
+   */
+  template <class GridDataSetT>
+  int StructuredWithBlankingExecuteImpl(GridDataSetT* grid, vtkPolyData* output);
+
 private:
   int UnstructuredGridBaseExecute(vtkDataSet* input, vtkPolyData* output);
   int UnstructuredGridExecuteInternal(vtkUnstructuredGridBase* input, vtkPolyData* output,
@@ -357,5 +367,7 @@ private:
   vtkDataSetSurfaceFilter(const vtkDataSetSurfaceFilter&) = delete;
   void operator=(const vtkDataSetSurfaceFilter&) = delete;
 };
+
+#include "vtkDataSetSurfaceFilter.txx"
 
 #endif
