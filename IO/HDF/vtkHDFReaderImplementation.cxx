@@ -41,7 +41,7 @@
 //------------------------------------------------------------------------------
 namespace
 {
-herr_t AddName(hid_t group, const char* name, const H5L_info_t* info, void* op_data)
+herr_t AddName(hid_t group, const char* name, const H5L_info_t*, void* op_data)
 {
   auto array = static_cast<std::vector<std::string>*>(op_data);
   herr_t status = -1;
@@ -166,7 +166,7 @@ bool vtkHDFReader::Implementation::Open(const char* fileName)
     H5Eget_auto(H5E_DEFAULT, &f, &client_data);
     H5Eset_auto(H5E_DEFAULT, nullptr, nullptr);
     // try to open cell or point group. Its OK if they don't exist.
-    for (int i = 0; i < this->AttributeDataGroup.size(); ++i)
+    for (size_t i = 0; i < this->AttributeDataGroup.size(); ++i)
     {
       this->AttributeDataGroup[i] = H5Gopen(this->File, groupNames[i], H5P_DEFAULT);
     }
@@ -219,7 +219,7 @@ void vtkHDFReader::Implementation::Close()
   this->DataSetType = -1;
   this->NumberOfPieces = 0;
   std::fill(this->Version.begin(), this->Version.end(), 0);
-  for (int i = 0; i < this->AttributeDataGroup.size(); ++i)
+  for (size_t i = 0; i < this->AttributeDataGroup.size(); ++i)
   {
     if (this->AttributeDataGroup[i] >= 0)
     {
@@ -453,7 +453,7 @@ bool vtkHDFReader::Implementation::GetPartitionExtent(hsize_t partitionIndex, in
 //------------------------------------------------------------------------------
 template <typename T>
 bool vtkHDFReader::Implementation::GetAttribute(
-  const char* attributeName, int numberOfElements, T* value)
+  const char* attributeName, size_t numberOfElements, T* value)
 {
   hid_t attr = -1;
   hid_t space = -1;
@@ -627,7 +627,7 @@ vtkStringArray* vtkHDFReader::Implementation::NewStringArray(hid_t dataset, hsiz
 
   auto array = vtkStringArray::New();
   array->SetNumberOfTuples(size);
-  for (int i = 0; i < size; ++i)
+  for (size_t i = 0; i < size; ++i)
   {
     array->SetValue(i, rdata[i]);
   }
@@ -881,6 +881,6 @@ bool vtkHDFReader::Implementation::NewArray(
 //------------------------------------------------------------------------------
 // explicit template instantiation
 template bool vtkHDFReader::Implementation::GetAttribute<int>(
-  const char* attributeName, int dim, int* value);
+  const char* attributeName, size_t dim, int* value);
 template bool vtkHDFReader::Implementation::GetAttribute<double>(
-  const char* attributeName, int dim, double* value);
+  const char* attributeName, size_t dim, double* value);

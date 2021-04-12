@@ -62,7 +62,7 @@ public:
    * Reads an attribute from the /VTKHDF group
    */
   template <typename T>
-  bool GetAttribute(const char* attributeName, int numberOfElements, T* value);
+  bool GetAttribute(const char* attributeName, size_t numberOfElements, T* value);
   /**
    * Returns the number of partitions for this dataset.
    */
@@ -199,8 +199,8 @@ private:
 //------------------------------------------------------------------------------
 // explicit template instantiation declaration
 extern template bool vtkHDFReader::Implementation::GetAttribute<int>(
-  const char* attributeName, int dim, int* value);
+  const char* attributeName, size_t dim, int* value);
 extern template bool vtkHDFReader::Implementation::GetAttribute<double>(
-  const char* attributeName, int dim, double* value);
+  const char* attributeName, size_t dim, double* value);
 
 #endif
