@@ -86,7 +86,7 @@
         - shell
         - vs2019
         - windows
-        # - test # Not needed yet?
+        - test
 
 .windows_ext_builder_tags:
     tags:
@@ -97,7 +97,7 @@
         - shell
         - vs2019
         - windows
-        # - test # Not needed yet?
+        - test
 
 ## Windows-specific scripts
 
