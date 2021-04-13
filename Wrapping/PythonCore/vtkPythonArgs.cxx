@@ -21,9 +21,6 @@ more efficient and flexible that the original PyArg_ParseTuple() code,
 resulting in wrapper code that is faster and more compact.
 -----------------------------------------------------------------------*/
 
-// Hide VTK_DEPRECATED_IN_9_1_0() warnings for this class.
-#define VTK_DEPRECATION_LEVEL 0
-
 // Keep vtkPythonArgs.h from declaring externs for templates we instantiate
 #define vtkPythonArgs_cxx
 
@@ -98,20 +95,6 @@ Py_ssize_t vtkPythonGetStringSize(PyObject* o)
   {
     return PyByteArray_GET_SIZE(o);
   }
-  else if (PyUnicode_Check(o))
-  {
-#ifdef VTK_PY3K
-    Py_ssize_t size;
-    PyUnicode_AsUTF8AndSize(o, &size);
-    return size;
-#else
-    PyObject* s = _PyUnicode_AsDefaultEncodedString(o, nullptr);
-    if (s)
-    {
-      return PyBytes_GET_SIZE(s);
-    }
-#endif
-  }
   return 0;
 }
 
@@ -127,27 +110,6 @@ bool vtkPythonGetStringValue(PyObject* o, const char*& a, const char* exctext)
     a = PyByteArray_AS_STRING(o);
     return true;
   }
-  else if (PyUnicode_Check(o))
-  {
-#ifdef VTK_PY3K
-    a = PyUnicode_AsUTF8(o);
-    return true;
-#else
-    PyObject* s = _PyUnicode_AsDefaultEncodedString(o, nullptr);
-    if (s)
-    {
-      a = PyBytes_AS_STRING(s);
-      return true;
-    }
-
-    if (exctext)
-    {
-      // set a more specific error message
-      exctext = "(unicode conversion error)";
-    }
-#endif
-  }
-
   if (exctext)
   {
     PyErr_SetString(PyExc_TypeError, exctext);
@@ -164,27 +126,6 @@ inline bool vtkPythonGetStdStringValue(PyObject* o, std::string& a, const char* 
     PyBytes_AsStringAndSize(o, &val, &len);
     a = std::string(val, len);
     return true;
-  }
-  else if (PyUnicode_Check(o))
-  {
-#ifdef VTK_PY3K
-    Py_ssize_t len;
-    const char* val = PyUnicode_AsUTF8AndSize(o, &len);
-    a = std::string(val, len);
-    return true;
-#else
-    PyObject* s = _PyUnicode_AsDefaultEncodedString(o, nullptr);
-    if (s)
-    {
-      char* val;
-      Py_ssize_t len;
-      PyBytes_AsStringAndSize(s, &val, &len);
-      a = std::string(val, len);
-      return true;
-    }
-
-    exctext = "(unicode conversion error)";
-#endif
   }
 
   PyErr_SetString(PyExc_TypeError, exctext);
@@ -205,6 +146,9 @@ static bool vtkPythonGetValue(PyObject* o, const void*& a, Py_buffer* view, char
   PyBufferProcs* b = Py_TYPE(o)->tp_as_buffer;
 #endif
 
+#if PY_VERSION_HEX < 0x02060000
+  (void)view;
+#else
 #ifdef VTK_PY3K
   PyObject* bytes = nullptr;
   if (PyUnicode_Check(o))
@@ -248,8 +192,12 @@ static bool vtkPythonGetValue(PyObject* o, const void*& a, Py_buffer* view, char
     }
   }
 #ifndef VTK_PY3K
+  else
+#endif
+#endif
+#ifndef VTK_PY3K
   // use the old buffer interface
-  else if (b && b->bf_getreadbuffer && b->bf_getsegcount)
+  if (b && b->bf_getreadbuffer && b->bf_getsegcount)
   {
     if (b->bf_getsegcount(o, nullptr) == 1)
     {
@@ -266,8 +214,8 @@ static bool vtkPythonGetValue(PyObject* o, const void*& a, Py_buffer* view, char
 #ifdef VTK_PY3K
   if (bytes && btype == '\0')
 #else
-  if (p && sz >= 0 && sz <= VTK_INT_MAX && btype == '\0' &&
-    (format == nullptr || format[0] == 'c' || format[0] == 'B'))
+    if (p && sz >= 0 && sz <= VTK_INT_MAX && btype == '\0' &&
+      (format == nullptr || format[0] == 'c' || format[0] == 'B'))
 #endif
   {
     // check for pointer mangled as string
@@ -321,18 +269,6 @@ inline bool vtkPythonGetValue(PyObject* o, const char*& a)
 inline bool vtkPythonGetValue(PyObject* o, std::string& a)
 {
   return vtkPythonGetStdStringValue(o, a, "string is required");
-}
-
-inline bool vtkPythonGetValue(PyObject* o, vtkUnicodeString& a)
-{
-  PyObject* s = PyUnicode_AsUTF8String(o);
-  if (s)
-  {
-    a = vtkUnicodeString::from_utf8(PyBytes_AS_STRING(s));
-    Py_DECREF(s);
-    return true;
-  }
-  return false;
 }
 
 inline bool vtkPythonGetValue(PyObject* o, char& a)
@@ -951,7 +887,6 @@ VTK_PYTHON_BUILD_TUPLE(unsigned long)
 VTK_PYTHON_BUILD_TUPLE(long long)
 VTK_PYTHON_BUILD_TUPLE(unsigned long long)
 VTK_PYTHON_BUILD_TUPLE(std::string)
-VTK_PYTHON_BUILD_TUPLE(vtkUnicodeString)
 
 //------------------------------------------------------------------------------
 
@@ -1102,7 +1037,6 @@ int vtkPythonArgs::GetArgAsEnum(PyObject* o, const char* enumname, bool& valid)
 
 VTK_PYTHON_GET_ARG(const char*)
 VTK_PYTHON_GET_ARG(std::string)
-VTK_PYTHON_GET_ARG(vtkUnicodeString)
 VTK_PYTHON_GET_ARG(char)
 VTK_PYTHON_GET_ARG(bool)
 VTK_PYTHON_GET_ARG(float)
@@ -1172,7 +1106,6 @@ VTK_PYTHON_GET_ARRAY_ARG(unsigned long)
 VTK_PYTHON_GET_ARRAY_ARG(long long)
 VTK_PYTHON_GET_ARRAY_ARG(unsigned long long)
 VTK_PYTHON_GET_ARRAY_ARG(std::string)
-VTK_PYTHON_GET_ARRAY_ARG(vtkUnicodeString)
 
 //------------------------------------------------------------------------------
 // Define all the GetNArray methods in the class.
@@ -1332,7 +1265,6 @@ VTK_PYTHON_GET_BUFFER(unsigned long long, 'Q')
   }
 
 VTK_PYTHON_SET_ARG(const std::string&)
-VTK_PYTHON_SET_ARG(const vtkUnicodeString&)
 VTK_PYTHON_SET_ARG(char)
 VTK_PYTHON_SET_ARG(bool)
 VTK_PYTHON_SET_ARG(float)
