@@ -113,7 +113,7 @@ protected:
   struct TypeDescription
   {
     int Class;
-    int Size;
+    size_t Size;
     int Sign;
     TypeDescription()
       : Class(H5T_NO_CLASS)

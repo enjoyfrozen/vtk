@@ -787,10 +787,10 @@ vtkDataArray* vtkHDFReader::Implementation::NewArray(
   hid_t dataset, const std::vector<hsize_t>& fileExtent, hsize_t numberOfComponents)
 {
   int numberOfTuples = 1;
-  int ndims = fileExtent.size() >> 1;
-  for (int i = 0; i < ndims; ++i)
+  size_t ndims = fileExtent.size() >> 1;
+  for (size_t i = 0; i < ndims; ++i)
   {
-    int j = i << 1;
+    size_t j = i << 1;
     numberOfTuples *= (fileExtent[j + 1] - fileExtent[j] + 1);
   }
   auto array = vtkAOSDataArrayTemplate<T>::SafeDownCast(NewVtkDataArray<T>());
@@ -829,7 +829,7 @@ bool vtkHDFReader::Implementation::NewArray(
       count.push_back(numberOfComponents);
       start.push_back(0);
     }
-    if ((memspace = H5Screate_simple(count.size(), &count[0], NULL)) < 0)
+    if ((memspace = H5Screate_simple(static_cast<int>(count.size()), &count[0], NULL)) < 0)
     {
       throw std::runtime_error("Error H5Screate_simple for memory space");
     }
