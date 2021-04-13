@@ -139,7 +139,10 @@ int TestDataSet(vtkDataSet* data, vtkDataSet* expectedData)
           sizeof(unsigned long long) == sizeof(unsigned long)) &&
         !(std::string(expectedArray->GetClassName()).compare("vtkIdTypeArray") == 0 &&
           std::string(array->GetClassName()).compare("vtkLongArray") == 0 &&
-          sizeof(vtkIdType) == sizeof(long)))
+          sizeof(vtkIdType) == sizeof(long)) &&
+        !(std::string(expectedArray->GetClassName()).compare("vtkIdTypeArray") == 0 &&
+          std::string(array->GetClassName()).compare("vtkLongLongArray") == 0 &&
+          sizeof(vtkIdType) == sizeof(long long)))
       {
         std::cerr << "Different array type: " << array->GetClassName() << " from expected "
                   << expectedArray->GetClassName() << " for array: " << expectedArray->GetName()
