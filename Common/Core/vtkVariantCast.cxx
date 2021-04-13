@@ -23,20 +23,3 @@
 #define VTK_DEPRECATION_LEVEL 0
 
 #include "vtkVariantCast.h"
-#include "vtkUnicodeString.h"
-#include "vtkVariantCreate.h"
-
-template <>
-vtkVariant vtkVariantCreate<vtkUnicodeString>(const vtkUnicodeString& value)
-{
-  return value;
-}
-
-template <>
-vtkUnicodeString vtkVariantCast<vtkUnicodeString>(const vtkVariant& value, bool* valid)
-{
-  if (valid)
-    *valid = true;
-
-  return value.ToUnicodeString();
-}
