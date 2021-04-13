@@ -12,6 +12,7 @@ vtk_module_test_data(
 
 add_subdirectory(Cxx)
 
-if (VTK_WRAP_PYTHON)
-  add_subdirectory(Python)
-endif ()
+# Needs h5py which may not be available
+# if (VTK_WRAP_PYTHON)
+#   add_subdirectory(Python)
+# endif ()

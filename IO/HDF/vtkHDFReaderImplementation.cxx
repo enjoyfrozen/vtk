@@ -254,13 +254,17 @@ void vtkHDFReader::Implementation::BuildTypeReaderMap()
     &vtkHDFReader::Implementation::NewArray<int>;
   this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_UINT)] =
     &vtkHDFReader::Implementation::NewArray<unsigned int>;
-  this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_LONG)] =
-    &vtkHDFReader::Implementation::NewArray<long>;
-  this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_ULONG)] =
-    &vtkHDFReader::Implementation::NewArray<unsigned long>;
+  if (!this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_LONG)])
+  {
+    // long may be the same as int
+    this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_LONG)] =
+      &vtkHDFReader::Implementation::NewArray<long>;
+    this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_ULONG)] =
+      &vtkHDFReader::Implementation::NewArray<unsigned long>;
+  }
   if (!this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_LLONG)])
   {
-    // long is the same as long long.
+    // long long may be the same as long
     this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_LLONG)] =
       &vtkHDFReader::Implementation::NewArray<long long>;
     this->TypeReaderMap[this->GetTypeDescription(H5T_NATIVE_ULLONG)] =
