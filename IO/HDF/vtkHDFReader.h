@@ -34,6 +34,9 @@ class vtkInformationVector;
 class vtkInformation;
 class vtkCommand;
 
+/**
+ * Saves VTK datasets in HDF format.
+ */
 class VTKIOHDF_EXPORT vtkHDFReader : public vtkDataSetAlgorithm
 {
 public:
@@ -83,12 +86,6 @@ public:
   int GetNumberOfCellArrays();
   //@}
 
-  /**
-   * How many attribute types we have. This returns 3: point, cell and field
-   * attribute types.
-   */
-  constexpr static int GetNumberOfAttributeTypes() { return 3; }
-
   //@{
   /**
    * Get the name of the point or cell array with the given index in
@@ -114,6 +111,12 @@ protected:
   ~vtkHDFReader() override;
 
   /**
+   * How many attribute types we have. This returns 3: point, cell and field
+   * attribute types.
+   */
+  constexpr static int GetNumberOfAttributeTypes() { return 3; }
+
+  /**
    * Test if the reader can read a file with the given version number.
    */
   virtual int CanReadFileVersion(int major, int minor);
@@ -135,9 +138,14 @@ protected:
     const std::vector<vtkIdType>& numberOfCells,
     const std::vector<vtkIdType>& numberOfConnectivityIds, int filePiece,
     vtkUnstructuredGrid* pieceData);
-  bool AppendFieldData(vtkDataSet* data);
+  /**
+   * Read the field arrays from the file and add them to the dataset.
+   */
+  bool AddFieldArrays(vtkDataSet* data);
 
-  // Callback registered with the SelectionObserver.
+  /**
+   * Modify this object when an array selection is changed.
+   */
   static void SelectionModifiedCallback(
     vtkObject* caller, unsigned long eid, void* clientdata, void* calldata);
 
@@ -164,21 +172,30 @@ private:
   void operator=(const vtkHDFReader&) = delete;
 
 protected:
-  // The input file's name.
+  /**
+   * The input file's name.
+   */
   char* FileName;
 
-  // The array selections.
-  // in the same order as vtkDataObject::AttributeTypes: POINT, CELL, FIELD
+  /**
+   * The array selections.
+   * in the same order as vtkDataObject::AttributeTypes: POINT, CELL, FIELD
+   */
   vtkDataArraySelection* DataArraySelection[3];
 
-  // The observer to modify this object when the array selections are
-  // modified.
+  /**
+   * The observer to modify this object when the array selections are
+   * modified.
+   */
   vtkCallbackCommand* SelectionObserver;
-  // Used for image data
+  //@{
+  /**
+   * Image data topology and geometry.
+   */
   int WholeExtent[6];
   double Origin[3];
   double Spacing[3];
-
+  //@}
   class Implementation;
   Implementation* Impl;
 };

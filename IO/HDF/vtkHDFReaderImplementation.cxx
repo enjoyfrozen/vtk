@@ -707,15 +707,8 @@ std::vector<vtkIdType> vtkHDFReader::Implementation::GetMetadata(const char* nam
   {
     return v;
   }
-  auto* ia = vtkAOSDataArrayTemplate<long>::SafeDownCast(a);
-  if (!ia)
-  {
-    vtkErrorWithObjectMacro(
-      this->Reader, "Error: expected vtkIdTypeArry but got: " << a->GetClassName());
-    return v;
-  }
-  v.resize(ia->GetNumberOfTuples());
-  auto range = vtk::DataArrayValueRange<1>(ia);
+  v.resize(a->GetNumberOfTuples());
+  auto range = vtk::DataArrayValueRange<1>(a);
   std::copy(range.begin(), range.end(), v.begin());
   return v;
 }

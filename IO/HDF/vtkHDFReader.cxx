@@ -380,7 +380,7 @@ bool vtkHDFReader::Read(vtkInformation* outInfo, vtkImageData* data)
     return 0;
   }
 
-  // in the same order as vtkDataObject::AttributeTypes: POINT, CELL
+  // in the same order as vtkDataObject::AttributeTypes: POINT, CELL, FIELD
   for (int attributeType = 0; attributeType < this->GetNumberOfAttributeTypes(); ++attributeType)
   {
     std::vector<std::string> names = this->Impl->GetArrayNames(attributeType);
@@ -403,7 +403,7 @@ bool vtkHDFReader::Read(vtkInformation* outInfo, vtkImageData* data)
 }
 
 //------------------------------------------------------------------------------
-bool vtkHDFReader::AppendFieldData(vtkDataSet* data)
+bool vtkHDFReader::AddFieldArrays(vtkDataSet* data)
 {
   std::vector<std::string> names = this->Impl->GetArrayNames(vtkDataObject::FIELD);
   for (auto name : names)
@@ -570,5 +570,5 @@ int vtkHDFReader::RequestData(vtkInformation* vtkNotUsed(request),
     vtkErrorMacro("HDF dataset type unknown: " << dataSetType);
     return 0;
   }
-  return ok && this->AppendFieldData(output);
+  return ok && this->AddFieldArrays(output);
 }
