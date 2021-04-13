@@ -373,11 +373,11 @@ vtkDataArray* vtkHDFReader::Implementation::NewVtkDataArray()
   }
   else if (std::is_same<T, long long>::value)
   {
-    return vtkAOSDataArrayTemplate<long long>::New();
+    return vtkLongLongArray::New();
   }
   else if (std::is_same<T, unsigned long long>::value)
   {
-    return vtkAOSDataArrayTemplate<unsigned long long>::New();
+    return vtkUnsignedLongLongArray::New();
   }
   else if (std::is_same<T, float>::value)
   {
