@@ -290,12 +290,7 @@ struct ImageInfo
       return false;
     }
 
-    if (this->PNGBase64 < other.PNGBase64)
-    {
-      return true;
-    }
-
-    return false;
+    return this->PNGBase64 < other.PNGBase64;
   }
 
   std::array<int, 2> Size;
@@ -337,12 +332,7 @@ struct PatternInfo
       return false;
     }
 
-    if (this->ImageId < other.ImageId)
-    {
-      return true;
-    }
-
-    return false;
+    return this->ImageId < other.ImageId;
   }
 
   int TextureProperty;

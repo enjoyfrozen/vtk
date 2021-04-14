@@ -96,9 +96,7 @@ public:
     else if (this->Index > other.Index)
       return false;
 
-    if (this->Id < other.Id)
-      return true;
-    return false;
+    return this->Id < other.Id;
   }
   double Radius;
   double Alpha;

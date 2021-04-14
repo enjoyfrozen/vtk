@@ -85,7 +85,6 @@ readability-*,\
 -readability-qualified-auto,\
 -readability-redundant-declaration,\
 -readability-redundant-preprocessor,\
--readability-simplify-boolean-expr,\
 -readability-uppercase-literal-suffix,\
 -readability-use-anyofallof,\
 "

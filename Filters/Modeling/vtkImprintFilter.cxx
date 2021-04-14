@@ -250,11 +250,7 @@ struct vtkEdgeIntersection
     {
       p1 = &(*edgeInt.PointList)[edgeInt.Id];
     }
-    if (p0 != nullptr && p1 != nullptr && p0->VTKPtId >= 0 && p0->VTKPtId == p1->VTKPtId)
-    {
-      return true;
-    }
-    return false;
+    return p0 != nullptr && p1 != nullptr && p0->VTKPtId >= 0 && p0->VTKPtId == p1->VTKPtId;
   }
 
   // Return the point information for a given id
