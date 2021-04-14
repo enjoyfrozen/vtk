@@ -1393,7 +1393,7 @@ void vtkContour3DLinearGrid::ProcessPiece(
     for (int vidx = 0; vidx < numContours; vidx++)
     {
       value = values[vidx];
-      if (this->LargeIds == false)
+      if (!this->LargeIds)
       {
         if (!ProcessMerged<int>(numCells, inPts, cellIter, sType, sPtr, value, outPts, newPolys,
               this->InterpolateAttributes, inScalars, inPD, outPD, &arrays, stree,
