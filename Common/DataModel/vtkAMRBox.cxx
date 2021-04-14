@@ -223,14 +223,10 @@ bool vtkAMRBox::HasPoint(const vtkAMRBox& box, const double origin[3], const dou
 //------------------------------------------------------------------------------
 bool vtkAMRBox::operator==(const vtkAMRBox& other) const
 {
-  if ((this->Empty() && other.Empty()) ||
+  return (this->Empty() && other.Empty()) ||
     (this->LoCorner[0] == other.LoCorner[0] && this->LoCorner[1] == other.LoCorner[1] &&
       this->LoCorner[2] == other.LoCorner[2] && this->HiCorner[0] == other.HiCorner[0] &&
-      this->HiCorner[1] == other.HiCorner[1] && this->HiCorner[2] == other.HiCorner[2]))
-  {
-    return true;
-  }
-  return false;
+      this->HiCorner[1] == other.HiCorner[1] && this->HiCorner[2] == other.HiCorner[2]);
 }
 
 //------------------------------------------------------------------------------
