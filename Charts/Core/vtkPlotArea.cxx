@@ -66,16 +66,9 @@ class vtkPlotArea::vtkTableCache
     static bool inRange(
       const vtkVector2f& point, const vtkVector2f& tol, const vtkVector2f& current)
     {
-      if (current.GetX() > point.GetX() - tol.GetX() &&
+      return current.GetX() > point.GetX() - tol.GetX() &&
         current.GetX() < point.GetX() + tol.GetX() && current.GetY() > point.GetY() - tol.GetY() &&
-        current.GetY() < point.GetY() + tol.GetY())
-      {
-        return true;
-      }
-      else
-      {
-        return false;
-      }
+        current.GetY() < point.GetY() + tol.GetY();
     }
   };
 
