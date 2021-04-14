@@ -645,7 +645,7 @@ void fillVectorsFromVars(std::vector<CGNSRead::CGNSVariable>& vars,
         vars[n].isComponent = true;
         break;
     }
-    if (vars[n].isComponent == true)
+    if (vars[n].isComponent)
     {
       strcpy(name, vars[n].name);
       name[len] = '\0';
@@ -691,7 +691,7 @@ void fillVectorsFromVars(std::vector<CGNSRead::CGNSVariable>& vars,
     }
     // Check if a variable is present with a similar
     // name as the vector being built
-    if (CGNSRead::isACGNSVariable(vars, iter->name) == true)
+    if (CGNSRead::isACGNSVariable(vars, iter->name))
     {
       // vtkWarningMacro ( "Warning, vector " << iter->name
       //                  << " can't be assembled." << std::endl );
@@ -726,7 +726,7 @@ void fillVectorsFromVars(std::vector<CGNSRead::CGNSVariable>& vars,
     }
   }
   // Remove invalid vectors
-  if (invalid == true)
+  if (invalid)
   {
     vectors.erase(
       std::remove_if(vectors.begin(), vectors.end(), CGNSRead::testValidVector), vectors.end());
@@ -1065,7 +1065,7 @@ static void BroadcastFamilies(vtkMultiProcessController* controller,
     int flags = 0;
     if (rank == 0)
     {
-      if (ite->isBC == true)
+      if (ite->isBC)
       {
         flags = 1;
       }
@@ -1148,11 +1148,11 @@ void vtkCGNSMetaData::Broadcast(vtkMultiProcessController* controller, int rank)
     int flags = 0;
     if (rank == 0)
     {
-      if (ite->useGridPointers == true)
+      if (ite->useGridPointers)
       {
         flags = 1;
       }
-      if (ite->useFlowPointers == true)
+      if (ite->useFlowPointers)
       {
         flags = (flags | 2);
       }
