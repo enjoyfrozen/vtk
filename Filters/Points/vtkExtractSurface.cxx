@@ -169,17 +169,10 @@ public:
   // needs to refer to the state of the edge.
   bool GeneratePrimitives(unsigned char* ePtr[4])
   {
-    if (*ePtr[0] >= vtkExtractSurfaceAlgorithm::Invalid ||
-      *ePtr[1] >= vtkExtractSurfaceAlgorithm::Invalid ||
-      *ePtr[2] >= vtkExtractSurfaceAlgorithm::Invalid ||
-      *ePtr[3] >= vtkExtractSurfaceAlgorithm::Invalid)
-    {
-      return false;
-    }
-    else
-    {
-      return true;
-    }
+    return *ePtr[0] < vtkExtractSurfaceAlgorithm::Invalid &&
+      *ePtr[1] < vtkExtractSurfaceAlgorithm::Invalid &&
+      *ePtr[2] < vtkExtractSurfaceAlgorithm::Invalid &&
+      *ePtr[3] < vtkExtractSurfaceAlgorithm::Invalid;
   }
 
   // Return the number of contouring primitives for a particular edge case number.

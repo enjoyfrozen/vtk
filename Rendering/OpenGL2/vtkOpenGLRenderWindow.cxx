@@ -802,11 +802,7 @@ int vtkOpenGLRenderWindow::GetPixelData(
 // does the current read buffer require resolving for reading pixels
 bool vtkOpenGLRenderWindow::GetBufferNeedsResolving()
 {
-  if (this->RenderFramebuffer->GetMultiSamples())
-  {
-    return true;
-  }
-  return false;
+  return this->RenderFramebuffer->GetMultiSamples();
 }
 
 //------------------------------------------------------------------------------

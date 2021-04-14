@@ -1206,13 +1206,7 @@ void vtkCGNSMetaData::Broadcast(vtkMultiProcessController* controller, int rank)
 bool ReadBase(vtkCGNSReader* reader, const BaseInformation& baseInfo)
 {
   auto baseSelection = reader->GetBaseSelection();
-  if (!baseSelection->ArrayIsEnabled(baseInfo.name))
-  {
-    // base has not been enabled.
-    return false;
-  }
-
-  return true;
+  return baseSelection->ArrayIsEnabled(baseInfo.name) != 0;
 }
 
 //------------------------------------------------------------------------------
@@ -1233,25 +1227,14 @@ bool ReadGridForZone(
 
   // check if the zone's family is enabled.
   auto familySelection = reader->GetFamilySelection();
-  if (familySelection->ArrayExists(zoneInfo.family.c_str()) &&
-    !familySelection->ArrayIsEnabled(zoneInfo.family.c_str()))
-  {
-    return false;
-  }
-
-  return true;
+  return familySelection->ArrayExists(zoneInfo.family.c_str()) == 0 ||
+    familySelection->ArrayIsEnabled(zoneInfo.family.c_str()) != 0;
 }
 
 //------------------------------------------------------------------------------
 bool ReadPatchesForBase(vtkCGNSReader* reader, const BaseInformation&)
 {
-  if (!reader->GetLoadBndPatch())
-  {
-    // patches have been globally disabled.
-    return false;
-  }
-
-  return true;
+  return reader->GetLoadBndPatch();
 }
 
 //------------------------------------------------------------------------------
@@ -1260,12 +1243,7 @@ bool ReadPatch(vtkCGNSReader* reader, const BaseInformation&, const ZoneInformat
 {
   auto familySelection = reader->GetFamilySelection();
 
-  if (!patchFamilyname.empty() && !familySelection->ArrayIsEnabled(patchFamilyname.c_str()))
-  {
-    return false;
-  }
-
-  return true;
+  return patchFamilyname.empty() || familySelection->ArrayIsEnabled(patchFamilyname.c_str());
 }
 
 } // end of namespace
