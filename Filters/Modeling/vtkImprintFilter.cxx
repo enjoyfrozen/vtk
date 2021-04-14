@@ -318,18 +318,12 @@ struct vtkTriEdge
   }
 
   // Equivalence operator
-  bool operator==(vtkTriEdge& edge)
-  {
-    return ((this->V0 == edge.V0 && this->V1 == edge.V1) ? true : false);
-  }
+  bool operator==(vtkTriEdge& edge) { return this->V0 == edge.V0 && this->V1 == edge.V1; }
 
   // Indicate whether the edge provided is a reversed edge to this one (i.e.,
   // same edge but opposite direction). This check is needed because we don't
   // want loops to travel back and forth along the same edge.
-  bool IsReverseEdge(vtkTriEdge* edge)
-  {
-    return ((this->V0 == edge->V1 && this->V1 == edge->V0) ? true : false);
-  }
+  bool IsReverseEdge(vtkTriEdge* edge) { return this->V0 == edge->V1 && this->V1 == edge->V0; }
 };
 
 // Supports the representation and construction of edge networks for the
