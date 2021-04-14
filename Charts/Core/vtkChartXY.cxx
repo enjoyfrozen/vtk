@@ -2107,15 +2107,8 @@ bool vtkChartXY::MouseButtonReleaseEvent(const vtkContextMouseEvent& mouse)
       this->LocatePointInPlots(mouse, vtkCommand::SelectionChangedEvent);
       this->InvokeEvent(vtkCommand::SelectionChangedEvent);
     }
-    if (mouse.GetButton() != this->ActionsClick.Notify() &&
-      mouse.GetButton() != this->ActionsClick.Select())
-    {
-      return false;
-    }
-    else
-    {
-      return true;
-    }
+    return mouse.GetButton() == this->ActionsClick.Notify() ||
+      mouse.GetButton() == this->ActionsClick.Select();
   }
 
   if (mouse.GetButton() == this->Actions.Select() ||

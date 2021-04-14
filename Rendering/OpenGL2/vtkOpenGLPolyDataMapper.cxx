@@ -420,13 +420,9 @@ bool vtkOpenGLPolyDataMapper::DrawingEdges(vtkRenderer*, vtkActor* actor)
     return false;
   }
 
-  if (actor->GetProperty()->GetEdgeVisibility() &&
+  return actor->GetProperty()->GetEdgeVisibility() &&
     this->GetOpenGLMode(
-      actor->GetProperty()->GetRepresentation(), this->LastBoundBO->PrimitiveType) == GL_TRIANGLES)
-  {
-    return true;
-  }
-  return false;
+      actor->GetProperty()->GetRepresentation(), this->LastBoundBO->PrimitiveType) == GL_TRIANGLES;
 }
 
 //-----------------------------------------------------------------------------
