@@ -229,16 +229,11 @@ bool vtkOpenGLPointGaussianMapperHelper::GetNeedToRebuildShaders(
   // property modified (representation interpolation and lighting)
   // input modified
   // light complexity changed
-  if (cellBO.Program == nullptr || cellBO.ShaderSourceTime < this->GetMTime() ||
+  return cellBO.Program == nullptr || cellBO.ShaderSourceTime < this->GetMTime() ||
     cellBO.ShaderSourceTime < actor->GetMTime() ||
     cellBO.ShaderSourceTime < this->CurrentInput->GetMTime() ||
     cellBO.ShaderSourceTime < this->SelectionStateChanged ||
-    cellBO.ShaderSourceTime < renderPassMTime)
-  {
-    return true;
-  }
-
-  return false;
+    cellBO.ShaderSourceTime < renderPassMTime;
 }
 
 //------------------------------------------------------------------------------
@@ -477,17 +472,13 @@ void vtkOpenGLPointGaussianMapperHelperSizes(vtkFloatArray* scales, PointDataTyp
 bool vtkOpenGLPointGaussianMapperHelper::GetNeedToRebuildBufferObjects(
   vtkRenderer* vtkNotUsed(ren), vtkActor* act)
 {
-  if (this->VBOBuildTime < this->GetMTime() || this->VBOBuildTime < act->GetMTime() ||
+  return this->VBOBuildTime < this->GetMTime() || this->VBOBuildTime < act->GetMTime() ||
     this->VBOBuildTime < this->CurrentInput->GetMTime() ||
     this->VBOBuildTime < this->Owner->GetMTime() ||
     (this->Owner->GetScalarOpacityFunction() &&
       this->VBOBuildTime < this->Owner->GetScalarOpacityFunction()->GetMTime()) ||
     (this->Owner->GetScaleFunction() &&
-      this->VBOBuildTime < this->Owner->GetScaleFunction()->GetMTime()))
-  {
-    return true;
-  }
-  return false;
+      this->VBOBuildTime < this->Owner->GetScaleFunction()->GetMTime());
 }
 
 //------------------------------------------------------------------------------
