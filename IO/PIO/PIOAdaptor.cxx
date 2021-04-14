@@ -237,7 +237,7 @@ int PIOAdaptor::collectMetaData(const char* PIOFileName)
   std::map<long, std::string>::iterator miter;
   for (size_t dir = 0; dir < this->dumpDirectory.size(); dir++)
   {
-    if (directory->Open(this->dumpDirectory[dir].c_str()) == false)
+    if (!directory->Open(this->dumpDirectory[dir].c_str()))
     {
       vtkGenericWarningMacro("Dump directory does not exist: " << this->dumpDirectory[dir]);
     }
@@ -675,7 +675,7 @@ void PIOAdaptor::collectVariableMetaData()
   this->fieldsToRead.emplace_back("hist_prbnm");
 
   // If tracers are contained in the file
-  if (this->hasTracers == true)
+  if (this->hasTracers)
   {
     this->fieldsToRead.emplace_back("tracer_num_pnts");
     this->fieldsToRead.emplace_back("tracer_num_vars");
@@ -788,7 +788,7 @@ void PIOAdaptor::create_geometry(vtkMultiBlockDataSet* grid)
 {
   // Create Blocks in the grid as requested (unstructured, hypertree, tracer)
   grid->SetNumberOfBlocks(1);
-  if (this->useHTG == false)
+  if (!this->useHTG)
   {
     // Create a multipiece dataset and an unstructured grid to hold the dump file data
     vtkNew<vtkMultiPieceDataSet> multipiece;
@@ -816,7 +816,7 @@ void PIOAdaptor::create_geometry(vtkMultiBlockDataSet* grid)
   }
 
   // If tracers are used add a second block of unstructured grid particles
-  if (this->hasTracers == true && this->useTracer == true)
+  if (this->hasTracers && this->useTracer)
   {
     vtkNew<vtkMultiPieceDataSet> multipiece;
     multipiece->SetNumberOfPieces(this->TotalRank);
@@ -831,7 +831,7 @@ void PIOAdaptor::create_geometry(vtkMultiBlockDataSet* grid)
   }
 
   // Create the VTK structures within multiblock
-  if (this->useHTG == true)
+  if (this->useHTG)
   {
     create_amr_HTG(grid);
   }
@@ -841,9 +841,9 @@ void PIOAdaptor::create_geometry(vtkMultiBlockDataSet* grid)
   }
 
   // Create Tracer Unstructured if tracers exist
-  if (this->useTracer == true)
+  if (this->useTracer)
   {
-    if (this->hasTracers == true)
+    if (this->hasTracers)
     {
       if (this->Rank == 0)
       {
@@ -1002,7 +1002,7 @@ void PIOAdaptor::create_tracer_UG(vtkMultiBlockDataSet* grid)
   // Add other tracer data which appears by time step, then by tracer, then by variable
   // Variable data starts with cycle time and coordinate[numdim]
   int tracerDataOffset = 1 + dimension;
-  if (this->useFloat64 == true)
+  if (this->useFloat64)
   {
     std::vector<double*> varData(numberOfTracerVars);
     for (int var = 0; var < numberOfTracerVars; var++)
@@ -1687,7 +1687,7 @@ void PIOAdaptor::create_amr_HTG(vtkMultiBlockDataSet* grid)
 void PIOAdaptor::load_variable_data(
   vtkMultiBlockDataSet* grid, vtkDataArraySelection* cellDataArraySelection)
 {
-  if (this->useHTG == false)
+  if (!this->useHTG)
   {
     load_variable_data_UG(grid, cellDataArraySelection);
   }
@@ -1741,7 +1741,7 @@ void PIOAdaptor::load_variable_data_UG(
           };
         }
 
-        if (status == false)
+        if (!status)
         {
           // send a -1 as the number of cells to signal to other ranks to skip this variable
           int negative_one = -1;
@@ -1924,7 +1924,7 @@ void PIOAdaptor::add_amr_HTG_scalar(vtkMultiBlockDataSet* grid, vtkStdString var
   }
 
   // Data array in same order as the geometry cells
-  if (this->useFloat64 == true)
+  if (this->useFloat64)
   {
     vtkNew<vtkDoubleArray> arr;
     arr->SetName(varName);
@@ -1998,7 +1998,7 @@ void PIOAdaptor::add_amr_UG_scalar(vtkMultiBlockDataSet* grid, vtkStdString varN
   int numberOfActiveCells = ugrid->GetNumberOfCells();
 
   // Data array in same order as the geometry cells
-  if (this->useFloat64 == true)
+  if (this->useFloat64)
   {
     vtkNew<vtkDoubleArray> arr;
     arr->SetName(varName);
