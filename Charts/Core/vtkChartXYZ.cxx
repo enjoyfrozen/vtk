@@ -1146,11 +1146,7 @@ bool vtkChartXYZ::Hit(const vtkContextMouseEvent& vtkNotUsed(mouse))
 //------------------------------------------------------------------------------
 bool vtkChartXYZ::MouseButtonPressEvent(const vtkContextMouseEvent& mouse)
 {
-  if (mouse.GetButton() == vtkContextMouseEvent::LEFT_BUTTON)
-  {
-    return true;
-  }
-  return false;
+  return mouse.GetButton() == vtkContextMouseEvent::LEFT_BUTTON;
 }
 
 //------------------------------------------------------------------------------
