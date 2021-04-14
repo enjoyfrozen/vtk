@@ -409,7 +409,7 @@ int vtkRedistributeDataSetFilter::RequestData(
     }
 
     // if this->PreservePartitionsInOutput, we need to preserve input hierarchy.
-    preserve_input_hierarchy = (this->PreservePartitionsInOutput == false);
+    preserve_input_hierarchy = !this->PreservePartitionsInOutput;
   }
   else if (auto inputPTD = vtkPartitionedDataSet::SafeDownCast(inputDO))
   {
