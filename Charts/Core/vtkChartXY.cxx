@@ -733,7 +733,7 @@ void vtkChartXY::RecalculatePlotBounds()
   double bounds[4] = { 0.0, 0.0, 0.0, 0.0 };
   for (it = this->ChartPrivate->plots.begin(); it != this->ChartPrivate->plots.end(); ++it)
   {
-    if ((*it)->GetVisible() == false)
+    if (!(*it)->GetVisible())
     {
       continue;
     }
