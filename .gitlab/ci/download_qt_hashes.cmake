@@ -4,6 +4,8 @@
 
 set("5.15.1-0-202009071110qtbase-Windows-Windows_10-MSVC2019-Windows-Windows_10-X86_64.7z_hash" a5635124a135f383d9fb92bf628b018cff9f781addfd388926a367cda5b7cd38)
 set("5.15.1-0-202009071110qttools-Windows-Windows_10-MSVC2019-Windows-Windows_10-X86_64.7z_hash" 45b3debfc317f875d327e4506c0d211dc82ec92c1e9aa60e17b1a747ada22811)
+set("5.15.1-0-202009071110qtdeclarative-Windows-Windows_10-MSVC2019-Windows-Windows_10-X86_64.7z_hash" c40623f08fb54f0f46758b863d79d88449c04044415eb133b61df02055edd028)
+set("5.15.1-0-202009071110qtquickcontrols2-Windows-Windows_10-MSVC2019-Windows-Windows_10-X86_64.7z_hash" e09fa3e44bc3edb102963a197f2d1e8444d6ad0b1cae6e2da27fb423c9c62d76)
 
 # There's a filename conflict here.
 if (msvc_year STREQUAL "2019")
