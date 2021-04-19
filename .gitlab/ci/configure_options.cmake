@@ -35,6 +35,12 @@ endif ()
 
 # cuda
 configuration_flag(VTK_USE_CUDA "cuda")
+if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "cuda")
+  # Compile for a range of hardware to support testing on any available machine.
+  set(CMAKE_CUDA_ARCHITECTURES 60-real 70-real 75-real 80 CACHE STRING "")
+  # Lowest-common denominator.
+  set(VTKm_CUDA_Architecture "pascal" CACHE STRING "")
+endif ()
 
 # osmesa
 configuration_flag(VTK_OPENGL_HAS_OSMESA "osmesa")

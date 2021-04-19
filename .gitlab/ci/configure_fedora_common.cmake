@@ -4,6 +4,10 @@ set(VTK_MODULE_ENABLE_VTK_RenderingRayTracing NO CACHE STRING "") # ospray
 # https://bugzilla.redhat.com/show_bug.cgi?id=1997321
 set(VTK_MODULE_ENABLE_VTK_IOOpenVDB NO CACHE STRING "") # openvdb
 
+if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "cuda")
+  set(VTK_MODULE_ENABLE_VTK_fides NO CACHE STRING "") # needs support for CUDA-enabled VTK-m
+endif ()
+
 if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "offscreen")
   set(VTK_USE_X OFF CACHE BOOL "")
 else ()
