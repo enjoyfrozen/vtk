@@ -35,6 +35,11 @@ endif ()
 
 # cuda
 configuration_flag(VTK_USE_CUDA "cuda")
+if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "cuda")
+  # Lowest-common denominator.
+  set(CMAKE_CUDA_ARCHITECTURES "60" CACHE STRING "")
+  set(VTKm_CUDA_Architecture "pascal" CACHE STRING "")
+endif ()
 
 # osmesa
 configuration_flag(VTK_OPENGL_HAS_OSMESA "osmesa")
