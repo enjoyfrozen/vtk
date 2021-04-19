@@ -3,6 +3,16 @@
         {
             "group": "master",
             "site": "gitlab-ci",
+            "buildname": "[fedora33_cuda_mpi]"
+        },
+        {
+            "group": "master",
+            "site": "gitlab-ci",
+            "buildname": "[fedora33_cuda_mpi_ext_vtk]"
+        },
+        {
+            "group": "master",
+            "site": "gitlab-ci",
             "buildname": "[fedora33_doxygen_mpi_python_qt_tbb]"
         },
         {
