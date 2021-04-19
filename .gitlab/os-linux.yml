@@ -11,6 +11,11 @@
     extends: .linux
     image: "kitware/vtk:ci-fedora33-20210419"
 
+.fedora_cuda_addon:
+    variables:
+        CUDACC: "/usr/local/cuda-11.2/bin/nvcc"
+        CUDACXX: "/usr/local/cuda-11.2/bin/nvcc"
+
 .fedora_mpich_addon:
     variables:
         MODULES: mpi/mpich-x86_64
@@ -33,6 +38,25 @@
 
     variables:
         CMAKE_CONFIGURATION: fedora33_doxygen_mpi_python_qt_tbb
+
+.fedora33_cuda_mpi:
+    extends:
+        - .fedora33
+        - .fedora_cuda_addon
+        - .fedora_mpich_addon
+
+    variables:
+        CMAKE_CONFIGURATION: fedora33_cuda_mpi
+        VTK_INSTALL: 1
+
+.fedora33_cuda_mpi_ext_vtk:
+    extends:
+        - .fedora33
+        - .fedora_cuda_addon
+        - .fedora_mpich_addon
+
+    variables:
+        CMAKE_CONFIGURATION: fedora33_cuda_mpi_ext_vtk
 
 .fedora33_mpi_offscreen_osmesa_python:
     extends:
