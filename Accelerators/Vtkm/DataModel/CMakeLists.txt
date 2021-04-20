@@ -70,6 +70,8 @@ vtk_module_add_module(VTK::AcceleratorsVTKmDataModel
   NOWRAP_CLASSES  ${nowrap_classes}
   PRIVATE_HEADERS ${private_headers})
 _vtk_module_real_target(vtkm_accel_target VTK::AcceleratorsVTKmDataModel)
+
+# DROP_UNUSED_SYMBOLS
 vtkm_add_target_information(${vtkm_accel_target}
                             EXTENDS_VTKM
                             MODIFY_CUDA_FLAGS
@@ -80,9 +82,16 @@ vtk_module_set_property(VTK::AcceleratorsVTKmDataModel
   VALUE     vtkm_pool)
 
 if (TARGET vtkm::cuda)
-  vtk_module_set_property(VTK::AcceleratorsVTKmDataModel
-    PROPERTY  CUDA_SEPARABLE_COMPILATION
-    VALUE     ON)
+  set(cuda_impl ${nowrap_classes} vtkmDataSet.cxx)
+  set_source_files_properties(${cuda_impl} PROPERTIES
+    LANGUAGE CUDA 
+    CUDA_SOURCE_PROPERTY_FORMAT OBJ
+    CUDA_SEPARABLE_COMPILATION ON)
+
+  vtk_module_set_properties(VTK::AcceleratorsVTKmDataModel
+    LANGUAGE CUDA
+    CUDA_SEPARABLE_COMPILATION ON)
+
   vtk_module_compile_options(VTK::AcceleratorsVTKmDataModel
     PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:-Xcudafe --diag_suppress=extra_semicolon>)
 endif ()
