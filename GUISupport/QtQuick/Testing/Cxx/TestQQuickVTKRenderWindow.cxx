@@ -39,6 +39,7 @@
 #include "vtkXMLImageDataReader.h"
 
 #include <QApplication>
+#include <QDebug>
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
 #include <QTimer>
@@ -52,6 +53,7 @@ int TestQQuickVTKRenderWindow(int argc, char* argv[])
 
   QQmlApplicationEngine engine;
   engine.load(QUrl("qrc:///TestQQuickVTKRenderWindow.qml"));
+  qDebug() << "QML2_IMPORT_PATH:" << engine.importPathList();
 
   QObject* topLevel = engine.rootObjects().value(0);
   QQuickWindow* window = qobject_cast<QQuickWindow*>(topLevel);

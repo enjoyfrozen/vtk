@@ -115,6 +115,7 @@ if(QMLPLUGINDUMP_EXECUTABLE)
       COMMAND
         ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/${_vtk_build_PACKAGE}.qmltypes
           ${vtk_qml_module_path}
+      COMMENT "Copying qmltypes file from the source tree to ${vtk_qml_module_path}"
       )
     # file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/${_vtk_build_PACKAGE}.qmltypes
     #   DESTINATION ${vtk_qml_module_path}

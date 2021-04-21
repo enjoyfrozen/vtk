@@ -23,6 +23,7 @@ target_link_libraries(vtkGUISupportQtQuickCxxTests
     "Qt${vtk_qt_major_version}::Qml"
     )
 
+message(WARNING "${CMAKE_BINARY_DIR} ::::::: ${CTEST_BINARY_DIRECTORY}")
 set_tests_properties(
   VTK::GUISupportQtQuickCxx-TestQQuickVTKRenderItem
   VTK::GUISupportQtQuickCxx-TestQQuickVTKRenderItemWidget
