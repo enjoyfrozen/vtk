@@ -253,7 +253,7 @@ vtkCell* vtkRectilinearGrid::GetCell(int iMin, int jMin, int kMin)
   int d01 = this->Dimensions[0] * this->Dimensions[1];
   double x[3];
 
-  iMax = jMax = kMax = 0;
+  iMin = iMax = jMin = jMax = kMin = kMax = 0;
 
   switch (this->DataDescription)
   {
@@ -520,29 +520,6 @@ void vtkRectilinearGrid::GetCellBounds(vtkIdType cellId, double bounds[6])
     bounds[0] = (x[0] < bounds[0] ? x[0] : bounds[0]);
     bounds[1] = (x[0] > bounds[1] ? x[0] : bounds[1]);
   }
-}
-
-//------------------------------------------------------------------------------
-void vtkRectilinearGrid::GetCellDims(int cellDims[3])
-{
-  for (int i = 0; i < 3; ++i)
-  {
-    cellDims[i] = ((this->Dimensions[i] - 1) < 1) ? 1 : this->Dimensions[i] - 1;
-  }
-}
-
-//------------------------------------------------------------------------------
-unsigned char vtkRectilinearGrid::IsPointVisible(vtkIdType pointId)
-{
-  return vtkStructuredData::IsPointVisible(pointId, this->GetPointGhostArray());
-}
-
-//------------------------------------------------------------------------------
-// Return non-zero if the specified cell is visible (i.e., not blanked)
-unsigned char vtkRectilinearGrid::IsCellVisible(vtkIdType cellId)
-{
-  return vtkStructuredData::IsCellVisible(cellId, this->Dimensions, this->DataDescription,
-    this->GetCellGhostArray(), this->GetPointGhostArray());
 }
 
 //------------------------------------------------------------------------------
@@ -878,87 +855,6 @@ void vtkRectilinearGrid::ComputeBounds()
   }
 }
 
-namespace
-{
-class CellVisibility
-{
-public:
-  CellVisibility(vtkRectilinearGrid* input)
-    : Input(input)
-  {
-  }
-  bool operator()(const vtkIdType id) { return !Input->IsCellVisible(id); }
-
-private:
-  vtkRectilinearGrid* Input;
-};
-} // anonymous namespace
-
-//------------------------------------------------------------------------------
-void vtkRectilinearGrid::GetCellNeighbors(vtkIdType cellId, vtkIdList* ptIds, vtkIdList* cellIds)
-{
-  int numPtIds = ptIds->GetNumberOfIds();
-
-  // Use special methods for speed
-  switch (numPtIds)
-  {
-    case 0:
-      cellIds->Reset();
-      return;
-
-    case 1:
-    case 2:
-    case 4: // vertex, edge, face neighbors
-      vtkStructuredData::GetCellNeighbors(cellId, ptIds, cellIds, this->GetDimensions());
-      break;
-
-    default:
-      this->Superclass::GetCellNeighbors(cellId, ptIds, cellIds);
-  }
-
-  // If blanking, remove blanked cells.
-  if (this->GetPointGhostArray() || this->GetCellGhostArray())
-  {
-    vtkIdType* pCellIds = cellIds->GetPointer(0);
-    vtkIdType* end =
-      std::remove_if(pCellIds, pCellIds + cellIds->GetNumberOfIds(), CellVisibility(this));
-    cellIds->Resize(std::distance(pCellIds, end));
-  }
-}
-
-//------------------------------------------------------------------------------
-void vtkRectilinearGrid::GetCellNeighbors(
-  vtkIdType cellId, vtkIdList* ptIds, vtkIdList* cellIds, int* seedLoc)
-{
-  int numPtIds = ptIds->GetNumberOfIds();
-
-  // Use special methods for speed
-  switch (numPtIds)
-  {
-    case 0:
-      cellIds->Reset();
-      return;
-
-    case 1:
-    case 2:
-    case 4: // vertex, edge, face neighbors
-      vtkStructuredData::GetCellNeighbors(cellId, ptIds, cellIds, this->GetDimensions(), seedLoc);
-      break;
-
-    default:
-      this->Superclass::GetCellNeighbors(cellId, ptIds, cellIds);
-  }
-
-  // If blanking, remove blanked cells.
-  if (this->GetPointGhostArray() || this->GetCellGhostArray())
-  {
-    vtkIdType* pCellIds = cellIds->GetPointer(0);
-    vtkIdType* end =
-      std::remove_if(pCellIds, pCellIds + cellIds->GetNumberOfIds(), CellVisibility(this));
-    cellIds->Resize(std::distance(pCellIds, end));
-  }
-}
-
 //------------------------------------------------------------------------------
 // Set dimensions of rectilinear grid dataset.
 void vtkRectilinearGrid::SetDimensions(int i, int j, int k)
@@ -992,7 +888,9 @@ void vtkRectilinearGrid::SetExtent(int extent[6])
   this->DataDescription = description;
 
   this->Modified();
-  vtkStructuredData::GetDimensionsFromExtent(extent, this->Dimensions);
+  this->Dimensions[0] = extent[1] - extent[0] + 1;
+  this->Dimensions[1] = extent[3] - extent[2] + 1;
+  this->Dimensions[2] = extent[5] - extent[4] + 1;
 }
 
 //------------------------------------------------------------------------------
@@ -1075,7 +973,7 @@ int vtkRectilinearGrid::ComputeStructuredCoordinates(double x[3], int ijk[3], do
 //------------------------------------------------------------------------------
 unsigned long vtkRectilinearGrid::GetActualMemorySize()
 {
-  unsigned long size = this->Superclass::GetActualMemorySize();
+  unsigned long size = this->vtkDataSet::GetActualMemorySize();
 
   if (this->XCoordinates)
   {
@@ -1096,6 +994,28 @@ unsigned long vtkRectilinearGrid::GetActualMemorySize()
 }
 
 //------------------------------------------------------------------------------
+void vtkRectilinearGrid::GetCellNeighbors(vtkIdType cellId, vtkIdList* ptIds, vtkIdList* cellIds)
+{
+  int numPtIds = ptIds->GetNumberOfIds();
+
+  // Use special methods for speed
+  switch (numPtIds)
+  {
+    case 0:
+      cellIds->Reset();
+      return;
+
+    case 1:
+    case 2:
+    case 4: // vertex, edge, face neighbors
+      vtkStructuredData::GetCellNeighbors(cellId, ptIds, cellIds, this->Dimensions);
+      break;
+
+    default:
+      this->vtkDataSet::GetCellNeighbors(cellId, ptIds, cellIds);
+  }
+}
+//------------------------------------------------------------------------------
 void vtkRectilinearGrid::ShallowCopy(vtkDataObject* dataObject)
 {
   vtkRectilinearGrid* grid = vtkRectilinearGrid::SafeDownCast(dataObject);
@@ -1112,7 +1032,7 @@ void vtkRectilinearGrid::ShallowCopy(vtkDataObject* dataObject)
   }
 
   // Do superclass
-  this->Superclass::ShallowCopy(dataObject);
+  this->vtkDataSet::ShallowCopy(dataObject);
 }
 
 //------------------------------------------------------------------------------
@@ -1143,7 +1063,7 @@ void vtkRectilinearGrid::DeepCopy(vtkDataObject* dataObject)
   }
 
   // Do superclass
-  this->Superclass::DeepCopy(dataObject);
+  this->vtkDataSet::DeepCopy(dataObject);
 }
 
 //------------------------------------------------------------------------------
@@ -1416,17 +1336,4 @@ int vtkRectilinearGrid::GetNumberOfScalarComponents()
     return scalars->GetNumberOfComponents();
   }
   return 1;
-}
-
-//------------------------------------------------------------------------------
-bool vtkRectilinearGrid::HasAnyBlankPoints()
-{
-  return this->IsAnyBitSet(this->GetPointGhostArray(), vtkDataSetAttributes::HIDDENPOINT);
-}
-
-//------------------------------------------------------------------------------
-bool vtkRectilinearGrid::HasAnyBlankCells()
-{
-  int cellBlanking = this->IsAnyBitSet(this->GetCellGhostArray(), vtkDataSetAttributes::HIDDENCELL);
-  return cellBlanking || this->HasAnyBlankPoints();
 }
