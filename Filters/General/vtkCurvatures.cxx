@@ -22,6 +22,7 @@
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
 #include "vtkMath.h"
+#include "vtkMathUtilities.h"
 #include "vtkNew.h"
 #include "vtkObjectFactory.h"
 #include "vtkPointData.h"
@@ -35,6 +36,11 @@
 #include <memory> // For unique_ptr
 
 vtkStandardNewMacro(vtkCurvatures);
+
+namespace
+{
+constexpr double SIGMA = 0.03;
+} // anonymous namespace
 
 //-------------------------------------------------------//
 vtkCurvatures::vtkCurvatures()
@@ -378,9 +384,10 @@ void vtkCurvatures::GetMaximumCurvature(vtkPolyData* input, vtkPolyData* output)
     else
     {
       vtkDebugMacro(<< "Maximum Curvature undefined at point: " << i);
-      // k_max can be any real number. Undefined points will be indistinguishable
-      // from points that actually have a k_max == 0
-      k_max = 0;
+      // k_max can be any real number.
+      // We smoothly go from h to zero, to account for the cases
+      // where k_max = h + i * something_very_small
+      k_max = std::exp(-0.5 * tmp * tmp / SIGMA * SIGMA) * h;
     }
     maximumCurvature->SetComponent(i, 0, k_max);
   }
@@ -417,10 +424,11 @@ void vtkCurvatures::GetMinimumCurvature(vtkPolyData* input, vtkPolyData* output)
     }
     else
     {
-      vtkDebugMacro(<< "Minimum Curvature undefined at point: " << i);
-      // k_min can be any real number. Undefined points will be indistinguishable
-      // from points that actually have a k_min == 0
-      k_min = 0;
+      vtkDebugMacro(<< tmp << " Minimum Curvature undefined at point: " << i);
+      // k_min can be any real number.
+      // We smoothly go from h to zero, to account for the cases
+      // where k_min = h + i * something_very_small
+      k_min = std::exp(-0.5 * tmp * tmp / SIGMA * SIGMA) * h;
     }
     minimumCurvature->SetComponent(i, 0, k_min);
   }
