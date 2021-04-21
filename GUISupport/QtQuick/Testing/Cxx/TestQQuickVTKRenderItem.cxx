@@ -43,8 +43,8 @@ int TestQQuickVTKRenderItem(int argc, char* argv[])
   QApplication app(argc, argv);
 
   QQmlApplicationEngine engine;
-  engine.load(QUrl("qrc:///TestQQuickVTKRenderItem.qml"));
   qDebug() << "QML2_IMPORT_PATH:" << engine.importPathList();
+  engine.load(QUrl("qrc:///TestQQuickVTKRenderItem.qml"));
 
   QObject* topLevel = engine.rootObjects().value(0);
   QQuickWindow* window = qobject_cast<QQuickWindow*>(topLevel);
