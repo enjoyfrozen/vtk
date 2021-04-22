@@ -825,6 +825,8 @@ void vtkOpenGLPolyDataMapper::ReplaceShaderColor(
   // are we doing cell scalar coloring by texture?
   else if (this->HaveCellScalars && !this->DrawingVertices && !this->PointPicking)
   {
+    vtkShaderProgram::Substitute(
+      GSSource, "//VTK::PrimID::Impl", "gl_PrimitiveID = gl_PrimitiveIDIn;");
     colorImpl +=
       "  vec4 texColor = texelFetchBuffer(textureC, gl_PrimitiveID + PrimitiveIDOffset);\n"
       "  vec3 ambientColor = ambientIntensity * texColor.rgb;\n"
