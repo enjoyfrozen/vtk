@@ -795,6 +795,7 @@ void vtkOpenGLPolyDataMapper::ReplaceShaderColor(
   // so we must skip cell scalar coloring when point picking
 
   // handle color point attributes
+  std::cout << "CellScalars: " << this->HaveCellScalars << " Drawing Vertices: " << this->DrawingVertices << " PointPicking: " << this->PointPicking << std::endl;
   if (this->VBOs->GetNumberOfComponents("scalarColor") != 0 && !this->DrawingVertices)
   {
     vtkShaderProgram::Substitute(VSSource, "//VTK::Color::Dec",
