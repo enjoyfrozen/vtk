@@ -101,7 +101,7 @@ int TestQQuickVTKRenderItemWidget(int argc, char* argv[])
   vtkNew<vtkConeSource> cone;
   mapper->SetInputConnection(cone->GetOutputPort());
   actor->SetMapper(mapper);
-  coneItem->renderer()->AddActor(actor);
+  // coneItem->renderer()->AddActor(actor);
   coneItem->renderer()->SetBackground(0.5, 0.5, 0.7);
   coneItem->renderer()->SetBackground2(0.7, 0.7, 0.7);
   coneItem->renderer()->SetGradientBackground(true);
@@ -142,6 +142,7 @@ int TestQQuickVTKRenderItemWidget(int argc, char* argv[])
 
   vtkNew<vtkPolyDataMapper> selectMapper;
   selectMapper->SetInputConnection(clipper->GetOutputPort());
+  selectMapper->SetScalarModeToUsePointData();
 
   vtkNew<vtkActor> selectActor;
   selectActor->SetMapper(selectMapper);
@@ -165,7 +166,7 @@ int TestQQuickVTKRenderItemWidget(int argc, char* argv[])
   qquickVTKWidget->setWidget(planeWidget);
   qquickVTKWidget->setEnabled(true);
 
-  widgetItem->renderer()->AddActor(maceActor);
+  // widgetItem->renderer()->AddActor(maceActor);
   widgetItem->renderer()->AddActor(selectActor);
   widgetItem->addWidget(qquickVTKWidget);
   widgetItem->update();
