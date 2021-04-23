@@ -70,8 +70,6 @@ vtk_module_add_module(VTK::AcceleratorsVTKmDataModel
   NOWRAP_CLASSES  ${nowrap_classes}
   PRIVATE_HEADERS ${private_headers})
 _vtk_module_real_target(vtkm_accel_target VTK::AcceleratorsVTKmDataModel)
-
-# DROP_UNUSED_SYMBOLS
 vtkm_add_target_information(${vtkm_accel_target}
                             EXTENDS_VTKM
                             MODIFY_CUDA_FLAGS
