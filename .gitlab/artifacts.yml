@@ -98,3 +98,10 @@
             - doxygen_output.log
 
             - build/install/
+
+.cmake_wheel_artifacts:
+    artifacts:
+        expire_in: 1d
+        when: always
+        paths:
+            - build/dist/*.whl
