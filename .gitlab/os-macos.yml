@@ -9,6 +9,36 @@
         # use so that different versions can be tested in a single pipeline.
         DEVELOPER_DIR: "/Applications/Xcode-12.3.app/Contents/Developer"
 
+.wheel_macos_x86_64:
+    extends: .macos
+
+    variables:
+        PYTHON_PREFIX: "$GIT_CLONE_PATH/.gitlab/python/Python.framework/Versions/Current"
+
+.wheel_macos36_x86_64:
+    extends: .wheel_macos_x86_64
+
+    variables:
+        CMAKE_CONFIGURATION: wheel_macos36_x86_64
+
+.wheel_macos37_x86_64:
+    extends: .wheel_macos_x86_64
+
+    variables:
+        CMAKE_CONFIGURATION: wheel_macos37_x86_64
+
+.wheel_macos38_x86_64:
+    extends: .wheel_macos_x86_64
+
+    variables:
+        CMAKE_CONFIGURATION: wheel_macos38_x86_64
+
+.wheel_macos39_x86_64:
+    extends: .wheel_macos_x86_64
+
+    variables:
+        CMAKE_CONFIGURATION: wheel_macos39_x86_64
+
 ### Build and test
 
 .macos_build:
@@ -44,6 +74,14 @@
         - shell
         - xcode-12.3
         - nonconcurrent
+
+.macos_wheel_builder_tags:
+    tags:
+        - vtk
+        - macos
+        - shell
+        - xcode-12.3
+        - concurrent
 
 .macos_ext_builder_tags:
     tags:
@@ -101,4 +139,30 @@
         - *before_script_macos
         - ctest -V --output-on-failure -S .gitlab/ci/ctest_test_external.cmake
 
+    interruptible: true
+
+.cmake_build_wheel_macos:
+    stage: build
+
+    script:
+        - *before_script_macos
+        - cmake -P .gitlab/ci/download_wheel_python.cmake
+        # Allow the server to already be running.
+        - "sccache --start-server || :"
+        - sccache --show-stats
+        - ctest -VV -S .gitlab/ci/ctest_configure.cmake
+        - ctest -VV -S .gitlab/ci/ctest_build.cmake &> $GIT_CLONE_PATH/compile_output.log
+        - sccache --show-stats
+        - cd build
+        - "$PYTHON_PREFIX/bin/python setup.py bdist_wheel"
+        - auditwheel show dist/*.whl
+        - auditwheel repair dist/*.whl
+    interruptible: true
+
+.cmake_test_wheel_macos:
+    stage: test
+
+    script:
+        - "$PYTHON_PREFIX/bin/python -m venv venv"
+        - venv/bin/pip install build/dist/*.whl
     interruptible: true
