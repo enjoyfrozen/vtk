@@ -14,6 +14,11 @@ endif ()
 set(VTK_WHEEL_BUILD ON CACHE BOOL "")
 set(CMAKE_PREFIX_PATH "$ENV{PYTHON_PREFIX}" CACHE STRING "")
 set(Python3_EXECUTABLE "$ENV{PYTHON_PREFIX}/bin/python$ENV{PYTHON_VERSION_SUFFIX}" FILEPATH STRING "")
+if (EXISTS "${Python3_EXECUTABLE}")
+  message(STATUS "XXXXXX Found Python3: ${Python3_EXECUTABLE}")
+else ()
+  message(FATAL_ERROR "XXXXXX Python3 path not correct: ${Python3_EXECUTABLE}")
+endif ()
 # We always want the Python specified here, not the system one.
 set(Python3_FIND_STRATEGY LOCATION CACHE STRING "")
 

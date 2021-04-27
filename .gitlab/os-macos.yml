@@ -149,6 +149,9 @@
         - .gitlab/ci/sccache.sh
         - cmake -P .gitlab/ci/download_wheel_python.cmake
         - export PYTHON_PREFIX=$GIT_CLONE_PATH/.gitlab/python/Python.framework/Versions/Current
+        - echo $PYTHON_PREFIX
+        - ls $PYTHON_PREFIX
+        - ls $PYTHON_PREFIX/bin
         # Allow the server to already be running.
         - "sccache --start-server || :"
         - sccache --show-stats
