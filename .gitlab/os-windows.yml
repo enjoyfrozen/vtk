@@ -7,6 +7,37 @@
         GIT_SUBMODULE_STRATEGY: none
         GIT_CLONE_PATH: "$CI_BUILDS_DIR\\vtk-ci-ext\\$CI_CONCURRENT_ID"
 
+.wheel_windows_x86_64:
+    extends: .windows
+
+.wheel_windows36_x86_64:
+    extends: .wheel_windows_x86_64
+
+    variables:
+        CMAKE_CONFIGURATION: wheel_windows36_x86_64
+        PYTHON_VERSION_SUFFIX: "3.6"
+
+.wheel_windows37_x86_64:
+    extends: .wheel_windows_x86_64
+
+    variables:
+        CMAKE_CONFIGURATION: wheel_windows37_x86_64
+        PYTHON_VERSION_SUFFIX: "3.7"
+
+.wheel_windows38_x86_64:
+    extends: .wheel_windows_x86_64
+
+    variables:
+        CMAKE_CONFIGURATION: wheel_windows38_x86_64
+        PYTHON_VERSION_SUFFIX: "3.8"
+
+.wheel_windows39_x86_64:
+    extends: .wheel_windows_x86_64
+
+    variables:
+        CMAKE_CONFIGURATION: wheel_windows39_x86_64
+        PYTHON_VERSION_SUFFIX: "3.9"
+
 ### Build and test
 
 .windows_build:
@@ -74,6 +105,15 @@
         - vtk # Since this is a bare runner, pin to a project.
         - msvc-19.28
         - nonconcurrent
+        - shell
+        - vs2019
+        - windows
+
+.windows_wheel_builder_tags:
+    tags:
+        - vtk # Since this is a bare runner, pin to a project.
+        - msvc-19.28
+        - concurrent
         - shell
         - vs2019
         - windows
@@ -177,4 +217,38 @@
         - Invoke-Expression -Command .gitlab/ci/vcvarsall.ps1
         - ctest -V --output-on-failure -S .gitlab/ci/ctest_test_external.cmake
 
+    interruptible: true
+
+.cmake_build_wheel_windows:
+    stage: build
+
+    script:
+        - *before_script_windows
+        - cmake -P .gitlab/ci/download_wheel_python.cmake
+        - Set-Item -Force -Path "env:PYTHON_PREFIX" -Value "$pwdpath\.gitlab\python"
+        - Invoke-Expression -Command .gitlab/ci/vcvarsall.ps1
+        - sccache --start-server
+        - sccache --show-stats
+        - ctest -VV -S .gitlab/ci/ctest_configure.cmake
+        - ctest -VV -S .gitlab/ci/ctest_build.cmake | Out-File -FilePath compile_output.log
+        - sccache --show-stats
+        - sccache --stop-server
+        - Set-Item -Force -Path "env:PATH" -Value "$env:PYTHON_PREFIX;$env:PATH"
+        - python -m venv venv
+        - . .\venv\Scripts\Activate.ps1
+        - pip install wheel
+        - python3 setup.py bdist_wheel
+    interruptible: true
+
+.cmake_test_wheel_windows:
+    stage: test
+
+    script:
+        - *before_script_windows
+        - cmake -P .gitlab/ci/download_wheel_python.cmake
+        - Set-Item -Force -Path "env:PYTHON_PREFIX" -Value "$pwdpath\.gitlab\python"
+        - Set-Item -Force -Path "env:PATH" -Value "$env:PYTHON_PREFIX;$env:PATH"
+        - python -m venv venv
+        - . .\venv\Scripts\Activate.ps1
+        - pip install build\dist\*.whl
     interruptible: true
