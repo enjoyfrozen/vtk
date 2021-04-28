@@ -56,6 +56,10 @@ set(CMAKE_INSTALL_BINDIR
 set(CMAKE_INSTALL_LIBDIR
   # Must correlate with `vtk_module_wrap_python(PYTHON_PACKAGE)` argument
   "${setup_py_build_dir}/vtkmodules")
+if (APPLE)
+  string(APPEND CMAKE_INSTALL_LIBDIR
+    "/.dylibs")
+endif ()
 set(VTK_PYTHON_SITE_PACKAGES_SUFFIX ".")
 set(VTK_CUSTOM_LIBRARY_SUFFIX "")
 set(VTK_INSTALL_SDK OFF)
