@@ -42,7 +42,11 @@ _vtk_module_real_target(vtk_guisupportqtquick_target VTK::GUISupportQtQuick)
 # QML plugin qmldir and qmltypes for build tree
 # Set VTK_MODULE_PLUGIN_NAME and VTK_MODULE_PLUGIN_DIR for the qmldir configuration
 set(vtk_qml_module_dir
-  "${_vtk_build_PACKAGE}.${VTK_MAJOR_VERSION}.${VTK_MINOR_VERSION}")
+  "${_vtk_build_PACKAGE}")
+if (VTK_VERSIONED_INSTALL)
+  string(APPEND vtk_qml_module_dir
+    ".${VTK_MAJOR_VERSION}.${VTK_MINOR_VERSION}")
+endif ()
 set(vtk_qml_module_superpath
   "${CMAKE_BINARY_DIR}/$<CONFIG>")
 set(vtk_qml_module_path
