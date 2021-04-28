@@ -54,8 +54,8 @@ set(CMAKE_INSTALL_BINDIR
   # Must correlate with `vtk_module_wrap_python(PYTHON_PACKAGE)` argument
   "${setup_py_build_dir}/vtkmodules")
 set(CMAKE_INSTALL_LIBDIR
-  # Must correlate with `vtk_module_wrap_python(PYTHON_PACKAGE)` argument
-  "${setup_py_build_dir}/vtkmodules")
+  # Other platforms use tools which copy the libraries into the wheel for us.
+  "lib")
 set(VTK_PYTHON_SITE_PACKAGES_SUFFIX ".")
 set(VTK_CUSTOM_LIBRARY_SUFFIX "")
 set(VTK_INSTALL_SDK OFF)
