@@ -50,4 +50,17 @@ try:
     from . import vtkCommonCore
 except ImportError:
     import _vtkmodules_static
+    from . import vtkCommonCore
+
 #------------------------------------------------------------------------------
+# get the version in PEP 440 compatible form
+if vtkCommonCore.VTK_VERSION_FULL == vtkCommonCore.VTK_VERSION:
+    # release version
+    __version__ = "%d.%d.%d" % (vtkCommonCore.VTK_MAJOR_VERSION,
+                                vtkCommonCore.VTK_MINOR_VERSION,
+                                vtkCommonCore.VTK_BUILD_VERSION)
+else:
+    # development version
+    __version__ = "%d.%d.dev%d" % (vtkCommonCore.VTK_MAJOR_VERSION,
+                                   vtkCommonCore.VTK_MINOR_VERSION,
+                                   vtkCommonCore.VTK_BUILD_VERSION)
