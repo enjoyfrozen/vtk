@@ -50,4 +50,8 @@ try:
     from . import vtkCommonCore
 except ImportError:
     import _vtkmodules_static
+    from . import vtkCommonCore
+
 #------------------------------------------------------------------------------
+# get the version
+__version__ = vtkCommonCore.VTK_VERSION
