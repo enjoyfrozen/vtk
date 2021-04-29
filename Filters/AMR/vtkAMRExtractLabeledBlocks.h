@@ -1,7 +1,7 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    vtkAMRExtractLabelledBlocks.h
+  Module:    vtkAMRExtractLabeledBlocks.h
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.
@@ -13,7 +13,7 @@
 
 =========================================================================*/
 /**
- * @class vtkAMRExtractLabelledBlocks
+ * @class vtkAMRExtractLabeledBlocks
  * @brief Generates a multiblock of unstructured grids from an AMR using an input array
  * mapping input cells to an output block id.
  *
@@ -27,17 +27,17 @@
  * This filter is multi-threaded.
  */
 
-#ifndef vtkAMRExtractLabelledBlocks_h
-#define vtkAMRExtractLabelledBlocks_h
+#ifndef vtkAMRExtractLabeledBlocks_h
+#define vtkAMRExtractLabeledBlocks_h
 
 #include "vtkFiltersAMRModule.h" // for export macros
 #include "vtkMultiBlockDataSetAlgorithm.h"
 
-class VTKFILTERSAMR_EXPORT vtkAMRExtractLabelledBlocks : public vtkMultiBlockDataSetAlgorithm
+class VTKFILTERSAMR_EXPORT vtkAMRExtractLabeledBlocks : public vtkMultiBlockDataSetAlgorithm
 {
 public:
-  static vtkAMRExtractLabelledBlocks* New();
-  vtkTypeMacro(vtkAMRExtractLabelledBlocks, vtkMultiBlockDataSetAlgorithm);
+  static vtkAMRExtractLabeledBlocks* New();
+  vtkTypeMacro(vtkAMRExtractLabeledBlocks, vtkMultiBlockDataSetAlgorithm);
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
   //@{
@@ -58,8 +58,8 @@ public:
   //@}
 
 protected:
-  vtkAMRExtractLabelledBlocks();
-  ~vtkAMRExtractLabelledBlocks() override;
+  vtkAMRExtractLabeledBlocks();
+  ~vtkAMRExtractLabeledBlocks() override;
 
   int FillInputPortInformation(int port, vtkInformation* info) override;
 
@@ -69,8 +69,8 @@ protected:
   char* LevelMaskArrayName = nullptr;
 
 private:
-  vtkAMRExtractLabelledBlocks(const vtkAMRExtractLabelledBlocks&) = delete;
-  void operator=(const vtkAMRExtractLabelledBlocks&) = delete;
+  vtkAMRExtractLabeledBlocks(const vtkAMRExtractLabeledBlocks&) = delete;
+  void operator=(const vtkAMRExtractLabeledBlocks&) = delete;
 };
 
 #endif

@@ -1,7 +1,7 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    TestAMRExtractLabelledBlocks.cxx
+  Module:    TestAMRExtractLabeledBlocks.cxx
 
   Copyright (c) Kitware SAS
   All rights reserved.
@@ -12,12 +12,12 @@
      PURPOSE.  See the above copyright notice for more information.
 
 =========================================================================*/
-// .NAME TestAMRExtractLabelledBlocks.cxx -- Regression test for AMR Ghost Zones
+// .NAME TestAMRExtractLabeledBlocks.cxx -- Regression test for AMR Ghost Zones
 //
 // .SECTION Description
 //  Test that computing ghost zones does not erase previous ghost zones.
 
-#include "vtkAMRExtractLabelledBlocks.h"
+#include "vtkAMRExtractLabeledBlocks.h"
 #include "vtkCellData.h"
 #include "vtkCompositeDataSet.h"
 #include "vtkIntArray.h"
@@ -190,11 +190,11 @@ bool OutputIsCorrect(vtkMultiBlockDataSet* mbds)
 } // anonymous namespace
 
 //------------------------------------------------------------------------------
-int TestAMRExtractLabelledBlocks(int, char**)
+int TestAMRExtractLabeledBlocks(int, char**)
 {
   vtkSmartPointer<vtkOverlappingAMR> amr = CreateAMR();
 
-  vtkNew<vtkAMRExtractLabelledBlocks> extractor;
+  vtkNew<vtkAMRExtractLabeledBlocks> extractor;
   extractor->SetInputData(amr);
   extractor->SetPartIdArrayName(PartIdArrayName);
   extractor->SetLevelMaskArrayName(LevelMaskArrayName);

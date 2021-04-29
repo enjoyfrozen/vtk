@@ -1,6 +1,6 @@
 set(classes
   vtkAMRCutPlane
-  vtkAMRExtractLabelledBlocks
+  vtkAMRExtractLabeledBlocks
   vtkAMRGaussianPulseSource
   vtkAMRResampleFilter
   vtkAMRSliceFilter

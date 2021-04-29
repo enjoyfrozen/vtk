@@ -1,7 +1,7 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    vtkAMRExtractLabelledBlocks.cxx
+  Module:    vtkAMRExtractLabeledBlocks.cxx
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.
@@ -13,7 +13,7 @@
 
 =========================================================================*/
 
-#include "vtkAMRExtractLabelledBlocks.h"
+#include "vtkAMRExtractLabeledBlocks.h"
 
 #include "vtkCell.h"
 #include "vtkCellData.h"
@@ -39,7 +39,7 @@
 #include <set>
 #include <vector>
 
-vtkStandardNewMacro(vtkAMRExtractLabelledBlocks);
+vtkStandardNewMacro(vtkAMRExtractLabeledBlocks);
 
 namespace
 {
@@ -51,35 +51,50 @@ struct PartsRearranger
     const int* dimensions = this->Input->GetDimensions();
     auto& idsPerPart = this->IdsPerPartBlockArray.Local();
     auto& pointIdMapBlock = this->PointIdMap.Local();
-    int cellIJK[3];
     auto levelMask = vtk::DataArrayValueRange<1>(this->LevelMask);
     auto partIds = vtk::DataArrayValueRange<1>(this->PartIds);
-    for (vtkIdType cellId = startId; cellId < endId; ++cellId)
+
+    int cellIJK[3], cellIJKStart[3];
+    vtkStructuredData::ComputeCellStructuredCoords(startId, dimensions, cellIJKStart);
+    vtkIdType cellId = startId;
+
+    for (cellIJK[2] = cellIJKStart[2]; ; ++cellIJK[2])
     {
-      if (this->Input->IsCellVisible(cellId) && static_cast<int>(levelMask[cellId]))
+      for (cellIJK[1] = cellIJKStart[1]; ; ++cellIJK[1])
       {
-        int blockId = partIds[cellId];
-        vtkStructuredData::ComputeCellStructuredCoords(cellId, dimensions, cellIJK);
-        auto& pointIdMap = pointIdMapBlock[blockId];
-
-        int pointIJK[3];
-        for (pointIJK[2] = cellIJK[2]; pointIJK[2] <= cellIJK[2] + (dimensions[2] != 0);
-             ++pointIJK[2])
+        for (cellIJK[0] = cellIJKStart[0]; ; ++cellIJK[0])
         {
-          for (pointIJK[1] = cellIJK[1]; pointIJK[1] <= cellIJK[1] + (dimensions[1] != 0);
-               ++pointIJK[1])
+          if (this->Input->IsCellVisible(cellId) && static_cast<int>(levelMask[cellId]))
           {
-            for (pointIJK[0] = cellIJK[0]; pointIJK[0] <= cellIJK[0] + (dimensions[0] != 0);
-                 ++pointIJK[0])
-            {
-              vtkIdType pointId = vtkStructuredData::ComputePointId(dimensions, pointIJK);
+            int blockId = partIds[cellId];
+            vtkStructuredData::ComputeCellStructuredCoords(cellId, dimensions, cellIJK);
+            auto& pointIdMap = pointIdMapBlock[blockId];
 
-              // We allocate pointIdMap on pointId
-              pointIdMap[pointId];
+            int pointIJK[3];
+            for (pointIJK[2] = cellIJK[2]; pointIJK[2] <= cellIJK[2] + (dimensions[2] != 0);
+                 ++pointIJK[2])
+            {
+              for (pointIJK[1] = cellIJK[1]; pointIJK[1] <= cellIJK[1] + (dimensions[1] != 0);
+                   ++pointIJK[1])
+              {
+                for (pointIJK[0] = cellIJK[0]; pointIJK[0] <= cellIJK[0] + (dimensions[0] != 0);
+                     ++pointIJK[0])
+                {
+                  vtkIdType pointId = vtkStructuredData::ComputePointId(dimensions, pointIJK);
+
+                  // We allocate pointIdMap on pointId
+                  pointIdMap[pointId];
+                }
+              }
             }
+            idsPerPart[blockId]->InsertNextId(cellId);
+          }
+
+          if (++cellId == endId)
+          {
+            return;
           }
         }
-        idsPerPart[blockId]->InsertNextId(cellId);
       }
     }
   }
@@ -285,13 +300,13 @@ struct MultiBlockBuilder
 } // anonymous namespace
 
 //----------------------------------------------------------------------------
-vtkAMRExtractLabelledBlocks::vtkAMRExtractLabelledBlocks() {}
+vtkAMRExtractLabeledBlocks::vtkAMRExtractLabeledBlocks() {}
 
 //----------------------------------------------------------------------------
-vtkAMRExtractLabelledBlocks::~vtkAMRExtractLabelledBlocks() {}
+vtkAMRExtractLabeledBlocks::~vtkAMRExtractLabeledBlocks() {}
 
 //------------------------------------------------------------------------------
-int vtkAMRExtractLabelledBlocks::FillInputPortInformation(
+int vtkAMRExtractLabeledBlocks::FillInputPortInformation(
   int vtkNotUsed(port), vtkInformation* info)
 {
   info->Set(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "vtkUniformGridAMR");
@@ -299,7 +314,7 @@ int vtkAMRExtractLabelledBlocks::FillInputPortInformation(
 }
 
 //----------------------------------------------------------------------------
-int vtkAMRExtractLabelledBlocks::RequestData(
+int vtkAMRExtractLabeledBlocks::RequestData(
   vtkInformation*, vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
   vtkDataObject* inputDO = vtkDataObject::GetData(inputVector[0], 0);
@@ -391,7 +406,7 @@ int vtkAMRExtractLabelledBlocks::RequestData(
 }
 
 //----------------------------------------------------------------------------
-void vtkAMRExtractLabelledBlocks::PrintSelf(ostream& os, vtkIndent indent)
+void vtkAMRExtractLabeledBlocks::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 }

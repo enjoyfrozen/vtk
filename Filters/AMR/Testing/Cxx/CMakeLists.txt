@@ -1,5 +1,5 @@
 vtk_add_test_cxx(vtkFiltersAMRCxxTests tests
-  TestAMRExtractLabelledBlocks.cxx,NO_VALID
+  TestAMRExtractLabeledBlocks.cxx,NO_VALID
   TestAMRSliceFilterCellData.cxx
   TestAMRSliceFilterPointData.cxx
   TestAMRGhostLayerStripping.cxx,NO_VALID
