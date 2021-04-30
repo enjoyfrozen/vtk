@@ -1797,7 +1797,7 @@ void FillReceivedGhostPointDataForStructuredData(BlockT* block, int gid, vtkData
   for (int arrayId = 0; arrayId < pointData->GetNumberOfArrays(); ++arrayId)
   {
     vtkAbstractArray* array = pointData->GetArray(arrayId);
-    if (strcmp(array->GetName(), vtkDataSetAttributes::GhostArrayName()))
+    if (strcmp(array->GetName(), vtkDataSetAttributes::GhostArrayName()) != 0)
     {
       vtkAbstractArray* outputArray = outputPointData->GetAbstractArray(array->GetName());
       if (outputArray)
@@ -1837,7 +1837,7 @@ void FillReceivedGhostCellDataForStructuredData(BlockT* block, int gid, vtkDataS
   for (int arrayId = 0; arrayId < cellData->GetNumberOfArrays(); ++arrayId)
   {
     vtkAbstractArray* array = cellData->GetArray(arrayId);
-    if (strcmp(array->GetName(), vtkDataSetAttributes::GhostArrayName()))
+    if (strcmp(array->GetName(), vtkDataSetAttributes::GhostArrayName()) != 0)
     {
       vtkAbstractArray* outputArray = outputCellData->GetAbstractArray(array->GetName());
       if (outputArray)
