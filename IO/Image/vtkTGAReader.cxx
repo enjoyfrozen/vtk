@@ -44,7 +44,8 @@ void vtkTGAReader::ExecuteInformation()
 
   this->SetHeaderSize(18);
   this->SetDataScalarTypeToUnsignedChar();
-  this->SetNumberOfScalarComponents(4);
+
+  this->SetNumberOfScalarComponents(header[16] / 8);
 
   this->vtkImageReader::ExecuteInformation();
 }
@@ -62,8 +63,8 @@ int vtkTGAReader::CanReadFile(const char* fname)
   char header[18];
   file.read(header, 18 * sizeof(char));
 
-  // only 32 bits uncompressed colors
-  if (header[2] != 2 || header[16] != 32)
+  // only uncompressed data is supported
+  if (header[2] != 2)
   {
     vtkWarningMacro("This TGA file is not supported");
     return 0;
