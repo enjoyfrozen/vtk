@@ -246,6 +246,15 @@ public:
   vtkBooleanMacro(SwapBytes, vtkTypeBool);
   ///@}
 
+  ///@{
+  /**
+   * Set/Get the red and green components swapping.
+   */
+  vtkSetMacro(SwapRGComps, vtkTypeBool);
+  vtkGetMacro(SwapRGComps, vtkTypeBool);
+  vtkBooleanMacro(SwapRGComps, vtkTypeBool);
+  ///@}
+
   istream* GetFile() { return this->File; }
   vtkGetVectorMacro(DataIncrements, unsigned long, 4);
 
@@ -316,6 +325,7 @@ protected:
   unsigned long DataIncrements[4];
   int DataExtent[6];
   vtkTypeBool SwapBytes;
+  vtkTypeBool SwapRGComps;
 
   int FileDimensionality;
   unsigned long HeaderSize;

@@ -27,13 +27,13 @@
 #define vtkTGAReader_h
 
 #include "vtkIOImageModule.h" // For export macro
-#include "vtkImageReader.h"
+#include "vtkImageReader2.h"
 
-class VTKIOIMAGE_EXPORT vtkTGAReader : public vtkImageReader
+class VTKIOIMAGE_EXPORT vtkTGAReader : public vtkImageReader2
 {
 public:
   static vtkTGAReader* New();
-  vtkTypeMacro(vtkTGAReader, vtkImageReader);
+  vtkTypeMacro(vtkTGAReader, vtkImageReader2);
 
   /**
    * Is the given file a valid TGA file?

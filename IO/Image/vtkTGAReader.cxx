@@ -46,8 +46,10 @@ void vtkTGAReader::ExecuteInformation()
   this->SetDataScalarTypeToUnsignedChar();
 
   this->SetNumberOfScalarComponents(header[16] / 8);
+  this->FileLowerLeftOff();
+  this->SwapRGCompsOn();
 
-  this->vtkImageReader::ExecuteInformation();
+  this->vtkImageReader2::ExecuteInformation();
 }
 
 //----------------------------------------------------------------------------
