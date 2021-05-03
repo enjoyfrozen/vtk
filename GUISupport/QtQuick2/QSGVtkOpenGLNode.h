@@ -4,9 +4,9 @@
 
 #include <QtCore/QScopedPointer>
 
-#include <vtkSmartPointer.h>
-
 #include <limits>
+
+#include "vtkSmartPointer.h"
 
 class QOpenGLTextureBlitter;
 
