@@ -1,11 +1,10 @@
 #include "QQuickVtkItem.h"
+#include "QSGVtkOpenGLNode.h"
 
 #include <QtQuick/QQuickWindow>
 #include <QtQuick/QSGRenderNode>
 #include <QtQuick/QSGRendererInterface>
 
-#include <QtGui/QOpenGLContext>
-#include <QtGui/QOpenGLFunctions>
 #include <QtGui/QOpenGLTextureBlitter>
 
 #include <QtCore/QMap>
@@ -14,135 +13,18 @@
 #include <QtCore/QSharedPointer>
 #include <QtCore/QThread>
 
-#include "vtkGenericOpenGLRenderWindow.h"
 #include "vtkInteractorStyleTrackballCamera.h"
 #include "vtkOpenGLFramebufferObject.h"
 #include "vtkOpenGLState.h"
 #include "vtkRenderWindowInteractor.h"
 #include "vtkRenderer.h"
-#include "vtkRendererCollection.h"
 #include "vtkTextureObject.h"
+#include <vtkGenericOpenGLRenderWindow.h>
 
 #include "QVTKInteractor.h"
 #include "QVTKInteractorAdapter.h"
 
 #include <limits>
-
-/* -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
- */
-
-#ifndef NDEBUG
-#ifdef _MSC_VER
-#define __builtin_trap __debugbreak
-#endif
-#define GLCHK                                                                                      \
-  {                                                                                                \
-    GLenum err = gl->glGetError();                                                                 \
-    if (GL_NO_ERROR != err)                                                                        \
-      __builtin_trap();                                                                            \
-  }
-#else
-#define __builtin_trap()                                                                           \
-  {                                                                                                \
-  }
-#define GLCHK
-#endif
-
-/* -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
- */
-
-namespace
-{
-struct QSGVtkOpenGLNode : QSGRenderNode
-{
-  ~QSGVtkOpenGLNode() override { releaseResources(); }
-
-  void releaseResources() override
-  {
-    // Cleanup the VTK window resources
-    vtkWindow->GetRenderers()->InitTraversal();
-    while (auto renderer = vtkWindow->GetRenderers()->GetNextItem())
-      renderer->ReleaseGraphicsResources(vtkWindow);
-    vtkWindow->ReleaseGraphicsResources(vtkWindow);
-
-    // Cleanup the Qt window resources
-    qtBlitter.reset();
-  }
-
-  StateFlags changedStates() const override
-  {
-    return DepthState | StencilState | ScissorState | ColorState | BlendState | CullState |
-      ViewportState | RenderTargetState;
-  }
-  RenderingFlags flags() const override
-  {
-    return DepthAwareRendering | BoundedRectRendering |
-      (inheritedOpacity() >= 1 ? OpaqueRendering : 0);
-  }
-  QRectF rect() const { return QRectF{ { 0, 0 }, qtItemSize }; }
-
-  void render(const RenderState* state)
-  {
-    auto gl = QOpenGLContext::currentContext()->functions();
-
-    // Clip support.
-    if (state->scissorEnabled())
-    {
-      const QRect r = state->scissorRect(); // already bottom-up
-      gl->glEnable(GL_SCISSOR_TEST);
-      GLCHK;
-      gl->glScissor(r.x(), r.y(), r.width(), r.height());
-      GLCHK;
-    }
-    if (state->stencilEnabled())
-    {
-      gl->glEnable(GL_STENCIL_TEST);
-      GLCHK;
-      gl->glStencilFunc(GL_EQUAL, state->stencilValue(), 0xFF);
-      gl->glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-      GLCHK;
-    }
-    if (flags() && DepthAwareRendering)
-      glEnable(GL_DEPTH_TEST);
-    GLCHK;
-
-    // blend VTK's fbo's colorBuffer0 pixels onto the window's backbuffer
-    QMatrix4x4 Ndc2Item;
-    Ndc2Item.scale(qtItemSize.width() / 2.0, -qtItemSize.height() / 2.0, 1.0);
-    Ndc2Item.translate(1.0, -1.0, 0.0);
-    auto vertexTransform = *state->projectionMatrix() * *matrix() * Ndc2Item;
-    gl->glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-    GLCHK;
-    gl->glEnable(GL_BLEND);
-    GLCHK;
-    gl->glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-    GLCHK;
-    gl->glBlendEquation(GL_FUNC_ADD);
-    GLCHK;
-    if (!qtBlitter)
-    {
-      qtBlitter.reset(new QOpenGLTextureBlitter);
-      qtBlitter->create();
-      GLCHK;
-    }
-    qtBlitter->setOpacity(inheritedOpacity());
-    qtBlitter->bind();
-    GLCHK;
-    qtBlitter->blit(vtkTextureId, vertexTransform, QOpenGLTextureBlitter::OriginBottomLeft);
-    GLCHK;
-  }
-
-  // Shared state between qsg-render-thread and qt-gui-thread set in
-  // QQuickVtkItem::updatePaintNode()
-  GLuint vtkTextureId = std::numeric_limits<GLuint>::max();
-  QSizeF qtItemSize;
-
-private:
-  vtkSmartPointer<vtkGenericOpenGLRenderWindow> vtkWindow;
-  QScopedPointer<QOpenGLTextureBlitter> qtBlitter;
-  friend class QQuickVtkItem;
-};
-}
 
 /* -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
  */

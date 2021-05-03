@@ -1,11 +1,12 @@
 set(classes
-  QQuickVTKItem)
+  QQuickVTKItem
+  QSGVtkOpenGLNode)
 
 set(headers
   QQuickVTKItem.h)
 
-#set(private_headers
-#  QVTKInteractorInternal.h)
+set(private_headers
+  QSGVtkOpenGLNode.h)
 
 include(vtkQt)
 set(qt_components
