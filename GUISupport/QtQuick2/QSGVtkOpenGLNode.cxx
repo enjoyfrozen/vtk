@@ -97,7 +97,7 @@ void QSGVtkOpenGLNode::render(const RenderState* state)
   gl->glBlendEquation(GL_FUNC_ADD);
   GLCHK;
 
-  // Create a MVP matrix that uses QOpenGLTextureBlitter's geometry and OSGRenderNode model and
+  // Create a MVP matrix that uses QOpenGLTextureBlitter's geometry and OSGRenderNode's model and
   // projection matrices
   QMatrix4x4 Ndc2Item;
   Ndc2Item.scale(qtItemSize.width() / 2.0, -qtItemSize.height() / 2.0, 1.0);

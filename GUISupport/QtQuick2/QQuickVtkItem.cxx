@@ -13,13 +13,13 @@
 #include <QtCore/QSharedPointer>
 #include <QtCore/QThread>
 
+#include "vtkGenericOpenGLRenderWindow.h"
 #include "vtkInteractorStyleTrackballCamera.h"
 #include "vtkOpenGLFramebufferObject.h"
 #include "vtkOpenGLState.h"
 #include "vtkRenderWindowInteractor.h"
 #include "vtkRenderer.h"
 #include "vtkTextureObject.h"
-#include <vtkGenericOpenGLRenderWindow.h>
 
 #include "QVTKInteractor.h"
 #include "QVTKInteractorAdapter.h"
