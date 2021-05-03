@@ -150,12 +150,8 @@ QSGNode* QQuickVtkItem::updatePaintNode(QSGNode* node, UpdatePaintNodeData*)
 
     // Forward events to VTK
     while (d->qtEvents.size())
-    {
-      if (d->qtEvents.first()->type() == QEvent::MouseMove)
-        qDebug() << static_cast<QMouseEvent*>(d->qtEvents.first().data())->pos();
       d->qt2vtkInteractorAdapter.ProcessEvent(
         d->qtEvents.dequeue().data(), n->vtkWindow->GetInteractor());
-    }
 
     // Allow derived classes to update VTK state
     syncVTK(n->vtkWindow);
