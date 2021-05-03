@@ -17,23 +17,31 @@ public:
   ~QQuickVtkItem() override;
 
   /**
-   * This function converts a QQuickItem rectangle in local coordinates into the corresponding VTK
-   * viewport
+   * This is where the VTK initializiation should be done including creating pipeline and attaching
+   * it to the window
+   *
+   * \note At the time of this method execution, the GUI thread is blocked. Hence, it is safe to
+   * perform state synchronization between the GUI elements and the VTK classes here.
    */
-  void qtRect2vtkViewport(QRectF const&, double[4], QRectF* = nullptr);
+  virtual void initializeVTK(vtkRenderWindow*) {}
 
   /**
    * This is the function called on the QtQuick render thread before the scenegraph state
    * is synchronized.
    *
-   * The first time this is called a pipeline should be created and added to the window
-   * on subsuequent calls is where the pipeline updates, camera manipulations, etc. and
-   * other pre-render steps can be performed.
+   * This is where the pipeline updates, camera manipulations, etc. and other pre-render steps can
+   * be performed.
    *
    * \note At the time of this method execution, the GUI thread is blocked. Hence, it is safe to
    * perform state synchronization between the GUI elements and the VTK classes here.
    */
   virtual void syncVTK(vtkRenderWindow*) {}
+
+  /**
+   * This function converts a QQuickItem rectangle in local coordinates into the corresponding VTK
+   * viewport
+   */
+  void qtRect2vtkViewport(QRectF const&, double[4], QRectF* = nullptr);
 
 protected:
   bool event(QEvent*) override;

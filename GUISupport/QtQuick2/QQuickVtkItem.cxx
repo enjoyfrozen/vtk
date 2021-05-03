@@ -76,7 +76,8 @@ struct QSGVtkOpenGLNode : QSGRenderNode
   }
   RenderingFlags flags() const override
   {
-    return DepthAwareRendering | BoundedRectRendering | (inheritedOpacity() ? 0 : OpaqueRendering);
+    return DepthAwareRendering | BoundedRectRendering |
+      (inheritedOpacity() >= 1 ? OpaqueRendering : 0);
   }
   QRectF rect() const { return QRectF{ { 0, 0 }, qtItemSize }; }
 
@@ -251,6 +252,8 @@ QSGNode* QQuickVtkItem::updatePaintNode(QSGNode* node, UpdatePaintNodeData*)
     n->vtkWindow->SetForceMaximumHardwareLineWidth(1);
     n->vtkWindow->SetOwnContext(false);
     n->vtkWindow->OpenGLInitContext();
+
+    initializeVTK(n->vtkWindow);
   }
 
   // Render VTK into pixels
@@ -288,7 +291,7 @@ QSGNode* QQuickVtkItem::updatePaintNode(QSGNode* node, UpdatePaintNodeData*)
 
     // Synchronize the shared state between the qt-gui-thread and the qsg-render-thread
     n->vtkTextureId =
-      n->vtkWindow->GetRenderFramebuffer()->GetColorAttachmentAsTextureObject(0)->GetHandle();
+      n->vtkWindow->GetDisplayFramebuffer()->GetColorAttachmentAsTextureObject(0)->GetHandle();
     n->qtItemSize = size();
 
     // Mark the node dirty so the qsg-render-thread refreshes the window pixels via render() on our
