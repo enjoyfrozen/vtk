@@ -25,12 +25,12 @@ public:
   void render(const RenderState* state) override;
 
   // Shared state between qsg-render-thread and qt-gui-thread set in
-  // QQuickVtkItem::updatePaintNode()
+  // QQuickVTKItem::updatePaintNode()
   GLuint vtkTextureId = std::numeric_limits<GLuint>::max();
   QSizeF qtItemSize;
 
 private:
   vtkSmartPointer<vtkGenericOpenGLRenderWindow> vtkWindow;
   QScopedPointer<QOpenGLTextureBlitter> qtBlitter;
-  friend class QQuickVtkItem;
+  friend class QQuickVTKItem;
 };

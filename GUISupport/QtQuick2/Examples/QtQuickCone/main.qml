@@ -1,6 +1,6 @@
 import QtQuick 2.9
 import QtQuick.Window 2.2
-import com.bluequartz.example1 1.0
+import com.bluequartz.example 1.0
 
 Window {
     id: win

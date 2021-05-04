@@ -1,8 +1,10 @@
 #include <QtQml/QQmlApplicationEngine>
 
 #include <QtGui/QGuiApplication>
+#include <QtGui/QSurfaceFormat>
 
 #include <QQuickVTKItem.h>
+#include <QVTKRenderWindowAdapter.h>
 
 #include <vtkActor.h>
 #include <vtkBoxWidget.h>
@@ -16,7 +18,6 @@
 #include <vtkRenderWindow.h>
 #include <vtkRenderWindowInteractor.h>
 #include <vtkRenderer.h>
-#include <vtkRendererCollection.h>
 #include <vtkTransform.h>
 
 namespace
@@ -35,7 +36,7 @@ public:
 };
 }
 
-struct MyVtkItem : QQuickVtkItem
+struct MyVtkItem : QQuickVTKItem
 {
   void initializeVTK(vtkRenderWindow* renderWindow) override
   {
@@ -58,6 +59,10 @@ struct MyVtkItem : QQuickVtkItem
     renderer->ResetCamera();
     renderer->SetBackground(colors->GetColor3d("LightBlue").GetData());
     renderer->SetBackgroundAlpha(1.0);
+    double vp[4];
+    qtRect2vtkViewport(boundingRect(), vp);
+    renderer->SetViewport(vp);
+
     renderWindow->AddRenderer(renderer);
     renderWindow->SetMultiSamples(16);
 
@@ -73,13 +78,7 @@ struct MyVtkItem : QQuickVtkItem
     mBoxWidget->AddObserver(vtkCommand::InteractionEvent, mCallback);
   }
 
-  void syncVTK(vtkRenderWindow* renderWindow) override
-  {
-    // Synchronize gui state with VTK state
-    double vp[4];
-    qtRect2vtkViewport(boundingRect(), vp);
-    renderWindow->GetRenderers()->GetFirstRenderer()->SetViewport(vp);
-  }
+  void syncVTK(vtkRenderWindow* renderWindow) override {}
 
   vtkSmartPointer<vtkBoxWidget> mBoxWidget;
   vtkSmartPointer<vtkMyCallback> mCallback;
@@ -87,13 +86,15 @@ struct MyVtkItem : QQuickVtkItem
 
 int main(int argc, char* argv[])
 {
+  QSurfaceFormat::setDefaultFormat(QVTKRenderWindowAdapter::defaultFormat());
+
 #if defined(Q_OS_WIN)
   QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 #endif
 
   QGuiApplication app(argc, argv);
 
-  qmlRegisterType<MyVtkItem>("com.bluequartz.app", 1, 0, "MyVtkItem");
+  qmlRegisterType<MyVtkItem>("com.bluequartz.example", 1, 0, "MyVtkItem");
 
   QQmlApplicationEngine engine;
   engine.load(QUrl(QStringLiteral("qrc:/main.qml")));

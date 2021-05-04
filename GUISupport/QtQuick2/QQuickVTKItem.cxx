@@ -1,4 +1,4 @@
-#include "QQuickVtkItem.h"
+#include "QQuickVTKItem.h"
 #include "QSGVtkOpenGLNode.h"
 
 #include <QtQuick/QQuickWindow>
@@ -29,10 +29,10 @@
 /* -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
  */
 
-class QQuickVtkItemPrivate
+class QQuickVTKItemPrivate
 {
 public:
-  QQuickVtkItemPrivate(QQuickVtkItem* ptr)
+  QQuickVTKItemPrivate(QQuickVTKItem* ptr)
     : q_ptr(ptr)
   {
   }
@@ -41,17 +41,17 @@ public:
   QVTKInteractorAdapter qt2vtkInteractorAdapter;
 
 private:
-  Q_DISABLE_COPY(QQuickVtkItemPrivate)
-  Q_DECLARE_PUBLIC(QQuickVtkItem)
-  QQuickVtkItem* const q_ptr;
+  Q_DISABLE_COPY(QQuickVTKItemPrivate)
+  Q_DECLARE_PUBLIC(QQuickVTKItem)
+  QQuickVTKItem* const q_ptr;
 };
 
 /* -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
  */
 
-QQuickVtkItem::QQuickVtkItem(QQuickItem* parent)
+QQuickVTKItem::QQuickVTKItem(QQuickItem* parent)
   : QQuickItem(parent)
-  , d_ptr(new QQuickVtkItemPrivate(this))
+  , d_ptr(new QQuickVTKItemPrivate(this))
 {
   setAcceptHoverEvents(true);
 #if 0
@@ -63,9 +63,9 @@ QQuickVtkItem::QQuickVtkItem(QQuickItem* parent)
   setFlag(QQuickItem::ItemHasContents);
 }
 
-QQuickVtkItem::~QQuickVtkItem() {}
+QQuickVTKItem::~QQuickVTKItem() {}
 
-void QQuickVtkItem::qtRect2vtkViewport(QRectF const& qtRect, double vtkViewport[4], QRectF* glRect)
+void QQuickVTKItem::qtRect2vtkViewport(QRectF const& qtRect, double vtkViewport[4], QRectF* glRect)
 {
   // Calculate our scaled size
   auto sz = size() * window()->devicePixelRatio();
@@ -88,9 +88,9 @@ void QQuickVtkItem::qtRect2vtkViewport(QRectF const& qtRect, double vtkViewport[
   };
 }
 
-QSGNode* QQuickVtkItem::updatePaintNode(QSGNode* node, UpdatePaintNodeData*)
+QSGNode* QQuickVTKItem::updatePaintNode(QSGNode* node, UpdatePaintNodeData*)
 {
-  Q_D(QQuickVtkItem);
+  Q_D(QQuickVTKItem);
 
   auto* n = static_cast<QSGVtkOpenGLNode*>(node);
 
@@ -180,9 +180,9 @@ QSGNode* QQuickVtkItem::updatePaintNode(QSGNode* node, UpdatePaintNodeData*)
   return n;
 }
 
-bool QQuickVtkItem::event(QEvent* ev)
+bool QQuickVTKItem::event(QEvent* ev)
 {
-  Q_D(QQuickVtkItem);
+  Q_D(QQuickVTKItem);
 
   if (!ev)
     return false;

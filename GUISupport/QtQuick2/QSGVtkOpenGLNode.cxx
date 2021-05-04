@@ -55,7 +55,7 @@ QSGRenderNode::StateFlags QSGVtkOpenGLNode::changedStates() const
 QSGRenderNode::RenderingFlags QSGVtkOpenGLNode::flags() const
 {
   return DepthAwareRendering | BoundedRectRendering |
-    (inheritedOpacity() >= 1 ? OpaqueRendering : 0);
+    static_cast<QSGRenderNode::RenderingFlag>(inheritedOpacity() >= 1 ? OpaqueRendering : 0);
 }
 QRectF QSGVtkOpenGLNode::rect() const
 {

@@ -8,13 +8,13 @@
 
 class vtkRenderWindow;
 
-class QQuickVtkItemPrivate;
-class VTKGUISUPPORTQTQUICK2_EXPORT QQuickVtkItem : public QQuickItem
+class QQuickVTKItemPrivate;
+class VTKGUISUPPORTQTQUICK2_EXPORT QQuickVTKItem : public QQuickItem
 {
   Q_OBJECT
 public:
-  explicit QQuickVtkItem(QQuickItem* parent = nullptr);
-  ~QQuickVtkItem() override;
+  explicit QQuickVTKItem(QQuickItem* parent = nullptr);
+  ~QQuickVTKItem() override;
 
   /**
    * This is where the VTK initializiation should be done including creating pipeline and attaching
@@ -50,7 +50,7 @@ protected:
   QSGNode* updatePaintNode(QSGNode*, UpdatePaintNodeData*) override;
 
 private:
-  Q_DISABLE_COPY(QQuickVtkItem)
-  Q_DECLARE_PRIVATE(QQuickVtkItem)
-  QScopedPointer<QQuickVtkItemPrivate> d_ptr;
+  Q_DISABLE_COPY(QQuickVTKItem)
+  Q_DECLARE_PRIVATE(QQuickVTKItem)
+  QScopedPointer<QQuickVTKItemPrivate> d_ptr;
 };

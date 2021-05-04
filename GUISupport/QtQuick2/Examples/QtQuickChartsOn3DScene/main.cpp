@@ -1,8 +1,10 @@
 #include <QtQml/QQmlApplicationEngine>
 
 #include <QtGui/QGuiApplication>
+#include <QtGui/QSurfaceFormat>
 
 #include <QQuickVTKItem.h>
+#include <QVTKRenderWindowAdapter.h>
 
 #include <vtkActor.h>
 #include <vtkCamera.h>
@@ -21,7 +23,7 @@
 #include <vtkRenderer.h>
 #include <vtkTable.h>
 
-struct MyVtkItem : QQuickVtkItem
+struct MyVtkItem : QQuickVTKItem
 {
   vtkNew<vtkRenderer> renderer;
 
@@ -37,6 +39,9 @@ struct MyVtkItem : QQuickVtkItem
     renderer->ResetCamera();
     renderer->GetActiveCamera()->SetPosition(1.0, 1.0, -4.0);
     renderer->GetActiveCamera()->Azimuth(40);
+    double vp[4];
+    qtRect2vtkViewport(boundingRect(), vp);
+    renderer->SetViewport(vp);
 
     // Cube Source 1
     vtkNew<vtkCubeSource> cube;
@@ -118,24 +123,20 @@ struct MyVtkItem : QQuickVtkItem
     renwin->SetMultiSamples(0);
   }
 
-  void syncVTK(vtkRenderWindow* renderWindow) override
-  {
-    // Synchronize gui state with VTK state
-    double vp[4];
-    qtRect2vtkViewport(boundingRect(), vp);
-    renderer->SetViewport(vp);
-  }
+  void syncVTK(vtkRenderWindow* renderWindow) override {}
 };
 
 int main(int argc, char* argv[])
 {
+  QSurfaceFormat::setDefaultFormat(QVTKRenderWindowAdapter::defaultFormat());
+
 #if defined(Q_OS_WIN)
   QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 #endif
 
   QGuiApplication app(argc, argv);
 
-  qmlRegisterType<MyVtkItem>("com.bluequartz.example3", 1, 0, "MyVtkItem");
+  qmlRegisterType<MyVtkItem>("com.bluequartz.example", 1, 0, "MyVtkItem");
 
   QQmlApplicationEngine engine;
   engine.load(QUrl(QStringLiteral("qrc:/main.qml")));

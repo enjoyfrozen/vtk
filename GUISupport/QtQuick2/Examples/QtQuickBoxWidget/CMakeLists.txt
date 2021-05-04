@@ -21,7 +21,7 @@ find_package(VTK COMPONENTS
 )
 
 if (NOT VTK_FOUND)
-  message("Skipping Cone: ${VTK_NOT_FOUND_MESSAGE}")
+  message("Skipping ${MYNAME}: ${VTK_NOT_FOUND_MESSAGE}")
   return ()
 endif()
 
@@ -31,8 +31,9 @@ find_package(QT NAMES Qt5 COMPONENTS Core Quick REQUIRED)
 find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core Quick REQUIRED)
 
 set(PROJECT_SOURCES
-        main.cpp
-        qml.qrc
+  main.cpp
+  main.qml
+  qml.qrc
 )
 
 set(CMAKE_AUTOUIC ON)
