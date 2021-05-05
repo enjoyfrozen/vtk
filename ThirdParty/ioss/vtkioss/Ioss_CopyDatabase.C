@@ -11,7 +11,7 @@
 #include <Ioss_MeshCopyOptions.h>
 #include <Ioss_SubSystem.h>
 
-#include <limits>
+#include <numeric>
 
 #include <fmt/ostream.h>
 
