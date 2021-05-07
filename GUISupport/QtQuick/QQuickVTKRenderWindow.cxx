@@ -23,6 +23,7 @@
 #include "vtkOpenGLState.h"
 #include "vtkRenderWindowInteractor.h"
 #include "vtkWindowToImageFilter.h"
+#include "vtkRenderer.h"
 
 // Qt includes
 #include <QQuickWindow>
@@ -101,6 +102,13 @@ void QQuickVTKRenderWindow::init()
     this->m_renderWindow->SetForceMaximumHardwareLineWidth(1);
     this->m_renderWindow->SetOwnContext(false);
     this->m_renderWindow->OpenGLInitContext();
+
+    // Add a dummy renderer covering the whole size of the render window as a transparent viewport.
+    // Without this, the QtQuick rendering is stenciled out.
+    this->m_dummyRenderer->InteractiveOff();
+    this->m_dummyRenderer->SetLayer(1);
+    this->m_renderWindow->AddRenderer(this->m_dummyRenderer);
+    this->m_renderWindow->SetNumberOfLayers(2);
 
     m_initialized = true;
   }
