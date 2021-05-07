@@ -17,16 +17,19 @@
 // vtk includes
 #include "QQuickVTKInteractorAdapter.h"
 #include "QVTKInteractor.h"
+#include "QVTKRenderWindowAdapter.h"
 #include "vtkGenericOpenGLRenderWindow.h"
 #include "vtkImageData.h"
 #include "vtkInteractorStyleTrackballCamera.h"
 #include "vtkOpenGLState.h"
 #include "vtkRenderWindowInteractor.h"
-#include "vtkWindowToImageFilter.h"
 #include "vtkRenderer.h"
+#include "vtkWindowToImageFilter.h"
 
 // Qt includes
 #include <QQuickWindow>
+#include <QSGRendererInterface>
+#include <QSurfaceFormat>
 
 //-------------------------------------------------------------------------------------------------
 QQuickVTKRenderWindow::QQuickVTKRenderWindow(QQuickItem* parent)
@@ -40,6 +43,13 @@ QQuickVTKRenderWindow::QQuickVTKRenderWindow(QQuickItem* parent)
 
   // Set a standard object name
   this->setObjectName("QQuickVTKRenderWindow");
+}
+
+//-------------------------------------------------------------------------------------------------
+void QQuickVTKRenderWindow::setupGraphicsBackend()
+{
+  QSurfaceFormat::setDefaultFormat(QVTKRenderWindowAdapter::defaultFormat());
+  QQuickWindow::setGraphicsApi(QSGRendererInterface::OpenGLRhi);
 }
 
 //-------------------------------------------------------------------------------------------------
