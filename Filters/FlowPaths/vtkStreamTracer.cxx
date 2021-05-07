@@ -23,6 +23,7 @@ PURPOSE.  See the above copyright notice for more information.
 #include "vtkCompositeDataPipeline.h"
 #include "vtkCompositeDataSet.h"
 #include "vtkDataSetAttributes.h"
+#include "vtkDataSetAttributesFieldList.h"
 #include "vtkDoubleArray.h"
 #include "vtkExecutive.h"
 #include "vtkGenericCell.h"
@@ -43,6 +44,8 @@ PURPOSE.  See the above copyright notice for more information.
 #include "vtkRungeKutta2.h"
 #include "vtkRungeKutta4.h"
 #include "vtkRungeKutta45.h"
+#include "vtkSMPThreadLocalObject.h"
+#include "vtkSMPTools.h"
 #include "vtkSmartPointer.h"
 #include "vtkStaticCellLocator.h"
 
@@ -52,43 +55,9 @@ vtkObjectFactoryNewMacro(vtkStreamTracer);
 vtkCxxSetObjectMacro(vtkStreamTracer, Integrator, vtkInitialValueProblemSolver);
 vtkCxxSetObjectMacro(vtkStreamTracer, InterpolatorPrototype, vtkAbstractInterpolatedVelocityField);
 
+// Initial value for streamline terminal speed
 const double vtkStreamTracer::EPSILON = 1.0E-12;
 
-namespace
-{
-// special function to interpolate the point data from the input to the output
-// if fast == true, then it just calls the usual InterpolatePoint function,
-// otherwise,
-// it makes sure the array exists in the input before trying to copy it to the
-// output. if it doesn't exist in the input but is in the output then we
-// remove it from the output instead of having bad values there.
-// this is meant for multiblock data sets where the grids may not have the
-// same point data arrays or have them in different orders.
-void InterpolatePoint(vtkDataSetAttributes* outPointData, vtkDataSetAttributes* inPointData,
-  vtkIdType toId, vtkIdList* ids, double* weights, bool fast)
-{
-  if (fast)
-  {
-    outPointData->InterpolatePoint(inPointData, toId, ids, weights);
-  }
-  else
-  {
-    for (int i = outPointData->GetNumberOfArrays() - 1; i >= 0; i--)
-    {
-      vtkAbstractArray* toArray = outPointData->GetAbstractArray(i);
-      if (vtkAbstractArray* fromArray = inPointData->GetAbstractArray(toArray->GetName()))
-      {
-        toArray->InterpolateTuple(toId, ids, fromArray, weights);
-      }
-      else
-      {
-        outPointData->RemoveArray(toArray->GetName());
-      }
-    }
-  }
-}
-
-}
 
 //------------------------------------------------------------------------------
 vtkStreamTracer::vtkStreamTracer()
@@ -263,14 +232,15 @@ void vtkStreamTracer::SetIntegrationStepUnit(int unit)
 }
 
 //------------------------------------------------------------------------------
-double vtkStreamTracer::ConvertToLength(double interval, int unit, double cellLength)
+double vtkIntervalInformation::
+ConvertToLength(double interval, int unit, double cellLength)
 {
   double retVal = 0.0;
-  if (unit == LENGTH_UNIT)
+  if (unit == vtkStreamTracer::LENGTH_UNIT)
   {
     retVal = interval;
   }
-  else if (unit == CELL_LENGTH_UNIT)
+  else if (unit == vtkStreamTracer::CELL_LENGTH_UNIT)
   {
     retVal = interval * cellLength;
   }
@@ -278,8 +248,8 @@ double vtkStreamTracer::ConvertToLength(double interval, int unit, double cellLe
 }
 
 //------------------------------------------------------------------------------
-double vtkStreamTracer::ConvertToLength(
-  vtkStreamTracer::IntervalInformation& interval, double cellLength)
+double vtkIntervalInformation::
+ConvertToLength(vtkIntervalInformation& interval, double cellLength)
 {
   return ConvertToLength(interval.Interval, interval.Unit, cellLength);
 }
@@ -289,18 +259,18 @@ void vtkStreamTracer::ConvertIntervals(
   double& step, double& minStep, double& maxStep, int direction, double cellLength)
 {
   minStep = maxStep = step = direction *
-    this->ConvertToLength(this->InitialIntegrationStep, this->IntegrationStepUnit, cellLength);
+    vtkIntervalInformation::ConvertToLength(this->InitialIntegrationStep, this->IntegrationStepUnit, cellLength);
 
   if (this->MinimumIntegrationStep > 0.0)
   {
     minStep =
-      this->ConvertToLength(this->MinimumIntegrationStep, this->IntegrationStepUnit, cellLength);
+      vtkIntervalInformation::ConvertToLength(this->MinimumIntegrationStep, this->IntegrationStepUnit, cellLength);
   }
 
   if (this->MaximumIntegrationStep > 0.0)
   {
     maxStep =
-      this->ConvertToLength(this->MaximumIntegrationStep, this->IntegrationStepUnit, cellLength);
+      vtkIntervalInformation::ConvertToLength(this->MaximumIntegrationStep, this->IntegrationStepUnit, cellLength);
   }
 }
 
@@ -371,8 +341,9 @@ void vtkStreamTracer::InitializeSeeds(vtkDataArray*& seeds, vtkIdList*& seedIds,
         }
       }
     }
-  }
-  else
+  } // if a source is available
+
+  else // source not defined, use the start position
   {
     seeds = vtkDoubleArray::New();
     seeds->SetNumberOfComponents(3);
@@ -406,7 +377,7 @@ void vtkStreamTracer::InitializeSeeds(vtkDataArray*& seeds, vtkIdList*& seedIds,
         integrationDirections->InsertNextValue(this->IntegrationDirection);
       }
     }
-  }
+  } //if seeds are available
 }
 
 //------------------------------------------------------------------------------
@@ -427,17 +398,14 @@ int vtkStreamTracer::SetupOutput(vtkInformation* inInfo, vtkInformation* outInfo
   {
     this->InputData = hdInput;
     hdInput->Register(this);
-    return 1;
   }
   else if (dsInput)
   {
-    vtkMultiBlockDataSet* mb = vtkMultiBlockDataSet::New();
+    vtkNew<vtkMultiBlockDataSet> mb;
     mb->SetNumberOfBlocks(numPieces);
     mb->SetBlock(piece, dsInput);
     this->InputData = mb;
     mb->Register(this);
-    mb->Delete();
-    return 1;
   }
   else
   {
@@ -445,6 +413,36 @@ int vtkStreamTracer::SetupOutput(vtkInformation* inInfo, vtkInformation* outInfo
       "This filter cannot handle input of type: " << (input ? input->GetClassName() : "(none)"));
     return 0;
   }
+
+  // Okay, now we need to create representative output dataset attributes. This
+  // will be used for interpolating point data across all datasets contained
+  // in the composite dataset. Also determine if the dataset point attributes
+  // match across all leaf datasets.
+  this->InputPD.Reset();
+  auto datasets = vtkCompositeDataSet::GetDataSets(this->InputData);
+  for (size_t cc=0; cc < datasets.size(); ++cc)
+  {
+     auto inDSA = datasets[cc]->GetPointData();
+     this->InputPD.IntersectFieldList(inDSA);
+  }
+
+  // Configure the point attributes. This is nasty stuff because we may be
+  // processing composite datasets with datasets with point attributes that don't
+  // match one another. If the attributes don't match, then point interpolation
+  // needs to be treated specially (in InterpolatePoint()), which is much slower.
+  int numIntersectedArrays = this->InputPD.GetNumberOfArrays();
+  this->HasMatchingPointAttributes = true;
+  for (size_t cc=0; cc < datasets.size(); ++cc)
+  {
+     auto inDSA = datasets[cc]->GetPointData();
+     if ( inDSA->GetNumberOfArrays() != numIntersectedArrays )
+     {
+       this->HasMatchingPointAttributes = false;
+       break;
+     }
+  }
+
+  return 1;
 }
 
 //------------------------------------------------------------------------------
@@ -474,7 +472,6 @@ int vtkStreamTracer::RequestData(vtkInformation* vtkNotUsed(request),
 
   if (seeds)
   {
-    double lastPoint[3];
     vtkAbstractInterpolatedVelocityField* func = nullptr;
     int maxCellSize = 0;
     if (this->CheckInputs(func, &maxCellSize) != VTK_OK)
@@ -517,11 +514,13 @@ int vtkStreamTracer::RequestData(vtkInformation* vtkNotUsed(request),
       vtkIdType numSteps = 0;
       double integrationTime = 0;
       this->Integrate(input0->GetPointData(), output, seeds, seedIds, integrationDirections,
-        lastPoint, func, maxCellSize, vecType, vecName, propagation, numSteps, integrationTime);
-    }
+                      func, maxCellSize, vecType, vecName, propagation, numSteps, integrationTime,
+                      this->CustomTerminationCallback, this->CustomTerminationClientData,
+                      this->CustomReasonForTermination);
+    }//if vectors are available
     func->Delete();
     seeds->Delete();
-  }
+  } //if seeds are provided
 
   integrationDirections->Delete();
   seedIds->Delete();
@@ -531,7 +530,10 @@ int vtkStreamTracer::RequestData(vtkInformation* vtkNotUsed(request),
 }
 
 //------------------------------------------------------------------------------
-int vtkStreamTracer::CheckInputs(vtkAbstractInterpolatedVelocityField*& func, int* maxCellSize)
+// The outputPD is a point data containing the common data arrays across all
+// datasets in composite data.
+int vtkStreamTracer::
+CheckInputs(vtkAbstractInterpolatedVelocityField*& func, int* maxCellSize)
 {
   if (!this->InputData)
   {
@@ -573,14 +575,6 @@ int vtkStreamTracer::CheckInputs(vtkAbstractInterpolatedVelocityField*& func, in
     {
       func = vtkInterpolatedVelocityField::New();
     }
-    // turn on the following segment, in place of the above line, if an
-    // interpolator equipped with a cell locator is dedired as the default
-    //
-    // func = vtkCellLocatorInterpolatedVelocityField::New();
-    // vtkSmartPointer< vtkStaticCellLocator > locator =
-    // vtkSmartPointer< vtkStaticCellLocator >::New();
-    // vtkCellLocatorInterpolatedVelocityField::SafeDownCast( func )
-    //   ->SetCellLocatorPrototype( locator );
   }
   else
   {
@@ -625,642 +619,1004 @@ int vtkStreamTracer::CheckInputs(vtkAbstractInterpolatedVelocityField*& func, in
     assert(false);
   }
 
+  // Retrieve the vector name and type
   const char* vecName = vectors->GetName();
   func->SelectVectors(vecType, vecName);
 
-  // Check if the data attributes match, warn if not
-  vtkPointData* pd0 = input0->GetPointData();
-  int numPdArrays = pd0->GetNumberOfArrays();
-  this->HasMatchingPointAttributes = true;
-  for (iter->GoToFirstItem(); !iter->IsDoneWithTraversal(); iter->GoToNextItem())
-  {
-    vtkDataSet* data = vtkDataSet::SafeDownCast(iter->GetCurrentDataObject());
-    vtkPointData* pd = data->GetPointData();
-    if (pd->GetNumberOfArrays() != numPdArrays)
-    {
-      this->HasMatchingPointAttributes = false;
-    }
-    for (int i = 0; i < numPdArrays; i++)
-    {
-      if (!pd->GetArray(pd0->GetArrayName(i)) || !pd0->GetArray(pd->GetArrayName(i)))
-      {
-        this->HasMatchingPointAttributes = false;
-      }
-    }
-  }
   return VTK_OK;
 }
 
-//------------------------------------------------------------------------------
-void vtkStreamTracer::Integrate(vtkPointData* input0Data, vtkPolyData* output,
-  vtkDataArray* seedSource, vtkIdList* seedIds, vtkIntArray* integrationDirections,
-  double lastPoint[3], vtkAbstractInterpolatedVelocityField* func, int maxCellSize, int vecType,
-  const char* vecName, double& inPropagation, vtkIdType& inNumSteps, double& inIntegrationTime)
+// Support threaded integration of streamlines. Each streamline integration
+// executes in a different thread (i.e., there is no benefit to threading
+// if only a single streamline is integrated). Basically the way the threading
+// works is that each thread processes a portion of the streamline seeds, each
+// accumulating their own "output" via thread local storage. Then these thread
+// outputs are combined to produce the final output.
+namespace
+{ // anonymous
+
+// Special function to interpolate the point data from the input to the
+// output if fast == true, then it just calls the usual InterpolatePoint
+// function; otherwise, it makes sure the array exists in the input before
+// trying to copy it to the output. This is meant for multiblock data sets
+// where the grids may not have the same point data arrays or have them in
+// different orders.
+void InterpolatePoint(vtkDataSetAttributes* outPointData, vtkDataSetAttributes* inPointData,
+  vtkIdType toId, vtkIdList* ids, double* weights, bool fast)
 {
-  vtkIdType numLines = seedIds->GetNumberOfIds();
-  double propagation = inPropagation;
-  vtkIdType numSteps = inNumSteps;
-  double integrationTime = inIntegrationTime;
-
-  // Useful pointers
-  vtkDataSetAttributes* outputPD = output->GetPointData();
-  vtkDataSetAttributes* outputCD = output->GetCellData();
-  vtkPointData* inputPD;
-  vtkDataSet* input;
-  vtkDataArray* inVectors;
-
-  int direction = 1;
-
-  if (this->GetIntegrator() == nullptr)
+  if (fast)
   {
-    vtkErrorMacro("No integrator is specified.");
-    return;
+    outPointData->InterpolatePoint(inPointData, toId, ids, weights);
   }
-
-  double* weights = nullptr;
-  if (maxCellSize > 0)
+  else
   {
-    weights = new double[maxCellSize];
-  }
-
-  // Used in GetCell()
-  vtkGenericCell* cell = vtkGenericCell::New();
-
-  // Create a new integrator, the type is the same as Integrator
-  vtkInitialValueProblemSolver* integrator = this->GetIntegrator()->NewInstance();
-  integrator->SetFunctionSet(func);
-
-  // Check Surface option
-  vtkInterpolatedVelocityField* surfaceFunc = nullptr;
-  if (this->SurfaceStreamlines == true)
-  {
-    surfaceFunc = vtkInterpolatedVelocityField::SafeDownCast(func);
-    if (surfaceFunc)
+    for (int i = outPointData->GetNumberOfArrays() - 1; i >= 0; i--)
     {
-      surfaceFunc->SetForceSurfaceTangentVector(true);
-      surfaceFunc->SetSurfaceDataset(true);
+      vtkAbstractArray* toArray = outPointData->GetAbstractArray(i);
+      if (vtkAbstractArray* fromArray = inPointData->GetAbstractArray(toArray->GetName()))
+      {
+        toArray->InterpolateTuple(toId, ids, fromArray, weights);
+      }
     }
   }
+}
 
-  // Since we do not know what the total number of points
-  // will be, we do not allocate any. This is important for
-  // cases where a lot of streamers are used at once. If we
-  // were to allocate any points here, potentially, we can
-  // waste a lot of memory if a lot of streamers are used.
-  // Always insert the first point
-  vtkPoints* outputPoints = vtkPoints::New();
-  vtkCellArray* outputLines = vtkCellArray::New();
+// Each threaded tracer maintains its own output. To simplify things,
+// the thread local output is contained in one struct.
+struct vtkLocalThreadOutput
+{
+  // These are initialized in the Initialize() method.
+  vtkSmartPointer<vtkInitialValueProblemSolver> LocalIntegrator;
+  vtkSmartPointer<vtkInterpolatedVelocityField> Func;
 
-  // We will keep track of integration time in this array
-  vtkDoubleArray* time = vtkDoubleArray::New();
-  time->SetName("IntegrationTime");
+  // These helper objects can be (mostly) initialized in this
+  // struct's default constructor.
+  std::vector<double> Weights;
+  vtkSmartPointer<vtkGenericCell> Cell;
+  vtkSmartPointer<vtkPoints> OutputPoints;
+  vtkSmartPointer<vtkDoubleArray> Time;
+  vtkSmartPointer<vtkDoubleArray> VelocityVectors;
+  vtkSmartPointer<vtkDoubleArray> CellVectors;
+  vtkSmartPointer<vtkDoubleArray> Vorticity;
+  vtkSmartPointer<vtkDoubleArray> Rotation;
+  vtkSmartPointer<vtkDoubleArray> AngularVelocity;
+  vtkSmartPointer<vtkPolyData> Output;
+  vtkPointData *OutputPD; //convenience to get at Output's point data
+  double LastUsedStepSize;
 
-  // This array explains why the integration stopped
-  vtkIntArray* retVals = vtkIntArray::New();
-  retVals->SetName("ReasonForTermination");
-
-  vtkIntArray* sids = vtkIntArray::New();
-  sids->SetName("SeedIds");
-
-  vtkSmartPointer<vtkDoubleArray> velocityVectors;
-  if (vecType != vtkDataObject::POINT)
+  // Construct the data local to each thread. This constructor
+  // handles hard-wired initialization. In the thread Initialize()
+  // method, additional initialization is performed which depends
+  // on user-specified parameters.
+  vtkLocalThreadOutput()
   {
-    velocityVectors = vtkSmartPointer<vtkDoubleArray>::New();
-    velocityVectors->SetName(vecName);
-    velocityVectors->SetNumberOfComponents(3);
+    this->Cell.TakeReference(vtkGenericCell::New());
+    this->OutputPoints.TakeReference(vtkPoints::New());
+
+    this->Time.TakeReference(vtkDoubleArray::New());
+    this->Time->SetName("IntegrationTime");
+
+    this->VelocityVectors.TakeReference(vtkDoubleArray::New());
+
+    this->CellVectors.TakeReference(vtkDoubleArray::New());
+    this->CellVectors->SetNumberOfComponents(3);
+    this->CellVectors->Allocate(3 * VTK_CELL_SIZE);
+
+    this->Vorticity.TakeReference(vtkDoubleArray::New());
+    this->Vorticity->SetNumberOfComponents(3);
+    this->Vorticity->SetName("Vorticity");
+
+    this->Rotation.TakeReference(vtkDoubleArray::New());
+    this->Rotation->SetName("Rotation");
+
+    this->AngularVelocity.TakeReference(vtkDoubleArray::New());
+    this->AngularVelocity->SetName("AngularVelocity");
+
+    this->Output.TakeReference(vtkPolyData::New());
+    this->OutputPD = this->Output->GetPointData();
+
+    this->LastUsedStepSize = 0.0;
   }
-  vtkDoubleArray* cellVectors = nullptr;
-  vtkDoubleArray* vorticity = nullptr;
-  vtkDoubleArray* rotation = nullptr;
-  vtkDoubleArray* angularVel = nullptr;
-  if (this->ComputeVorticity)
+
+  // The copy constructor is necessary because the default copy constructor
+  // doesn't work with smart pointers. The copy constructor is used to create
+  // instances of vtkLocalThreadOutput for each thread.
+  vtkLocalThreadOutput(const vtkLocalThreadOutput& other)
   {
-    cellVectors = vtkDoubleArray::New();
-    cellVectors->SetNumberOfComponents(3);
-    cellVectors->Allocate(3 * VTK_CELL_SIZE);
+    this->Cell.TakeReference(vtkGenericCell::New());
+    this->OutputPoints.TakeReference(vtkPoints::New());
 
-    vorticity = vtkDoubleArray::New();
-    vorticity->SetName("Vorticity");
-    vorticity->SetNumberOfComponents(3);
+    this->Time.TakeReference(vtkDoubleArray::New());
+    this->Time->SetName("IntegrationTime");
 
-    rotation = vtkDoubleArray::New();
-    rotation->SetName("Rotation");
+    this->VelocityVectors.TakeReference(vtkDoubleArray::New());
 
-    angularVel = vtkDoubleArray::New();
-    angularVel->SetName("AngularVelocity");
+    this->CellVectors.TakeReference(vtkDoubleArray::New());
+    this->CellVectors->SetNumberOfComponents(3);
+    this->CellVectors->Allocate(3 * VTK_CELL_SIZE);
+
+    this->Vorticity.TakeReference(vtkDoubleArray::New());
+    this->Vorticity->SetNumberOfComponents(3);
+    this->Vorticity->SetName("Vorticity");
+
+    this->Rotation.TakeReference(vtkDoubleArray::New());
+    this->Rotation->SetName("Rotation");
+
+    this->AngularVelocity.TakeReference(vtkDoubleArray::New());
+    this->AngularVelocity->SetName("AngularVelocity");
+
+    this->Output.TakeReference(vtkPolyData::New());
+    this->OutputPD = this->Output->GetPointData();
+
+    this->LastUsedStepSize = other.LastUsedStepSize;
+  }
+};
+
+// In order to ensure that the threaded output is the same as serial output,
+// we organize output based on the seed number. Each seed will (likely)
+// produce a stream tracer - these stream tracers are eventually composited
+// (i.e., Reduced()) by seed number. That way, no matter what order the seeds
+// are processed the output will be the same (i.e., results invariant).
+//
+// Also, this struct contains a more compact representation of streamlines
+// (and associated cell data) which is expanded (in Reduce()) to produce the
+// final filter output. A prefix sum is performed after all of the
+// streamlines are generated, this generates offsets and such which are used
+// to control where the output points and lines are written to the filter
+// output.
+struct TracerOffset
+{
+  // For each seed (and hence streamline), these are where the data
+  // originated from (i.e., which thread generated it), a pointer to the
+  // local thread data, the consecutive sequence of points that compose the
+  // streamline, and the reason for termination. Note that in some
+  // situations, a streamline will not be generated when just single points
+  // are added (which may be outside of the domain so do not form a
+  // streamline).
+  vtkLocalThreadOutput *ThreadOutput;
+  vtkIdType ThreadPtId; // the first point id defining the polyline
+  vtkIdType NumPts; // number of points defining polyline
+  int RetVal; // the return value / exit condition of the streamline
+
+  // These keep track of where the output is written to (in the global
+  // filter output).  Generated via a prefix sum/scan in Reduce().
+  vtkIdType StartingPtId;   // the first point id in the polyline
+  vtkIdType CellId;         // the cell id of the polyline
+  vtkIdType CellConnOffset; // the offset into the connectivity array
+
+  TracerOffset() : ThreadOutput(nullptr), ThreadPtId(-1), NumPts(0),
+                   RetVal(vtkStreamTracer::NOT_INITIALIZED),
+                   StartingPtId(0), CellId(0), CellConnOffset(0) {}
+};
+
+using TracerOffsets = std::vector<TracerOffset>;
+
+
+// The following class performs the threaded streamline integration.  The
+// data members below control the propagation of streamlines based on the
+// state of the vtkStreamTracer. Because threads may execute in a different
+// order between runs, and we'd like the output to stay the same across runs,
+// we order the output based on seed number (in Offsets).
+struct TracerIntegrator
+{
+  // Integrator data members
+  vtkStreamTracer *StreamTracer;
+  double MaximumError;
+  vtkIdType MaximumNumberOfSteps;
+  double MaximumPropagation;
+  bool ComputeVorticity;
+  double RotationScale;
+  double TerminalSpeed;
+  bool SurfaceStreamlines;
+
+  bool HasMatchingPointAttributes;
+  vtkDataSetAttributes *ProtoPD;
+  vtkDataArray *SeedSource;
+  vtkIdList *SeedIds;
+  vtkIntArray *IntegrationDirections;
+  TracerOffsets &Offsets;
+  vtkAbstractInterpolatedVelocityField *FuncPrototype;
+  vtkSmartPointer<vtkInitialValueProblemSolver> Integrator;
+  int MaxCellSize;
+  double InPropagation;
+  vtkIdType InNumSteps;
+  double InIntegrationTime;
+  int VecType;
+  const char* VecName;
+  bool GenerateNormalsInIntegrate;
+  vtkPolyData *Output;
+  std::vector<CustomTerminationCallbackType> CustomTerminationCallback;
+  std::vector<void*> CustomTerminationClientData;
+  std::vector<int> CustomReasonForTermination;
+
+  // The following data are collected on a per-thread basis. Each thread
+  // generates one or more streamlines.
+  vtkSMPThreadLocal<vtkLocalThreadOutput> LocalThreadOutput;
+
+  TracerIntegrator(vtkStreamTracer *streamTracer, bool matchingAttr, vtkDataSetAttributes *protoPD,
+                   vtkDataArray *seedSource, vtkIdList *seedIds, vtkIntArray *intDirs, TracerOffsets &offsets,
+                   vtkAbstractInterpolatedVelocityField *func, vtkInitialValueProblemSolver *integrator,
+                   int maxCellSize, double inPropagation, vtkIdType inNumSteps, double inIntegrationTime,
+                   int vecType, const char *vecName, bool genNormals, vtkPolyData *output,
+                   std::vector<CustomTerminationCallbackType> &customTerminationCallback,
+                   std::vector<void*> &customTerminationClientData,
+                   std::vector<int> &customReasonForTermination) :
+    StreamTracer(streamTracer), HasMatchingPointAttributes(matchingAttr),
+    ProtoPD(protoPD), SeedSource(seedSource), SeedIds(seedIds), IntegrationDirections(intDirs), Offsets(offsets),
+    FuncPrototype(func), Integrator(integrator), MaxCellSize(maxCellSize), InPropagation(inPropagation),
+    InNumSteps(inNumSteps), InIntegrationTime(inIntegrationTime), VecType(vecType), VecName(vecName),
+    GenerateNormalsInIntegrate(genNormals), Output(output),
+    CustomTerminationCallback(customTerminationCallback),
+    CustomTerminationClientData(customTerminationClientData),
+    CustomReasonForTermination(customReasonForTermination)
+  {
+    this->MaximumError = this->StreamTracer->GetMaximumError();
+    this->MaximumNumberOfSteps = this->StreamTracer->GetMaximumNumberOfSteps();
+    this->MaximumPropagation = this->StreamTracer->GetMaximumPropagation();
+    this->ComputeVorticity = this->StreamTracer->GetComputeVorticity();
+    this->RotationScale = this->StreamTracer->GetRotationScale();
+    this->TerminalSpeed = this->StreamTracer->GetTerminalSpeed();
+    this->SurfaceStreamlines = this->StreamTracer->GetSurfaceStreamlines();
+
+    // Some initialization is required to construct supporting locators and
+    // perform other non-thread-safe startup tasks. The side effect of the
+    // methods below are to cause this initialization to occur.
+    double point1[3], velocity[3];
+    seedSource->GetTuple(seedIds->GetId(0), point1);
+    func->FunctionValues(point1, velocity);
   }
 
-  // We will interpolate all point attributes of the input on each point of
-  // the output (unless they are turned off). Note that we are using only
-  // the first input, if there are more than one, the attributes have to match.
-  //
-  // Note: We have to use a specific value (safe to employ the maximum number
-  //       of steps) as the size of the initial memory allocation here. The
-  //       use of the default argument might incur a crash problem (due to
-  //       "insufficient memory") in the parallel mode. This is the case when
-  //       a streamline intensely shuttles between two processes in an exactly
-  //       interleaving fashion --- only one point is produced on each process
-  //       (and actually two points, after point duplication, are saved to a
-  //       vtkPolyData in vtkDistributedStreamTracer::NoBlockProcessTask) and
-  //       as a consequence a large number of such small vtkPolyData objects
-  //       are needed to represent a streamline, consuming up the memory before
-  //       the intermediate memory is timely released.
-  outputPD->InterpolateAllocate(input0Data, this->MaximumNumberOfSteps);
-
-  vtkIdType numPtsTotal = 0;
-  double velocity[3];
-
-  int shouldAbort = 0;
-
-  for (int currentLine = 0; currentLine < numLines; currentLine++)
+  void Initialize()
   {
-    double progress = static_cast<double>(currentLine) / numLines;
-    this->UpdateProgress(progress);
+    // Some data members of the local output require per-thread initialization.
+    vtkLocalThreadOutput &localOutput = this->LocalThreadOutput.Local();
 
-    switch (integrationDirections->GetValue(currentLine))
+    localOutput.LocalIntegrator.TakeReference(this->Integrator->NewInstance());
+
+    localOutput.Func.TakeReference(vtkInterpolatedVelocityField::New());
+    localOutput.Func->CopyParameters(this->FuncPrototype);
+
+    if (this->VecType != vtkDataObject::POINT)
     {
-      case FORWARD:
-        direction = 1;
-        break;
-      case BACKWARD:
-        direction = -1;
-        break;
+      localOutput.VelocityVectors = vtkSmartPointer<vtkDoubleArray>::New();
+      localOutput.VelocityVectors->SetName(this->VecName);
+      localOutput.VelocityVectors->SetNumberOfComponents(3);
     }
 
-    // temporary variables used in the integration
-    double point1[3], point2[3], pcoords[3], vort[3], omega;
-    vtkIdType index, numPts = 0;
+    // Note: We have to use a specific value (safe to employ the maximum number
+    //       of steps) as the size of the initial memory allocation here. The
+    //       use of the default argument might incur a crash problem (due to
+    //       "insufficient memory") in the parallel mode. This is the case when
+    //       a streamline intensely shuttles between two processes in an exactly
+    //       interleaving fashion --- only one point is produced on each process
+    //       (and actually two points, after point duplication, are saved to a
+    //       vtkPolyData in vtkDistributedStreamTracer::NoBlockProcessTask) and
+    //       as a consequence a large number of such small vtkPolyData objects
+    localOutput.Output->GetPointData()->
+      InterpolateAllocate(this->ProtoPD, this->MaximumNumberOfSteps);
+  }
 
-    // Clear the last cell to avoid starting a search from
-    // the last point in the streamline
-    func->ClearLastCellId();
+  void operator()(vtkIdType seedNum, vtkIdType endSeedNum)
+  {
+    // Symbolic shortcuts to thread local data
+    vtkLocalThreadOutput &localOutput = this->LocalThreadOutput.Local();
+    std::vector<double> &weights = localOutput.Weights;
+    vtkGenericCell *cell = localOutput.Cell;
+    vtkInitialValueProblemSolver *integrator = localOutput.LocalIntegrator;
+    vtkInterpolatedVelocityField *func = localOutput.Func;
+    vtkPoints *outputPoints = localOutput.OutputPoints;
+    vtkDoubleArray *time = localOutput.Time;
+    vtkDoubleArray *velocityVectors = localOutput.VelocityVectors;
+    vtkDoubleArray *cellVectors = localOutput.CellVectors;
+    vtkDoubleArray *vorticity = localOutput.Vorticity;
+    vtkDoubleArray *rotation = localOutput.Rotation;
+    vtkDoubleArray *angularVel = localOutput.AngularVelocity;
+    vtkPolyData *output = localOutput.Output;
+    double &lastUsedStepSize = localOutput.LastUsedStepSize;
 
-    // Initial point
-    seedSource->GetTuple(seedIds->GetId(currentLine), point1);
-    memcpy(point2, point1, 3 * sizeof(double));
-    if (!func->FunctionValues(point1, velocity))
+    // Initialize in preparation for stream tracer production
+    int maxCellSize = this->MaxCellSize;
+    vtkDataArray *seedSource = this->SeedSource;
+    vtkIdList *seedIds = this->SeedIds;
+    vtkIntArray *integrationDirections = this->IntegrationDirections;
+    double propagation = this->InPropagation;
+    vtkIdType numSteps = this->InNumSteps;
+    double integrationTime = this->InIntegrationTime;
+    int vecType = this->VecType;
+    const char *vecName = this->VecName;
+    double lastPoint[3];
+
+    // Useful pointers
+    vtkDataSetAttributes* outputPD = output->GetPointData();
+    vtkPointData* inputPD;
+    vtkDataSet* input;
+    vtkDataArray* inVectors;
+
+    int direction = 1;
+    double *weightsPtr = nullptr;
+    if (maxCellSize > 0)
     {
-      continue;
+      weights.reserve(maxCellSize);
+      weightsPtr = weights.data();
     }
 
-    if (propagation >= this->MaximumPropagation || numSteps > this->MaximumNumberOfSteps)
+    // Associate the interpolation function with the integrator
+    integrator->SetFunctionSet(func);
+
+    // Check Surface option
+    vtkInterpolatedVelocityField* surfaceFunc = nullptr;
+    if (this->SurfaceStreamlines == true)
     {
-      continue;
-    }
-
-    numPts++;
-    numPtsTotal++;
-    vtkIdType nextPoint = outputPoints->InsertNextPoint(point1);
-    double lastInsertedPoint[3];
-    outputPoints->GetPoint(nextPoint, lastInsertedPoint);
-    time->InsertNextValue(integrationTime);
-
-    // We will always pass an arc-length step size to the integrator.
-    // If the user specifies a step size in cell length unit, we will
-    // have to convert it to arc length.
-    IntervalInformation stepSize; // either positive or negative
-    stepSize.Unit = LENGTH_UNIT;
-    stepSize.Interval = 0;
-    IntervalInformation aStep; // always positive
-    aStep.Unit = LENGTH_UNIT;
-    double step, minStep = 0, maxStep = 0;
-    double stepTaken;
-    double speed;
-    double cellLength;
-    int retVal = OUT_OF_LENGTH, tmp;
-
-    // Make sure we use the dataset found by the vtkAbstractInterpolatedVelocityField
-    input = func->GetLastDataSet();
-    inputPD = input->GetPointData();
-    inVectors = input->GetAttributesAsFieldData(vecType)->GetArray(vecName);
-    // Convert intervals to arc-length unit
-    input->GetCell(func->GetLastCellId(), cell);
-    cellLength = sqrt(static_cast<double>(cell->GetLength2()));
-    speed = vtkMath::Norm(velocity);
-    // Never call conversion methods if speed == 0
-    if (speed != 0.0)
-    {
-      this->ConvertIntervals(stepSize.Interval, minStep, maxStep, direction, cellLength);
-    }
-
-    // Interpolate all point attributes on first point
-    func->GetLastWeights(weights);
-    InterpolatePoint(
-      outputPD, inputPD, nextPoint, cell->PointIds, weights, this->HasMatchingPointAttributes);
-    // handle both point and cell velocity attributes.
-    vtkDataArray* outputVelocityVectors = outputPD->GetArray(vecName);
-    if (vecType != vtkDataObject::POINT)
-    {
-      velocityVectors->InsertNextTuple(velocity);
-      outputVelocityVectors = velocityVectors;
-    }
-
-    // Compute vorticity if required
-    // This can be used later for streamribbon generation.
-    if (this->ComputeVorticity)
-    {
-      if (vecType == vtkDataObject::POINT)
+      surfaceFunc = vtkInterpolatedVelocityField::SafeDownCast(func);
+      if (surfaceFunc)
       {
-        inVectors->GetTuples(cell->PointIds, cellVectors);
-        func->GetLastLocalCoordinates(pcoords);
-        vtkStreamTracer::CalculateVorticity(cell, pcoords, cellVectors, vort);
+        surfaceFunc->SetForceSurfaceTangentVector(true);
+        surfaceFunc->SetSurfaceDataset(true);
       }
-      else
-      {
-        vort[0] = 0;
-        vort[1] = 0;
-        vort[2] = 0;
-      }
-      vorticity->InsertNextTuple(vort);
-      // rotation
-      // local rotation = vorticity . unit tangent ( i.e. velocity/speed )
-      if (speed != 0.0)
-      {
-        omega = vtkMath::Dot(vort, velocity);
-        omega /= speed;
-        omega *= this->RotationScale;
-      }
-      else
-      {
-        omega = 0.0;
-      }
-      angularVel->InsertNextValue(omega);
-      rotation->InsertNextValue(0.0);
     }
 
-    double error = 0;
-
-    // Integrate until the maximum propagation length is reached,
-    // maximum number of steps is reached or until a boundary is encountered.
-    // Begin Integration
-    while (propagation < this->MaximumPropagation)
+    // We will interpolate all point attributes of the input on each point of
+    // the output (unless they are turned off). Note that we are using only
+    // the first input, if there are more than one, the attributes have to match.
+    double velocity[3];
+    for ( ; seedNum < endSeedNum; ++seedNum )
     {
-
-      if (numSteps > this->MaximumNumberOfSteps)
+      switch (integrationDirections->GetValue(seedNum))
       {
-        retVal = OUT_OF_STEPS;
-        break;
-      }
-
-      bool endIntegration = false;
-      for (std::size_t i = 0; i < this->CustomTerminationCallback.size(); ++i)
-      {
-        if (this->CustomTerminationCallback[i](
-              this->CustomTerminationClientData[i], outputPoints, outputVelocityVectors, direction))
-        {
-          retVal = this->CustomReasonForTermination[i];
-          endIntegration = true;
+        case vtkStreamTracer::FORWARD:
+          direction = 1;
           break;
-        }
-      }
-      if (endIntegration)
-      {
-        break;
-      }
-
-      if (numSteps++ % 1000 == 1)
-      {
-        progress = (currentLine + propagation / this->MaximumPropagation) / numLines;
-        this->UpdateProgress(progress);
-
-        if (this->GetAbortExecute())
-        {
-          shouldAbort = 1;
+        case vtkStreamTracer::BACKWARD:
+          direction = -1;
           break;
-        }
       }
 
-      // Never call conversion methods if speed == 0
-      if ((speed == 0) || (speed <= this->TerminalSpeed))
+      // temporary variables used in the integration
+      double point1[3], point2[3], pcoords[3], vort[3], omega;
+      vtkIdType index, numPts = 0;
+
+      // Clear the last cell to avoid starting a search from
+      // the last point in the streamline
+      func->ClearLastCellId();
+
+      // Initial point
+      seedSource->GetTuple(seedIds->GetId(seedNum), point1);
+      memcpy(point2, point1, 3 * sizeof(double));
+      if (!func->FunctionValues(point1, velocity))
       {
-        retVal = STAGNATION;
-        break;
+        continue;
       }
 
-      // If, with the next step, propagation will be larger than
-      // max, reduce it so that it is (approximately) equal to max.
-      aStep.Interval = fabs(stepSize.Interval);
-
-      if ((propagation + aStep.Interval) > this->MaximumPropagation)
+      if (propagation >= this->MaximumPropagation || numSteps > this->MaximumNumberOfSteps)
       {
-        aStep.Interval = this->MaximumPropagation - propagation;
-        if (stepSize.Interval >= 0)
-        {
-          stepSize.Interval = this->ConvertToLength(aStep, cellLength);
-        }
-        else
-        {
-          stepSize.Interval = this->ConvertToLength(aStep, cellLength) * (-1.0);
-        }
-        maxStep = stepSize.Interval;
-      }
-      this->LastUsedStepSize = stepSize.Interval;
-
-      // Calculate the next step using the integrator provided
-      // Break if the next point is out of bounds.
-      func->SetNormalizeVector(true);
-      tmp = integrator->ComputeNextStep(point1, point2, 0, stepSize.Interval, stepTaken, minStep,
-        maxStep, this->MaximumError, error);
-      func->SetNormalizeVector(false);
-      if (tmp != 0)
-      {
-        retVal = tmp;
-        memcpy(lastPoint, point2, 3 * sizeof(double));
-        break;
+        continue;
       }
 
-      // This is the next starting point
-      if (this->SurfaceStreamlines && surfaceFunc != nullptr)
-      {
-        if (surfaceFunc->SnapPointOnCell(point2, point1) != 1)
-        {
-          retVal = OUT_OF_DOMAIN;
-          memcpy(lastPoint, point2, 3 * sizeof(double));
-          break;
-        }
-      }
-      else
-      {
-        for (int i = 0; i < 3; i++)
-        {
-          point1[i] = point2[i];
-        }
-      }
+      numPts++;
+      vtkIdType nextPoint = outputPoints->InsertNextPoint(point1);
+      double lastInsertedPoint[3];
+      outputPoints->GetPoint(nextPoint, lastInsertedPoint);
+      time->InsertNextValue(integrationTime);
 
-      // Interpolate the velocity at the next point
-      if (!func->FunctionValues(point2, velocity))
-      {
-        retVal = OUT_OF_DOMAIN;
-        memcpy(lastPoint, point2, 3 * sizeof(double));
-        break;
-      }
-
-      // It is not enough to use the starting point for stagnation calculation
-      // Use average speed to check if it is below stagnation threshold
-      double speed2 = vtkMath::Norm(velocity);
-      if ((speed + speed2) / 2 <= this->TerminalSpeed)
-      {
-        retVal = STAGNATION;
-        break;
-      }
-
-      integrationTime += stepTaken / speed;
-      // Calculate propagation (using the same units as MaximumPropagation
-      propagation += fabs(stepSize.Interval);
+      // We will always pass an arc-length step size to the integrator.
+      // If the user specifies a step size in cell length unit, we will
+      // have to convert it to arc length.
+      vtkIntervalInformation stepSize; // either positive or negative
+      stepSize.Unit = vtkStreamTracer::LENGTH_UNIT;
+      stepSize.Interval = 0;
+      vtkIntervalInformation aStep; // always positive
+      aStep.Unit = vtkStreamTracer::LENGTH_UNIT;
+      double step, minStep = 0, maxStep = 0;
+      double stepTaken;
+      double speed;
+      double cellLength;
+      int retVal=vtkStreamTracer::OUT_OF_LENGTH, tmp;
 
       // Make sure we use the dataset found by the vtkAbstractInterpolatedVelocityField
       input = func->GetLastDataSet();
       inputPD = input->GetPointData();
       inVectors = input->GetAttributesAsFieldData(vecType)->GetArray(vecName);
-
-      // Calculate cell length and speed to be used in unit conversions
+      // Convert intervals to arc-length unit
       input->GetCell(func->GetLastCellId(), cell);
       cellLength = sqrt(static_cast<double>(cell->GetLength2()));
-      speed = speed2;
-
-      // Check if conversion to float will produce a point in same place
-      float convertedPoint[3];
-      for (int i = 0; i < 3; i++)
+      speed = vtkMath::Norm(velocity);
+      // Never call conversion methods if speed == 0
+      if (speed != 0.0)
       {
-        convertedPoint[i] = point1[i];
+        this->StreamTracer->
+          ConvertIntervals(stepSize.Interval, minStep, maxStep, direction, cellLength);
       }
-      if (lastInsertedPoint[0] != convertedPoint[0] || lastInsertedPoint[1] != convertedPoint[1] ||
-        lastInsertedPoint[2] != convertedPoint[2])
+
+      // Interpolate all point attributes on first point
+      func->GetLastWeights(weightsPtr);
+      InterpolatePoint(outputPD, inputPD, nextPoint, cell->PointIds, weightsPtr,
+                       this->HasMatchingPointAttributes);
+      // handle both point and cell velocity attributes.
+      vtkDataArray* outputVelocityVectors = outputPD->GetArray(vecName);
+      if (vecType != vtkDataObject::POINT)
       {
-        // Point is valid. Insert it.
-        numPts++;
-        numPtsTotal++;
-        nextPoint = outputPoints->InsertNextPoint(point1);
-        outputPoints->GetPoint(nextPoint, lastInsertedPoint);
-        time->InsertNextValue(integrationTime);
+        velocityVectors->InsertNextTuple(velocity);
+        outputVelocityVectors = velocityVectors;
+      }
 
-        // Interpolate all point attributes on current point
-        func->GetLastWeights(weights);
-        InterpolatePoint(
-          outputPD, inputPD, nextPoint, cell->PointIds, weights, this->HasMatchingPointAttributes);
-
-        if (vecType != vtkDataObject::POINT)
+      // Compute vorticity if required.
+      // This can be used later for streamribbon generation.
+      if (this->ComputeVorticity)
+      {
+        if (vecType == vtkDataObject::POINT)
         {
-          velocityVectors->InsertNextTuple(velocity);
+          inVectors->GetTuples(cell->PointIds, cellVectors);
+          func->GetLastLocalCoordinates(pcoords);
+          this->StreamTracer->CalculateVorticity(cell, pcoords, cellVectors, vort);
         }
-        // Compute vorticity if required
-        // This can be used later for streamribbon generation.
-        if (this->ComputeVorticity)
+        else
         {
-          if (vecType == vtkDataObject::POINT)
-          {
-            inVectors->GetTuples(cell->PointIds, cellVectors);
-            func->GetLastLocalCoordinates(pcoords);
-            vtkStreamTracer::CalculateVorticity(cell, pcoords, cellVectors, vort);
-          }
-          else
-          {
-            vort[0] = 0;
-            vort[1] = 0;
-            vort[2] = 0;
-          }
-          vorticity->InsertNextTuple(vort);
-          // rotation
-          // angular velocity = vorticity . unit tangent ( i.e. velocity/speed )
-          // rotation = sum ( angular velocity * stepSize )
+          vort[0] = 0;
+          vort[1] = 0;
+          vort[2] = 0;
+        }
+        vorticity->InsertNextTuple(vort);
+        // rotation
+        // local rotation = vorticity . unit tangent ( i.e. velocity/speed )
+        if (speed != 0.0)
+        {
           omega = vtkMath::Dot(vort, velocity);
           omega /= speed;
           omega *= this->RotationScale;
-          index = angularVel->InsertNextValue(omega);
-          rotation->InsertNextValue(rotation->GetValue(index - 1) +
-            (angularVel->GetValue(index - 1) + omega) / 2 *
-              (integrationTime - time->GetValue(index - 1)));
         }
-      }
-
-      // Never call conversion methods if speed == 0
-      if ((speed == 0) || (speed <= this->TerminalSpeed))
-      {
-        retVal = STAGNATION;
-        break;
-      }
-
-      // Convert all intervals to arc length
-      this->ConvertIntervals(step, minStep, maxStep, direction, cellLength);
-
-      // If the solver is adaptive and the next step size (stepSize.Interval)
-      // that the solver wants to use is smaller than minStep or larger
-      // than maxStep, re-adjust it. This has to be done every step
-      // because minStep and maxStep can change depending on the cell
-      // size (unless it is specified in arc-length unit)
-      if (integrator->IsAdaptive())
-      {
-        if (fabs(stepSize.Interval) < fabs(minStep))
+        else
         {
-          stepSize.Interval = fabs(minStep) * stepSize.Interval / fabs(stepSize.Interval);
+          omega = 0.0;
         }
-        else if (fabs(stepSize.Interval) > fabs(maxStep))
+        angularVel->InsertNextValue(omega);
+        rotation->InsertNextValue(0.0);
+      }
+
+      double error = 0;
+
+      // Integrate until the maximum propagation length is reached,
+      // maximum number of steps is reached or until a boundary is encountered.
+      // Begin Integration
+      while (propagation < this->MaximumPropagation)
+      {
+
+        if (numSteps++ > this->MaximumNumberOfSteps)
         {
-          stepSize.Interval = fabs(maxStep) * stepSize.Interval / fabs(stepSize.Interval);
+          retVal = vtkStreamTracer::OUT_OF_STEPS;
+          break;
+        }
+
+        bool endIntegration = false;
+        for (std::size_t i = 0; i < this->CustomTerminationCallback.size(); ++i)
+        {
+          if (this->CustomTerminationCallback[i](
+                this->CustomTerminationClientData[i], outputPoints, outputVelocityVectors, direction))
+          {
+            retVal = this->CustomReasonForTermination[i];
+            endIntegration = true;
+            break;
+          }
+        }
+        if (endIntegration)
+        {
+          break;
+        }
+
+        // Never call conversion methods if speed == 0
+        if ((speed == 0) || (speed <= this->TerminalSpeed))
+        {
+          retVal = vtkStreamTracer::STAGNATION;
+          break;
+        }
+
+        // If, with the next step, propagation will be larger than
+        // max, reduce it so that it is (approximately) equal to max.
+        aStep.Interval = fabs(stepSize.Interval);
+
+        if ((propagation + aStep.Interval) > this->MaximumPropagation)
+        {
+          aStep.Interval = this->MaximumPropagation - propagation;
+          if (stepSize.Interval >= 0)
+          {
+            stepSize.Interval = vtkIntervalInformation::ConvertToLength(aStep, cellLength);
+          }
+          else
+          {
+            stepSize.Interval = vtkIntervalInformation::ConvertToLength(aStep, cellLength) * (-1.0);
+          }
+          maxStep = stepSize.Interval;
+        }
+        lastUsedStepSize = stepSize.Interval;
+
+        // Calculate the next step using the integrator provided
+        // Break if the next point is out of bounds.
+        func->SetNormalizeVector(true);
+        tmp = integrator->ComputeNextStep(point1, point2, 0, stepSize.Interval, stepTaken, minStep,
+          maxStep, this->MaximumError, error);
+        func->SetNormalizeVector(false);
+        if (tmp != 0)
+        {
+          retVal = tmp;
+          memcpy(lastPoint, point2, 3 * sizeof(double));
+          break;
+        }
+
+        // This is the next starting point
+        if (this->SurfaceStreamlines && surfaceFunc != nullptr)
+        {
+          if (surfaceFunc->SnapPointOnCell(point2, point1) != 1)
+          {
+            retVal = vtkStreamTracer::OUT_OF_DOMAIN;
+            memcpy(lastPoint, point2, 3 * sizeof(double));
+            break;
+          }
+        }
+        else
+        {
+          for (int i = 0; i < 3; i++)
+          {
+            point1[i] = point2[i];
+          }
+        }
+
+        // Interpolate the velocity at the next point
+        if (!func->FunctionValues(point2, velocity))
+        {
+          retVal = vtkStreamTracer::OUT_OF_DOMAIN;
+          memcpy(lastPoint, point2, 3 * sizeof(double));
+          break;
+        }
+
+        // It is not enough to use the starting point for stagnation calculation
+        // Use average speed to check if it is below stagnation threshold
+        double speed2 = vtkMath::Norm(velocity);
+        if ((speed + speed2) / 2 <= this->TerminalSpeed)
+        {
+          retVal = vtkStreamTracer::STAGNATION;
+          break;
+        }
+
+        integrationTime += stepTaken / speed;
+        // Calculate propagation (using the same units as MaximumPropagation
+        propagation += fabs(stepSize.Interval);
+
+        // Make sure we use the dataset found by the vtkAbstractInterpolatedVelocityField
+        input = func->GetLastDataSet();
+        inputPD = input->GetPointData();
+        inVectors = input->GetAttributesAsFieldData(vecType)->GetArray(vecName);
+
+        // Calculate cell length and speed to be used in unit conversions
+        input->GetCell(func->GetLastCellId(), cell);
+        cellLength = sqrt(static_cast<double>(cell->GetLength2()));
+        speed = speed2;
+
+        // Check if conversion to float will produce a point in same place
+        float convertedPoint[3];
+        for (int i = 0; i < 3; i++)
+        {
+          convertedPoint[i] = point1[i];
+        }
+        if (lastInsertedPoint[0] != convertedPoint[0] || lastInsertedPoint[1] != convertedPoint[1] ||
+          lastInsertedPoint[2] != convertedPoint[2])
+        {
+          // Point is valid. Insert it.
+          numPts++;
+          nextPoint = outputPoints->InsertNextPoint(point1);
+          outputPoints->GetPoint(nextPoint, lastInsertedPoint);
+          time->InsertNextValue(integrationTime);
+
+          // Interpolate all point attributes on current point
+          func->GetLastWeights(weightsPtr);
+          InterpolatePoint(outputPD, inputPD, nextPoint, cell->PointIds, weightsPtr,
+                           this->HasMatchingPointAttributes);
+
+          if (vecType != vtkDataObject::POINT)
+          {
+            velocityVectors->InsertNextTuple(velocity);
+          }
+          // Compute vorticity if required
+          // This can be used later for streamribbon generation.
+          if (this->ComputeVorticity)
+          {
+            if (vecType == vtkDataObject::POINT)
+            {
+              inVectors->GetTuples(cell->PointIds, cellVectors);
+              func->GetLastLocalCoordinates(pcoords);
+              this->StreamTracer->CalculateVorticity(cell, pcoords, cellVectors, vort);
+            }
+            else
+            {
+              vort[0] = 0;
+              vort[1] = 0;
+              vort[2] = 0;
+            }
+            vorticity->InsertNextTuple(vort);
+            // rotation
+            // angular velocity = vorticity . unit tangent ( i.e. velocity/speed )
+            // rotation = sum ( angular velocity * stepSize )
+            omega = vtkMath::Dot(vort, velocity);
+            omega /= speed;
+            omega *= this->RotationScale;
+            index = angularVel->InsertNextValue(omega);
+            rotation->InsertNextValue(rotation->GetValue(index - 1) +
+              (angularVel->GetValue(index - 1) + omega) / 2 *
+                (integrationTime - time->GetValue(index - 1)));
+          }
+        }
+
+        // Never call conversion methods if speed == 0
+        if ((speed == 0) || (speed <= this->TerminalSpeed))
+        {
+          retVal = vtkStreamTracer::STAGNATION;
+          break;
+        }
+
+        // Convert all intervals to arc length
+        this->StreamTracer->ConvertIntervals(step, minStep, maxStep, direction, cellLength);
+
+        // If the solver is adaptive and the next step size (stepSize.Interval)
+        // that the solver wants to use is smaller than minStep or larger
+        // than maxStep, re-adjust it. This has to be done every step
+        // because minStep and maxStep can change depending on the cell
+        // size (unless it is specified in arc-length unit)
+        if (integrator->IsAdaptive())
+        {
+          if (fabs(stepSize.Interval) < fabs(minStep))
+          {
+            stepSize.Interval = fabs(minStep) * stepSize.Interval / fabs(stepSize.Interval);
+          }
+          else if (fabs(stepSize.Interval) > fabs(maxStep))
+          {
+            stepSize.Interval = fabs(maxStep) * stepSize.Interval / fabs(stepSize.Interval);
+          }
+        }
+        else
+        {
+          stepSize.Interval = step;
         }
       }
-      else
+
+      // If points have been inserted, keep track of information related to
+      // this seed. A special case exists when numPts==1 since a valid
+      // polyline has not been defined. However, the point is inserted and
+      // for historical reasons this needs to be sent to the output. We also
+      // keep track of other related information for the purposes of
+      // generating offsets and in general managing the threading output.
+      if (numPts > 0)
       {
-        stepSize.Interval = step;
-      }
-    }
-
-    if (shouldAbort)
-    {
-      break;
-    }
-
-    if (numPts > 1)
-    {
-      outputLines->InsertNextCell(numPts);
-      for (int i = numPtsTotal - numPts; i < numPtsTotal; i++)
-      {
-        outputLines->InsertCellPoint(i);
-      }
-      retVals->InsertNextValue(retVal);
-      sids->InsertNextValue(seedIds->GetId(currentLine));
-    }
-
-    // Initialize these to 0 before starting the next line.
-    // The values passed in the function call are only used
-    // for the first line.
-    inPropagation = propagation;
-    inNumSteps = numSteps;
-    inIntegrationTime = integrationTime;
-
-    propagation = 0;
-    numSteps = 0;
-    integrationTime = 0;
-  }
-
-  if (!shouldAbort)
-  {
-    // Create the output polyline
-    output->SetPoints(outputPoints);
-    outputPD->AddArray(time);
-    if (vecType != vtkDataObject::POINT)
-    {
-      outputPD->AddArray(velocityVectors);
-    }
-    if (vorticity)
-    {
-      outputPD->AddArray(vorticity);
-      outputPD->AddArray(rotation);
-      outputPD->AddArray(angularVel);
-    }
-
-    vtkIdType numPts = outputPoints->GetNumberOfPoints();
-    if (numPts > 1)
-    {
-      // Assign geometry and attributes
-      output->SetLines(outputLines);
-      if (this->GenerateNormalsInIntegrate)
-      {
-        this->GenerateNormals(output, nullptr, vecName);
+        TracerOffset& offset = this->Offsets[seedNum];
+        offset.ThreadOutput = &localOutput;
+        offset.ThreadPtId = outputPoints->GetNumberOfPoints() - numPts;
+        offset.NumPts = numPts;
+        offset.RetVal = retVal;
       }
 
-      outputCD->AddArray(retVals);
-      outputCD->AddArray(sids);
+      // Initialize these to 0 before starting the next line.
+      // The values passed in the function call are only used
+      // for the first line.
+      propagation = 0;
+      numSteps = 0;
+      integrationTime = 0;
+
+    }//for all seeds in this batch
+  }
+
+  // Perform the final compositing operation to assemble the
+  // filter output. Each seed is processed (which typically produces
+  // one streamline) and copied to the filter output.
+  struct CompositeOverSeeds
+  {
+    TracerOffsets &Offsets;
+    vtkPoints *OutPoints;
+    vtkIdType *CAOffsets;
+    vtkIdType *CAConn;
+    vtkPointData *OutPD;
+    int *SeedIds;
+    int *RetVals;
+
+    CompositeOverSeeds(TracerOffsets &offsets, vtkPoints *outPoints, vtkIdType *caOffsetsPtr,
+                       vtkIdType *caConnPtr, vtkPointData *outPD, int *seedIdsPtr,int *retValsPtr) :
+      Offsets(offsets), OutPoints(outPoints), CAOffsets(caOffsetsPtr), CAConn(caConnPtr),
+      OutPD(outPD), SeedIds(seedIdsPtr), RetVals(retValsPtr)
+    {}
+
+    void operator()(vtkIdType seedId, vtkIdType endSeedId)
+    {
+      double x[3];
+
+      for ( ; seedId < endSeedId; ++seedId )
+      {
+        TracerOffset& offset = this->Offsets[seedId];
+        if ( offset.NumPts > 0 ) // If a point or polyline created
+        {
+          // Copy the thread points to the filter output. Also copy the point
+          // data.
+          vtkPoints *threadPts = offset.ThreadOutput->OutputPoints;
+          vtkIdType outPtId = offset.StartingPtId;
+          vtkPointData *threadPD = offset.ThreadOutput->OutputPD;
+          for ( auto i=0; i < offset.NumPts; ++i )
+          {
+            vtkIdType threadId = offset.ThreadPtId + i;
+            vtkIdType outId = outPtId + i;
+            threadPts->GetPoint(threadId,x);
+            this->OutPoints->SetPoint(outId,x);
+            this->OutPD->CopyData(threadPD,threadId,outId);
+          }
+
+          // Now if this is a valid polyine (i.e., more than
+          // one point) create the cell related information.
+          if ( offset.NumPts > 1 )
+          {
+            vtkIdType cellId = offset.CellId;
+            this->CAOffsets[cellId] = offset.CellConnOffset;
+            vtkIdType connLoc = offset.CellConnOffset;
+            outPtId = offset.StartingPtId;
+            for ( auto i=0; i < offset.NumPts; ++i )
+            {
+              vtkIdType outId = outPtId + i;
+              this->CAConn[connLoc++] = outId;
+            }
+
+            // Copy the cell data
+            this->SeedIds[cellId] = seedId;
+            this->RetVals[cellId] = offset.RetVal;
+          } // if a valid polyline is created
+        } // if a streamline generated for this seed
+      } // for all seeds
+    } // operator()
+  };
+
+  // Assemble the thread output. This means adding the
+  // appropriate output data arrays expected by the user.
+  void AssembleOutput(vtkLocalThreadOutput& threadOutput)
+  {
+    vtkPointData *outputPD = threadOutput.OutputPD;
+    outputPD->AddArray(threadOutput.Time);
+
+    if ( this->ComputeVorticity )
+    {
+      outputPD->AddArray(threadOutput.Vorticity);
+      outputPD->AddArray(threadOutput.Rotation);
+      outputPD->AddArray(threadOutput.AngularVelocity);
     }
   }
 
-  if (vorticity)
+  // Combine the outputs of the threads into the filter output. This is
+  // effectively a parallel append operation.
+  void Reduce()
   {
-    vorticity->Delete();
-    rotation->Delete();
-    angularVel->Delete();
+    // Perform a prefix sum to generate offsets (i.e., point ids and cell
+    // ids) and to determine the size of the containers that hold
+    // them. These will be used to allocate the global filter output, and
+    // copy thread data to the filter output.
+    vtkIdType ptId=0, cellId=0, npts, cellConnOffset=0;
+    for ( auto& offIter : this->Offsets )
+    {
+      // If points were created from this seed
+      if ( (npts = offIter.NumPts) > 0 )
+      {
+        offIter.StartingPtId = ptId;
+        ptId += npts;
+        // If a polyline was created from this seed
+        if ( npts > 1 )
+        {
+          offIter.CellId = cellId++;
+          offIter.CellConnOffset = cellConnOffset;
+          cellConnOffset += npts;
+        }
+      }
+    }
+    // The number of filter output points and cells.
+    vtkIdType numPts = ptId;
+    vtkIdType numCells = cellId;
+
+    // Now finalize the output in each thread. Meaning assigning point data
+    // to the thread output. (We deferred doing this previously so as not to
+    // interfere with the point data interpolation of filter input
+    // attributes.)  In the magical process of copying data from the threads
+    // to the final filter output, all point data must be properly set up in
+    // the thread output so that vtkPointData::CopyData() works properly.
+    auto ldEnd = this->LocalThreadOutput.end();
+    for (auto ldItr = this->LocalThreadOutput.begin(); ldItr != ldEnd; ++ldItr)
+    {
+      this->AssembleOutput(*ldItr);
+    }
+
+    // In the following, allocate the output points, cell array, and the
+    // point and cell attribute data.
+
+    // Geometry: points
+    vtkNew<vtkPoints> outPoints;
+    outPoints->SetNumberOfPoints(numPts);
+
+    // Topology: allocate objects that are assembled into the polyline
+    // cell array.
+    vtkNew<vtkIdTypeArray> caOffsets;
+    vtkIdType* caOffsetsPtr = caOffsets->WritePointer(0, numCells+1);
+    caOffsetsPtr[numCells] = cellConnOffset;
+    vtkNew<vtkIdTypeArray> caConn;
+    vtkIdType* caConnPtr = caConn->WritePointer(0, cellConnOffset);
+
+    // Interpolated point data: need to copy from thread local to the filter
+    // output. Streamer point data: use the first thread local data to
+    // configure the arrays (i.e., CopyAllocate()) because all threads have
+    // been configured to have the same data attributes.
+    vtkPointData *threadPD = this->LocalThreadOutput.begin()->OutputPD;
+    vtkPointData *outputPD = this->Output->GetPointData();
+    outputPD->CopyAllocate(threadPD,numPts);
+
+    // Allocate streamer cell data: seed ids and streamer termination return
+    // values.
+    vtkNew<vtkIntArray> seedIds;
+    int* seedIdsPtr = seedIds->WritePointer(0,numCells);
+    seedIds->SetName("SeedIds");
+
+    vtkNew<vtkIntArray> retVals;
+    retVals->SetName("ReasonForTermination");
+    int* retValsPtr = retVals->WritePointer(0,numCells);
+
+    this->Output->GetCellData()->AddArray(retVals);
+    this->Output->GetCellData()->AddArray(seedIds);
+
+    // Now thread over the seeds, producing the final points, polylines,
+    // and attribute data, as well as copying over interpolated point data.
+    CompositeOverSeeds comp(this->Offsets, outPoints,caOffsetsPtr,caConnPtr,
+                            outputPD,seedIdsPtr,retValsPtr);
+    vtkSMPTools::For(0, this->Offsets.size(), comp);
+
+    // Finally, assemble the objects to create the filter output.
+    this->Output->SetPoints(outPoints);
+    vtkNew<vtkCellArray> streamers;
+    streamers->SetData(caOffsets,caConn);
+    this->Output->SetLines(streamers);
+
+    // If requested, generate normals
+    if ( this->GenerateNormalsInIntegrate )
+    {
+      this->StreamTracer->GenerateNormals(this->Output, nullptr, this->VecName);
+    }
+
+  } // Reduce()
+
+}; // TracerIntegrator
+
+} //anonymous
+
+//------------------------------------------------------------------------------
+// This method sets up the integration for one or more threads. Care has to be
+// taken to ensure that duplicate locators are not created (memory issues), and
+// that thread-safe operations are used.
+void vtkStreamTracer::
+Integrate(vtkPointData* vtkNotUsed(input0Data), vtkPolyData* output,
+          vtkDataArray* seedSource, vtkIdList* seedIds, vtkIntArray* intDirs,
+          vtkAbstractInterpolatedVelocityField* func, int maxCellSize, int vecType,
+          const char* vecName, double& inPropagation, vtkIdType& inNumSteps, double& inIntegrationTime,
+          std::vector<CustomTerminationCallbackType> &customTerminationCallback,
+          std::vector<void*> &customTerminationClientData,
+          std::vector<int> &customReasonForTermination)
+{
+  vtkInitialValueProblemSolver* integrator = this->GetIntegrator();
+  if ( integrator == nullptr)
+  {
+    vtkErrorMacro("No integrator is specified.");
+    return;
   }
 
-  if (cellVectors)
-  {
-    cellVectors->Delete();
+  // Setup the offsets for compositing data.
+  vtkIdType numSeeds = seedIds->GetNumberOfIds();
+  TracerOffsets offsets(numSeeds);
+
+  // We will interpolate all point attributes of the input on each point of
+  // the output (unless they are turned off). Note that we are using a prototype
+  // of the input point data, which is the intersection of all possible input
+  // attributes (if using composite/multiblock). The prototype is used to
+  // establish which data arrays to interpolate from.
+  vtkNew<vtkPointData> protoPD;
+  this->InputPD.BuildPrototype(protoPD);
+
+  // Generate streamlines.
+  TracerIntegrator ti(this, this->HasMatchingPointAttributes, protoPD,
+                      seedSource, seedIds, intDirs, offsets,
+                      func, integrator, maxCellSize, inPropagation, inNumSteps,
+                      inIntegrationTime, vecType, vecName, this->GenerateNormalsInIntegrate,
+                      output, customTerminationCallback, customTerminationClientData,
+                      customReasonForTermination);
+
+  // Streamline threading only kicks in when the number of seeds exceeds a
+  // threshold value.  This is because there is a cost to spinning up
+  // threads, and then compositing the results. So for small numbers of
+  // seeds, just use a serial approach. Otherwise thread the streamlines.
+  const int VTK_ST_THREADING_THRESHOLD = 8;
+  if ( numSeeds < VTK_ST_THREADING_THRESHOLD )
+  {// Serial
+    vtkSMPTools::LocalScope(vtkSMPTools::Config{static_cast<std::string>("Sequential")}, [&]()
+    {vtkSMPTools::For(0,numSeeds, ti);} );
   }
-  retVals->Delete();
-  sids->Delete();
-
-  outputPoints->Delete();
-  outputLines->Delete();
-
-  time->Delete();
-
-  integrator->Delete();
-  cell->Delete();
-
-  delete[] weights;
-
-  output->Squeeze();
+  else
+  {
+    vtkSMPTools::For(0,numSeeds, ti);
+  }
 }
 
 //------------------------------------------------------------------------------
-void vtkStreamTracer::GenerateNormals(vtkPolyData* output, double* firstNormal, const char* vecName)
+void vtkStreamTracer::
+GenerateNormals(vtkPolyData* output, double* firstNormal, const char* vecName)
 {
-  // Useful pointers
   vtkDataSetAttributes* outputPD = output->GetPointData();
-
   vtkPoints* outputPoints = output->GetPoints();
-  vtkCellArray* outputLines = output->GetLines();
+  vtkIdType numPts = outputPoints->GetNumberOfPoints();
+  if (numPts <= 1 || !this->ComputeVorticity )
+  {
+    return;
+  }
 
+  // Setup the computation
+  vtkCellArray* outputLines = output->GetLines();
   vtkDataArray* rotation = outputPD->GetArray("Rotation");
 
-  vtkIdType numPts = outputPoints->GetNumberOfPoints();
-  if (numPts > 1)
+  vtkNew<vtkDoubleArray> normals;
+  normals->SetNumberOfComponents(3);
+  normals->SetNumberOfTuples(numPts);
+  normals->SetName("Normals");
+
+  // Make sure the normals are initialized in case
+  // GenerateSlidingNormals() fails and returns before
+  // creating all normals
+  vtkSMPTools::For(0,numPts, [&](vtkIdType ptId, vtkIdType endPtId)
   {
-    if (this->ComputeVorticity)
+    for ( ; ptId < endPtId; ++ptId)
     {
-      vtkPolyLine* lineNormalGenerator = vtkPolyLine::New();
-      vtkDoubleArray* normals = vtkDoubleArray::New();
-      normals->SetNumberOfComponents(3);
-      normals->SetNumberOfTuples(numPts);
-      // Make sure the normals are initialized in case
-      // GenerateSlidingNormals() fails and returns before
-      // creating all normals
-      for (vtkIdType idx = 0; idx < numPts; idx++)
-      {
-        normals->SetTuple3(idx, 1, 0, 0);
-      }
-
-      vtkPolyLine::GenerateSlidingNormals(outputPoints, outputLines, normals, firstNormal);
-      lineNormalGenerator->Delete();
-
-      vtkIdType i;
-      int j;
-      double normal[3], local1[3], local2[3], theta, costheta, sintheta, length;
-      double velocity[3];
-      normals->SetName("Normals");
-      vtkDataArray* newVectors = outputPD->GetVectors(vecName);
-      for (i = 0; i < numPts; i++)
-      {
-        normals->GetTuple(i, normal);
-        if (newVectors == nullptr || newVectors->GetNumberOfTuples() != numPts)
-        { // This should never happen.
-          vtkErrorMacro("Bad velocity array.");
-          return;
-        }
-        newVectors->GetTuple(i, velocity);
-        // obtain two unit orthogonal vectors on the plane perpendicular to
-        // the streamline
-        for (j = 0; j < 3; j++)
-        {
-          local1[j] = normal[j];
-        }
-        length = vtkMath::Normalize(local1);
-        vtkMath::Cross(local1, velocity, local2);
-        vtkMath::Normalize(local2);
-        // Rotate the normal with theta
-        rotation->GetTuple(i, &theta);
-        costheta = cos(theta);
-        sintheta = sin(theta);
-        for (j = 0; j < 3; j++)
-        {
-          normal[j] = length * (costheta * local1[j] + sintheta * local2[j]);
-        }
-        normals->SetTuple(i, normal);
-      }
-      outputPD->AddArray(normals);
-      outputPD->SetActiveAttribute("Normals", vtkDataSetAttributes::VECTORS);
-      normals->Delete();
+      normals->SetTuple3(ptId, 1, 0, 0);
     }
+  });
+
+  // Generate the orientation normals. This will be threaded since none of the
+  // lines "reuse" points from another line.
+  vtkNew<vtkPolyLine> lineNormalGenerator;
+  lineNormalGenerator->GenerateSlidingNormals(outputPoints, outputLines,
+                                              normals, firstNormal, true);
+
+  // Now generate the final streamer normals
+  vtkDataArray* newVectors = outputPD->GetVectors(vecName);
+  if (newVectors == nullptr || newVectors->GetNumberOfTuples() != numPts)
+  { // This should never happen.
+    vtkErrorMacro("Bad velocity array.");
+    return;
   }
+
+  // Thread the final normal generation
+  vtkSMPTools::For(0,numPts, [&](vtkIdType ptId, vtkIdType endPtId)
+  {
+    double normal[3], local1[3], local2[3], theta, costheta, sintheta, length;
+    double velocity[3];
+    for ( ; ptId < endPtId; ++ptId)
+    {
+      normals->GetTuple(ptId, normal);
+      newVectors->GetTuple(ptId, velocity);
+      // obtain two unit orthogonal vectors on the plane perpendicular to
+      // the streamline
+      for (auto j = 0; j < 3; j++)
+      {
+        local1[j] = normal[j];
+      }
+      length = vtkMath::Normalize(local1);
+      vtkMath::Cross(local1, velocity, local2);
+      vtkMath::Normalize(local2);
+      // Rotate the normal with theta
+      rotation->GetTuple(ptId, &theta);
+      costheta = cos(theta);
+      sintheta = sin(theta);
+      for (auto j = 0; j < 3; j++)
+      {
+        normal[j] = length * (costheta * local1[j] + sintheta * local2[j]);
+      }
+      normals->SetTuple(ptId, normal);
+    }
+  });//lambda
+
+  // Associate normals with the output
+  outputPD->AddArray(normals);
+  outputPD->SetActiveAttribute("Normals", vtkDataSetAttributes::VECTORS);
 }
 
 //------------------------------------------------------------------------------

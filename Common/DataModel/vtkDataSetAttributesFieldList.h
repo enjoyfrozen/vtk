@@ -125,6 +125,24 @@ public:
   void TransformData(int inputIndex, vtkDataSetAttributes* input, vtkDataSetAttributes* output,
     std::function<void(vtkAbstractArray*, vtkAbstractArray*)> op) const;
 
+  /**
+   * A convenience function that builds a prototype / template dataset
+   * attributes for initializing the process of attribute interpolation and
+   * copying. The supplied protoPD should be initialized (empty), and the
+   * arrays present in this field list are instantiated and added to the
+   * prototype attributes. The typical usage is to use field list
+   * intersection (or union) operations to build up the field list, then
+   * create the prototype.
+   */
+  void BuildPrototype(vtkDataSetAttributes *protoDSA);
+
+  /**
+   * This method can be used to determine the number of arrays remaining
+   * after intersection of union operations. See also
+   * vtkFieldData::GetNumberOfArrays().
+   */
+  int GetNumberOfArrays();
+
 protected:
   /**
    * Called to create an output array for the given type.
