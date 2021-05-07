@@ -123,7 +123,7 @@ public:
 
   ///@{
   /**
-   * Get/Set the name of a spcified vector array. By default it is nullptr, with
+   * Get/Set the name of a specified vector array. By default it is nullptr, with
    * the active vector array for use.
    */
   vtkGetStringMacro(VectorsSelection);
@@ -177,7 +177,10 @@ public:
   ///@}
 
   /**
-   * Import parameters. Sub-classes can add more after chaining.
+   * Copy essential parameters between instances of this class. This
+   * generally is used to copy from instance prototype to another, or to copy
+   * interpolators between thread instances.  Sub-classes can contribute to
+   * the parameter copying process via chaining.
    */
   virtual void CopyParameters(vtkAbstractInterpolatedVelocityField* from);
 

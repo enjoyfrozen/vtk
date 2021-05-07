@@ -63,23 +63,29 @@
  * the dataset contains 2D cells like polygons or triangles, the integration
  * is constrained to lie on the surface defined by 2D cells.
  *
- * The starting point, or the so-called 'seed', of a streamline may be set
- * in two different ways. Starting from global x-y-z "position" allows you
- * to start a single trace at a specified x-y-z coordinate. If you specify
- * a source object, traces will be generated from each point in the source
- * that is inside the dataset.
+ * The starting point, or the so-called 'seed', of a streamline may be set in
+ * two different ways. Starting from global x-y-z "position" allows you to
+ * start a single trace at a specified x-y-z coordinate. If you specify a
+ * source object, traces will be generated from each point in the source that
+ * is inside the dataset. Note that if the integration direction is BOTH,
+ * then potentially 2N streamlines will be generated given N seed points.
+ *
+ * @note This class has been threaded using vtkSMPTools. Each separate
+ * streamline (corresponding to the initial seeds) is processed in a
+ * separate thread. Consequently, if threading is enabled and many
+ * streamlines are generated, significant performance improvement is
+ * possible.
  *
  * @note Field data is shallow copied to the output. When the input is a
  * composite data set, field data associated with the root block is shallow-
  * copied to the output vtkPolyData.
- *
  *
  * @sa
  * vtkRibbonFilter vtkRuledSurfaceFilter vtkInitialValueProblemSolver
  * vtkRungeKutta2 vtkRungeKutta4 vtkRungeKutta45 vtkParticleTracerBase
  * vtkParticleTracer vtkParticlePathFilter vtkStreaklineFilter
  * vtkAbstractInterpolatedVelocityField vtkInterpolatedVelocityField
- * vtkCellLocatorInterpolatedVelocityField
+ * vtkCellLocatorInterpolatedVelocityField vtkSMPTools
  *
  */
 
@@ -90,6 +96,7 @@
 #include "vtkPolyDataAlgorithm.h"
 
 #include "vtkInitialValueProblemSolver.h" // Needed for constants
+#include "vtkDataSetAttributesFieldList.h" // Needed to identify common data arrays
 
 class vtkAbstractInterpolatedVelocityField;
 class vtkCompositeDataSet;
@@ -104,12 +111,22 @@ class vtkPoints;
 
 #include <vector> // for std::vector
 
+// Helper struct to convert between different length scales.
+struct VTKFILTERSFLOWPATHS_EXPORT vtkIntervalInformation
+{
+  double Interval;
+  int Unit;
+
+  static double ConvertToLength(double interval, int unit, double cellLength);
+  static double ConvertToLength(vtkIntervalInformation& interval, double cellLength);
+};
+
+typedef bool (*CustomTerminationCallbackType)(
+  void* clientdata, vtkPoints* points, vtkDataArray* velocity, int integrationDirection);
+
 class VTKFILTERSFLOWPATHS_EXPORT vtkStreamTracer : public vtkPolyDataAlgorithm
 {
 public:
-  vtkTypeMacro(vtkStreamTracer, vtkPolyDataAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) override;
-
   /**
    * Construct object to start from position (0,0,0), with forward
    * integration, terminal speed 1.0E-12, vorticity computation on,
@@ -118,6 +135,14 @@ public:
    * (in arc length unit).
    */
   static vtkStreamTracer* New();
+
+  ///@{
+  /**
+   * Standard methods to obtain type information and print object state.
+   */
+  vtkTypeMacro(vtkStreamTracer, vtkPolyDataAlgorithm);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
+  ///@}
 
   ///@{
   /**
@@ -202,14 +227,21 @@ public:
   ///@}
 
   /**
-   * Set the velocity field interpolator type to the one involving
-   * a dataset point locator.
+   * Set the velocity field interpolator type to one that uses a point
+   * locator to perform local spatial searching. Typically a point locator is
+   * faster than searches with a cell locator, but it may not always find the
+   * correct cells enclosing a point. This is particularly true with meshes
+   * that are disjoint at seams, or abut meshes in an incompatible manner.
+   * By default (and if a InterpolationPrototype is not set), a point locator
+   * is used.
    */
   void SetInterpolatorTypeToDataSetPointLocator();
 
   /**
-   * Set the velocity field interpolator type to the one involving
-   * a cell locator.
+   * Set the velocity field interpolator type to one that uses a cell locator
+   * to perform spatial searching. Using a cell locator should always return
+   * the correct results, but it can be much slower that point locator-based
+   * searches.
    */
   void SetInterpolatorTypeToCellLocator();
 
@@ -274,7 +306,12 @@ public:
 
   ///@{
   /**
-   * Specify the maximum number of steps for integrating a streamline.
+   * Specify the maximum number of steps for integrating a streamline. Note
+   * that the number of steps generated is always one greater than
+   * MaximumNumberOfSteps. So if MaximumNumberOfSteps==0, then only one step
+   * will be generated. This is usefule for advection situations when the
+   * stream tracer is to be propagated just one steo at a time (see
+   * vtkStreamSurface which depends on this behavior).
    */
   vtkSetMacro(MaximumNumberOfSteps, vtkIdType);
   vtkGetMacro(MaximumNumberOfSteps, vtkIdType);
@@ -313,7 +350,10 @@ public:
   ///@{
   /**
    * Specify whether the streamline is integrated in the upstream or
-   * downstream direction.
+   * downstream direction, or in both directions. (If integrated in both
+   * directions, two separate streamlines are generated, both of which which
+   * start at the seed point with one traveling in the forward direction, and
+   * one in the backward direction.)
    */
   vtkSetClampMacro(IntegrationDirection, int, FORWARD, BOTH);
   vtkGetMacro(IntegrationDirection, int);
@@ -342,8 +382,10 @@ public:
   ///@}
 
   /**
-   * The object used to interpolate the velocity field during
-   * integration is of the same class as this prototype.
+   * The object used to interpolate the velocity field during integration is
+   * of the same class as this prototype. The performance of streamline
+   * generations can be significantly affected by the choice of the
+   * interpolator, particularly its use of the locator to use.
    */
   void SetInterpolatorPrototype(vtkAbstractInterpolatedVelocityField* ivf);
 
@@ -366,9 +408,8 @@ public:
    * integrationDirection FORWARD of BACKWARD
    * The function returns true if the streamline should be terminated
    * and false otherwise.
+
    */
-  typedef bool (*CustomTerminationCallbackType)(
-    void* clientdata, vtkPoints* points, vtkDataArray* velocity, int integrationDirection);
   /**
    * Adds a custom termination callback.
    * callback is a function provided by the user that says if the streamline
@@ -379,6 +420,27 @@ public:
    */
   void AddCustomTerminationCallback(
     CustomTerminationCallbackType callback, void* clientdata, int reasonForTermination);
+
+  /** The following methods should not be called by the user. They serve as integration
+   * bridges between this vtkStreamTracer class and classes defined and implemented in
+   * anonymous namespace. */
+
+  /**
+   * Helper method to convert between length scales. Made public so internal threaded
+   * classes in anonymous namespace can invoke the method.
+   */
+  void ConvertIntervals(
+    double& step, double& minStep, double& maxStep, int direction, double cellLength);
+
+  ///@{
+  /**
+   * Helper methods to generate normals on streamlines. Made public so internal threaded
+   * classes in anonymous namespace can invoke the methods.
+   */
+  void GenerateNormals(vtkPolyData* output, double* firstNormal, const char* vecName);
+  void CalculateVorticity(vtkGenericCell* cell, double pcoords[3], vtkDoubleArray* cellVectors,
+                          double vorticity[3]);
+  ///@}
 
 protected:
   vtkStreamTracer();
@@ -396,16 +458,17 @@ protected:
   int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
   int FillInputPortInformation(int, vtkInformation*) override;
 
-  void CalculateVorticity(
-    vtkGenericCell* cell, double pcoords[3], vtkDoubleArray* cellVectors, double vorticity[3]);
   void Integrate(vtkPointData* inputData, vtkPolyData* output, vtkDataArray* seedSource,
-    vtkIdList* seedIds, vtkIntArray* integrationDirections, double lastPoint[3],
-    vtkAbstractInterpolatedVelocityField* func, int maxCellSize, int vecType,
-    const char* vecFieldName, double& propagation, vtkIdType& numSteps, double& integrationTime);
+                 vtkIdList* seedIds, vtkIntArray* integrationDirections,
+                 vtkAbstractInterpolatedVelocityField* func, int maxCellSize, int vecType,
+                 const char* vecFieldName, double& propagation, vtkIdType& numSteps, double& integrationTime,
+                 std::vector<CustomTerminationCallbackType> &customTerminationCallback,
+                 std::vector<void*> &customTerminationClientData,
+                 std::vector<int> &customReasonForTermination);
+
   double SimpleIntegrate(double seed[3], double lastPoint[3], double stepSize,
-    vtkAbstractInterpolatedVelocityField* func);
+                         vtkAbstractInterpolatedVelocityField* func);
   int CheckInputs(vtkAbstractInterpolatedVelocityField*& func, int* maxCellSize);
-  void GenerateNormals(vtkPolyData* output, double* firstNormal, const char* vecName);
 
   bool GenerateNormalsInIntegrate;
 
@@ -415,23 +478,13 @@ protected:
   static const double EPSILON;
   double TerminalSpeed;
 
+  // Used by subclasses, leave alone
   double LastUsedStepSize;
-
-  struct IntervalInformation
-  {
-    double Interval;
-    int Unit;
-  };
 
   double MaximumPropagation;
   double MinimumIntegrationStep;
   double MaximumIntegrationStep;
   double InitialIntegrationStep;
-
-  void ConvertIntervals(
-    double& step, double& minStep, double& maxStep, int direction, double cellLength);
-  static double ConvertToLength(double interval, int unit, double cellLength);
-  static double ConvertToLength(IntervalInformation& interval, double cellLength);
 
   int SetupOutput(vtkInformation* inInfo, vtkInformation* outInfo);
   void InitializeSeeds(vtkDataArray*& seeds, vtkIdList*& seedIds,
@@ -454,9 +507,14 @@ protected:
 
   vtkAbstractInterpolatedVelocityField* InterpolatorPrototype;
 
-  vtkCompositeDataSet* InputData;
-  bool
-    HasMatchingPointAttributes; // does the point data in the multiblocks have the same attributes?
+  // These are used to manage complex input types such as
+  // multiblock / composite datasets. Basically the filter input is
+  // converted to a composite dataset, and the point data attributes
+  // are intersected to produce a common set of output data arrays.
+  vtkCompositeDataSet* InputData; // convert input data to composite dataset
+  vtkDataSetAttributesFieldList InputPD; // intersect attributes of all datasets
+  bool HasMatchingPointAttributes; // does the point data in the multiblocks have the same attributes?
+
   std::vector<CustomTerminationCallbackType> CustomTerminationCallback;
   std::vector<void*> CustomTerminationClientData;
   std::vector<int> CustomReasonForTermination;

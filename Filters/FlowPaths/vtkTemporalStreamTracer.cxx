@@ -1093,7 +1093,7 @@ void vtkTemporalStreamTracer::IntegrateParticle(ParticleListIterator& it, double
                   << this->CurrentTimeSteps[1] << ") got " << point1[3]);
   }
 
-  IntervalInformation delT;
+  vtkIntervalInformation delT;
   delT.Unit = LENGTH_UNIT;
   delT.Interval = (targettime - currenttime) * this->InitialIntegrationStep;
   epsilon = delT.Interval * 1E-3;

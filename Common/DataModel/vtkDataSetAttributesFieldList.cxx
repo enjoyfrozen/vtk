@@ -54,7 +54,7 @@ struct FieldInfo
    */
   vtkSmartPointer<vtkLookupTable> LUT;
   vtkSmartPointer<vtkInformation> Information;
-  std::vector<std::string> ComponentNames;
+ std::vector<std::string> ComponentNames;
   //@}
 
   /**
@@ -736,6 +736,45 @@ void vtkDataSetAttributesFieldList::TransformData(int inputIndex, vtkDataSetAttr
 vtkSmartPointer<vtkAbstractArray> vtkDataSetAttributesFieldList::CreateArray(int type) const
 {
   return vtkSmartPointer<vtkAbstractArray>::Take(vtkAbstractArray::CreateArray(type));
+}
+
+//------------------------------------------------------------------------------
+void vtkDataSetAttributesFieldList::BuildPrototype(vtkDataSetAttributes *proto)
+{
+  // Create data arrays present in this field list and associate them with
+  // the prototype.
+  auto& internals = *this->Internals;
+  for (auto& pair : internals.Fields)
+  {
+    auto& fieldInfo = pair.second;
+    auto array = this->CreateArray(fieldInfo.Type);
+    array->SetName(fieldInfo.Name.c_str());
+    array->SetNumberOfComponents(fieldInfo.NumberOfComponents);
+    int idx = proto->AddArray(array);
+    for (int attrType = 0; attrType < vtkDataSetAttributes::NUM_ATTRIBUTES; ++attrType)
+    {
+      if ( fieldInfo.AttributeTypes[0][attrType] )
+      {
+        proto->SetActiveAttribute(idx, attrType);
+        break;
+      }
+    }
+  } //for all fields
+}
+
+//------------------------------------------------------------------------------
+int vtkDataSetAttributesFieldList::GetNumberOfArrays()
+{
+  auto& internals = *this->Internals;
+
+  // Count the number of arrays
+  int numArrays=0;
+  for (auto& pair : internals.Fields)
+  {
+    ++numArrays;
+  }
+
+  return 0;
 }
 
 //------------------------------------------------------------------------------
