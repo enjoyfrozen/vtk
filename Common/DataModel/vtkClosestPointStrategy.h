@@ -90,6 +90,14 @@ public:
    */
   vtkCell* SelectCell(vtkPointSet* self, vtkIdType cellId, vtkCell* cell, vtkGenericCell* gencell);
 
+  /**
+   * Copy essential parameters between instances of this class. This
+   * generally is used to copy from instance prototype to another, or to copy
+   * strategies between thread instances.  Sub-classes can contribute to
+   * the parameter copying process via chaining.
+   */
+  virtual void CopyParameters(vtkFindCellStrategy* from);
+
 protected:
   vtkClosestPointStrategy();
   ~vtkClosestPointStrategy() override;

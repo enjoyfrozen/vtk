@@ -70,6 +70,12 @@ public:
   vtkGetMacro(LastDataSetIndex, int);
   ///@}
 
+  /**
+   * Copy essential parameters between instances of this class. See
+   * vtkAbstractInterpolatedVelocityField for more information.
+   */
+  void CopyParameters(vtkAbstractInterpolatedVelocityField* from) override;
+
 protected:
   vtkCompositeInterpolatedVelocityField();
   ~vtkCompositeInterpolatedVelocityField() override;

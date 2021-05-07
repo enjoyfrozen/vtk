@@ -74,6 +74,14 @@ public:
   virtual vtkIdType FindCell(double x[3], vtkCell* cell, vtkGenericCell* gencell, vtkIdType cellId,
     double tol2, int& subId, double pcoords[3], double* weights) = 0;
 
+  /**
+   * Copy essential parameters between instances of this class. This
+   * generally is used to copy from instance prototype to another, or to copy
+   * strategies between thread instances.  Sub-classes can contribute to
+   * the parameter copying process via chaining.
+   */
+  virtual void CopyParameters(vtkFindCellStrategy* from);
+
 protected:
   vtkFindCellStrategy();
   ~vtkFindCellStrategy() override;

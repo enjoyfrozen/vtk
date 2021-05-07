@@ -526,7 +526,15 @@ void vtkAbstractInterpolatedVelocityField::CopyParameters(
   vtkAbstractInterpolatedVelocityField* from)
 {
   this->Caching = from->Caching;
-  this->SetFindCellStrategy(from->GetFindCellStrategy());
+
+  // Since the strategy may be used in a threaded situation, create a new instance
+  // of the FindCellStrategy and copy appropriate parameters.
+  if ( from->GetFindCellStrategy() != nullptr )
+  {
+    vtkFindCellStrategy *strategy = from->GetFindCellStrategy()->NewInstance();
+    strategy->CopyParameters(from->GetFindCellStrategy());
+    this->SetFindCellStrategy(strategy);
+  }
 }
 
 //------------------------------------------------------------------------------
