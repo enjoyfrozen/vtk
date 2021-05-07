@@ -91,6 +91,8 @@ void vtkUniformGridAMR::Initialize()
 //------------------------------------------------------------------------------
 void vtkUniformGridAMR::Initialize(int numLevels, const int* blocksPerLevel)
 {
+  cout << "Initialize: " << numLevels << "," << blocksPerLevel << "\n";
+
   this->Bounds[0] = VTK_DOUBLE_MAX;
   this->Bounds[1] = VTK_DOUBLE_MIN;
   this->Bounds[2] = VTK_DOUBLE_MAX;
