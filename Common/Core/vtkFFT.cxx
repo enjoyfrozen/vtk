@@ -14,20 +14,65 @@
 =========================================================================*/
 #include "vtkFFT.h"
 
-#include "vtkMath.h"
 #include "vtkObjectFactory.h"
 
 //------------------------------------------------------------------------------
 vtkStandardNewMacro(vtkFFT);
 
 //------------------------------------------------------------------------------
-std::vector<vtkFFT::ComplexNumber> vtkFFT::FftDirect(const std::vector<ScalarNumber>& in)
+std::vector<vtkFFT::ComplexNumber> vtkFFT::Fft(const std::vector<ComplexNumber>& in)
 {
+  if (in.empty())
+  {
+    return {};
+  }
+
+  kiss_fft_cfg cfg =
+    kiss_fft_alloc(static_cast<int>(in.size()), 0 /*is_inverse_fft*/, nullptr, nullptr);
+  if (cfg != nullptr)
+  {
+    std::vector<vtkFFT::ComplexNumber> result(in.size());
+
+    kiss_fft(cfg, in.data(), &result[0]);
+    kiss_fft_free(cfg);
+
+    return result;
+  }
+  return {};
+}
+
+//------------------------------------------------------------------------------
+std::vector<vtkFFT::ComplexNumber> vtkFFT::Fft(const std::vector<ScalarNumber>& in)
+{
+  std::vector<ComplexNumber> cplx(in.size());
+  std::transform(in.begin(), in.end(), cplx.begin(), [](const ScalarNumber& x) {
+    return ComplexNumber{ x, 0 };
+  });
+  return vtkFFT::Fft(cplx);
+}
+
+//------------------------------------------------------------------------------
+std::vector<vtkFFT::ComplexNumber> vtkFFT::RFft(const std::vector<ScalarNumber>& in)
+{
+  if (in.empty())
+  {
+    return {};
+  }
+
+  std::size_t outSize = (in.size() / 2) + 1;
+
+  // Real fft optimization needs an input with even size. Falling back to vtkFFT::Fft() if odd sized
+  // input
+  if ((in.size() % 2) == 1)
+  {
+    const auto& res = vtkFFT::Fft(in);
+    return std::vector<ComplexNumber>(res.begin(), res.begin() + outSize);
+  }
+
   kiss_fftr_cfg cfg =
     kiss_fftr_alloc(static_cast<int>(in.size()), 0 /*is_inverse_fft*/, nullptr, nullptr);
   if (cfg != nullptr)
   {
-    auto outSize = (in.size() / 2) + 1;
     std::vector<vtkFFT::ComplexNumber> result(outSize);
 
     kiss_fftr(cfg, in.data(), &result[0]);
@@ -39,9 +84,40 @@ std::vector<vtkFFT::ComplexNumber> vtkFFT::FftDirect(const std::vector<ScalarNum
 }
 
 //------------------------------------------------------------------------------
-std::vector<vtkFFT::ScalarNumber> vtkFFT::FftInverse(const std::vector<vtkFFT::ComplexNumber>& in)
+std::vector<vtkFFT::ComplexNumber> vtkFFT::IFft(const std::vector<vtkFFT::ComplexNumber>& in)
 {
-  auto outSize = (in.size() - 1) * 2;
+  if (in.empty())
+  {
+    return {};
+  }
+
+  std::size_t outSize = in.size();
+  kiss_fft_cfg cfg =
+    kiss_fft_alloc(static_cast<int>(outSize), 1 /*is_inverse_fft*/, nullptr, nullptr);
+  if (cfg != nullptr)
+  {
+    std::vector<vtkFFT::ComplexNumber> result(outSize);
+
+    kiss_fft(cfg, in.data(), &result[0]);
+    std::for_each(result.begin(), result.end(), [outSize](vtkFFT::ComplexNumber& x) {
+      x = vtkFFT::ComplexNumber{ x.r / outSize, x.i / outSize };
+    });
+    kiss_fft_free(cfg);
+
+    return result;
+  }
+  return {};
+}
+
+//------------------------------------------------------------------------------
+std::vector<vtkFFT::ScalarNumber> vtkFFT::IRFft(const std::vector<vtkFFT::ComplexNumber>& in)
+{
+  if (in.size() < 2)
+  {
+    return {};
+  }
+
+  std::size_t outSize = (in.size() - 1) * 2;
   kiss_fftr_cfg cfg =
     kiss_fftr_alloc(static_cast<int>(outSize), 1 /*is_inverse_fft*/, nullptr, nullptr);
   if (cfg != nullptr)
@@ -56,12 +132,6 @@ std::vector<vtkFFT::ScalarNumber> vtkFFT::FftInverse(const std::vector<vtkFFT::C
     return result;
   }
   return {};
-}
-
-//------------------------------------------------------------------------------
-double vtkFFT::Abs(const ComplexNumber& in)
-{
-  return sqrt(in.r * in.r + in.i * in.i);
 }
 
 //------------------------------------------------------------------------------
