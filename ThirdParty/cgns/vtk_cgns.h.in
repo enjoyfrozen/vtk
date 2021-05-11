@@ -18,12 +18,19 @@
 /* Use the cgns library configured for VTK.  */
 #cmakedefine01 VTK_MODULE_USE_EXTERNAL_cgns
 
+/**
+ * When including an CGNS header in VTK code, use the following form:
+ *
+ *   // .clang-format off
+ *   #include VTK_CGNS(cgnslib.h)
+ *   // .clang-format on
+ *
+ * Note, the clang-format sentinels are needed to avoid incorrect formatting.
+ */
 #if VTK_MODULE_USE_EXTERNAL_cgns
-# include <cgnslib.h>
-# include <cgns_io.h>
+# define VTK_CGNS(x) <x>
 #else
-# include <vtkcgns/src/cgnslib.h>
-# include <vtkcgns/src/cgns_io.h>
+# define VTK_CGNS(x) <vtkcgns/src/x>
 #endif
 
 #endif
