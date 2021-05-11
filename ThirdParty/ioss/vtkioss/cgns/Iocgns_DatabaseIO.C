@@ -20,7 +20,9 @@
 #include <cgns/Iocgns_Utils.h>
 
 #include "vtk_cgns.h"
-#ifdef SEACAS_HAVE_MPI
+#include VTK_CGNS(cgnsconfig.h)
+
+#if CG_BUILD_PARALLEL
 #include VTK_CGNS(pcgnslib.h)
 #else
 #include VTK_CGNS(cgnslib.h)
@@ -60,7 +62,7 @@ namespace {
     return global - 1;
   }
 
-#ifdef SEACAS_HAVE_MPI
+#if CG_BUILD_PARALLEL
   bool has_decomp_descriptor(int cgns_file_ptr, int base, int zone, int zgc_idx)
   {
     bool has_decomp_flag = false;
@@ -182,12 +184,12 @@ namespace {
     std::array<int, 3>               offset{{0, 0, 0}};
     std::bitset<6>                   face_adj{};
 
-#ifdef SEACAS_HAVE_MPI
+#if CG_BUILD_PARALLEL
     bool split() const { return face_adj.any(); }
 #endif
   };
 
-#ifdef SEACAS_HAVE_MPI
+#if CG_BUILD_PARALLEL
   void add_zgc_fpp(int cgns_file_ptr, Ioss::StructuredBlock *block,
                    const std::map<std::string, int> &zone_name_map, int myProcessor,
                    bool isParallel)
@@ -607,7 +609,7 @@ namespace Iocgns {
         }
       }
 
-#ifdef SEACAS_HAVE_MPI
+#if CG_BUILD_PARALLEL
       cgp_mpi_comm(MPI_COMM_SELF);
       int ierr = cgp_open(decoded_filename().c_str(), mode, &m_cgnsFilePtr);
       cgp_mpi_comm(util().communicator());
@@ -757,7 +759,7 @@ namespace Iocgns {
     SMART_ASSERT(isParallel);
     PAR_UNUSED(base);
     PAR_UNUSED(num_zones);
-#ifdef SEACAS_HAVE_MPI
+#if CG_BUILD_PARALLEL
     // Each processor may have a different set of zones.  This routine
     // will sync the information such that at return, each procesosr
     // has a consistent set of structuredBlocks defined with the

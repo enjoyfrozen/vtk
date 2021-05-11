@@ -170,8 +170,9 @@ set(classes
 if (SEACAS_HAVE_MPI)
   list(APPEND classes
     Ioss_Decomposition
-    cgns/Iocgns_DecompositionData
-    cgns/Iocgns_ParallelDatabaseIO
+    # For now, we don't support MPI-enabled CGNS.
+    # cgns/Iocgns_DecompositionData
+    # cgns/Iocgns_ParallelDatabaseIO
     exodus/Ioex_DecompositionData
     exodus/Ioex_ParallelDatabaseIO)
 endif ()
