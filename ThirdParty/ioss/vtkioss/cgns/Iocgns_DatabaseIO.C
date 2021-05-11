@@ -18,7 +18,14 @@
 #include <bitset>
 #include <cgns/Iocgns_DatabaseIO.h>
 #include <cgns/Iocgns_Utils.h>
-#include <vtk_cgns.h> // xxx(kitware)
+
+#include "vtk_cgns.h"
+#ifdef SEACAS_HAVE_MPI
+#include VTK_CGNS(pcgnslib.h)
+#else
+#include VTK_CGNS(cgnslib.h)
+#endif
+
 #include <cstddef>
 #include <ctime>
 #include <fmt/ostream.h>
