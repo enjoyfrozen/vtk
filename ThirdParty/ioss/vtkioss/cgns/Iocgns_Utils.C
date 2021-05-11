@@ -1342,7 +1342,7 @@ std::string Iocgns::Utils::map_cgns_to_topology_type(CGNS_ENUMT(ElementType_t) t
 {
   std::string topology = "unknown";
   switch (type) {
-  case CG_NODE: topology = Ioss::Node::name; break;
+  case CGNS_ENUMV(NODE): topology = Ioss::Node::name; break;
   case CGNS_ENUMV(BAR_2): topology = Ioss::Beam2::name; break;
   case CGNS_ENUMV(BAR_3): topology = Ioss::Beam3::name; break;
   case CGNS_ENUMV(TRI_3): topology = Ioss::Tri3::name; break;
@@ -1373,7 +1373,7 @@ CGNS_ENUMT(ElementType_t) Iocgns::Utils::map_topology_to_cgns(const std::string 
 {
   CGNS_ENUMT(ElementType_t) topo = CGNS_ENUMV(ElementTypeNull);
   if (name == Ioss::Node::name) {
-    topo = CG_NODE;
+    topo = CGNS_ENUMV(NODE);
   }
   else if (name == Ioss::Spring2::name) {
     topo = CGNS_ENUMV(BAR_2);
