@@ -17,7 +17,9 @@
 #include <Ioss_StructuredBlock.h>
 #include <Ioss_Utils.h>
 #include <cgns/Iocgns_Defines.h>
+
 #include <vtk_cgns.h> // xxx(kitware)
+#include VTK_CGNS(cgnslib.h)
 
 
 #include <ostream>
