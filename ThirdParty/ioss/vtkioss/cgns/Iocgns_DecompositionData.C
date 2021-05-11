@@ -20,6 +20,11 @@
 #include <tokenize.h>
 
 #include <vtk_cgns.h> // xxx(kitware)
+#ifdef SEACAS_HAVE_MPI
+#include VTK_CGNS(pcgnslib.h)
+#else
+#include VTK_CGNS(cgnslib.h)
+#endif
 
 #include <algorithm>
 #include <cassert>
