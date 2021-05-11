@@ -353,7 +353,8 @@ vtk_module_definitions(VTK::ioss
     NO_PARMETIS_SUPPORT)
 vtk_module_link(VTK::ioss
   PRIVATE
-    Threads::Threads)
+    Threads::Threads
+    VTK::cgns)
 vtk_module_include(VTK::ioss
     PRIVATE
       "${CMAKE_CURRENT_SOURCE_DIR}/private_copy_fmt")
