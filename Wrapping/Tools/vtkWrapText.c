@@ -881,13 +881,20 @@ const char* vtkWrapText_PythonSignature(FunctionInfo* currentFunction)
   vtkWPString_Append(result, currentFunction->Name);
 
   /* print the arg list */
-  vtkWPString_Append(result, "(");
+  if (currentFunction->IsStatic)
+  {
+    vtkWPString_Append(result, "(");
+  }
+  else
+  {
+    vtkWPString_Append(result, "(self");
+  }
 
   for (i = 0; i < n; i++)
   {
     arg = currentFunction->Parameters[i];
 
-    if (i != 0)
+    if (i != 0 || !currentFunction->IsStatic)
     {
       vtkWPString_Append(result, ", ");
     }
@@ -938,6 +945,10 @@ const char* vtkWrapText_PythonSignature(FunctionInfo* currentFunction)
   {
     vtkWPString_Append(result, " -> ");
     vtkWrapText_PythonTypeSignature(result, parens, ret);
+  }
+  else
+  {
+    vtkWPString_Append(result, " -> None");
   }
 
   if (currentFunction->Signature)
