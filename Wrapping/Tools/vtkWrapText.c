@@ -871,6 +871,18 @@ const char* vtkWrapText_PythonSignature(FunctionInfo* currentFunction)
   const char* braces[2] = { "[", "]" };
   const char** delims;
   int i, n;
+  int isConstructor = 0;
+  int needsSelf = 1;
+
+  if (currentFunction->Class && strcmp(currentFunction->Class, currentFunction->Name) == 0)
+  {
+    isConstructor = 1;
+  }
+
+  if (isConstructor || currentFunction->IsStatic || !currentFunction->Class)
+  {
+    needsSelf = 0;
+  }
 
   n = vtkWrap_CountWrappedParameters(currentFunction);
 
@@ -881,20 +893,20 @@ const char* vtkWrapText_PythonSignature(FunctionInfo* currentFunction)
   vtkWPString_Append(result, currentFunction->Name);
 
   /* print the arg list */
-  if (currentFunction->IsStatic)
+  if (needsSelf)
   {
-    vtkWPString_Append(result, "(");
+    vtkWPString_Append(result, "(self");
   }
   else
   {
-    vtkWPString_Append(result, "(self");
+    vtkWPString_Append(result, "(");
   }
 
   for (i = 0; i < n; i++)
   {
     arg = currentFunction->Parameters[i];
 
-    if (i != 0 || !currentFunction->IsStatic)
+    if (i != 0 || needsSelf)
     {
       vtkWPString_Append(result, ", ");
     }
@@ -942,6 +954,11 @@ const char* vtkWrapText_PythonSignature(FunctionInfo* currentFunction)
   {
     vtkWPString_Append(result, " -> ");
     vtkWrapText_PythonTypeSignature(result, parens, ret);
+  }
+  else if (isConstructor)
+  {
+    vtkWPString_Append(result, " -> ");
+    vtkWPString_Append(result, currentFunction->Name);
   }
   else
   {
