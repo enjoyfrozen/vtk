@@ -22,11 +22,16 @@
   Contact: pppebay@sandia.gov,dcthomp@sandia.gov,
 
 =========================================================================*/
+
+// Hide VTK_DEPRECATED_IN_9_1_0() warnings from this class.
+#define VTK_DEPRECATION_LEVEL 0
+
 #include "vtkMath.h"
 
 #include "vtkBoxMuellerRandomSequence.h"
 #include "vtkDataArray.h"
 #include "vtkDebugLeaks.h"
+#include "vtkLegacy.h"
 #include "vtkMinimalStandardRandomSequence.h"
 #include "vtkObjectFactory.h"
 #include "vtkTypeTraits.h"
@@ -113,6 +118,7 @@ int vtkMath::CeilLog2(vtkTypeUInt64 x)
 // This is used to provide portability across different systems.
 double vtkMath::Random()
 {
+  VTK_LEGACY_BODY(vtkMath, "VTK 9.1");
   vtkMath::Internal->Uniform->Next();
   return vtkMath::Internal->Uniform->GetValue();
 }
@@ -125,6 +131,7 @@ double vtkMath::Random()
 // repeatability of Random().
 void vtkMath::RandomSeed(int s)
 {
+  VTK_LEGACY_BODY(vtkMath, "VTK 9.1");
   vtkMath::Internal->Uniform->SetSeed(s);
 }
 
@@ -133,12 +140,14 @@ void vtkMath::RandomSeed(int s)
 // Return the current seed used by the random number generator.
 int vtkMath::GetSeed()
 {
+  VTK_LEGACY_BODY(vtkMath, "VTK 9.1");
   return vtkMath::Internal->Uniform->GetSeed();
 }
 
 //------------------------------------------------------------------------------
 double vtkMath::Random(double min, double max)
 {
+  VTK_LEGACY_BODY(vtkMath, "VTK 9.1");
   vtkMath::Internal->Uniform->Next();
   return vtkMath::Internal->Uniform->GetRangeValue(min, max);
 }
@@ -146,6 +155,7 @@ double vtkMath::Random(double min, double max)
 //------------------------------------------------------------------------------
 double vtkMath::Gaussian()
 {
+  VTK_LEGACY_BODY(vtkMath, "VTK 9.1");
   vtkMath::Internal->Gaussian->Next();
   return vtkMath::Internal->Gaussian->GetValue();
 }
@@ -153,6 +163,7 @@ double vtkMath::Gaussian()
 //------------------------------------------------------------------------------
 double vtkMath::Gaussian(double mean, double std)
 {
+  VTK_LEGACY_BODY(vtkMath, "VTK 9.1");
   vtkMath::Internal->Gaussian->Next();
   return vtkMath::Internal->Gaussian->GetScaledValue(mean, std);
 }
