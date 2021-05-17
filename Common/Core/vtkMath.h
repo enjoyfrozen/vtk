@@ -19,6 +19,7 @@
 #define vtkMath_h
 
 #include "vtkCommonCoreModule.h" // For export macro
+#include "vtkDeprecation.h"      // For VTK_DEPRECATED_IN_9_4_0
 #include "vtkMathPrivate.hxx"    // For Matrix meta-class helpers
 #include "vtkMatrixUtilities.h"  // For Matrix wrapping / mapping
 #include "vtkObject.h"
@@ -252,6 +253,7 @@ public:
    * For a sequence of random numbers with a gaussian/normal distribution
    * create a vtkBoxMuellerRandomSequence object.
    */
+  VTK_DEPRECATED_IN_9_4_0("Not platform-independent; use vtkMinimalStandardRandomSequence instead")
   static void RandomSeed(int s);
 
   /**
@@ -265,6 +267,7 @@ public:
    * For a sequence of random numbers with a gaussian/normal distribution
    * create a vtkBoxMuellerRandomSequence object.
    */
+  VTK_DEPRECATED_IN_9_4_0("Not platform-independent; use vtkMinimalStandardRandomSequence instead")
   static int GetSeed();
 
   /**
@@ -280,6 +283,7 @@ public:
    * For a sequence of random numbers with a gaussian/normal distribution
    * create a vtkBoxMuellerRandomSequence object.
    */
+  VTK_DEPRECATED_IN_9_4_0("Not platform-independent; use vtkMinimalStandardRandomSequence instead")
   static double Random();
 
   /**
@@ -294,6 +298,7 @@ public:
    * For a sequence of random numbers with a gaussian/normal distribution
    * create a vtkBoxMuellerRandomSequence object.
    */
+  VTK_DEPRECATED_IN_9_4_0("Not platform-independent; use vtkMinimalStandardRandomSequence instead")
   static double Random(double min, double max);
 
   /**
@@ -308,6 +313,7 @@ public:
    * For a sequence of random numbers with a gaussian/normal distribution
    * create a vtkBoxMuellerRandomSequence object.
    */
+  VTK_DEPRECATED_IN_9_4_0("Not platform-independent; use vtkBoxMuellerRandomSequence instead")
   static double Gaussian();
 
   /**
@@ -322,6 +328,7 @@ public:
    * For a sequence of random numbers with a gaussian/normal distribution
    * create a vtkBoxMuellerRandomSequence object.
    */
+  VTK_DEPRECATED_IN_9_4_0("Not platform-independent; use vtkBoxMuellerRandomSequence instead")
   static double Gaussian(double mean, double std);
 
   /**
