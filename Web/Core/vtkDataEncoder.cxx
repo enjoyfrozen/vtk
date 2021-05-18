@@ -78,7 +78,6 @@ public:
 
 private:
   bool Done;
-  std::mutex DoneLock;
   std::mutex OutputsLock;
   std::condition_variable_any OutputsAvailable;
 
@@ -107,13 +106,15 @@ public:
   {
   }
 
-  //------------------------------------------------------------------------
-  // Each thread should call this method when it starts. It helps us clean up
-  // threads when they are done.
-  void BeginWorker()
+  void BeginWorkers(vtkTypeUInt32 numberOfWorkers)
   {
+    // reset Done flag since new threads are starting.
+    this->InputsLock.lock();
+    this->Done = false;
+    this->InputsLock.unlock();
+
     this->ThreadDoneLock.lock();
-    this->ActiveThreadCount++;
+    this->ActiveThreadCount += numberOfWorkers;
     this->ThreadDoneLock.unlock();
   }
 
@@ -124,11 +125,11 @@ public:
     this->ThreadDoneLock.lock();
     this->ActiveThreadCount--;
     bool last_thread = (this->ActiveThreadCount == 0);
-    this->ThreadDoneLock.unlock();
     if (last_thread)
     {
       this->ThreadDone.notify_one();
     }
+    this->ThreadDoneLock.unlock();
   }
 
   //------------------------------------------------------------------------
@@ -136,19 +137,19 @@ public:
   {
     // Get the done lock so we other threads don't end up testing the Done
     // flag and quitting before this thread starts to wait for them to quit.
-    this->DoneLock.lock();
+    this->InputsLock.lock();
     this->Done = true;
 
     // Grab the ThreadDoneLock. so even if any thread ends up check this->Done
     // as soon as we release the lock, it won't get a chance to terminate.
     this->ThreadDoneLock.lock();
 
-    // release the done lock. Let threads test for this->Done flag.
-    this->DoneLock.unlock();
-
     // Tell all workers that inputs are available, so they will try to check
     // the input as well as the done flag.
     this->InputsAvailable.notify_all();
+
+    // release the done lock. Let threads test for this->Done flag.
+    this->InputsLock.unlock();
 
     // Now wait for thread to terminate releasing this->ThreadDoneLock as soon
     // as we start waiting. Thus, no threads have got a chance to call
@@ -156,18 +157,6 @@ public:
     this->ThreadDone.wait(this->ThreadDoneLock);
 
     this->ThreadDoneLock.unlock();
-
-    // reset Done flag since all threads have died.
-    this->Done = false;
-  }
-
-  //------------------------------------------------------------------------
-  bool IsDone()
-  {
-    this->DoneLock.lock();
-    bool val = this->Done;
-    this->DoneLock.unlock();
-    return val;
   }
 
   //------------------------------------------------------------------------
@@ -227,13 +216,13 @@ public:
           break;
         }
       }
-      if (image == nullptr && !this->IsDone())
+      if (image == nullptr && !this->Done)
       {
         // No data is available, let's wait till it becomes available.
         this->InputsAvailable.wait(this->InputsLock);
       }
 
-    } while (image == nullptr && !this->IsDone());
+    } while (image == nullptr && !this->Done);
 
     this->InputsLock.unlock();
     return stamp;
@@ -315,8 +304,6 @@ VTK_THREAD_RETURN_TYPE Worker(void* calldata)
   // cout << "Start Thread: " << vtkMultiThreader::GetCurrentThreadID() << endl;
   vtkMultiThreader::ThreadInfo* info = reinterpret_cast<vtkMultiThreader::ThreadInfo*>(calldata);
   vtkSharedData* sharedData = reinterpret_cast<vtkSharedData*>(info->UserData);
-
-  sharedData->BeginWorker();
 
   while (true)
   {
@@ -408,6 +395,8 @@ public:
 
   void SpawnWorkers(vtkTypeUInt32 numberOfThreads)
   {
+    this->SharedData.BeginWorkers(numberOfThreads);
+
     for (vtkTypeUInt32 cc = 0; cc < numberOfThreads; cc++)
     {
       this->RunningThreadIds.push_back(this->Threader->SpawnThread(&Worker, &this->SharedData));
