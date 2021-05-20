@@ -76,6 +76,7 @@ struct vtkTableFFT::vtkInternal
   vtkMTimeType WindowLastUpdated = 0;
 
   double SampleRate = 1.0e4;
+  vtkIdType OutputSize = 0;
 
   bool Average = false;
 
@@ -157,13 +158,24 @@ int vtkTableFFT::RequestData(vtkInformation* vtkNotUsed(request),
 
   if (this->CreateFrequencyColumn)
   {
+    vtkIdType size = this->Internals->OutputSize;
+
     vtkNew<vtkDoubleArray> frequencies;
     frequencies->SetName("Frequency");
-    frequencies->SetNumberOfValues(this->Internals->Window.size() / 2 + 1);
-    const double df = this->Internals->SampleRate / this->Internals->Window.size();
-    for (vtkIdType i = 0; i < frequencies->GetNumberOfValues(); ++i)
+    frequencies->SetNumberOfValues(size);
+    const vtkIdType nfft = this->Internals->Window.size();
+    const vtkIdType nshan = (nfft / 2) + 1;
+    const double df = this->Internals->SampleRate / nfft;
+    for (vtkIdType i = 0; i < nshan; ++i)
     {
       frequencies->SetValue(i, i * df);
+    }
+    if (!this->OptimizeForRealInput)
+    {
+      for (vtkIdType i = 1; i < nshan; ++i)
+      {
+        frequencies->SetValue(size - i, -frequencies->GetValue(i));
+      }
     }
     output->AddColumn(frequencies);
   }
@@ -218,6 +230,10 @@ void vtkTableFFT::Initialize(vtkTable* input)
     this->Internals->UpdateWindow(this->WindowingFunction, actualSize);
     this->Internals->WindowLastUpdated = this->Internals->WindowTimeStamp.GetMTime();
   }
+
+  // Get output size
+  const std::size_t nfft = this->Internals->Window.size();
+  this->Internals->OutputSize = this->OptimizeForRealInput ? (nfft / 2) + 1 : nfft;
 }
 
 //------------------------------------------------------------------------------
@@ -227,7 +243,7 @@ vtkSmartPointer<vtkDataArray> vtkTableFFT::DoFFT(vtkDataArray* input)
   const int nblocks = this->Internals->Average ? this->NumberOfBlock : 1;
   const double blockCoef = 1.0 / nblocks;
   const std::size_t nfft = this->Internals->Window.size();
-  const std::size_t outSize = this->OptimizeForRealInput ? (nfft / 2) + 1 : nfft;
+  const std::size_t outSize = this->Internals->OutputSize;
   const int stepSize = (nblocks <= 1) ? 0 : (nvalues - nfft - 1) / (nblocks - 1);
 
   std::vector<vtkFFT::ScalarNumber> block(nfft);
@@ -248,7 +264,7 @@ vtkSmartPointer<vtkDataArray> vtkTableFFT::DoFFT(vtkDataArray* input)
     {
       const double mean =
         this->Normalize ? std::accumulate(block.begin(), block.end(), 0.0) / nfft : 0.0;
-      auto& window = this->Internals->Window;
+      const auto& window = this->Internals->Window;
       for (int i = 0; i < nfft; ++i)
       {
         block[i] = (block[i] - mean) * window[i];
