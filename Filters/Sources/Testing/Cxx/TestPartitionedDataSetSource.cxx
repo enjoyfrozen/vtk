@@ -38,6 +38,7 @@ int TestPartitionedDataSetSource(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
       return EXIT_FAILURE;
     }
 
+    pdsSource->DisableRank(0);
     pdsSource->DisableRank(2);
     pdsSource->DisableRank(4);
     pdsSource->EnableRank(4);
@@ -45,9 +46,9 @@ int TestPartitionedDataSetSource(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 
     // Rank 0 is enabled
     auto pds = pdsSource->GetOutput();
-    if (!pds->GetNumberOfPartitions() == 1)
+    if (!pds->GetNumberOfPartitions() == 0)
     {
-      vtkLogF(ERROR, "vtkPartitionedDataSetSource::GetNumberOfPartitions() must be 1");
+      vtkLogF(ERROR, "vtkPartitionedDataSetSource::GetNumberOfPartitions() must be 0");
       return EXIT_FAILURE;
     }
 
@@ -94,6 +95,39 @@ int TestPartitionedDataSetSource(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
     if (!pds->GetNumberOfPartitions() == 2)
     {
       vtkLogF(ERROR, "vtkPartitionedDataSetSource::GetNumberOfPartitions() must be 2");
+      return EXIT_FAILURE;
+    }
+  }
+
+  // Now we specified odd number of partitions
+  {
+    vtkNew<vtkPartitionedDataSetSource> pdsSource;
+    pdsSource->SetNumberOfPartitions(5);
+
+    // Rank 1 must have 2 partition
+    pdsSource->UpdatePiece(1, 3, 0);
+    auto pds = pdsSource->GetOutput();
+    if (pds->GetNumberOfPartitions() != 2)
+    {
+      vtkLogF(ERROR, "vtkPartitionedDataSetSource::GetNumberOfPartitions() must be 2");
+      return EXIT_FAILURE;
+    }
+
+    // Rank 2 must have only one partition
+    pdsSource->UpdatePiece(2, 3, 0);
+    pds = pdsSource->GetOutput();
+    if (pds->GetNumberOfPartitions() != 1)
+    {
+      vtkLogF(ERROR, "vtkPartitionedDataSetSource::GetNumberOfPartitions() must be 1");
+      return EXIT_FAILURE;
+    }
+
+    // Rank 0 must have only one partition
+    pdsSource->UpdatePiece(0, 2, 0);
+    pds = pdsSource->GetOutput();
+    if (pds->GetNumberOfPartitions() != 3)
+    {
+      vtkLogF(ERROR, "vtkPartitionedDataSetSource::GetNumberOfPartitions() must be 3");
       return EXIT_FAILURE;
     }
   }
@@ -148,6 +182,21 @@ int TestPartitionedDataSetSource(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
     if (!pds->GetNumberOfPartitions() == 0)
     {
       vtkLogF(ERROR, "vtkPartitionedDataSetSource::GetNumberOfPartitions() must be 0");
+      return EXIT_FAILURE;
+    }
+  }
+
+  // Now we set zero partitions (auto partitions)
+  {
+    vtkNew<vtkPartitionedDataSetSource> pdsSource;
+    pdsSource->SetNumberOfPartitions(0);
+
+    // Rank 0 is disabled
+    pdsSource->UpdatePiece(0, 5, 0);
+    auto pds = pdsSource->GetOutput();
+    if (!pds->GetNumberOfPartitions() == 1)
+    {
+      vtkLogF(ERROR, "vtkPartitionedDataSetSource::GetNumberOfPartitions() must be 1");
       return EXIT_FAILURE;
     }
   }

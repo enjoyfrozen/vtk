@@ -57,29 +57,25 @@ std::vector<int> GenerateAllocations(const std::vector<int>& allocs, const int n
   const int partsAllocated = std::accumulate(allocs.begin(), allocs.end(), 0,
     [](int a, int b) { return (b == NUM_PARTITIONS::MULTIPLE_PARTITIONS) ? a : a + b; });
 
-  const int ranksToAlloc =
-    std::count(allocs.begin(), allocs.end(), NUM_PARTITIONS::MULTIPLE_PARTITIONS);
+  const int partsToAlloc = std::max(numPartitions - partsAllocated, 0);
 
-  if (ranksToAlloc)
+  if (partsToAlloc > 0)
   {
-    const int partsToAlloc = std::max(numPartitions - partsAllocated, 0);
-    const int partsToAllocPerRank = partsToAlloc / ranksToAlloc;
-    const int partsToAllocLastRank = partsToAlloc % ranksToAlloc;
-    int lastRankToAlloc = 0;
-
-    for (int i = 0; i < allocs.size(); i++)
+    std::vector<std::vector<int>::iterator> ranksToAllocIters;
+    auto it = partsPerRank.begin(); 
+    while (partsPerRank.end() != (it = find(partsPerRank.begin(), partsPerRank.end(),
+            NUM_PARTITIONS::MULTIPLE_PARTITIONS)))
     {
-      if (allocs[i] == NUM_PARTITIONS::MULTIPLE_PARTITIONS)
-      {
-        partsPerRank[i] = partsToAllocPerRank;
-        lastRankToAlloc = i;
-      }
+      *it = 0; // Initialize to 0
+      ranksToAllocIters.push_back(it);
     }
 
-    if (partsToAllocLastRank)
+    // Schedule blocks in a round-robin fashion
+    const int ranksToAllocSize = ranksToAllocIters.size();
+    for (int i = 0; i < partsToAlloc; ++i)
     {
-      partsPerRank[lastRankToAlloc] = partsToAllocLastRank;
-    }
+      ++(*ranksToAllocIters[i % ranksToAllocSize]);
+    };
   }
 
   if (std::accumulate(partsPerRank.begin(), partsPerRank.end(), 0) != numPartitions)
@@ -259,6 +255,11 @@ int vtkPartitionedDataSetSource::RequestData(
   const int numberOfPartitions = (this->NumberOfPartitions > 0)
     ? this->NumberOfPartitions
     : std::count(allocs.begin(), allocs.end(), NUM_PARTITIONS::MULTIPLE_PARTITIONS);
+
+  if (numberOfPartitions <= 0)
+  {
+    return 1;
+  }
 
   const auto partsPerRank = ::GenerateAllocations(allocs, numberOfPartitions);
   const auto range = ::GetRange(rank, partsPerRank);

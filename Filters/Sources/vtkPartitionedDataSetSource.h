@@ -73,6 +73,10 @@ public:
    * Set/Get the number of partitions of the resulting PartitionedDataSet.
    * If not specified, the number of partitions will be the number of enabled
    * ranks.
+   *
+   * SetNumberOfPartitions(0) means auto in this context, the implementation 
+   * will decided the optimal number of partitions which by default will be
+   * one partition per each rank.
    */
   vtkSetClampMacro(NumberOfPartitions, int, 0, VTK_INT_MAX);
   vtkGetMacro(NumberOfPartitions, int);
