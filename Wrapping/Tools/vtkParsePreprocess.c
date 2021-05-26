@@ -24,7 +24,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <dirent.h>
 #include <sys/stat.h>
+#endif
 
 /**
   This file handles preprocessor directives via a simple
@@ -53,6 +59,31 @@
 #define HASH_ERROR 0x0f6321efu
 #define HASH_LINE 0x7c9a15adu
 #define HASH_PRAGMA 0x1566a9fdu
+
+/* for PGI compiler, use dirent64 if readdir is readdir64 */
+#if defined(__PGI) && defined(__GLIBC__)
+#define redef_dirent_readdir struct dirent
+#define redef_dirent_readdir64 struct dirent64
+#define redef_dirent redef_dirent_lookup(readdir)
+#define redef_dirent_lookup(x) redef_dirent_lookup2(x)
+#define redef_dirent_lookup2(x) redef_dirent_##x
+#else
+#define redef_dirent struct dirent
+#endif
+
+/* struct dirent only has d_type on certain systems */
+/* (Linux defines _DIRENT_HAVE_D_TYPE to help us out) */
+#ifndef HAVE_DIRENT_D_TYPE
+#if defined(_DIRENT_HAVE_D_TYPE) || defined(__FreeBSD__) || defined(__DARWIN__)
+#define HAVE_DIRENT_D_TYPE
+#endif
+#endif
+
+/* globals for cacheing directory listings */
+/* (to eventually be moved into their own struct) */
+static StringCache FilenameStrings = { 0, 0, 0, 0 };
+static const char*** FileHashTable = NULL;
+static const char*** DirHashTable = NULL;
 
 /** Extend dynamic arrays in a progression of powers of two.
  * Whenever "n" reaches a power of two, then the array size is
@@ -1623,6 +1654,301 @@ static int preproc_evaluate_define(PreprocessInfo* info, StringTokenizer* tokens
 }
 
 /**
+ * An enum to identify the types of discovered files
+ */
+
+typedef enum _preproc_filetype_t
+{
+  PREPROC_NOFILE = 0,
+  PREPROC_ISFILE = 1,
+  PREPROC_ISDIR = 2
+} preproc_filetype_t;
+
+/**
+ * Add to the known paths to include files and directories.
+ * The file type must be specified: PREPROC_ISFILE or PREPROC_ISDIR.
+ */
+static void preproc_file_add(PreprocessInfo* info, const char* name, preproc_filetype_t type)
+{
+  /* PREPROC_HASH_TABLE_SIZE is always a power of two */
+  size_t l = strlen(name);
+  size_t n;
+  unsigned int i = (vtkParse_HashString(name, l) & (PREPROC_HASH_TABLE_SIZE - 1));
+  unsigned int j;
+  const char**** htable_ref;
+  const char*** htable;
+  const char** hptr;
+
+  if (FilenameStrings.NumberOfChunks == 0)
+  {
+    vtkParse_InitStringCache(&FilenameStrings);
+  }
+
+  /* choose hash table based on file type */
+  if (type == PREPROC_ISFILE)
+  {
+    htable_ref = &FileHashTable;
+  }
+  else if (type == PREPROC_ISDIR)
+  {
+    htable_ref = &DirHashTable;
+  }
+  else
+  {
+    return;
+  }
+
+  htable = *htable_ref;
+  if (htable == NULL)
+  {
+    /* create an empty hash table */
+    htable = (const char***)malloc(PREPROC_HASH_TABLE_SIZE * sizeof(char**));
+    for (j = 0; j < PREPROC_HASH_TABLE_SIZE; j++)
+    {
+      htable[j] = NULL;
+    }
+    *htable_ref = htable;
+  }
+
+  hptr = htable[i];
+
+  if (hptr == NULL)
+  {
+    /* prepare a row in the hash table */
+    hptr = (const char**)malloc(2 * sizeof(char*));
+    /* add "name" to the hash table, followed by NULL */
+    hptr[0] = name;
+    hptr[1] = NULL;
+    htable[i] = hptr;
+  }
+  else if (*hptr)
+  {
+    /* see if "name" is already there */
+    n = 0;
+    do
+    {
+      if (strcmp(*hptr, name) == 0)
+      {
+        fprintf(stderr, "BREAK %d %s\n", type, name);
+        break;
+      }
+      n++;
+      hptr++;
+    } while (*hptr);
+
+    if (*hptr == NULL)
+    {
+      /* did not find "name" in the hash table, must add it */
+      hptr = (const char**)preproc_array_check((char**)(htable[i]), sizeof(char*), n + 1);
+      if (!hptr)
+      {
+        fprintf(stderr, "memory allocation error vtkParsePreprocess.c:%d\n", __LINE__);
+        exit(1);
+      }
+      htable[i] = hptr;
+      /* add "name" to the hash table, plus NULL to mark end of row */
+      hptr[n] = name;
+      hptr[n + 1] = NULL;
+    }
+  }
+}
+
+/**
+ * Check if a file with the the given path is known and return its type:
+ * PREPROC_ISDIR, PREPROC_ISFILE, or PREPROC_NOFILE if not found.
+ */
+static preproc_filetype_t preproc_file_cached(PreprocessInfo* info, const char* name)
+{
+  /* PREPROC_HASH_TABLE_SIZE is always a power of two */
+  size_t l = strlen(name);
+  unsigned int i = (vtkParse_HashString(name, l) & (PREPROC_HASH_TABLE_SIZE - 1));
+  const char*** htable = DirHashTable;
+  const char** hptr;
+  preproc_filetype_t type = PREPROC_ISDIR;
+  int j;
+
+  for (j = 0; j < 2; j++)
+  {
+    if (htable && ((hptr = htable[i]) != NULL) && *hptr)
+    {
+      do
+      {
+        if (strcmp(*hptr, name) == 0)
+        {
+          return type;
+        }
+        hptr++;
+      } while (*hptr);
+    }
+
+    /* for second try, use file hash instead of dir hash */
+    htable = FileHashTable;
+    type = PREPROC_ISFILE;
+  }
+
+  /* failed to find the file */
+  return PREPROC_NOFILE;
+}
+
+/**
+ * Check if a file with the given name exists and return its type:
+ * PREPROC_ISDIR, PREPROC_ISFILE, or PREPROC_NOFILE if not found.
+ * This can cache results for the entire directory in order to
+ * accelerate other searches within the same directory.
+ */
+static preproc_filetype_t preproc_file_exists(PreprocessInfo* info, const char* name)
+{
+  const char* dirname;
+  char* fullname;
+  size_t l = 0;
+  size_t n;
+  preproc_filetype_t result;
+  preproc_filetype_t result_from_stat = PREPROC_NOFILE;
+
+  /* equivalent stat() code that we used before we added the cache */
+  /*
+  struct stat fs;
+  if (stat(name, &fs) == 0)
+  {
+    result_from_stat = (S_ISDIR(fs.st_mode) ? PREPROC_ISDIR : PREPROC_ISFILE);
+  }
+  */
+
+  /* XXX on WIN32 create lowercase version of name with '\' changed to '/' */
+  /* XXX case-insensitive file systems exist on Mac and elsewhere */
+
+  /* check the cache */
+  result = preproc_file_cached(info, name);
+  if (result != PREPROC_NOFILE)
+  {
+    return result;
+  }
+
+  /* get the dirname by locating the last backslash */
+  for (n = 0; name[n] != '\0'; n++)
+  {
+    if (name[n] == '/')
+    {
+      l = n;
+    }
+  }
+  /* create a new null-terminated string */
+  dirname = vtkParse_CacheString(&FilenameStrings, name, l);
+  /* advance to just after the slash */
+  if (name[l] == '/')
+  {
+    l++;
+  }
+
+  /* check if the directory is already cached */
+  if (preproc_file_cached(info, dirname) == PREPROC_ISDIR)
+  {
+    /* we've already cached this dir, and it didn't contain the file */
+    return PREPROC_NOFILE;
+  }
+
+  /* add dirname to the cache */
+  preproc_file_add(info, dirname, PREPROC_ISDIR);
+
+#if defined(_WIN32) && !defined(__MINGW32__) && !defined(__CYGWIN__)
+  // Prepare string for use with FindFile functions.  First, copy the
+  // string to a buffer, then append '*' to the directory name.
+  fullname = vtkParse_NewString(&FilenameStrings, l + 1);
+  strncpy(fullname, name, l);
+  strcpy(&fullname[l], "*");
+
+  // Find the first file in the directory.
+  WIN32_FIND_DATA ffd;
+  HANDLE hFind = FindFirstFile(fullname, &ffd);
+  if (INVALID_HANDLE_VALUE != hFind)
+  {
+    // List all the files in the directory with some info about them.
+    do
+    {
+      if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+      {
+        if (result == PREPROC_NOFILE && strcmp(ffd.cFileName, &name[l]) == 0)
+        {
+          /* found the file, but it was a directory */
+          result = PREPROC_ISDIR;
+        }
+      }
+      else
+      {
+        if (result == PREPROC_NOFILE && strcmp(ffd.cFileName, &name[l]) == 0)
+        {
+          /* we found the file */
+          result = PREPROC_ISFILE;
+        }
+
+        // Prepare string for use with FindFile functions.  First, copy the
+        // string to a buffer, then append '\*' to the directory name.
+        fullname = vtkParse_NewString(&FilenameStrings, strlen(ffd.cFileName) + l);
+        strncpy(fullname, name, l);
+        strcpy(&fullname[l], ffd.cFileName);
+
+        // Store unix-style path separators in the cache because that's what we get from CMake
+        int q = 0;
+        while (fullname[q] != '\0')
+        {
+          if (fullname[q] == '\\')
+          {
+            fullname[q] = '/';
+          }
+          q++;
+        }
+
+        preproc_file_add(info, fullname, PREPROC_ISFILE);
+      }
+
+    } while (FindNextFile(hFind, &ffd) != 0);
+    FindClose(hFind);
+  }
+#else
+  DIR* dir = opendir(dirname);
+  if (dir)
+  {
+    redef_dirent* d;
+    for (d = readdir(dir); d; d = readdir(dir))
+    {
+      /* XXX check HAVE_DIRENT_D_TYPE and provide alternative */
+      if (d->d_type == DT_DIR)
+      {
+        if (result == PREPROC_NOFILE && strcmp(d->d_name, &name[l]) == 0)
+        {
+          /* found the file, but it was a directory */
+          result = PREPROC_ISDIR;
+        }
+      }
+      else
+      {
+        if (result == PREPROC_NOFILE && strcmp(d->d_name, &name[l]) == 0)
+        {
+          /* we found the file */
+          result = PREPROC_ISFILE;
+        }
+
+        /* construct full path for this entry, and add it to cache */
+        fullname = vtkParse_NewString(&FilenameStrings, strlen(d->d_name) + l);
+        strncpy(fullname, name, l);
+        strcpy(&fullname[l], d->d_name);
+        preproc_file_add(info, fullname, PREPROC_ISFILE);
+      }
+    }
+    closedir(dir);
+  }
+#endif
+  /*
+  if (result != result_from_stat)
+  {
+    fprintf(stderr, "Oh No! %s %d %d\n", name, result, result_from_stat);
+    exit(1);
+  }
+  */
+  return result;
+}
+
+/**
  * Add an include file to the list.  Return 0 if it is already there.
  */
 static int preproc_add_include_file(PreprocessInfo* info, const char* name)
@@ -1655,7 +1981,7 @@ const char* preproc_find_include_file(
 {
   int i, n, ii, nn;
   size_t j, m;
-  struct stat fs;
+  /* struct stat fs; */
   const char* directory;
   char* output;
   size_t outputsize = 16;
@@ -1731,23 +2057,6 @@ const char* preproc_find_include_file(
 
     return output;
   }
-
-#if defined(_WIN32) && !defined(__MINGW32__) && !defined(__CYGWIN__)
-  /* Set subdir to non-zero if the filename specifies subdirectories.
-     For such filenames we don't restrict the search to the ExistingFiles cache
-     because that cache only contains file in that specific folder. */
-  int subdir = 0;
-  j = 0;
-  while (filename[j])
-  {
-    if (filename[j] == '/')
-    {
-      subdir = 1;
-      break;
-    }
-    j++;
-  }
-#endif
 
   /* Make sure the current filename is already added */
   if (info->FileName)
@@ -1836,80 +2145,6 @@ const char* preproc_find_include_file(
         output[j + m] = '\0';
       }
 
-#if defined(_WIN32) && !defined(__MINGW32__) && !defined(__CYGWIN__)
-      if (!ExistingFiles)
-      {
-        ExistingFiles = (SimpleSet*)malloc(sizeof(SimpleSet));
-        set_init(ExistingFiles);
-
-        // vtkParse_InitStringCache(ExistingFilesCache);
-        // no known file cache has been created yet
-        for (int includeDirIndex = 0; includeDirIndex < n; includeDirIndex++)
-        {
-          const char* includeDir = info->IncludeDirectories[includeDirIndex];
-
-          // Check that the input path plus 3 is not longer than MAX_PATH.
-          // Three characters are for the "\*" plus NULL appended below.
-          if (strlen(includeDir) > (MAX_PATH - 3))
-          {
-            continue;
-          }
-
-          // Prepare string for use with FindFile functions.  First, copy the
-          // string to a buffer, then append '\*' to the directory name.
-          char szDir[MAX_PATH];
-          strcpy(szDir, includeDir);
-          strcat(szDir, "\\*");
-
-          // Find the first file in the directory.
-          WIN32_FIND_DATA ffd;
-          HANDLE hFind = FindFirstFile(szDir, &ffd);
-          if (INVALID_HANDLE_VALUE == hFind)
-          {
-            continue;
-          }
-
-          // List all the files in the directory with some info about them.
-          do
-          {
-            if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-            {
-              continue;
-            }
-            const char* name = ffd.cFileName;
-            char fullPath[MAX_PATH];
-            if (strlen(includeDir) > (MAX_PATH - strlen(ffd.cFileName) - 1))
-            {
-              continue;
-            }
-
-            // Prepare string for use with FindFile functions.  First, copy the
-            // string to a buffer, then append '\*' to the directory name.
-            strcpy(fullPath, includeDir);
-            strcat(fullPath, "/");
-            strcat(fullPath, ffd.cFileName);
-
-            // Store unix-style path separators in the cache because that's what we get from CMake
-            int q = 0;
-            while (fullPath[q] != '\0')
-            {
-              if (fullPath[q] == '\\')
-              {
-                fullPath[q] = '/';
-              }
-              q++;
-            }
-
-            set_add(ExistingFiles, fullPath);
-
-          } while (FindNextFile(hFind, &ffd) != 0);
-          FindClose(hFind);
-        }
-
-        //fprintf(stderr,
-        //      "Number of include dirs: %lli, Number of found files: %i\n", n, set_length(ExistingFiles), n);
-      }
-#endif
       if (count == 0)
       {
         nn = info->NumberOfIncludeFiles;
@@ -1922,32 +2157,7 @@ const char* preproc_find_include_file(
           }
         }
       }
-#if defined(_WIN32) && !defined(__CYGWIN__)
-      // stat is very slow on Windows, use the ExistingFiles cache instead of
-      // asking the file system
-      int fileFound = 0;
-      if (count != 0)
-      {
-        if (set_contains(ExistingFiles, output) == SET_TRUE)
-        {
-          fileFound = 1;
-        }
-        else if (i == 0 || subdir)
-        {
-          // This is the current directory (i==0) or a relative path, which
-          // the ExistingFiles cache may not contain, in which case we ask
-          // the file system to check existence of a file.
-          if ((stat(output, &fs) == 0 && (fs.st_mode & _S_IFMT) != _S_IFDIR))
-          {
-            fileFound = 1;
-          }
-        }
-      }
-
-      if (fileFound)
-#else
-      else if (stat(output, &fs) == 0 && !S_ISDIR(fs.st_mode))
-#endif
+      else if (preproc_file_exists(info, output) == PREPROC_ISFILE)
       {
         nn = info->NumberOfIncludeFiles;
         info->IncludeFiles =

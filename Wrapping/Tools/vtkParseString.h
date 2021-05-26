@@ -253,6 +253,12 @@ extern "C"
   VTKWRAPPINGTOOLS_EXPORT
   void vtkParse_FreeStringCache(StringCache* cache);
 
+  /**
+   * Compute the hash for a null-terminated string.
+   */
+  VTKWRAPPINGTOOLS_EXPORT
+  unsigned int vtkParse_HashString(const char* cp, size_t l);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
