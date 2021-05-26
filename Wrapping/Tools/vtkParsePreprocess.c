@@ -20,11 +20,12 @@
 -------------------------------------------------------------------------*/
 
 #include "vtkParsePreprocess.h"
+#include "vtkParseSystem.h"
+
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
 
 /**
   This file handles preprocessor directives via a simple
@@ -53,6 +54,10 @@
 #define HASH_ERROR 0x0f6321efu
 #define HASH_LINE 0x7c9a15adu
 #define HASH_PRAGMA 0x1566a9fdu
+
+/* globals for cacheing directory listings */
+static StringCache system_info_strings = { 0, 0, 0, 0 };
+static SystemInfo system_info = { &system_info_strings, NULL, NULL };
 
 /** Extend dynamic arrays in a progression of powers of two.
  * Whenever "n" reaches a power of two, then the array size is
@@ -1655,7 +1660,6 @@ const char* preproc_find_include_file(
 {
   int i, n, ii, nn;
   size_t j, m;
-  struct stat fs;
   const char* directory;
   char* output;
   size_t outputsize = 16;
@@ -1731,23 +1735,6 @@ const char* preproc_find_include_file(
 
     return output;
   }
-
-#if defined(_WIN32) && !defined(__MINGW32__) && !defined(__CYGWIN__)
-  /* Set subdir to non-zero if the filename specifies subdirectories.
-     For such filenames we don't restrict the search to the ExistingFiles cache
-     because that cache only contains file in that specific folder. */
-  int subdir = 0;
-  j = 0;
-  while (filename[j])
-  {
-    if (filename[j] == '/')
-    {
-      subdir = 1;
-      break;
-    }
-    j++;
-  }
-#endif
 
   /* Make sure the current filename is already added */
   if (info->FileName)
@@ -1836,81 +1823,6 @@ const char* preproc_find_include_file(
         output[j + m] = '\0';
       }
 
-#if defined(_WIN32) && !defined(__MINGW32__) && !defined(__CYGWIN__)
-      if (!ExistingFiles)
-      {
-        ExistingFiles = (SimpleSet*)malloc(sizeof(SimpleSet));
-        set_init(ExistingFiles);
-
-        // vtkParse_InitStringCache(ExistingFilesCache);
-        // no known file cache has been created yet
-        for (int includeDirIndex = 0; includeDirIndex < n; includeDirIndex++)
-        {
-          const char* includeDir = info->IncludeDirectories[includeDirIndex];
-
-          // Check that the input path plus 3 is not longer than MAX_PATH.
-          // Three characters are for the "\*" plus NULL appended below.
-          if (strlen(includeDir) > (MAX_PATH - 3))
-          {
-            continue;
-          }
-
-          // Prepare string for use with FindFile functions.  First, copy the
-          // string to a buffer, then append '\*' to the directory name.
-          char szDir[MAX_PATH];
-          strcpy(szDir, includeDir);
-          strcat(szDir, "\\*");
-
-          // Find the first file in the directory.
-          WIN32_FIND_DATA ffd;
-          HANDLE hFind = FindFirstFile(szDir, &ffd);
-          if (INVALID_HANDLE_VALUE == hFind)
-          {
-            continue;
-          }
-
-          // List all the files in the directory with some info about them.
-          do
-          {
-            if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-            {
-              continue;
-            }
-            const char* name = ffd.cFileName;
-            char fullPath[MAX_PATH];
-            if (strlen(includeDir) > (MAX_PATH - strlen(ffd.cFileName) - 1))
-            {
-              continue;
-            }
-
-            // Prepare string for use with FindFile functions.  First, copy the
-            // string to a buffer, then append '\*' to the directory name.
-            strcpy(fullPath, includeDir);
-            strcat(fullPath, "/");
-            strcat(fullPath, ffd.cFileName);
-
-            // Store unix-style path separators in the cache because that's what we get from CMake
-            int q = 0;
-            while (fullPath[q] != '\0')
-            {
-              if (fullPath[q] == '\\')
-              {
-                fullPath[q] = '/';
-              }
-              q++;
-            }
-
-            set_add(ExistingFiles, fullPath);
-
-          } while (FindNextFile(hFind, &ffd) != 0);
-          FindClose(hFind);
-        }
-
-        // fprintf(stderr,
-        //      "Number of include dirs: %lli, Number of found files: %i\n", n,
-        //      set_length(ExistingFiles), n);
-      }
-#endif
       if (count == 0)
       {
         nn = info->NumberOfIncludeFiles;
@@ -1923,32 +1835,7 @@ const char* preproc_find_include_file(
           }
         }
       }
-#if defined(_WIN32) && !defined(__CYGWIN__)
-      // stat is very slow on Windows, use the ExistingFiles cache instead of
-      // asking the file system
-      int fileFound = 0;
-      if (count != 0)
-      {
-        if (set_contains(ExistingFiles, output) == SET_TRUE)
-        {
-          fileFound = 1;
-        }
-        else if (i == 0 || subdir)
-        {
-          // This is the current directory (i==0) or a relative path, which
-          // the ExistingFiles cache may not contain, in which case we ask
-          // the file system to check existence of a file.
-          if ((stat(output, &fs) == 0 && (fs.st_mode & _S_IFMT) != _S_IFDIR))
-          {
-            fileFound = 1;
-          }
-        }
-      }
-
-      if (fileFound)
-#else
-      else if (stat(output, &fs) == 0 && !S_ISDIR(fs.st_mode))
-#endif
+      else if (vtkParse_FileExists(&system_info, output) == VTK_PARSE_ISFILE)
       {
         nn = info->NumberOfIncludeFiles;
         info->IncludeFiles =
