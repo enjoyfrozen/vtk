@@ -1,4 +1,5 @@
 set(classes
+  vtkBinningFilter
   vtkBoundedPointSource
   vtkConnectedPointsFilter
   vtkConvertToPointCloud
