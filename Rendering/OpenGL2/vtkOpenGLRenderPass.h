@@ -42,7 +42,7 @@ public:
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
-   * Use vtkShaderProgram::Substitute to replace //VTK::XXX:YYY declarations in
+   * Use vtkShaderProgram::Substitute to replace \c //VTK::XXX:YYY declarations in
    * the shader sources. Gets called before other mapper shader replacements
    * Return false on error.
    */
@@ -50,7 +50,7 @@ public:
     std::string& fragmentShader, vtkAbstractMapper* mapper, vtkProp* prop);
 
   /**
-   * Use vtkShaderProgram::Substitute to replace //VTK::XXX:YYY declarations in
+   * Use vtkShaderProgram::Substitute to replace \c //VTK::XXX:YYY declarations in
    * the shader sources. Gets called after other mapper shader replacements.
    * Return false on error.
    */
