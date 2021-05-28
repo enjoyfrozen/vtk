@@ -20,14 +20,14 @@
  * to provide annotation in the four corners of a viewport
  *
  * @par Special input text::
- * - <image> : will be replaced with slice number (relative number)
- * - <slice> : will be replaced with slice number (relative number)
- * - <image_and_max> : will be replaced with slice number and slice max (relative)
- * - <slice_and_max> : will be replaced with slice number and slice max (relative)
- * - <slice_pos> : will be replaced by the position of the current slice
- * - <window> : will be replaced with window value
- * - <level> : will be replaced with level value
- * - <window_level> : will be replaced with window and level value
+ * - \c <image> : will be replaced with slice number (relative number)
+ * - \c <slice> : will be replaced with slice number (relative number)
+ * - \c <image_and_max> : will be replaced with slice number and slice max (relative)
+ * - \c <slice_and_max> : will be replaced with slice number and slice max (relative)
+ * - \c <slice_pos> : will be replaced by the position of the current slice
+ * - \c <window> : will be replaced with window value
+ * - \c <level> : will be replaced with level value
+ * - \c <window_level> : will be replaced with window and level value
  *
  * @sa
  * vtkActor2D vtkTextMapper
