@@ -236,6 +236,7 @@ public:
   const char* GetVectorModeAsString();
   ///@}
 
+  ///@{
   /**
    * Set/Get point position glyphs will face towards. Used if vector mode is
    * VTK_FOLLOW_CAMERA_DIRECTION.
@@ -244,6 +245,7 @@ public:
   vtkGetVectorMacro(FollowedCameraPosition, double, 3);
   ///@}
 
+  ///@{
   /**
    * Set/Get glyphs up direction. Used if vector mode is VTK_FOLLOW_CAMERA_DIRECTION.
    */
