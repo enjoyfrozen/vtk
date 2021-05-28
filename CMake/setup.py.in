@@ -82,6 +82,10 @@ if 'web' in vtk_features.FEATURES:
 version_base = '@VTK_MAJOR_VERSION@.@VTK_MINOR_VERSION@.@VTK_BUILD_VERSION@'
 version = version_base + '.dev0'
 
+# Simulate a branch build
+print(os.environ)
+os.environ['CI_COMMIT_BRANCH'] = 'wheel-ci-testing'
+
 if 'GITLAB_CI' in os.environ:
     if 'CI_COMMIT_TAG' in os.environ:
         if '.rc' in os.environ['CI_COMMIT_TAG']:
