@@ -252,7 +252,7 @@ protected:
   /**
    * If adaptive scaling is enabled, rescale the cube so that its
    * representational area in the display window falls between
-   * <MinRelativeCubeScreenArea> and <MaxRelativeCubeScreenArea>.
+   * \c MinRelativeCubeScreenArea and \c MaxRelativeCubeScreenArea.
    */
   void ScaleIfNecessary(vtkViewport*);
 
