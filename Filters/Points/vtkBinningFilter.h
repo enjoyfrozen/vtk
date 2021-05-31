@@ -20,6 +20,8 @@
 #include "vtkImageAlgorithm.h"
 #include "vtkSetGet.h"
 
+class vtkPointSet;
+
 class VTKFILTERSPOINTS_EXPORT vtkBinningFilter : public vtkImageAlgorithm
 {
 public:
@@ -36,16 +38,21 @@ public:
 
 protected:
   vtkBinningFilter();
-  ~vtkBinningFilter() override;
+  ~vtkBinningFilter() override = default;
 
   int FillInputPortInformation(int port, vtkInformation* info) override;
   int RequestInformation(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
   int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
-  int Dimensions[3];
+  /**
+   * Compute output CellData from input PointData
+   * output cell value is the mean of enclosed input points values.
+   */
+  bool ComputeCellData(vtkPointSet* input, vtkImageData* output);
 
-  class Internals;
-  Internals* Internal;
+  vtkIdType ComputeCellId(double pts[3]);
+
+  int Dimensions[3];
 
 private:
   vtkBinningFilter(const vtkBinningFilter&) = delete;

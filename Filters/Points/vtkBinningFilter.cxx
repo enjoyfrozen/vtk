@@ -15,40 +15,55 @@
 
 #include "vtkBinningFilter.h"
 
+#include "vtkArrayDispatch.h"
+#include "vtkArrayDispatch.txx"
 #include "vtkCellData.h"
+#include "vtkDataArray.h"
+#include "vtkDataArrayMeta.h"
+#include "vtkDataArrayRange.h"
 #include "vtkDataObject.h"
+#include "vtkDoubleArray.h"
+#include "vtkFloatArray.h"
+#include "vtkIdList.h"
 #include "vtkImageData.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
+#include "vtkPointData.h"
 #include "vtkPointSet.h"
 #include "vtkStaticPointLocator.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
 #include "vtkType.h"
+#include <cstdio>
 
 vtkStandardNewMacro(vtkBinningFilter);
 
-// Internal class
-class vtkBinningFilter::Internals
+struct SumArray
 {
-public:
-  Internals() = default;
-  vtkNew<vtkStaticPointLocator> Locator;
+  template <typename InArrayT, typename OutArrayT>
+  void operator()(InArrayT* inArray, OutArrayT* outArray, vtkIdType ptId, vtkIdType cellId) const
+  {
+    // TupleRanges iterate tuple-by-tuple:
+    const auto inRange = vtk::DataArrayTupleRange(inArray);
+    auto outRange = vtk::DataArrayTupleRange(outArray);
+
+    const vtk::ComponentIdType numComps = inRange.GetTupleSize();
+
+    // sum for each tuple
+    const auto inTuple = inRange[ptId];
+    auto outTuple = outRange[cellId];
+    for (vtk::ComponentIdType compId = 0; compId < numComps; ++compId)
+    {
+      outTuple[compId] += inTuple[compId];
+    }
+  }
 };
 
 //------------------------------------------------------------------------------
 vtkBinningFilter::vtkBinningFilter()
-  : Internal(new vtkBinningFilter::Internals())
 {
   this->Dimensions[0] = 20;
   this->Dimensions[1] = 20;
   this->Dimensions[2] = 20;
-}
-
-//------------------------------------------------------------------------------
-vtkBinningFilter::~vtkBinningFilter()
-{
-  delete this->Internal;
-  this->Internal = nullptr;
 }
 
 //------------------------------------------------------------------------------
@@ -112,21 +127,101 @@ int vtkBinningFilter::RequestData(vtkInformation* vtkNotUsed(request),
   output->SetOrigin(outInfo->Get(vtkDataObject::ORIGIN()));
 
   vtkPointSet* input = vtkPointSet::SafeDownCast(inInfo->Get(vtkDataObject::DATA_OBJECT()));
-  this->Internal->Locator->SetAutomatic(false);
-  this->Internal->Locator->SetDivisions(this->Dimensions);
-  this->Internal->Locator->SetDataSet(input);
-  this->Internal->Locator->BuildLocator();
 
-  vtkIdType nbOfCells = this->Internal->Locator->GetNumberOfBuckets();
-  assert(nbOfCells == this->Dimensions[0] * this->Dimensions[1] * this->Dimensions[2]);
+  auto outCellData = output->GetCellData();
+  auto inPointData = input->GetPointData();
+
+  vtkIdType nbOfCells = output->GetNumberOfCells();
+  auto inIt = vtkCellData::Iterator(inPointData);
+  for (vtkDataArray* inArray = inIt.Begin(); !inIt.End(); inArray = inIt.Next())
+  {
+    const char* name = inArray->GetName();
+    if (vtkFloatArray::SafeDownCast(inArray))
+    {
+      auto outArray = vtkFloatArray::SafeDownCast(inArray->NewInstance());
+      outArray->SetNumberOfTuples(nbOfCells);
+      outArray->FillValue(0);
+      outArray->SetName(name);
+      outCellData->AddArray(outArray);
+      outArray->Delete();
+    }
+    else if (inArray)
+    {
+      vtkNew<vtkDoubleArray> outArray;
+      outArray->SetNumberOfComponents(inArray->GetNumberOfComponents());
+      outArray->SetNumberOfTuples(nbOfCells);
+      outArray->FillValue(0);
+      outArray->SetName(name);
+      outCellData->AddArray(outArray);
+    }
+  }
+
+  this->ComputeCellData(input, output);
+
+  return 1;
+}
+
+//------------------------------------------------------------------------------
+vtkIdType vtkBinningFilter::ComputeCellId(double pt[3])
+{
+  auto image = this->GetOutput();
+  double spacing[3];
+  image->GetSpacing(spacing);
+  double origin[3];
+  image->GetOrigin(origin);
+  int indices[3];
+  for (int i = 0; i < 3; i++)
+  {
+    indices[i] = (pt[i] - origin[i]) / spacing[i];
+  }
+
+  return image->ComputeCellId(indices);
+}
+
+//------------------------------------------------------------------------------
+bool vtkBinningFilter::ComputeCellData(vtkPointSet* input, vtkImageData* output)
+{
+  auto outCellData = output->GetCellData();
+  auto inPointData = input->GetPointData();
+
+  vtkIdType nbOfCells = output->GetNumberOfCells();
+
   vtkNew<vtkIntArray> numbers;
   numbers->SetName("NumberOfParticles");
   numbers->SetNumberOfTuples(nbOfCells);
-  for (vtkIdType id = 0; id < nbOfCells; id++)
-  {
-    numbers->SetValue(id, this->Internal->Locator->GetNumberOfPointsInBucket(id));
-  }
-  output->GetCellData()->AddArray(numbers);
+  numbers->FillValue(0);
+  outCellData->AddArray(numbers);
 
-  return 1;
+  double origin[3];
+  this->GetOutput()->GetOrigin(origin);
+
+  for (vtkIdType ptId = 0; ptId < input->GetNumberOfPoints(); ptId++)
+  {
+    double pt[3];
+    input->GetPoint(ptId, pt);
+    vtkIdType cellId = ComputeCellId(pt);
+
+    auto outIt = vtkCellData::Iterator(outCellData);
+    for (vtkDataArray* outArray = outIt.Begin(); !outIt.End(); outArray = outIt.Next())
+    {
+      const char* name = outArray->GetName();
+      vtkDataArray* inArray = inPointData->GetArray(name);
+      if (inArray)
+      {
+        // make summation
+        using Dispatcher = vtkArrayDispatch::Dispatch2ByValueType<vtkArrayDispatch::AllTypes,
+          vtkArrayDispatch::Reals>;
+        SumArray worker;
+        if (!Dispatcher::Execute(inArray, outArray, worker, ptId, cellId))
+        {
+          // If Execute(...) fails, the arrays don't match the constraints.
+          // Run the algorithm using the slower vtkDataArray double API instead:
+          worker(inArray, outArray, ptId, cellId);
+        }
+      }
+    }
+    numbers->SetValue(cellId, numbers->GetValue(cellId) + 1);
+  }
+
+  return true;
 }
