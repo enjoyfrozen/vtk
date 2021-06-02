@@ -52,8 +52,8 @@ void vtkmContour::PrintSelf(ostream& os, vtkIndent indent)
 int vtkmContour::RequestData(
   vtkInformation* request, vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
-  vtkm::cont::ScopedRuntimeDeviceTracker tracker(
-    vtkm::cont::DeviceAdapterTagCuda{}, vtkm::cont::RuntimeDeviceTrackerMode::Force);
+  // vtkm::cont::ScopedRuntimeDeviceTracker tracker(
+  //   vtkm::cont::DeviceAdapterTagCuda{}, vtkm::cont::RuntimeDeviceTrackerMode::Force);
 
   vtkInformation* inInfo = inputVector[0]->GetInformationObject(0);
   vtkInformation* outInfo = outputVector->GetInformationObject(0);
