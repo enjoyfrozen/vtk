@@ -827,6 +827,9 @@ struct ProbeImageDataPointsThreadLocal
 
   bool BaseThread;
   vtkSmartPointer<vtkIdList> PointIds;
+
+  // XXX Temporary, remove once thread safety is fixed (!8048)
+  ProbeImageDataPointsThreadLocal& Local() { return *this; }
 };
 
 } // anonymous namespace
@@ -864,7 +867,10 @@ private:
   int BlockId;
   vtkPointData* OutPointData;
   char* MaskArray;
-  vtkSMPThreadLocal<ProbeImageDataPointsThreadLocal> Thread;
+  // XXX Commented out until thread safely is fixed (!8048)
+  // vtkSMPThreadLocal<ProbeImageDataPointsThreadLocal> Thread;
+  // XXX Temporary, remove once thread safety is fixed (!8048)
+  ProbeImageDataPointsThreadLocal Thread;
 };
 
 //------------------------------------------------------------------------------
@@ -875,16 +881,20 @@ void vtkProbeFilter::ProbeImageDataPoints(
   char* maskArray = this->MaskPoints->GetPointer(0);
 
   // Estimate the granularity for multithreading
-  int threads = vtkSMPTools::GetEstimatedNumberOfThreads();
   vtkIdType numPts = input->GetNumberOfPoints();
-  vtkIdType grain = numPts / threads;
-  vtkIdType minGrain = 100;
-  vtkIdType maxGrain = 1000;
-  grain = vtkMath::ClampValue(grain, minGrain, maxGrain);
+  // XXX Commented out until thread safety is fixed (!8048)
+  // int threads = vtkSMPTools::GetEstimatedNumberOfThreads();
+  // vtkIdType grain = numPts / threads;
+  // vtkIdType minGrain = 100;
+  // vtkIdType maxGrain = 1000;
+  // grain = vtkMath::ClampValue(grain, minGrain, maxGrain);
 
   // Multithread the execution
   ProbeImageDataPointsWorklet worklet(this, input, sourceImage, srcIdx, outPD, maskArray);
-  vtkSMPTools::For(0, numPts, grain, worklet);
+  // XXX Commented out until thread safety is fixed (!8048)
+  // vtkSMPTools::For(0, numPts, grain, worklet);
+  // XXX Temporary, remove once thread safety is fixed (!8048)
+  worklet(0, numPts);
 
   this->MaskPoints->Modified();
 }
