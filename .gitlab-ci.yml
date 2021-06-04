@@ -42,7 +42,7 @@ build:wheel-linux-python36-x86_64:
         - .cmake_build_wheel_linux
         - .linux_builder_tags
         - .cmake_wheel_artifacts
-        - .merged_only
+        - .run_manually
 
 # XXX(rust): This build ends up needing a Rust compiler to compile the
 # `cryptography` package.
@@ -51,7 +51,7 @@ build:wheel-linux-python36-x86_64:
 #         - .wheel_linux36_x86_64
 #         - .cmake_test_wheel_linux
 #         - .linux_builder_tags
-#         - .merged_only
+#         - .run_automatically
 #     dependencies:
 #         - build:wheel-linux-python36-x86_64
 #     needs:
@@ -63,14 +63,14 @@ build:wheel-linux-python37-x86_64:
         - .cmake_build_wheel_linux
         - .linux_builder_tags
         - .cmake_wheel_artifacts
-        - .merged_only
+        - .run_manually
 
 test:wheel-linux-python37-x86_64:
     extends:
         - .wheel_linux37_x86_64
         - .cmake_test_wheel_linux
         - .linux_builder_tags
-        - .merged_only
+        - .run_automatically
     dependencies:
         - build:wheel-linux-python37-x86_64
     needs:
@@ -82,14 +82,14 @@ build:wheel-linux-python38-x86_64:
         - .cmake_build_wheel_linux
         - .linux_builder_tags
         - .cmake_wheel_artifacts
-        - .merged_only
+        - .run_manually
 
 test:wheel-linux-python38-x86_64:
     extends:
         - .wheel_linux38_x86_64
         - .cmake_test_wheel_linux
         - .linux_builder_tags
-        - .merged_only
+        - .run_automatically
     dependencies:
         - build:wheel-linux-python38-x86_64
     needs:
@@ -170,7 +170,7 @@ build:wheel-macos-python36-x86_64:
         - .cmake_build_wheel_macos
         - .macos_wheel_builder_tags
         - .cmake_wheel_artifacts
-        - .merged_only
+        - .run_manually
     timeout: 90 minutes
 
 test:wheel-macos-python36-x86_64:
@@ -178,7 +178,7 @@ test:wheel-macos-python36-x86_64:
         - .wheel_macos36_x86_64
         - .cmake_test_wheel_macos
         - .macos_wheel_builder_tags
-        - .merged_only
+        - .run_automatically
     dependencies:
         - build:wheel-macos-python36-x86_64
     needs:
@@ -190,7 +190,7 @@ build:wheel-macos-python37-x86_64:
         - .cmake_build_wheel_macos
         - .macos_wheel_builder_tags
         - .cmake_wheel_artifacts
-        - .merged_only
+        - .run_manually
     timeout: 90 minutes
 
 test:wheel-macos-python37-x86_64:
@@ -198,7 +198,7 @@ test:wheel-macos-python37-x86_64:
         - .wheel_macos37_x86_64
         - .cmake_test_wheel_macos
         - .macos_wheel_builder_tags
-        - .merged_only
+        - .run_automatically
     dependencies:
         - build:wheel-macos-python37-x86_64
     needs:
@@ -210,7 +210,7 @@ build:wheel-macos-python38-x86_64:
         - .cmake_build_wheel_macos
         - .macos_wheel_builder_tags
         - .cmake_wheel_artifacts
-        - .merged_only
+        - .run_manually
     timeout: 90 minutes
 
 test:wheel-macos-python38-x86_64:
@@ -218,7 +218,7 @@ test:wheel-macos-python38-x86_64:
         - .wheel_macos38_x86_64
         - .cmake_test_wheel_macos
         - .macos_wheel_builder_tags
-        - .merged_only
+        - .run_automatically
     dependencies:
         - build:wheel-macos-python38-x86_64
     needs:
@@ -275,7 +275,7 @@ build:wheel-windows-python36-x86_64:
         - .cmake_build_wheel_windows
         - .windows_wheel_builder_tags
         - .cmake_wheel_artifacts
-        - .merged_only
+        - .run_manually
 
 # XXX(rust): This build ends up needing a Rust compiler to compile the
 # `cryptography` package.
@@ -284,7 +284,7 @@ build:wheel-windows-python36-x86_64:
 #         - .wheel_windows36_x86_64
 #         - .cmake_test_wheel_windows
 #         - .windows_wheel_builder_tags
-#         - .merged_only
+#         - .run_automatically
 #     dependencies:
 #         - build:wheel-windows-python36-x86_64
 #     needs:
@@ -296,14 +296,14 @@ build:wheel-windows-python37-x86_64:
         - .cmake_build_wheel_windows
         - .windows_wheel_builder_tags
         - .cmake_wheel_artifacts
-        - .merged_only
+        - .run_manually
 
 test:wheel-windows-python37-x86_64:
     extends:
         - .wheel_windows37_x86_64
         - .cmake_test_wheel_windows
         - .windows_wheel_builder_tags
-        - .merged_only
+        - .run_automatically
     dependencies:
         - build:wheel-windows-python37-x86_64
     needs:
@@ -315,14 +315,14 @@ build:wheel-windows-python38-x86_64:
         - .cmake_build_wheel_windows
         - .windows_wheel_builder_tags
         - .cmake_wheel_artifacts
-        - .merged_only
+        - .run_manually
 
 test:wheel-windows-python38-x86_64:
     extends:
         - .wheel_windows38_x86_64
         - .cmake_test_wheel_windows
         - .windows_wheel_builder_tags
-        - .merged_only
+        - .run_automatically
     dependencies:
         - build:wheel-windows-python38-x86_64
     needs:
