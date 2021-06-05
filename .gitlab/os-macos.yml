@@ -18,6 +18,7 @@
     variables:
         CMAKE_CONFIGURATION: wheel_macos39_arm64
         PYTHON_VERSION_SUFFIX: "3.9"
+        _PYTHON_HOST_PLATFORM: "macosx-11.0-arm64"
 
 .wheel_macos_x86_64:
     extends: .macos
