@@ -31,6 +31,7 @@ public:
   //@{
   /**
    * Get / Set the dimensions of the output grid.
+   * This is the number of cells in each direction.
    */
   vtkSetVector3Macro(Dimensions, int);
   vtkGetVector3Macro(Dimensions, int);
@@ -50,7 +51,7 @@ protected:
    */
   bool ComputeCellData(vtkPointSet* input, vtkImageData* output);
 
-  vtkIdType ComputeCellId(double pts[3]);
+  vtkIdType GetCellId(double pts[3]);
 
   int Dimensions[3];
 

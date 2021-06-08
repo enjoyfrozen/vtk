@@ -28,6 +28,7 @@
 #include "vtkImageData.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
+#include "vtkMath.h"
 #include "vtkPointData.h"
 #include "vtkPointSet.h"
 #include "vtkStaticPointLocator.h"
@@ -47,6 +48,9 @@ struct SumArray
     auto outRange = vtk::DataArrayTupleRange(outArray);
 
     const vtk::ComponentIdType numComps = inRange.GetTupleSize();
+    assert(numComps == outRange.GetTupleSize());
+    assert(ptId < inRange.size());
+    assert(cellId < outRange.size());
 
     // sum for each tuple
     const auto inTuple = inRange[ptId];
@@ -91,20 +95,22 @@ int vtkBinningFilter::RequestInformation(vtkInformation* vtkNotUsed(request),
   input->GetBounds(bounds);
 
   // Use Dimensions as the output Extent.
-  outInfo->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(), 0, this->Dimensions[0] - 1, 0,
-    this->Dimensions[1] - 1, 0, this->Dimensions[2] - 1);
+  outInfo->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(), 0, this->Dimensions[0], 0,
+    this->Dimensions[1], 0, this->Dimensions[2]);
 
+  // use epsilon to avoid missing points on bondary.
+  constexpr double epsilon = 1.0001;
   // Use input bounds to set output origin and spacing.
   for (i = 0; i < 3; i++)
   {
     origin[i] = bounds[2 * i];
     if (this->Dimensions[i] <= 1)
     {
-      spacing[i] = 1;
+      spacing[i] = (bounds[2 * i + 1] - bounds[2 * i]) * epsilon;
     }
     else
     {
-      spacing[i] = (bounds[2 * i + 1] - bounds[2 * i]) / (this->Dimensions[i] - 1);
+      spacing[i] = (bounds[2 * i + 1] - bounds[2 * i]) * epsilon / (this->Dimensions[i]);
     }
   }
   outInfo->Set(vtkDataObject::ORIGIN(), origin, 3);
@@ -135,18 +141,19 @@ int vtkBinningFilter::RequestData(vtkInformation* vtkNotUsed(request),
   auto inIt = vtkCellData::Iterator(inPointData);
   for (vtkDataArray* inArray = inIt.Begin(); !inIt.End(); inArray = inIt.Next())
   {
-    const char* name = inArray->GetName();
-    if (vtkFloatArray::SafeDownCast(inArray))
+    // if (vtkFloatArray::SafeDownCast(inArray))
+    // {
+    //   auto outArray = vtkFloatArray::SafeDownCast(inArray->NewInstance());
+    //   outArray->SetNumberOfTuples(nbOfCells);
+    //   outArray->FillValue(0);
+    //   outArray->SetName(name);
+    //   outCellData->AddArray(outArray);
+    //   outArray->Delete();
+    // }
+    // else if (inArray)
+    if (inArray)
     {
-      auto outArray = vtkFloatArray::SafeDownCast(inArray->NewInstance());
-      outArray->SetNumberOfTuples(nbOfCells);
-      outArray->FillValue(0);
-      outArray->SetName(name);
-      outCellData->AddArray(outArray);
-      outArray->Delete();
-    }
-    else if (inArray)
-    {
+      const char* name = inArray->GetName();
       vtkNew<vtkDoubleArray> outArray;
       outArray->SetNumberOfComponents(inArray->GetNumberOfComponents());
       outArray->SetNumberOfTuples(nbOfCells);
@@ -162,7 +169,7 @@ int vtkBinningFilter::RequestData(vtkInformation* vtkNotUsed(request),
 }
 
 //------------------------------------------------------------------------------
-vtkIdType vtkBinningFilter::ComputeCellId(double pt[3])
+vtkIdType vtkBinningFilter::GetCellId(double pt[3])
 {
   auto image = this->GetOutput();
   double spacing[3];
@@ -172,7 +179,7 @@ vtkIdType vtkBinningFilter::ComputeCellId(double pt[3])
   int indices[3];
   for (int i = 0; i < 3; i++)
   {
-    indices[i] = (pt[i] - origin[i]) / spacing[i];
+    indices[i] = vtkMath::Floor((pt[i] - origin[i]) / spacing[i]);
   }
 
   return image->ComputeCellId(indices);
@@ -195,11 +202,12 @@ bool vtkBinningFilter::ComputeCellData(vtkPointSet* input, vtkImageData* output)
   double origin[3];
   this->GetOutput()->GetOrigin(origin);
 
+  // Put each input point an output cell and add its contribution
   for (vtkIdType ptId = 0; ptId < input->GetNumberOfPoints(); ptId++)
   {
     double pt[3];
     input->GetPoint(ptId, pt);
-    vtkIdType cellId = ComputeCellId(pt);
+    vtkIdType cellId = GetCellId(pt);
 
     auto outIt = vtkCellData::Iterator(outCellData);
     for (vtkDataArray* outArray = outIt.Begin(); !outIt.End(); outArray = outIt.Next())
@@ -221,6 +229,30 @@ bool vtkBinningFilter::ComputeCellData(vtkPointSet* input, vtkImageData* output)
       }
     }
     numbers->SetValue(cellId, numbers->GetValue(cellId) + 1);
+  }
+
+  // compute mean for each cell data
+  auto outIt = vtkCellData::Iterator(outCellData);
+  for (vtkDataArray* outArray = outIt.Begin(); !outIt.End(); outArray = outIt.Next())
+  {
+    vtkDoubleArray* array = vtkDoubleArray::SafeDownCast(outArray);
+    if (!array)
+    {
+      continue;
+    }
+    auto arrRange = vtk::DataArrayTupleRange(array);
+    const vtk::TupleIdType numTuples = arrRange.size();
+    const vtk::ComponentIdType numComps = arrRange.GetTupleSize();
+
+    for (vtk::TupleIdType tupleId = 0; tupleId < numTuples; ++tupleId)
+    {
+      auto outTuple = arrRange[tupleId];
+
+      for (vtk::ComponentIdType compId = 0; compId < numComps; ++compId)
+      {
+        outTuple[compId] /= numbers->GetValue(tupleId);
+      }
+    }
   }
 
   return true;
