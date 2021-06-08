@@ -37,6 +37,26 @@ public:
   vtkGetVector3Macro(Dimensions, int);
   //@}
 
+  //@{
+  /**
+   * Turn on / off the use of input bounding box
+   * to initialize the output grid.
+   * @sa OutputBounds
+   */
+  vtkSetMacro(UseInputBounds, bool);
+  vtkGetMacro(UseInputBounds, bool);
+  vtkBooleanMacro(UseInputBounds, bool);
+  //@}
+
+  //@{
+  /**
+   * Get / Set the bounds of the output grid.
+   * Only used if UseInputBounds is false.
+   */
+  vtkSetVector6Macro(OutputBounds, double);
+  vtkGetVector6Macro(OutputBounds, double);
+  //@}
+
 protected:
   vtkBinningFilter();
   ~vtkBinningFilter() override = default;
@@ -54,6 +74,8 @@ protected:
   vtkIdType GetCellId(double pts[3]);
 
   int Dimensions[3];
+  double OutputBounds[6];
+  bool UseInputBounds;
 
 private:
   vtkBinningFilter(const vtkBinningFilter&) = delete;

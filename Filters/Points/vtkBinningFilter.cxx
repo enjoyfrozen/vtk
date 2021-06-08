@@ -68,6 +68,9 @@ vtkBinningFilter::vtkBinningFilter()
   this->Dimensions[0] = 20;
   this->Dimensions[1] = 20;
   this->Dimensions[2] = 20;
+
+  this->UseInputBounds = true;
+  vtkMath::UninitializeBounds(this->OutputBounds);
 }
 
 //------------------------------------------------------------------------------
@@ -92,7 +95,14 @@ int vtkBinningFilter::RequestInformation(vtkInformation* vtkNotUsed(request),
   double origin[3];
   double bounds[6];
 
-  input->GetBounds(bounds);
+  if (this->UseInputBounds)
+  {
+    input->GetBounds(bounds);
+  }
+  else
+  {
+    this->GetOutputBounds(bounds);
+  }
 
   // Use Dimensions as the output Extent.
   outInfo->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(), 0, this->Dimensions[0], 0,
