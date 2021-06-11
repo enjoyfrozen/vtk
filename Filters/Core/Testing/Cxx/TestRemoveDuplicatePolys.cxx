@@ -20,8 +20,7 @@ int TestRemoveDuplicatePolys(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
     double point[3];
     for (unsigned int j = 0; j < 3; ++j)
     {
-      randomSequence->Next();
-      point[j] = randomSequence->GetValue();
+      point[j] = randomSequence->GetNextValue();
     }
     points->InsertNextPoint(point);
   }

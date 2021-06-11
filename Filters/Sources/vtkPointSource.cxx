@@ -148,8 +148,7 @@ double vtkPointSource::Random()
     return vtkMath::Random();
   }
 
-  this->RandomSequence->Next();
-  return this->RandomSequence->GetValue();
+  return this->RandomSequence->GetNextValue();
 }
 
 //------------------------------------------------------------------------------

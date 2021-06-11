@@ -31,8 +31,7 @@ void InitializePolyData(vtkPolyData* polyData, int dataType)
     float v[3];
     for (unsigned int j = 0; j < 3; ++j)
     {
-      randomSequence->Next();
-      v[j] = static_cast<float>(randomSequence->GetValue());
+      v[j] = static_cast<float>(randomSequence->GetNextValue());
     }
     vectors->InsertNextTuple(v);
 
@@ -41,8 +40,7 @@ void InitializePolyData(vtkPolyData* polyData, int dataType)
       double point[3];
       for (unsigned int j = 0; j < 3; ++j)
       {
-        randomSequence->Next();
-        point[j] = randomSequence->GetValue();
+        point[j] = randomSequence->GetNextValue();
       }
       verts->InsertCellPoint(points->InsertNextPoint(point));
     }
@@ -51,8 +49,7 @@ void InitializePolyData(vtkPolyData* polyData, int dataType)
       float point[3];
       for (unsigned int j = 0; j < 3; ++j)
       {
-        randomSequence->Next();
-        point[j] = static_cast<float>(randomSequence->GetValue());
+        point[j] = static_cast<float>(randomSequence->GetNextValue());
       }
       verts->InsertCellPoint(points->InsertNextPoint(point));
     }

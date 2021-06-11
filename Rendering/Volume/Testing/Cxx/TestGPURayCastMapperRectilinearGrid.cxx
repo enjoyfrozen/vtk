@@ -68,9 +68,8 @@ vtkSmartPointer<vtkRectilinearGrid> ModifyGridSpacing(
   int i = 1;
   for (; i < coords->GetNumberOfTuples() - 1; i++)
   {
-    seq->Next();
     // double val = newCoords->GetTuple1(i - 1);
-    double val = i * 0.08 * seq->GetValue() * coords->GetTuple1(i);
+    double val = i * 0.08 * seq->GetNextValue() * coords->GetTuple1(i);
     newCoords->InsertNextTuple1(val);
   }
   newCoords->InsertNextTuple1(i * 0.08 * coords->GetTuple1(i));

@@ -226,8 +226,7 @@ void RandomSphere(
   vtkMinimalStandardRandomSequence* sequence, double radius, double* offset, double* value)
 {
   double theta = 2. * vtkMath::Pi() * sequence->GetValue();
-  sequence->Next();
-  double phi = vtkMath::Pi() * sequence->GetValue();
+  double phi = vtkMath::Pi() * sequence->GetNextValue();
   sequence->Next();
   value[0] = radius * cos(theta) * sin(phi) + offset[0];
   value[1] = radius * sin(theta) * sin(phi) + offset[1];

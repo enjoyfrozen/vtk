@@ -32,23 +32,19 @@ double vtkBoxMuellerRandomSequence::GetValue()
 //------------------------------------------------------------------------------
 void vtkBoxMuellerRandomSequence::Next()
 {
-  this->UniformSequence->Next();
-  double x = this->UniformSequence->GetValue();
+  double x = this->UniformSequence->GetNextValue();
   // Make sure x is in (0,1]
   while (x == 0.0)
   {
-    this->UniformSequence->Next();
-    x = this->UniformSequence->GetValue();
+    x = this->UniformSequence->GetNextValue();
   }
 
-  this->UniformSequence->Next();
-  double y = this->UniformSequence->GetValue();
+  double y = this->UniformSequence->GetNextValue();
 
   // Make sure y is in (0,1]
   while (y == 0.0)
   {
-    this->UniformSequence->Next();
-    y = this->UniformSequence->GetValue();
+    y = this->UniformSequence->GetNextValue();
   }
 
   this->Value = sqrt(-2.0 * log(x)) * cos(2.0 * vtkMath::Pi() * y);

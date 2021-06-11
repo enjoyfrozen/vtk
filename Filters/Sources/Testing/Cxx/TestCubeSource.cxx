@@ -18,21 +18,17 @@ int TestCubeSource(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
   double center[3];
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    center[i] = randomSequence->GetValue();
+    center[i] = randomSequence->GetNextValue();
   }
   cubeSource->SetCenter(center);
 
-  randomSequence->Next();
-  double xLength = randomSequence->GetValue();
+  double xLength = randomSequence->GetNextValue();
   cubeSource->SetXLength(xLength);
 
-  randomSequence->Next();
-  double yLength = randomSequence->GetValue();
+  double yLength = randomSequence->GetNextValue();
   cubeSource->SetYLength(yLength);
 
-  randomSequence->Next();
-  double zLength = randomSequence->GetValue();
+  double zLength = randomSequence->GetNextValue();
   cubeSource->SetZLength(zLength);
 
   cubeSource->Update();
@@ -49,21 +45,17 @@ int TestCubeSource(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    center[i] = randomSequence->GetValue();
+    center[i] = randomSequence->GetNextValue();
   }
   cubeSource->SetCenter(center);
 
-  randomSequence->Next();
-  xLength = randomSequence->GetValue();
+  xLength = randomSequence->GetNextValue();
   cubeSource->SetXLength(xLength);
 
-  randomSequence->Next();
-  yLength = randomSequence->GetValue();
+  yLength = randomSequence->GetNextValue();
   cubeSource->SetYLength(yLength);
 
-  randomSequence->Next();
-  zLength = randomSequence->GetValue();
+  zLength = randomSequence->GetNextValue();
   cubeSource->SetZLength(zLength);
 
   cubeSource->Update();

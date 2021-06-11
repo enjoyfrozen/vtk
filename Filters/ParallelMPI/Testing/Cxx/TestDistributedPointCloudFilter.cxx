@@ -63,12 +63,9 @@ int TestDistributedPointCloudFilter(int argc, char* argv[])
     for (vtkIdType i = 0; i < initialNumberOfPoints; i++)
     {
       double coords[3];
-      coords[0] = random->GetValue();
-      random->Next();
-      coords[1] = random->GetValue();
-      random->Next();
-      coords[2] = random->GetValue();
-      random->Next();
+      coords[0] = random->GetNextValue();
+      coords[1] = random->GetNextValue();
+      coords[2] = random->GetNextValue();
       points->SetPoint(i, coords);
       data->SetValue(i, totalNumberOfPoints - i - 1);
       sdata->SetValue(i, ss.str());

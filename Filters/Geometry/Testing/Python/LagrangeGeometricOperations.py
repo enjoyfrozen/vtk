@@ -323,8 +323,7 @@ class LagrangeGeometricOperations(Testing.vtkTest):
             result = []
             delta = vmax - vmin
             for i in range(N):
-                result.append(rn.GetValue() * delta + vmin)
-                rn.Next()
+                result.append(rn.GetNextValue() * delta + vmin)
             return result
         # p1 = list(zip(rnums(10, -4,  8), rnums(10, -4, 4), rnums(10, -4, 4)))
         # p2 = list(zip(rnums(10,  0, 12), rnums(10,  0, 8), rnums(10,  0, 8)))

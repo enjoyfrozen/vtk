@@ -20,16 +20,14 @@ int TestPlaneSource(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
   double center[3];
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    center[i] = randomSequence->GetValue();
+    center[i] = randomSequence->GetNextValue();
   }
   planeSource->SetCenter(center);
 
   double normal[3];
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    normal[i] = randomSequence->GetValue();
+    normal[i] = randomSequence->GetNextValue();
   }
   planeSource->SetNormal(normal);
 
@@ -47,15 +45,13 @@ int TestPlaneSource(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    center[i] = randomSequence->GetValue();
+    center[i] = randomSequence->GetNextValue();
   }
   planeSource->SetCenter(center);
 
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    normal[i] = randomSequence->GetValue();
+    normal[i] = randomSequence->GetNextValue();
   }
   planeSource->SetNormal(normal);
 

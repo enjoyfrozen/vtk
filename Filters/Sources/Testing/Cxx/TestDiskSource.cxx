@@ -17,11 +17,9 @@ int TestDiskSource(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 
   diskSource->SetOutputPointsPrecision(vtkAlgorithm::SINGLE_PRECISION);
 
-  randomSequence->Next();
-  double innerRadius = randomSequence->GetValue();
+  double innerRadius = randomSequence->GetNextValue();
 
-  randomSequence->Next();
-  double outerRadius = randomSequence->GetValue();
+  double outerRadius = randomSequence->GetNextValue();
 
   if (innerRadius > outerRadius)
   {
@@ -43,11 +41,9 @@ int TestDiskSource(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 
   diskSource->SetOutputPointsPrecision(vtkAlgorithm::DOUBLE_PRECISION);
 
-  randomSequence->Next();
-  innerRadius = randomSequence->GetValue();
+  innerRadius = randomSequence->GetNextValue();
 
-  randomSequence->Next();
-  outerRadius = randomSequence->GetValue();
+  outerRadius = randomSequence->GetNextValue();
 
   if (innerRadius > outerRadius)
   {

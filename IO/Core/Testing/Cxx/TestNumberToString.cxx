@@ -93,8 +93,7 @@ int TestConvertPrecision(unsigned int samples)
         vtkSmartPointer<vtkMinimalStandardRandomSequence>::New();
       for (unsigned int i = 0; i < samples; ++i)
       {
-        randomSequence->Next();
-        T value = randomSequence->GetRangeValue(-1.0, 1.0);
+        T value = randomSequence->GetNextRangeValue(-1.0, 1.0);
         std::stringstream convertedStr;
         convertedStr << converter.Convert(value);
         std::stringstream rawStr;

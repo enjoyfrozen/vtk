@@ -27,21 +27,17 @@ int TestEllipticalButtonSource(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
   double center[3];
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    center[i] = randomSequence->GetValue();
+    center[i] = randomSequence->GetNextValue();
   }
   ellipticalButtonSource->SetCenter(center);
 
-  randomSequence->Next();
-  double depth = randomSequence->GetValue();
+  double depth = randomSequence->GetNextValue();
   ellipticalButtonSource->SetDepth(depth);
 
-  randomSequence->Next();
-  double height = randomSequence->GetValue();
+  double height = randomSequence->GetNextValue();
   ellipticalButtonSource->SetHeight(height);
 
-  randomSequence->Next();
-  double width = randomSequence->GetValue();
+  double width = randomSequence->GetNextValue();
   ellipticalButtonSource->SetWidth(width);
 
   ellipticalButtonSource->Update();
@@ -58,21 +54,17 @@ int TestEllipticalButtonSource(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    center[i] = randomSequence->GetValue();
+    center[i] = randomSequence->GetNextValue();
   }
   ellipticalButtonSource->SetCenter(center);
 
-  randomSequence->Next();
-  depth = randomSequence->GetValue();
+  depth = randomSequence->GetNextValue();
   ellipticalButtonSource->SetDepth(depth);
 
-  randomSequence->Next();
-  height = randomSequence->GetValue();
+  height = randomSequence->GetNextValue();
   ellipticalButtonSource->SetHeight(height);
 
-  randomSequence->Next();
-  width = randomSequence->GetValue();
+  width = randomSequence->GetNextValue();
   ellipticalButtonSource->SetWidth(width);
 
   ellipticalButtonSource->Update();

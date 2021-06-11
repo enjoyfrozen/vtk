@@ -465,8 +465,7 @@ struct UniformDisplacement : public DisplacePoint
         fVec[2] = neiPts[3 * i + 2] - x[2];
         if ((len = vtkMath::Normalize(fVec)) == 0.0)
         { // points coincident, bump them apart
-          fVec[0] = this->RandomSeq->GetValue();
-          this->RandomSeq->Next();
+          fVec[0] = this->RandomSeq->GetNextValue();
         }
         force = this->ParticleForce(
           len / (this->PackingFactor * this->PackingRadius), this->AttractionFactor);
@@ -514,8 +513,7 @@ struct ScalarDisplacement : public DisplacePoint
         fVec[2] = neiPts[3 * i + 2] - x[2];
         if ((len = vtkMath::Normalize(fVec)) == 0.0)
         { // points coincident, bump them apart
-          fVec[0] = this->RandomSeq->GetValue();
-          this->RandomSeq->Next();
+          fVec[0] = this->RandomSeq->GetNextValue();
         }
         force = this->ParticleForce(
           len / (this->PackingFactor * this->PackingRadius), this->AttractionFactor);

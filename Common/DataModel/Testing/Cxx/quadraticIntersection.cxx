@@ -53,8 +53,7 @@ void ViewportRange(int testNum, double* range)
 void RandomCircle(
   vtkMinimalStandardRandomSequence* sequence, double radius, double* offset, double* value)
 {
-  double theta = 2. * vtkMath::Pi() * sequence->GetValue();
-  sequence->Next();
+  double theta = 2. * vtkMath::Pi() * sequence->GetNextValue();
   value[0] = radius * cos(theta) + offset[0];
   value[1] = radius * sin(theta) + offset[1];
 }
@@ -62,10 +61,8 @@ void RandomCircle(
 void RandomSphere(
   vtkMinimalStandardRandomSequence* sequence, double radius, double* offset, double* value)
 {
-  double theta = 2. * vtkMath::Pi() * sequence->GetValue();
-  sequence->Next();
-  double phi = vtkMath::Pi() * sequence->GetValue();
-  sequence->Next();
+  double theta = 2. * vtkMath::Pi() * sequence->GetNextValue();
+  double phi = vtkMath::Pi() * sequence->GetNextValue();
   value[0] = radius * cos(theta) * sin(phi) + offset[0];
   value[1] = radius * sin(theta) * sin(phi) + offset[1];
   value[2] = radius * cos(phi) + offset[2];

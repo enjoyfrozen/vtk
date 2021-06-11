@@ -20,25 +20,21 @@ int TestConeSource(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
   double center[3];
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    center[i] = randomSequence->GetValue();
+    center[i] = randomSequence->GetNextValue();
   }
   coneSource->SetCenter(center);
 
   double direction[3];
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    direction[i] = randomSequence->GetValue();
+    direction[i] = randomSequence->GetNextValue();
   }
   coneSource->SetDirection(direction);
 
-  randomSequence->Next();
-  double height = randomSequence->GetValue();
+  double height = randomSequence->GetNextValue();
   coneSource->SetHeight(height);
 
-  randomSequence->Next();
-  double radius = randomSequence->GetValue();
+  double radius = randomSequence->GetNextValue();
   coneSource->SetRadius(radius);
 
   coneSource->Update();
@@ -55,24 +51,20 @@ int TestConeSource(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    center[i] = randomSequence->GetValue();
+    center[i] = randomSequence->GetNextValue();
   }
   coneSource->SetCenter(center);
 
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    direction[i] = randomSequence->GetValue();
+    direction[i] = randomSequence->GetNextValue();
   }
   coneSource->SetDirection(direction);
 
-  randomSequence->Next();
-  height = randomSequence->GetValue();
+  height = randomSequence->GetNextValue();
   coneSource->SetHeight(height);
 
-  randomSequence->Next();
-  radius = randomSequence->GetValue();
+  radius = randomSequence->GetNextValue();
   coneSource->SetRadius(radius);
 
   coneSource->Update();

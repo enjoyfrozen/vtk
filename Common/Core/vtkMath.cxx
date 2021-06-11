@@ -93,8 +93,7 @@ int vtkMath::CeilLog2(vtkTypeUInt64 x)
 // This is used to provide portability across different systems.
 double vtkMath::Random()
 {
-  vtkMath::Internal->Uniform->Next();
-  return vtkMath::Internal->Uniform->GetValue();
+  return vtkMath::Internal->Uniform->GetNextValue();
 }
 
 //------------------------------------------------------------------------------
@@ -119,22 +118,19 @@ int vtkMath::GetSeed()
 //------------------------------------------------------------------------------
 double vtkMath::Random(double min, double max)
 {
-  vtkMath::Internal->Uniform->Next();
-  return vtkMath::Internal->Uniform->GetRangeValue(min, max);
+  return vtkMath::Internal->Uniform->GetNextRangeValue(min, max);
 }
 
 //------------------------------------------------------------------------------
 double vtkMath::Gaussian()
 {
-  vtkMath::Internal->Gaussian->Next();
-  return vtkMath::Internal->Gaussian->GetValue();
+  return vtkMath::Internal->Gaussian->GetNextValue();
 }
 
 //------------------------------------------------------------------------------
 double vtkMath::Gaussian(double mean, double std)
 {
-  vtkMath::Internal->Gaussian->Next();
-  return vtkMath::Internal->Gaussian->GetScaledValue(mean, std);
+  return vtkMath::Internal->Gaussian->GetNextScaledValue(mean, std);
 }
 
 //------------------------------------------------------------------------------

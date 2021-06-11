@@ -20,17 +20,14 @@ int TestCylinderSource(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
   double center[3];
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    center[i] = randomSequence->GetValue();
+    center[i] = randomSequence->GetNextValue();
   }
   cylinderSource->SetCenter(center);
 
-  randomSequence->Next();
-  double height = randomSequence->GetValue();
+  double height = randomSequence->GetNextValue();
   cylinderSource->SetHeight(height);
 
-  randomSequence->Next();
-  double radius = randomSequence->GetValue();
+  double radius = randomSequence->GetNextValue();
   cylinderSource->SetRadius(radius);
 
   cylinderSource->Update();
@@ -47,17 +44,14 @@ int TestCylinderSource(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    center[i] = randomSequence->GetValue();
+    center[i] = randomSequence->GetNextValue();
   }
   cylinderSource->SetCenter(center);
 
-  randomSequence->Next();
-  height = randomSequence->GetValue();
+  height = randomSequence->GetNextValue();
   cylinderSource->SetHeight(height);
 
-  randomSequence->Next();
-  radius = randomSequence->GetValue();
+  radius = randomSequence->GetNextValue();
   cylinderSource->SetRadius(radius);
 
   cylinderSource->Update();
