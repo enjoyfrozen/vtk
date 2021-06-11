@@ -46,7 +46,7 @@
 #include <boost/graph/transitive_closure.hpp>
 #include <boost/graph/visitors.hpp>
 
-vtkNew<vtkMinimalStandardRandomSequence> rand;
+static vtkNew<vtkMinimalStandardRandomSequence> rng;
 
 #define VTK_CREATE(type, name) vtkSmartPointer<type> name = vtkSmartPointer<type>::New()
 

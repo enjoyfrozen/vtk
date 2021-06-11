@@ -37,16 +37,14 @@ int TestSuperquadricSource(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
   double center[3];
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    center[i] = randomSequence->GetValue();
+    center[i] = randomSequence->GetNextValue();
   }
   superquadricSource->SetCenter(center);
 
   double scale[3];
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    scale[i] = randomSequence->GetValue();
+    scale[i] = randomSequence->GetNextValue();
   }
   superquadricSource->SetScale(scale);
 
@@ -64,15 +62,13 @@ int TestSuperquadricSource(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    center[i] = randomSequence->GetValue();
+    center[i] = randomSequence->GetNextValue();
   }
   superquadricSource->SetCenter(center);
 
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    scale[i] = randomSequence->GetValue();
+    scale[i] = randomSequence->GetNextValue();
   }
   superquadricSource->SetScale(scale);
 

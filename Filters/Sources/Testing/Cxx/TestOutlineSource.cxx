@@ -32,8 +32,7 @@ int TestOutlineSource(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
   double bounds[6];
   for (unsigned int i = 0; i < 6; ++i)
   {
-    randomSequence->Next();
-    bounds[i] = randomSequence->GetValue();
+    bounds[i] = randomSequence->GetNextValue();
   }
   if (bounds[0] > bounds[3])
   {
@@ -63,8 +62,7 @@ int TestOutlineSource(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 
   for (unsigned int i = 0; i < 6; ++i)
   {
-    randomSequence->Next();
-    bounds[i] = randomSequence->GetValue();
+    bounds[i] = randomSequence->GetNextValue();
   }
   if (bounds[0] > bounds[3])
   {

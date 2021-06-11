@@ -463,15 +463,15 @@ void ExerciseType(vtkMultiProcessController* controller)
   CheckSuccess(controller, result);
 
   COUT("Vector Gather");
-  offsets[0] = static_cast<vtkIdType>(rng->GetNextRange(0.0, 2.99));
-  lengths[0] = static_cast<vtkIdType>(rng->GetNextRange(0.0, arraySize + 0.99));
+  offsets[0] = static_cast<vtkIdType>(rng->GetNextRangeValue(0.0, 2.99));
+  lengths[0] = static_cast<vtkIdType>(rng->GetNextRangeValue(0.0, arraySize + 0.99));
   for (i = 1; i < numProc; i++)
   {
     offsets[i] =
-      (offsets[i - 1] + lengths[i - 1] + static_cast<vtkIdType>(rng->GetNextRange(0.0, 2.99)));
-    lengths[i] = static_cast<vtkIdType>(rng->GetNextRange(0.0, arraySize + 0.99));
+      (offsets[i - 1] + lengths[i - 1] + static_cast<vtkIdType>(rng->GetNextRangeValue(0.0, 2.99)));
+    lengths[i] = static_cast<vtkIdType>(rng->GetNextRangeValue(0.0, arraySize + 0.99));
   }
-  destProcessId = static_cast<int>(rng->GetNextRange(0.0, numProc - 0.01));
+  destProcessId = static_cast<int>(rng->GetNextRangeValue(0.0, numProc - 0.01));
   buffer->SetNumberOfTuples(offsets[numProc - 1] + lengths[numProc - 1]);
   result = 1;
   if (rank == destProcessId)
@@ -499,13 +499,13 @@ void ExerciseType(vtkMultiProcessController* controller)
   CheckSuccess(controller, result);
 
   COUT("Vector All Gather");
-  offsets[0] = static_cast<vtkIdType>(rng->GetNextRange(0.0, 2.99));
-  lengths[0] = static_cast<vtkIdType>(rng->GetNextRange(0.0, arraySize + 0.99));
+  offsets[0] = static_cast<vtkIdType>(rng->GetNextRangeValue(0.0, 2.99));
+  lengths[0] = static_cast<vtkIdType>(rng->GetNextRangeValue(0.0, arraySize + 0.99));
   for (i = 1; i < numProc; i++)
   {
     offsets[i] =
-      (offsets[i - 1] + lengths[i - 1] + static_cast<vtkIdType>(rng->GetNextRange(0.0, 2.99)));
-    lengths[i] = static_cast<vtkIdType>(rng->GetNextRange(0.0, arraySize + 0.99));
+      (offsets[i - 1] + lengths[i - 1] + static_cast<vtkIdType>(rng->GetNextRangeValue(0.0, 2.99)));
+    lengths[i] = static_cast<vtkIdType>(rng->GetNextRangeValue(0.0, arraySize + 0.99));
   }
   buffer->SetNumberOfTuples(offsets[numProc - 1] + lengths[numProc - 1]);
   result = 1;
@@ -526,7 +526,7 @@ void ExerciseType(vtkMultiProcessController* controller)
   CheckSuccess(controller, result);
 
   COUT("Scatter");
-  srcProcessId = static_cast<int>(rng->GetNextRange(0.0, numProc - 0.01));
+  srcProcessId = static_cast<int>(rng->GetNextRangeValue(0.0, numProc - 0.01));
   length = arraySize / numProc;
   buffer->SetNumberOfTuples(length);
   if (rank == srcProcessId)
@@ -551,11 +551,11 @@ void ExerciseType(vtkMultiProcessController* controller)
   CheckSuccess(controller, result);
 
   COUT("Vector Scatter");
-  srcProcessId = static_cast<int>(rng->GetNextRange(0.0, numProc - 0.01));
+  srcProcessId = static_cast<int>(rng->GetNextRangeValue(0.0, numProc - 0.01));
   for (i = 0; i < numProc; i++)
   {
-    offsets[i] = static_cast<vtkIdType>(rng->GetNextRange(0.0, arraySize - 0.01));
-    lengths[i] = static_cast<vtkIdType>(rng->GetNextRange(0.0, arraySize - offsets[i] + 0.99));
+    offsets[i] = static_cast<vtkIdType>(rng->GetNextRangeValue(0.0, arraySize - 0.01));
+    lengths[i] = static_cast<vtkIdType>(rng->GetNextRangeValue(0.0, arraySize - offsets[i] + 0.99));
   }
   buffer->SetNumberOfTuples(lengths[rank]);
   if (rank == srcProcessId)
@@ -584,7 +584,7 @@ void ExerciseType(vtkMultiProcessController* controller)
   {
     // Sum operation not defined for char/byte in some MPI implementations.
     COUT("Reduce");
-    destProcessId = static_cast<int>(rng->GetNextRange(0.0, numProc - 0.01));
+    destProcessId = static_cast<int>(rng->GetNextRangeValue(0.0, numProc - 0.01));
     buffer->SetNumberOfTuples(arraySize);
     result = 1;
     controller->Reduce(sourceArrays[rank]->GetPointer(0), buffer->GetPointer(0), arraySize,
@@ -610,7 +610,7 @@ void ExerciseType(vtkMultiProcessController* controller)
 
   COUT("Custom Reduce");
   MatrixMultOperation operation;
-  destProcessId = static_cast<int>(rng->GetNextRange(0.0, numProc - 0.01));
+  destProcessId = static_cast<int>(rng->GetNextRangeValue(0.0, numProc - 0.01));
   buffer->SetNumberOfTuples(arraySize);
   result = 1;
   controller->Reduce(
@@ -717,7 +717,7 @@ void ExerciseType(vtkMultiProcessController* controller)
 
   COUT("Broadcast with vtkDataArray");
   buffer->Initialize();
-  srcProcessId = static_cast<int>(rng->GetNextRange(0.0, numProc - 0.01));
+  srcProcessId = static_cast<int>(rng->GetNextRangeValue(0.0, numProc - 0.01));
   if (rank == srcProcessId)
   {
     buffer->DeepCopy(sourceArrays[srcProcessId]);
@@ -728,7 +728,7 @@ void ExerciseType(vtkMultiProcessController* controller)
   CheckSuccess(controller, result);
 
   COUT("Gather with vtkDataArray");
-  destProcessId = static_cast<int>(rng->GetNextRange(0.0, numProc - 0.99));
+  destProcessId = static_cast<int>(rng->GetNextRangeValue(0.0, numProc - 0.99));
   buffer->Initialize();
   result = 1;
   if (rank == destProcessId)
@@ -754,15 +754,15 @@ void ExerciseType(vtkMultiProcessController* controller)
   CheckSuccess(controller, result);
 
   COUT("Vector Gather with vtkDataArray");
-  offsets[0] = static_cast<vtkIdType>(rng->GetNextRange(0.0, 2.99));
-  lengths[0] = static_cast<vtkIdType>(rng->GetNextRange(0.0, arraySize + 0.99));
+  offsets[0] = static_cast<vtkIdType>(rng->GetNextRangeValue(0.0, 2.99));
+  lengths[0] = static_cast<vtkIdType>(rng->GetNextRangeValue(0.0, arraySize + 0.99));
   for (i = 1; i < numProc; i++)
   {
     offsets[i] =
-      (offsets[i - 1] + lengths[i - 1] + static_cast<vtkIdType>(rng->GetNextRange(0.0, 2.99)));
-    lengths[i] = static_cast<vtkIdType>(rng->GetNextRange(0.0, arraySize + 0.99));
+      (offsets[i - 1] + lengths[i - 1] + static_cast<vtkIdType>(rng->GetNextRangeValue(0.0, 2.99)));
+    lengths[i] = static_cast<vtkIdType>(rng->GetNextRangeValue(0.0, arraySize + 0.99));
   }
-  destProcessId = static_cast<int>(rng->GetNextRange(0.0, numProc - 0.01));
+  destProcessId = static_cast<int>(rng->GetNextRangeValue(0.0, numProc - 0.01));
   tmpSource->DeepCopy(sourceArrays[rank]);
   tmpSource->SetNumberOfTuples(lengths[rank]);
   buffer->SetNumberOfTuples(offsets[numProc - 1] + lengths[numProc - 1]);
@@ -786,12 +786,12 @@ void ExerciseType(vtkMultiProcessController* controller)
   CheckSuccess(controller, result);
 
   COUT("Vector Gather with vtkDataArray (automatic receive sizes)");
-  lengths[0] = static_cast<vtkIdType>(rng->GetNextRange(0.0, arraySize + 0.99));
+  lengths[0] = static_cast<vtkIdType>(rng->GetNextRangeValue(0.0, arraySize + 0.99));
   for (i = 1; i < numProc; i++)
   {
-    lengths[i] = static_cast<vtkIdType>(rng->GetNextRange(0.0, arraySize + 0.99));
+    lengths[i] = static_cast<vtkIdType>(rng->GetNextRangeValue(0.0, arraySize + 0.99));
   }
-  destProcessId = static_cast<int>(rng->GetNextRange(0.0, numProc - 0.01));
+  destProcessId = static_cast<int>(rng->GetNextRangeValue(0.0, numProc - 0.01));
   tmpSource->DeepCopy(sourceArrays[rank]);
   tmpSource->SetNumberOfTuples(lengths[rank]);
   buffer->Initialize();
@@ -838,13 +838,13 @@ void ExerciseType(vtkMultiProcessController* controller)
   CheckSuccess(controller, result);
 
   COUT("Vector All Gather with vtkDataArray");
-  offsets[0] = static_cast<vtkIdType>(rng->GetNextRange(0.0, 2.99));
-  lengths[0] = static_cast<vtkIdType>(rng->GetNextRange(0.0, arraySize + 0.99));
+  offsets[0] = static_cast<vtkIdType>(rng->GetNextRangeValue(0.0, 2.99));
+  lengths[0] = static_cast<vtkIdType>(rng->GetNextRangeValue(0.0, arraySize + 0.99));
   for (i = 1; i < numProc; i++)
   {
     offsets[i] =
-      (offsets[i - 1] + lengths[i - 1] + static_cast<vtkIdType>(rng->GetNextRange(0.0, 2.99)));
-    lengths[i] = static_cast<vtkIdType>(rng->GetNextRange(0.0, arraySize + 0.99));
+      (offsets[i - 1] + lengths[i - 1] + static_cast<vtkIdType>(rng->GetNextRangeValue(0.0, 2.99)));
+    lengths[i] = static_cast<vtkIdType>(rng->GetNextRangeValue(0.0, arraySize + 0.99));
   }
   tmpSource->DeepCopy(sourceArrays[rank]);
   tmpSource->SetNumberOfTuples(lengths[rank]);
@@ -866,10 +866,10 @@ void ExerciseType(vtkMultiProcessController* controller)
   CheckSuccess(controller, result);
 
   COUT("Vector All Gather with vtkDataArray (automatic receive sizes)");
-  lengths[0] = static_cast<vtkIdType>(rng->GetNextRange(0.0, arraySize + 0.99));
+  lengths[0] = static_cast<vtkIdType>(rng->GetNextRangeValue(0.0, arraySize + 0.99));
   for (i = 1; i < numProc; i++)
   {
-    lengths[i] = static_cast<vtkIdType>(rng->GetNextRange(0.0, arraySize + 0.99));
+    lengths[i] = static_cast<vtkIdType>(rng->GetNextRangeValue(0.0, arraySize + 0.99));
   }
   tmpSource->DeepCopy(sourceArrays[rank]);
   tmpSource->SetNumberOfTuples(lengths[rank]);
@@ -892,7 +892,7 @@ void ExerciseType(vtkMultiProcessController* controller)
   CheckSuccess(controller, result);
 
   COUT("Scatter with vtkDataArray");
-  srcProcessId = static_cast<int>(rng->GetNextRange(0.0, numProc - 0.01));
+  srcProcessId = static_cast<int>(rng->GetNextRangeValue(0.0, numProc - 0.01));
   length = arraySize / numProc;
   buffer->SetNumberOfTuples(length);
   if (rank == srcProcessId)
@@ -919,7 +919,7 @@ void ExerciseType(vtkMultiProcessController* controller)
   {
     // Sum operation not defined for char/byte in some MPI implementations.
     COUT("Reduce with vtkDataArray");
-    destProcessId = static_cast<int>(rng->GetNextRange(0.0, numProc - 0.01));
+    destProcessId = static_cast<int>(rng->GetNextRangeValue(0.0, numProc - 0.01));
     buffer->Initialize();
     result = 1;
     controller->Reduce(sourceArrays[rank], buffer, vtkCommunicator::SUM_OP, destProcessId);
@@ -943,7 +943,7 @@ void ExerciseType(vtkMultiProcessController* controller)
   }
 
   COUT("Custom Reduce with vtkDataArray");
-  destProcessId = static_cast<int>(rng->GetNextRange(0.0, numProc - 0.01));
+  destProcessId = static_cast<int>(rng->GetNextRangeValue(0.0, numProc - 0.01));
   buffer->Initialize();
   result = 1;
   controller->Reduce(sourceArrays[rank], buffer, &operation, destProcessId);
@@ -1053,7 +1053,7 @@ static void ExerciseDataObject(
 
   COUT("Broadcast with vtkDataObject");
   buffer->Initialize();
-  int srcProcessId = static_cast<int>(rng->GetNextRange(0.0, numProc - 0.01));
+  int srcProcessId = static_cast<int>(rng->GetNextRangeValue(0.0, numProc - 0.01));
   if (rank == srcProcessId)
   {
     buffer->DeepCopy(source);
