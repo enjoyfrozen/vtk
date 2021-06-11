@@ -22,12 +22,12 @@ iren.SetRenderWindow(renWin)
 
 # create some points and display them
 #
-math = vtk.vtkMath()
-math.RandomSeed(31415)
+rand = vtk.vtkMinimalStandardRandomSequence()
+rand.SetSeed(31415)
 points = vtk.vtkPoints()
 i = 0
 while i < NPts:
-    points.InsertPoint(i,math.Random(0,1),math.Random(0,1),0.0)
+    points.InsertPoint(i,rand.GetNextRangeValue(0,1),rand.GetNextRangeValue(0,1),0.0)
     i = i + 1
 
 profile = vtk.vtkPolyData()

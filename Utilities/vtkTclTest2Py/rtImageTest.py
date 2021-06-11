@@ -84,9 +84,6 @@ except:
 # setup some common things for testing
 rtTempObject = vtk.vtkObject()
 
-rtExMath = vtk.vtkMath()
-rtExMath.RandomSeed(6)
-
 # create the testing class to do the work
 rtTester = vtk.vtkTesting()
 for arg in sys.argv[2:]:

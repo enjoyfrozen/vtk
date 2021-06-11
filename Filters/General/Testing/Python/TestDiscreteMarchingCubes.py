@@ -12,7 +12,7 @@ renWin.AddRenderer(ren1)
 iren = vtk.vtkRenderWindowInteractor()
 iren.SetRenderWindow(renWin)
 
-math = vtk.vtkMath()
+rand = vtk.vtkMinimalStandardRandomSequence()
 
 # Generate some random colors
 def MakeColors (lut, n):
@@ -21,11 +21,11 @@ def MakeColors (lut, n):
     lut.SetScaleToLinear()
     lut.Build()
     lut.SetTableValue(0, 0, 0, 0, 1)
-    math.RandomSeed(5071)
+    rand.SetSeed(5071)
     i = 1
     while i < n:
-        lut.SetTableValue(i, math.Random(.2, 1),
-          math.Random(.2, 1), math.Random(.2, 1), 1)
+        lut.SetTableValue(i, rand.GetNextRangeValue(.2, 1),
+          rand.GetNextRangeValue(.2, 1), rand.GetNextRangeValue(.2, 1), 1)
         i += 1
 
 lut = vtk.vtkLookupTable()
@@ -42,8 +42,8 @@ while i < n:
     sphere = vtk.vtkSphere()
     sphere.SetRadius(radius)
     max = 50 - radius
-    sphere.SetCenter(int(math.Random(-max, max)),
-      int(math.Random(-max, max)), int(math.Random(-max, max)))
+    sphere.SetCenter(int(rand.GetNextRangeValue(-max, max)),
+      int(rand.GetNextRangeValue(-max, max)), int(rand.GetNextRangeValue(-max, max)))
 
     sampler = vtk.vtkSampleFunction()
     sampler.SetImplicitFunction(sphere)

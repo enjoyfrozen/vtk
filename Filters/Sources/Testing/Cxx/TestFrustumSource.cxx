@@ -30,8 +30,7 @@ int TestFrustumSource(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 
   frustumSource->SetOutputPointsPrecision(vtkAlgorithm::SINGLE_PRECISION);
 
-  randomSequence->Next();
-  double linesLength = randomSequence->GetValue();
+  double linesLength = randomSequence->GetNextValue();
   frustumSource->SetLinesLength(linesLength);
 
   vtkSmartPointer<vtkCamera> camera = vtkSmartPointer<vtkCamera>::New();
@@ -39,15 +38,13 @@ int TestFrustumSource(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
   double position[3];
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    position[i] = randomSequence->GetValue();
+    position[i] = randomSequence->GetNextValue();
   }
   camera->SetPosition(position);
   double focalPoint[3];
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    focalPoint[i] = randomSequence->GetValue();
+    focalPoint[i] = randomSequence->GetNextValue();
   }
   camera->SetFocalPoint(focalPoint);
   double planeCoefficients[24];
@@ -69,20 +66,17 @@ int TestFrustumSource(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 
   frustumSource->SetOutputPointsPrecision(vtkAlgorithm::DOUBLE_PRECISION);
 
-  randomSequence->Next();
-  linesLength = randomSequence->GetValue();
+  linesLength = randomSequence->GetNextValue();
   frustumSource->SetLinesLength(linesLength);
 
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    position[i] = randomSequence->GetValue();
+    position[i] = randomSequence->GetNextValue();
   }
   camera->SetPosition(position);
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    focalPoint[i] = randomSequence->GetValue();
+    focalPoint[i] = randomSequence->GetNextValue();
   }
   camera->SetFocalPoint(focalPoint);
   camera->GetFrustumPlanes(1.0, planeCoefficients);

@@ -10,12 +10,12 @@ class TestStyleBase(object):
         self.ren1 = ren
 
         # Get random numbers
-        self.math = vtk.vtkMath()
-        self.math.RandomSeed(1)
+        self.rand = vtk.vtkMinimalStandardRandomSequence()
+        self.rand.SetSeed(1)
 
 
     def randint(self, min, max):
-        f = self.math.Random(min, max)
+        f = self.rand.GetNextRangeValue(min, max)
         return int(f)
 
 

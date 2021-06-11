@@ -2,10 +2,6 @@
 import vtk
 from vtk.test import Testing
 
-# create a test dataset
-#
-math = vtk.vtkMath()
-
 # Note: the bigger the data the better vtkStaticPointLocator performs
 #testSize = "large"
 #testSize = "medium"
@@ -47,9 +43,10 @@ numCells = output.GetNumberOfCells()
 ProbeCells = vtk.vtkPoints()
 ProbeCells.SetDataTypeToDouble()
 ProbeCells.SetNumberOfPoints(numProbes)
-math.RandomSeed(314159)
+rand = vtk.vtkMinimalStandardRandomSequence()
+rand.SetSeedSeed(314159)
 for i in range (0,numProbes):
-    ProbeCells.SetPoint(i,math.Random(-3,-0.5),math.Random(-2.5,0),math.Random(-1,1))
+    ProbeCells.SetPoint(i,rand.GetNextRangeValue(-3,-0.5),rand.GetNextRangeValue(-2.5,0),rand.GetNextRangeValue(-1,1))
 closest = vtk.vtkIdList()
 closest.SetNumberOfIds(numProbes)
 treeClosest = vtk.vtkIdList()
