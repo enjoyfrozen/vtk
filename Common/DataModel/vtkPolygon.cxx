@@ -20,9 +20,10 @@
 #include "vtkDoubleArray.h"
 #include "vtkIncrementalPointLocator.h"
 #include "vtkLine.h"
-#include "vtkMath.h"
 #include "vtkMathUtilities.h"
 #include "vtkMergePoints.h"
+#include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 #include "vtkObjectFactory.h"
 #include "vtkPlane.h"
 #include "vtkPoints.h"
@@ -31,6 +32,7 @@
 #include "vtkSmartPointer.h"
 #include "vtkTriangle.h"
 
+#include <ctime>
 #include <vector>
 
 vtkStandardNewMacro(vtkPolygon);
@@ -742,14 +744,17 @@ int vtkPolygon::PointInPolygon(double x[3], int numPts, double* pts, double boun
        (iterNumber < VTK_POLYGON_MAX_ITER) && (abs(deltaVotes) < VTK_POLYGON_VOTE_THRESHOLD);
        iterNumber++)
   {
+    vtkNew<vtkMinimalStandardRandomSequence> rand;
+    rand->SetSeed(static_cast<int>(time(nullptr)));
+
     //
     //  Generate ray
     //
     bool rayOK;
     for (rayOK = false; rayOK == false;)
     {
-      ray[comps[0]] = vtkMath::Random(-rayMag, rayMag);
-      ray[comps[1]] = vtkMath::Random(-rayMag, rayMag);
+      ray[comps[0]] = rand->GetNextRangeValue(-rayMag, rayMag);
+      ray[comps[1]] = rand->GetNextRangeValue(-rayMag, rayMag);
       ray[maxComp] = -(n[comps[0]] * ray[comps[0]] + n[comps[1]] * ray[comps[1]]) / n[maxComp];
       if ((mag = vtkMath::Norm(ray)) > rayMag * VTK_TOL)
       {

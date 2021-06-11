@@ -14,7 +14,8 @@
 =========================================================================*/
 #include "vtkKdTree.h"
 #include "vtkKdTreePointLocator.h"
-#include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 #include "vtkOctreePointLocator.h"
 #include "vtkPointLocator.h"
 #include "vtkPoints.h"
@@ -24,6 +25,8 @@
 
 int TimePointLocators(int, char*[])
 {
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   int nPts = 100000;
   int nQ = nPts / 10;
   int N = 10;
@@ -44,7 +47,8 @@ int TimePointLocators(int, char*[])
   points->SetNumberOfPoints(nPts);
   for (int i = 0; i < nPts; ++i)
   {
-    points->SetPoint(i, vtkMath::Random(-1, 1), vtkMath::Random(-1, 1), vtkMath::Random(-1, 1));
+    points->SetPoint(i, rand->GetNextRangeValue(-1, 1), rand->GetNextRangeValue(-1, 1),
+      rand->GetNextRangeValue(-1, 1));
   }
 
   vtkPolyData* polydata = vtkPolyData::New();
@@ -58,7 +62,8 @@ int TimePointLocators(int, char*[])
   vtkMath::RandomSeed(314159);
   for (int i = 0; i < nQ; ++i)
   {
-    qPoints->SetPoint(i, vtkMath::Random(-1, 1), vtkMath::Random(-1, 1), vtkMath::Random(-1, 1));
+    qPoints->SetPoint(i, rand->GetNextRangeValue(-1, 1), rand->GetNextRangeValue(-1, 1),
+      rand->GetNextRangeValue(-1, 1));
   }
 
   vtkIdList* closest = vtkIdList::New();

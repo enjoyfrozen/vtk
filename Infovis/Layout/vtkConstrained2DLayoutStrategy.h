@@ -41,6 +41,8 @@
 
 #include "vtkGraphLayoutStrategy.h"
 #include "vtkInfovisLayoutModule.h" // For export macro
+#include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 
 #include "vtkSmartPointer.h" // Required for smart pointer internal ivars.
 
@@ -178,6 +180,7 @@ private:
   vtkSmartPointer<vtkImageData> SplatImage;
   vtkSmartPointer<vtkFloatArray> RepulsionArray;
   vtkSmartPointer<vtkFloatArray> AttractionArray;
+  vtkNew<vtkMinimalStandardRandomSequence> Rng;
 
   vtkLayoutEdge* EdgeArray;
 

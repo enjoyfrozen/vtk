@@ -26,6 +26,8 @@ PURPOSE.  See the above copyright notice for more information.
 #include "vtkLine.h"
 #include "vtkMath.h"
 #include "vtkMeanValueCoordinatesInterpolator.h"
+#include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 #include "vtkOrderedTriangulator.h"
 #include "vtkPointData.h"
 #include "vtkPointLocator.h"
@@ -704,6 +706,9 @@ int vtkPolyhedron::IsInside(const double x[3], double tolerance)
   vtkIdType idx, numCells;
   double tol = tolerance * length;
 
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+  rand->SetSeed(static_cast<int>(time(nullptr)));
+
   for (deltaVotes = 0, iterNumber = 1;
        (iterNumber < VTK_MAX_ITER) && (std::abs(deltaVotes) < VTK_VOTE_THRESHOLD); iterNumber++)
   {
@@ -712,7 +717,7 @@ int vtkPolyhedron::IsInside(const double x[3], double tolerance)
     {
       for (i = 0; i < 3; i++)
       {
-        ray[i] = vtkMath::Random(-1.0, 1.0);
+        ray[i] = rand->GetNextRangeValue(-1.0, 1.0);
       }
       rayMag = vtkMath::Norm(ray);
     } while (rayMag == 0.0);

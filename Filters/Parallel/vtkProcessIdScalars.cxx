@@ -20,8 +20,9 @@
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
 #include "vtkIntArray.h"
-#include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
 #include "vtkMultiProcessController.h"
+#include "vtkNew.h"
 #include "vtkObjectFactory.h"
 #include "vtkPointData.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
@@ -124,8 +125,9 @@ vtkIntArray* vtkProcessIdScalars::MakeProcessIdScalars(int piece, vtkIdType num)
 //------------------------------------------------------------------------------
 vtkFloatArray* vtkProcessIdScalars::MakeRandomScalars(int piece, vtkIdType num)
 {
-  vtkMath::RandomSeed(piece);
-  float randomValue = vtkMath::Random();
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+  rand->SetSeed(piece);
+  float randomValue = rand->GetNextValue();
 
   vtkFloatArray* pieceColors = vtkFloatArray::New();
   pieceColors->SetNumberOfTuples(num);
