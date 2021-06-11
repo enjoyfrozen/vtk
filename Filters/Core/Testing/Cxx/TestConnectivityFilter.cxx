@@ -39,13 +39,11 @@ void InitializeUnstructuredGrid(vtkUnstructuredGrid* unstructuredGrid, int dataT
     points->SetDataType(VTK_DOUBLE);
     for (unsigned int i = 0; i < 4; ++i)
     {
-      randomSequence->Next();
-      scalars->InsertNextValue(randomSequence->GetValue());
+      scalars->InsertNextValue(randomSequence->GetNextValue());
       double point[3];
       for (unsigned int j = 0; j < 3; ++j)
       {
-        randomSequence->Next();
-        point[j] = randomSequence->GetValue();
+        point[j] = randomSequence->GetNextValue();
       }
       cells->InsertCellPoint(points->InsertNextPoint(point));
     }
@@ -55,13 +53,11 @@ void InitializeUnstructuredGrid(vtkUnstructuredGrid* unstructuredGrid, int dataT
     points->SetDataType(VTK_FLOAT);
     for (unsigned int i = 0; i < 4; ++i)
     {
-      randomSequence->Next();
-      scalars->InsertNextValue(randomSequence->GetValue());
+      scalars->InsertNextValue(randomSequence->GetNextValue());
       float point[3];
       for (unsigned int j = 0; j < 3; ++j)
       {
-        randomSequence->Next();
-        point[j] = static_cast<float>(randomSequence->GetValue());
+        point[j] = static_cast<float>(randomSequence->GetNextValue());
       }
       cells->InsertCellPoint(points->InsertNextPoint(point));
     }

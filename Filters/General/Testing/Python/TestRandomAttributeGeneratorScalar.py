@@ -49,10 +49,6 @@ renWin.SetMultiSamples(0)
 iren = vtk.vtkRenderWindowInteractor()
 iren.SetRenderWindow(renWin)
 
-# Force a starting random value
-raMath = vtk.vtkMath()
-raMath.RandomSeed(6)
-
 # Generate random cell attributes on a plane and a cylinder
 for a in PlaneSphereActors():
     ren.AddActor(a)

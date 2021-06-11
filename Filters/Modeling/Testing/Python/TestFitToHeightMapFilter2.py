@@ -34,12 +34,12 @@ image.SetDimensions(iDim,jDim,1)
 image.SetSpacing(1,1,1)
 image.SetOrigin(0,0,0)
 
-math = vtk.vtkMath()
-math.RandomSeed(31415)
+rand = vtk.vtkMinimalStandardRandomSequence()
+rand.SetSeed(31415)
 heights = vtk.vtkFloatArray()
 heights.SetNumberOfTuples(imgSize)
 for i in range(0,imgSize):
-    heights.SetTuple1(i,math.Random(0,1))
+    heights.SetTuple1(i,rand.GetNextRangeValue(0,1))
 
 image.GetPointData().SetScalars(heights)
 

@@ -41,8 +41,7 @@ void InitializePointSet(vtkPointSet* pointSet, int dataType)
       double point[3];
       for (unsigned int j = 0; j < 3; ++j)
       {
-        randomSequence->Next();
-        point[j] = randomSequence->GetValue();
+        point[j] = randomSequence->GetNextValue();
       }
       points->InsertNextPoint(point);
     }
@@ -55,8 +54,7 @@ void InitializePointSet(vtkPointSet* pointSet, int dataType)
       float point[3];
       for (unsigned int j = 0; j < 3; ++j)
       {
-        randomSequence->Next();
-        point[j] = static_cast<float>(randomSequence->GetValue());
+        point[j] = static_cast<float>(randomSequence->GetNextValue());
       }
       points->InsertNextPoint(point);
     }
@@ -84,8 +82,7 @@ void InitializeTransform(vtkTransform* transform)
   double elements[16];
   for (unsigned int i = 0; i < 16; ++i)
   {
-    randomSequence->Next();
-    elements[i] = randomSequence->GetValue();
+    elements[i] = randomSequence->GetNextValue();
   }
   transform->SetMatrix(elements);
 }

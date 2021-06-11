@@ -3,9 +3,6 @@ import vtk
 from vtk.util.misc import vtkGetDataRoot
 VTK_DATA_ROOT = vtkGetDataRoot()
 
-math = vtk.vtkMath()
-math.RandomSeed(22)
-
 sphere = vtk.vtkSphereSource()
 sphere.SetPhiResolution(32)
 sphere.SetThetaResolution(32)

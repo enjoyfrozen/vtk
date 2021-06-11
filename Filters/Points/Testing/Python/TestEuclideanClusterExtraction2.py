@@ -5,8 +5,6 @@ VTK_DATA_ROOT = vtkGetDataRoot()
 
 # Parameters for debugging
 NPts = 100000
-math = vtk.vtkMath()
-math.RandomSeed(31415)
 
 # create pipeline
 #

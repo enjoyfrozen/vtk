@@ -1,12 +1,6 @@
 #!/usr/bin/env python
 import vtk
 
-def SetRandomSeed(caller, eventId):
-    #print "Restart random number generator"
-    raMath = vtk.vtkMath()
-    raMath.RandomSeed(6)
-
-
 def SphereActor(lut, interpolateBeforeMapping):
     ss = vtk.vtkSphereSource()
     if interpolateBeforeMapping:
@@ -14,7 +8,6 @@ def SphereActor(lut, interpolateBeforeMapping):
 
     bp = vtk.vtkBrownianPoints()
     bp.SetInputConnection(ss.GetOutputPort())
-    bp.AddObserver (vtk.vtkCommand.EndEvent, SetRandomSeed)
 
     pm = vtk.vtkPolyDataMapper()
     pm.SetInputConnection(bp.GetOutputPort())
@@ -59,9 +52,6 @@ renWin.AddRenderer(ren)
 
 iren = vtk.vtkRenderWindowInteractor()
 iren.SetRenderWindow(renWin)
-
-# Force a starting random value
-SetRandomSeed(0, 0)
 
 lut = ColorTransferFunction()
 ren.AddActor(SphereActor (lut, 0))

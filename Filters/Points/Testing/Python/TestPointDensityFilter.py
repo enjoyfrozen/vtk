@@ -8,8 +8,6 @@ res = 100
 
 # Parameters for debugging
 NPts = 1000000
-math = vtk.vtkMath()
-math.RandomSeed(31415)
 
 # create pipeline
 #
