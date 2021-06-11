@@ -17,14 +17,17 @@
 
 #include "vtkFunctionParser.h"
 
-#include "vtkMath.h"
 #include "vtkMathUtilities.h"
+#include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 #include "vtkTestErrorObserver.h"
 
 #include <algorithm>
 #include <sstream>
 #include <string>
 #include <vector>
+
+static vtkNew<vtkMinimalStandardRandomSequence> rng;
 
 #define SCALAR_FUNC(proc, function, math)                                                          \
   static int proc(double low, double hi)                                                           \
@@ -37,7 +40,7 @@
                                                                                                    \
     for (unsigned int i = 0; i < 1000; ++i)                                                        \
     {                                                                                              \
-      double value = vtkMath::Random(low, hi);                                                     \
+      double value = rng->GetNextRangeValue(low, hi);                                              \
       parser->SetScalarVariableValue("x", value);                                                  \
       double result = parser->GetScalarResult();                                                   \
       double expected = math(value);                                                               \
@@ -284,14 +287,14 @@ int TestVectors()
   // Cross
   for (unsigned int i = 0; i < 10; ++i)
   {
-    double x0 = vtkMath::Random(-1.0, 1.0);
-    double x1 = vtkMath::Random(-1.0, 1.0);
-    double x2 = vtkMath::Random(-1.0, 1.0);
+    double x0 = rng->GetNextRangeValue(-1.0, 1.0);
+    double x1 = rng->GetNextRangeValue(-1.0, 1.0);
+    double x2 = rng->GetNextRangeValue(-1.0, 1.0);
     parser->SetVectorVariableValue("x", x0, x1, x2);
 
-    double y0 = vtkMath::Random(-1.0, 1.0);
-    double y1 = vtkMath::Random(-1.0, 1.0);
-    double y2 = vtkMath::Random(-1.0, 1.0);
+    double y0 = rng->GetNextRangeValue(-1.0, 1.0);
+    double y1 = rng->GetNextRangeValue(-1.0, 1.0);
+    double y2 = rng->GetNextRangeValue(-1.0, 1.0);
     parser->SetVectorVariableValue("y", y0, y1, y2);
 
     parser->SetFunction("cross(x,y)");
@@ -338,14 +341,14 @@ int TestVectors()
             << "...";
   for (unsigned int i = 0; i < 10; ++i)
   {
-    double x0 = vtkMath::Random(-1.0, 1.0);
-    double x1 = vtkMath::Random(-1.0, 1.0);
-    double x2 = vtkMath::Random(-1.0, 1.0);
+    double x0 = rng->GetNextRangeValue(-1.0, 1.0);
+    double x1 = rng->GetNextRangeValue(-1.0, 1.0);
+    double x2 = rng->GetNextRangeValue(-1.0, 1.0);
     parser->SetVectorVariableValue("x", x0, x1, x2);
 
-    double y0 = vtkMath::Random(-1.0, 1.0);
-    double y1 = vtkMath::Random(-1.0, 1.0);
-    double y2 = vtkMath::Random(-1.0, 1.0);
+    double y0 = rng->GetNextRangeValue(-1.0, 1.0);
+    double y1 = rng->GetNextRangeValue(-1.0, 1.0);
+    double y2 = rng->GetNextRangeValue(-1.0, 1.0);
     parser->SetVectorVariableValue("y", y0, y1, y2);
 
     parser->SetScalarVariableValue("t", 2.0);
@@ -455,7 +458,7 @@ int TestMinMax()
   int status = 0;
   for (unsigned int i = 0; i < 1000; ++i)
   {
-    double value = vtkMath::Random(-1000.0, 1000.0);
+    double value = rng->GetNextRangeValue(-1000.0, 1000.0);
     parser->SetScalarVariableValue("x", value);
     parser->SetScalarVariableValue("y", -value);
 
@@ -477,7 +480,7 @@ int TestMinMax()
 
   for (unsigned int i = 0; i < 1000; ++i)
   {
-    double value = vtkMath::Random(-1000.0, 1000.0);
+    double value = rng->GetNextRangeValue(-1000.0, 1000.0);
     parser->SetScalarVariableValue("x", value);
     parser->SetScalarVariableValue("y", -value);
 
@@ -513,8 +516,8 @@ int TestScalarLogic()
   parser->SetFunction("if(x < y, x, y)");
   for (unsigned int i = 0; i < 1000; ++i)
   {
-    double x = vtkMath::Random(-1000.0, 1000.0);
-    double y = vtkMath::Random(-1000.0, 1000.0);
+    double x = rng->GetNextRangeValue(-1000.0, 1000.0);
+    double y = rng->GetNextRangeValue(-1000.0, 1000.0);
     parser->SetScalarVariableValue("x", x);
     parser->SetScalarVariableValue("y", y);
 
@@ -532,8 +535,8 @@ int TestScalarLogic()
   parser->SetFunction("if(x > y, x, y)");
   for (unsigned int i = 0; i < 1000; ++i)
   {
-    double x = vtkMath::Random(-1000.0, 1000.0);
-    double y = vtkMath::Random(-1000.0, 1000.0);
+    double x = rng->GetNextRangeValue(-1000.0, 1000.0);
+    double y = rng->GetNextRangeValue(-1000.0, 1000.0);
     parser->SetScalarVariableValue("x", x);
     parser->SetScalarVariableValue("y", y);
 
@@ -551,7 +554,7 @@ int TestScalarLogic()
   parser->SetFunction("if(x = y, x, 0.0)");
   for (unsigned int i = 0; i < 1000; ++i)
   {
-    double x = vtkMath::Random(-1000.0, 1000.0);
+    double x = rng->GetNextRangeValue(-1000.0, 1000.0);
     double y = x;
     parser->SetScalarVariableValue("x", x);
     parser->SetScalarVariableValue("y", y);
@@ -621,17 +624,17 @@ int TestVectorLogic()
   for (unsigned int i = 0; i < 1000; ++i)
   {
 
-    double x = vtkMath::Random(-1000.0, 1000.0);
-    double y = vtkMath::Random(-1000.0, 1000.0);
+    double x = rng->GetNextRangeValue(-1000.0, 1000.0);
+    double y = rng->GetNextRangeValue(-1000.0, 1000.0);
     parser->SetScalarVariableValue("x", x);
     parser->SetScalarVariableValue("y", y);
 
-    double v1 = vtkMath::Random(-1000.0, 1000.0);
-    double v2 = vtkMath::Random(-1000.0, 1000.0);
-    double v3 = vtkMath::Random(-1000.0, 1000.0);
-    double w1 = vtkMath::Random(-1000.0, 1000.0);
-    double w2 = vtkMath::Random(-1000.0, 1000.0);
-    double w3 = vtkMath::Random(-1000.0, 1000.0);
+    double v1 = rng->GetNextRangeValue(-1000.0, 1000.0);
+    double v2 = rng->GetNextRangeValue(-1000.0, 1000.0);
+    double v3 = rng->GetNextRangeValue(-1000.0, 1000.0);
+    double w1 = rng->GetNextRangeValue(-1000.0, 1000.0);
+    double w2 = rng->GetNextRangeValue(-1000.0, 1000.0);
+    double w3 = rng->GetNextRangeValue(-1000.0, 1000.0);
     parser->SetVectorVariableValue("v", v1, v2, v3);
     parser->SetVectorVariableValue("w", w1, w2, w3);
 
@@ -650,17 +653,17 @@ int TestVectorLogic()
   for (unsigned int i = 0; i < 1000; ++i)
   {
 
-    double x = vtkMath::Random(-1000.0, 1000.0);
-    double y = vtkMath::Random(-1000.0, 1000.0);
+    double x = rng->GetNextRangeValue(-1000.0, 1000.0);
+    double y = rng->GetNextRangeValue(-1000.0, 1000.0);
     parser->SetScalarVariableValue("x", x);
     parser->SetScalarVariableValue("y", y);
 
-    double v1 = vtkMath::Random(-1000.0, 1000.0);
-    double v2 = vtkMath::Random(-1000.0, 1000.0);
-    double v3 = vtkMath::Random(-1000.0, 1000.0);
-    double w1 = vtkMath::Random(-1000.0, 1000.0);
-    double w2 = vtkMath::Random(-1000.0, 1000.0);
-    double w3 = vtkMath::Random(-1000.0, 1000.0);
+    double v1 = rng->GetNextRangeValue(-1000.0, 1000.0);
+    double v2 = rng->GetNextRangeValue(-1000.0, 1000.0);
+    double v3 = rng->GetNextRangeValue(-1000.0, 1000.0);
+    double w1 = rng->GetNextRangeValue(-1000.0, 1000.0);
+    double w2 = rng->GetNextRangeValue(-1000.0, 1000.0);
+    double w3 = rng->GetNextRangeValue(-1000.0, 1000.0);
     parser->SetVectorVariableValue("v", v1, v2, v3);
     parser->SetVectorVariableValue("w", w1, w2, w3);
 
@@ -679,17 +682,17 @@ int TestVectorLogic()
   for (unsigned int i = 0; i < 1000; ++i)
   {
 
-    double x = vtkMath::Random(-1000.0, 1000.0);
+    double x = rng->GetNextRangeValue(-1000.0, 1000.0);
     double y = x;
     parser->SetScalarVariableValue("x", x);
     parser->SetScalarVariableValue("y", y);
 
-    double v1 = vtkMath::Random(-1000.0, 1000.0);
-    double v2 = vtkMath::Random(-1000.0, 1000.0);
-    double v3 = vtkMath::Random(-1000.0, 1000.0);
-    double w1 = vtkMath::Random(-1000.0, 1000.0);
-    double w2 = vtkMath::Random(-1000.0, 1000.0);
-    double w3 = vtkMath::Random(-1000.0, 1000.0);
+    double v1 = rng->GetNextRangeValue(-1000.0, 1000.0);
+    double v2 = rng->GetNextRangeValue(-1000.0, 1000.0);
+    double v3 = rng->GetNextRangeValue(-1000.0, 1000.0);
+    double w1 = rng->GetNextRangeValue(-1000.0, 1000.0);
+    double w2 = rng->GetNextRangeValue(-1000.0, 1000.0);
+    double w3 = rng->GetNextRangeValue(-1000.0, 1000.0);
     parser->SetVectorVariableValue("v", v1, v2, v3);
     parser->SetVectorVariableValue("w", w1, w2, w3);
 
@@ -753,8 +756,8 @@ int TestMiscFunctions()
   status = 0;
   for (unsigned int i = 0; i < 1000; ++i)
   {
-    double x = vtkMath::Random(0.0, 10.0);
-    double y = vtkMath::Random(0.0, 2.0);
+    double x = rng->GetNextRangeValue(0.0, 10.0);
+    double y = rng->GetNextRangeValue(0.0, 2.0);
     parser->SetScalarVariableValue("x", x);
     parser->SetScalarVariableValue("y", y);
     parser->SetFunction("x ^ y");
@@ -786,8 +789,8 @@ int TestMiscFunctions()
   status = 0;
   for (unsigned int i = 0; i < 1000; ++i)
   {
-    double x = vtkMath::Random(-10.0, 10.0);
-    double y = vtkMath::Random(-10.0, 10.0);
+    double x = rng->GetNextRangeValue(-10.0, 10.0);
+    double y = rng->GetNextRangeValue(-10.0, 10.0);
     parser->SetScalarVariableValue("x", x);
     parser->SetScalarVariableValue("y", y);
     parser->SetFunction("x / y");

@@ -28,12 +28,14 @@ PURPOSE.  See the above copyright notice for more information.
 #include "vtkContingencyStatistics.h"
 #include "vtkPContingencyStatistics.h"
 
+#include "vtkBoxMuellerRandomSequence.h"
 #include "vtkDoubleArray.h"
 #include "vtkIdTypeArray.h"
 #include "vtkIntArray.h"
 #include "vtkMPIController.h"
-#include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
 #include "vtkMultiBlockDataSet.h"
+#include "vtkNew.h"
 #include "vtkStdString.h"
 #include "vtkTable.h"
 #include "vtkTimerLog.h"
@@ -66,8 +68,12 @@ void RandomContingencyStatistics(vtkMultiProcessController* controller, void* ar
   // Get local rank
   int myRank = com->GetLocalProcessId();
 
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
   // Seed random number generator
-  vtkMath::RandomSeed(static_cast<int>(vtkTimerLog::GetUniversalTime()) * (myRank + 1));
+  rand->SetSeed(static_cast<int>(vtkTimerLog::GetUniversalTime()) * (myRank + 1));
+
+  vtkNew<vtkBoxMuellerRandomSequence> grand;
+  grand->SetUniformSequence(rand);
 
   // Generate an input table that contains samples of mutually independent discrete random variables
   int nVariables = 2;
@@ -84,7 +90,8 @@ void RandomContingencyStatistics(vtkMultiProcessController* controller, void* ar
 
     for (int r = 0; r < args->nVals; ++r)
     {
-      intArray[c]->InsertNextValue(static_cast<int>(std::round(vtkMath::Gaussian() * args->stdev)));
+      intArray[c]->InsertNextValue(
+        static_cast<int>(std::round(grand->GetNextValue() * args->stdev)));
     }
 
     inputData->AddColumn(intArray[c]);

@@ -19,13 +19,16 @@
 -------------------------------------------------------------------------*/
 #include "vtkDoubleArray.h"
 #include "vtkIntArray.h"
-#include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 #include "vtkStringArray.h"
 #include "vtkTable.h"
 #include "vtkVariantArray.h"
 
 #include <ctime>
 #include <vector>
+
+static vtkNew<vtkMinimalStandardRandomSequence> rng;
 
 void CheckEqual(vtkTable* table, std::vector<std::vector<double>>& stdTable)
 {
@@ -63,7 +66,7 @@ void CheckEqual(vtkTable* table, std::vector<std::vector<double>>& stdTable)
   for (int j = 0; j < table->GetNumberOfColumns(); j++)
   {
     vtkAbstractArray* arr;
-    if (vtkMath::Random() < 0.5)
+    if (rng->GetNextValue() < 0.5)
     {
       arr = table->GetColumn(j);
     }
@@ -126,7 +129,7 @@ int TestTable(int, char*[])
 
   long seed = time(nullptr);
   cout << "Seed: " << seed << endl;
-  vtkMath::RandomSeed(seed);
+  rng->SetSeed(seed);
 
   // Make a table and a parallel vector of vectors
   vtkTable* table = vtkTable::New();
@@ -139,13 +142,13 @@ int TestTable(int, char*[])
   cout << "Creating columns." << endl;
   vtkIdType columnId = 0;
   bool noColumns = true;
-  while (noColumns || vtkMath::Random() < prob)
+  while (noColumns || rng->GetNextValue() < prob)
   {
     noColumns = false;
 
     stdTable.emplace_back();
 
-    double r = vtkMath::Random();
+    double r = rng->GetNextValue();
     vtkVariant name(columnId);
     vtkAbstractArray* arr;
     if (r < 0.25)
@@ -175,7 +178,7 @@ int TestTable(int, char*[])
 
   cout << "Inserting empty rows." << endl;
   bool noRows = true;
-  while (noRows || vtkMath::Random() < prob)
+  while (noRows || rng->GetNextValue() < prob)
   {
     noRows = false;
     table->InsertNextBlankRow();
@@ -186,7 +189,7 @@ int TestTable(int, char*[])
   }
 
   cout << "Inserting full rows." << endl;
-  while (vtkMath::Random() < prob)
+  while (rng->GetNextValue() < prob)
   {
     vtkVariantArray* rowArray = vtkVariantArray::New();
     for (vtkIdType j = 0; j < table->GetNumberOfColumns(); j++)
@@ -200,17 +203,17 @@ int TestTable(int, char*[])
 
   cout << "Performing all kinds of inserts." << endl;
   int id = 0;
-  while (vtkMath::Random() < highProb)
+  while (rng->GetNextValue() < highProb)
   {
-    vtkIdType row = static_cast<vtkIdType>(vtkMath::Random(0, table->GetNumberOfRows()));
-    vtkIdType col = static_cast<vtkIdType>(vtkMath::Random(0, table->GetNumberOfColumns()));
+    vtkIdType row = static_cast<vtkIdType>(rng->GetNextRangeValue(0, table->GetNumberOfRows()));
+    vtkIdType col = static_cast<vtkIdType>(rng->GetNextRangeValue(0, table->GetNumberOfColumns()));
     vtkVariant v;
-    if (vtkMath::Random() < 0.25)
+    if (rng->GetNextValue() < 0.25)
     {
       vtkVariant temp(id);
       v = vtkVariant(temp.ToString());
     }
-    else if (vtkMath::Random() < 0.5)
+    else if (rng->GetNextValue() < 0.5)
     {
       v = vtkVariant(id);
     }
@@ -219,7 +222,7 @@ int TestTable(int, char*[])
       v = vtkVariant(static_cast<double>(id));
     }
 
-    if (vtkMath::Random() < 0.5)
+    if (rng->GetNextValue() < 0.5)
     {
       table->SetValue(row, col, v);
     }
@@ -236,7 +239,7 @@ int TestTable(int, char*[])
   int numRowsToRemove = table->GetNumberOfRows() / 2;
   for (int i = 0; i < numRowsToRemove; i++)
   {
-    vtkIdType row = static_cast<vtkIdType>(vtkMath::Random(0, table->GetNumberOfRows()));
+    vtkIdType row = static_cast<vtkIdType>(rng->GetNextRangeValue(0, table->GetNumberOfRows()));
     cout << "Removing row " << row << " from vtkTable with " << table->GetNumberOfRows() << " rows"
          << endl;
     table->RemoveRow(row);
@@ -254,8 +257,8 @@ int TestTable(int, char*[])
   int numColsToRemove = table->GetNumberOfColumns() / 2;
   for (int i = 0; i < numColsToRemove; i++)
   {
-    vtkIdType col = static_cast<vtkIdType>(vtkMath::Random(0, table->GetNumberOfColumns()));
-    if (vtkMath::Random() < 0.5)
+    vtkIdType col = static_cast<vtkIdType>(rng->GetNextRangeValue(0, table->GetNumberOfColumns()));
+    if (rng->GetNextValue() < 0.5)
     {
       table->RemoveColumn(col);
     }

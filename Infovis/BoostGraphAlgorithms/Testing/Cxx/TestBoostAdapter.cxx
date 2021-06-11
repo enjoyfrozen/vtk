@@ -22,7 +22,8 @@
 #include "vtkGraph.h"
 #include "vtkIdTypeArray.h"
 #include "vtkIntArray.h"
-#include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 #include "vtkSmartPointer.h"
 #include "vtkTimerLog.h"
 
@@ -44,6 +45,8 @@
 #include <boost/graph/strong_components.hpp>
 #include <boost/graph/transitive_closure.hpp>
 #include <boost/graph/visitors.hpp>
+
+vtkNew<vtkMinimalStandardRandomSequence> rand;
 
 #define VTK_CREATE(type, name) vtkSmartPointer<type> name = vtkSmartPointer<type>::New()
 
@@ -203,8 +206,8 @@ void TestGraph(Graph g, vtkIdType numVertices, vtkIdType numEdges, int repeat, i
   timer->StartTimer();
   for (int i = 0; i < numEdges; ++i)
   {
-    int u = static_cast<int>(vtkMath::Random(0, numVertices));
-    int v = static_cast<int>(vtkMath::Random(0, numVertices));
+    int u = static_cast<int>(rng->GetNextRangeValue(0, numVertices));
+    int v = static_cast<int>(rng->GetNextRangeValue(0, numVertices));
     add_edge(graphVerts[u], graphVerts[v], g);
   }
   timer->StopTimer();
@@ -285,7 +288,7 @@ int TestBoostAdapter(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
   builder->AddVertex();
   for (vtkIdType i = 1; i < numVertices; i++)
   {
-    builder->AddChild(static_cast<vtkIdType>(vtkMath::Random(0, i)));
+    builder->AddChild(static_cast<vtkIdType>(rng->GetNextRangeValue(0, i)));
   }
   vtkTree* t = vtkTree::New();
   if (!t->CheckedShallowCopy(builder))

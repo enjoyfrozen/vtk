@@ -223,13 +223,15 @@ int TestVariantArray(int, char*[])
   // * void SetValue(vtkIdType id, vtkVariant value);
   // * void SetTuple(vtkIdType i, vtkIdType j, vtkAbstractArray* source);
 
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   cerr << "Performing insert operations." << endl;
   vtkIdType id = 0;
   bool empty = true;
-  while (empty || vtkMath::Random() < prob)
+  while (empty || rand->GetNextValue() < prob)
   {
     empty = false;
-    if (vtkMath::Random() < 0.5)
+    if (rand->GetNextValue() < 0.5)
     {
       arr->InsertValue(id, vtkVariant(id));
     }
@@ -249,7 +251,7 @@ int TestVariantArray(int, char*[])
   vtkStringArray* stringArr = vtkStringArray::New();
   vtkIdType strId = id;
   empty = true;
-  while (empty || vtkMath::Random() < prob)
+  while (empty || rand->GetNextValue() < prob)
   {
     empty = false;
     stringArr->InsertNextValue(vtkVariant(strId).ToString());
@@ -258,7 +260,7 @@ int TestVariantArray(int, char*[])
 
   for (int i = 0; i < stringArr->GetNumberOfValues(); i++)
   {
-    if (vtkMath::Random() < 0.5)
+    if (rand->GetNextValue() < 0.5)
     {
       arr->InsertTuple(id, i, stringArr);
     }
@@ -277,17 +279,17 @@ int TestVariantArray(int, char*[])
   PrintArrays(vec, arr);
 
   cerr << "Performing set operations." << endl;
-  while (vtkMath::Random() < prob)
+  while (rand->GetNextValue() < prob)
   {
-    int index = static_cast<int>(vtkMath::Random(0, arr->GetNumberOfValues()));
-    if (vtkMath::Random() < 0.5)
+    int index = static_cast<int>(rand->GetNextValueRange(0, arr->GetNumberOfValues()));
+    if (rand->GetNextValue() < 0.5)
     {
       arr->SetValue(index, vtkVariant(id));
       vec[index] = id;
     }
     else
     {
-      int index2 = static_cast<int>(vtkMath::Random(0, stringArr->GetNumberOfValues()));
+      int index2 = static_cast<int>(rand->GetNextValueRange(0, stringArr->GetNumberOfValues()));
       arr->SetTuple(index, index2, stringArr);
       vec[index] = vtkVariant(stringArr->GetValue(index2)).ToDouble();
     }
