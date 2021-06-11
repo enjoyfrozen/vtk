@@ -143,8 +143,7 @@ double vtkPointSource::Random()
     return rng->GetNextValue();
   }
 
-  this->RandomSequence->Next();
-  return this->RandomSequence->GetValue();
+  return this->RandomSequence->GetNextValue();
 }
 
 //------------------------------------------------------------------------------

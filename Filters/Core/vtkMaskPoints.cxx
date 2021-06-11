@@ -641,12 +641,9 @@ int vtkMaskPoints::RequestData(vtkInformation* vtkNotUsed(request),
 
         for (vtkIdType i = 0; i < numAddedPts; i++)
         {
-          randomGenerator->Next();
-          double randX = randomGenerator->GetRangeValue(bounds[0], bounds[1]);
-          randomGenerator->Next();
-          double randY = randomGenerator->GetRangeValue(bounds[2], bounds[3]);
-          randomGenerator->Next();
-          double randZ = randomGenerator->GetRangeValue(bounds[4], bounds[5]);
+          double randX = randomGenerator->GetNextRangeValue(bounds[0], bounds[1]);
+          double randY = randomGenerator->GetNextRangeValue(bounds[2], bounds[3]);
+          double randZ = randomGenerator->GetNextRangeValue(bounds[4], bounds[5]);
           double dist2;
           double pos[3] = { randX, randY, randZ };
           vtkIdType ptId =
