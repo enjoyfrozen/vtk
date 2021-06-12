@@ -77,7 +77,6 @@ build:fedora34-cuda-mpi:
         - .linux_builder_tags
         - .cmake_build_artifacts
         - .run_manually
-    timeout: 2 hours
 
 test:fedora34-cuda-mpi:
     extends:
