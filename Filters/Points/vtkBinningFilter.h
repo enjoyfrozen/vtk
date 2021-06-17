@@ -57,6 +57,16 @@ public:
   vtkGetVector6Macro(OutputBounds, double);
   //@}
 
+  //@{
+  /**
+   * Get / Set the particule of interest for concentration computation.
+   * The Input array to process should be a list of particles types.
+   * For each cell, concentration is given by count(ParticleOfInterest) / count(Particles).
+   */
+  vtkSetMacro(ParticleOfInterest, int);
+  vtkGetMacro(ParticleOfInterest, int);
+  //@}
+
 protected:
   vtkBinningFilter();
   ~vtkBinningFilter() override = default;
@@ -69,13 +79,14 @@ protected:
    * Compute output CellData from input PointData
    * output cell value is the mean of enclosed input points values.
    */
-  bool ComputeCellData(vtkPointSet* input, vtkImageData* output);
+  bool ComputeCellData(vtkInformationVector** inputVector, vtkImageData* output);
 
   vtkIdType GetCellId(double pts[3]);
 
   int Dimensions[3];
   double OutputBounds[6];
   bool UseInputBounds;
+  int ParticleOfInterest;
 
 private:
   vtkBinningFilter(const vtkBinningFilter&) = delete;

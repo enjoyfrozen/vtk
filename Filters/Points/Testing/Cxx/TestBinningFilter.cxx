@@ -60,6 +60,7 @@ int TestBinningFilter(int argc, char* argv[])
   vtkImageData* output = binFilter->GetOutput();
   vtkCellData* outCellData = output->GetCellData();
 
+  // we add two arrays, particles count and particles concentration
   if (outCellData->GetNumberOfArrays() != inPointData->GetNumberOfArrays() + 1)
   {
     vtkErrorWithObjectMacro(nullptr, "Wrong number of arrays in output");
@@ -73,6 +74,8 @@ int TestBinningFilter(int argc, char* argv[])
   errors += TestArray(outArray, 9.686, 58.627);
   outArray = outCellData->GetArray("RandomPointVectors");
   errors += TestArray(outArray, 71.199, 121.372);
+  outArray = outCellData->GetArray("Concentration");
+  errors += TestArray(outArray, 0., 1.);
 
   return EXIT_SUCCESS;
 }

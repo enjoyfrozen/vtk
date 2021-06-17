@@ -28,39 +28,22 @@
 #include "vtkImageData.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
+#include "vtkIntArray.h"
+#include "vtkLogger.h"
 #include "vtkMath.h"
 #include "vtkPointData.h"
 #include "vtkPointSet.h"
+#include "vtkSetGet.h"
 #include "vtkStaticPointLocator.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
 #include "vtkType.h"
 #include <cstdio>
+#include <cstring>
 
 vtkStandardNewMacro(vtkBinningFilter);
 
-struct SumArray
-{
-  template <typename InArrayT, typename OutArrayT>
-  void operator()(InArrayT* inArray, OutArrayT* outArray, vtkIdType ptId, vtkIdType cellId) const
-  {
-    // TupleRanges iterate tuple-by-tuple:
-    const auto inRange = vtk::DataArrayTupleRange(inArray);
-    auto outRange = vtk::DataArrayTupleRange(outArray);
-
-    const vtk::ComponentIdType numComps = inRange.GetTupleSize();
-    assert(numComps == outRange.GetTupleSize());
-    assert(ptId < inRange.size());
-    assert(cellId < outRange.size());
-
-    // sum for each tuple
-    const auto inTuple = inRange[ptId];
-    auto outTuple = outRange[cellId];
-    for (vtk::ComponentIdType compId = 0; compId < numComps; ++compId)
-    {
-      outTuple[compId] += inTuple[compId];
-    }
-  }
-};
+static const std::string PARTICLES_COUNT_ARRAY_NAME = "NumberOfParticles";
+static const std::string PARTICLES_CONCENTRATION_ARRAY_NAME = "Concentration";
 
 //------------------------------------------------------------------------------
 vtkBinningFilter::vtkBinningFilter()
@@ -71,6 +54,8 @@ vtkBinningFilter::vtkBinningFilter()
 
   this->UseInputBounds = true;
   vtkMath::UninitializeBounds(this->OutputBounds);
+
+  this->ParticleOfInterest = 0;
 }
 
 //------------------------------------------------------------------------------
@@ -131,10 +116,9 @@ int vtkBinningFilter::RequestInformation(vtkInformation* vtkNotUsed(request),
 
 //------------------------------------------------------------------------------
 int vtkBinningFilter::RequestData(vtkInformation* vtkNotUsed(request),
-  vtkInformationVector** inputVector, vtkInformationVector* outputVector)
+  vtkInformationVector** inVector, vtkInformationVector* outputVector)
 {
   vtkInformation* outInfo = outputVector->GetInformationObject(0);
-  vtkInformation* inInfo = inputVector[0]->GetInformationObject(0);
 
   // initialize image output
   vtkImageData* output = this->GetOutput();
@@ -142,29 +126,44 @@ int vtkBinningFilter::RequestData(vtkInformation* vtkNotUsed(request),
   output->SetSpacing(outInfo->Get(vtkDataObject::SPACING()));
   output->SetOrigin(outInfo->Get(vtkDataObject::ORIGIN()));
 
-  vtkPointSet* input = vtkPointSet::SafeDownCast(inInfo->Get(vtkDataObject::DATA_OBJECT()));
+  vtkPointSet* input = vtkPointSet::SafeDownCast(this->GetInput());
 
   auto outCellData = output->GetCellData();
   auto inPointData = input->GetPointData();
 
+  vtkDataArray* particlesType = this->GetInputArrayToProcess(0, inVector);
+  if (!particlesType)
+  {
+    vtkLogF(INFO, "No input array to process. Will not compute concentration.");
+  }
+  else
+  {
+    vtkLogF(TRACE, "Will compute concentration based on '%s' array", particlesType->GetName());
+  }
+
+  // Initialize output arrays
   vtkIdType nbOfCells = output->GetNumberOfCells();
   auto inIt = vtkCellData::Iterator(inPointData);
   for (vtkDataArray* inArray = inIt.Begin(); !inIt.End(); inArray = inIt.Next())
   {
-    // if (vtkFloatArray::SafeDownCast(inArray))
-    // {
-    //   auto outArray = vtkFloatArray::SafeDownCast(inArray->NewInstance());
-    //   outArray->SetNumberOfTuples(nbOfCells);
-    //   outArray->FillValue(0);
-    //   outArray->SetName(name);
-    //   outCellData->AddArray(outArray);
-    //   outArray->Delete();
-    // }
-    // else if (inArray)
-    if (inArray)
+    // do not forward particle type to output.
+    if (inArray == particlesType)
     {
-      const char* name = inArray->GetName();
+      continue;
+    }
+    const char* name = inArray->GetName();
+    if (vtkDoubleArray::SafeDownCast(inArray))
+    {
       vtkNew<vtkDoubleArray> outArray;
+      outArray->SetNumberOfComponents(inArray->GetNumberOfComponents());
+      outArray->SetNumberOfTuples(nbOfCells);
+      outArray->FillValue(0);
+      outArray->SetName(name);
+      outCellData->AddArray(outArray);
+    }
+    else if (inArray)
+    {
+      vtkNew<vtkFloatArray> outArray;
       outArray->SetNumberOfComponents(inArray->GetNumberOfComponents());
       outArray->SetNumberOfTuples(nbOfCells);
       outArray->FillValue(0);
@@ -173,7 +172,22 @@ int vtkBinningFilter::RequestData(vtkInformation* vtkNotUsed(request),
     }
   }
 
-  this->ComputeCellData(input, output);
+  vtkNew<vtkIntArray> nbOfParticles;
+  nbOfParticles->SetName(PARTICLES_COUNT_ARRAY_NAME.c_str());
+  nbOfParticles->SetNumberOfTuples(nbOfCells);
+  nbOfParticles->FillValue(0);
+  outCellData->AddArray(nbOfParticles);
+
+  if (particlesType)
+  {
+    vtkNew<vtkFloatArray> concentration;
+    concentration->SetName(PARTICLES_CONCENTRATION_ARRAY_NAME.c_str());
+    concentration->SetNumberOfTuples(nbOfCells);
+    concentration->FillValue(0);
+    outCellData->AddArray(concentration);
+  }
+
+  this->ComputeCellData(inVector, output);
 
   return 1;
 }
@@ -196,71 +210,85 @@ vtkIdType vtkBinningFilter::GetCellId(double pt[3])
 }
 
 //------------------------------------------------------------------------------
-bool vtkBinningFilter::ComputeCellData(vtkPointSet* input, vtkImageData* output)
+bool vtkBinningFilter::ComputeCellData(vtkInformationVector** inVector, vtkImageData* output)
 {
+  vtkPointSet* input = vtkPointSet::SafeDownCast(this->GetInput());
+
   auto outCellData = output->GetCellData();
   auto inPointData = input->GetPointData();
 
-  vtkIdType nbOfCells = output->GetNumberOfCells();
+  // get type array
+  vtkDataArray* particlesType = this->GetInputArrayToProcess(0, inVector);
+  auto countRange =
+    vtk::DataArrayValueRange(outCellData->GetArray(PARTICLES_COUNT_ARRAY_NAME.c_str()));
 
-  vtkNew<vtkIntArray> numbers;
-  numbers->SetName("NumberOfParticles");
-  numbers->SetNumberOfTuples(nbOfCells);
-  numbers->FillValue(0);
-  outCellData->AddArray(numbers);
-
-  double origin[3];
-  this->GetOutput()->GetOrigin(origin);
-
-  // Put each input point an output cell and add its contribution
+  // Put input points in output cell and sum their contribution
   for (vtkIdType ptId = 0; ptId < input->GetNumberOfPoints(); ptId++)
   {
     double pt[3];
     input->GetPoint(ptId, pt);
     vtkIdType cellId = GetCellId(pt);
 
-    auto outIt = vtkCellData::Iterator(outCellData);
-    for (vtkDataArray* outArray = outIt.Begin(); !outIt.End(); outArray = outIt.Next())
+    auto inIt = vtkCellData::Iterator(inPointData);
+    for (vtkDataArray* inArray = inIt.Begin(); !inIt.End(); inArray = inIt.Next())
     {
-      const char* name = outArray->GetName();
-      vtkDataArray* inArray = inPointData->GetArray(name);
-      if (inArray)
+      const char* name = inArray->GetName();
+      vtkDataArray* outArray = inPointData->GetArray(name);
+      if (!inArray)
       {
-        // make summation
-        using Dispatcher = vtkArrayDispatch::Dispatch2ByValueType<vtkArrayDispatch::AllTypes,
-          vtkArrayDispatch::Reals>;
-        SumArray worker;
-        if (!Dispatcher::Execute(inArray, outArray, worker, ptId, cellId))
+        continue;
+      }
+      // count particles of interest
+      if (particlesType && strcmp(particlesType->GetName(), inArray->GetName()) == 0)
+      {
+        auto concentrationRange = vtk::DataArrayValueRange(
+          outCellData->GetArray(PARTICLES_CONCENTRATION_ARRAY_NAME.c_str()));
+        auto typeRange = vtk::DataArrayValueRange(particlesType);
+        if (typeRange[ptId] == this->ParticleOfInterest)
         {
-          // If Execute(...) fails, the arrays don't match the constraints.
-          // Run the algorithm using the slower vtkDataArray double API instead:
-          worker(inArray, outArray, ptId, cellId);
+          concentrationRange[cellId]++;
+        }
+      }
+      else
+      {
+        auto outRange = vtk::DataArrayTupleRange(outArray);
+        auto inRange = vtk::DataArrayTupleRange(inArray);
+        const vtk::ComponentIdType numComps = inRange.GetTupleSize();
+        const auto inTuple = inRange[ptId];
+        auto outTuple = outRange[cellId];
+        for (vtk::ComponentIdType compId = 0; compId < numComps; ++compId)
+        {
+          outTuple[compId] += inTuple[compId];
         }
       }
     }
-    numbers->SetValue(cellId, numbers->GetValue(cellId) + 1);
+    countRange[cellId] += 1;
   }
 
   // compute mean for each cell data
   auto outIt = vtkCellData::Iterator(outCellData);
   for (vtkDataArray* outArray = outIt.Begin(); !outIt.End(); outArray = outIt.Next())
   {
-    vtkDoubleArray* array = vtkDoubleArray::SafeDownCast(outArray);
-    if (!array)
+    if (strcmp(outArray->GetName(), PARTICLES_COUNT_ARRAY_NAME.c_str()) == 0)
     {
       continue;
     }
-    auto arrRange = vtk::DataArrayTupleRange(array);
+    auto arrRange = vtk::DataArrayTupleRange(outArray);
     const vtk::TupleIdType numTuples = arrRange.size();
     const vtk::ComponentIdType numComps = arrRange.GetTupleSize();
 
     for (vtk::TupleIdType tupleId = 0; tupleId < numTuples; ++tupleId)
     {
+      if (countRange[tupleId] == 0)
+      {
+        continue;
+      }
+
       auto outTuple = arrRange[tupleId];
 
       for (vtk::ComponentIdType compId = 0; compId < numComps; ++compId)
       {
-        outTuple[compId] /= numbers->GetValue(tupleId);
+        outTuple[compId] /= countRange[tupleId];
       }
     }
   }
