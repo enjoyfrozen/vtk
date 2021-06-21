@@ -779,6 +779,8 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::CaptureDepthTexture(vtkRender
     this->DepthCopyColorTextureObject->Allocate2D(
       this->WindowSize[0], this->WindowSize[1], 4, VTK_UNSIGNED_CHAR);
   }
+  this->DepthTextureObject->Resize(this->WindowSize[0], this->WindowSize[1]);
+  this->DepthCopyColorTextureObject->Resize(this->WindowSize[0], this->WindowSize[1]);
 
   // copy depth with a blit
   if (!this->DepthCopyFBO)
@@ -800,14 +802,6 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::CaptureDepthTexture(vtkRender
     this->WindowSize[1], GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 
   orenWin->GetState()->PopDrawFramebufferBinding();
-
-#ifndef GL_ES_VERSION_3_0
-  // currently broken on ES
-  // this->DepthTextureObject->CopyFromFrameBuffer(this->WindowLowerLeft[0],
-  // this->WindowLowerLeft[1],
-  //   0, 0, this->WindowSize[0], this->WindowSize[1]);
-#endif
-  //  this->DepthTextureObject->Deactivate();
 }
 
 //------------------------------------------------------------------------------
