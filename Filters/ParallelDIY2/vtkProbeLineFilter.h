@@ -52,7 +52,7 @@
 class vtkMultiProcessController;
 class vtkPolyData;
 
-class VTKFILTERSPARALLEL_EXPORT vtkProbeLineFilter : public vtkPolyDataAlgorithm
+class VTKFILTERSPARALLELDIY2_EXPORT vtkProbeLineFilter : public vtkPolyDataAlgorithm
 {
 public:
   vtkTypeMacro(vtkProbeLineFilter, vtkPolyDataAlgorithm);
