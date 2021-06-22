@@ -798,8 +798,9 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::CaptureDepthTexture(vtkRender
   }
 
   this->DepthCopyFBO->Bind(GL_DRAW_FRAMEBUFFER);
-  glBlitFramebuffer(0, 0, this->WindowSize[0], this->WindowSize[1], 0, 0, this->WindowSize[0],
-    this->WindowSize[1], GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+  glBlitFramebuffer(this->WindowLowerLeft[0], this->WindowLowerLeft[1],
+    this->WindowLowerLeft[0] + this->WindowSize[0], this->WindowLowerLeft[1] + this->WindowSize[1],
+    0, 0, this->WindowSize[0], this->WindowSize[1], GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 
   orenWin->GetState()->PopDrawFramebufferBinding();
 }
