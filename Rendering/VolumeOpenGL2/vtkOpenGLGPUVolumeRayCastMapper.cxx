@@ -3383,7 +3383,6 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::SetVolumeShaderParameters(
 void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::SetMapperShaderParameters(
   vtkShaderProgram* prog, vtkRenderer* ren, int vtkNotUsed(independent), int numComp)
 {
-  // currently broken on ES
   if (!this->SharedDepthTextureObject)
   {
     this->DepthTextureObject->Activate();
