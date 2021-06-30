@@ -335,3 +335,35 @@
         - venv/bin/pip install build/dist/*.whl
         - venv/bin/python -c "import vtk"
     interruptible: true
+
+.cmake_source_tarballs:
+    stage: build
+    image: "fedora:34"
+    tags:
+        - linux
+        - docker
+
+    script:
+        - 'version="$( echo "$CI_COMMIT_TAG" | sed -e "s/^v//" )"'
+        - Utilities/Maintenance/SourceTarball.bash --txz --tgz --zip -v "$version" "$CI_COMMIT_TAG"
+        - mkdir release
+        - mv -t release -v VTK*$version*
+
+    interruptible: true
+
+.cmake_doc_tarball:
+    stage: release-prep
+    image: "fedora:34"
+    tags:
+        - linux
+        - docker
+
+    script:
+        - 'version="$( echo "$CI_COMMIT_TAG" | sed -e "s/^v//" )"'
+        - mkdir release
+        - cd install/usr/share/doc/vtk/doxygen
+        - tar czf "$GIT_CLONE_PATH/release/vtkDocHtml-$version.tar.gz" html
+    variables:
+        GIT_STRATEGY: none
+
+    interruptible: true
