@@ -30,7 +30,7 @@
 .merged_only:
     rules:
         - if: '$CI_MERGE_REQUEST_ID'
-          when: never
+          when: manual
         - if: '$CI_PROJECT_PATH == "vtk/vtk"'
           when: on_success
         - when: never
@@ -54,7 +54,7 @@
 .tag_only:
     rules:
         - if: '$CI_MERGE_REQUEST_ID'
-          when: never
+          when: manual
         - if: '$CI_PROJECT_PATH == "vtk/vtk" && $CI_COMMIT_TAG != ""'
           when: on_success
         - when: never
