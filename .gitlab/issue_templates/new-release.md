@@ -67,6 +67,7 @@ git commit -m 'Update version number to @VERSION@@RC@' CMake/vtkVersion.cmake
     - [ ] Wheels (from the `build:wheel-*` jobs).
   - Upload assets to `vtk.org`
     - [ ] `rsync -rptv $tarballs $wheels user@host:vtk_release/@MAJOR@.@MINOR@/`
+  - [ ] Update `vtk.org/download` with the new release
   - Software process updates (these can all be done independently)
     - [ ] Update kwrobot with the new `release` branch rules (@ben.boeckel)
     - [ ] Run [this script][cdash-update-groups] to update the CDash groups
