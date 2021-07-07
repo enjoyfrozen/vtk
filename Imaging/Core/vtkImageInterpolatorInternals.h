@@ -85,9 +85,8 @@ struct vtkInterpolationMath
 // on the FPU.  So we use a bit-trick similar to the one
 // described at http://www.stereopsis.com/FPU.html
 
-#if defined ia64 || defined __ia64__ || defined _M_IA64
-#define VTK_INTERPOLATE_64BIT_FLOOR
-#elif defined __ppc64__ || defined __x86_64__ || defined _M_X64
+#if defined ia64 || defined __ia64__ || defined _M_IA64 || defined __ppc64__ ||                    \
+  defined __x86_64__ || defined _M_X64 || defined __arm64__ || defined __aarch64__
 #define VTK_INTERPOLATE_64BIT_FLOOR
 #elif defined __ppc__ || defined sparc || defined mips
 #define VTK_INTERPOLATE_32BIT_FLOOR
