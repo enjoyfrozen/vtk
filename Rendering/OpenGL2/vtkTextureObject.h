@@ -294,6 +294,13 @@ public:
     unsigned int width, unsigned int height, int internalFormat, vtkPixelBufferObject* pbo);
 
   /**
+   * Create a 2D depth texture that tries to match the currently bound read buffer's format
+   * For depth blits to work the formats must be compatible so it is safest to create
+   * compatible formats.
+   */
+  bool AllocateCompatibleDepthTexture(unsigned int width, unsigned int height);
+
+  /**
    * Create a 2D depth texture but does not initialize its values.
    */
   bool AllocateDepth(unsigned int width, unsigned int height, int internalFormat);

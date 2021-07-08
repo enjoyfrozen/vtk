@@ -199,12 +199,6 @@ bool vtkOpenGLProjectedTetrahedraMapper::AllocateFOResources(vtkRenderer* r)
         glGetIntegerv(GL_SAMPLES, &winSamples);
       }
 
-      int dsize = rw->GetDepthBufferSize();
-      if (dsize == 0)
-      {
-        dsize = 24;
-      }
-
       vtkOpenGLFramebufferObject* fo = this->Framebuffer;
       fo->SetContext(rw);
       rw->GetState()->PushFramebufferBindings();
@@ -216,14 +210,14 @@ bool vtkOpenGLProjectedTetrahedraMapper::AllocateFOResources(vtkRenderer* r)
       if (!fo->PopulateFramebuffer(size[0], size[1],
             true,         // use textures
             1, VTK_FLOAT, // 1 color buffer of float
-            true, dsize,  // yes depth buffer
+            true, 0,      // yes depth buffer
             winSamples)   // possibly multisampled
         && winSamples > 0)
       {
         fo->PopulateFramebuffer(size[0], size[1],
           true,         // use textures
           1, VTK_FLOAT, // 1 color buffer of float
-          true, dsize,  // yes depth buffer
+          true, 0,      // yes depth buffer
           0);           // no multisamples
       }
 
@@ -516,7 +510,7 @@ void vtkOpenGLProjectedTetrahedraMapper::ProjectTetrahedra(
       vtkErrorMacro("FO is incomplete ");
     }
 
-    glBlitFramebuffer(0, 0, this->CurrentFBOWidth, this->CurrentFBOHeight, 0, 0,
+    ostate->vtkglBlitFramebuffer(0, 0, this->CurrentFBOWidth, this->CurrentFBOHeight, 0, 0,
       this->CurrentFBOWidth, this->CurrentFBOHeight, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT,
       GL_NEAREST);
 
@@ -1054,7 +1048,7 @@ void vtkOpenGLProjectedTetrahedraMapper::ProjectTetrahedra(
     ostate->PopDrawFramebufferBinding();
 
     // Depth buffer has not changed so only copy color
-    glBlitFramebuffer(0, 0, this->CurrentFBOWidth, this->CurrentFBOHeight, 0, 0,
+    ostate->vtkglBlitFramebuffer(0, 0, this->CurrentFBOWidth, this->CurrentFBOHeight, 0, 0,
       this->CurrentFBOWidth, this->CurrentFBOHeight, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
     vtkOpenGLCheckErrorMacro("failed at glBlitFramebuffer");
