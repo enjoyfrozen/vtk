@@ -237,24 +237,8 @@ void vtkOrderIndependentTranslucentPass::Render(const vtkRenderState* s)
 
     // what depth format should we use?
     this->TranslucentZTexture->SetContext(renWin);
-    int dbits = renWin->GetDepthBufferSize();
-    if (renWin->GetStencilCapable())
-    {
-      this->TranslucentZTexture->AllocateDepthStencil(this->ViewportWidth, this->ViewportHeight);
-    }
-    else
-    {
-      if (dbits == 32)
-      {
-        this->TranslucentZTexture->AllocateDepth(
-          this->ViewportWidth, this->ViewportHeight, vtkTextureObject::Fixed32);
-      }
-      else
-      {
-        this->TranslucentZTexture->AllocateDepth(
-          this->ViewportWidth, this->ViewportHeight, vtkTextureObject::Fixed24);
-      }
-    }
+    this->TranslucentZTexture->AllocateCompatibleDepthTexture(
+      this->ViewportWidth, this->ViewportHeight);
     this->TranslucentZTexture->SetWrapS(vtkTextureObject::ClampToEdge);
     this->TranslucentZTexture->SetWrapT(vtkTextureObject::ClampToEdge);
   }
@@ -307,9 +291,9 @@ void vtkOrderIndependentTranslucentPass::Render(const vtkRenderState* s)
   this->State->vtkglColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 #else
   // blit read buffer depth to FO depth texture
-  glBlitFramebuffer(this->ViewportX, this->ViewportY, this->ViewportX + this->ViewportWidth,
-    this->ViewportY + this->ViewportHeight, 0, 0, this->ViewportWidth, this->ViewportHeight,
-    GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+  this->State->vtkglBlitFramebuffer(this->ViewportX, this->ViewportY,
+    this->ViewportX + this->ViewportWidth, this->ViewportY + this->ViewportHeight, 0, 0,
+    this->ViewportWidth, this->ViewportHeight, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 #endif
 
   // now bind both read and draw

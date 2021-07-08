@@ -758,7 +758,6 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::CaptureDepthTexture(vtkRender
   this->DepthTextureObject->SetContext(orenWin);
   this->DepthCopyColorTextureObject->SetContext(orenWin);
 
-  //  this->DepthTextureObject->Activate();
   if (!this->DepthTextureObject->GetHandle())
   {
     // First set the parameters
@@ -766,14 +765,8 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::CaptureDepthTexture(vtkRender
     this->DepthTextureObject->SetWrapT(vtkTextureObject::Repeat);
     this->DepthTextureObject->SetMagnificationFilter(vtkTextureObject::Linear);
     this->DepthTextureObject->SetMinificationFilter(vtkTextureObject::Linear);
-    if (orenWin->GetStencilCapable())
-    {
-      this->DepthTextureObject->AllocateDepthStencil(this->WindowSize[0], this->WindowSize[1]);
-    }
-    else
-    {
-      this->DepthTextureObject->AllocateDepth(this->WindowSize[0], this->WindowSize[1], 4);
-    }
+    this->DepthTextureObject->AllocateCompatibleDepthTexture(
+      this->WindowSize[0], this->WindowSize[1]);
   }
 
   if (!this->DepthCopyColorTextureObject->GetHandle())
@@ -806,12 +799,7 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::CaptureDepthTexture(vtkRender
 
   this->DepthCopyFBO->Bind(GL_DRAW_FRAMEBUFFER);
   {
-    // ON APPLE OSX you must turn off scissor test for DEPTH blits to work
-    auto ostate = orenWin->GetState();
-    vtkOpenGLState::ScopedglEnableDisable stsaver(ostate, GL_SCISSOR_TEST);
-    ostate->vtkglDisable(GL_SCISSOR_TEST);
-
-    glBlitFramebuffer(this->WindowLowerLeft[0], this->WindowLowerLeft[1],
+    orenWin->GetState()->vtkglBlitFramebuffer(this->WindowLowerLeft[0], this->WindowLowerLeft[1],
       this->WindowLowerLeft[0] + this->WindowSize[0],
       this->WindowLowerLeft[1] + this->WindowSize[1], 0, 0, this->WindowSize[0],
       this->WindowSize[1], GL_DEPTH_BUFFER_BIT, GL_NEAREST);
@@ -2217,9 +2205,17 @@ void vtkOpenGLGPUVolumeRayCastMapper::ReleaseGraphicsResources(vtkWindow* window
     this->Impl->DepthTextureObject->ReleaseGraphicsResources(window);
     this->Impl->DepthTextureObject->Delete();
     this->Impl->DepthTextureObject = nullptr;
+  }
+
+  if (this->Impl->DepthCopyColorTextureObject)
+  {
     this->Impl->DepthCopyColorTextureObject->ReleaseGraphicsResources(window);
     this->Impl->DepthCopyColorTextureObject->Delete();
     this->Impl->DepthCopyColorTextureObject = nullptr;
+  }
+
+  if (this->Impl->DepthCopyFBO)
+  {
     this->Impl->DepthCopyFBO->ReleaseGraphicsResources(window);
     this->Impl->DepthCopyFBO->Delete();
     this->Impl->DepthCopyFBO = nullptr;
