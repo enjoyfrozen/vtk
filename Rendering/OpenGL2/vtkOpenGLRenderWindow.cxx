@@ -968,14 +968,7 @@ void vtkOpenGLRenderWindow::StereoMidpoint()
     this->RenderFramebuffer->Bind(GL_READ_FRAMEBUFFER);
     this->RenderFramebuffer->ActivateReadBuffer(0);
 
-    // ON APPLE OSX you must turn off scissor test for DEPTH blits to work
-    auto ostate = this->GetState();
-    vtkOpenGLState::ScopedglEnableDisable stsaver(ostate, GL_SCISSOR_TEST);
-    ostate->vtkglDisable(GL_SCISSOR_TEST);
-
-    // recall Blit upper right corner is exclusive of the range
-    const int srcExtents[4] = { 0, fbsize[0], 0, fbsize[1] };
-    vtkOpenGLFramebufferObject::Blit(srcExtents, srcExtents,
+    this->GetState()->vtkglBlitFramebuffer(0, 0, fbsize[0], fbsize[1], 0, 0, fbsize[0], fbsize[1],
       (copiedColor ? 0 : GL_COLOR_BUFFER_BIT) | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 
     this->GetState()->PopFramebufferBindings();
@@ -1055,14 +1048,7 @@ void vtkOpenGLRenderWindow::Frame()
     this->RenderFramebuffer->Bind(GL_READ_FRAMEBUFFER);
     this->RenderFramebuffer->ActivateReadBuffer(0);
 
-    // ON APPLE OSX you must turn off scissor test for DEPTH blits to work
-    auto ostate = this->GetState();
-    vtkOpenGLState::ScopedglEnableDisable stsaver(ostate, GL_SCISSOR_TEST);
-    ostate->vtkglDisable(GL_SCISSOR_TEST);
-
-    // recall Blit upper right corner is exclusive of the range
-    const int srcExtents[4] = { 0, fbsize[0], 0, fbsize[1] };
-    vtkOpenGLFramebufferObject::Blit(srcExtents, srcExtents,
+    this->GetState()->vtkglBlitFramebuffer(0, 0, fbsize[0], fbsize[1], 0, 0, fbsize[0], fbsize[1],
       (copiedColor ? 0 : GL_COLOR_BUFFER_BIT) | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 
     this->GetState()->vtkglViewport(0, 0, this->Size[0], this->Size[1]);

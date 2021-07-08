@@ -1527,7 +1527,11 @@ bool vtkOpenGLFramebufferObject::PopulateFramebuffer(int width, int height, bool
       depth->SetWrapT(vtkTextureObject::Repeat);
       depth->SetMinificationFilter(vtkTextureObject::Nearest);
       depth->SetMagnificationFilter(vtkTextureObject::Nearest);
-      if (wantStencilAttachment)
+      if (depthBitplanes == 0)
+      {
+        depth->AllocateCompatibleDepthTexture(this->LastSize[0], this->LastSize[1]);
+      }
+      else if (wantStencilAttachment)
       {
         depth->AllocateDepthStencil(this->LastSize[0], this->LastSize[1]);
       }

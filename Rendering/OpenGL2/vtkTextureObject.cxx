@@ -1586,6 +1586,101 @@ bool vtkTextureObject::CreateDepthFromRaw(
 }
 
 //------------------------------------------------------------------------------
+bool vtkTextureObject::AllocateCompatibleDepthTexture(unsigned int width, unsigned int height)
+{
+  // make sure we clear any errors before we start
+  // otherwise we may get incorrect results
+  while (glGetError() != GL_NO_ERROR)
+  {
+  }
+
+  GLint attachment = 0;
+  glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &attachment);
+  if (glGetError() != GL_NO_ERROR)
+  {
+    attachment = 0;
+  }
+
+  GLint stencilSize = 0;
+  GLint depthSize = 0;
+  GLint depthType = GL_UNSIGNED_NORMALIZED;
+
+  // if default buffer
+  if (attachment == 0)
+  {
+    glGetFramebufferAttachmentParameteriv(
+      GL_READ_FRAMEBUFFER, GL_STENCIL, GL_FRAMEBUFFER_ATTACHMENT_STENCIL_SIZE, &stencilSize);
+    if (glGetError() != GL_NO_ERROR)
+    {
+      stencilSize = 0;
+    }
+    glGetFramebufferAttachmentParameteriv(
+      GL_READ_FRAMEBUFFER, GL_DEPTH, GL_FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE, &depthSize);
+    if (glGetError() != GL_NO_ERROR)
+    {
+      depthSize = 0;
+    }
+    glGetFramebufferAttachmentParameteriv(
+      GL_READ_FRAMEBUFFER, GL_DEPTH, GL_FRAMEBUFFER_ATTACHMENT_COMPONENT_TYPE, &depthType);
+    if (glGetError() != GL_NO_ERROR)
+    {
+      depthType = GL_UNSIGNED_NORMALIZED;
+    }
+  }
+
+  // otherwise framebuffer
+  else
+  {
+    glGetFramebufferAttachmentParameteriv(GL_READ_FRAMEBUFFER, GL_STENCIL_ATTACHMENT,
+      GL_FRAMEBUFFER_ATTACHMENT_STENCIL_SIZE, &stencilSize);
+    if (glGetError() != GL_NO_ERROR)
+    {
+      stencilSize = 0;
+    }
+    glGetFramebufferAttachmentParameteriv(
+      GL_READ_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE, &depthSize);
+    if (glGetError() != GL_NO_ERROR)
+    {
+      depthSize = 0;
+    }
+    glGetFramebufferAttachmentParameteriv(GL_READ_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+      GL_FRAMEBUFFER_ATTACHMENT_COMPONENT_TYPE, &depthType);
+    if (glGetError() != GL_NO_ERROR)
+    {
+      depthType = GL_UNSIGNED_NORMALIZED;
+    }
+  }
+
+  if (stencilSize == 8 && depthSize == 24)
+  {
+    return this->AllocateDepthStencil(width, height);
+  }
+
+  if (depthSize == 16)
+  {
+    return this->AllocateDepth(width, height, vtkTextureObject::Fixed16);
+  }
+
+  if (depthSize == 24)
+  {
+    return this->AllocateDepth(width, height, vtkTextureObject::Fixed24);
+  }
+
+  if (depthSize == 32 && depthType == GL_FLOAT)
+  {
+    return this->AllocateDepth(width, height, vtkTextureObject::Float32);
+  }
+
+  if (depthSize == 32)
+  {
+    return this->AllocateDepth(width, height, vtkTextureObject::Fixed32);
+  }
+
+  vtkErrorMacro("unsupported Depth format requested");
+  return false;
+}
+
+//------------------------------------------------------------------------------
 bool vtkTextureObject::AllocateDepth(unsigned int width, unsigned int height, int internalFormat)
 {
   assert("pre: context_exists" && this->GetContext() != nullptr);
