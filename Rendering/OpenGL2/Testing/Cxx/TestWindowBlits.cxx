@@ -99,7 +99,7 @@ public:
     this->Framebuffer->PopulateFramebuffer(size[0], size[1],
       true,                 // textures
       1, VTK_UNSIGNED_CHAR, // 1 color buffer uchar
-      true, 32,             // depth buffer
+      true, 0,              // depth buffer
       0, this->RenderWindow->GetStencilCapable() ? true : false);
     this->RenderWindow->GetState()->PopFramebufferBindings();
   }
@@ -156,7 +156,7 @@ public:
     this->Framebuffer->PopulateFramebuffer(size[0] / 4, size[1] / 4,
       true,                 // textures
       1, VTK_UNSIGNED_CHAR, // 1 color buffer uchar
-      true, 32,             // depth buffer
+      true, 0,              // depth buffer
       0, this->RenderWindow->GetStencilCapable() ? true : false);
     this->RenderWindow->GetState()->PopFramebufferBindings();
   }

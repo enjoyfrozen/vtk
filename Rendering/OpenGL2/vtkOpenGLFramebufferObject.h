@@ -304,9 +304,9 @@ public:
 
   ///@{
   /**
-   * Convenience method to populate a framebuffer with
-   * attachments created as well. Returns true if a
-   * complete valid Framebuffer was created
+   * Convenience method to populate a framebuffer with attachments created
+   * as well. Returns true if a complete valid Framebuffer was created. A depthBitplanes of 0
+   * requests to create a depth format that is compatible with the currently bound read buffer.
    */
   bool PopulateFramebuffer(int width, int height);
   bool PopulateFramebuffer(int width, int height, bool useTextures, int numberOfColorAttachments,

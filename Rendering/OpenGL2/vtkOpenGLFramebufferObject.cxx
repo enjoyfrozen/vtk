@@ -1498,36 +1498,26 @@ bool vtkOpenGLFramebufferObject::PopulateFramebuffer(int width, int height, bool
   int multisamples, bool wantStencilAttachment)
 {
   // MAX_DEPTH_TEXTURE_SAMPLES
-  this->Bind();
   this->LastSize[0] = width;
   this->LastSize[1] = height;
 
   if (useTextures)
   {
-    for (int i = 0; i < numberOfColorAttachments; i++)
-    {
-      vtkTextureObject* color = vtkTextureObject::New();
-      color->SetContext(this->Context);
-      color->SetSamples(multisamples);
-      color->SetWrapS(vtkTextureObject::Repeat);
-      color->SetWrapT(vtkTextureObject::Repeat);
-      color->SetMinificationFilter(vtkTextureObject::Nearest);
-      color->SetMagnificationFilter(vtkTextureObject::Nearest);
-      color->Allocate2D(this->LastSize[0], this->LastSize[1], 4, colorDataType);
-      this->AddColorAttachment(i, color);
-      color->Delete();
-    }
-
+    vtkTextureObject* depth = nullptr;
     if (wantDepthAttachment)
     {
-      vtkTextureObject* depth = vtkTextureObject::New();
+      depth = vtkTextureObject::New();
       depth->SetContext(this->Context);
       depth->SetSamples(multisamples);
       depth->SetWrapS(vtkTextureObject::Repeat);
       depth->SetWrapT(vtkTextureObject::Repeat);
       depth->SetMinificationFilter(vtkTextureObject::Nearest);
       depth->SetMagnificationFilter(vtkTextureObject::Nearest);
-      if (wantStencilAttachment)
+      if (depthBitplanes == 0)
+      {
+        depth->AllocateCompatibleDepthTexture(this->LastSize[0], this->LastSize[1]);
+      }
+      else if (wantStencilAttachment)
       {
         depth->AllocateDepthStencil(this->LastSize[0], this->LastSize[1]);
       }
@@ -1547,12 +1537,35 @@ bool vtkOpenGLFramebufferObject::PopulateFramebuffer(int width, int height, bool
             break;
         }
       }
+    }
+
+    // we bind after creating the depth in case we need to read the current buffer
+    // for a compatible depth format
+    this->Bind();
+
+    if (depth)
+    {
       this->AddDepthAttachment(depth);
       depth->Delete();
+    }
+
+    for (int i = 0; i < numberOfColorAttachments; i++)
+    {
+      vtkTextureObject* color = vtkTextureObject::New();
+      color->SetContext(this->Context);
+      color->SetSamples(multisamples);
+      color->SetWrapS(vtkTextureObject::Repeat);
+      color->SetWrapT(vtkTextureObject::Repeat);
+      color->SetMinificationFilter(vtkTextureObject::Nearest);
+      color->SetMagnificationFilter(vtkTextureObject::Nearest);
+      color->Allocate2D(this->LastSize[0], this->LastSize[1], 4, colorDataType);
+      this->AddColorAttachment(i, color);
+      color->Delete();
     }
   }
   else
   {
+    this->Bind();
     for (int i = 0; i < numberOfColorAttachments; i++)
     {
       vtkRenderbuffer* color = vtkRenderbuffer::New();
