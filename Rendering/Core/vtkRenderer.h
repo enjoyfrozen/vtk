@@ -426,9 +426,9 @@ public:
 
   /**
    * Automatically set up the camera focal point and zoom factor to
-   * observe the rect.
+   * observe the \p box. \p OffsetRatio can be used to add a zoom offset.
    */
-  void ZoomToBoxUsingViewAngle(const vtkRecti& box);
+  void ZoomToBoxUsingViewAngle(const vtkRecti& box, const double offsetRatio = 1.0);
 
   /**
    * Alternative version of ResetCameraScreenSpace(bounds[6]);
