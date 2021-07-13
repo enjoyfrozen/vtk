@@ -43,6 +43,7 @@ vtkFeatureEdges::vtkFeatureEdges()
   this->NonManifoldEdges = true;
   this->ManifoldEdges = false;
   this->Coloring = true;
+  this->PassGlobalIds = false;
   this->Locator = nullptr;
   this->OutputPointsPrecision = vtkAlgorithm::DEFAULT_PRECISION;
 }
@@ -90,6 +91,15 @@ int vtkFeatureEdges::RequestData(vtkInformation* vtkNotUsed(request),
   vtkIdType p1, p2, newId;
   vtkPointData *pd = input->GetPointData(), *outPD = output->GetPointData();
   vtkCellData *cd = input->GetCellData(), *outCD = output->GetCellData();
+
+  if (this->PassGlobalIds)
+  {
+    outPD->CopyStructure(pd);
+    outCD->CopyStructure(cd);
+    outPD->SetCopyGlobalIds(true);
+    outCD->SetCopyGlobalIds(true);
+  }
+
   unsigned char* ghosts = nullptr;
   vtkDebugMacro(<< "Executing feature edges");
 

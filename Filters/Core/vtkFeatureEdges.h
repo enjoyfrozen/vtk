@@ -126,6 +126,15 @@ public:
 
   ///@{
   /**
+   * Turn on/off passing global point and cell ids to the output.
+   */
+  vtkSetMacro(PassGlobalIds, bool);
+  vtkGetMacro(PassGlobalIds, bool);
+  vtkBooleanMacro(PassGlobalIds, bool);
+  ///@}
+
+  ///@{
+  /**
    * Set / get a spatial locator for merging points. By
    * default an instance of vtkMergePoints is used.
    */
@@ -167,6 +176,7 @@ protected:
   bool NonManifoldEdges;
   bool ManifoldEdges;
   bool Coloring;
+  bool PassGlobalIds;
   int OutputPointsPrecision;
   vtkIncrementalPointLocator* Locator;
 
