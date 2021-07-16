@@ -149,6 +149,12 @@ void vtkPolyData::CopyStructure(vtkDataSet* ds)
 }
 
 //------------------------------------------------------------------------------
+vtkIdType vtkPolyData::GetCellIdRelativeToCellArray(vtkIdType cellId)
+{
+  return this->Cells->GetTag(cellId).GetCellId();
+}
+
+//------------------------------------------------------------------------------
 vtkCell* vtkPolyData::GetCell(vtkIdType cellId)
 {
   if (!this->Cells)
@@ -999,6 +1005,7 @@ void vtkPolyData::GetCellPoints(vtkIdType cellId, vtkIdList* ptIds)
   }
 }
 
+#include "vtkLogger.h"
 //------------------------------------------------------------------------------
 void vtkPolyData::GetPointCells(vtkIdType ptId, vtkIdList* cellIds)
 {
@@ -1762,6 +1769,9 @@ void vtkPolyData::RemoveGhostCells()
   this->PointData->RemoveArray(vtkDataSetAttributes::GhostArrayName());
 
   this->SetPoints(newPoints);
+
+  this->Links = nullptr;
+  this->Cells = nullptr;
 
   this->Squeeze();
 }
