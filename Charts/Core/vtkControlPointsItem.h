@@ -28,6 +28,8 @@
 #ifndef vtkControlPointsItem_h
 #define vtkControlPointsItem_h
 
+#include <string>
+
 #include "vtkChartsCoreModule.h" // For export macro
 #include "vtkCommand.h"          // For vtkCommand enum
 #include "vtkPlot.h"
@@ -458,7 +460,7 @@ protected:
   /**
    * Generate label for a control point.
    */
-  virtual vtkStdString GetControlPointLabel(vtkIdType index);
+  virtual std::string GetControlPointLabel(vtkIdType index);
 
   void AddPointId(vtkIdType addedPointId);
 
