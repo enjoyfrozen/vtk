@@ -30,9 +30,11 @@
 
 #include "vtkChartsCoreModule.h" // For export macro
 #include "vtkCommand.h"          // For vtkCommand enum
-#include "vtkPlot.h"
-#include "vtkSmartPointer.h" // for SmartPointer
-#include "vtkVector.h"       // For vtkVector2f
+#include "vtkPlot.h"             // For inheritance
+#include "vtkSmartPointer.h"     // For SmartPointer
+#include "vtkVector.h"           // For vtkVector2f
+
+#include <string>
 
 class vtkCallbackCommand;
 class vtkContext2D;
@@ -458,7 +460,7 @@ protected:
   /**
    * Generate label for a control point.
    */
-  virtual vtkStdString GetControlPointLabel(vtkIdType index);
+  virtual std::string GetControlPointLabel(vtkIdType index);
 
   void AddPointId(vtkIdType addedPointId);
 
