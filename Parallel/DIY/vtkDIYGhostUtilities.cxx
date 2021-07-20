@@ -137,6 +137,63 @@ bool IsExtentValid(const int* extent)
   return extent[0] <= extent[1] && extent[2] <= extent[3] && extent[4] <= extent[5];
 }
 
+//============================================================================
+template<class ArrayT, bool IsPointArrayT>
+struct FillArrayForStructuredDataWorker
+{
+  using ValueType = typename ArrayT::ValueType;
+
+  FillArrayForStructuredDataWorker(ArrayT* array, ValueType val,
+      int imin, int imax, int jmin, int jmax, int kmin, int kmax, const int * extent)
+    : Array(array)
+    , Val(val)
+    , Imin(imin - extent[0])
+    , Imax(imax - extent[0])
+    , Jmin(jmin - extent[2])
+    , Jmax(jmax - extent[2])
+    , Kmin(kmin - extent[4])
+    , Kmax(kmax = extent[4])
+    , Width{ imax - imin + IsPointArrayT, jmax - jmin + IsPointArrayT }
+  {
+    this->XWidth = extent[1] - extent[0] + IsPointArrayT;
+    this->XYWidth = this->XWidth * (extent[3] - extent[2] + IsPointArrayT);
+  }
+
+  void operator()(vtkIdType startId, vtkIdType endId)
+  {
+    const int ijkStart[3] = { static_cast<int>(this->Imin + startId % this->Width[0]),
+      static_cast<int>(this->Jmin + (startId / this->Width[0]) % this->Width[1]),
+      static_cast<int>(this->Kmin + startId / (this->Width[0] * this->Width[1])) };
+    int ijk[3];
+    vtkIdType id = startId;
+
+    for (ijk[2] = ijkStart[2]; ijk[2] < this->Kmax + IsPointArrayT; ++ijk[2])
+    {
+      ijk[1] = (ijk[2] == ijkStart[2] ? ijkStart[1] : this->Jmin);
+      vtkIdType outputId = ijk[2] * this->XYWidth + ijk[1] * this->XWidth;
+
+      for (; ijk[1] < this->Jmax + IsPointArrayT; ++ijk[1], outputId += this->XWidth)
+      {
+        for (ijk[0] = (ijk[1] == ijkStart[1] && ijk[2] == ijkStart[2] ? ijkStart[0] : this->Imin);
+            ijk[0] < this->Imax + IsPointArrayT ; ++ijk[0], ++id)
+        {
+          if (id == endId)
+          {
+            return;
+          }
+          this->Array->SetValue(outputId + ijk[0], this->Val);
+        }
+      }
+    }
+  }
+
+  ArrayT* Array;
+  ValueType Val;
+  int Imin, Imax, Jmin, Jmax, Kmin, Kmax;
+  vtkIdType XWidth, XYWidth;
+  vtkIdType Width[2];
+};
+
 //----------------------------------------------------------------------------
 /**
  * This function fills an input cell `array` mapped with input `grid` given the input extent.
@@ -146,18 +203,10 @@ template <class ArrayT, class GridDataSetT>
 void FillCellArrayForStructuredData(ArrayT* array, GridDataSetT* grid, int imin, int imax, int jmin, int jmax,
   int kmin, int kmax, typename ArrayT::ValueType val)
 {
-  const int* gridExtent = grid->GetExtent();
-  for (int k = kmin; k < kmax; ++k)
-  {
-    for (int j = jmin; j < jmax; ++j)
-    {
-      for (int i = imin; i < imax; ++i)
-      {
-        int ijk[3] = { i, j, k };
-        array->SetValue(vtkStructuredData::ComputeCellIdForExtent(gridExtent, ijk), val);
-      }
-    }
-  }
+  vtkIdType n = (imax - imin) * (jmax - jmin) * (kmax - kmin);
+  FillArrayForStructuredDataWorker<ArrayT, false /* IsPointArrayT */> worker(array, val,
+      imin, imax, jmin, jmax, kmin, kmax, grid->GetExtent());
+  vtkSMPTools::For(0, n, worker);
 }
 
 //----------------------------------------------------------------------------
@@ -169,18 +218,10 @@ template <class ArrayT, class GridDataSetT>
 void FillPointArrayForStructuredData(ArrayT* array, GridDataSetT* grid, int imin, int imax, int jmin, int jmax,
   int kmin, int kmax, typename ArrayT::ValueType val)
 {
-  const int* gridExtent = grid->GetExtent();
-  for (int k = kmin; k <= kmax; ++k)
-  {
-    for (int j = jmin; j <= jmax; ++j)
-    {
-      for (int i = imin; i <= imax; ++i)
-      {
-        int ijk[3] = { i, j, k };
-        array->SetValue(vtkStructuredData::ComputePointIdForExtent(gridExtent, ijk), val);
-      }
-    }
-  }
+  vtkIdType n = (imax - imin + 1) * (jmax - jmin + 1) * (kmax - kmin + 1);
+  FillArrayForStructuredDataWorker<ArrayT, true /* IsPointArrayT */> worker(array, val,
+      imin, imax, jmin, jmax, kmin, kmax, grid->GetExtent());
+  vtkSMPTools::For(0, n, worker);
 }
 
 //----------------------------------------------------------------------------
@@ -209,6 +250,34 @@ vtkSmartPointer<vtkIdList> ExtractPointIdsInsideBoundingBox(vtkPoints* inputPoin
   return pointIds;
 }
 
+//============================================================================
+template<class RangeT, class ValueT>
+struct IotaWorker
+{
+  IotaWorker(ValueT*&& range, ValueT startValue)
+    : Range(range)
+    , StartValue(startValue)
+  {
+  }
+
+  IotaWorker(RangeT& range, ValueT startValue)
+    : Range(range)
+    , StartValue(startValue)
+  {
+  }
+
+  void operator()(vtkIdType startId, vtkIdType endId)
+  {
+    for (vtkIdType id = startId; id < endId; ++id)
+    {
+      this->Range[id] = id + this->StartValue;
+    }
+  }
+
+  RangeT& Range;
+  ValueT StartValue;
+};
+
 //----------------------------------------------------------------------------
 template<class PointSetT>
 void ExchangeBlockStructuresForUnstructuredData(diy::Master& master)
@@ -230,7 +299,8 @@ void ExchangeBlockStructuresForUnstructuredData(diy::Master& master)
 
       vtkNew<vtkIdList> identity;
       identity->SetNumberOfIds(ids->GetNumberOfIds());
-      std::iota(identity->begin(), identity->end(), 0);
+      IotaWorker<vtkIdType*, vtkIdType> iota(identity->begin(), 0);
+      vtkSMPTools::For(0, ids->GetNumberOfIds(), iota);
 
       if (!interfacePoints->GetNumberOfPoints())
       {
@@ -1663,7 +1733,9 @@ void SetupBlockSelfInformationForUnstructuredData(diy::Master& master,
     pointIds->SetNumberOfTuples(input->GetNumberOfPoints());
     auto pointIdsRange = vtk::DataArrayValueRange<1>(pointIds);
     // FIXME Ideally, this should be done with an implicit array
-    std::iota(pointIdsRange.begin(), pointIdsRange.end(), 0);
+    using RangeType = decltype(pointIdsRange);
+    IotaWorker<RangeType, typename RangeType::ValueType> iota(pointIdsRange, 0);
+    vtkSMPTools::For(0, pointIdsRange.size(), iota);
 
     vtkNew<PointSetT> inputWithLocalPointIds;
     inputWithLocalPointIds->ShallowCopy(input);
@@ -1858,6 +1930,27 @@ void FillConnectivityAndOffsetsArrays(vtkCellArray* inputCells, vtkCellArray* ou
 }
 
 //============================================================================
+struct FillTypesArrayFunctor
+{
+  FillTypesArrayFunctor(vtkPointSet* ps, vtkIdList* cellIds, vtkUnsignedCharArray* types)
+    : PointSet(ps), CellIds(cellIds), Types(types)
+  {
+  }
+
+  void operator()(vtkIdType startId, vtkIdType endId)
+  {
+    for (vtkIdType id = startId; id < endId; ++id)
+    {
+      this->Types->SetValue(id, this->PointSet->GetCellType(this->CellIds->GetId(id)));
+    }
+  }
+
+  vtkPointSet* PointSet;
+  vtkIdList* CellIds;
+  vtkUnsignedCharArray* Types;
+};
+
+//============================================================================
 template<class InputArrayT, class OutputArrayT, class PointSetT>
 struct FillUnstructuredDataTopologyBufferFunctor;
 
@@ -1900,7 +1993,6 @@ struct FillUnstructuredDataTopologyBufferFunctor<InputArrayT, OutputArrayT, vtkU
     types->SetNumberOfValues(numberOfCellsToSend);
 
     vtkCellArray* inputCellArray = input->GetCells();
-    vtkIdType outputId = 0;
 
     vtkIdTypeArray* inputFaces = input->GetFaces();
     vtkIdTypeArray* inputFaceLocations = input->GetFaceLocations();
@@ -1925,6 +2017,9 @@ struct FillUnstructuredDataTopologyBufferFunctor<InputArrayT, OutputArrayT, vtkU
     FillConnectivityAndOffsetsArrays<InputArrayT, OutputArrayT>(inputCellArray, cellArray,
         seedPointIdsToSendWithIndex, pointIdsToSendWithIndex, cellIdsToSend);
 
+    FillTypesArrayFunctor typesFunctor(input, cellIdsToSend, types);
+    vtkSMPTools::For(0, numberOfCellsToSend, typesFunctor);
+
     for (vtkIdType i = 0; i < numberOfCellsToSend; ++i)
     {
       vtkIdType cellId = cellIdsToSend->GetId(i);
@@ -1932,7 +2027,7 @@ struct FillUnstructuredDataTopologyBufferFunctor<InputArrayT, OutputArrayT, vtkU
 
       if (cellType == VTK_POLYHEDRON)
       {
-        faceLocations->SetValue(outputId, currentFacesId);
+        faceLocations->SetValue(i, currentFacesId);
         vtkIdType id = inputFaceLocations->GetValue(cellId);
         vtkIdType numberOfFaces = inputFaces->GetValue(id++);
         faces->SetValue(currentFacesId++, numberOfFaces);
@@ -1962,7 +2057,6 @@ struct FillUnstructuredDataTopologyBufferFunctor<InputArrayT, OutputArrayT, vtkU
           id += numberOfPoints;
         }
       }
-      types->SetValue(outputId++, cellType);
     }
   }
 };
@@ -2500,6 +2594,60 @@ LinkMap ComputeLinkMapForUnstructuredData(const diy::Master& master,
   return linkMap;
 }
 
+//============================================================================
+template<bool IsPointIdsT> // We have to add one per dimension for points
+struct ComputeInterfaceIdsForStructuredDataWorker
+{
+  ComputeInterfaceIdsForStructuredDataWorker(
+      int imin, int imax, int jmin, int jmax, int kmin, int kmax, const int* extent,
+      vtkIdList* ids)
+    : Imin(imin - extent[0])
+    , Imax(imax - extent[0])
+    , Jmin(jmin - extent[2])
+    , Jmax(jmax - extent[2])
+    , Kmin(kmin - extent[4])
+    , Kmax(kmax - extent[4])
+    , Width{ imax - imin + IsPointIdsT, jmax - jmin + IsPointIdsT }
+    , Ids(ids)
+  {
+    this->XWidth = extent[1] - extent[0] + IsPointIdsT;
+    this->XYWidth = this->XWidth * (extent[3] - extent[2] + IsPointIdsT);
+  }
+
+  void operator()(vtkIdType startId, vtkIdType endId)
+  {
+    const int ijkStart[3] = { static_cast<int>(this->Imin + startId % this->Width[0]),
+      static_cast<int>(this->Jmin + (startId / this->Width[0]) % this->Width[1]),
+      static_cast<int>(this->Kmin + startId / (this->Width[0] * this->Width[1])) };
+    int ijk[3];
+    vtkIdType id = startId;
+
+    for (ijk[2] = ijkStart[2]; ijk[2] < this->Kmax + IsPointIdsT; ++ijk[2])
+    {
+      ijk[1] = (ijk[2] == ijkStart[2] ? ijkStart[1] : this->Jmin);
+      vtkIdType val = ijk[2] * this->XYWidth + ijk[1] * this->XWidth;
+
+      for (; ijk[1] < this->Jmax + IsPointIdsT; ++ijk[1], val += this->XWidth)
+      {
+        for (ijk[0] = (ijk[1] == ijkStart[1] && ijk[2] == ijkStart[2] ? ijkStart[0] : this->Imin);
+            ijk[0] < this->Imax + IsPointIdsT; ++ijk[0], ++id)
+        {
+          if (id == endId)
+          {
+            return;
+          }
+          this->Ids->SetId(id, val + ijk[0]);
+        }
+      }
+    }
+  }
+
+  int Imin, Imax, Jmin, Jmax, Kmin, Kmax;
+  vtkIdType XWidth, XYWidth;
+  vtkIdType Width[2];
+  vtkIdList* Ids;
+};
+
 //----------------------------------------------------------------------------
 /**
  * Given 2 input extents `localExtent` and `extent`, this function returns the list of ids in `grid`
@@ -2518,26 +2666,14 @@ vtkSmartPointer<vtkIdList> ComputeInterfaceCellIdsForStructuredData(
   kmin = std::max(extent[4], localExtent[4]);
   kmax = std::min(extent[5], localExtent[5]) + (localExtent[4] == localExtent[5]);
 
-  const int* gridExtent = grid->GetExtent();
-
   vtkNew<vtkIdList> ids;
   ids->SetNumberOfIds((imax - imin) * (jmax - jmin) * (kmax - kmin));
-  vtkIdType count = 0;
-  int ijk[3];
-  for (int k = kmin; k < kmax; ++k)
-  {
-    ijk[2] = k;
-    for (int j = jmin; j < jmax; ++j)
-    {
-      ijk[1] = j;
-      for (int i = imin; i < imax; ++i, ++count)
-      {
-        ijk[0] = i;
-        ids->SetId(count, vtkStructuredData::ComputeCellIdForExtent(gridExtent, ijk));
-      }
-    }
-  }
-  return ids;
+
+  ComputeInterfaceIdsForStructuredDataWorker<false /* IsPointIdsT */> worker(
+      imin, imax, jmin, jmax, kmin, kmax, grid->GetExtent(), ids);
+  vtkSMPTools::For(0, ids->GetNumberOfIds(), worker);
+
+  return worker.Ids;
 }
 
 //----------------------------------------------------------------------------
@@ -2610,26 +2746,14 @@ vtkSmartPointer<vtkIdList> ComputeInterfacePointIdsForStructuredData(unsigned ch
     --kmax;
   }
 
-  const int* gridExtent = grid->GetExtent();
-
   vtkNew<vtkIdList> ids;
   ids->SetNumberOfIds((imax - imin + 1) * (jmax - jmin + 1) * (kmax - kmin + 1));
-  vtkIdType count = 0;
-  int ijk[3];
-  for (int k = kmin; k <= kmax; ++k)
-  {
-    ijk[2] = k;
-    for (int j = jmin; j <= jmax; ++j)
-    {
-      ijk[1] = j;
-      for (int i = imin; i <= imax; ++i, ++count)
-      {
-        ijk[0] = i;
-        ids->SetId(count, vtkStructuredData::ComputePointIdForExtent(gridExtent, ijk));
-      }
-    }
-  }
-  return ids;
+
+  ComputeInterfaceIdsForStructuredDataWorker<true /* IsPointIdsT */> worker(
+      imin, imax, jmin, jmax, kmin, kmax, grid->GetExtent(), ids);
+  vtkSMPTools::For(0, ids->GetNumberOfIds(), worker);
+
+  return worker.Ids;
 }
 
 //----------------------------------------------------------------------------
@@ -2719,6 +2843,65 @@ void UpdateOutputGridPoints(
   output->SetZCoordinates(zCoordinates);
 }
 
+//============================================================================
+struct UpdateOutputGridPointsWorker
+{
+  UpdateOutputGridPointsWorker(const int* inputExtent, const int* outputExtent,
+      vtkPoints* inputPoints, vtkPoints* outputPoints)
+    : Imax(inputExtent[1] - inputExtent[0])
+    , Jmax(inputExtent[3] - inputExtent[2])
+    , Kmax(inputExtent[5] - inputExtent[4])
+    , OutputOffset{ inputExtent[0] - outputExtent[0], inputExtent[2] - outputExtent[2],
+        inputExtent[4] - outputExtent[4] }
+    , InputPoints(inputPoints)
+    , OutputPoints(outputPoints)
+  {
+    this->InputXWidth = inputExtent[1] - inputExtent[0] + 1;
+    this->InputXYWidth = this->InputXWidth * (inputExtent[3] - inputExtent[2] + 1);
+    this->OutputXWidth = outputExtent[1] - outputExtent[0] + 1;
+    this->OutputXYWidth = this->OutputXWidth * (outputExtent[3] - outputExtent[2] + 1);
+  }
+
+  void operator()(vtkIdType startId, vtkIdType endId)
+  {
+    const int ijkStart[3] = { static_cast<int>(startId % (this->Imax + 1)),
+      static_cast<int>((startId / (this->Imax + 1)) % (this->Jmax + 1)),
+      static_cast<int>(startId / ((this->Imax + 1) * (this->Jmax + 1))) };
+    int ijk[3];
+    vtkIdType id = startId;
+    double point[3];
+
+    for (ijk[2] = ijkStart[2]; ijk[2] <= this->Kmax; ++ijk[2])
+    {
+      ijk[1] = (ijk[2] == ijkStart[2] ? ijkStart[1] : 0);
+      vtkIdType outputId = (ijk[2] + this->OutputOffset[2]) * this->OutputXYWidth +
+        (ijk[1] + this->OutputOffset[1]) * this->OutputXWidth + this->OutputOffset[0];
+      vtkIdType inputId = ijk[2] * this->InputXYWidth + ijk[1] * this->InputXWidth;
+
+      for (; ijk[1] <= this->Jmax; ++ijk[1],
+          outputId += this->OutputXWidth, inputId += this->InputXWidth)
+      {
+        for (ijk[0] = (ijk[1] == ijkStart[1] && ijk[2] == ijkStart[2] ? ijkStart[0] : 0);
+            ijk[0] <= this->Imax; ++ijk[0], ++id)
+        {
+          if (id == endId)
+          {
+            return;
+          }
+          this->InputPoints->GetPoint(inputId + ijk[0], point);
+          this->OutputPoints->SetPoint(outputId + ijk[0], point);
+        }
+      }
+    }
+  }
+
+  int Imax, Jmax, Kmax;
+  int OutputOffset[3];
+  vtkIdType InputXWidth, InputXYWidth, OutputXWidth, OutputXYWidth;
+  vtkPoints* InputPoints;
+  vtkPoints* OutputPoints;
+};
+
 //----------------------------------------------------------------------------
 void UpdateOutputGridPoints(vtkStructuredGrid* output,
     StructuredGridInformation& blockInformation)
@@ -2733,23 +2916,9 @@ void UpdateOutputGridPoints(vtkStructuredGrid* output,
   points->SetNumberOfPoints((extent[1] - extent[0] + 1) * (extent[3] - extent[2] + 1) *
       (extent[5] - extent[4] + 1));
 
-  int ijk[3];
+  UpdateOutputGridPointsWorker worker(inputExtent.data(), extent, inputPoints, points);
+  vtkSMPTools::For(0, inputPoints->GetNumberOfPoints(), worker);
 
-  for (int k = inputExtent[4]; k <= inputExtent[5]; ++k)
-  {
-    ijk[2] = k;
-    for (int j = inputExtent[2]; j <= inputExtent[3]; ++j)
-    {
-      ijk[1] = j;
-      for (int i = inputExtent[0]; i <= inputExtent[1]; ++i)
-      {
-        ijk[0] = i;
-        double* point = inputPoints->GetPoint(
-            vtkStructuredData::ComputePointIdForExtent(inputExtent.data(), ijk));
-        points->SetPoint(vtkStructuredData::ComputePointIdForExtent(extent, ijk), point);
-      }
-    }
-  }
   output->SetPoints(points);
 }
 
@@ -2778,6 +2947,73 @@ void CloneDataObject(vtkDataObject* input, vtkDataObject* clone)
 {
   clone->GetFieldData()->ShallowCopy(input->GetFieldData());
 }
+
+//============================================================================
+template<bool IsPointDataT>
+struct FillFieldDataForStructuredDataWorker
+{
+  FillFieldDataForStructuredDataWorker(vtkFieldData* inputData, vtkFieldData* outputData,
+      int imin, int imax, int jmin, int jmax, int kmin, int kmax,
+      const int * inputExtent, const int* outputExtent)
+    : InputData(inputData)
+    , OutputData(outputData)
+    , Imin(imin - inputExtent[0])
+    , Imax(imax - inputExtent[0])
+    , Jmin(jmin - inputExtent[2])
+    , Jmax(jmax - inputExtent[2])
+    , Kmin(kmin - inputExtent[4])
+    , Kmax(kmax - inputExtent[4])
+    , OutputOffset{ inputExtent[0] - outputExtent[0], inputExtent[2] - outputExtent[2],
+        inputExtent[4] - outputExtent[4] }
+    , Width{ imax - imin + IsPointDataT, jmax - jmin + IsPointDataT }
+  {
+    this->InputXWidth = inputExtent[1] - inputExtent[0] + IsPointDataT;
+    this->InputXYWidth = this->InputXWidth * (inputExtent[3] - inputExtent[2] + IsPointDataT);
+    this->OutputXWidth = outputExtent[1] - outputExtent[0] + IsPointDataT;
+    this->OutputXYWidth = this->OutputXWidth * (outputExtent[3] - outputExtent[2] + IsPointDataT);
+  }
+
+  void operator()(vtkIdType startId, vtkIdType endId)
+  {
+    const int ijkStart[3] = { static_cast<int>(this->Imin + startId % this->Width[0]),
+      static_cast<int>(this->Jmin + (startId / this->Width[0]) % this->Width[1]),
+      static_cast<int>(this->Kmin + startId / (this->Width[0] * this->Width[1])) };
+    int ijk[3];
+    vtkIdType id = startId;
+
+    for (ijk[2] = ijkStart[2]; ijk[2] < this->Kmax + IsPointDataT; ++ijk[2])
+    {
+      ijk[1] = (ijk[2] == ijkStart[2] ? ijkStart[1] : this->Jmin);
+
+      vtkIdType outputId = (ijk[2] + this->OutputOffset[2]) * this->OutputXYWidth +
+        (ijk[1] + this->OutputOffset[1]) * this->OutputXWidth + this->OutputOffset[0];
+      vtkIdType inputId = ijk[2] * this->InputXYWidth + ijk[1] * this->InputXWidth;
+
+      for (; ijk[1] < this->Jmax + IsPointDataT; ++ijk[1],
+          outputId += this->OutputXWidth, inputId += this->InputXWidth)
+      {
+        ijk[0] = (ijk[1] == ijkStart[1] && ijk[2] == ijkStart[2]) ? ijkStart[0] : this->Imin;
+
+        for (; ijk[0] < this->Imax + IsPointDataT ; ++ijk[0], ++id)
+        {
+          if (id == endId)
+          {
+            return;
+          }
+          this->OutputData->SetTuple(outputId + ijk[0], inputId + ijk[0],
+              this->InputData);
+        }
+      }
+    }
+  }
+
+  vtkFieldData* InputData;
+  vtkFieldData* OutputData;
+  int Imin, Imax, Jmin, Jmax, Kmin, Kmax;
+  int OutputOffset[3];
+  vtkIdType InputXWidth, InputXYWidth, OutputXWidth, OutputXYWidth;
+  vtkIdType Width[2];
+};
 
 //----------------------------------------------------------------------------
 /**
@@ -2810,19 +3046,9 @@ void CloneGrid(GridDataSetT* grid, GridDataSetT* clone)
   int kmin = gridExtent[4];
   int kmax = std::max(gridExtent[5], gridExtent[4] + 1);
 
-  int ijk[3];
-
-  for (ijk[2] = kmin; ijk[2] < kmax; ++ijk[2])
-  {
-    for (ijk[1] = jmin; ijk[1] < jmax; ++ijk[1])
-    {
-      for (ijk[0] = imin; ijk[0] < imax; ++ijk[0])
-      {
-        cloneCellData->SetTuple(vtkStructuredData::ComputeCellIdForExtent(cloneExtent, ijk),
-          vtkStructuredData::ComputeCellIdForExtent(gridExtent, ijk), gridCellData);
-      }
-    }
-  }
+  FillFieldDataForStructuredDataWorker<false /* IsPointDataT */> cellWorker (
+      gridCellData, cloneCellData, imin, imax, jmin, jmax, kmin, kmax, gridExtent, cloneExtent);
+  vtkSMPTools::For(0, (imax - imin) * (jmax - jmin) * (kmax - kmin), cellWorker);
 
   vtkPointData* clonePointData = clone->GetPointData();
   vtkPointData* gridPointData = grid->GetPointData();
@@ -2837,17 +3063,9 @@ void CloneGrid(GridDataSetT* grid, GridDataSetT* clone)
   jmax = gridExtent[3];
   kmax = gridExtent[5];
 
-  for (ijk[2] = kmin; ijk[2] <= kmax; ++ijk[2])
-  {
-    for (ijk[1] = jmin; ijk[1] <= jmax; ++ijk[1])
-    {
-      for (ijk[0] = imin; ijk[0] <= imax; ++ijk[0])
-      {
-        clonePointData->SetTuple(vtkStructuredData::ComputePointIdForExtent(cloneExtent, ijk),
-          vtkStructuredData::ComputePointIdForExtent(gridExtent, ijk), gridPointData);
-      }
-    }
-  }
+  FillFieldDataForStructuredDataWorker<true /* IsPointDataT */> pointWorker (
+      gridPointData, clonePointData, imin, imax, jmin, jmax, kmin, kmax, gridExtent, cloneExtent);
+  vtkSMPTools::For(0, (imax - imin + 1) * (jmax - jmin + 1) * (kmax - kmin + 1), pointWorker);
 }
 
 //----------------------------------------------------------------------------
@@ -3820,6 +4038,7 @@ void DeepCopyInputsAndAllocateGhostsForUnstructuredData(const diy::Master& maste
         auto sharedPointIds = vtk::DataArrayValueRange<1>(blockStructure.ReceivedSharedPointIds);
         using ConstRef = typename decltype(sharedPointIds)::ConstReferenceType;
         vtkIdType numberOfMatchingPoints = 0;
+
         for (ConstRef pointId : sharedPointIds)
         {
           double* p = receivedPoints->GetPoint(pointId);
@@ -4004,7 +4223,8 @@ void FillReceivedGhostFieldDataForStructuredData(vtkFieldData* sourceFD, vtkFiel
 
   vtkNew<vtkIdList> sourceIds;
   sourceIds->SetNumberOfIds(sourceFD->GetNumberOfTuples());
-  std::iota(sourceIds->begin(), sourceIds->end(), 0);
+  IotaWorker<vtkIdType*, vtkIdType> iota(sourceIds->begin(), 0);
+  vtkSMPTools::For(0, sourceIds->GetNumberOfIds(), iota);
 
   FillReceivedGhostFieldData(sourceFD, destFD, sourceIds, ids);
 }
@@ -4202,7 +4422,8 @@ void FillReceivedGhostPointsForUnstructuredData(UnstructuredDataInformation& inf
   {
     vtkNew<vtkIdList> identity;
     identity->SetNumberOfIds(numberOfAddedPoints);
-    std::iota(identity->begin(), identity->end(), info.CurrentMaxPointId);
+    IotaWorker<vtkIdType*, vtkIdType> iota(identity->begin(), info.CurrentMaxPointId);
+    vtkSMPTools::For(0, identity->GetNumberOfIds(), iota);
 
     vtkNew<vtkIdList> pointIds;
     pointIds->SetNumberOfIds(numberOfAddedPoints);
@@ -4379,6 +4600,62 @@ void FillReceivedGhosts(const diy::Master& master, std::vector<DataSetT*>& outpu
   }
 }
 
+//============================================================================
+struct CopyOuterLayerGridPointsWorker
+{
+  CopyOuterLayerGridPointsWorker(int idim, int jdim, int kdim,
+      const int* inputExtent, const int* outputExtent,
+      vtkPoints* inputPoints, vtkPoints* outputPoints)
+    : Idim(idim)
+    , Jdim(jdim)
+    , Kdim(kdim)
+    , InputExtent(inputExtent)
+    , OutputExtent(outputExtent)
+    , InputPoints(inputPoints)
+    , OutputPoints(outputPoints)
+    , YWidth(outputExtent[jdim + 1] - outputExtent[jdim] + 1)
+    , ZWidth(outputExtent[kdim + 1] - outputExtent[kdim] + 1)
+  {
+  }
+
+  void operator()(vtkIdType startId, vtkIdType endId)
+  {
+    int jstart = this->OutputExtent[this->Jdim] + static_cast<int>(startId % (this->YWidth));
+    int kstart = this->OutputExtent[this->Kdim] +
+      static_cast<int>((startId / this->YWidth) % this->ZWidth);
+
+    int i = this->Idim / 2, j = this->Jdim / 2, k = this->Kdim / 2;
+
+    int ijk[3];
+    ijk[i] = this->OutputExtent[this->Idim];
+    vtkIdType id = startId;
+    double point[3];
+
+    for (ijk[k] = kstart; ijk[k] <= this->OutputExtent[this->Kdim + 1]; ++ijk[k])
+    {
+      for (ijk[j] = (ijk[k] == kstart ? jstart : this->OutputExtent[this->Jdim]);
+          ijk[j] <= this->OutputExtent[this->Jdim + 1]; ++ijk[j])
+      {
+        if (id == endId)
+        {
+          return;
+        }
+        this->InputPoints->GetPoint(
+            vtkStructuredData::ComputePointIdForExtent(this->InputExtent, ijk), point);
+        this->OutputPoints->SetPoint(
+            vtkStructuredData::ComputePointIdForExtent(this->OutputExtent, ijk), point);
+      }
+    }
+  }
+
+  int Idim, Jdim, Kdim;
+  const int* InputExtent;
+  const int* OutputExtent;
+  vtkPoints* InputPoints;
+  vtkPoints* OutputPoints;
+  vtkIdType YWidth, ZWidth;
+};
+
 //----------------------------------------------------------------------------
 void CopyOuterLayerGridPoints(vtkStructuredGrid* input, vtkSmartPointer<vtkPoints>& outputPoints,
     ExtentType extent, int i)
@@ -4399,18 +4676,9 @@ void CopyOuterLayerGridPoints(vtkStructuredGrid* input, vtkSmartPointer<vtkPoint
   // We collapse one dimension
   extent[i + (i % 2 ? -1 : 1)] = extent[i];
 
-  int ijk[3];
-  ijk[i / 2] = extent[i];
-  for (int y = extent[k]; y <= extent[k + 1]; ++y)
-  {
-    ijk[k / 2] = y;
-    for (int x = extent[j]; x <= extent[j + 1]; ++x)
-    {
-      ijk[j / 2] = x;
-      outputPoints->SetPoint(vtkStructuredData::ComputePointIdForExtent(extent.data(), ijk),
-          inputPoints->GetPoint(vtkStructuredData::ComputePointIdForExtent(inputExtent, ijk)));
-    }
-  }
+  CopyOuterLayerGridPointsWorker worker(i, j, k, inputExtent, extent.data(),
+      inputPoints, outputPoints);
+  vtkSMPTools::For(0, (extent[k + 1] - extent[k] + 1) * (extent[j + 1] - extent[j] + 1), worker);
 }
 } // anonymous namespace
 
