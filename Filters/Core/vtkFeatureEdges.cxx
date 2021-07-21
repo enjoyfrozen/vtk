@@ -67,11 +67,14 @@ vtkFeatureEdges::~vtkFeatureEdges()
   }
 }
 
+#include "vtkLogger.h"
+
 //------------------------------------------------------------------------------
 // Generate feature edges for mesh
 int vtkFeatureEdges::RequestData(vtkInformation* vtkNotUsed(request),
   vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
+  vtkLog(INFO, "vtkFeatureEdges::RequestData");
   // get the info objects
   vtkInformation* inInfo = inputVector[0]->GetInformationObject(0);
   vtkInformation* outInfo = outputVector->GetInformationObject(0);
@@ -188,6 +191,8 @@ int vtkFeatureEdges::RequestData(vtkInformation* vtkNotUsed(request),
     }
   }
 
+  vtkLog(INFO, "Step A");
+
   if (numStrips > 0)
   {
     newPolys = vtkCellArray::New();
@@ -285,6 +290,8 @@ int vtkFeatureEdges::RequestData(vtkInformation* vtkNotUsed(request),
   numBEdges = numNonManifoldEdges = numFedges = numManifoldEdges = 0;
   vtkIdType newCellId, cellId;
 
+  vtkLog(INFO, "Step B");
+
   // When filling output cells, to respect the same order as in vtkPolyData,
   // we need to fill lines, then polys, then strips.
   vtkIdType numOutLines = 0;
@@ -329,6 +336,8 @@ int vtkFeatureEdges::RequestData(vtkInformation* vtkNotUsed(request),
     }
   }
 
+  vtkLog(INFO, "Step C");
+      vtkLog(INFO, "only polys " << numPolys == numCells);
   for (newCellId = 0, newPolys->InitTraversal(); newPolys->GetNextCell(npts, pts) && !abort;
        newCellId++)
   {
