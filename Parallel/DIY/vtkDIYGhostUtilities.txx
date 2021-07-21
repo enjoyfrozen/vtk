@@ -34,6 +34,7 @@
 #include "vtkPoints.h"
 #include "vtkPolyData.h"
 #include "vtkRectilinearGrid.h"
+#include "vtkSMPTools.h"
 #include "vtkStructuredGrid.h"
 #include "vtkUnsignedCharArray.h"
 #include "vtkUnstructuredGrid.h"
@@ -162,27 +163,115 @@ void vtkDIYGhostUtilities::ExchangeGhosts(diy::Master& master, std::vector<DataS
   });
 }
 
+namespace vtkDIYGhostUtilities_detail
+{
+template <class DataSetT>
+using DataSetTypeToBlockTypeConverter =
+  vtkDIYGhostUtilities::DataSetTypeToBlockTypeConverter<DataSetT>;
+
+//============================================================================
+template <class BlockT>
+struct ComputeLinkMapUsingBoundingBoxesWorker
+{
+  using LinkMapType = vtkDIYGhostUtilities::LinkMap;
+  using Links = vtkDIYGhostUtilities::Links;
+  template <class T>
+  using BlockMapType = vtkDIYGhostUtilities::BlockMapType<T>;
+
+  ComputeLinkMapUsingBoundingBoxesWorker(const diy::Master& master, LinkMapType& linkMap)
+    : Master(master)
+    , LinkMap(linkMap)
+  {
+  }
+
+  void operator()(int startId, int endId)
+  {
+    for (int localId = startId; localId < endId; ++localId)
+    {
+      Links& links = this->LinkMap[localId];
+      BlockT* block = this->Master.block<BlockT>(localId);
+      vtkBoundingBox& localbb = block->BoundingBox;
+      BlockMapType<vtkBoundingBox>& bb = block->NeighborBoundingBoxes;
+      for (auto item : bb)
+      {
+        if (localbb.Intersects(item.second))
+        {
+          links.insert(item.first);
+        }
+      }
+    }
+  }
+
+  const diy::Master& Master;
+  LinkMapType& LinkMap;
+};
+
+//============================================================================
+template <class DataSetT>
+struct AddGhostArrayWorker
+{
+  using BlockType = typename DataSetTypeToBlockTypeConverter<DataSetT>::BlockType;
+
+  AddGhostArrayWorker(diy::Master& master, std::vector<DataSetT*>& outputs)
+    : Master(master)
+    , Outputs(outputs)
+  {
+  }
+
+  void operator()(int startId, int endId)
+  {
+    for (int localId = startId; localId < endId; ++localId)
+    {
+      DataSetT* output = this->Outputs[localId];
+      BlockType* block = this->Master.block<BlockType>(localId);
+
+      output->GetPointData()->AddArray(block->GhostPointArray);
+      output->GetCellData()->AddArray(block->GhostCellArray);
+    }
+  }
+
+  diy::Master& Master;
+  std::vector<DataSetT*>& Outputs;
+};
+
+//============================================================================
+template <class DataSetT>
+struct InitializeGhostArraysWorker
+{
+  using BlockType = typename DataSetTypeToBlockTypeConverter<DataSetT>::BlockType;
+
+  InitializeGhostArraysWorker(diy::Master& master, std::vector<DataSetT*>& outputs)
+    : Master(master)
+    , Outputs(outputs)
+  {
+  }
+
+  void operator()(int startId, int endId)
+  {
+    for (int localId = startId; localId < endId; ++localId)
+    {
+      DataSetT* output = this->Outputs[localId];
+      BlockType* block = this->Master.block<BlockType>(localId);
+
+      vtkDIYGhostUtilities::InitializeGhostCellArray(block, output);
+      vtkDIYGhostUtilities::InitializeGhostPointArray(block, output);
+    }
+  }
+
+  diy::Master& Master;
+  std::vector<DataSetT*>& Outputs;
+};
+} // namespace vtkDIYGhostUtilities_detail
+
 //----------------------------------------------------------------------------
 template <class BlockT>
 vtkDIYGhostUtilities::LinkMap vtkDIYGhostUtilities::ComputeLinkMapUsingBoundingBoxes(
   const diy::Master& master)
 {
   LinkMap linkMap(master.size());
-
-  for (int localId = 0; localId < static_cast<int>(master.size()); ++localId)
-  {
-    Links& links = linkMap[localId];
-    BlockT* block = master.block<BlockT>(localId);
-    vtkBoundingBox& localbb = block->BoundingBox;
-    BlockMapType<vtkBoundingBox>& bb = block->NeighborBoundingBoxes;
-    for (auto item : bb)
-    {
-      if (localbb.Intersects(item.second))
-      {
-        links.insert(item.first);
-      }
-    }
-  }
+  vtkDIYGhostUtilities_detail::ComputeLinkMapUsingBoundingBoxesWorker<BlockT> worker(
+    master, linkMap);
+  vtkSMPTools::For(0, master.size(), worker);
   return linkMap;
 }
 
@@ -190,16 +279,8 @@ vtkDIYGhostUtilities::LinkMap vtkDIYGhostUtilities::ComputeLinkMapUsingBoundingB
 template <class DataSetT>
 void vtkDIYGhostUtilities::AddGhostArrays(diy::Master& master, std::vector<DataSetT*>& outputs)
 {
-  using BlockType = typename DataSetTypeToBlockTypeConverter<DataSetT>::BlockType;
-
-  for (int localId = 0; localId < static_cast<int>(outputs.size()); ++localId)
-  {
-    DataSetT* output = outputs[localId];
-    BlockType* block = master.block<BlockType>(localId);
-
-    output->GetPointData()->AddArray(block->GhostPointArray);
-    output->GetCellData()->AddArray(block->GhostCellArray);
-  }
+  vtkDIYGhostUtilities_detail::AddGhostArrayWorker<DataSetT> worker(master, outputs);
+  vtkSMPTools::For(0, master.size(), worker);
 }
 
 //----------------------------------------------------------------------------
@@ -207,16 +288,8 @@ template <class DataSetT>
 void vtkDIYGhostUtilities::InitializeGhostArrays(
   diy::Master& master, std::vector<DataSetT*>& outputs)
 {
-  using BlockType = typename DataSetTypeToBlockTypeConverter<DataSetT>::BlockType;
-
-  for (int localId = 0; localId < static_cast<int>(outputs.size()); ++localId)
-  {
-    DataSetT* output = outputs[localId];
-    BlockType* block = master.block<BlockType>(localId);
-
-    vtkDIYGhostUtilities::InitializeGhostCellArray(block, output);
-    vtkDIYGhostUtilities::InitializeGhostPointArray(block, output);
-  }
+  vtkDIYGhostUtilities_detail::InitializeGhostArraysWorker<DataSetT> worker(master, outputs);
+  vtkSMPTools::For(0, master.size(), worker);
 }
 
 //----------------------------------------------------------------------------
