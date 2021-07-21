@@ -93,13 +93,11 @@ public:
 
   /**
    * Set the program name. This internally calls `Py_SetProgramName`.
-   * Python uses the program name to determine values for prefix and exec_prefix
-   * paths that are used to locate Python standard libraries and hence call this
-   * if you if you know what you are doing.
+   * Because we already override the python home using `Py_SetPythonHome`, this
+   * basically only has effect on the value of sys.executable.
    *
-   * If not explicitly overridden, `Initialize` will try to guess a good default
-   * for the `Py_SetProgramName` to  help find Python standard libraries based
-   * on Python libraries used to build VTK.
+   * Note that this is called automatically in PyMain based on the value of
+   * argv[0]
    */
   static void SetProgramName(const char* programname);
 

@@ -458,6 +458,17 @@ int vtkPythonInterpreter::PyMain(int argc, char** argv)
   vtkLogger::Init(argc, argv, nullptr); // since `-v` and `-vv` are parsed as Python verbosity flags
                                         // and not log verbosity flags.
 
+  std::string fullpath;
+  std::string error;
+  if (argc > 0 && vtksys::SystemTools::FindProgramPath(argv[0], fullpath, error))
+  {
+    vtkPythonInterpreter::SetProgramName(fullpath.c_str());
+  }
+  else if (argc > 0)
+  {
+    printf("%s\n", argv[0]);
+  }
+
   vtkPythonInterpreter::Initialize(1);
 
 #if PY_VERSION_HEX >= 0x03000000
@@ -700,16 +711,22 @@ void vtkPythonInterpreter::SetupPythonPrefix()
     return;
   }
 
-  const std::string newprogramname =
-    systools::GetFilenamePath(pythonlib) + VTK_PATH_SEPARATOR "vtkpython";
-  VTKPY_DEBUG_MESSAGE(
-    "calling Py_SetProgramName(" << newprogramname << ") to aid in setup of Python prefix.");
+  const std::string homepath = systools::GetFilenamePath(pythonlib) + VTK_PATH_SEPARATOR "..";
+
+  if (!systools::PathExists(homepath + VTK_PATH_SEPARATOR "lib"))
+  {
+    VTKPY_DEBUG_MESSAGE("Guessed homepath is invalid. Do not use it");
+    return;
+  }
+
+  VTKPY_DEBUG_MESSAGE("Setting prefix to '" << homepath << "'");
+  // Init config not supported
 #if PY_VERSION_HEX >= 0x03000000
   static WCharStringPool wpool;
-  Py_SetProgramName(wpool.push_back(vtk_Py_DecodeLocale(newprogramname.c_str(), nullptr)));
+  Py_SetPythonHome(wpool.push_back(vtk_Py_DecodeLocale(homepath.c_str(), nullptr)));
 #else
   static StringPool pool;
-  Py_SetProgramName(pool.push_back(systools::DuplicateString(newprogramname.c_str())));
+  Py_SetPythonHome(pool.push_back(systools::DuplicateString(homepath.c_str())));
 #endif
 }
 
