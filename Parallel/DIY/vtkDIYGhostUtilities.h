@@ -655,10 +655,6 @@ public:
   static int GenerateGhostCells(std::vector<DataSetT*>& inputsDS, std::vector<DataSetT*>& outputsDS,
     int outputGhostLevels, vtkMultiProcessController* controller);
 
-protected:
-  vtkDIYGhostUtilities();
-  ~vtkDIYGhostUtilities() override;
-
   /**
    * This method will set all ghosts points in `output` to zero. It will also
    * allocate a new ghost array if none is already present.
@@ -674,6 +670,10 @@ protected:
   template <class DataSetT>
   static void InitializeGhostCellArray(
     typename DataSetTypeToBlockTypeConverter<DataSetT>::BlockType* block, DataSetT* output);
+
+protected:
+  vtkDIYGhostUtilities();
+  ~vtkDIYGhostUtilities() override;
 
   ///@{
   /**
