@@ -228,6 +228,15 @@ set(template_classes
   vtkTypeList)
 
 set(sources
+  vtkDataArrayPrivateInstantiate1.cxx
+  vtkDataArrayPrivateInstantiate2.cxx
+  vtkDataArrayPrivateInstantiate3.cxx
+  vtkDataArrayPrivateInstantiate4.cxx
+  vtkDataArrayPrivateInstantiate5.cxx
+  vtkDataArrayPrivateInstantiate6.cxx
+  vtkDataArrayPrivateInstantiate7.cxx
+  vtkDataArrayPrivateInstantiate8.cxx
+  vtkDataArrayPrivateInstantiate9.cxx
   vtkArrayIteratorTemplateInstantiate.cxx
   vtkGenericDataArray.cxx
   vtkSOADataArrayTemplateInstantiate.cxx

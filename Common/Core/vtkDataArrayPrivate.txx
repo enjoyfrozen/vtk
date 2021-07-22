@@ -325,8 +325,63 @@ struct ComputeScalarRange
   }
 };
 
-template <typename ArrayT, typename APIType>
-class GenericMinAndMax
+// macro for explicit instantiation of ComputeScalarRange
+// (__VA_ARGS__ is used for storage class specifier, e.g. "extern")
+#define vtkInstantiateComputeScalarRangeFuncMacro(ArrayT, RangeT, NumComps, ValuesT, ...)          \
+  __VA_ARGS__ template bool ComputeScalarRange<NumComps>::operator()(                              \
+    ArrayT<float>*, RangeT*, ValuesT);                                                             \
+  __VA_ARGS__ template bool ComputeScalarRange<NumComps>::operator()(                              \
+    ArrayT<double>*, RangeT*, ValuesT);                                                            \
+  __VA_ARGS__ template bool ComputeScalarRange<NumComps>::operator()(                              \
+    ArrayT<char>*, RangeT*, ValuesT);                                                              \
+  __VA_ARGS__ template bool ComputeScalarRange<NumComps>::operator()(                              \
+    ArrayT<signed char>*, RangeT*, ValuesT);                                                       \
+  __VA_ARGS__ template bool ComputeScalarRange<NumComps>::operator()(                              \
+    ArrayT<unsigned char>*, RangeT*, ValuesT);                                                     \
+  __VA_ARGS__ template bool ComputeScalarRange<NumComps>::operator()(                              \
+    ArrayT<short>*, RangeT*, ValuesT);                                                             \
+  __VA_ARGS__ template bool ComputeScalarRange<NumComps>::operator()(                              \
+    ArrayT<unsigned short>*, RangeT*, ValuesT);                                                    \
+  __VA_ARGS__ template bool ComputeScalarRange<NumComps>::operator()(                              \
+    ArrayT<int>*, RangeT*, ValuesT);                                                               \
+  __VA_ARGS__ template bool ComputeScalarRange<NumComps>::operator()(                              \
+    ArrayT<unsigned int>*, RangeT*, ValuesT);                                                      \
+  __VA_ARGS__ template bool ComputeScalarRange<NumComps>::operator()(                              \
+    ArrayT<long>*, RangeT*, ValuesT);                                                              \
+  __VA_ARGS__ template bool ComputeScalarRange<NumComps>::operator()(                              \
+    ArrayT<unsigned long>*, RangeT*, ValuesT);                                                     \
+  __VA_ARGS__ template bool ComputeScalarRange<NumComps>::operator()(                              \
+    ArrayT<long long>*, RangeT*, ValuesT);                                                         \
+  __VA_ARGS__ template bool ComputeScalarRange<NumComps>::operator()(                              \
+    ArrayT<unsigned long long>*, RangeT*, ValuesT);
+
+// macro to declare/instantiate the class and all its templated methods
+#define vtkInstantiateComputeScalarRangeMacro(ArrayT, RangeT, NumComps, ...)                       \
+  __VA_ARGS__ template struct ComputeScalarRange<NumComps>;                                        \
+  vtkInstantiateComputeScalarRangeFuncMacro(ArrayT, RangeT, NumComps, AllValues, __VA_ARGS__)      \
+    vtkInstantiateComputeScalarRangeFuncMacro(ArrayT, RangeT, NumComps, FiniteValues, __VA_ARGS__)
+
+// macro for extern declaration of ComputeScalarRange template
+#ifdef VTK_USE_EXTERN_TEMPLATE
+#define vtkExternComputeScalarRangeMacro(ArrayT, RangeT, NumComps)                                 \
+  vtkInstantiateComputeScalarRangeMacro(ArrayT, RangeT, NumComps, extern)
+#else
+#define vtkExternComputeScalarRangeMacro(ArrayT, RangeT, NumComps)
+#endif
+
+// declaration are extern to avoid template bloat in vtkDataArray.cxx
+vtkExternComputeScalarRangeMacro(vtkAOSDataArrayTemplate, double, 1)
+  vtkExternComputeScalarRangeMacro(vtkAOSDataArrayTemplate, double, 2)
+    vtkExternComputeScalarRangeMacro(vtkAOSDataArrayTemplate, double, 3)
+      vtkExternComputeScalarRangeMacro(vtkAOSDataArrayTemplate, double, 4)
+        vtkExternComputeScalarRangeMacro(vtkAOSDataArrayTemplate, double, 5)
+          vtkExternComputeScalarRangeMacro(vtkAOSDataArrayTemplate, double, 6)
+            vtkExternComputeScalarRangeMacro(vtkAOSDataArrayTemplate, double, 9)
+              vtkExternComputeScalarRangeMacro(vtkAOSDataArrayTemplate, double, 8)
+                vtkExternComputeScalarRangeMacro(vtkAOSDataArrayTemplate, double, 9)
+
+                  template <typename ArrayT, typename APIType>
+                  class GenericMinAndMax
 {
 protected:
   ArrayT* Array;
