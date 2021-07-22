@@ -381,6 +381,18 @@ protected:
     vtkBoundingBox BoundingBox;
 
     /**
+     * When the input has ghosts, this map is being used to copy input cells / cell data into
+     * the output (with input ghosts peeled off).
+     */
+    vtkSmartPointer<vtkIdList> InputToOutputCellIdRedirectionMap = nullptr;
+
+    /**
+     * When the input has ghosts, this map is being used to copy input points / point data into
+     * the output (with input ghosts peeled off).
+     */
+    vtkSmartPointer<vtkIdList> InputToOutputPointIdRedirectionMap = nullptr;
+
+    /**
      * Filter that is being used to extract the surface of the input.
      * The surface is used to check how the interface of the input matches the ones of its
      * neighboring blocks.
@@ -413,9 +425,29 @@ protected:
     vtkIdType CurrentMaxPointId;
     vtkIdType CurrentMaxCellId;
     ///@}
+
+    ///@{
+    /**
+     * Number of input points / cell in the input when ghosts are removed.
+     */
+    vtkIdType NumberOfInputPoints;
+    vtkIdType NumberOfInputCells;
+    ///@}
+
+    /**
+     * This lists ids from 1 to the number of input points (with potential input ghost points
+     * peeled off).
+     */
+    vtkNew<vtkIdList> PointIota;
+
+    /**
+     * This lists ids from 1 to the number of input cells (with potential input ghost cells
+     * peeled off).
+     */
+    vtkNew<vtkIdList> CellIota;
   };
 
-  struct UnstructuredDataBlckStructure : public DataSetBlockStructure
+  struct UnstructuredDataBlockStructure : public DataSetBlockStructure
   {
     /**
      * This lists the matching point ids to the interfacing points that are exchanged with current
@@ -499,9 +531,19 @@ protected:
     vtkIdTypeArray* FaceLocations = nullptr;
 
     vtkUnstructuredGrid* Input;
+
+    /**
+     * Cell connectivity array size of the input if the ghost cells are removed.
+     */
+    vtkIdType InputConnectivitySize;
+
+    /**
+     * Faces array size of the input if the ghost cells are removed.
+     */
+    vtkIdType InputFacesSize = 0;
   };
 
-  struct UnstructuredGridBlockStructure : public UnstructuredDataBlckStructure
+  struct UnstructuredGridBlockStructure : public UnstructuredDataBlockStructure
   {
     /**
      * Topology information for cells to be exchanged.
@@ -549,9 +591,40 @@ protected:
     vtkIdType CurrentMaxStripId = 0;
     vtkIdType CurrentMaxLineId = 0;
     ///@}
+
+    ///@{
+    /**
+     * Number of cells of respective type when the input has its ghost cells removed
+     */
+    vtkIdType NumberOfInputVerts;
+    vtkIdType NumberOfInputPolys;
+    vtkIdType NumberOfInputStrips;
+    vtkIdType NumberOfInputLines;
+    ///@}
+
+    ///@{
+    /**
+     * Cell connectivity array size of the input if ghost cells are removed.
+     */
+    vtkIdType InputVertConnectivitySize;
+    vtkIdType InputPolyConnectivitySize;
+    vtkIdType InputStripConnectivitySize;
+    vtkIdType InputLineConnectivitySize;
+    ///@{
+
+    ///@{
+    /**
+     * In the event that the input has ghost cells, this maps the output cells (with input ghosts
+     * removed) to the input cells.
+     */
+    vtkNew<vtkIdList> InputToOutputVertCellIdRedirectionMap;
+    vtkNew<vtkIdList> InputToOutputLineCellIdRedirectionMap;
+    vtkNew<vtkIdList> InputToOutputPolyCellIdRedirectionMap;
+    vtkNew<vtkIdList> InputToOutputStripCellIdRedirectionMap;
+    ///@}
   };
 
-  struct PolyDataBlockStructure : public UnstructuredDataBlckStructure
+  struct PolyDataBlockStructure : public UnstructuredDataBlockStructure
   {
     ///@{
     /**
@@ -638,7 +711,7 @@ public:
   using ImageDataBlock = Block<ImageDataBlockStructure, GridInformation>;
   using RectilinearGridBlock = Block<RectilinearGridBlockStructure, RectilinearGridInformation>;
   using StructuredGridBlock = Block<StructuredGridBlockStructure, StructuredGridInformation>;
-  using UnstructuredDataBlock = Block<UnstructuredDataBlckStructure, UnstructuredDataInformation>;
+  using UnstructuredDataBlock = Block<UnstructuredDataBlockStructure, UnstructuredDataInformation>;
   using UnstructuredGridBlock = Block<UnstructuredGridBlockStructure, UnstructuredGridInformation>;
   using PolyDataBlock = Block<PolyDataBlockStructure, PolyDataInformation>;
   //@}

@@ -1978,6 +1978,8 @@ bool TestUnstructuredGrid(
   generator->SetNumberOfGhostLayers(numberOfGhostLayers);
   generator->Update();
 
+  return true;
+
   vtkPartitionedDataSet* outPDS =
     vtkPartitionedDataSet::SafeDownCast(generator->GetOutputDataObject(0));
 

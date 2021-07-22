@@ -234,7 +234,6 @@ int vtkGhostCellsGenerator::RequestData(
     // Ideally, we should avoid doing such a thing and skip ghost cells in the input
     // by remapping the input to the output while ignoring the input ghosts.
     RemoveGhosts(inputsUG, inputsUGWithoutGhosts, inputsWithoutGhostsCleanerUG);
-    RemoveGhosts(inputsPD, inputsPDWithoutGhosts, inputsWithoutGhostsCleanerPD);
 
     if (!inputsID.empty() && !inputsRG.empty() && !inputsSG.empty() && !inputsUG.empty())
     {
@@ -251,7 +250,7 @@ int vtkGhostCellsGenerator::RequestData(
       vtkDIYGhostUtilities::GenerateGhostCells(
         inputsUGWithoutGhosts, outputsUG, numberOfGhostLayersToCompute, this->Controller) &&
       vtkDIYGhostUtilities::GenerateGhostCells(
-        inputsPDWithoutGhosts, outputsPD, numberOfGhostLayersToCompute, this->Controller);
+        inputsPD, outputsPD, numberOfGhostLayersToCompute, this->Controller);
   }
 
   return retVal && !error;
