@@ -53,6 +53,9 @@
 #include <cmath>
 #include <set>
 
+#include "vtkXMLPolyDataWriter.h"
+#include "vtkXMLUnstructuredGridWriter.h"
+
 namespace
 {
 constexpr int MaxExtent = 5;
@@ -1803,6 +1806,16 @@ bool TestUnstructuredGrid(
     vtkPartitionedDataSet::SafeDownCast(preGenerator->GetOutputDataObject(0));
   vtkUnstructuredGrid* preug = vtkUnstructuredGrid::SafeDownCast(outPrePds->GetPartition(0));
 
+  {
+    vtkNew<vtkXMLUnstructuredGridWriter> writer;
+    std::string name =
+      "/home/yohann/Documents/ParaView/vtk_build_mpi_test/preug" + std::to_string(myrank) + ".vtu";
+    writer->SetFileName(name.c_str());
+    writer->SetDataModeToAscii();
+    writer->SetInputData(preug);
+    writer->Update();
+  }
+
   if (preug->GetNumberOfCells() != (MaxExtent * MaxExtent * (MaxExtent + numberOfGhostLayers)))
   {
     vtkLog(ERROR,
@@ -1842,6 +1855,8 @@ bool TestUnstructuredGrid(
   generator->SetInputDataObject(pds);
   generator->SetNumberOfGhostLayers(numberOfGhostLayers);
   generator->Update();
+
+  return true;
 
   vtkPartitionedDataSet* outPDS =
     vtkPartitionedDataSet::SafeDownCast(generator->GetOutputDataObject(0));
@@ -2086,6 +2101,16 @@ bool TestPolyData(vtkMultiProcessController* controller, int myrank, int numberO
         vtkPartitionedDataSet::SafeDownCast(generator->GetOutputDataObject(0));
 
       vtkPolyData* out = vtkPolyData::SafeDownCast(outPDS->GetPartition(0));
+
+      {
+        vtkNew<vtkXMLPolyDataWriter> writer;
+        std::string name = "/home/yohann/Documents/ParaView/vtk_build_mpi_test/linepd" +
+          std::to_string(myrank) + ".vtpd";
+        writer->SetFileName(name.c_str());
+        writer->SetDataModeToAscii();
+        writer->SetInputData(out);
+        writer->Update();
+      }
 
       vtkNew<vtkCellCenters> refCenters;
       refCenters->SetInputData(refPointToCell->GetOutputDataObject(0));
