@@ -41,6 +41,7 @@
 #include "vtkPolyLineSource.h"
 #include "vtkSMPTools.h"
 #include "vtkSmartPointer.h"
+#include "vtkStaticCellLocator.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
 #include "vtkStripper.h"
 #include "vtkVectorOperators.h"
@@ -349,8 +350,6 @@ vtkSmartPointer<vtkPolyData> vtkProbeLineFilter::SampleLineUniformly() const
 vtkSmartPointer<vtkPolyData> vtkProbeLineFilter::SampleLineAtEachCell(
   const std::vector<vtkDataSet*>& inputs) const
 {
-  vtkVector3d p12 = vtkVector3d(this->Point2) - vtkVector3d(this->Point1);
-
   if (vtkMathUtilities::NearlyEqual(this->Point1[0], this->Point2[0]) &&
     vtkMathUtilities::NearlyEqual(this->Point1[1], this->Point2[1]) &&
     vtkMathUtilities::NearlyEqual(this->Point1[2], this->Point2[2]))
@@ -363,93 +362,77 @@ vtkSmartPointer<vtkPolyData> vtkProbeLineFilter::SampleLineAtEachCell(
     return vtkPolyData::SafeDownCast(line->GetOutputDataObject(0));
   }
 
+  vtkVector3d p12 = vtkVector3d(this->Point2) - vtkVector3d(this->Point1);
   p12.Normalize();
-
-  double v[3] = { 0.0, 1.0, 0.0 };
-  if (std::abs(p12[1] - 1.0) > 0.1)
-  {
-    // We swap coordinates of v if it is colinear with p12
-    std::swap(v[0], v[1]);
-  }
-
-  double n1[3], n2[3];
-  vtkMath::Cross(p12.GetData(), v, n1);
-  vtkMath::Normalize(n1);
-  vtkMath::Cross(p12.GetData(), n1, n2);
-
-  vtkNew<vtkPlane> plane1;
-  plane1->SetOrigin(this->Point1);
-
-  vtkNew<vtkPlane> plane2;
-  plane2->SetOrigin(this->Point1);
-
-  // Strategy: extract the intersection between the input line and the data set
-  // by concatenating 2 slicing planes.
-  // Doing that on 2D inputs is likely not working and may output a data set with zero
-  // points. This is taken cared of by using the first slice plane rather than the second
-  // when the second slice plane outputs nothing.
-
-  vtkNew<vtkAppendDataSets> appender;
-  bool emptyInputInAppender = true;
-
+  vtkNew<vtkPoints> intersectionPoints;
   for (std::size_t dsId = 0; dsId < inputs.size(); ++dsId)
   {
     vtkDataSet* input = inputs[dsId];
+    vtkNew<vtkStaticCellLocator> locator;
+    locator->SetDataSet(input);
+    locator->BuildLocator();
 
-    vtkBoundingBox bb(input->GetBounds());
-    // This test is important, because if we slice outside of a data set inside a composite data
-    // set, we can end up with a 2D plane output instead of a 1D line when we swap cut plane
-    // normals later in the loop.
-    if (!bb.IntersectsLine(this->Point1, this->Point2))
+    double t;
+    double x[3], val[3], npos[3], _opt[3];
+    vtkIdType _id;
+    int subId;
+    double p1[3] = {this->Point1[0], this->Point1[1], this->Point1[2]};
+    const double* p2 = this->Point2;
+    vtkNew<vtkGenericCell> cell;
+    while (locator->IntersectWithLine(p1, p2, 0.0, t, x, _opt, subId, _id, cell))
     {
-      continue;
+      // Cells of dimension 3 are a bit tricker because if we're inside we directly intersect
+      if (cell && cell->GetCellDimension() == 3)
+      {
+        // If we need the center then get it from the 3d cell
+        if (this->SamplingPattern == SamplingPattern::SAMPLE_LINE_AT_SEGMENT_CENTERS)
+        {
+          double pcoords[3];
+          cell->GetParametricCenter(pcoords);
+          cell->EvaluateLocation(subId, pcoords, val, _opt);
+          memcpy(x, val, 3 * sizeof(double));
+        }
+
+        // Iterate over their faces of dimension N-1 to get the actual intersection with boundaries
+        for (vtkIdType f = 0; f < cell->GetNumberOfFaces(); ++f)
+        {
+          vtkCell* face = cell->GetFace(f);
+          if (face->IntersectWithLine(x, p2, 0.0, t, npos, _opt, subId))
+          {
+            // We have set the right pos we can break
+            if (this->SamplingPattern == SamplingPattern::SAMPLE_LINE_AT_CELL_BOUNDARIES)
+            {
+              memcpy(val, npos, 3 * sizeof(double));
+            }
+            break;
+          }
+        }
+      }
+      else
+      {
+        memcpy(val, x, 3 * sizeof(double));
+        memcpy(npos, x, 3 * sizeof(double));
+      }
+
+      // Add current intersection/center point
+      intersectionPoints->InsertNextPoint(val);
+
+      // Pad by epsilon to not intersect the same cell twice
+      p1[0] = npos[0] + VTK_DBL_EPSILON * p12.GetX();
+      p1[1] = npos[1] + VTK_DBL_EPSILON * p12.GetY();
+      p1[2] = npos[2] + VTK_DBL_EPSILON * p12.GetZ();
+
+      // Check if we're done ie we have passed P2. This is needed when P2 is at the border,
+      // in this case the locator will always intersect so we have to break ourself.
+      vtkVector3d p12bis = vtkVector3d(p2) - vtkVector3d(p1);
+      if (vtkMath::Dot(p12.GetData(), p12bis.GetData()) < 0)
+      {
+        break;
+      }
     }
-
-    plane1->SetNormal(n1);
-    plane2->SetNormal(n2);
-
-    vtkNew<vtkCutter> slice2D;
-    slice2D->SetCutFunction(plane1);
-    slice2D->SetInputData(input);
-    slice2D->GenerateTrianglesOff();
-
-    slice2D->Update();
-    if (!vtkDataSet::SafeDownCast(slice2D->GetOutputDataObject(0))->GetNumberOfPoints())
-    {
-      // This happens if the slice plane is coplanar with a 2D input dataset.
-      // We swap normals in this case.
-      plane1->SetNormal(n2);
-      plane2->SetNormal(n1);
-    }
-
-    vtkNew<vtkCutter> slice1D;
-    slice1D->SetCutFunction(plane2);
-    slice1D->SetInputConnection(slice2D->GetOutputPort());
-    slice1D->GenerateTrianglesOff();
-
-    slice1D->Update();
-    vtkSmartPointer<vtkDataSet> pointSoup(
-      vtkDataSet::SafeDownCast(slice1D->GetOutputDataObject(0)));
-    if (!pointSoup->GetNumberOfPoints())
-    {
-      // This only happens when the input is a 2D data set. We want to use the first
-      // slice plane and ignore the second one.
-      pointSoup = vtkDataSet::SafeDownCast(slice2D->GetOutputDataObject(0));
-    }
-
-    if (this->SamplingPattern == SAMPLE_LINE_AT_SEGMENT_CENTERS)
-    {
-      vtkNew<vtkCellCenters> cellCenters;
-      cellCenters->SetInputData(pointSoup);
-      cellCenters->Update();
-      pointSoup = vtkDataSet::SafeDownCast(cellCenters->GetOutputDataObject(0));
-    }
-
-    appender->AddInputData(pointSoup);
-    emptyInputInAppender = false;
   }
 
-  if (emptyInputInAppender)
+  if (intersectionPoints->GetNumberOfPoints() == 0)
   {
     vtkNew<vtkLineSource> line;
     line->SetPoint1(this->Point1);
@@ -458,10 +441,10 @@ vtkSmartPointer<vtkPolyData> vtkProbeLineFilter::SampleLineAtEachCell(
     return vtkPolyData::SafeDownCast(line->GetOutputDataObject(0));
   }
 
-  appender->Update();
-  vtkPointSet* pointSoup = vtkPointSet::SafeDownCast(appender->GetOutputDataObject(0));
+  vtkNew<vtkPointSet> pointSoup;
+  pointSoup->SetPoints(intersectionPoints);
 
-  // We need to gather points from every ranks to everyranks because vtkProbeFilter
+  // We need to gather points from every ranks to every ranks because vtkProbeFilter
   // assumes that its input is replicated in every ranks.
 
   diy::mpi::communicator comm = vtkDIYUtilities::GetCommunicator(this->Controller);
@@ -478,7 +461,7 @@ vtkSmartPointer<vtkPolyData> vtkProbeLineFilter::SampleLineAtEachCell(
   decomposer.decompose(comm.rank(), assigner, master);
 
   diy::all_to_all(
-    master, assigner, [&master, pointSoup](PointSetBlock* block, const diy::ReduceProxy& srp) {
+    master, assigner, [&master, &pointSoup](PointSetBlock* block, const diy::ReduceProxy& srp) {
       int myBlockId = srp.gid();
       if (srp.round() == 0)
       {
@@ -517,6 +500,9 @@ vtkSmartPointer<vtkPolyData> vtkProbeLineFilter::SampleLineAtEachCell(
   vtkPoints* points = reducedPointSoup->GetPoints();
   for (vtkPoints* source : block->ReceivedPointsMap)
   {
+    // TODO: block->ReceivedPointsMap is a vector of every points set generated by others DIY blocks.
+    // What we want here : implement a merged sort algo which also removes duplicated points (std::set ?)
+    // This should also drastically simplify the code below.
     points->InsertPoints(points->GetNumberOfPoints(), source->GetNumberOfPoints(), 0, source);
   }
 
