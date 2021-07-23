@@ -228,6 +228,7 @@ set(template_classes
   vtkTypeList)
 
 set(sources
+  vtkDataArrayComputeScalarRange.cxx
   vtkDataArrayPrivateInstantiate1.cxx
   vtkDataArrayPrivateInstantiate2.cxx
   vtkDataArrayPrivateInstantiate3.cxx

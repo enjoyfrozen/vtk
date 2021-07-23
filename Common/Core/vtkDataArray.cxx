@@ -1657,26 +1657,7 @@ void vtkDataArray::Modified()
 namespace
 {
 
-// Wrap the DoCompute[Scalar|Vector]Range calls for vtkArrayDispatch:
-struct ScalarRangeDispatchWrapper
-{
-  bool Success;
-  double* Range;
-
-  ScalarRangeDispatchWrapper(double* range)
-    : Success(false)
-    , Range(range)
-  {
-  }
-
-  template <typename ArrayT>
-  void operator()(ArrayT* array)
-  {
-    this->Success = vtkDataArrayPrivate::DoComputeScalarRange(
-      array, this->Range, vtkDataArrayPrivate::AllValues());
-  }
-};
-
+// Wrap the DoComputeVectorRange call for vtkArrayDispatch:
 struct VectorRangeDispatchWrapper
 {
   bool Success;
@@ -1696,26 +1677,7 @@ struct VectorRangeDispatchWrapper
   }
 };
 
-// Wrap the DoCompute[Scalar|Vector]Range calls for vtkArrayDispatch:
-struct FiniteScalarRangeDispatchWrapper
-{
-  bool Success;
-  double* Range;
-
-  FiniteScalarRangeDispatchWrapper(double* range)
-    : Success(false)
-    , Range(range)
-  {
-  }
-
-  template <typename ArrayT>
-  void operator()(ArrayT* array)
-  {
-    this->Success = vtkDataArrayPrivate::DoComputeScalarRange(
-      array, this->Range, vtkDataArrayPrivate::FiniteValues());
-  }
-};
-
+// Wrap the DoComputeFiniteVectorRange call for vtkArrayDispatch:
 struct FiniteVectorRangeDispatchWrapper
 {
   bool Success;
@@ -1738,31 +1700,9 @@ struct FiniteVectorRangeDispatchWrapper
 } // end anon namespace
 
 //------------------------------------------------------------------------------
-bool vtkDataArray::ComputeScalarRange(double* ranges)
-{
-  ScalarRangeDispatchWrapper worker(ranges);
-  if (!vtkArrayDispatch::Dispatch::Execute(this, worker))
-  {
-    worker(this);
-  }
-  return worker.Success;
-}
-
-//------------------------------------------------------------------------------
 bool vtkDataArray::ComputeVectorRange(double range[2])
 {
   VectorRangeDispatchWrapper worker(range);
-  if (!vtkArrayDispatch::Dispatch::Execute(this, worker))
-  {
-    worker(this);
-  }
-  return worker.Success;
-}
-
-//------------------------------------------------------------------------------
-bool vtkDataArray::ComputeFiniteScalarRange(double* ranges)
-{
-  FiniteScalarRangeDispatchWrapper worker(ranges);
   if (!vtkArrayDispatch::Dispatch::Execute(this, worker))
   {
     worker(this);
