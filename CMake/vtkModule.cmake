@@ -2538,6 +2538,21 @@ function (vtk_module_build)
   endforeach ()
 
   if (_vtk_build_BUILD_WITH_KITS)
+    # Set up rpaths
+    set(CMAKE_BUILD_RPATH_USE_ORIGIN 1)
+    if (UNIX)
+      if (APPLE)
+        set(_vtk_build_origin_rpath_prefix
+          "@loader_path")
+      else ()
+        set(_vtk_build_origin_rpath_prefix
+          "$ORIGIN")
+      endif ()
+
+      list(APPEND CMAKE_INSTALL_RPATH
+        "${_vtk_build_origin_rpath_prefix}")
+    endif ()
+
     foreach (_vtk_build_kit IN LISTS _vtk_build_KITS)
       get_property(_vtk_build_target_name GLOBAL
         PROPERTY  "_vtk_kit_${_vtk_build_kit}_target_name")
@@ -3507,6 +3522,21 @@ function (vtk_module_add_module name)
           "${_vtk_add_module_real_target}_EXPORT")
       string(APPEND _vtk_add_module_real_target "-objects")
     else ()
+      # Set up rpaths
+      set(CMAKE_BUILD_RPATH_USE_ORIGIN 1)
+      if (UNIX)
+        if (APPLE)
+          set(_vtk_add_module_origin_rpath_prefix
+            "@loader_path")
+        else ()
+          set(_vtk_add_module_origin_rpath_prefix
+            "$ORIGIN")
+        endif ()
+
+        list(APPEND CMAKE_INSTALL_RPATH
+          "${_vtk_add_module_origin_rpath_prefix}")
+      endif ()
+
       add_library("${_vtk_add_module_real_target}" ${_vtk_add_module_type}
         ${_vtk_add_module_SOURCES}
         ${_vtk_add_module_TEMPLATES}
