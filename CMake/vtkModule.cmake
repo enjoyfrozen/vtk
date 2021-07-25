@@ -4074,6 +4074,24 @@ function (_vtk_module_apply_properties target)
       PROPERTIES
         DEBUG_POSTFIX "d")
   endif ()
+
+  # rpath settings
+  set_property(TARGET "${target}"
+    PROPERTY
+      BUILD_RPATH_USE_ORIGIN 1)
+  if (UNIX)
+    if (APPLE)
+      set(_vtk_build_origin_rpath_prefix
+        "@loader_path")
+    else ()
+      set(_vtk_build_origin_rpath_prefix
+        "$ORIGIN")
+    endif ()
+
+    set_property(TARGET "${target}" APPEND
+      PROPERTY
+        INSTALL_RPATH "${_vtk_build_origin_rpath_prefix}")
+  endif ()
 endfunction ()
 
 #[==[
