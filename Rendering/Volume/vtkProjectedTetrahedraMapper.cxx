@@ -331,6 +331,10 @@ void MapIndependentComponents(
       {
         s = scalars->GetTypedComponent(i, vectorComponent);
       }
+      else if (scalars->GetNumberOfComponents() == 1)
+      {
+        s = scalars->GetValue(i);
+      }
       else
       {
         ScalarType sum = 0.0;
