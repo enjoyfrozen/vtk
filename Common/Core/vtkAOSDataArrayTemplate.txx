@@ -12,8 +12,14 @@
      PURPOSE.  See the above copyright notice for more information.
 
 =========================================================================*/
+
 #ifndef vtkAOSDataArrayTemplate_txx
 #define vtkAOSDataArrayTemplate_txx
+
+#ifdef VTK_AOS_DATA_ARRAY_TEMPLATE_INSTANTIATING
+#define VTK_GDA_VALUERANGE_INSTANTIATING
+#include "vtkDataArrayPrivate.txx"
+#endif
 
 #include "vtkAOSDataArrayTemplate.h"
 
