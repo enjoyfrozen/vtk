@@ -13,9 +13,10 @@
 
 =========================================================================*/
 
+#define VTK_COMPUTE_SCALAR_RANGE_IMPL
 #include "vtkDataArrayPrivate.txx"
 
 namespace vtkDataArrayPrivate
 {
-vtkInstantiateComputeScalarRangeMacro(vtkAOSDataArrayTemplate, double, 1);
+vtkInstantiateComputeScalarRangeMacro(vtkAOSDataArrayTemplate, 1);
 }
