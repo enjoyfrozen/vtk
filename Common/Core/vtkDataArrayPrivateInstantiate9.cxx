@@ -13,9 +13,10 @@
 
 =========================================================================*/
 
+#define VTK_GDA_VALUERANGE_INSTANTIATING
 #include "vtkDataArrayPrivate.txx"
 
 namespace vtkDataArrayPrivate
 {
-vtkInstantiateComputeScalarRangeMacro(vtkAOSDataArrayTemplate, double, 9);
+vtkInstantiateComputeScalarRangeMacro(vtkAOSDataArrayTemplate, 9);
 }
