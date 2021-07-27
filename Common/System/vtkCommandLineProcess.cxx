@@ -176,7 +176,8 @@ int vtkCommandLineProcess::ExitProcess(vtksysProcess* process)
   switch (state)
   {
     case vtksysProcess_State_Error:
-      vtkErrorMacro("Error administrating the child process");
+      vtkErrorMacro(
+        "Error administrating the child process: " << vtksysProcess_GetErrorString(process));
       break;
     case vtksysProcess_State_Exception:
       vtkErrorMacro(
@@ -190,7 +191,7 @@ int vtkCommandLineProcess::ExitProcess(vtksysProcess* process)
       break;
     case vtksysProcess_State_Exited:
       code = vtksysProcess_GetExitValue(process);
-      vtkDebugMacro("Childs process returned with value: " << code);
+      vtkDebugMacro("Child process returned with value: " << code);
       if (code)
       {
         vtkWarningMacro("Child process exited with error code: " << code);
