@@ -113,6 +113,18 @@ foreach (INSTANTIATION_VALUE_TYPE IN LISTS vtkArrayDispatch_all_types)
   endif ()
 endforeach ()
 
+# these are for arrays that may contain 64-bit values
+set(_count 0)
+foreach (INSTANTIATION_VALUE_TYPE "long" "unsigned long" "long long" "unsigned long long")
+  MATH(EXPR _count "${_count} + 1")
+  set (NUMBER_OF_VALUERANGE_INSTANTIATIONS ${_count})
+
+  configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/vtkGenericDataArrayValueRange.cxx.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/vtkGenericDataArrayValueRange${_count}.cxx"
+    @ONLY)
+endforeach()
+
 set(classes
   vtkAbstractArray
   vtkAnimationCue
@@ -255,6 +267,10 @@ set(sources
   vtkArrayIteratorTemplateInstantiate.cxx
   vtkGenericDataArray.cxx
   ${vtk_smp_sources})
+
+foreach (_count RANGE 1 ${NUMBER_OF_VALUERANGE_INSTANTIATIONS})
+  list (APPEND sources vtkGenericDataArrayValueRange${_count}.cxx)
+endforeach ()
 
 foreach (_count RANGE 1 ${NUMBER_OF_SOA_ARRAY_INSTANTIATIONS})
   list (APPEND sources vtkSOADataArrayTemplateInstantiate${_count}.cxx)
