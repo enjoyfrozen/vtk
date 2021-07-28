@@ -234,7 +234,6 @@ int vtkProbeLineFilter::RequestData(
     vtkPointSet* points = vtkPointSet::SafeDownCast(prober->GetOutputDataObject(0));
     auto pointsRange = vtk::DataArrayTupleRange<3>(points->GetPoints()->GetData());
     using PointRef = decltype(pointsRange)::TupleReferenceType;
-    double diff[3];
     for (vtkIdType pointId = 1; pointId < pointsRange.size() - 1; pointId += 2)
     {
       PointRef p1 = pointsRange[pointId];
