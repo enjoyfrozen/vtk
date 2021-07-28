@@ -16,8 +16,8 @@
 #include "vtkObjectFactory.h"
 
 #include <algorithm>
+#include <cctype>
 #include <regex>
-#include <sstream>
 #include <string>
 #include <vector>
 
@@ -176,7 +176,8 @@ int vtkCommandLineProcess::ExitProcess(vtksysProcess* process)
   switch (state)
   {
     case vtksysProcess_State_Error:
-      vtkErrorMacro("Error administrating the child process");
+      vtkErrorMacro(
+        "Error administrating the child process" << vtksysProcess_GetErrorString(process));
       break;
     case vtksysProcess_State_Exception:
       vtkErrorMacro(
