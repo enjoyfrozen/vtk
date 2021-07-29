@@ -63,10 +63,138 @@ vtkCxxSetObjectMacro(vtkProbeLineFilter, Controller, vtkMultiProcessController);
 
 namespace
 {
+struct ProjInfo
+{
+  double Projection;
+  vtkIdType CellID;
+
+  static bool SortFunction(const ProjInfo& l, const ProjInfo& r)
+  {
+    return l.Projection < r.Projection;
+  }
+  static bool EqualFunction(const ProjInfo& l, const ProjInfo& r)
+  {
+    return l.CellID == r.CellID && vtkMathUtilities::NearlyEqual(l.Projection, r.Projection);
+  }
+};
+
+//==============================================================================
+struct OptionalPosition
+{
+  bool IsValid;
+  vtkVector3d Position;
+};
+
+std::pair<OptionalPosition,OptionalPosition> GetInOutCell3D(const vtkVector3d& p1, const vtkVector3d& p2, vtkCell* cell, double tolerance)
+{
+  using PosAndDist = std::pair<vtkVector3d,double>;
+  const int nface = cell->GetNumberOfFaces();
+  std::vector<PosAndDist> intersections;
+  intersections.reserve(nface);
+  double t, x[3], _pcoords[3];
+  int _id;
+  for (int i = 0; i < nface; ++i)
+  {
+    if (cell->GetFace(i)->IntersectWithLine(p1.GetData(), p2.GetData(), 0.0, t, x, _pcoords, _id))
+    {
+      intersections.emplace_back(PosAndDist(vtkVector3d(x), t));
+    }
+  }
+  std::sort(intersections.begin(), intersections.end(), [](const PosAndDist& l, const PosAndDist& r)
+    {
+      return l.second < r.second;
+    });
+  auto last = std::unique(intersections.begin(), intersections.end(), [tolerance](const PosAndDist& l, const PosAndDist& r)
+    {
+      return vtkMathUtilities::NearlyEqual(l.second, r.second, tolerance);
+    });
+
+  const std::size_t size = std::distance(intersections.begin(), last);
+  OptionalPosition inProj{false, vtkVector3d()};
+  OptionalPosition outProj{false, vtkVector3d()};
+  if (size == 1)
+  {
+    outProj = {true, intersections[0].first};
+  }
+  else if (size >= 2)
+  {
+    inProj = {true, intersections[0].first};
+    outProj = {true, (last - 1)->first};
+  }
+
+  return std::pair<OptionalPosition,OptionalPosition>(inProj, outProj);
+}
+
+//==============================================================================
+std::vector<ProjInfo> ProcessLimitPoints(vtkVector3d p1, vtkVector3d p2, int pattern, vtkDataSet* input, vtkStaticCellLocator* locator, double tolerance)
+{
+  double t, x[3], pcoords[3], _tmp[3], bb[6];
+  int subId;
+  std::vector<ProjInfo> projections;
+  vtkVector3d nline = (p2 - p1).Normalized();
+
+  vtkIdType p1Cell = locator->FindCell(p1.GetData());
+  if (p1Cell >= 0)
+  {
+    vtkCell* cell = input->GetCell(p1Cell);
+    cell->GetBounds(bb);
+    if (cell->GetCellDimension() == 3)
+    {
+      auto pair = ::GetInOutCell3D(p1, p2, cell, tolerance);
+      OptionalPosition outPos = pair.second;
+      if (outPos.IsValid)
+      {
+        if (pattern == vtkProbeLineFilter::SamplingPattern::SAMPLE_LINE_AT_SEGMENT_CENTERS)
+        {
+          double projection = nline.Dot(outPos.Position - p1);
+          // Equivalent to (projection + P1Proj) * 0.5, with P1Proj = nline.Dot(p1 - p1) = 0
+          projections.emplace_back(ProjInfo{projection * 0.5, p1Cell});
+        }
+        else
+        {
+          double projection = nline.Dot((outPos.Position - p1) - tolerance * nline);
+          projections.emplace_back(ProjInfo{projection, p1Cell});
+        }
+      }
+    }
+  }
+
+  vtkIdType p2Cell = locator->FindCell(p2.GetData());
+  if (p2Cell >= 0)
+  {
+    vtkCell* cell = input->GetCell(p2Cell);
+    cell->GetBounds(bb);
+    if (cell->GetCellDimension() == 3)
+    {
+      auto pair = ::GetInOutCell3D(p1, p2, cell, tolerance);
+      OptionalPosition inPos = pair.second;
+      if (pair.first.IsValid)
+      {
+        inPos = pair.first;
+      }
+      if (inPos.IsValid)
+      {
+        if (pattern == vtkProbeLineFilter::SamplingPattern::SAMPLE_LINE_AT_SEGMENT_CENTERS)
+        {
+          double projection = nline.Dot((inPos.Position + p2) * 0.5 - p1);
+          projections.emplace_back(ProjInfo{projection, p2Cell});
+        }
+        else
+        {
+          double projection = nline.Dot((inPos.Position - p1) + tolerance * nline);
+          projections.emplace_back(ProjInfo{projection, p2Cell});
+        }
+      }
+    }
+  }
+
+  return projections;
+}
+
 //==============================================================================
 struct PointSetBlock
 {
-  std::vector<std::vector<double>> ReceivedProjections;
+  std::vector<std::vector<ProjInfo>> ReceivedProjections;
 };
 
 //==============================================================================
@@ -76,87 +204,27 @@ struct PointSetBlock
 struct ProbingPointGeneratorWorker
 {
   ProbingPointGeneratorWorker(
-    const std::vector<double>& projections, const double* point1, const double* point2, double tolerance, bool splitPoints)
+    const std::vector<ProjInfo>& projections, vtkVector3d point1, vtkVector3d point2)
     : Projections(projections)
-    , Point1(point1)
-    , Point2(point2)
-    , SplitPoints(splitPoints)
-    , LineDirection((vtkVector3d(point2) - vtkVector3d(point1)))
-    , LineNorm(this->LineDirection.Normalize())
-    , LineDirectionEpsilon(2.0 * tolerance * LineDirection)
+    , Start(point1)
+    , LineDirection((point2 - point1).Normalized())
   {
     // We add 2 points to add Point1 and Point2 to the list of probed points when the for loop is done
-    auto size = projections.size();
-    if (splitPoints)
-    {
-      this->SortedPoints->SetNumberOfPoints(2 * size + 2);
-    }
-    else
-    {
-      this->SortedPoints->SetNumberOfPoints(size + 2);
-    }
+    this->SortedPoints->SetNumberOfPoints(projections.size() + 2);
   }
 
   void operator()(vtkIdType startId, vtkIdType endId)
   {
-    double point1Epsilon = VTK_DBL_EPSILON *
-      std::max({ std::abs(this->Point1[0]), std::abs(this->Point1[1]), std::abs(this->Point1[2]) });
-    double point2Epsilon = VTK_DBL_EPSILON *
-      std::max({ std::abs(this->Point2[0]), std::abs(this->Point2[1]), std::abs(this->Point2[2]) });
-    vtkVector3d p1v(this->Point1);
-
     for (vtkIdType pointId = startId; pointId < endId; ++pointId)
     {
-      vtkVector3d p = p1v + this->LineDirection * (this->Projections[pointId] / this->LineNorm);
-      if (this->SplitPoints)
-      {
-        vtkIdType idx = pointId * 2 + 1;
-        // We make sure that we do not add any point before Point1 or after Point2.
-        // If this happens, we replace the point by Point1 or Point2 when appropriate.
-        // In such instances, there will unnecessary duplicate points in the probing line.
-        // It is not a problem for the rest of the filter, and keeping consistently
-        // the rule that the first and last points are the end points of the input line
-        // makes it more trivial to get rid of them if they are not required later
-        // in the pipeline (getting rid of the 2 first samples and the 2 last samples
-        // is sufficient).
-        double pBefore[3], pAfter[3], tmp[3];
-
-        vtkMath::Subtract(p.GetData(), this->LineDirectionEpsilon.GetData(), pBefore);
-        vtkMath::Subtract(pBefore, this->Point1, tmp);
-        if (vtkMath::Dot(this->LineDirection.GetData(), tmp) < point1Epsilon)
-        {
-          this->SortedPoints->SetPoint(idx, this->Point1);
-        }
-        else
-        {
-          this->SortedPoints->SetPoint(idx, pBefore);
-        }
-
-        vtkMath::Add(p.GetData(), this->LineDirectionEpsilon.GetData(), pAfter);
-        vtkMath::Subtract(this->Point2, pAfter, tmp);
-        if (vtkMath::Dot(this->LineDirection.GetData(), tmp) < point2Epsilon)
-        {
-          this->SortedPoints->SetPoint(idx + 1, this->Point2);
-        }
-        else
-        {
-          this->SortedPoints->SetPoint(idx + 1, pAfter);
-        }
-      }
-      else
-      {
-        this->SortedPoints->SetPoint(pointId + 1, p.GetData());
-      }
+      vtkVector3d p = this->Start + this->LineDirection * this->Projections[pointId].Projection;
+      this->SortedPoints->SetPoint(pointId + 1, p.GetData());
     }
   }
 
-  const std::vector<double>& Projections;
-  const double* Point1;
-  const double* Point2;
-  bool SplitPoints;
+  const std::vector<ProjInfo>& Projections;
+  vtkVector3d Start;
   vtkVector3d LineDirection;
-  double LineNorm;
-  vtkVector3d LineDirectionEpsilon;
 
   // output
   vtkNew<vtkPoints> SortedPoints;
@@ -281,96 +349,71 @@ vtkSmartPointer<vtkPolyData> vtkProbeLineFilter::SampleLineAtEachCell(
     return vtkPolyData::SafeDownCast(line->GetOutputDataObject(0));
   }
 
-  vtkVector3d p1v = vtkVector3d(this->Point1);
-  vtkVector3d p2v = vtkVector3d(this->Point2);
-  const vtkVector3d p12 = p2v - p1v;
-  vtkVector3d np12 = p12.Normalized();
-  std::vector<double> projections;
+  vtkVector3d p1 = vtkVector3d(this->Point1);
+  vtkVector3d p2 = vtkVector3d(this->Point2);
+  const vtkVector3d line = p2 - p1;
+  const vtkVector3d nline = line.Normalized();
+  std::vector<ProjInfo> projections;
+  const double tolerance = this->ComputeTolerance
+    ? VTK_TOL * line.Norm()
+    : this->Tolerance;
+
+  // Add every intersections with all blocks of the dataset on our current rank
   for (std::size_t dsId = 0; dsId < inputs.size(); ++dsId)
   {
     vtkDataSet* input = inputs[dsId];
-    const double tolerance = this->ComputeTolerance
-      ? VTK_TOL * p12.Norm()
-      : this->Tolerance;
     vtkNew<vtkStaticCellLocator> locator;
     locator->SetDataSet(input);
-    locator->SetTolerance(tolerance);
+    locator->SetTolerance(0.0);
     locator->UseDiagonalLengthToleranceOff();
     locator->BuildLocator();
 
-    double t;
-    double x[3], val[3], npos[3], _opt[3];
-    vtkIdType _id;
+    vtkNew<vtkIdList> intersected;
+    locator->FindCellsAlongLine(p1.GetData(), p2.GetData(), 0.0, intersected);
+    // We process P1 and P2 a bit differently so in the case of their intersection with a cell
+    // they are not duplicated
+    auto processedProj = ::ProcessLimitPoints(p1, p2, this->SamplingPattern, input, locator, tolerance);
+    for (const auto& proj : processedProj)
+    {
+      intersected->DeleteId(proj.CellID);
+    }
+    projections.insert(projections.end(), processedProj.begin(), processedProj.end());
+
+    // Process every cell intersections once we're done with limit points.
+    double t, x[3], pcoords[3], _tmp[3];
     int subId;
-    double p1[3] = {this->Point1[0], this->Point1[1], this->Point1[2]};
-    double p2[3] = {this->Point2[0], this->Point2[1], this->Point2[2]};
-    // if P1 or P2 intersect, skip them and shift the starting/ending points towards the inside
-    // of the line as they will be added later anyway and we don't want to duplicate them
-    if (locator->FindCell(p1) >= 0)
+    for (vtkIdType i = 0; i < intersected->GetNumberOfIds(); ++i)
     {
-      p1[0] += 2.0 * tolerance * np12.GetX();
-      p1[1] += 2.0 * tolerance * np12.GetY();
-      p1[2] += 2.0 * tolerance * np12.GetZ();
-    }
-    if (locator->FindCell(p2) >= 0)
-    {
-      p2[0] -= 2.0 * tolerance * np12.GetX();
-      p2[1] -= 2.0 * tolerance * np12.GetY();
-      p2[2] -= 2.0 * tolerance * np12.GetZ();
-    }
-    vtkNew<vtkGenericCell> cell;
-    while (locator->IntersectWithLine(p1, p2, 0.0, t, x, _opt, subId, _id, cell))
-    {
+      vtkIdType cellId = intersected->GetId(i);
+      vtkCell* cell = input->GetCell(cellId);
       if (cell->GetCellDimension() == 3)
       {
-        if (this->SamplingPattern == SamplingPattern::SAMPLE_LINE_AT_SEGMENT_CENTERS)
+        auto inOut = ::GetInOutCell3D(p1, p2, cell, tolerance);
+        if (inOut.first.IsValid)
         {
-          double pcoords[3];
-          cell->GetParametricCenter(pcoords);
-          cell->EvaluateLocation(subId, pcoords, val, _opt);
-          memcpy(x, val, 3 * sizeof(double));
-        }
-
-        for (vtkIdType f = 0; f < cell->GetNumberOfFaces(); ++f)
-        {
-          vtkCell* face = cell->GetFace(f);
-          if (face->IntersectWithLine(x, p2, 0.0, t, npos, _opt, subId))
+          double inProj = nline.Dot((inOut.first.Position - p1) + tolerance * nline);
+          double outProj = nline.Dot((inOut.second.Position - p1) - tolerance * nline);
+          if (this->SamplingPattern == SamplingPattern::SAMPLE_LINE_AT_CELL_BOUNDARIES)
           {
-            if (this->SamplingPattern == SamplingPattern::SAMPLE_LINE_AT_CELL_BOUNDARIES)
-            {
-              memcpy(val, npos, 3 * sizeof(double));
-            }
-            break;
+            projections.emplace_back(ProjInfo{inProj, cellId});
+            projections.emplace_back(ProjInfo{outProj, cellId});
+          }
+          else
+          {
+            projections.emplace_back(ProjInfo{(inProj + outProj) * 0.5, cellId});
           }
         }
       }
       else
       {
-        memcpy(val, x, 3 * sizeof(double));
-        memcpy(npos, x, 3 * sizeof(double));
-      }
-
-      // Add current intersection/center point projection. We don't use the coordinates directly because
-      // the projection will be easier to sort and tranfer through processes. Also one could directly add
-      // the point distance from P1 but it's more numerically stable to add its projection onto the vector p12.
-      projections.emplace_back(p12.Dot(vtkVector3d(val) - p1v));
-
-      // Pad by epsilon to not intersect the same cell twice
-      p1[0] = npos[0] + 2.0 * tolerance * np12.GetX();
-      p1[1] = npos[1] + 2.0 * tolerance * np12.GetY();
-      p1[2] = npos[2] + 2.0 * tolerance * np12.GetZ();
-
-      // Check if we're done ie we have passed P2. This is needed when P2 is at the border,
-      // in this case the locator will always intersect so we have to break ourself.
-      if (p12.Dot(p2v - vtkVector3d(p1)) < 0)
-      {
-        break;
+        cell->IntersectWithLine(p1.GetData(), p2.GetData(), tolerance, t, x, pcoords, subId);
+        projections.emplace_back(ProjInfo{nline.Dot(vtkVector3d(x) - p1), cellId});
       }
     }
   }
 
-  // Sort our array of projections so the merge across ranks is faster afterward.
-  vtkSMPTools::Sort(projections.begin(), projections.end());
+  // Sort our array of projections so the merge across ranks is faster afterwards.
+  vtkSMPTools::Sort(projections.begin(), projections.end(), &ProjInfo::SortFunction);
 
   // We need to gather points from every ranks to every ranks because vtkProbeFilter
   // assumes that its input is replicated in every ranks.
@@ -404,7 +447,7 @@ vtkSmartPointer<vtkPolyData> vtkProbeLineFilter::SampleLineAtEachCell(
           const diy::BlockID& blockId = srp.in_link().target(i);
           if (blockId.gid != myBlockId)
           {
-            std::vector<double> data;
+            std::vector<ProjInfo> data;
             srp.dequeue(blockId, data);
             block->ReceivedProjections.emplace_back(std::move(data));
           }
@@ -417,20 +460,14 @@ vtkSmartPointer<vtkPolyData> vtkProbeLineFilter::SampleLineAtEachCell(
   for (const auto& distProjections : block->ReceivedProjections)
   {
     auto prevEnd = projections.insert(projections.end(), distProjections.begin(), distProjections.end());
-    std::inplace_merge(projections.begin(), prevEnd, projections.end());
+    std::inplace_merge(projections.begin(), prevEnd, projections.end(), &ProjInfo::SortFunction);
   }
 
   // Duplicate points can happen on composite data set so lets remove them
-  auto last = std::unique(projections.begin(), projections.end(), [](double l, double r)
-    {
-      return vtkMathUtilities::NearlyEqual(l, r);
-    });
+  auto last = std::unique(projections.begin(), projections.end(), &ProjInfo::EqualFunction);
   projections.erase(last, projections.end());
 
-  bool splitPoints = this->SamplingPattern == SAMPLE_LINE_AT_CELL_BOUNDARIES;
-  double splitDelta = this->ComputeTolerance ? VTK_TOL : this->Tolerance;
-  ProbingPointGeneratorWorker probingPointGeneratorWorker(projections,
-    this->Point1, this->Point2, splitDelta, splitPoints);
+  ProbingPointGeneratorWorker probingPointGeneratorWorker(projections, p1, p2);
   vtkSMPTools::For(0, projections.size(), probingPointGeneratorWorker);
 
   vtkPoints* sortedPoints = probingPointGeneratorWorker.SortedPoints;
