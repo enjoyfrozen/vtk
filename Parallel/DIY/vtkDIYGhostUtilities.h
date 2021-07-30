@@ -775,14 +775,11 @@ protected:
    * `BlockType::InformationType` is filled with all information needed from the input to create the
    * output.
    */
-  static void SetupBlockSelfInformation(diy::Master& master, std::vector<vtkImageData*>& inputs);
-  static void SetupBlockSelfInformation(
-    diy::Master& master, std::vector<vtkRectilinearGrid*>& inputs);
-  static void SetupBlockSelfInformation(
-    diy::Master& master, std::vector<vtkStructuredGrid*>& inputs);
-  static void SetupBlockSelfInformation(
-    diy::Master& master, std::vector<vtkUnstructuredGrid*>& inputs);
-  static void SetupBlockSelfInformation(diy::Master& master, std::vector<vtkPolyData*>& inputs);
+  static void InitialiazeBlocks(diy::Master& master, std::vector<vtkImageData*>& inputs);
+  static void InitialiazeBlocks(diy::Master& master, std::vector<vtkRectilinearGrid*>& inputs);
+  static void InitialiazeBlocks(diy::Master& master, std::vector<vtkStructuredGrid*>& inputs);
+  static void InitialiazeBlocks(diy::Master& master, std::vector<vtkUnstructuredGrid*>& inputs);
+  static void InitialiazeBlocks(diy::Master& master, std::vector<vtkPolyData*>& inputs);
   ///@}
 
   /**
