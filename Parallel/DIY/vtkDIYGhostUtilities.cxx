@@ -1754,10 +1754,14 @@ struct ComputePolyDataConnectivitySizeWorker
   using ArrayType32 = vtkCellArray::ArrayType32;
   using ArrayType64 = vtkCellArray::ArrayType64;
 
-    using VertArrayType = typename std::conditional<MaskT & 1, ArrayType64, ArrayType32>::type;
-    using LineArrayType = typename std::conditional<MaskT & 2, ArrayType64, ArrayType32>::type;
-    using PolyArrayType = typename std::conditional<MaskT & 4, ArrayType64, ArrayType32>::type;
-    using StripArrayType = typename std::conditional<MaskT & 8, ArrayType64, ArrayType32>::type;
+    using VertArrayType = typename std::conditional<(MaskT & 1) != 0, ArrayType64, ArrayType32>
+      ::type;
+    using LineArrayType = typename std::conditional<(MaskT & 2) != 0, ArrayType64, ArrayType32>
+      ::type;
+    using PolyArrayType = typename std::conditional<(MaskT & 4) != 0, ArrayType64, ArrayType32>
+      ::type;
+    using StripArrayType = typename std::conditional<(MaskT & 8) != 0, ArrayType64, ArrayType32>
+      ::type;
 
     ComputePolyDataConnectivitySizeWorker(vtkPolyData* input)
       : Input(input)
