@@ -39,7 +39,6 @@
 #include "vtkVolume.h"
 #include "vtkVolumeProperty.h"
 #include "vtkXMLMultiBlockDataReader.h"
-#include "vtkXMLPUnstructuredGridReader.h"
 
 int TestMultiBlockMapperRectilinearGrid(int argc, char* argv[])
 {
