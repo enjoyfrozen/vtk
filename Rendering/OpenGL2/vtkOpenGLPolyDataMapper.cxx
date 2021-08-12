@@ -2337,8 +2337,6 @@ void vtkOpenGLPolyDataMapper::ReplaceShaderNormal(
       );
 
       toString << "vec3 normalVCVSOutput;\n"
-                  "  fdx = normalize(fdx);\n"
-                  "  fdy = normalize(fdy);\n"
                   "  if (abs(fdx.x) > 0.0)\n"
                   "    { normalVCVSOutput = normalize(cross(vec3(fdx.y, -fdx.x, 0.0), fdx)); }\n"
                   "  else { normalVCVSOutput = normalize(cross(vec3(fdy.y, -fdy.x, 0.0), fdy));}\n";

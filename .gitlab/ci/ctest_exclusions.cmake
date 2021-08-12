@@ -174,14 +174,15 @@ if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "macos_arm64")
   list(APPEND test_exclusions
     # Crowded geometry?
     # https://gitlab.kitware.com/vtk/vtk/-/issues/18230
-    "^VTK::ViewsInfovisCxx-TestTreeMapView$"
+    # "^VTK::ViewsInfovisCxx-TestTreeMapView$"
 
     # Line rendering differences.
     # https://gitlab.kitware.com/vtk/vtk/-/issues/18229
-    "^VTK::FiltersGeneralPython-TestCellDerivs$"
-    "^VTK::FiltersHyperTreeCxx-TestHyperTreeGridBinaryClipPlanes$"
-    "^VTK::RenderingAnnotationCxx-TestCubeAxes3$"
-    "^VTK::RenderingAnnotationCxx-TestCubeAxesWithYLines$")
+    # "^VTK::FiltersGeneralPython-TestCellDerivs$"
+    # "^VTK::FiltersHyperTreeCxx-TestHyperTreeGridBinaryClipPlanes$"
+    # "^VTK::RenderingAnnotationCxx-TestCubeAxes3$"
+    # "^VTK::RenderingAnnotationCxx-TestCubeAxesWithYLines$"
+    )
 endif ()
 
 if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "macos")
