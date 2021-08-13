@@ -674,7 +674,7 @@ void vtkQuadraticPyramid::Derivatives(
   jI[2] = j2;
   this->JacobianInverse(pcoords, jI, functionDerivs);
 
-  // now compute derivates of values provided
+  // now compute derivatives of values provided
   for (k = 0; k < dim; k++) // loop over values per vertex
   {
     sum[0] = sum[1] = sum[2] = 0.0;

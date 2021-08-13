@@ -76,6 +76,14 @@ public:
   int EvaluatePosition(const double x[3], double closestPoint[3], int& subId, double pcoords[3],
     double& dist2, double weights[]) override;
   void EvaluateLocation(int& subId, const double pcoords[3], double x[3], double* weights) override;
+
+  /**
+   * Line-edge intersection. Intersection has to occur within [0,1] parametric
+   * coordinates and with specified tolerance.
+   */
+  int IntersectWithLine(const double p1[3], const double p2[3], double tol, double& t, double x[3],
+    double pcoords[3], int& subId) override;
+
   int Triangulate(int index, vtkIdList* ptIds, vtkPoints* pts) override;
   void Derivatives(
     int subId, const double pcoords[3], const double* values, int dim, double* derivs) override;
@@ -89,13 +97,6 @@ public:
   void Clip(double value, vtkDataArray* cellScalars, vtkIncrementalPointLocator* locator,
     vtkCellArray* tets, vtkPointData* inPd, vtkPointData* outPd, vtkCellData* inCd,
     vtkIdType cellId, vtkCellData* outCd, int insideOut) override;
-
-  /**
-   * Line-edge intersection. Intersection has to occur within [0,1] parametric
-   * coordinates and with specified tolerance.
-   */
-  int IntersectWithLine(const double p1[3], const double p2[3], double tol, double& t, double x[3],
-    double pcoords[3], int& subId) override;
 
   /**
    * Return the center of the quadratic pyramid in parametric coordinates.
@@ -118,6 +119,14 @@ public:
     vtkQuadraticPyramid::InterpolationDerivs(pcoords, derivs);
   }
   ///@}
+
+  /**
+   * Given parametric coordinates compute inverse Jacobian transformation
+   * matrix. Returns 9 elements of 3x3 inverse Jacobian plus interpolation
+   * function derivatives.
+   */
+  void JacobianInverse(const double pcoords[3], double** inverse, double derivs[39]);
+
   ///@{
   /**
    * Return the ids of the vertices defining edge/face (`edgeId`/`faceId').
@@ -129,13 +138,6 @@ public:
   static const vtkIdType* GetEdgeArray(vtkIdType edgeId);
   static const vtkIdType* GetFaceArray(vtkIdType faceId);
   ///@}
-
-  /**
-   * Given parametric coordinates compute inverse Jacobian transformation
-   * matrix. Returns 9 elements of 3x3 inverse Jacobian plus interpolation
-   * function derivatives.
-   */
-  void JacobianInverse(const double pcoords[3], double** inverse, double derivs[39]);
 
 protected:
   vtkQuadraticPyramid();
