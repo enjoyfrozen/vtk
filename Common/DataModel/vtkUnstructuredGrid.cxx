@@ -25,6 +25,7 @@
 #include "vtkBezierTetra.h"
 #include "vtkBezierTriangle.h"
 #include "vtkBezierWedge.h"
+#include "vtkBiQuadraticPyramid.h"
 #include "vtkBiQuadraticQuad.h"
 #include "vtkBiQuadraticQuadraticHexahedron.h"
 #include "vtkBiQuadraticQuadraticWedge.h"
@@ -166,6 +167,7 @@ vtkUnstructuredGrid::vtkUnstructuredGrid()
   this->BiQuadraticQuad = nullptr;
   this->TriQuadraticHexahedron = nullptr;
   this->QuadraticLinearWedge = nullptr;
+  this->BiQuadraticPyramid = nullptr;
   this->BiQuadraticQuadraticWedge = nullptr;
   this->BiQuadraticQuadraticHexahedron = nullptr;
   this->BiQuadraticTriangle = nullptr;
@@ -347,6 +349,10 @@ vtkUnstructuredGrid::~vtkUnstructuredGrid()
   if (this->QuadraticLinearWedge)
   {
     this->QuadraticLinearWedge->Delete();
+  }
+  if (this->BiQuadraticPyramid)
+  {
+    this->BiQuadraticPyramid->Delete();
   }
   if (this->BiQuadraticQuadraticWedge)
   {
@@ -945,6 +951,7 @@ vtkCell* vtkUnstructuredGrid::GetCell(vtkIdType cellId)
       }
       cell = this->BiQuadraticQuadraticHexahedron;
       break;
+
     case VTK_BIQUADRATIC_TRIANGLE:
       if (!this->BiQuadraticTriangle)
       {
@@ -952,6 +959,15 @@ vtkCell* vtkUnstructuredGrid::GetCell(vtkIdType cellId)
       }
       cell = this->BiQuadraticTriangle;
       break;
+
+    case VTK_BIQUADRATIC_PYRAMID:
+      if (!this->BiQuadraticPyramid)
+      {
+        this->BiQuadraticPyramid = vtkBiQuadraticPyramid::New();
+      }
+      cell = this->BiQuadraticPyramid;
+      break;
+
     case VTK_CUBIC_LINE:
       if (!this->CubicLine)
       {
