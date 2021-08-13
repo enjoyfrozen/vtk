@@ -135,7 +135,10 @@ public:
 
   /// Get a pointer to the field data manager
   /// \sa FieldDataManager, FieldData
+  FIDES_DEPRECATED_SUPPRESS_BEGIN
+  FIDES_DEPRECATED(1.1, "FieldData is no longer used. All data is stored in VTK-m DataSet.")
   std::shared_ptr<fides::datamodel::FieldDataManager> GetFieldData();
+  FIDES_DEPRECATED_SUPPRESS_END
 
   /// Get std::vector of DataSource names.
   std::vector<std::string> GetDataSourceNames();
