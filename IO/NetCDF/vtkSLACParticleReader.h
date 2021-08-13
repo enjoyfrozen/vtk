@@ -59,7 +59,7 @@ public:
   /**
    * Returns true if the given file can be read by this reader.
    */
-  static int CanReadFile(const char* filename);
+  static int CanReadFile(VTK_FILEPATH const char* filename);
 
 protected:
   vtkSLACParticleReader();

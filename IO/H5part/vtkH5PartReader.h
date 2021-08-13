@@ -60,7 +60,7 @@ public:
   /**
    * Specify file name.
    */
-  void SetFileName(char* filename);
+  void SetFileName(VTK_FILEPATH char* filename);
   vtkGetStringMacro(FileName);
   ///@}
 

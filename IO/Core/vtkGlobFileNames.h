@@ -84,7 +84,7 @@ public:
    * be called repeatedly to add files matching additional patterns.
    * Returns 1 if successful, otherwise returns zero.
    */
-  int AddFileNames(const char* pattern);
+  int AddFileNames(VTK_FILEPATH const char* pattern);
 
   ///@{
   /**

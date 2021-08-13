@@ -47,7 +47,7 @@ public:
   /**
    * Specify name of geometry FileName (alias).
    */
-  virtual void SetFileName(const char* f) { this->SetGeometryFileName(f); }
+  virtual void SetFileName(VTK_FILEPATH const char* f) { this->SetGeometryFileName(f); }
   virtual char* GetFileName() { return this->GetGeometryFileName(); }
 
   ///@{
@@ -116,7 +116,7 @@ public:
    * type, the result is not definitive.  Invalid files may still return 1
    * although a valid file will never return 0.
    */
-  static int CanReadFile(const char* filename);
+  static int CanReadFile(VTK_FILEPATH const char* filename);
 
 protected:
   vtkBYUReader();

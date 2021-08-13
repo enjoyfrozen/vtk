@@ -68,12 +68,12 @@ public:
    * Test whether or not a given file should even be attempted for use with this
    * reader.
    */
-  int CanReadFile(const std::string& name);
+  int CanReadFile(VTK_FILEPATH const std::string& name);
 
   /**
    * Set the filename to be read
    */
-  void SetFileName(const std::string& fname);
+  void SetFileName(VTK_FILEPATH const std::string& fname);
 
   ///@{
   /**

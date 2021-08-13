@@ -70,7 +70,7 @@ public:
   /**
    * Is the given file name a CGNS file?
    */
-  int CanReadFile(const char* filename);
+  int CanReadFile(VTK_FILEPATH const char* filename);
 
   /**
    * Returns access to the base selection object.

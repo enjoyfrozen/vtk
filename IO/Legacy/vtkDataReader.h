@@ -71,7 +71,7 @@ public:
    * a convenience method that calls the superclass' AddFileName
    * method.
    */
-  void SetFileName(const char* fname);
+  void SetFileName(VTK_FILEPATH const char* fname);
   const char* GetFileName() const;
   const char* GetFileName(int i) const { return this->vtkSimpleReader::GetFileName(i); }
   ///@}

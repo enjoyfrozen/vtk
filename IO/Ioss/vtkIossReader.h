@@ -196,7 +196,7 @@ public:
   /**
    * Set a single filename. Note, this will clear all existing filenames.
    */
-  void SetFileName(const char* fname);
+  void SetFileName(VTK_FILEPATH const char* fname);
 
   ///@{
   /**

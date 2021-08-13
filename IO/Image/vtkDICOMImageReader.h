@@ -65,7 +65,7 @@ public:
    * Set the filename for the file to read. If this method is used,
    * the reader will only read a single file.
    */
-  void SetFileName(const char* fn) override
+  void SetFileName(VTK_FILEPATH const char* fn) override
   {
     delete[] this->DirectoryName;
     delete[] this->FileName;
@@ -84,7 +84,7 @@ public:
    * the slice number. The volume building will be upgraded to
    * something more sophisticated in the future.
    */
-  void SetDirectoryName(const char* dn);
+  void SetDirectoryName(VTK_FILEPATH const char* dn);
 
   ///@{
   /**
@@ -181,7 +181,7 @@ public:
   //
   // Can I read the file?
   //
-  int CanReadFile(const char* fname) override;
+  int CanReadFile(VTK_FILEPATH const char* fname) override;
 
   //
   // What file extensions are supported?

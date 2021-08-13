@@ -157,10 +157,10 @@ public:
   /**
    * Set/Get the PLOT3D geometry filename.
    */
-  void SetFileName(const char* name) { this->SetXYZFileName(name); }
+  void SetFileName(VTK_FILEPATH const char* name) { this->SetXYZFileName(name); }
   const char* GetFileName() { return this->GetXYZFileName(); }
   const char* GetFileName(int i) { return this->vtkParallelReader::GetFileName(i); }
-  virtual void SetXYZFileName(const char*);
+  virtual void SetXYZFileName(VTK_FILEPATH const char*);
   vtkGetStringMacro(XYZFileName);
   ///@}
 
@@ -175,7 +175,7 @@ public:
    * Use a meta reader to support time values for non-Overflow file
    * sequences.
    */
-  void SetQFileName(const char* name);
+  void SetQFileName(VTK_FILEPATH const char* name);
   const char* GetQFileName();
   ///@}
 

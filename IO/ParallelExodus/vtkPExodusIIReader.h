@@ -98,7 +98,7 @@ public:
    */
   void SetFileNames(int nfiles, const char** names);
 
-  void SetFileName(const char* name) override;
+  void SetFileName(VTK_FILEPATH const char* name) override;
 
   /**
    * Return pointer to list of file names set in SetFileNames

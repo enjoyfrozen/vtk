@@ -57,7 +57,7 @@ public:
   vtkGetStringMacro(FileName);
   ///@}
 
-  static int CanReadFile(const char* filename);
+  static int CanReadFile(VTK_FILEPATH const char* filename);
 
 protected:
   vtkFacetReader();
