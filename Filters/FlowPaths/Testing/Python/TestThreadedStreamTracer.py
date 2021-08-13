@@ -4,7 +4,7 @@ from vtk.util.misc import vtkGetDataRoot
 VTK_DATA_ROOT = vtkGetDataRoot()
 
 # Control test size
-res = 100
+res = 2
 
 # Create the RenderWindow, Renderer and both Actors
 #
@@ -32,7 +32,6 @@ ps.SetOrigin(2,-2,26)
 ps.SetPoint1(2,2,26)
 ps.SetPoint2(2,-2,32)
 ps.Update()
-numStreamers = ps.GetOutput().GetNumberOfPoints()
 
 psMapper = vtk.vtkPolyDataMapper()
 psMapper.SetInputConnection(ps.GetOutputPort())
@@ -51,6 +50,7 @@ streamer.SetIntegrationDirectionToForward()
 streamer.SetComputeVorticity(1)
 streamer.SetIntegrator(rk4)
 
+numStreamers = ps.GetOutput().GetNumberOfPoints()
 timer = vtk.vtkTimerLog()
 timer.StartTimer()
 streamer.Update()

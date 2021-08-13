@@ -1479,7 +1479,7 @@ Integrate(vtkPointData* input0Data, vtkPolyData* output,
   // threshold value.  This is because there is a cost to spinning up
   // threads, and then compositing the results. So for small numbers of
   // seeds, just use a serial approach. Otherwise thread the streamlines.
-  const int VTK_ST_THREADING_THRESHOLD = 20;
+  const int VTK_ST_THREADING_THRESHOLD = 8;
   if ( numSeeds < VTK_ST_THREADING_THRESHOLD )
   {// Serial
     vtkSMPTools::LocalScope(vtkSMPTools::Config{"Sequential"}, [&]()
