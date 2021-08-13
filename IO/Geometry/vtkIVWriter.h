@@ -50,7 +50,7 @@ public:
   /**
    * Specify file name of vtk polygon data file to write.
    */
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
   vtkGetStringMacro(FileName);
   ///@}
 

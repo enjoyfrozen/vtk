@@ -39,7 +39,7 @@ public:
   /**
    * Specify file name of vtk data file to read.
    */
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
   vtkGetStringMacro(FileName);
   ///@}
 

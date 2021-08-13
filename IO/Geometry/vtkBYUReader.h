@@ -40,7 +40,7 @@ public:
   /**
    * Specify name of geometry FileName.
    */
-  vtkSetStringMacro(GeometryFileName);
+  vtkSetFilePathMacro(GeometryFileName);
   vtkGetStringMacro(GeometryFileName);
   ///@}
 
@@ -54,7 +54,7 @@ public:
   /**
    * Specify name of displacement FileName.
    */
-  vtkSetStringMacro(DisplacementFileName);
+  vtkSetFilePathMacro(DisplacementFileName);
   vtkGetStringMacro(DisplacementFileName);
   ///@}
 
@@ -62,7 +62,7 @@ public:
   /**
    * Specify name of scalar FileName.
    */
-  vtkSetStringMacro(ScalarFileName);
+  vtkSetFilePathMacro(ScalarFileName);
   vtkGetStringMacro(ScalarFileName);
   ///@}
 
@@ -70,7 +70,7 @@ public:
   /**
    * Specify name of texture coordinates FileName.
    */
-  vtkSetStringMacro(TextureFileName);
+  vtkSetFilePathMacro(TextureFileName);
   vtkGetStringMacro(TextureFileName);
   ///@}
 

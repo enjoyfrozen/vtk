@@ -53,7 +53,7 @@ public:
   /**
    * Set/Get the name of a file events should be written to/from.
    */
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
   vtkGetStringMacro(FileName);
   ///@}
 

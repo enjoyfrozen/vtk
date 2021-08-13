@@ -111,14 +111,14 @@ protected:
   /**
    * Set the Measured file name.
    */
-  vtkSetStringMacro(MeasuredFileName);
+  vtkSetFilePathMacro(MeasuredFileName);
   ///@}
 
   ///@{
   /**
    * Set the Match file name.
    */
-  vtkSetStringMacro(MatchFileName);
+  vtkSetFilePathMacro(MatchFileName);
   ///@}
 
   ///@{

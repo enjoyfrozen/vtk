@@ -47,7 +47,7 @@ public:
   /**
    * Specify the file name of the GAMBIT data file to read.
    */
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
   vtkGetStringMacro(FileName);
   ///@}
 

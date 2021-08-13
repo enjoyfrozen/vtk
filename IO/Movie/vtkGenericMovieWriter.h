@@ -43,7 +43,7 @@ public:
   /**
    * Specify file name of avi file.
    */
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
   vtkGetStringMacro(FileName);
   ///@}
 

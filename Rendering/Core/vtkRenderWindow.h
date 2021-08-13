@@ -218,7 +218,7 @@ public:
    * Set/Get the full path to the custom cursor.
    * This is used when the current cursor is set to VTK_CURSOR_CUSTOM.
    */
-  vtkSetStringMacro(CursorFileName);
+  vtkSetFilePathMacro(CursorFileName);
   vtkGetStringMacro(CursorFileName);
   ///@}
 

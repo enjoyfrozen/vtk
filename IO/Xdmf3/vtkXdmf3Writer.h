@@ -48,7 +48,7 @@ public:
   /**
    * Set or get the file name of the xdmf file.
    */
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
   vtkGetStringMacro(FileName);
   ///@}
 

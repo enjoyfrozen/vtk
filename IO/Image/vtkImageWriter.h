@@ -42,7 +42,7 @@ public:
    * a FileName or a FilePrefix. Use FilePrefix if the data is stored
    * in multiple files.
    */
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
   vtkGetStringMacro(FileName);
   ///@}
 
@@ -52,7 +52,7 @@ public:
    * a FileName or FilePrefix. Use FilePrefix if the data is stored
    * in multiple files.
    */
-  vtkSetStringMacro(FilePrefix);
+  vtkSetFilePathMacro(FilePrefix);
   vtkGetStringMacro(FilePrefix);
   ///@}
 
@@ -60,7 +60,7 @@ public:
   /**
    * The snprintf format used to build filename from FilePrefix and number.
    */
-  vtkSetStringMacro(FilePattern);
+  vtkSetFilePathMacro(FilePattern);
   vtkGetStringMacro(FilePattern);
   ///@}
 

@@ -46,7 +46,7 @@ public:
   /**
    * Sets the name for the log file.
    */
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
   vtkGetStringMacro(FileName);
   ///@}
 

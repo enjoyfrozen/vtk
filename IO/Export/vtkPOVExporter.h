@@ -99,7 +99,7 @@ public:
   /**
    * The filename to save into.
    */
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
   vtkGetStringMacro(FileName);
   ///@}
 

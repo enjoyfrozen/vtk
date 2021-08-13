@@ -99,7 +99,7 @@ public:
   /**
    * Specify file name of MPAS data file to read.
    */
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
   vtkGetStringMacro(FileName);
   ///@}
 

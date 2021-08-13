@@ -40,7 +40,7 @@ public:
 
   // .Description
   // Get/Set the file to read
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
   vtkGetStringMacro(FileName);
 
 protected:

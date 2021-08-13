@@ -43,7 +43,7 @@ public:
   /**
    * Specify file name of Digital Elevation Model (DEM) file
    */
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
   vtkGetStringMacro(FileName);
   ///@}
 

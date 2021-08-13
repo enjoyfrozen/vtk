@@ -225,7 +225,7 @@ public:
    * Set/Get the filename to be used with the particle writer when
    * dumping particles to disk
    */
-  vtkSetStringMacro(ParticleFileName);
+  vtkSetFilePathMacro(ParticleFileName);
   vtkGetStringMacro(ParticleFileName);
   ///@}
 

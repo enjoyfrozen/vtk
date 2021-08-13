@@ -99,7 +99,7 @@ public:
    * is used as a singleton. If nothing is set the default is
    * ROOT_RANKS_PID.log
    */
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
   vtkGetStringMacro(FileName);
   ///@}
 

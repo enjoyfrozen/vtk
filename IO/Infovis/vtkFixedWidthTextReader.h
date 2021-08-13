@@ -58,7 +58,7 @@ public:
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
   vtkGetStringMacro(FileName);
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
 
   ///@{
   /**

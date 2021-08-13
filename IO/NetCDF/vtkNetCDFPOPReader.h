@@ -49,7 +49,7 @@ public:
   /**
    * The file to open
    */
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
   vtkGetStringMacro(FileName);
   ///@}
 
@@ -98,7 +98,7 @@ protected:
    */
   char* OpenedFileName;
 
-  vtkSetStringMacro(OpenedFileName);
+  vtkSetFilePathMacro(OpenedFileName);
 
   int Stride[3];
 

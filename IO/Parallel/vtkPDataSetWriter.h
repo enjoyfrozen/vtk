@@ -81,7 +81,7 @@ public:
    * This file pattern uses the file name and piece number
    * to construct a file name for the piece file.
    */
-  vtkSetStringMacro(FilePattern);
+  vtkSetFilePathMacro(FilePattern);
   vtkGetStringMacro(FilePattern);
   ///@}
 

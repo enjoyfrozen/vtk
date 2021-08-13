@@ -74,7 +74,7 @@ public:
    * starts with "/" or a drive letter) then that absolute path
    * will be used and Directory will be ignored.
    */
-  vtkSetStringMacro(Directory);
+  vtkSetFilePathMacro(Directory);
   vtkGetStringMacro(Directory);
   ///@}
 

@@ -183,7 +183,7 @@ public:
   /**
    * Set/Get the PLOT3D function filename.
    */
-  vtkSetStringMacro(FunctionFileName);
+  vtkSetFilePathMacro(FunctionFileName);
   vtkGetStringMacro(FunctionFileName);
   ///@}
 

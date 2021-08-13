@@ -58,7 +58,7 @@ public:
   /**
    * Specify file prefix for the image file(s).
    */
-  vtkSetStringMacro(FilePrefix);
+  vtkSetFilePathMacro(FilePrefix);
   vtkGetStringMacro(FilePrefix);
   ///@}
 
@@ -66,7 +66,7 @@ public:
   /**
    * The snprintf format used to build filename from FilePrefix and number.
    */
-  vtkSetStringMacro(FilePattern);
+  vtkSetFilePathMacro(FilePattern);
   vtkGetStringMacro(FilePattern);
   ///@}
 

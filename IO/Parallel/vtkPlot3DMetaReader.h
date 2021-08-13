@@ -107,7 +107,7 @@ public:
    * Set/Get the meta PLOT3D filename. See the class documentation for
    * format details.
    */
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
   vtkGetStringMacro(FileName);
   ///@}
 

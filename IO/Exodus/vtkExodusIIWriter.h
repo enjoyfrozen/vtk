@@ -108,7 +108,7 @@ public:
    * If not set, this class will make up a file name.
    */
 
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
   vtkGetStringMacro(FileName);
 
   /**

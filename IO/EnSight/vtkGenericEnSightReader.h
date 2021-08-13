@@ -64,7 +64,7 @@ public:
   /**
    * Set/Get the file path.
    */
-  vtkSetStringMacro(FilePath);
+  vtkSetFilePathMacro(FilePath);
   vtkGetStringMacro(FilePath);
   ///@}
 
@@ -323,7 +323,7 @@ protected:
   /**
    * Set the geometry file name.
    */
-  vtkSetStringMacro(GeometryFileName);
+  vtkSetFilePathMacro(GeometryFileName);
   ///@}
 
   ///@{

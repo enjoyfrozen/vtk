@@ -53,7 +53,7 @@ public:
   /**
    * Accessor for name of the file that will be opened
    */
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
   vtkGetStringMacro(FileName);
 
 protected:

@@ -54,7 +54,7 @@ public:
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
   vtkGetStringMacro(FileName);
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
 
   /**
    * Returns true if the given file can be read by this reader.

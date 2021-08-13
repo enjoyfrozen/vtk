@@ -47,7 +47,7 @@ public:
   /**
    * Accessor for name of the OMF file to read
    */
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
   vtkGetStringMacro(FileName);
   ///@}
 

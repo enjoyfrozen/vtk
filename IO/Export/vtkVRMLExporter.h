@@ -49,7 +49,7 @@ public:
   /**
    * Specify the name of the VRML file to write.
    */
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
   vtkGetStringMacro(FileName);
   ///@}
 

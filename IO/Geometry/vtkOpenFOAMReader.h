@@ -78,7 +78,7 @@ public:
   /**
    * Set/Get the filename.
    */
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
   vtkGetStringMacro(FileName);
   ///@}
 

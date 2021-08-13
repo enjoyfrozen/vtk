@@ -53,7 +53,7 @@ public:
    * Set/get the file to load
    */
   vtkGetStringMacro(FileName);
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
   ///@}
 
   ///@{

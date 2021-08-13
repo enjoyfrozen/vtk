@@ -54,7 +54,7 @@ public:
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
   vtkGetStringMacro(MeshFileName);
-  vtkSetStringMacro(MeshFileName);
+  vtkSetFilePathMacro(MeshFileName);
 
   ///@{
   /**
