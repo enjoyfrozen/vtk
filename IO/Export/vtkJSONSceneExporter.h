@@ -57,7 +57,7 @@ public:
    * Specify file name of vtk data file to write.
    * This correspond to the root directory of the data to write.
    */
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
   vtkGetStringMacro(FileName);
   ///@}
 

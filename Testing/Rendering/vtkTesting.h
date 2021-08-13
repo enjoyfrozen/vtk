@@ -231,7 +231,7 @@ public:
   /**
    * Set/Get the name of the valid image file
    */
-  vtkSetStringMacro(ValidImageFileName);
+  vtkSetFilePathMacro(ValidImageFileName);
   const char* GetValidImageFileName();
   ///@}
 

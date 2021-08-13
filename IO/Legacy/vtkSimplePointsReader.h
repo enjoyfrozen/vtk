@@ -41,7 +41,7 @@ public:
   /**
    * Set/Get the name of the file from which to read points.
    */
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
   vtkGetStringMacro(FileName);
   ///@}
 

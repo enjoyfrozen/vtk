@@ -71,7 +71,7 @@ public:
   /** @} */
 
   /** The name of the exported file. @{ */
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
   vtkGetStringMacro(FileName);
   /** @} */
 

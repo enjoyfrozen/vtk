@@ -122,7 +122,7 @@ public:
   /**
    * Get/Set the name of the output file.
    */
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
   vtkGetStringMacro(FileName);
   ///@}
 

@@ -59,7 +59,7 @@ public:
    * If this is set, the writer will generate mtllib, usemtl lines
    * and a .mtl file that points to the existing texture file.
    */
-  vtkSetStringMacro(TextureFileName);
+  vtkSetFilePathMacro(TextureFileName);
   vtkGetStringMacro(TextureFileName);
   //@}
 
@@ -67,7 +67,7 @@ public:
   /**
    * Get/Set the file name of the OBJ file.
    */
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
   vtkGetStringMacro(FileName);
   ///@}
 

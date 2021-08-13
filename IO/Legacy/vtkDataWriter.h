@@ -65,7 +65,7 @@ public:
   /**
    * Specify the file name of VTK data file to write.
    */
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
   vtkGetStringMacro(FileName);
   ///@}
 

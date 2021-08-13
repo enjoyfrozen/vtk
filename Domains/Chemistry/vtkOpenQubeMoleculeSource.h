@@ -56,7 +56,7 @@ public:
    * have been set with SetBasisSet and SetFileName, the object takes
    * precedence over the file and the file will not be read.
    */
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
   vtkGetStringMacro(FileName);
   ///@}
 

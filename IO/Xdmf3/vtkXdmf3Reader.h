@@ -166,7 +166,7 @@ protected:
   ~vtkXdmf3Reader() override;
 
   const char* FileNameInternal;
-  vtkSetStringMacro(FileNameInternal);
+  vtkSetFilePathMacro(FileNameInternal);
 
   // Overridden to announce that we make general DataObjects.
   int FillOutputPortInformation(int port, vtkInformation* info) override;

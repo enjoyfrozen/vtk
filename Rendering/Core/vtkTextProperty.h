@@ -142,7 +142,7 @@ public:
    * values of GetFontFamily().
    */
   vtkGetStringMacro(FontFile);
-  vtkSetStringMacro(FontFile);
+  vtkSetFilePathMacro(FontFile);
   ///@}
 
   ///@{

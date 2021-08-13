@@ -50,7 +50,7 @@ public:
   /**
    * The file to open
    */
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
   vtkGetStringMacro(FileName);
   ///@}
 
@@ -110,7 +110,7 @@ protected:
 
   char* FileName;
   char* OpenedFileName;
-  vtkSetStringMacro(OpenedFileName);
+  vtkSetFilePathMacro(OpenedFileName);
 
   int NCDFFD; // netcdf file descriptor
 

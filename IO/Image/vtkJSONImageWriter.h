@@ -37,7 +37,7 @@ public:
   /**
    * Specify file name for the image file.
    */
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
   vtkGetStringMacro(FileName);
   ///@}
 

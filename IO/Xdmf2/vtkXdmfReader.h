@@ -79,7 +79,7 @@ public:
   /**
    * Name of the file to read.
    */
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
   vtkGetStringMacro(FileName);
   ///@}
 

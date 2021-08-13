@@ -70,7 +70,7 @@ public:
   /**
    * Set or get the file name of the xdmf file.
    */
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
   vtkGetStringMacro(FileName);
   ///@}
 
@@ -79,7 +79,7 @@ public:
    * Set or get the file name of the hdf5 file.
    * Note that if the File name is not specified, then the group name is ignore
    */
-  vtkSetStringMacro(HeavyDataFileName);
+  vtkSetFilePathMacro(HeavyDataFileName);
   vtkGetStringMacro(HeavyDataFileName);
   ///@}
 

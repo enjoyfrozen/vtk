@@ -74,9 +74,9 @@ public:
    * numbers. This may happen in the future. (That is why there is no
    * GetFileNumberRange method.
    */
-  vtkSetStringMacro(FilePattern);
+  vtkSetFilePathMacro(FilePattern);
   vtkGetStringMacro(FilePattern);
-  vtkSetStringMacro(FilePrefix);
+  vtkSetFilePathMacro(FilePrefix);
   vtkGetStringMacro(FilePrefix);
   ///@}
 

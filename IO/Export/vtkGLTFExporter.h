@@ -51,7 +51,7 @@ public:
   /**
    * Specify the name of the GLTF file to write.
    */
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
   vtkGetStringMacro(FileName);
   ///@}
 

@@ -61,7 +61,7 @@ public:
   /**
    * Specify the file name of the MFIX Restart data file to read.
    */
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
   vtkGetStringMacro(FileName);
   ///@}
 

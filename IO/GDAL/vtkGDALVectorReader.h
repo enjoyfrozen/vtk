@@ -43,7 +43,7 @@ public:
   void PrintSelf(ostream& os, vtkIndent indent) override;
   vtkTypeMacro(vtkGDALVectorReader, vtkMultiBlockDataSetAlgorithm);
 
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
   vtkGetStringMacro(FileName);
 
   /**

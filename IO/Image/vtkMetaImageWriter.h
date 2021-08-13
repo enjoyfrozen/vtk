@@ -106,7 +106,7 @@ protected:
   vtkMetaImageWriter();
   ~vtkMetaImageWriter() override;
 
-  vtkSetStringMacro(MHDFileName);
+  vtkSetFilePathMacro(MHDFileName);
   char* MHDFileName;
   bool Compress;
 

@@ -63,7 +63,7 @@ public:
   /**
    * Specify file name of CGNS datafile to read
    */
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
   vtkGetStringMacro(FileName);
   ///@}
 

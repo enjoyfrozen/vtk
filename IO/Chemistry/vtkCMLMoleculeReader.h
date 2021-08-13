@@ -46,7 +46,7 @@ public:
   /**
    * Get/Set the name of the CML file
    */
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
   vtkGetStringMacro(FileName);
   ///@}
 

@@ -43,7 +43,7 @@ public:
   /**
    * Specify file name of AbstractPolyData file (obj / ply / stl).
    */
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
   vtkGetStringMacro(FileName);
   ///@}
 

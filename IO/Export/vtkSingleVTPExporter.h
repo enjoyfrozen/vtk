@@ -50,7 +50,7 @@ public:
    * Specify the prefix of the files to write out. The resulting filenames
    * will have .vtp and .png appended to them.
    */
-  vtkSetStringMacro(FilePrefix);
+  vtkSetFilePathMacro(FilePrefix);
   vtkGetStringMacro(FilePrefix);
   ///@}
 

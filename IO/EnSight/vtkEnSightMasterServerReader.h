@@ -62,7 +62,7 @@ protected:
   int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
   int RequestInformation(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
-  vtkSetStringMacro(PieceCaseFileName);
+  vtkSetFilePathMacro(PieceCaseFileName);
   char* PieceCaseFileName;
   int MaxNumberOfPieces;
   int CurrentPiece;

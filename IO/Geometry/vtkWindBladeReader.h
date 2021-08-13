@@ -52,7 +52,7 @@ public:
   vtkTypeMacro(vtkWindBladeReader, vtkStructuredGridAlgorithm);
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  vtkSetStringMacro(Filename);
+  vtkSetFilePathMacro(Filename);
   vtkGetStringMacro(Filename);
 
   vtkSetVector6Macro(WholeExtent, int);

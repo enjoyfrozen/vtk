@@ -51,7 +51,7 @@ public:
   /**
    * Set/Get the output file name.
    */
-  vtkSetStringMacro(FileName);
+  vtkSetFilePathMacro(FileName);
   vtkGetStringMacro(FileName);
   ///@}
 
