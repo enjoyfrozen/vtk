@@ -49,24 +49,24 @@ public:
    * Specify the prefix of the files to write out. The resulting filenames
    * will have .obj and .mtl appended to them.
    */
-  vtkSetStringMacro(FilePrefix);
-  vtkGetStringMacro(FilePrefix);
+  vtkSetFilePathMacro(FilePrefix);
+  vtkGetFilePathMacro(FilePrefix);
   ///@}
 
   ///@{
   /**
    * Specify comment string that will be written to the obj file header.
    */
-  vtkSetStringMacro(OBJFileComment);
-  vtkGetStringMacro(OBJFileComment);
+  vtkSetFilePathMacro(OBJFileComment);
+  vtkGetFilePathMacro(OBJFileComment);
   ///@}
 
   ///@{
   /**
    * Specify comment string that will be written to the mtl file header.
    */
-  vtkSetStringMacro(MTLFileComment);
-  vtkGetStringMacro(MTLFileComment);
+  vtkSetFilePathMacro(MTLFileComment);
+  vtkGetFilePathMacro(MTLFileComment);
   ///@}
 
 protected:

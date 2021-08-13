@@ -54,7 +54,7 @@ public:
    * Specify the set of files that comprise the series.
    */
   void RemoveAllFileNames();
-  void AddFileName(const char* fname);
+  void AddFileName(VTK_FILEPATH const char* fname);
   void SetFileNames(const std::vector<std::string>& filenames);
   ///@}
 
@@ -74,7 +74,7 @@ public:
    *
    * @returns false if failed to read the meta-file, true otherwise.
    */
-  virtual bool ReadMetaFile(const char* metafilename);
+  virtual bool ReadMetaFile(VTK_FILEPATH const char* metafilename);
 
   ///@{
   /**
