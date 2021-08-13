@@ -24,6 +24,7 @@ set(classes
   vtkBiQuadraticQuad
   vtkBiQuadraticQuadraticHexahedron
   vtkBiQuadraticQuadraticWedge
+  vtkBiQuadraticPyramid
   vtkBiQuadraticTriangle
   vtkBond
   vtkBoundingBox

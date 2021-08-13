@@ -24,6 +24,7 @@
 #include "vtkBezierTetra.h"
 #include "vtkBezierTriangle.h"
 #include "vtkBezierWedge.h"
+#include "vtkBiQuadraticPyramid.h"
 #include "vtkBiQuadraticQuad.h"
 #include "vtkBiQuadraticQuadraticHexahedron.h"
 #include "vtkBiQuadraticQuadraticWedge.h"
@@ -363,6 +364,9 @@ vtkCell* vtkGenericCell::InstantiateCell(int cellType)
       break;
     case VTK_BIQUADRATIC_TRIANGLE:
       cell = vtkBiQuadraticTriangle::New();
+      break;
+    case VTK_BIQUADRATIC_PYRAMID:
+      cell = vtkBiQuadraticPyramid::New();
       break;
     case VTK_CUBIC_LINE:
       cell = vtkCubicLine::New();
