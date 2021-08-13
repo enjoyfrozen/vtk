@@ -86,6 +86,7 @@ class vtkBiQuadraticQuad;
 class vtkBiQuadraticQuadraticWedge;
 class vtkBiQuadraticQuadraticHexahedron;
 class vtkBiQuadraticTriangle;
+class vtkBiQuadraticPyramid;
 class vtkCubicLine;
 class vtkPolyhedron;
 class vtkIdTypeArray;
@@ -554,6 +555,7 @@ protected:
   vtkBiQuadraticQuadraticWedge* BiQuadraticQuadraticWedge;
   vtkBiQuadraticQuadraticHexahedron* BiQuadraticQuadraticHexahedron;
   vtkBiQuadraticTriangle* BiQuadraticTriangle;
+  vtkBiQuadraticPyramid* BiQuadraticPyramid;
   vtkCubicLine* CubicLine;
   vtkConvexPointSet* ConvexPointSet;
   vtkPolyhedron* Polyhedron;
