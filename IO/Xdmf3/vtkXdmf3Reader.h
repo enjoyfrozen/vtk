@@ -46,7 +46,7 @@ public:
   /**
    * Set tells the reader the name of a single top level xml file to read.
    */
-  void SetFileName(const char* filename);
+  void SetFileName(VTK_FILEPATH const char* filename);
 
   ///@{
   /**
@@ -71,7 +71,7 @@ public:
   /**
    * Determine if the file can be read with this reader.
    */
-  virtual int CanReadFile(const char* filename);
+  virtual int CanReadFile(VTK_FILEPATH const char* filename);
 
   /**
    * Get information about point-based arrays. As is typical with readers this

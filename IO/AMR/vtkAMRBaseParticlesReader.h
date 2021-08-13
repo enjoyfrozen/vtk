@@ -90,7 +90,7 @@ public:
   void SetParticleArrayStatus(const char* name, int status);
   ///@}
 
-  virtual void SetFileName(const char* fileName);
+  virtual void SetFileName(VTK_FILEPATH const char* fileName);
   vtkGetStringMacro(FileName);
 
   ///@{

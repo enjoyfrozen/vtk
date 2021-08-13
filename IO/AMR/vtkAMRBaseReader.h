@@ -117,7 +117,7 @@ public:
    * the SetFileName method accordingly.
    */
   vtkGetStringMacro(FileName);
-  virtual void SetFileName(const char* fileName) = 0;
+  virtual void SetFileName(VTK_FILEPATH const char* fileName) = 0;
   ///@}
 
   /**

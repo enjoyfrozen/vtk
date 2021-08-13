@@ -189,7 +189,7 @@ public:
   void DestroyHeader();
   void DestroyLevelHeader();
   void PrintSelf(std::ostream& os, vtkIndent indent);
-  void SetFileName(char* fName);
+  void SetFileName(VTK_FILEPATH char* fName);
 
   void ReadMetaData();
   bool ReadHeader();

@@ -104,7 +104,7 @@ public:
   /**
    * Test whether the specified file can be read.
    */
-  virtual int CanReadFile(const char* name);
+  virtual int CanReadFile(VTK_FILEPATH const char* name);
 
   /**
    * Get the number of volumes specified by the file, which will be

@@ -56,7 +56,7 @@ public:
   /**
    * Set/Get the Case file name.
    */
-  void SetCaseFileName(const char* fileName);
+  void SetCaseFileName(VTK_FILEPATH const char* fileName);
   vtkGetStringMacro(CaseFileName);
   ///@}
 
@@ -277,7 +277,7 @@ public:
   /**
    * Returns IsEnSightFile() by default, but can be overridden
    */
-  virtual int CanReadFile(const char* casefilename);
+  virtual int CanReadFile(VTK_FILEPATH const char* casefilename);
 
   // THIB
   vtkGenericEnSightReader* GetReader() { return this->Reader; }

@@ -186,7 +186,7 @@ public:
   /**
    * Determine if the file can be read with this reader.
    */
-  virtual int CanReadFile(const char* fname);
+  virtual int CanReadFile(VTK_FILEPATH const char* fname);
 
   ///@{
   /**
@@ -210,8 +210,8 @@ public:
    * filename you choose is irrelevant -- only the directory name is used.
    * This is done in order to accommodate ParaView.
    */
-  virtual void SetFileName(const std::string&);
-  virtual void SetFileName(const char*);
+  virtual void SetFileName(VTK_FILEPATH const std::string&);
+  virtual void SetFileName(VTK_FILEPATH const char*);
 #ifdef VTK_LEGACY_REMOVE
   std::string GetFileName();
 #else

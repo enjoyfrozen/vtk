@@ -81,7 +81,7 @@ public:
    * This enables clients (ParaView) to distinguish between failures when we
    * need to look for another reader and failures when we don't.
    */
-  virtual int CanReadFile(const char* name);
+  virtual int CanReadFile(VTK_FILEPATH const char* name);
 
   ///@{
   /**
@@ -270,7 +270,7 @@ protected:
    * with the primary element with the given name. Default implementation
    * compares the name with the text returned by this->GetDataSetName().
    */
-  virtual int CanReadFileWithDataType(const char* dsname);
+  virtual int CanReadFileWithDataType(VTK_FILEPATH const char* dsname);
 
   // Returns the major version for the file being read. -1 when invalid.
   vtkGetMacro(FileMajorVersion, int);

@@ -112,7 +112,7 @@ public:
    * Test whether the file with the given name can be read by this
    * reader.
    */
-  int CanReadFile(const char* name) override;
+  int CanReadFile(VTK_FILEPATH const char* name) override;
 
 protected:
   vtkMetaImageReader();
@@ -122,7 +122,7 @@ protected:
   // and should be hidden from the user...but then the getsettest fails.
   /*virtual void SetFilePrefix(const char * arg)
     { vtkImageReader2::SetFilePrefix(arg); }
-  virtual void SetFilePattern(const char * arg)
+  virtual void SetFilePattern(VTK_FILEPATH const char * arg)
     { vtkImageReader2::SetFilePattern(arg); }
   virtual void SetDataScalarType(int type)
     { vtkImageReader2::SetDataScalarType(type); }

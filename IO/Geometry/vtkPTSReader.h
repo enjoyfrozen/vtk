@@ -39,7 +39,7 @@ public:
   /**
    * Specify file name.
    */
-  void SetFileName(const char* filename);
+  void SetFileName(VTK_FILEPATH const char* filename);
   vtkGetStringMacro(FileName);
   ///@}
 

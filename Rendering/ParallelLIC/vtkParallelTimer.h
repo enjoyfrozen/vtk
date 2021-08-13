@@ -103,7 +103,10 @@ public:
   vtkGetStringMacro(FileName);
   ///@}
 
-  void SetFileName(const std::string& fileName) { this->SetFileName(fileName.c_str()); }
+  void SetFileName(VTK_FILEPATH const std::string& fileName)
+  {
+    this->SetFileName(fileName.c_str());
+  }
 
   ///@{
   /**
