@@ -477,7 +477,6 @@ int vtkStreamTracer::RequestData(vtkInformation* vtkNotUsed(request),
 
   if (seeds)
   {
-    double lastPoint[3];
     vtkAbstractInterpolatedVelocityField* func = nullptr;
     int maxCellSize = 0;
     if (this->CheckInputs(func, &maxCellSize) != VTK_OK)
@@ -520,7 +519,7 @@ int vtkStreamTracer::RequestData(vtkInformation* vtkNotUsed(request),
       vtkIdType numSteps = 0;
       double integrationTime = 0;
       this->Integrate(input0->GetPointData(), output, seeds, seedIds, integrationDirections,
-                      lastPoint, func, maxCellSize, vecType, vecName, propagation, numSteps, integrationTime,
+                      func, maxCellSize, vecType, vecName, propagation, numSteps, integrationTime,
                       this->CustomTerminationCallback, this->CustomTerminationClientData,
                       this->CustomReasonForTermination);
     }//if vectors are available
@@ -771,21 +770,17 @@ struct TracerIntegrator
   double MaximumError;
   vtkIdType MaximumNumberOfSteps;
   double MaximumPropagation;
-  vtkAbstractInterpolatedVelocityField *FuncPrototype;
   bool ComputeVorticity;
   double RotationScale;
   double TerminalSpeed;
   bool SurfaceStreamlines;
-  bool GenerateNormalsInIntegrate;
-  std::vector<CustomTerminationCallbackType> CustomTerminationCallback;
-  std::vector<void*> CustomTerminationClientData;
-  std::vector<int> CustomReasonForTermination;
 
   vtkPointData *Input0Data;
   vtkDataArray *SeedSource;
   vtkIdList *SeedIds;
   vtkIntArray *IntegrationDirections;
   TracerOffsets &Offsets;
+  vtkAbstractInterpolatedVelocityField *FuncPrototype;
   vtkSmartPointer<vtkInitialValueProblemSolver> Integrator;
   int MaxCellSize;
   double InPropagation;
@@ -793,7 +788,11 @@ struct TracerIntegrator
   double InIntegrationTime;
   int VecType;
   const char* VecName;
+  bool GenerateNormalsInIntegrate;
   vtkPolyData *Output;
+  std::vector<CustomTerminationCallbackType> CustomTerminationCallback;
+  std::vector<void*> CustomTerminationClientData;
+  std::vector<int> CustomReasonForTermination;
   bool HasMatchingPointAttributes;
 
   // The following data are collected on a per-thread basis. Each thread generates
@@ -879,7 +878,6 @@ struct TracerIntegrator
     int maxCellSize = this->MaxCellSize;
     vtkDataArray *seedSource = this->SeedSource;
     vtkIdList *seedIds = this->SeedIds;
-    vtkIdType numLines = this->SeedIds->GetNumberOfIds();
     vtkIntArray *integrationDirections = this->IntegrationDirections;
     double propagation = this->InPropagation;
     vtkIdType numSteps = this->InNumSteps;
@@ -921,8 +919,6 @@ struct TracerIntegrator
     // the output (unless they are turned off). Note that we are using only
     // the first input, if there are more than one, the attributes have to match.
     double velocity[3];
-
-    int shouldAbort = 0;
 
     for ( ; seedNum < endSeedNum; ++seedNum )
     {
@@ -1320,9 +1316,7 @@ struct TracerIntegrator
   // Assemble the thread output.
   void AssembleOutput(vtkLocalThreadOutput& threadOutput)
   {
-    vtkPolyData *output = threadOutput.Output;
     vtkPointData *outputPD = threadOutput.OutputPD;
-
     outputPD->AddArray(threadOutput.Time);
 
     if ( this->ComputeVorticity )
@@ -1432,7 +1426,7 @@ struct TracerIntegrator
 void vtkStreamTracer::
 Integrate(vtkPointData* input0Data, vtkPolyData* output,
           vtkDataArray* seedSource, vtkIdList* seedIds, vtkIntArray* intDirs,
-          double lastPoint[3], vtkAbstractInterpolatedVelocityField* func, int maxCellSize, int vecType,
+          vtkAbstractInterpolatedVelocityField* func, int maxCellSize, int vecType,
           const char* vecName, double& inPropagation, vtkIdType& inNumSteps, double& inIntegrationTime,
           std::vector<CustomTerminationCallbackType> &customTerminationCallback,
           std::vector<void*> &customTerminationClientData,

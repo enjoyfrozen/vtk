@@ -453,7 +453,7 @@ protected:
   int FillInputPortInformation(int, vtkInformation*) override;
 
   void Integrate(vtkPointData* inputData, vtkPolyData* output, vtkDataArray* seedSource,
-                 vtkIdList* seedIds, vtkIntArray* integrationDirections, double lastPoint[3],
+                 vtkIdList* seedIds, vtkIntArray* integrationDirections,
                  vtkAbstractInterpolatedVelocityField* func, int maxCellSize, int vecType,
                  const char* vecFieldName, double& propagation, vtkIdType& numSteps, double& integrationTime,
                  std::vector<CustomTerminationCallbackType> &customTerminationCallback,
