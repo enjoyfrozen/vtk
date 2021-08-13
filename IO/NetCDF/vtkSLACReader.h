@@ -133,7 +133,7 @@ public:
   /**
    * Returns true if the given file can be read by this reader.
    */
-  static int CanReadFile(const char* filename);
+  static int CanReadFile(VTK_FILEPATH const char* filename);
 
   /**
    * This key is attached to the metadata information of all data sets in the

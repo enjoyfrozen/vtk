@@ -56,7 +56,7 @@ public:
 
   // Description:
   // Specify file name of Wavefront .obj file.
-  void SetFileName(const char* arg)
+  void SetFileName(VTK_FILEPATH const char* arg)
   {
     if (arg == nullptr)
     {

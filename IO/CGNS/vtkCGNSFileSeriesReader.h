@@ -74,7 +74,7 @@ public:
    * Test a file for readability. Ensure that vtkCGNSFileSeriesReader::SetReader
    * is called before using this method.
    */
-  int CanReadFile(const char* filename);
+  int CanReadFile(VTK_FILEPATH const char* filename);
 
   ///@{
   /**

@@ -47,7 +47,7 @@ public:
   /**
    * Get/Set the filename.
    */
-  void SetFileName(const char* fname);
+  void SetFileName(VTK_FILEPATH const char* fname);
   const char* GetFileName() const
   {
     return this->FileName.empty() ? nullptr : this->FileName.c_str();

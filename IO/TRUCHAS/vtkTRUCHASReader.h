@@ -46,7 +46,7 @@ public:
   /**
    * A simple, non-exhaustive check to see if a file is a valid truchas file.
    */
-  static int CanReadFile(const char* filename);
+  static int CanReadFile(VTK_FILEPATH const char* filename);
 
   ///@{
   /**

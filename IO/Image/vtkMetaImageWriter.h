@@ -84,14 +84,14 @@ public:
   /**
    * Specify file name of meta file
    */
-  void SetFileName(const char* fname) override;
+  void SetFileName(VTK_FILEPATH const char* fname) override;
   char* GetFileName() override { return this->MHDFileName; }
 
   ///@{
   /**
    * Specify the file name of the raw image data.
    */
-  virtual void SetRAWFileName(const char* fname);
+  virtual void SetRAWFileName(VTK_FILEPATH const char* fname);
   virtual char* GetRAWFileName();
   ///@}
 

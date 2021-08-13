@@ -94,7 +94,10 @@ public:
   /**
    * Set/Get a file for the dashboard image
    */
-  void SetDashboardImageFileName(const std::string& name) { this->DashboardImageFileName = name; }
+  void SetDashboardImageFileName(VTK_FILEPATH const std::string& name)
+  {
+    this->DashboardImageFileName = name;
+  }
   std::string GetDashboardImageFileName() { return this->DashboardImageFileName; }
   ///@}
 

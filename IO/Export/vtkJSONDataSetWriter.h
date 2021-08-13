@@ -121,7 +121,7 @@ public:
    * DEPRECATED: use the Archive's API instead.
    */
   VTK_DEPRECATED_IN_9_0_0("Use vtkJSONDataSetWriter::SetArchiveName")
-  void SetFileName(const char*);
+  void SetFileName(VTK_FILEPATH const char*);
   VTK_DEPRECATED_IN_9_0_0("Use vtkJSONDataSetWriter::GetArchiveName")
   virtual char* GetFileName();
   ///@}

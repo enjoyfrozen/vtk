@@ -55,7 +55,7 @@ public:
   static vtkNetCDFReader* New();
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  virtual void SetFileName(const char* filename);
+  virtual void SetFileName(VTK_FILEPATH const char* filename);
   vtkGetStringMacro(FileName);
 
   /**
