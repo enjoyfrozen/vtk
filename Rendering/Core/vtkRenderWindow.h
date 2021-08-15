@@ -219,7 +219,7 @@ public:
    * This is used when the current cursor is set to VTK_CURSOR_CUSTOM.
    */
   vtkSetFilePathMacro(CursorFileName);
-  vtkGetStringMacro(CursorFileName);
+  vtkGetFilePathMacro(CursorFileName);
   ///@}
 
   ///@{

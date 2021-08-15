@@ -78,7 +78,7 @@ public:
    * Specify file name of marching cubes output file.
    */
   vtkSetFilePathMacro(FileName);
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
   ///@}
 
   ///@{
@@ -95,7 +95,7 @@ public:
    * speeds up subsequent reading of output triangle file.
    */
   vtkSetFilePathMacro(LimitsFileName);
-  vtkGetStringMacro(LimitsFileName);
+  vtkGetFilePathMacro(LimitsFileName);
   ///@}
 
 protected:

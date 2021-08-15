@@ -100,7 +100,7 @@ public:
    * The filename to save into.
    */
   vtkSetFilePathMacro(FileName);
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
   ///@}
 
 protected:

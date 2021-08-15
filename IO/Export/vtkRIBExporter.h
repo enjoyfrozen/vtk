@@ -84,7 +84,7 @@ public:
    * will have .rib appended to them.
    */
   vtkSetFilePathMacro(FilePrefix);
-  vtkGetStringMacro(FilePrefix);
+  vtkGetFilePathMacro(FilePrefix);
   ///@}
 
   ///@{

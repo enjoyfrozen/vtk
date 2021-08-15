@@ -109,7 +109,7 @@ public:
    */
 
   vtkSetFilePathMacro(FileName);
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
 
   /**
    * If StoreDoubles is ON, the floating point fields in the Exodus file

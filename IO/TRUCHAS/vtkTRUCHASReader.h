@@ -40,7 +40,7 @@ public:
    * Specify file name of vtk data file to read.
    */
   vtkSetFilePathMacro(FileName);
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
   ///@}
 
   /**

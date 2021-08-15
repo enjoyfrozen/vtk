@@ -50,7 +50,7 @@ public:
    * will have .obj and .mtl appended to them.
    */
   vtkSetFilePathMacro(FilePrefix);
-  vtkGetStringMacro(FilePrefix);
+  vtkGetFilePathMacro(FilePrefix);
   ///@}
 
   ///@{
@@ -58,7 +58,7 @@ public:
    * Specify comment string that will be written to the obj file header.
    */
   vtkSetFilePathMacro(OBJFileComment);
-  vtkGetStringMacro(OBJFileComment);
+  vtkGetFilePathMacro(OBJFileComment);
   ///@}
 
   ///@{
@@ -66,7 +66,7 @@ public:
    * Specify comment string that will be written to the mtl file header.
    */
   vtkSetFilePathMacro(MTLFileComment);
-  vtkGetStringMacro(MTLFileComment);
+  vtkGetFilePathMacro(MTLFileComment);
   ///@}
 
 protected:

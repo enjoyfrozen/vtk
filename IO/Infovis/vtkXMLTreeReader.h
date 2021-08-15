@@ -102,7 +102,7 @@ public:
   /**
    * If set, reads in the XML file specified.
    */
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
   vtkSetFilePathMacro(FileName);
   ///@}
 

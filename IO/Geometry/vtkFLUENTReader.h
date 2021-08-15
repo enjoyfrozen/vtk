@@ -60,7 +60,7 @@ public:
    * Specify the file name of the Fluent case file to read.
    */
   vtkSetFilePathMacro(FileName);
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
   ///@}
 
   ///@{

@@ -50,10 +50,10 @@ public:
   static int CanReadFile(VTK_FILEPATH const char* fileName);
 
   void SetFileName(VTK_FILEPATH const char* fileName);
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
 
   void SetConnectivityFileName(VTK_FILEPATH const char* fileName);
-  vtkGetStringMacro(ConnectivityFileName);
+  vtkGetFilePathMacro(ConnectivityFileName);
 
   ///@{
   /**

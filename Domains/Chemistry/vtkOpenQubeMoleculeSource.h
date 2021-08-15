@@ -57,7 +57,7 @@ public:
    * precedence over the file and the file will not be read.
    */
   vtkSetFilePathMacro(FileName);
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
   ///@}
 
   ///@{

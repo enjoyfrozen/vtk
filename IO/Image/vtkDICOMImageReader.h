@@ -90,7 +90,7 @@ public:
   /**
    * Returns the directory name.
    */
-  vtkGetStringMacro(DirectoryName);
+  vtkGetFilePathMacro(DirectoryName);
   ///@}
 
   /**

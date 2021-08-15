@@ -42,7 +42,7 @@ public:
   /**
    * Get the file name that will be read.
    */
-  vtkGetStringMacro(PieceCaseFileName);
+  vtkGetFilePathMacro(PieceCaseFileName);
   ///@}
 
   ///@{

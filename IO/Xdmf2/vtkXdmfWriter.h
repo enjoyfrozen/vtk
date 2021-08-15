@@ -71,7 +71,7 @@ public:
    * Set or get the file name of the xdmf file.
    */
   vtkSetFilePathMacro(FileName);
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
   ///@}
 
   ///@{
@@ -80,7 +80,7 @@ public:
    * Note that if the File name is not specified, then the group name is ignore
    */
   vtkSetFilePathMacro(HeavyDataFileName);
-  vtkGetStringMacro(HeavyDataFileName);
+  vtkGetFilePathMacro(HeavyDataFileName);
   ///@}
 
   ///@{

@@ -98,7 +98,7 @@ public:
    * other options chosen.
    */
   vtkSetFilePathMacro(FilePrefix);
-  vtkGetStringMacro(FilePrefix);
+  vtkGetFilePathMacro(FilePrefix);
   ///@}
 
   ///@{

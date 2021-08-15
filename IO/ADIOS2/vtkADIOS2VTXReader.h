@@ -49,7 +49,7 @@ public:
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
   vtkSetFilePathMacro(FileName);
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
 
 protected:
   vtkADIOS2VTXReader();

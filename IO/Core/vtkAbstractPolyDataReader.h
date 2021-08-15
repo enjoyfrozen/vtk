@@ -44,7 +44,7 @@ public:
    * Specify file name of AbstractPolyData file (obj / ply / stl).
    */
   vtkSetFilePathMacro(FileName);
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
   ///@}
 
 protected:

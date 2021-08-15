@@ -41,7 +41,7 @@ public:
   // .Description
   // Get/Set the file to read
   vtkSetFilePathMacro(FileName);
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
 
 protected:
   vtkMRCReader();

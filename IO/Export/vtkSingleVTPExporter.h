@@ -51,7 +51,7 @@ public:
    * will have .vtp and .png appended to them.
    */
   vtkSetFilePathMacro(FilePrefix);
-  vtkGetStringMacro(FilePrefix);
+  vtkGetFilePathMacro(FilePrefix);
   ///@}
 
   // computes the file prefix from a filename by removing

@@ -56,7 +56,7 @@ public:
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
   virtual void SetFileName(VTK_FILEPATH const char* filename);
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
 
   /**
    * Update the meta data from the current file.  Automatically called

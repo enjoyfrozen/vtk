@@ -64,7 +64,7 @@ public:
    * Set/get the FileName that is being written to
    */
   vtkSetFilePathMacro(FileName);
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
   ///@}
 
   ///@{

@@ -53,7 +53,7 @@ public:
   static vtkSLACParticleReader* New();
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
   vtkSetFilePathMacro(FileName);
 
   /**

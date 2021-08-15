@@ -42,7 +42,7 @@ public:
    * Set the input filename.
    */
   vtkSetFilePathMacro(InputFileName);
-  vtkGetStringMacro(InputFileName);
+  vtkGetFilePathMacro(InputFileName);
   ///@}
 
   ///@{
@@ -50,7 +50,7 @@ public:
    * Set the output filename.
    */
   vtkSetFilePathMacro(OutputFileName);
-  vtkGetStringMacro(OutputFileName);
+  vtkGetFilePathMacro(OutputFileName);
   ///@}
 
   /**

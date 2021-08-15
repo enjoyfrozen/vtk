@@ -226,7 +226,7 @@ public:
    * dumping particles to disk
    */
   vtkSetFilePathMacro(ParticleFileName);
-  vtkGetStringMacro(ParticleFileName);
+  vtkGetFilePathMacro(ParticleFileName);
   ///@}
 
   ///@{

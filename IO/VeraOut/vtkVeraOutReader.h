@@ -33,7 +33,7 @@ public:
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
   vtkSetFilePathMacro(FileName);
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
 
   /**
    * Get vtkDataArraySelection instance to select cell arrays to read.

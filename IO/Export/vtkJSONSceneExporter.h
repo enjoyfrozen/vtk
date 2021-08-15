@@ -58,7 +58,7 @@ public:
    * This correspond to the root directory of the data to write.
    */
   vtkSetFilePathMacro(FileName);
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
   ///@}
 
   ///@{

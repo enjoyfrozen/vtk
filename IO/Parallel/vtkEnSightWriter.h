@@ -79,7 +79,7 @@ public:
    * Specify the path and base name of the output files.
    */
   vtkSetFilePathMacro(FileName);
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
   ///@}
 
   ///@{

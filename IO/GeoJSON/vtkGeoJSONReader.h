@@ -41,7 +41,7 @@ public:
    * Accessor for name of the file that will be opened on WriteData
    */
   vtkSetFilePathMacro(FileName);
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
   ///@}
 
   ///@{

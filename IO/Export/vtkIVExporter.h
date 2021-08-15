@@ -47,7 +47,7 @@ public:
    * Specify the name of the OpenInventor file to write.
    */
   vtkSetFilePathMacro(FileName);
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
   ///@}
 
 protected:

@@ -57,7 +57,7 @@ public:
    * Set/Get the Case file name.
    */
   void SetCaseFileName(VTK_FILEPATH const char* fileName);
-  vtkGetStringMacro(CaseFileName);
+  vtkGetFilePathMacro(CaseFileName);
   ///@}
 
   ///@{
@@ -65,7 +65,7 @@ public:
    * Set/Get the file path.
    */
   vtkSetFilePathMacro(FilePath);
-  vtkGetStringMacro(FilePath);
+  vtkGetFilePathMacro(FilePath);
   ///@}
 
   ///@{
@@ -247,7 +247,7 @@ public:
    * Get the Geometry file name. Made public to allow access from
    * apps requiring detailed info about the Data contents
    */
-  vtkGetStringMacro(GeometryFileName);
+  vtkGetFilePathMacro(GeometryFileName);
   ///@}
 
   ///@{

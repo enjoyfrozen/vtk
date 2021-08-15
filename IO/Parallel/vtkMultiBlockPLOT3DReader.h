@@ -161,7 +161,7 @@ public:
   const char* GetFileName() { return this->GetXYZFileName(); }
   const char* GetFileName(int i) { return this->vtkParallelReader::GetFileName(i); }
   virtual void SetXYZFileName(VTK_FILEPATH const char*);
-  vtkGetStringMacro(XYZFileName);
+  vtkGetFilePathMacro(XYZFileName);
   ///@}
 
   ///@{
@@ -184,7 +184,7 @@ public:
    * Set/Get the PLOT3D function filename.
    */
   vtkSetFilePathMacro(FunctionFileName);
-  vtkGetStringMacro(FunctionFileName);
+  vtkGetFilePathMacro(FunctionFileName);
   ///@}
 
   ///@{

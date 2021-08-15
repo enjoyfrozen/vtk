@@ -126,7 +126,7 @@ public:
    * Specify file name of the video
    */
   vtkSetFilePathMacro(FileName);
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
   ///@}
 
   /**

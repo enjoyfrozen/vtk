@@ -53,7 +53,7 @@ public:
   static vtkSLACReader* New();
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  vtkGetStringMacro(MeshFileName);
+  vtkGetFilePathMacro(MeshFileName);
   vtkSetFilePathMacro(MeshFileName);
 
   ///@{

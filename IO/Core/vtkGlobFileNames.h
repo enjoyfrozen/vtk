@@ -75,7 +75,7 @@ public:
    * will be used and Directory will be ignored.
    */
   vtkSetFilePathMacro(Directory);
-  vtkGetStringMacro(Directory);
+  vtkGetFilePathMacro(Directory);
   ///@}
 
   /**
@@ -118,7 +118,7 @@ protected:
    * Set the wildcard pattern.
    */
   vtkSetStringMacro(Pattern);
-  vtkGetStringMacro(Pattern);
+  vtkGetFilePathMacro(Pattern);
   ///@}
 
   vtkGlobFileNames();

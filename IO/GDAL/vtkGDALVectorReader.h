@@ -44,7 +44,7 @@ public:
   vtkTypeMacro(vtkGDALVectorReader, vtkMultiBlockDataSetAlgorithm);
 
   vtkSetFilePathMacro(FileName);
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
 
   /**
    * Return number of layers.

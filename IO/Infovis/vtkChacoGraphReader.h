@@ -62,7 +62,7 @@ public:
   /**
    * The Chaco file name.
    */
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
   vtkSetFilePathMacro(FileName);
   ///@}
 

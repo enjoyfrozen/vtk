@@ -82,7 +82,7 @@ public:
    * Specify file name of the Exodus file.
    */
   virtual void SetFileName(VTK_FILEPATH const char* fname);
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
   ///@}
 
   ///@{
@@ -90,7 +90,7 @@ public:
    * Specify file name of the xml file.
    */
   virtual void SetXMLFileName(VTK_FILEPATH const char* fname);
-  vtkGetStringMacro(XMLFileName);
+  vtkGetFilePathMacro(XMLFileName);
   ///@}
 
   ///@{

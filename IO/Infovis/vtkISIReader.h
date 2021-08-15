@@ -52,7 +52,7 @@ public:
   /**
    * Set/get the file to load
    */
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
   vtkSetFilePathMacro(FileName);
   ///@}
 

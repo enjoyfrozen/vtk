@@ -50,7 +50,7 @@ public:
    * Get/Set the name of the Exodus file to read.
    */
   vtkSetFilePathMacro(FileName);
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
   ///@}
 
   ///@{

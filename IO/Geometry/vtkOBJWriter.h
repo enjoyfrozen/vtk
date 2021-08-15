@@ -60,7 +60,7 @@ public:
    * and a .mtl file that points to the existing texture file.
    */
   vtkSetFilePathMacro(TextureFileName);
-  vtkGetStringMacro(TextureFileName);
+  vtkGetFilePathMacro(TextureFileName);
   //@}
 
   //@{
@@ -68,7 +68,7 @@ public:
    * Get/Set the file name of the OBJ file.
    */
   vtkSetFilePathMacro(FileName);
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
   ///@}
 
 protected:

@@ -62,7 +62,7 @@ public:
    * multiple files, then use SetFileNames or SetFilePrefix instead.
    */
   virtual void SetFileName(VTK_FILEPATH const char*);
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
   ///@}
 
   ///@{
@@ -86,7 +86,7 @@ public:
    * to load.
    */
   virtual void SetFilePrefix(VTK_FILEPATH const char*);
-  vtkGetStringMacro(FilePrefix);
+  vtkGetFilePathMacro(FilePrefix);
   ///@}
 
   ///@{
@@ -95,7 +95,7 @@ public:
    * FilePrefix and slice number.
    */
   virtual void SetFilePattern(VTK_FILEPATH const char*);
-  vtkGetStringMacro(FilePattern);
+  vtkGetFilePathMacro(FilePattern);
   ///@}
 
   /**
@@ -268,7 +268,7 @@ public:
    * Set/Get the internal file name
    */
   virtual void ComputeInternalFileName(int slice);
-  vtkGetStringMacro(InternalFileName);
+  vtkGetFilePathMacro(InternalFileName);
   ///@}
 
   /**

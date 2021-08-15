@@ -87,7 +87,7 @@ public:
    * Get the Measured file name. Made public to allow access from
    * apps requiring detailed info about the Data contents
    */
-  vtkGetStringMacro(MeasuredFileName);
+  vtkGetFilePathMacro(MeasuredFileName);
   ///@}
 
   ///@{
@@ -95,7 +95,7 @@ public:
    * Get the Match file name. Made public to allow access from
    * apps requiring detailed info about the Data contents
    */
-  vtkGetStringMacro(MatchFileName);
+  vtkGetFilePathMacro(MatchFileName);
   ///@}
 
 protected:

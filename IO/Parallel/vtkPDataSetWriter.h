@@ -82,7 +82,7 @@ public:
    * to construct a file name for the piece file.
    */
   vtkSetFilePathMacro(FilePattern);
-  vtkGetStringMacro(FilePattern);
+  vtkGetFilePathMacro(FilePattern);
   ///@}
 
   ///@{

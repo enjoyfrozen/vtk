@@ -75,9 +75,9 @@ public:
    * GetFileNumberRange method.
    */
   vtkSetFilePathMacro(FilePattern);
-  vtkGetStringMacro(FilePattern);
+  vtkGetFilePathMacro(FilePattern);
   vtkSetFilePathMacro(FilePrefix);
-  vtkGetStringMacro(FilePrefix);
+  vtkGetFilePathMacro(FilePrefix);
   ///@}
 
   ///@{

@@ -53,7 +53,7 @@ public:
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
   vtkSetFilePathMacro(Filename);
-  vtkGetStringMacro(Filename);
+  vtkGetFilePathMacro(Filename);
 
   vtkSetVector6Macro(WholeExtent, int);
   vtkGetVector6Macro(WholeExtent, int);

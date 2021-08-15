@@ -280,7 +280,7 @@ public:
    * used in production.
    */
   vtkSetStringMacro(FileNamePrefixForDebugging);
-  vtkGetStringMacro(FileNamePrefixForDebugging);
+  vtkGetFilePathMacro(FileNamePrefixForDebugging);
   ///@}
 
   ///@{

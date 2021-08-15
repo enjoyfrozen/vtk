@@ -51,7 +51,7 @@ public:
    * Name of the file that will be opened
    */
   vtkSetFilePathMacro(FileName);
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
 
 protected:
   vtkPDALReader();

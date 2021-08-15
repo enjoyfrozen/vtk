@@ -100,7 +100,7 @@ public:
    * ROOT_RANKS_PID.log
    */
   vtkSetFilePathMacro(FileName);
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
   ///@}
 
   void SetFileName(VTK_FILEPATH const std::string& fileName)

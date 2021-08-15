@@ -44,7 +44,7 @@ public:
    * Specify file name of Digital Elevation Model (DEM) file
    */
   vtkSetFilePathMacro(FileName);
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
   ///@}
 
   enum

@@ -85,7 +85,7 @@ public:
    * Specify file name of the Exodus file.
    */
   vtkSetFilePathMacro(FileName);
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
   ///@}
 
 protected:

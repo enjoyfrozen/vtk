@@ -77,7 +77,7 @@ public:
    * Specify file name of marching cubes file.
    */
   vtkSetFilePathMacro(FileName);
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
   ///@}
 
   ///@{
@@ -85,7 +85,7 @@ public:
    * Set / get the file name of the marching cubes limits file.
    */
   vtkSetFilePathMacro(LimitsFileName);
-  vtkGetStringMacro(LimitsFileName);
+  vtkGetFilePathMacro(LimitsFileName);
   ///@}
 
   ///@{

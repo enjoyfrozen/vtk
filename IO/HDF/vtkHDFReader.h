@@ -52,7 +52,7 @@ public:
    * Get/Set the name of the input file.
    */
   vtkSetFilePathMacro(FileName);
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
   //@}
 
   /**

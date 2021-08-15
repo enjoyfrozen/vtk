@@ -43,7 +43,7 @@ public:
    * The reader will try to open FileName.cel and FileName.vrt files.
    */
   vtkSetFilePathMacro(FileName);
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
   ///@}
 
   ///@{

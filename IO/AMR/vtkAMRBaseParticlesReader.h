@@ -91,7 +91,7 @@ public:
   ///@}
 
   virtual void SetFileName(VTK_FILEPATH const char* fileName);
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
 
   ///@{
   /**

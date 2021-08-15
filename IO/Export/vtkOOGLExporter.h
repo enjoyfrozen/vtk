@@ -45,7 +45,7 @@ public:
    * Specify the name of the Geomview file to write.
    */
   vtkSetFilePathMacro(FileName);
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
   ///@}
 
 protected:

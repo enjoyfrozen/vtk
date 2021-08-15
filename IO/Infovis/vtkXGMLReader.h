@@ -48,7 +48,7 @@ public:
   /**
    * The XGML file name.
    */
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
   vtkSetFilePathMacro(FileName);
   ///@}
 

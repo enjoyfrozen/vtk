@@ -70,7 +70,7 @@ public:
    * Get / set the filename where data will be stored (when used as a filter).
    */
   vtkSetFilePathMacro(FileName);
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
   ///@}
 
   ///@{

@@ -43,7 +43,7 @@ public:
    * in multiple files.
    */
   vtkSetFilePathMacro(FileName);
-  vtkGetStringMacro(FileName);
+  vtkGetFilePathMacro(FileName);
   ///@}
 
   ///@{
@@ -53,7 +53,7 @@ public:
    * in multiple files.
    */
   vtkSetFilePathMacro(FilePrefix);
-  vtkGetStringMacro(FilePrefix);
+  vtkGetFilePathMacro(FilePrefix);
   ///@}
 
   ///@{
@@ -61,7 +61,7 @@ public:
    * The snprintf format used to build filename from FilePrefix and number.
    */
   vtkSetFilePathMacro(FilePattern);
-  vtkGetStringMacro(FilePattern);
+  vtkGetFilePathMacro(FilePattern);
   ///@}
 
   ///@{
