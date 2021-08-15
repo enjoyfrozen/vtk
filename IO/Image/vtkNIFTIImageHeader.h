@@ -332,7 +332,7 @@ public:
    * as the NIFTI file.
    */
   void SetAuxFile(VTK_FILEPATH const char* auxfile);
-  const char* GetAuxFile() { return this->AuxFile; }
+  VTK_FILEPATH const char* GetAuxFile() { return this->AuxFile; }
 
   ///@{
   /**

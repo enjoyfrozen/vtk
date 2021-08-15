@@ -59,7 +59,7 @@ public:
    * not the file.
    */
   void SetPlotFileName(VTK_FILEPATH const char* fname);
-  const char* GetPlotFileName() const;
+  VTK_FILEPATH const char* GetPlotFileName() const;
   ///@}
 
   ///@{

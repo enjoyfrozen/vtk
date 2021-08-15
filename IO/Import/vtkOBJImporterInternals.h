@@ -96,9 +96,9 @@ public:
   }
   const std::string& GetTexturePath() const { return TexturePath; }
 
-  const std::string& GetFileName() const { return FileName; }
+  VTK_FILEPATH const std::string& GetFileName() const { return FileName; }
 
-  const std::string& GetMTLFileName() const { return MTLFileName; }
+  VTK_FILEPATH const std::string& GetMTLFileName() const { return MTLFileName; }
 
   vtkSetMacro(VertexScale, double);
   vtkGetMacro(VertexScale, double);
@@ -110,7 +110,7 @@ public:
 
   vtkOBJImportedMaterial* GetMaterial(int k);
 
-  std::string GetTextureFilename(int idx); // return string by index
+  VTK_FILEPATH std::string GetTextureFilename(int idx); // return string by index
 
   double VertexScale; // scale vertices by this during import
 

@@ -213,7 +213,7 @@ public:
   virtual void SetFileName(VTK_FILEPATH const std::string&);
   virtual void SetFileName(VTK_FILEPATH const char*);
 #ifdef VTK_LEGACY_REMOVE
-  std::string GetFileName();
+  VTK_FILEPATH std::string GetFileName();
 #else
   VTK_LEGACY(const char* GetFileName());
 #endif

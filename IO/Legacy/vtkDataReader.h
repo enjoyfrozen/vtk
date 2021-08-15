@@ -72,8 +72,11 @@ public:
    * method.
    */
   void SetFileName(VTK_FILEPATH const char* fname);
-  const char* GetFileName() const;
-  const char* GetFileName(int i) const { return this->vtkSimpleReader::GetFileName(i); }
+  VTK_FILEPATH const char* GetFileName() const;
+  VTK_FILEPATH const char* GetFileName(int i) const
+  {
+    return this->vtkSimpleReader::GetFileName(i);
+  }
   ///@}
 
   ///@{

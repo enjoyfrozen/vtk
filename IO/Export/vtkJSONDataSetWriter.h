@@ -123,7 +123,7 @@ public:
   VTK_DEPRECATED_IN_9_0_0("Use vtkJSONDataSetWriter::SetArchiveName")
   void SetFileName(VTK_FILEPATH const char*);
   VTK_DEPRECATED_IN_9_0_0("Use vtkJSONDataSetWriter::GetArchiveName")
-  virtual char* GetFileName();
+  virtual VTK_FILEPATH char* GetFileName();
   ///@}
 
   ///@{

@@ -55,13 +55,13 @@ public:
   /**
    * Returns a particular filename stored by the reader.
    */
-  const char* GetFileName(int i) const;
+  VTK_FILEPATH const char* GetFileName(int i) const;
 
   /**
    * Returns the filename that was last loaded by the reader.
    * This is set internally in ReadMesh()
    */
-  const char* GetCurrentFileName() const;
+  VTK_FILEPATH const char* GetCurrentFileName() const;
 
   ///@{
   /**

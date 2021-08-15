@@ -99,7 +99,7 @@ public:
    * This is only reasonable for temporal file series. For a partitioned file
    * series, this will return the filename being used on the current rank.
    */
-  const char* GetCurrentFileName() const;
+  VTK_FILEPATH const char* GetCurrentFileName() const;
 
   /**
    * Overridden to setup the `Reader` and then forward the pass to the reader.

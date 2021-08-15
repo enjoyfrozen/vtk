@@ -66,7 +66,7 @@ public:
    * Return the name of the next available data file
    * assume NewDataAvailable() return VTK_OK
    */
-  const char* GetNextFileName();
+  VTK_FILEPATH const char* GetNextFileName();
 
 protected:
   vtkRTXMLPolyDataReader();
@@ -81,7 +81,7 @@ protected:
 
   void InitializeToCurrentDir();
   int IsProcessed(const char*);
-  char* GetDataFileFullPathName(const char*);
+  char* GetDataFileFullPathName(VTK_FILEPATH const char*);
 
   ///@{
   /**

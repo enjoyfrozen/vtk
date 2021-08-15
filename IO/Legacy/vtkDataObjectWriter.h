@@ -47,7 +47,7 @@ public:
    * Methods delegated to vtkDataWriter, see vtkDataWriter.
    */
   void SetFileName(VTK_FILEPATH const char* filename) { this->Writer->SetFileName(filename); }
-  char* GetFileName() { return this->Writer->GetFileName(); }
+  VTK_FILEPATH char* GetFileName() { return this->Writer->GetFileName(); }
   void SetHeader(const char* header) { this->Writer->SetHeader(header); }
   char* GetHeader() { return this->Writer->GetHeader(); }
   void SetFileType(int type) { this->Writer->SetFileType(type); }

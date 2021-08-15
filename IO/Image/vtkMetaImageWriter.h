@@ -85,14 +85,14 @@ public:
    * Specify file name of meta file
    */
   void SetFileName(VTK_FILEPATH const char* fname) override;
-  char* GetFileName() override { return this->MHDFileName; }
+  VTK_FILEPATH char* GetFileName() override { return this->MHDFileName; }
 
   ///@{
   /**
    * Specify the file name of the raw image data.
    */
   virtual void SetRAWFileName(VTK_FILEPATH const char* fname);
-  virtual char* GetRAWFileName();
+  virtual VTK_FILEPATH char* GetRAWFileName();
   ///@}
 
   virtual void SetCompression(bool compress) { this->Compress = compress; }

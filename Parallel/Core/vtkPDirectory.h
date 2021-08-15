@@ -58,7 +58,7 @@ public:
   /**
    * Return the file at the given index, the indexing is 0 based
    */
-  const char* GetFile(vtkIdType index) const;
+  VTK_FILEPATH const char* GetFile(vtkIdType index) const;
 
   /**
    * Return true if the file is a directory.  If the file is not an
@@ -78,7 +78,7 @@ public:
   /**
    * Return the path to Open'ed directory
    */
-  const char* GetPath() const;
+  VTK_FILEPATH const char* GetPath() const;
 
   /**
    * Clear the internal structure. Used internally at beginning of Load(...)
@@ -89,7 +89,7 @@ public:
   /**
    * Get the current working directory.
    */
-  static const char* GetCurrentWorkingDirectory(char* buf, unsigned int len);
+  static VTK_FILEPATH const char* GetCurrentWorkingDirectory(char* buf, unsigned int len);
 
   /**
    * Create directory.

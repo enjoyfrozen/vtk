@@ -103,7 +103,7 @@ public:
   /**
    * Return the file at the given index, the indexing is 0 based.
    */
-  const char* GetNthFileName(int index);
+  VTK_FILEPATH const char* GetNthFileName(int index);
 
   ///@{
   /**

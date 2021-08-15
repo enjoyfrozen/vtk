@@ -158,8 +158,8 @@ public:
    * Set/Get the PLOT3D geometry filename.
    */
   void SetFileName(VTK_FILEPATH const char* name) { this->SetXYZFileName(name); }
-  const char* GetFileName() { return this->GetXYZFileName(); }
-  const char* GetFileName(int i) { return this->vtkParallelReader::GetFileName(i); }
+  VTK_FILEPATH const char* GetFileName() { return this->GetXYZFileName(); }
+  VTK_FILEPATH const char* GetFileName(int i) { return this->vtkParallelReader::GetFileName(i); }
   virtual void SetXYZFileName(VTK_FILEPATH const char*);
   vtkGetFilePathMacro(XYZFileName);
   ///@}
@@ -176,7 +176,7 @@ public:
    * sequences.
    */
   void SetQFileName(VTK_FILEPATH const char* name);
-  const char* GetQFileName();
+  VTK_FILEPATH const char* GetQFileName();
   ///@}
 
   ///@{

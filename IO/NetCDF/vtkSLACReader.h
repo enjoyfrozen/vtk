@@ -65,7 +65,7 @@ public:
   virtual void AddModeFileName(const char* fname);
   virtual void RemoveAllModeFileNames();
   virtual unsigned int GetNumberOfModeFileNames();
-  virtual const char* GetModeFileName(unsigned int idx);
+  virtual VTK_FILEPATH const char* GetModeFileName(unsigned int idx);
   ///@}
 
   ///@{

@@ -235,7 +235,7 @@ protected:
 
   // DICOMFileNames accessor methods for subclasses:
   int GetNumberOfDICOMFileNames();
-  const char* GetDICOMFileName(int index);
+  VTK_FILEPATH const char* GetDICOMFileName(int index);
 
 private:
   vtkDICOMImageReader(const vtkDICOMImageReader&) = delete;

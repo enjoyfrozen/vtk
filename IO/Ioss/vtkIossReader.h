@@ -189,7 +189,7 @@ public:
    */
   void AddFileName(const char* fname);
   void ClearFileNames();
-  const char* GetFileName(int index) const;
+  VTK_FILEPATH const char* GetFileName(int index) const;
   int GetNumberOfFileNames() const;
   ///@}
 

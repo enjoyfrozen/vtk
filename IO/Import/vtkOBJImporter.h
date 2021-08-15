@@ -71,8 +71,8 @@ public:
   void SetFileName(VTK_FILEPATH const char* arg);
   void SetFileNameMTL(VTK_FILEPATH const char* arg);
   void SetTexturePath(const char* path);
-  const char* GetFileName() const;
-  const char* GetFileNameMTL() const;
+  VTK_FILEPATH const char* GetFileName() const;
+  VTK_FILEPATH const char* GetFileNameMTL() const;
   const char* GetTexturePath() const;
   ///@}
 
