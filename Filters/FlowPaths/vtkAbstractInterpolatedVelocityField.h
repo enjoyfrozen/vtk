@@ -123,7 +123,7 @@ public:
 
   ///@{
   /**
-   * Get/Set the name of a spcified vector array. By default it is nullptr, with
+   * Get/Set the name of a specified vector array. By default it is nullptr, with
    * the active vector array for use.
    */
   vtkGetStringMacro(VectorsSelection);

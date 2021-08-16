@@ -799,12 +799,11 @@ struct TracerIntegrator
   // one or more streamlines.
   vtkSMPThreadLocal<vtkLocalThreadOutput> LocalThreadOutput;
 
-  TracerIntegrator(vtkStreamTracer *streamTracer, vtkIdType maxSteps,
-                   vtkPointData *input0Data, vtkDataArray *seedSource, vtkIdList *seedIds,
-                   vtkIntArray *intDirs, TracerOffsets &offsets, vtkAbstractInterpolatedVelocityField *func,
-                   vtkInitialValueProblemSolver *integrator, int maxCellSize, double inPropagation,
-                   vtkIdType inNumSteps, double inIntegrationTime, int vecType, const char *vecName,
-                   bool genNormals, vtkPolyData *output,
+  TracerIntegrator(vtkStreamTracer *streamTracer, vtkPointData *input0Data, vtkDataArray *seedSource,
+                   vtkIdList *seedIds, vtkIntArray *intDirs, TracerOffsets &offsets,
+                   vtkAbstractInterpolatedVelocityField *func, vtkInitialValueProblemSolver *integrator,
+                   int maxCellSize, double inPropagation, vtkIdType inNumSteps, double inIntegrationTime,
+                   int vecType, const char *vecName, bool genNormals, vtkPolyData *output,
                    std::vector<CustomTerminationCallbackType> &customTerminationCallback,
                    std::vector<void*> &customTerminationClientData,
                    std::vector<int> &customReasonForTermination,
@@ -1462,11 +1461,10 @@ Integrate(vtkPointData* input0Data, vtkPolyData* output,
 
 
   // Generate streamlines.
-  TracerIntegrator ti(this, this->MaximumNumberOfSteps, input0Data,
-                      seedSource, seedIds, intDirs, offsets, func, integrator,
-                      maxCellSize, inPropagation, inNumSteps, inIntegrationTime,
-                      vecType, vecName, this->GenerateNormalsInIntegrate, output,
-                      customTerminationCallback, customTerminationClientData,
+  TracerIntegrator ti(this, input0Data, seedSource, seedIds, intDirs, offsets,
+                      func, integrator, maxCellSize, inPropagation, inNumSteps,
+                      inIntegrationTime, vecType, vecName, this->GenerateNormalsInIntegrate,
+                      output, customTerminationCallback, customTerminationClientData,
                       customReasonForTermination, this->HasMatchingPointAttributes);
 
   // Streamline threading only kicks in when the number of seeds exceeds a

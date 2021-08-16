@@ -526,6 +526,11 @@ void vtkAbstractInterpolatedVelocityField::CopyParameters(
   vtkAbstractInterpolatedVelocityField* from)
 {
   this->Caching = from->Caching;
+  this->NormalizeVector = from->NormalizeVector;
+  this->ForceSurfaceTangentVector = from->ForceSurfaceTangentVector;
+  this->SurfaceDataset = from->SurfaceDataset;
+  this->VectorsType = from->VectorsType;
+  this->SetVectorsSelection(from->VectorsSelection);
 
   // Since the strategy may be used in a threaded situation, create a new instance
   // of the FindCellStrategy and copy appropriate parameters.
