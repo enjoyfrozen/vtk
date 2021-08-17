@@ -9,7 +9,6 @@
 //============================================================================
 
 #include <fides/DataSetReader.h>
-#include <fides/FieldData.h>
 #include <fides/predefined/DataModelFactory.h>
 #include <fides/predefined/DataModelHelperFunctions.h>
 #include <fides/predefined/InternalMetadataSource.h>
@@ -48,7 +47,6 @@ class DataSetReader::DataSetReaderImpl
 {
 public:
   DataSetReaderImpl(const std::string dataModel, DataModelInput inputType, const Params& params)
-    : FDManager(new fides::datamodel::FieldDataManager())
   {
     this->Cleanup();
     if (inputType == DataModelInput::BPFile)
@@ -535,10 +533,9 @@ public:
   std::shared_ptr<fides::predefined::InternalMetadataSource> MetadataSource = nullptr;
   std::shared_ptr<fides::datamodel::CoordinateSystem> CoordinateSystem = nullptr;
   std::shared_ptr<fides::datamodel::CellSet> CellSet = nullptr;
-  using FieldsKeyType = std::pair<std::string, fides::Association>;
+  using FieldsKeyType = std::pair<std::string, vtkm::cont::Field::Association>;
   std::map<FieldsKeyType, std::shared_ptr<fides::datamodel::Field>> Fields;
   std::string StepSource;
-  std::shared_ptr<fides::datamodel::FieldDataManager> FDManager = nullptr;
 };
 
 bool DataSetReader::CheckForDataModelAttribute(const std::string& filename,
@@ -662,7 +659,6 @@ std::vector<vtkm::cont::DataSet> DataSetReader::ReadDataSetInternal(
     }
   }
 
-  this->Impl->FDManager->Clear();
   if (selections.Has(fides::keys::FIELDS()))
   {
     using FieldInfoType = fides::metadata::Vector<fides::metadata::FieldInformation>;
@@ -714,10 +710,13 @@ void DataSetReader::SetDataSourceIO(const std::string source, void* io)
   this->Impl->SetDataSourceIO(source, io);
 }
 
+FIDES_DEPRECATED_SUPPRESS_BEGIN
 std::shared_ptr<fides::datamodel::FieldDataManager> DataSetReader::GetFieldData()
 {
-  return this->Impl->FDManager;
+  // Function to be removed in next version
+  return nullptr;
 }
+FIDES_DEPRECATED_SUPPRESS_END
 
 std::vector<std::string> DataSetReader::GetDataSourceNames()
 {

@@ -40,15 +40,15 @@ void Field::ProcessJSON(const rapidjson::Value& json, DataSourcesType& sources)
     const std::string& assoc = json["association"].GetString();
     if (assoc == "points")
     {
-      this->Association = fides::Association::POINTS;
+      this->Association = vtkm::cont::Field::Association::POINTS;
     }
     else if (assoc == "cell_set")
     {
-      this->Association = fides::Association::CELL_SET;
+      this->Association = vtkm::cont::Field::Association::CELL_SET;
     }
     else if (assoc == "field_data")
     {
-      this->Association = fides::Association::FIELD_DATA;
+      this->Association = vtkm::cont::Field::Association::WHOLE_MESH;
     }
     else
     {
@@ -103,15 +103,15 @@ void Field::ProcessExpandedField(const std::string& name,
   this->WildcardField = false; // no longer a wildcard field now
   if (assoc == "points")
   {
-    this->Association = fides::Association::POINTS;
+    this->Association = vtkm::cont::Field::Association::POINTS;
   }
   else if (assoc == "cell_set")
   {
-    this->Association = fides::Association::CELL_SET;
+    this->Association = vtkm::cont::Field::Association::CELL_SET;
   }
   else if (assoc == "field_data")
   {
-    this->Association = fides::Association::FIELD_DATA;
+    this->Association = vtkm::cont::Field::Association::WHOLE_MESH;
   }
   else
   {
@@ -135,7 +135,7 @@ std::vector<vtkm::cont::Field> Field::Read(
   fields.reserve(nFields);
   for (size_t i = 0; i < nFields; i++)
   {
-    vtkm::cont::Field fld(this->Name, ConvertToVTKmAssociation(this->Association), arrays[i]);
+    vtkm::cont::Field fld(this->Name, this->Association, arrays[i]);
     fields.push_back(fld);
   }
 
@@ -148,6 +148,7 @@ void Field::PostRead(std::vector<vtkm::cont::DataSet>& partitions,
   this->Array->PostRead(partitions, selections);
 }
 
+FIDES_DEPRECATED_SUPPRESS_BEGIN
 FieldData Field::ReadFieldData(const std::unordered_map<std::string, std::string>& paths,
                                DataSourcesType& sources,
                                const fides::metadata::MetaData& selections)
@@ -156,6 +157,7 @@ FieldData Field::ReadFieldData(const std::unordered_map<std::string, std::string
     this->Array->Read(paths, sources, selections);
   return FieldData(this->Name, std::move(arrays));
 }
+FIDES_DEPRECATED_SUPPRESS_END
 
 Field::WildcardFieldInfo Field::GetWildcardFieldLists(
   std::shared_ptr<predefined::InternalMetadataSource> source)

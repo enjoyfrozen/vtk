@@ -9,7 +9,6 @@
 //============================================================================
 
 #include <fides/DataSetWriter.h>
-#include <fides/FieldData.h>
 #include <fides/predefined/DataModelFactory.h>
 #include <fides/predefined/DataModelHelperFunctions.h>
 #include <fides/predefined/InternalMetadataSource.h>
@@ -83,6 +82,7 @@ public:
 #endif
 
     this->IO = this->Adios.DeclareIO(outputMode);
+    this->IO.SetEngine(outputMode);
     this->Engine = this->IO.Open(this->OutputFileName,
                                  (appendMode ? adios2::Mode::Append : adios2::Mode::Write));
   }
@@ -360,9 +360,9 @@ protected:
 
   void ComputeGlobalBlockInfo()
   {
-    std::vector<int> dataSetsPerRank;
     this->NumberOfDataSets = static_cast<std::size_t>(this->DataSets.GetNumberOfPartitions());
 
+    this->DataSetsPerRank.clear();
     this->DataSetsPerRank.resize(static_cast<size_t>(this->NumRanks), 0);
     this->DataSetsPerRank[static_cast<size_t>(this->Rank)] =
       static_cast<int>(this->NumberOfDataSets);
@@ -467,6 +467,9 @@ public:
 
   void WriteCoordinates() override
   {
+    this->DimsValues.clear();
+    this->OriginsValues.clear();
+    this->SpacingsValues.clear();
     this->DimsValues.resize(static_cast<size_t>(this->DataSets.GetNumberOfPartitions() * 3));
     this->OriginsValues.resize(static_cast<size_t>(this->DataSets.GetNumberOfPartitions() * 3));
     this->SpacingsValues.resize(static_cast<size_t>(this->DataSets.GetNumberOfPartitions() * 3));
@@ -565,6 +568,7 @@ public:
     std::size_t ycOffset = this->YCoordsOffset;
     std::size_t zcOffset = this->ZCoordsOffset;
 
+    this->DimsValues.clear();
     this->DimsValues.resize(this->DataSets.GetNumberOfPartitions() * 3);
 
     this->XCoordsVar.SetShape({ this->TotalNumberOfXCoords });
@@ -938,6 +942,7 @@ public:
 
   void WriteCells() override
   {
+    this->NumVerts.clear();
     this->NumVerts.resize(static_cast<size_t>(this->NumCells), -1);
 
     //Update the shape size for this step.
