@@ -852,6 +852,21 @@ void vtkLSDynaPartCollection::SetupPointPropertyForReading(const vtkIdType& numT
   {
     // don't do anything as we have no valid parts
   }
+  else if (isIdType)
+  {
+    if (this->MetaData->Fam.GetWordSize() == 8)
+    {
+      this->FillPointUserIds<std::int64_t>(numTuples, numComps, validParts, idx);
+    }
+    else if (this->MetaData->Fam.GetWordSize() == 4)
+    {
+      this->FillPointUserIds<std::int32_t>(numTuples, numComps, validParts, idx);
+    }
+    else
+    {
+      assert(false);
+    }
+  }
   else if (this->MetaData->Fam.GetWordSize() == 8)
   {
     this->FillPointProperty<double>(numTuples, numComps, validParts, idx);
