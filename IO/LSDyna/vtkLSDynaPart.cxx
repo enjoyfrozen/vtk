@@ -712,7 +712,11 @@ void vtkLSDynaPart::AddPointInformation(T* buffer, U* pointData, const vtkIdType
 
     if (this->GlobalPointsUsed->isUsed(start))
     {
+#ifdef __cpp_if_constexpr
+      if constexpr (std::is_same<T, U>::value)
+#else
       if (std::is_same<T, U>::value)
+#endif
       {
         memcpy(dest, src, msize);
       }
