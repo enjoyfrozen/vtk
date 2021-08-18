@@ -22,6 +22,7 @@
 #include "vtkBezierQuadrilateral.h"
 #include "vtkBezierTetra.h"
 #include "vtkBezierWedge.h"
+#include "vtkBiQuadraticPyramid.h"
 #include "vtkBiQuadraticQuadraticHexahedron.h"
 #include "vtkBiQuadraticQuadraticWedge.h"
 #include "vtkBiQuadraticTriangle.h"
@@ -1118,6 +1119,12 @@ int vtkUnstructuredGridGeometryFilter::RequestData(vtkInformation* vtkNotUsed(re
             this->HashTable->InsertFaces<vtkQuadraticPyramid, 0, 1, 8, VTK_QUADRATIC_QUAD>(
               pts, cellId);
             this->HashTable->InsertFaces<vtkQuadraticPyramid, 1, 5, 6, VTK_QUADRATIC_TRIANGLE>(
+              pts, cellId);
+            break;
+          case VTK_BIQUADRATIC_PYRAMID:
+            this->HashTable->InsertFaces<vtkBiQuadraticPyramid, 0, 1, 9, VTK_BIQUADRATIC_QUAD>(
+              pts, cellId);
+            this->HashTable->InsertFaces<vtkBiQuadraticPyramid, 1, 5, 7, VTK_BIQUADRATIC_TRIANGLE>(
               pts, cellId);
             break;
           case VTK_TRIQUADRATIC_HEXAHEDRON:
