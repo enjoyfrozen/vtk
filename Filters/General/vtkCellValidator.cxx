@@ -36,6 +36,7 @@
 #include "vtkBezierTetra.h"
 #include "vtkBezierTriangle.h"
 #include "vtkBezierWedge.h"
+#include "vtkBiQuadraticPyramid.h"
 #include "vtkBiQuadraticQuad.h"
 #include "vtkBiQuadraticQuadraticHexahedron.h"
 #include "vtkBiQuadraticQuadraticWedge.h"
@@ -476,6 +477,7 @@ vtkCellValidator::State vtkCellValidator::Check(vtkCell* cell, double tolerance)
     CheckCase(VTK_QUADRATIC_HEXAHEDRON, vtkQuadraticHexahedron);
     CheckCase(VTK_QUADRATIC_WEDGE, vtkQuadraticWedge);
     CheckCase(VTK_QUADRATIC_PYRAMID, vtkQuadraticPyramid);
+    CheckCase(VTK_BIQUADRATIC_PYRAMID, vtkBiQuadraticPyramid);
     CheckCase(VTK_BIQUADRATIC_QUAD, vtkBiQuadraticQuad);
     CheckCase(VTK_TRIQUADRATIC_HEXAHEDRON, vtkTriQuadraticHexahedron);
     CheckCase(VTK_QUADRATIC_LINEAR_QUAD, vtkQuadraticLinearQuad);
@@ -1246,6 +1248,39 @@ vtkCellValidator::State vtkCellValidator::Check(vtkBiQuadraticQuad* quad, double
   if (!ContiguousEdges(quad, tolerance))
   {
     state |= State::NoncontiguousEdges;
+  }
+
+  return state;
+}
+
+//------------------------------------------------------------------------------
+vtkCellValidator::State vtkCellValidator::Check(vtkBiQuadraticPyramid* pyramid, double tolerance)
+{
+  State state = State::Valid;
+
+  // Ensure there are thirteen underlying point ids for the pyramid
+  if (pyramid->GetNumberOfPoints() != 19)
+  {
+    state |= State::WrongNumberOfPoints;
+    return state;
+  }
+
+  // Ensure that no edges intersect
+  if (!NoIntersectingEdges(pyramid, tolerance))
+  {
+    state |= State::IntersectingEdges;
+  }
+
+  // Ensure that no faces intersect
+  if (!NoIntersectingFaces(pyramid, tolerance))
+  {
+    state |= State::IntersectingEdges;
+  }
+
+  // Ensure the wedge's faces are oriented correctly
+  if (!FacesAreOrientedCorrectly(pyramid, tolerance))
+  {
+    state |= State::FacesAreOrientedIncorrectly;
   }
 
   return state;
