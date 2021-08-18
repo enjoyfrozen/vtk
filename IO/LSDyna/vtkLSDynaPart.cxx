@@ -681,8 +681,8 @@ void vtkLSDynaPart::ReadPointBasedProperty(double* data, const vtkIdType& numTup
 }
 
 //------------------------------------------------------------------------------
-template <typename T>
-void vtkLSDynaPart::AddPointInformation(T* buffer, T* pointData, const vtkIdType& numTuples,
+template <typename T, typename U>
+void vtkLSDynaPart::AddPointInformation(T* buffer, U* pointData, const vtkIdType& numTuples,
   const vtkIdType& numComps, const vtkIdType& currentGlobalIndex)
 {
   // only read the subset of points of this part that fall
@@ -699,7 +699,7 @@ void vtkLSDynaPart::AddPointInformation(T* buffer, T* pointData, const vtkIdType
 
   // offset all the pointers to the correct place
   T* src = buffer + ((start - currentGlobalIndex) * numComps);
-  T* dest = pointData + (this->CurrentPointPropInfo->index * numComps);
+  U* dest = pointData + (this->CurrentPointPropInfo->index * numComps);
   const size_t msize = sizeof(T) * numComps;
 
   // fix the start and end to be relative to the min id
@@ -712,7 +712,18 @@ void vtkLSDynaPart::AddPointInformation(T* buffer, T* pointData, const vtkIdType
 
     if (this->GlobalPointsUsed->isUsed(start))
     {
-      memcpy(dest, src, msize);
+      if (std::is_same<T, U>::value)
+      {
+        memcpy(dest, src, msize);
+      }
+      else
+      {
+        for (vtkIdType i = 0; i < numComps; i++)
+        {
+          dest[i] = static_cast<U>(src[i]);
+        }
+      }
+
       dest += numComps;
       ++numPointsRead;
     }
