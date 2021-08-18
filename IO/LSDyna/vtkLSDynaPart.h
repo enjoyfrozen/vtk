@@ -139,8 +139,8 @@ protected:
   void GetPropertyData(const char* name, const vtkIdType& numComps, const bool& isIdTypeArray,
     const bool& isProperty, const bool& isGeometry);
 
-  template <typename T>
-  void AddPointInformation(T* buffer, T* pointData, const vtkIdType& numTuples,
+  template <typename T, typename U>
+  void AddPointInformation(T* buffer, U* pointData, const vtkIdType& numTuples,
     const vtkIdType& numComps, const vtkIdType& currentGlobalPointIndex);
 
   // basic info about the part
