@@ -681,6 +681,22 @@ void vtkLSDynaPart::ReadPointBasedProperty(double* data, const vtkIdType& numTup
 }
 
 //------------------------------------------------------------------------------
+void vtkLSDynaPart::ReadPointUserIds(std::int32_t* data, const vtkIdType& numTuples,
+  const vtkIdType& numComps, const vtkIdType& currentGlobalPointIndex)
+{
+  vtkIdType* ptr = static_cast<vtkIdType*>(this->CurrentPointPropInfo->ptr);
+  this->AddPointInformation(data, ptr, numTuples, numComps, currentGlobalPointIndex);
+}
+
+//------------------------------------------------------------------------------
+void vtkLSDynaPart::ReadPointUserIds(std::int64_t* data, const vtkIdType& numTuples,
+  const vtkIdType& numComps, const vtkIdType& currentGlobalPointIndex)
+{
+  vtkIdType* ptr = static_cast<vtkIdType*>(this->CurrentPointPropInfo->ptr);
+  this->AddPointInformation(data, ptr, numTuples, numComps, currentGlobalPointIndex);
+}
+
+//------------------------------------------------------------------------------
 template <typename T, typename U>
 void vtkLSDynaPart::AddPointInformation(T* buffer, U* pointData, const vtkIdType& numTuples,
   const vtkIdType& numComps, const vtkIdType& currentGlobalIndex)

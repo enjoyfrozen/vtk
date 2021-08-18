@@ -105,6 +105,12 @@ public:
   void ReadPointBasedProperty(double* data, const vtkIdType& numTuples, const vtkIdType& numComps,
     const vtkIdType& currentGlobalPointIndex);
 
+  void ReadPointUserIds(std::int32_t* data, const vtkIdType& numTuples, const vtkIdType& numComps,
+    const vtkIdType& currentGlobalPointIndex);
+
+  void ReadPointUserIds(std::int64_t* data, const vtkIdType& numTuples, const vtkIdType& numComps,
+    const vtkIdType& currentGlobalPointIndex);
+
   // Description:
   // Adds a property to the part
   void AddCellProperty(const char* name, const int& offset, const int& numComps);
