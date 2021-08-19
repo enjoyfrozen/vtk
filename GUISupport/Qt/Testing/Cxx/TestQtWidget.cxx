@@ -37,6 +37,10 @@ int TestQtWidget(int argc, char* argv[])
   // setup default format, if needed.
   detail::set_default_format(type);
 
+  QByteArray a = qgetenv("QT_OPENGL");
+  vtkLogF(INFO, "Getting QT_OPENGL set to %s", a.constData());
+  QCoreApplication::setAttribute(Qt::AA_UseSoftwareOpenGL);
+
   QApplication app(argc, argv);
 
   vtkNew<vtkTesting> vtktesting;
