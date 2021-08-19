@@ -90,6 +90,7 @@ void QVTKOpenGLWindow::setRenderWindow(vtkGenericOpenGLRenderWindow* win)
   {
     return;
   }
+  vtkLogF(INFO, "QVTKOpenGLWindow::setRenderWindow setting %s", &win);
 
   // this will release all OpenGL resources associated with the old render
   // window, if any.
@@ -98,36 +99,45 @@ void QVTKOpenGLWindow::setRenderWindow(vtkGenericOpenGLRenderWindow* win)
     this->makeCurrent();
     this->RenderWindowAdapter.reset(nullptr);
   }
+  vtkLogF(INFO, "QVTKOpenGLWindow::setRenderWindow adapter reset");
   this->RenderWindow = win;
   if (this->RenderWindow)
   {
+    vtkLogF(INFO, "QVTKOpenGLWindow::setRenderWindow setting ready for rendering");
     this->RenderWindow->SetReadyForRendering(false);
     this->RenderWindow->SetFrameBlitModeToNoBlit();
 
     // if an interactor wasn't provided, we'll make one by default
     if (!this->RenderWindow->GetInteractor())
     {
+      vtkLogF(INFO, "QVTKOpenGLWindow::setRenderWindow creating interactor");
       // create a default interactor
       vtkNew<QVTKInteractor> iren;
       // iren->SetUseTDx(this->UseTDx);
       this->RenderWindow->SetInteractor(iren);
+      vtkLogF(INFO, "QVTKOpenGLWindow::setRenderWindow initializing interactor");
       iren->Initialize();
+      vtkLogF(INFO, "QVTKOpenGLWindow::setRenderWindow initialized interactor");
 
       // now set the default style
       vtkNew<vtkInteractorStyleTrackballCamera> style;
       iren->SetInteractorStyle(style);
     }
 
+    vtkLogF(INFO, "QVTKOpenGLWindow::setRenderWindow about to check if valid");
     if (this->isValid())
     {
       // this typically means that the render window is being changed after the
       // QVTKOpenGLWindow has initialized itself in a previous update
       // pass, so we emulate the steps to ensure that the new vtkRenderWindow is
       // brought to the same state (minus the actual render).
+      vtkLogF(INFO, "QVTKOpenGLWindow::setRenderWindow about to make current");
       this->makeCurrent();
       this->initializeGL();
       this->updateSize();
+      this->RenderWindow->SetReadyForRendering(true);
     }
+    vtkLogF(INFO, "QVTKOpenGLWindow::setRenderWindow done validatign");
   }
 }
 

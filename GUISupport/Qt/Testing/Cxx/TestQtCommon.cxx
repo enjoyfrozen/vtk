@@ -152,6 +152,7 @@ vtkRenderWindow* get_render_window(std::shared_ptr<QObject> widgetOrWindow)
 
 void set_render_window(std::shared_ptr<QObject> widgetOrWindow, vtkRenderWindow* renWin)
 {
+  vtkLogF(INFO, "Setting render window %s", &renWin);
   if (auto w1 = qobject_cast<QVTKRenderWidget*>(widgetOrWindow.get()))
   {
     w1->setRenderWindow(renWin);
@@ -198,26 +199,37 @@ void process_events_and_wait(int msec)
 
 void show(std::shared_ptr<QObject> widgetOrWindow, const QSize& size)
 {
+  vtkLogF(INFO, "detail::common::show function");
   if (widgetOrWindow->isWidgetType())
   {
+    vtkLogF(INFO, "detail::common::show widget type");
     auto widget = static_cast<QWidget*>(widgetOrWindow.get());
     widget->resize(size);
+    vtkLogF(INFO, "detail::common::show widget post resize");
     widget->show();
+    vtkLogF(INFO, "detail::common::show widget post show");
   }
   else if (widgetOrWindow->isWindowType())
   {
+    vtkLogF(INFO, "detail::common::show window type");
     auto window = static_cast<QWindow*>(widgetOrWindow.get());
     window->resize(size);
+    vtkLogF(INFO, "detail::common::show window post resize");
     window->show();
+    vtkLogF(INFO, "detail::common::show window post show");
   }
 
   auto renWindow = vtkGenericOpenGLRenderWindow::SafeDownCast(get_render_window(widgetOrWindow));
+  vtkLogF(INFO, "detail::common::show before while loop");
+  vtkLogF(INFO, "detail::common::show before while loop %s", &renWindow);
   while (renWindow != nullptr && !renWindow->GetReadyForRendering())
   {
     QApplication::sendPostedEvents();
     QApplication::processEvents();
   }
+  vtkLogF(INFO, "detail::common::show after while loop");
   process_events_and_wait(500);
+  vtkLogF(INFO, "detail::common::show end!!!!!");
 }
 
 QImage grab_framebuffer(std::shared_ptr<QObject> widgetOrWindow)
