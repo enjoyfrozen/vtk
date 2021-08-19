@@ -152,6 +152,7 @@ vtkRenderWindow* get_render_window(std::shared_ptr<QObject> widgetOrWindow)
 
 void set_render_window(std::shared_ptr<QObject> widgetOrWindow, vtkRenderWindow* renWin)
 {
+  vtkLogF(INFO, "Setting render window %s", &renWin);
   if (auto w1 = qobject_cast<QVTKRenderWidget*>(widgetOrWindow.get()))
   {
     w1->setRenderWindow(renWin);
