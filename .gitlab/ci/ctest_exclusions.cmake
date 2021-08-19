@@ -137,13 +137,10 @@ if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "windows")
     "^VTK::RenderingOpenGL2Cxx-TestWindowBlits$"
 
     # Timeouts; need investigation.
-    "^VTK::GUISupportQtCxx-TestQVTKOpenGLStereoWidget$"
     "^VTK::GUISupportQtCxx-TestQVTKOpenGLStereoWidgetPicking$"
     "^VTK::GUISupportQtCxx-TestQVTKOpenGLStereoWidgetQWidgetWidget$"
     "^VTK::GUISupportQtCxx-TestQVTKOpenGLStereoWidgetWithDisabledInteractor$"
     "^VTK::GUISupportQtCxx-TestQVTKOpenGLStereoWidgetWithMSAA$"
-    "^VTK::GUISupportQtCxx-TestQVTKOpenGLStereoWidgetWithChartHistogram2D$"
-    "^VTK::GUISupportQtCxx-TestQVTKOpenGLWidget$"
     "^VTK::GUISupportQtCxx-TestQVTKOpenGLWidgetPicking$"
     "^VTK::GUISupportQtCxx-TestQVTKOpenGLWidgetQWidgetWidget$"
     "^VTK::GUISupportQtCxx-TestQVTKOpenGLWidgetWithDisabledInteractor$"
