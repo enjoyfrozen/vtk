@@ -74,7 +74,11 @@ void RandomOrderStatistics(vtkMultiProcessController* controller, void* arg)
   int myRank = com->GetLocalProcessId();
 
   // Seed random number generator
-  vtkMath::RandomSeed(static_cast<int>(vtkTimerLog::GetUniversalTime()) * (myRank + 1));
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+  rand->SetSeed(static_cast<int>(vtkTimerLog::GetUniversalTime()) * (myRank + 1));
+
+  vtkNew<vtkBoxMuellerRandomSequence> grand;
+  grand->SetUniformSequence(rand);
 
   // Generate an input table that contains samples of:
   // 1. A truncated Gaussian pseudo-random variable (vtkIntArray)
@@ -116,7 +120,7 @@ void RandomOrderStatistics(vtkMultiProcessController* controller, void* arg)
   // Store first integer value
   if (!args->skipInt)
   {
-    v[idx] = static_cast<int>(std::round(vtkMath::Gaussian() * args->stdev));
+    v[idx] = static_cast<int>(std::round(grand->GetNextValue() * args->stdev));
     intArray->InsertNextValue(v[idx]);
     ++idx;
   }
@@ -124,7 +128,7 @@ void RandomOrderStatistics(vtkMultiProcessController* controller, void* arg)
   // Store first string value
   if (!args->skipString)
   {
-    v[idx] = 96 + vtkMath::Ceil(vtkMath::Random() * 26);
+    v[idx] = 96 + vtkMath::Ceil(rand->GetNextValue() * 26);
     char c = static_cast<char>(v[idx]);
     vtkStdString s(&c, 1);
     strArray->InsertNextValue(s);
@@ -146,7 +150,7 @@ void RandomOrderStatistics(vtkMultiProcessController* controller, void* arg)
     // Store current integer value
     if (!args->skipInt)
     {
-      v[idx] = static_cast<int>(std::round(vtkMath::Gaussian() * args->stdev));
+      v[idx] = static_cast<int>(std::round(grand->GetNextValue() * args->stdev));
       intArray->InsertNextValue(v[idx]);
       ++idx;
     }
@@ -154,7 +158,7 @@ void RandomOrderStatistics(vtkMultiProcessController* controller, void* arg)
     // Store current string value
     if (!args->skipString)
     {
-      v[idx] = 96 + vtkMath::Ceil(vtkMath::Random() * 26);
+      v[idx] = 96 + vtkMath::Ceil(rand->GetNextValue() * 26);
       char c = static_cast<char>(v[idx]);
       vtkStdString s(&c, 1);
       strArray->InsertNextValue(s);

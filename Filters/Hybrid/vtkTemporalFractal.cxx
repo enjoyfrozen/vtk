@@ -24,7 +24,9 @@
 #include "vtkInformationVector.h"
 #include "vtkIntArray.h"
 #include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
 #include "vtkMultiBlockDataSet.h"
+#include "vtkNew.h"
 #include "vtkObjectFactory.h"
 #include "vtkPointData.h"
 #include "vtkRectilinearGrid.h"
@@ -256,6 +258,8 @@ void vtkTemporalFractal::SetBlockInfo(vtkUniformGrid* grid, int level, int* ext,
 // This handles any alterations necessary for ghost levels.
 void vtkTemporalFractal::SetRBlockInfo(vtkRectilinearGrid* grid, int level, int* ext, int onFace[6])
 {
+  static vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   if (this->GhostLevels)
   {
     if (!onFace[0])
@@ -322,7 +326,7 @@ void vtkTemporalFractal::SetRBlockInfo(vtkRectilinearGrid* grid, int level, int*
 
   vtkDoubleArray* coords[3];
 
-  vtkMath::RandomSeed(1234);
+  rand->SetSeed(1234);
   int coord = 0;
   while (coord < 3)
   {
@@ -357,7 +361,7 @@ void vtkTemporalFractal::SetRBlockInfo(vtkRectilinearGrid* grid, int level, int*
     {
       uniformCoordinate += spacing[coord];
       // get a random number about 1/5 of the uniform spacing.
-      double epsilon = (vtkMath::Random() - 0.5) * spacing[coord] * 0.4;
+      double epsilon = (rand->GetNextValue() - 0.5) * spacing[coord] * 0.4;
       coords[coord]->InsertNextValue(uniformCoordinate + epsilon);
       ++i;
     }

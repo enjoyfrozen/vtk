@@ -13,8 +13,9 @@
 #include "vtkDoubleArray.h"
 #include "vtkIdTypeArray.h"
 #include "vtkKMeansStatistics.h"
-#include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
 #include "vtkMultiBlockDataSet.h"
+#include "vtkNew.h"
 #include "vtkStdString.h"
 #include "vtkStringArray.h"
 #include "vtkTable.h"
@@ -31,7 +32,8 @@ int TestKMeansStatistics(int, char*[])
   int nVals = 50;
 
   // Seed random number generator
-  vtkMath::RandomSeed(static_cast<int>(vtkTimerLog::GetUniversalTime()));
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+  rand->SetSeed(static_cast<int>(vtkTimerLog::GetUniversalTime()));
 
   // Generate an input table that contains samples of mutually independent random variables over [0,
   // 1]
@@ -51,8 +53,8 @@ int TestKMeansStatistics(int, char*[])
     double x;
     for (int r = 0; r < nVals; ++r)
     {
-      // x = vtkMath::Gaussian();
-      x = vtkMath::Random();
+      // x = grand->GetNextValue();
+      x = rand->GetNextValue();
       doubleArray->SetValue(r, x);
     }
 
@@ -91,8 +93,8 @@ int TestKMeansStatistics(int, char*[])
     {
       for (int nInRun = 0; nInRun < numClustersInRun[curRun]; nInRun++)
       {
-        // x = vtkMath::Gaussian();
-        x = vtkMath::Random();
+        // x = grand->GetNextValue();
+        x = rand->GetNextValue();
         paramArray->InsertNextValue(x);
       }
     }
