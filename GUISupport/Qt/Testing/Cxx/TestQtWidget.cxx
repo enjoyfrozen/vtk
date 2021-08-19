@@ -37,6 +37,10 @@ int TestQtWidget(int argc, char* argv[])
   // setup default format, if needed.
   detail::set_default_format(type);
 
+  QByteArray a = qgetenv("QT_OPENGL");
+  vtkLogF(INFO, "Getting QT_OPENGL set to %s", a.constData());
+  QCoreApplication::setAttribute(Qt::AA_UseSoftwareOpenGL);
+
   QApplication app(argc, argv);
 
   vtkNew<vtkTesting> vtktesting;
@@ -65,11 +69,15 @@ int TestQtWidget(int argc, char* argv[])
   actor->SetMapper(mapper);
   ren->AddActor(actor);
 
+  vtkLogF(INFO, "About to show window");
   detail::show(widgetOrWindow, QSize(300, 300));
+  vtkLogF(INFO, "Showed window");
   detail::process_events_and_wait(1000); // let's wait a little longer for the resize
+  vtkLogF(INFO, "Resized window");
 
   const int* windowSize = window->GetSize();
   const int* screenSize = window->GetScreenSize();
+  vtkLogF(INFO, "Resized window dims: (%i, %i)", windowSize[0], windowSize[1]);
   if (screenSize[0] < windowSize[0] || screenSize[1] < windowSize[1])
   {
     std::cout << "Expected vtkGenericOpenGLRenderWindow::GetScreenSize() "
@@ -79,8 +87,10 @@ int TestQtWidget(int argc, char* argv[])
   }
 
   vtktesting->SetRenderWindow(window);
+  vtkLogF(INFO, "Set Render Window for testing");
 
   int retVal = vtktesting->RegressionTest(10);
+  vtkLogF(INFO, "RegressionTest");
   switch (retVal)
   {
     case vtkTesting::DO_INTERACTOR:
