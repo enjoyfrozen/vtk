@@ -30,6 +30,8 @@
 #include "vtkIdTypeArray.h"
 #include "vtkMath.h"
 #include "vtkMatrix4x4.h"
+#include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 #include "vtkObjectFactory.h"
 #include "vtkSortDataArray.h"
 
@@ -201,6 +203,8 @@ void vtkCellCenterDepthSort::InitTraversal()
 
 vtkIdTypeArray* vtkCellCenterDepthSort::GetNextCells()
 {
+  static vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   if (this->ToSort->Stack.empty())
   {
     // Already sorted and returned everything.
@@ -217,7 +221,7 @@ vtkIdTypeArray* vtkCellCenterDepthSort::GetNextCells()
   {
     vtkIdType left = partition.first;
     vtkIdType right = partition.second - 1;
-    float pivot = cellDepths[static_cast<vtkIdType>(vtkMath::Random(left, right))];
+    float pivot = cellDepths[static_cast<vtkIdType>(rand->GetNextRangeValue(left, right))];
     while (left <= right)
     {
       while ((left <= right) && (cellDepths[left] < pivot))

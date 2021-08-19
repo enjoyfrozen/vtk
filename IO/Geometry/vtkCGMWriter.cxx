@@ -13,7 +13,8 @@
 
 =========================================================================*/
 #include "vtkCGMWriter.h"
-#include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 #include "vtkUnsignedCharArray.h"
 
 #include "vtkCellArray.h"
@@ -739,9 +740,11 @@ void vtkCGMWriter::WriteData()
     }
     else // if ( colorMode == VTK_COLOR_MODE_RANDOM_COLORS )
     {
-      color = GetColor(static_cast<int>(vtkMath::Random(0, 255)),
-        static_cast<int>(vtkMath::Random(0, 255)), static_cast<int>(vtkMath::Random(0, 255)),
-        CGMColors);
+      static vtkNew<vtkMinimalStandardRandomSequence> rand;
+
+      color = GetColor(static_cast<int>(rand->GetNextRangeValue(0, 255)),
+        static_cast<int>(rand->GetNextRangeValue(0, 255)),
+        static_cast<int>(rand->GetNextRangeValue(0, 255)), CGMColors);
     }
 
     switch (type)

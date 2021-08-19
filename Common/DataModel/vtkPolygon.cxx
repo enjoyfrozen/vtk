@@ -24,6 +24,7 @@
 #include "vtkMath.h"
 #include "vtkMathUtilities.h"
 #include "vtkMergePoints.h"
+#include "vtkMinimalStandardRandomSequence.h"
 #include "vtkNew.h"
 #include "vtkObjectFactory.h"
 #include "vtkPlane.h"
@@ -33,6 +34,7 @@
 #include "vtkSmartPointer.h"
 #include "vtkTriangle.h"
 
+#include <ctime>
 #include <vector>
 
 vtkStandardNewMacro(vtkPolygon);

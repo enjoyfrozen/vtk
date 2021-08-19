@@ -27,6 +27,8 @@
 #include "vtkHandleWidget.h"
 #include "vtkInteractorEventRecorder.h"
 #include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 #include "vtkPointHandleRepresentation3D.h"
 #include "vtkPolyDataMapper.h"
 #include "vtkProperty.h"
@@ -36,6 +38,8 @@
 #include "vtkRenderer.h"
 #include "vtkSmartPointer.h"
 #include "vtkSphereSource.h"
+
+static vtkNew<vtkMinimalStandardRandomSequence> rng;
 
 #define VTK_CREATE(type, name) vtkSmartPointer<type> name = vtkSmartPointer<type>::New()
 
@@ -870,8 +874,8 @@ void vtkDistanceWidget3DCallback::Execute(vtkObject*, unsigned long eid, void* c
     // Pretend we are doing something serious....just randomly bump the
     // location of the point.
     double p[3];
-    p[0] = pos[0] + static_cast<int>(vtkMath::Random(-5.5, 5.5));
-    p[1] = pos[1] + static_cast<int>(vtkMath::Random(-5.5, 5.5));
+    p[0] = pos[0] + static_cast<int>(rng->GetNextRangeValue(-5.5, 5.5));
+    p[1] = pos[1] + static_cast<int>(rng->GetNextRangeValue(-5.5, 5.5));
     p[2] = 0.0;
 
     // Set the new position
