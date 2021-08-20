@@ -135,7 +135,6 @@ void QVTKOpenGLWindow::setRenderWindow(vtkGenericOpenGLRenderWindow* win)
       this->makeCurrent();
       this->initializeGL();
       this->updateSize();
-      this->RenderWindow->SetReadyForRendering(true);
     }
     vtkLogF(INFO, "QVTKOpenGLWindow::setRenderWindow done validatign");
   }
@@ -208,25 +207,32 @@ void QVTKOpenGLWindow::setDefaultCursor(const QCursor& cursor)
 //------------------------------------------------------------------------------
 void QVTKOpenGLWindow::initializeGL()
 {
+  vtkLogF(INFO, "initializeGL");
   this->Superclass::initializeGL();
+  vtkLogF(INFO, "initializeGL: After Superclass::initializeGL");
   if (this->RenderWindow)
   {
     Q_ASSERT(this->RenderWindowAdapter.data() == nullptr);
+    vtkLogF(INFO, "initializeGL: After assert");
 
     auto ostate = this->RenderWindow->GetState();
     ostate->Reset();
+    vtkLogF(INFO, "initializeGL: After ostate reset");
     // By default, Qt sets the depth function to GL_LESS but VTK expects GL_LEQUAL
     ostate->vtkglDepthFunc(GL_LEQUAL);
 
     this->RenderWindowAdapter.reset(
       new QVTKRenderWindowAdapter(this->context(), this->RenderWindow, this));
+    vtkLogF(INFO, "initializeGL: After setting up new renderwindowadapter: %b", this->RenderWindow->GetReadyForRendering());
     this->RenderWindowAdapter->setDefaultCursor(this->defaultCursor());
     this->RenderWindowAdapter->setEnableHiDPI(this->EnableHiDPI);
     this->RenderWindowAdapter->setUnscaledDPI(this->UnscaledDPI);
     this->RenderWindowAdapter->setCustomDevicePixelRatio(this->CustomDevicePixelRatio);
   }
+  vtkLogF(INFO, "initializeGL: After block of if(RenderWindow)");
   this->connect(this->context(), SIGNAL(aboutToBeDestroyed()), SLOT(cleanupContext()),
     static_cast<Qt::ConnectionType>(Qt::UniqueConnection | Qt::DirectConnection));
+  vtkLogF(INFO, "initializeGL: complete");
 }
 
 //------------------------------------------------------------------------------
