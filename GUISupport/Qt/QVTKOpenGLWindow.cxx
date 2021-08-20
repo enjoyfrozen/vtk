@@ -135,7 +135,6 @@ void QVTKOpenGLWindow::setRenderWindow(vtkGenericOpenGLRenderWindow* win)
       this->makeCurrent();
       this->initializeGL();
       this->updateSize();
-      this->RenderWindow->SetReadyForRendering(true);
     }
     vtkLogF(INFO, "QVTKOpenGLWindow::setRenderWindow done validatign");
   }
