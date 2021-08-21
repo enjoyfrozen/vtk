@@ -14,8 +14,7 @@ Please select a task for further instructions:
 
 ## Other Tasks
 
-* [Review Changes](https://gitlab.kitware.com/vtk/vtk/-/merge_requests) -
-  VTK GitLab Merge Requests
+* [Review Changes](review.md) - VTK GitLab Merge Requests
 
 * [Test VTK](dashboard.md) - CDash client setup
 
