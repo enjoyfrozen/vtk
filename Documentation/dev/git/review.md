@@ -357,3 +357,176 @@ In these cases, the test should exit with a "skip return code". In Python, the
 `vtkmodules.test.Testing.skip()` function will do this. In C++, the
 `VTK_SKIP_RETURN_CODE` value may be returned (provided by the `vtkTesting.h`
 header).
+
+[](#software-process)
+## Software Process
+
+There are multiple facets to VTK's software process that are used to help
+manage the project as a whole. While these may feel like "extra work", they are
+useful in scaling up VTK's workflow to handle the size of the codebase.
+Essentially, the idea is to help streamline the work that is generated around
+the process of adding new code and features to VTK itself.
+
+[](#software-process-release-notes)
+### Release Notes
+
+VTK stores its release notes for the next release in the
+`Documentation/release/dev` directory. Each file should cover one "thing"
+(usually associated with a topic branch) that has changed since the last
+release. Note that changes that are not mentioned in a release note file are
+unlikely to be mentioned when the next release is made.
+
+Release notes should be made for any change to VTK with user-visible effects.
+This includes things such as:
+
+- adding an API (class, method, etc.)
+- changing an API (with instructions on how to adapt)
+- deprecations (again, with instructions on how to adapt)
+- performance improvements
+- supported platform changes
+
+Things which do *not* require release notes are those which are internal to
+VTK. For example:
+
+- fixing typos
+- adding comments to code (including API documentation)
+- CI configuration changes
+
+There is a template `0-sample-topic.md` file with instructions on how to write
+a release note.
+
+[](#software-process-feedback)
+### Feedback
+
+When leaving feedback (or responding to feedback) on a merge request, it can be
+very useful to batch comments during a review using the GitLab feature that
+adds a comment to a review rather than posting it immediately. This can reduce
+the number of emails that get sent out for reviews and keep the notification
+stream into a more manageable volume.
+
+If there are multiple instances of a fix in a merge request, it can be better
+to just mention that the author should search for other instances than making a
+comment on every typo, missing brace, or missing `this->` usage.
+
+As an author replying to feedback, it is usually better to just mark a
+conversation as resolved for simple fixes rather than to reply "Done" or
+similar. GitLab already makes it relatively easy to see what has changed since
+the last review to verify that updates are suitable.
+
+[](#software-process-commit-structure)
+### Commit Structure
+
+When making commits, it is helpful for reviewers to be able to read the commit
+messages to determine *why* a change is being made. Sometimes a simple commit
+message is fine. This is usually only applicable when the diff itself is
+self-evident such as `vtkFoobar: fix a typo` or `vtkFoobar: fix indentation`.
+However, it is useful to communicate why a change is being made if there is
+more to it.
+
+The extra context in the commit message helps reviewers know what they'll be
+looking at when they look at the change itself. Additionally, it helps to get
+everyone on the same page about what the commit is trying to accomplish. If
+every reviewer needs to determine what the commit is doing from the diff, their
+conclusions to that end might not agree and this can result in people talking
+past each other.
+
+As a corollary, it is best if each commit does a single thing. This is so that
+the commit message doesn't need to have a section to address the "and also
+fixing this other thing while we're at it" change that is coming along for the
+ride. Commits are not a limited resource in Git; a new one is perfectly fine.
+
+The benefits of a useful set of commits are not just for those that trawl
+through the history. Some scenarios where good commit messages can save time:
+
+- Reviewers can already see *what* is being done in the diff itself, but a good
+  commit message can explain *why* the diff is needed and how it solves the
+  problem that it claims to solve. Without this information, a reviewer may be
+  left wondering why this is necessary. This is especially appreciative if the
+  reviewer ultimately ends up maintaining this code in the future.
+- The extra context is very useful if the commit ends up being the end result
+  of a bisection looking for a change in behavior. Without the additional
+  context, the diff would need to stand on its own to explain why it changed
+  something. When the developer doing the bisection comes back to you, the
+  author, it can also be useful to help remember why the change was made in the
+  first place.
+- Summarizing changes over a range of commits is easier if the commit messages
+  describe what is going on. This happens for VTK when ParaView updates its
+  submodule commit pointer.
+- Backporting fixes becomes easier if each commit is focused. Instead of having
+  to deal with some incidental change or other changes that cause a conflict of
+  some kind, the commit can be more easily applied to other branches.
+
+Generally, fixing a branch once it has been pushed will require familiarity
+with `git rebase`. There are numerous resources online for learning how to
+leverage it. The [`git-rebase.io`][git-rebase.io] site is a one such guide.
+
+[git-rebase.io]: https://git-rebase.io/
+
+[](#software-process-commit-structure-examples)
+#### Examples
+
+Poor commit message usually raise more questions than they answer. Here are a
+few examples:
+
+1. `Fix bug`
+  - What bug was being fixed?
+  - How does the change fix it?
+  - Why is this a *good* fix for the bug?
+  - Where in the codebase was this bug?
+2. `Address review comments`
+  - What comments?
+  - Whose review?
+  - Where were these comments made?
+  - Generally, the changes are best folded back into the commit which
+    introduced the change that is being fixed.
+3. `Fix clang-tidy warning`
+  - Which lint?
+  - The warning is in VTK, not `clang-tidy`, so the "blame" is misplaced.
+4. `Fix dashboard failure`
+  - Which dashboard?
+  - What was the problem being fixed?
+5. `Add new test baseline`
+  - Which test?
+  - Why is this baseline needed?
+6. Stock `revert` commit messages.
+  - Why was it reverted?
+  - Are there followup steps that will be taken to restore the behavior
+    properly?
+
+[](#software-process-mr-metadata)
+### Merge Request Metadata
+
+GitLab provides fields for managing merge requests. VTK uses the following:
+
+- **Assignee**: the user that should take the next action. If waiting on the
+  submitter, assign the merge request to them.
+- **Reviewer**: the user that is in charge of the review for this merge request
+  as a whole. May be delegated for specific sections.
+- **Milestone**: the targeted release for the merge request. Generally only
+  used during the release cycle to mark merge requests as intended for the
+  `release` branch.
+- **Labels**: Categorization mechanisms for merge requests.
+
+[](#software-process-mr-metadata-issues)
+Issues may be closed or referenced in merge request descriptions. This may be
+done by using a line in the form of `Fixes #xxx`.
+
+Please refrain from *closing* issues in other projects using this mechanism as
+if the issue is ever reopened, the reference can cause GitLab to close it at
+another time when the commit is pushed to a fork of VTK at another time.
+Instead use `See: ` to reference issues external to `vtk/vtk`.
+
+[](#software-process-mr-metadata-robot)
+Additionally, the robot which performs the checking and merging of merge
+requests looks for metadata at the *end* of the description of the merge
+request (one per line). Of note are the following controls:
+
+- `Topic-rename`: GitLab does not support renaming the branch without opening
+  a new merge request. The robot used for merging can take the name from this
+  field instead if a better name is warranted.
+- `Backport`: When merging, the robot can merge into multiple branches rather
+  than just the target branch. This is used to land fixes for the `release`
+  branch into `master` at the same time.
+
+If multiple trailers are needed, blank lines may be placed between them or `  `
+(two spaces) at the end of each may be used to improve the rendering in GitLab.
