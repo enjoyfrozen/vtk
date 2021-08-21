@@ -1,13 +1,11 @@
-Download VTK with Git
-=====================
+# Download VTK with Git
 
 This page documents how to download VTK source code through [Git][].
 See the [README](README.md) for more information.
 
 [Git]: http://git-scm.com
 
-Clone
------
+## Clone
 
 Clone VTK using the commands:
 
@@ -15,8 +13,7 @@ Clone VTK using the commands:
     $ cd VTK
     $ git submodule update --init
 
-Update
-------
+## Update
 
 Users that have made no local changes and simply want to update a
 clone with the latest changes may run:
@@ -27,8 +24,7 @@ Avoid making local changes unless you have read our [developer instructions][].
 
 [developer instructions]: develop.md
 
-Release
--------
+## Release
 
 After cloning your local repository will be configured to follow the upstream
 `master` branch by default.  One may create a local branch to track the

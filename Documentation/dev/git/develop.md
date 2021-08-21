@@ -1,5 +1,4 @@
-Develop VTK with Git
-====================
+# Develop VTK with Git
 
 This page documents how to develop VTK through [Git][].
 See the [README](README.md) for more information.
@@ -12,8 +11,7 @@ Here we document procedures used by the VTK development community.
 In the interest of simplicity and brevity we do *not* provide an
 explanation of why we use this approach.
 
-Setup
------
+## Setup
 
 Before you begin, perform initial setup:
 
@@ -47,8 +45,7 @@ Before you begin, perform initial setup:
 [Fork VTK]: https://gitlab.kitware.com/vtk/vtk/-/forks/new
 [developer setup script]: /Utilities/SetupForDevelopment.sh
 
-Workflow
---------
+## Workflow
 
 VTK development uses a [branchy workflow][] based on topic branches.
 Our collaboration workflow consists of three main steps:
@@ -69,8 +66,7 @@ Our collaboration workflow consists of three main steps:
 
 [branchy workflow]: http://public.kitware.com/Wiki/Git/Workflow/Topic
 
-Update
-------
+## Update
 
 1.  Update your local `master` branch:
 
@@ -83,8 +79,7 @@ Update
     to keep it in sync.  The `git gitlab-push` script used to
     [Share a Topic](#share-a-topic) below will also do this.
 
-Create a Topic
---------------
+## Create a Topic
 
 All new work must be committed on topic branches.
 Name topics like you might name functions: concise but precise.
@@ -129,8 +124,7 @@ A reader should have a general idea of the feature or fix to be developed given 
       documentation](../../../ThirdParty/UPDATING.md).
     * To deprecate APIs, follow [these instructions](deprecation.md).
 
-Guidelines for Commit logs
---------------------------
+## Guidelines for commit logs
 
 Remember to *motivate & summarize*. When writing commit logs, make sure
 that there is enough information there for any developer to read and glean
@@ -154,8 +148,7 @@ Style guidelines for commit logs are as follows:
 5. Wrap the body at 80 characters
 6. Use the body to explain `what` and `why` and if applicable a brief `how`.
 
-Share a Topic
--------------
+## Share a Topic
 
 When a topic is ready for review and possible inclusion, share it by pushing
 to a fork of your repository in GitLab.  Be sure you have registered and
@@ -186,8 +179,7 @@ signed in for [GitLab Access][] and created your fork by visiting the main
     The output will include a link to the topic branch in your fork in GitLab
     and a link to a page for creating a Merge Request.
 
-Create a Merge Request
-----------------------
+## Create a Merge Request
 
 (If you already created a merge request for a given topic and have reached
 this step after revising it, skip to the [next step](#review-a-merge-request).)
@@ -255,8 +247,7 @@ Follow these steps:
 7.  Use the "**Submit merge request**" button to create the merge request
     and visit its page.
 
-Guidelines for Merge Requests
------------------------------
+## Guidelines for Merge Requests
 
 Remember to *motivate & summarize*. When creating a merge request, consider the
 reviewers and future perusers of the software. Provide enough information to motivate
@@ -278,8 +269,7 @@ Although it may take you a little more time to write a good merge request,
 you'll likely see payback in faster reviews and better understood and
 maintainable software.
 
-Review a Merge Request
-----------------------
+## Review a Merge Request
 
 Add comments mentioning specific developers using `@username` syntax to
 draw their attention and have the topic reviewed.  After typing `@` and
@@ -308,7 +298,7 @@ to be merged in a reasonable timeframe.
 
 If you would like to be included in this list, juste create a merge request.
 
-### Human Reviews ###
+### Human Reviews
 
 Reviewers may add comments providing feedback or to acknowledge their
 approval. When a human reviewers suggest a change, please take it into
@@ -322,7 +312,7 @@ another pass of comment or acknowledge their approval in some form.
 Please be swift to adress or discuss comments, it will increase
 the speed at which your changes will be merged.
 
-### Comments Formatting ###
+### Comments Formatting
 
 Comments use [GitLab Flavored Markdown][] for formatting.  See GitLab
 documentation on [Special GitLab References][] to add links to things
@@ -341,7 +331,7 @@ in the following order: the [leading line](#leading-line), then
 [middle lines](#middle-lines), then [trailing lines](#trailing-lines).
 Each part is optional, but they must be specified in this order.
 
-#### Leading Line ####
+#### Leading Line
 
 The *leading* line of a comment may optionally be exactly one of the
 following votes followed by nothing but whitespace before the end
@@ -351,11 +341,11 @@ of the line:
 *   `+1` or :+1: (`:+1:`) means "The change is ready for integration."
 *   `+2` means "I have tested the change and verified it works."
 
-#### Middle Lines ####
+#### Middle Lines
 
 The middle lines of a comment may be free-form [GitLab Flavored Markdown][].
 
-#### Trailing Lines ####
+#### Trailing Lines
 
 Zero or more *trailing* lines in the last section of a comment may
 each contain exactly one of the following votes followed by nothing
@@ -372,7 +362,7 @@ the review.  References to `me` and `@username` will automatically be
 transformed into a real name and email address according to the user's
 GitLab account profile.
 
-#### Fetching Changes ####
+#### Fetching Changes
 
 One may fetch the changes associated with a merge request by using
 the `git fetch` command line shown at the top of the Merge Request
@@ -395,7 +385,7 @@ There are a few options for checking out the changes in a work tree:
 
         $ git cherry-pick ..FETCH_HEAD
 
-### Robot Reviews ###
+### Robot Reviews
 
 The "Kitware Robot" automatically performs basic checks on the commits
 and adds a comment acknowledging or rejecting the topic.  This will be
@@ -408,7 +398,7 @@ A re-check may be explicitly requested by adding a comment with a single
 A topic cannot be [merged](#merge-a-topic) until the automatic review
 succeeds.
 
-### Testing ###
+### Testing
 
 VTK uses [gitlab-ci](https://gitlab.kitware.com/help/ci/examples/README.md) to
 test its functionality. CI results are published to CDash and a link is added
@@ -527,12 +517,12 @@ comment instead):
   rename set in the MR description.
 
 
-### Merge Success ###
+### Merge Success
 
 If the merge succeeds the topic will appear in the upstream repository
 `master` branch and the Merge Request will be closed automatically.
 
-### Merge Failure ###
+### Merge Failure
 
 If the merge fails (likely due to a conflict), a comment will be added
 describing the failure.  In the case of a conflict, fetch the latest
@@ -546,8 +536,7 @@ upstream history and rebase on it:
 
 Return to the [above step](#share-a-topic) to share the revised topic.
 
-Delete a Topic
---------------
+## Delete a Topic
 
 After a topic has been merged upstream the Merge Request will be closed.
 Now you may delete your copies of the branch.

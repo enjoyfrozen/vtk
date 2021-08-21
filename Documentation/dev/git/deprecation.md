@@ -1,11 +1,9 @@
-VTK Deprecation Process
-=======================
+# VTK Deprecation Process
 
 This page documents how to deprecate an API and mark it as no longer necessary
 for downstream consumers of VTK.
 
-Deprecating classes and methods
--------------------------------
+## Deprecating classes and methods
 
 Classes, functions, and methods may be deprecated using the deprecation macros.
 
@@ -63,8 +61,7 @@ top of the source file to hide deprecation warnings in CI.
 If one already exists, please add another comment to it so that when deprecated
 symbols are removed, it shows up in the search.
 
-Using `VTK_DEPRECATION_LEVEL`
------------------------------
+## Using `VTK_DEPRECATION_LEVEL`
 
 When using VTK, the `VTK_DEPRECATION_LEVEL` macro may be set to a version
 number. APIs which have been deprecated after this point will not fire (as the
