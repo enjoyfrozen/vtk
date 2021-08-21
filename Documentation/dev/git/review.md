@@ -223,3 +223,137 @@ APIs can relax these guidelines a bit, but it is best to follow them even then.
 - Prefer single-value boolean arguments to present/not-present keywords. This
   allows the caller to pass `BOOL_ARG "${custom_value}"` rather than
   conditionally building up an argument list.
+
+[](#testing)
+## Testing
+
+VTK relies on testing to ensure that its components continue to work. Tests are
+added for each module under the `Testing` directory next to the source of the
+module.
+
+Tests should be added for any change which has a user-visible behavior change
+(basically "everything"). This is especially true when it is a fix to an issue
+that has been reported.
+
+Ideally, existing test code should not need updated for API changes. If some
+test code needs to be updated because of an API change, then there is a good
+chance that VTK consumers could also have been broken. This is against VTK's
+stability goals and instead, existing code should be kept working as much as
+possible.
+
+[](#testing-cpp)
+### C++
+
+C++ tests are placed under the `Testing/Cxx` directory. Each file ends up as
+its own test in CTest and CDash.
+
+The base filename should match the function name provided in the file with a
+signature like `main`. The function should return `EXIT_SUCCESS` or
+`EXIT_FAILURE` depending on whether the test succeeded or not.
+
+```c++
+int TestComponent(int argc, char* argv[])
+{
+  // …
+}
+```
+
+VTK's test harness will ensure that this function is called when the test is
+executed.
+
+[](#testing-python)
+### Python
+
+Python tests are placed under the `Testing/Python` directory. Each file ends up
+as its own test in CTest and CDash.
+
+Python tests should consist of classes inheriting from
+`vtkmodules.test.Testing.vtkTest` and contain methods starting with a prefix
+which will be run as unit tests. The test class and its prefix are passed to
+`Testing.main` as part of a list of classes to test.
+
+```python
+from vtkmodules.test import Testing
+
+class TestComponent(Testing.vtkTest):
+    def testOne(self):
+        self.assertEqual(1, 1)
+
+if __name__ == "__main__":
+    Testing.main([(TestComponent, 'test')])
+```
+
+[](#testing-data)
+### Data
+
+Some tests will require input data or baseline images to be provided. By
+default, these arguments are passed to tests and may be retrieved. The
+`vtkTesting` class handles parsing these arguments automatically.
+
+```c++
+vtkNew<vtkTesting> testing;
+testing->AddArguments(argc, argv);
+
+// Where to find input data.
+testing->GetDataRoot();
+// Where to write intermediate files.
+testing->GetTempDirectory();
+
+// Test a render window against the baseline images.
+int status = vtkRegressionTestImage(render_window);
+// See `vtkTesting::ReturnValue` for `status` values.
+```
+
+```python
+from vtkmodules.util import misc
+
+# Where to find input data.
+misc.vtkGetDataRoot()
+# Where to write intermediate files.
+misc.vtkGetTempDir()
+
+# Test a render window against the baseline images.
+status = misc.vtkRegressionTestImage(render_window)
+if status == 2:
+    # No baseline image given.
+    pass
+```
+
+Please see the [data workflow](data.md) documentation for adding or replacing
+data in VTK's source tree.
+
+[](#testing-catching-errors)
+### Catching Errors
+
+Some tests need to test behaviors that trigger errors within the class being
+tested. This ends up being printed to the test's output and caught by CTest as
+a test failure. There is the `vtkTestErrorObserver` class which may be used to
+capture errors from a `vtkObject` and stored for testing later.
+
+```c++
+vtkNew<vtkFrob> frob;
+vtkNew<vtkTest::ErrorObserver> observer;
+frob->AddObserver(vtkCommand::ErrorEvent, observer);
+frob->TriggerError();
+int status = observer->CheckErrorMessage("expected error message content");
+// status == 1 → no match
+// status == 0 → error string matched
+```
+
+[](#testing-skipping)
+### Skipping
+
+Sometimes a test may determine that it does not have the required environment
+in order to give a useful result at runtime. This should be done for situations
+that are outside of VTK's control and do not require a recompilation of VTK to
+fix. This can include situations such as:
+
+- insufficient graphics resources (memory, OpenGL capabilities, etc.)
+- Python modules are not available
+- a hardware device is not found
+- a network resource is unavailable
+
+In these cases, the test should exit with a "skip return code". In Python, the
+`vtkmodules.test.Testing.skip()` function will do this. In C++, the
+`VTK_SKIP_RETURN_CODE` value may be returned (provided by the `vtkTesting.h`
+header).
