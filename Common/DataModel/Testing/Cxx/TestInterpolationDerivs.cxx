@@ -51,6 +51,7 @@
 #include "vtkQuadraticWedge.h"
 
 // New bi-class from gebbert
+#include "vtkBiQuadraticPyramid.h"
 #include "vtkBiQuadraticQuad.h"
 #include "vtkBiQuadraticQuadraticHexahedron.h"
 #include "vtkBiQuadraticQuadraticWedge.h"
@@ -65,7 +66,7 @@
 template <class TCell>
 int TestOneInterpolationDerivs(double eps = VTK_EPSILON)
 {
-  TCell* cell = TCell::New();
+  auto cell = vtkSmartPointer<TCell>::New();
   int numPts = cell->GetNumberOfPoints();
   int dim = cell->GetCellDimension();
   double* derivs = new double[dim * numPts];
@@ -100,7 +101,6 @@ int TestOneInterpolationDerivs(double eps = VTK_EPSILON)
     ++r;
   }
 
-  cell->Delete();
   delete[] derivs;
   return r;
 }
@@ -142,6 +142,7 @@ int TestInterpolationDerivs(int, char*[])
   r += TestOneInterpolationDerivs<vtkQuadraticWedge>();
 
   // New bi-class
+  r += TestOneInterpolationDerivs<vtkBiQuadraticPyramid>();
   r += TestOneInterpolationDerivs<vtkBiQuadraticQuad>();
   r += TestOneInterpolationDerivs<vtkBiQuadraticQuadraticHexahedron>();
   r += TestOneInterpolationDerivs<vtkBiQuadraticQuadraticWedge>();
