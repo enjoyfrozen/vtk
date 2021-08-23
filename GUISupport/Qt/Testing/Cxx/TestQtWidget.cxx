@@ -48,18 +48,19 @@ int TestQtWidget(int argc, char* argv[])
 
   vtkLogF(INFO, "About to create generic widget");
   auto widgetOrWindow = detail::create_widget_or_window(type, nullptr);
-  {
-    vtkNew<vtkGenericOpenGLRenderWindow> window0;
-    detail::set_render_window(widgetOrWindow, window0);
-    detail::show(widgetOrWindow, QSize(200, 200));
-  }
+  // {
+    // vtkNew<vtkGenericOpenGLRenderWindow> window0;
+    // detail::set_render_window(widgetOrWindow, window0);
+    // detail::show(widgetOrWindow, QSize(200, 200));
+  // }
 
   vtkLogF(INFO, "About to create generic window");
   // make sure rendering works correctly after switching to a new render window
-  vtkNew<vtkGenericOpenGLRenderWindow> window;
+  // vtkNew<vtkGenericOpenGLRenderWindow> window;
   vtkLogF(INFO, "Setting generic window on widget");
-  detail::set_render_window(widgetOrWindow, window);
+  // detail::set_render_window(widgetOrWindow, window);
 
+  auto window = detail::get_render_window(widgetOrWindow);
   vtkNew<vtkRenderer> ren;
   ren->SetGradientBackground(true);
   ren->SetBackground2(0.7, 0.7, 0.7);
