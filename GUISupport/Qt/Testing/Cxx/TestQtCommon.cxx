@@ -224,8 +224,11 @@ void show(std::shared_ptr<QObject> widgetOrWindow, const QSize& size)
   vtkLogF(INFO, "detail::common::show before while loop %s", &renWindow);
   while (renWindow != nullptr && !renWindow->GetReadyForRendering())
   {
+    vtkLogF(INFO, "detail::common::show inside while loop - before sendPostedEvents");
     QApplication::sendPostedEvents();
+    vtkLogF(INFO, "detail::common::show inside while loop - before processEvents");
     QApplication::processEvents();
+    vtkLogF(INFO, "detail::common::show inside while loop - done with processEvents");
   }
   vtkLogF(INFO, "detail::common::show after while loop");
   process_events_and_wait(500);
