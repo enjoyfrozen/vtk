@@ -51,6 +51,7 @@
 #include "vtkQuadraticWedge.h"
 
 // Bi/Tri linear quadratic cells
+#include "vtkBiQuadraticPyramid.h"
 #include "vtkBiQuadraticQuad.h"
 #include "vtkBiQuadraticQuadraticHexahedron.h"
 #include "vtkBiQuadraticQuadraticWedge.h"
@@ -65,7 +66,7 @@
 template <class TCell>
 int TestOneInterpolationFunction(double eps = VTK_EPSILON)
 {
-  TCell* cell = TCell::New();
+  auto cell = vtkSmartPointer<TCell>::New();
   int numPts = cell->GetNumberOfPoints();
   std::vector<double> sf(numPts);
   double* coords = cell->GetParametricCoords();
@@ -115,7 +116,6 @@ int TestOneInterpolationFunction(double eps = VTK_EPSILON)
     ++r;
   }
 
-  cell->Delete();
   return r;
 }
 
@@ -155,6 +155,7 @@ int TestInterpolationFunctions(int, char*[])
   r += TestOneInterpolationFunction<vtkQuadraticWedge>();
 
   // Bi/Tri linear quadratic cells
+  r += TestOneInterpolationFunction<vtkBiQuadraticPyramid>();
   r += TestOneInterpolationFunction<vtkBiQuadraticQuad>();
   r += TestOneInterpolationFunction<vtkBiQuadraticQuadraticHexahedron>();
   r += TestOneInterpolationFunction<vtkBiQuadraticQuadraticWedge>();
