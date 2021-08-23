@@ -28,11 +28,13 @@
 #include "vtkQuadraticTetra.h"
 #include "vtkQuadraticTriangle.h"
 #include "vtkQuadraticWedge.h"
+#include "vtkSmartPointer.h"
 
 #include <cmath>
 #include <sstream>
 
 // New quadratic cells
+#include "vtkBiQuadraticPyramid.h"
 #include "vtkBiQuadraticQuad.h"
 #include "vtkBiQuadraticQuadraticHexahedron.h"
 #include "vtkBiQuadraticQuadraticWedge.h"
@@ -68,73 +70,76 @@ int TestQE(ostream& strm)
   // actual test
   double dist2;
   int subId;
-  int i;
   double* paramcoor;
 
   //-----------------------------------------------------------
   strm << "Test instantiation New() and NewInstance() Start" << endl;
-  vtkQuadraticEdge* edge = vtkQuadraticEdge::New();
-  vtkQuadraticEdge* edge2 = edge->NewInstance();
+  auto edge = vtkSmartPointer<vtkQuadraticEdge>::New();
+  auto edge2 = edge->NewInstance();
 
-  vtkQuadraticTriangle* tri = vtkQuadraticTriangle::New();
-  vtkQuadraticTriangle* tri2 = tri->NewInstance();
+  auto tri = vtkSmartPointer<vtkQuadraticTriangle>::New();
+  auto tri2 = tri->NewInstance();
 
-  vtkQuadraticQuad* quad = vtkQuadraticQuad::New();
-  vtkQuadraticQuad* quad2 = quad->NewInstance();
+  auto quad = vtkSmartPointer<vtkQuadraticQuad>::New();
+  auto quad2 = quad->NewInstance();
 
-  vtkQuadraticTetra* tetra = vtkQuadraticTetra::New();
-  vtkQuadraticTetra* tetra2 = tetra->NewInstance();
+  auto tetra = vtkSmartPointer<vtkQuadraticTetra>::New();
+  auto tetra2 = tetra->NewInstance();
 
-  vtkQuadraticHexahedron* hex = vtkQuadraticHexahedron::New();
-  vtkQuadraticHexahedron* hex2 = hex->NewInstance();
+  auto hex = vtkSmartPointer<vtkQuadraticHexahedron>::New();
+  auto hex2 = hex->NewInstance();
 
-  vtkQuadraticWedge* wedge = vtkQuadraticWedge::New();
-  vtkQuadraticWedge* wedge2 = wedge->NewInstance();
+  auto wedge = vtkSmartPointer<vtkQuadraticWedge>::New();
+  auto wedge2 = wedge->NewInstance();
 
-  vtkQuadraticPyramid* pyra = vtkQuadraticPyramid::New();
-  vtkQuadraticHexahedron* pyra2 = hex->NewInstance();
+  auto pyra = vtkSmartPointer<vtkQuadraticPyramid>::New();
+  auto pyra2 = pyra->NewInstance();
 
   // New quadratic cells
 
-  vtkQuadraticLinearQuad* quadlin = vtkQuadraticLinearQuad::New();
-  vtkQuadraticLinearQuad* quadlin2 = quadlin->NewInstance();
+  auto quadlin = vtkSmartPointer<vtkQuadraticLinearQuad>::New();
+  auto quadlin2 = quadlin->NewInstance();
 
-  vtkBiQuadraticQuad* biquad = vtkBiQuadraticQuad::New();
-  vtkBiQuadraticQuad* biquad2 = biquad->NewInstance();
+  auto bqPyra = vtkSmartPointer<vtkBiQuadraticPyramid>::New();
+  auto bqPyra2 = bqPyra->NewInstance();
 
-  vtkQuadraticLinearWedge* wedgelin = vtkQuadraticLinearWedge::New();
-  vtkQuadraticLinearWedge* wedgelin2 = wedgelin->NewInstance();
+  auto biquad = vtkSmartPointer<vtkBiQuadraticQuad>::New();
+  auto biquad2 = biquad->NewInstance();
 
-  vtkBiQuadraticQuadraticWedge* biwedge = vtkBiQuadraticQuadraticWedge::New();
-  vtkBiQuadraticQuadraticWedge* biwedge2 = biwedge->NewInstance();
+  auto wedgelin = vtkSmartPointer<vtkQuadraticLinearWedge>::New();
+  auto wedgelin2 = wedgelin->NewInstance();
 
-  vtkTriQuadraticHexahedron* trihex = vtkTriQuadraticHexahedron::New();
-  vtkTriQuadraticHexahedron* trihex2 = trihex->NewInstance();
+  auto biwedge = vtkSmartPointer<vtkBiQuadraticQuadraticWedge>::New();
+  auto biwedge2 = biwedge->NewInstance();
 
-  vtkBiQuadraticQuadraticHexahedron* bihex = vtkBiQuadraticQuadraticHexahedron::New();
-  vtkBiQuadraticQuadraticHexahedron* bihex2 = bihex->NewInstance();
+  auto trihex = vtkSmartPointer<vtkTriQuadraticHexahedron>::New();
+  auto trihex2 = trihex->NewInstance();
 
-  vtkBiQuadraticTriangle* bitri = vtkBiQuadraticTriangle::New();
-  vtkBiQuadraticTriangle* bitri2 = bitri->NewInstance();
+  auto bihex = vtkSmartPointer<vtkBiQuadraticQuadraticHexahedron>::New();
+  auto bihex2 = bihex->NewInstance();
 
-  vtkCubicLine* culine = vtkCubicLine::New();
-  vtkCubicLine* culine2 = culine->NewInstance();
+  auto bitri = vtkSmartPointer<vtkBiQuadraticTriangle>::New();
+  auto bitri2 = bitri->NewInstance();
 
-  edge2->Delete();
-  tri2->Delete();
-  quad2->Delete();
-  quadlin2->Delete();
-  biquad2->Delete();
-  tetra2->Delete();
-  hex2->Delete();
-  trihex2->Delete();
-  bihex2->Delete();
-  wedge2->Delete();
-  wedgelin2->Delete();
-  biwedge2->Delete();
-  pyra2->Delete();
-  bitri2->Delete();
-  culine2->Delete();
+  auto culine = vtkSmartPointer<vtkCubicLine>::New();
+  auto culine2 = culine->NewInstance();
+
+  edge2->Initialize();
+  tri2->Initialize();
+  quad2->Initialize();
+  tetra2->Initialize();
+  hex2->Initialize();
+  wedge2->Initialize();
+  pyra2->Initialize();
+  quadlin2->Initialize();
+  bqPyra2->Initialize();
+  biquad2->Initialize();
+  wedgelin2->Initialize();
+  biwedge2->Initialize();
+  trihex2->Initialize();
+  bihex2->Initialize();
+  bitri2->Initialize();
+  culine2->Initialize();
 
   strm << "Test instantiation New() and NewInstance() End" << endl;
 
@@ -161,12 +166,10 @@ int TestQE(ostream& strm)
   double triPoint[1][3] = { { 0.5, 0.266667, 0.0 } };
   double triClosest[3];
 
-  tri->GetPointIds()->SetId(0, 0);
-  tri->GetPointIds()->SetId(1, 1);
-  tri->GetPointIds()->SetId(2, 2);
-  tri->GetPointIds()->SetId(3, 3);
-  tri->GetPointIds()->SetId(4, 4);
-  tri->GetPointIds()->SetId(5, 5);
+  for (int i = 0; i < tri->GetNumberOfPoints(); ++i)
+  {
+    tri->GetPointIds()->SetId(i, i);
+  }
 
   tri->GetPoints()->SetPoint(0, 0, 0, 0);
   tri->GetPoints()->SetPoint(1, 1, 0, 0);
@@ -182,14 +185,10 @@ int TestQE(ostream& strm)
   double quadPoint[1][3] = { { 0.25, 0.33, 0.0 } };
   double quadClosest[3];
 
-  quad->GetPointIds()->SetId(0, 0);
-  quad->GetPointIds()->SetId(1, 1);
-  quad->GetPointIds()->SetId(2, 2);
-  quad->GetPointIds()->SetId(3, 3);
-  quad->GetPointIds()->SetId(4, 4);
-  quad->GetPointIds()->SetId(5, 5);
-  quad->GetPointIds()->SetId(6, 6);
-  quad->GetPointIds()->SetId(7, 7);
+  for (int i = 0; i < quad->GetNumberOfPoints(); ++i)
+  {
+    quad->GetPointIds()->SetId(i, i);
+  }
 
   quad->GetPoints()->SetPoint(0, 0.0, 0.0, 0.0);
   quad->GetPoints()->SetPoint(1, 1.0, 0.0, 0.0);
@@ -207,16 +206,10 @@ int TestQE(ostream& strm)
   double tetraPoint[1][3] = { { 0.5, 0.266667, 0.333333 } };
   double tetraClosest[3];
 
-  tetra->GetPointIds()->SetId(0, 0);
-  tetra->GetPointIds()->SetId(1, 1);
-  tetra->GetPointIds()->SetId(2, 2);
-  tetra->GetPointIds()->SetId(3, 3);
-  tetra->GetPointIds()->SetId(4, 4);
-  tetra->GetPointIds()->SetId(5, 5);
-  tetra->GetPointIds()->SetId(6, 6);
-  tetra->GetPointIds()->SetId(7, 7);
-  tetra->GetPointIds()->SetId(8, 8);
-  tetra->GetPointIds()->SetId(9, 9);
+  for (int i = 0; i < tetra->GetNumberOfPoints(); ++i)
+  {
+    tetra->GetPointIds()->SetId(i, i);
+  }
 
   tetra->GetPoints()->SetPoint(0, 0.0, 0.0, 0.0);
   tetra->GetPoints()->SetPoint(1, 1.0, 0.0, 0.0);
@@ -236,26 +229,10 @@ int TestQE(ostream& strm)
   double hexPoint[1][3] = { { 0.25, 0.33333, 0.666667 } };
   double hexClosest[3];
 
-  hex->GetPointIds()->SetId(0, 0);
-  hex->GetPointIds()->SetId(1, 1);
-  hex->GetPointIds()->SetId(2, 2);
-  hex->GetPointIds()->SetId(3, 3);
-  hex->GetPointIds()->SetId(4, 4);
-  hex->GetPointIds()->SetId(5, 5);
-  hex->GetPointIds()->SetId(6, 6);
-  hex->GetPointIds()->SetId(7, 7);
-  hex->GetPointIds()->SetId(8, 8);
-  hex->GetPointIds()->SetId(9, 9);
-  hex->GetPointIds()->SetId(10, 10);
-  hex->GetPointIds()->SetId(11, 11);
-  hex->GetPointIds()->SetId(12, 12);
-  hex->GetPointIds()->SetId(13, 13);
-  hex->GetPointIds()->SetId(14, 14);
-  hex->GetPointIds()->SetId(15, 15);
-  hex->GetPointIds()->SetId(16, 16);
-  hex->GetPointIds()->SetId(17, 17);
-  hex->GetPointIds()->SetId(18, 18);
-  hex->GetPointIds()->SetId(19, 19);
+  for (int i = 0; i < hex->GetNumberOfPoints(); ++i)
+  {
+    hex->GetPointIds()->SetId(i, i);
+  }
 
   hex->GetPoints()->SetPoint(0, 0, 0, 0);
   hex->GetPoints()->SetPoint(1, 1, 0, 0);
@@ -285,58 +262,25 @@ int TestQE(ostream& strm)
   double wedgePoint[1][3] = { { 0.25, 0.33333, 0.666667 } };
   double wedgeClosest[3];
 
-  wedge->GetPointIds()->SetId(0, 0);
-  wedge->GetPointIds()->SetId(1, 1);
-  wedge->GetPointIds()->SetId(2, 2);
-  wedge->GetPointIds()->SetId(3, 3);
-  wedge->GetPointIds()->SetId(4, 4);
-  wedge->GetPointIds()->SetId(5, 5);
-  wedge->GetPointIds()->SetId(6, 6);
-  wedge->GetPointIds()->SetId(7, 7);
-  wedge->GetPointIds()->SetId(8, 8);
-  wedge->GetPointIds()->SetId(9, 9);
-  wedge->GetPointIds()->SetId(10, 10);
-  wedge->GetPointIds()->SetId(11, 11);
-  wedge->GetPointIds()->SetId(12, 12);
-  wedge->GetPointIds()->SetId(13, 13);
-  wedge->GetPointIds()->SetId(14, 14);
-
-  wedge->GetPoints()->SetPoint(0, 0, 0, 0);
-  wedge->GetPoints()->SetPoint(1, 1, 0, 0);
-  wedge->GetPoints()->SetPoint(2, 0, 1, 0);
-  wedge->GetPoints()->SetPoint(3, 0, 0, 1);
-  wedge->GetPoints()->SetPoint(4, 1, 0, 1);
-  wedge->GetPoints()->SetPoint(5, 0, 1, 1);
-  wedge->GetPoints()->SetPoint(6, 0.5, 0, 0);
-  wedge->GetPoints()->SetPoint(7, 0.5, 0.5, 0);
-  wedge->GetPoints()->SetPoint(8, 0, 0.5, 0);
-  wedge->GetPoints()->SetPoint(9, 0.5, 0, 1);
-  wedge->GetPoints()->SetPoint(10, 0.5, 0.5, 1);
-  wedge->GetPoints()->SetPoint(11, 0, 0.5, 1);
-  wedge->GetPoints()->SetPoint(12, 0, 0, 0.5);
-  wedge->GetPoints()->SetPoint(13, 1, 0, 0.5);
-  wedge->GetPoints()->SetPoint(14, 0, 1, 0.5);
+  double* pcoords = wedge->GetParametricCoords();
+  for (int i = 0; i < wedge->GetNumberOfPoints(); ++i)
+  {
+    wedge->GetPointIds()->SetId(i, i);
+    wedge->GetPoints()->SetPoint(
+      i, *(pcoords + 3 * i), *(pcoords + 3 * i + 1), *(pcoords + 3 * i + 2));
+  }
 
   wedge->EvaluatePosition(wedgePoint[0], wedgeClosest, subId, wedgePCoords, dist2, wedgeWeights);
 
   // vtkQuadraticPyramid
-  double pyraPCoords[3], pyraWeights[20], pyraPosition[3];
+  double pyraPCoords[3], pyraWeights[13], pyraPosition[3];
   double pyraPoint[1][3] = { { 0.25, 0.33333, 0.666667 } };
   double pyraClosest[3];
 
-  pyra->GetPointIds()->SetId(0, 0);
-  pyra->GetPointIds()->SetId(1, 1);
-  pyra->GetPointIds()->SetId(2, 2);
-  pyra->GetPointIds()->SetId(3, 3);
-  pyra->GetPointIds()->SetId(4, 4);
-  pyra->GetPointIds()->SetId(5, 5);
-  pyra->GetPointIds()->SetId(6, 6);
-  pyra->GetPointIds()->SetId(7, 7);
-  pyra->GetPointIds()->SetId(8, 8);
-  pyra->GetPointIds()->SetId(9, 9);
-  pyra->GetPointIds()->SetId(10, 10);
-  pyra->GetPointIds()->SetId(11, 11);
-  pyra->GetPointIds()->SetId(12, 12);
+  for (int i = 0; i < pyra->GetNumberOfPoints(); ++i)
+  {
+    pyra->GetPointIds()->SetId(i, i);
+  }
 
   pyra->GetPoints()->SetPoint(0, 0, 0, 0);
   pyra->GetPoints()->SetPoint(1, 1, 0, 0);
@@ -362,14 +306,51 @@ int TestQE(ostream& strm)
   double quadlinClosest[3];
   paramcoor = quadlin->GetParametricCoords();
 
-  for (i = 0; i < quadlin->GetNumberOfPoints(); i++)
+  for (int i = 0; i < quadlin->GetNumberOfPoints(); i++)
+  {
     quadlin->GetPointIds()->SetId(i, i);
+  }
 
-  for (i = 0; i < quadlin->GetNumberOfPoints(); i++)
+  for (int i = 0; i < quadlin->GetNumberOfPoints(); i++)
+  {
     quadlin->GetPoints()->SetPoint(i, paramcoor[i * 3], paramcoor[i * 3 + 1], paramcoor[i * 3 + 2]);
+  }
 
   quadlin->EvaluatePosition(
     quadlinPoint[0], quadlinClosest, subId, quadlinPCoords, dist2, quadlinWeights);
+
+  // vtkBiQuadraticPyramid
+  double bqPyraPCoords[3], bqPyraWeights[19], bqPyraPosition[3];
+  double bqPyraPoint[1][3] = { { 0.25, 0.33333, 0.666667 } };
+  double bqPyraClosest[3];
+
+  for (int i = 0; i < 19; ++i)
+  {
+    bqPyra->GetPointIds()->SetId(i, i);
+  }
+
+  bqPyra->GetPoints()->SetPoint(0, 0, 0, 0);
+  bqPyra->GetPoints()->SetPoint(1, 1, 0, 0);
+  bqPyra->GetPoints()->SetPoint(2, 1, 1, 0);
+  bqPyra->GetPoints()->SetPoint(3, 0, 1, 0);
+  bqPyra->GetPoints()->SetPoint(4, 0, 0, 1);
+  bqPyra->GetPoints()->SetPoint(5, 0.5, 0, 0);
+  bqPyra->GetPoints()->SetPoint(6, 1, 0.5, 0);
+  bqPyra->GetPoints()->SetPoint(7, 0.5, 1, 0);
+  bqPyra->GetPoints()->SetPoint(8, 0, 0.5, 0);
+  bqPyra->GetPoints()->SetPoint(9, 0, 0, 0.5);
+  bqPyra->GetPoints()->SetPoint(10, 0.5, 0, 0.5);
+  bqPyra->GetPoints()->SetPoint(11, 0.5, 0.5, 0.5);
+  bqPyra->GetPoints()->SetPoint(12, 0, 0.5, 0.5);
+  bqPyra->GetPoints()->SetPoint(13, 0.5, 0.5, 0);
+  bqPyra->GetPoints()->SetPoint(14, 1.0 / 3.0, 0, 1.0 / 3.0);
+  bqPyra->GetPoints()->SetPoint(15, 2.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0);
+  bqPyra->GetPoints()->SetPoint(16, 1.0 / 3.0, 2.0 / 3.0, 1.0 / 3.0);
+  bqPyra->GetPoints()->SetPoint(17, 0, 1.0 / 3.0, 1.0 / 3.0);
+  bqPyra->GetPoints()->SetPoint(18, 41.0 / 108.0, 41.0 / 108.0, 26.0 / 108.0);
+
+  bqPyra->EvaluatePosition(
+    bqPyraPoint[0], bqPyraClosest, subId, bqPyraPCoords, dist2, bqPyraWeights);
 
   // vtkBiQuadraticQuad
   double biquadPCoords[3], biquadWeights[9], biquadPosition[3];
@@ -377,11 +358,15 @@ int TestQE(ostream& strm)
   double biquadClosest[3];
   paramcoor = biquad->GetParametricCoords();
 
-  for (i = 0; i < biquad->GetNumberOfPoints(); i++)
+  for (int i = 0; i < biquad->GetNumberOfPoints(); i++)
+  {
     biquad->GetPointIds()->SetId(i, i);
+  }
 
-  for (i = 0; i < biquad->GetNumberOfPoints(); i++)
+  for (int i = 0; i < biquad->GetNumberOfPoints(); i++)
+  {
     biquad->GetPoints()->SetPoint(i, paramcoor[i * 3], paramcoor[i * 3 + 1], paramcoor[i * 3 + 2]);
+  }
 
   biquad->EvaluatePosition(
     biquadPoint[0], biquadClosest, subId, biquadPCoords, dist2, biquadWeights);
@@ -392,12 +377,16 @@ int TestQE(ostream& strm)
   double wedgelinClosest[3];
   paramcoor = wedgelin->GetParametricCoords();
 
-  for (i = 0; i < wedgelin->GetNumberOfPoints(); i++)
+  for (int i = 0; i < wedgelin->GetNumberOfPoints(); i++)
+  {
     wedgelin->GetPointIds()->SetId(i, i);
+  }
 
-  for (i = 0; i < wedgelin->GetNumberOfPoints(); i++)
+  for (int i = 0; i < wedgelin->GetNumberOfPoints(); i++)
+  {
     wedgelin->GetPoints()->SetPoint(
       i, paramcoor[i * 3], paramcoor[i * 3 + 1], paramcoor[i * 3 + 2]);
+  }
 
   wedgelin->EvaluatePosition(
     wedgelinPoint[0], wedgelinClosest, subId, wedgelinPCoords, dist2, wedgelinWeights);
@@ -408,11 +397,15 @@ int TestQE(ostream& strm)
   double biwedgeClosest[3];
   paramcoor = biwedge->GetParametricCoords();
 
-  for (i = 0; i < biwedge->GetNumberOfPoints(); i++)
+  for (int i = 0; i < biwedge->GetNumberOfPoints(); i++)
+  {
     biwedge->GetPointIds()->SetId(i, i);
+  }
 
-  for (i = 0; i < biwedge->GetNumberOfPoints(); i++)
+  for (int i = 0; i < biwedge->GetNumberOfPoints(); i++)
+  {
     biwedge->GetPoints()->SetPoint(i, paramcoor[i * 3], paramcoor[i * 3 + 1], paramcoor[i * 3 + 2]);
+  }
 
   biwedge->EvaluatePosition(
     biwedgePoint[0], biwedgeClosest, subId, biwedgePCoords, dist2, biwedgeWeights);
@@ -423,11 +416,15 @@ int TestQE(ostream& strm)
   double bihexClosest[3];
   paramcoor = bihex->GetParametricCoords();
 
-  for (i = 0; i < bihex->GetNumberOfPoints(); i++)
+  for (int i = 0; i < bihex->GetNumberOfPoints(); i++)
+  {
     bihex->GetPointIds()->SetId(i, i);
+  }
 
-  for (i = 0; i < bihex->GetNumberOfPoints(); i++)
+  for (int i = 0; i < bihex->GetNumberOfPoints(); i++)
+  {
     bihex->GetPoints()->SetPoint(i, paramcoor[i * 3], paramcoor[i * 3 + 1], paramcoor[i * 3 + 2]);
+  }
 
   bihex->EvaluatePosition(bihexPoint[0], bihexClosest, subId, bihexPCoords, dist2, bihexWeights);
 
@@ -437,11 +434,15 @@ int TestQE(ostream& strm)
   double trihexClosest[3];
   paramcoor = trihex->GetParametricCoords();
 
-  for (i = 0; i < trihex->GetNumberOfPoints(); i++)
+  for (int i = 0; i < trihex->GetNumberOfPoints(); i++)
+  {
     trihex->GetPointIds()->SetId(i, i);
+  }
 
-  for (i = 0; i < trihex->GetNumberOfPoints(); i++)
+  for (int i = 0; i < trihex->GetNumberOfPoints(); i++)
+  {
     trihex->GetPoints()->SetPoint(i, paramcoor[i * 3], paramcoor[i * 3 + 1], paramcoor[i * 3 + 2]);
+  }
 
   trihex->EvaluatePosition(
     trihexPoint[0], trihexClosest, subId, trihexPCoords, dist2, trihexWeights);
@@ -451,12 +452,10 @@ int TestQE(ostream& strm)
   double bitriPoint[1][3] = { { 0.5, 0.266667, 0.0 } };
   double bitriClosest[3];
 
-  bitri->GetPointIds()->SetId(0, 0);
-  bitri->GetPointIds()->SetId(1, 1);
-  bitri->GetPointIds()->SetId(2, 2);
-  bitri->GetPointIds()->SetId(3, 3);
-  bitri->GetPointIds()->SetId(4, 4);
-  bitri->GetPointIds()->SetId(5, 5);
+  for (int i = 0; i < bitri->GetNumberOfPoints(); ++i)
+  {
+    bitri->GetPointIds()->SetId(i, i);
+  }
 
   bitri->GetPoints()->SetPoint(0, 0, 0, 0);
   bitri->GetPoints()->SetPoint(1, 1, 0, 0);
@@ -474,10 +473,10 @@ int TestQE(ostream& strm)
   double culinePoint[1][3] = { { 0.25, 0.125, 0.0 } };
   double culineClosest[3];
 
-  culine->GetPointIds()->SetId(0, 0);
-  culine->GetPointIds()->SetId(1, 1);
-  culine->GetPointIds()->SetId(2, 2);
-  culine->GetPointIds()->SetId(3, 3);
+  for (int i = 0; i < culine->GetNumberOfPoints(); ++i)
+  {
+    culine->GetPointIds()->SetId(i, i);
+  }
 
   culine->GetPoints()->SetPoint(0, 0, 0, 0);
   culine->GetPoints()->SetPoint(1, 1, 0, 0);
@@ -516,6 +515,9 @@ int TestQE(ostream& strm)
 
   // vtkQuadraticLinearQuad
   quadlin->EvaluateLocation(subId, quadlinPCoords, quadlinPosition, quadlinWeights);
+
+  // vtkQuadraticPyramid
+  bqPyra->EvaluateLocation(subId, bqPyraPCoords, bqPyraPosition, bqPyraWeights);
 
   // vtkBiQuadraticQuad
   biquad->EvaluateLocation(subId, biquadPCoords, biquadPosition, biquadWeights);
@@ -582,6 +584,11 @@ int TestQE(ostream& strm)
   ComputeDataValues(quadlin->Points, quadlinValues);
   quadlin->Derivatives(subId, quadlinPCoords, quadlinValues, 1, quadlinDerivs);
 
+  // vtkBiQuadraticPyramid
+  double bqPyraValues[19], bqPyraDerivs[3];
+  ComputeDataValues(bqPyra->Points, bqPyraValues);
+  bqPyra->Derivatives(subId, bqPyraPCoords, bqPyraValues, 1, bqPyraDerivs);
+
   // vtkBiQuadraticQuad
   double biquadValues[9], biquadDerivs[3];
   ComputeDataValues(biquad->Points, biquadValues);
@@ -613,22 +620,6 @@ int TestQE(ostream& strm)
   bitri->Derivatives(subId, bitriPCoords, bitriValues, 1, bitriDerivs);
 
   strm << "Test vtkCell::CellDerivs End" << endl;
-
-  edge->Delete();
-  tri->Delete();
-  tetra->Delete();
-  wedge->Delete();
-  wedgelin->Delete();
-  biwedge->Delete();
-  pyra->Delete();
-  quad->Delete();
-  quadlin->Delete();
-  biquad->Delete();
-  hex->Delete();
-  bihex->Delete();
-  trihex->Delete();
-  bitri->Delete();
-  culine->Delete();
 
   return 0;
 }
