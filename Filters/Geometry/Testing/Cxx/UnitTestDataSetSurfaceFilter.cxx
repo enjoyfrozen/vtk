@@ -107,6 +107,7 @@ int UnitTestDataSetSurfaceFilter(int, char*[])
     typesToProcess["QuadraticHexahedron"] = test::CellDescription(VTK_QUADRATIC_HEXAHEDRON, 36);
     typesToProcess["QuadraticWedge"] = test::CellDescription(VTK_QUADRATIC_WEDGE, 26);
     typesToProcess["QuadraticPyramid"] = test::CellDescription(VTK_QUADRATIC_PYRAMID, 22);
+    typesToProcess["BiQuadraticPyramid"] = test::CellDescription(VTK_BIQUADRATIC_PYRAMID, 32);
     typesToProcess["BiQuadraticQuad"] = test::CellDescription(VTK_BIQUADRATIC_QUAD, 8);
     typesToProcess["TriQuadraticHexahedron"] =
       test::CellDescription(VTK_TRIQUADRATIC_HEXAHEDRON, 768);
