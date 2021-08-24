@@ -20,6 +20,7 @@
 
 #include "QVTKOpenGLWindow.h" // needed for ivar
 #include <QPointer>           // needed for ivar
+#include "vtkLogger.h"        // needed for ivar
 
 #include "vtkDeprecation.h" // For VTK_DEPRECATED_IN_9_0_0
 
@@ -229,6 +230,9 @@ public:
    */
   VTK_DEPRECATED_IN_9_0_0("Use QWidget::setDefaultCursor")
   void setDefaultQVTKCursor(const QCursor& cursor);
+
+public Q_SLOTS:
+  void show() { this->VTKOpenGLWindow->show(); this->Superclass::show(); vtkLogF(INFO, "***************Showing QVTKOpenGLStereoWidget"); }
 
 protected:
   void resizeEvent(QResizeEvent* evt) override;
