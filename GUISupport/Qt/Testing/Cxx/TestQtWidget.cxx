@@ -76,12 +76,19 @@ int TestQtWidget(int argc, char* argv[])
   vtkLogF(INFO, "About to show window");
   detail::show(widgetOrWindow, QSize(300, 300));
   vtkLogF(INFO, "Showed window");
-  // detail::process_events_and_wait(1000); // let's wait a little longer for the resize
+  detail::process_events_and_wait(1000); // let's wait a little longer for the resize
   vtkLogF(INFO, "Resized window");
 
   const int* windowSize = window->GetSize();
   const int* screenSize = window->GetScreenSize();
   vtkLogF(INFO, "Resized window dims: (%i, %i)", windowSize[0], windowSize[1]);
+  auto ww = qobject_cast<QVTKOpenGLStereoWidget*>(widgetOrWindow.get());
+  if (ww)
+  {
+    ww->show();
+    auto s = ww->size();
+    vtkLogF(INFO, "StereoWidget dims: (%i, %i)", s.width(), s.height());
+  }
   if (screenSize[0] < windowSize[0] || screenSize[1] < windowSize[1])
   {
     std::cout << "Expected vtkGenericOpenGLRenderWindow::GetScreenSize() "

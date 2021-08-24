@@ -203,10 +203,14 @@ void show(std::shared_ptr<QObject> widgetOrWindow, const QSize& size)
   if (widgetOrWindow->isWidgetType())
   {
     vtkLogF(INFO, "detail::common::show widget type");
-    auto widget = static_cast<QWidget*>(widgetOrWindow.get());
+    auto widget = qobject_cast<QWidget*>(widgetOrWindow.get());
     widget->resize(size);
     vtkLogF(INFO, "detail::common::show widget post resize");
     widget->show();
+    if (auto stereoW = qobject_cast<QVTKOpenGLStereoWidget*>(widgetOrWindow.get()))
+    {
+      stereoW->show();
+    }
     vtkLogF(INFO, "detail::common::show widget post show");
   }
   else if (widgetOrWindow->isWindowType())
