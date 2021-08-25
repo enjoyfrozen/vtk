@@ -953,18 +953,18 @@ void vtkOpenGLRenderWindow::TextureDepthBlit(
     vtkOpenGLState::ScopedglDepthFunc depthTestSaver(ostate);
     this->GetState()->vtkglDepthFunc(GL_ALWAYS);
 
-    source->Activate();
-    double width = source->GetWidth();
-    double height = source->GetHeight();
-    this->DepthBlitQuad->Program->SetUniformi("tex", source->GetTextureUnit());
-    float tmp[2] = { static_cast<float>(srcX / width), static_cast<float>(srcY / height) };
-    this->DepthBlitQuad->Program->SetUniform2f("texLL", tmp);
-    tmp[0] = (srcX2 - srcX) / width;
-    tmp[1] = (srcY2 - srcY) / height;
-    this->DepthBlitQuad->Program->SetUniform2f("texSize", tmp);
+    // source->Activate();
+    // double width = source->GetWidth();
+    // double height = source->GetHeight();
+    // this->DepthBlitQuad->Program->SetUniformi("tex", source->GetTextureUnit());
+    // float tmp[2] = { static_cast<float>(srcX / width), static_cast<float>(srcY / height) };
+    // this->DepthBlitQuad->Program->SetUniform2f("texLL", tmp);
+    // tmp[0] = (srcX2 - srcX) / width;
+    // tmp[1] = (srcY2 - srcY) / height;
+    // this->DepthBlitQuad->Program->SetUniform2f("texSize", tmp);
 
-    this->DepthBlitQuad->Render();
-    source->Deactivate();
+    // this->DepthBlitQuad->Render();
+    // source->Deactivate();
   }
 }
 
@@ -1162,18 +1162,18 @@ void vtkOpenGLRenderWindow::BlitDisplayFramebuffersToHardware()
     this->DisplayFramebuffer->ActivateReadBuffer(1);
     ostate->vtkglDrawBuffer(this->DoubleBuffer ? GL_BACK_RIGHT : GL_FRONT_RIGHT);
     ostate->vtkglBlitFramebuffer(0, 0, this->Size[0], this->Size[1], 0, 0, this->Size[0],
-      this->Size[1], GL_COLOR_BUFFER_BIT, GL_NEAREST);
+      this->Size[1], GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 
     // bind the read buffer to detach the display framebuffer to be safe
     ostate->vtkglBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-    this->TextureDepthBlit(this->DisplayFramebuffer->GetDepthAttachmentAsTextureObject());
+    // this->TextureDepthBlit(this->DisplayFramebuffer->GetDepthAttachmentAsTextureObject());
     this->DisplayFramebuffer->Bind(GL_READ_FRAMEBUFFER);
   }
 
   this->DisplayFramebuffer->ActivateReadBuffer(0);
   ostate->vtkglDrawBuffer(this->DoubleBuffer ? GL_BACK_LEFT : GL_FRONT_LEFT);
   ostate->vtkglBlitFramebuffer(0, 0, this->Size[0], this->Size[1], 0, 0, this->Size[0],
-    this->Size[1], GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    this->Size[1], GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 
   // bind the read buffer to detach the display framebuffer to be safe
   ostate->vtkglBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
