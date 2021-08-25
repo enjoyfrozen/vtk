@@ -953,18 +953,18 @@ void vtkOpenGLRenderWindow::TextureDepthBlit(
     vtkOpenGLState::ScopedglDepthFunc depthTestSaver(ostate);
     this->GetState()->vtkglDepthFunc(GL_ALWAYS);
 
-    // source->Activate();
-    // double width = source->GetWidth();
-    // double height = source->GetHeight();
-    // this->DepthBlitQuad->Program->SetUniformi("tex", source->GetTextureUnit());
-    // float tmp[2] = { static_cast<float>(srcX / width), static_cast<float>(srcY / height) };
-    // this->DepthBlitQuad->Program->SetUniform2f("texLL", tmp);
-    // tmp[0] = (srcX2 - srcX) / width;
-    // tmp[1] = (srcY2 - srcY) / height;
-    // this->DepthBlitQuad->Program->SetUniform2f("texSize", tmp);
+    source->Activate();
+    double width = source->GetWidth();
+    double height = source->GetHeight();
+    this->DepthBlitQuad->Program->SetUniformi("tex", source->GetTextureUnit());
+    float tmp[2] = { static_cast<float>(srcX / width), static_cast<float>(srcY / height) };
+    this->DepthBlitQuad->Program->SetUniform2f("texLL", tmp);
+    tmp[0] = (srcX2 - srcX) / width;
+    tmp[1] = (srcY2 - srcY) / height;
+    this->DepthBlitQuad->Program->SetUniform2f("texSize", tmp);
 
     // this->DepthBlitQuad->Render();
-    // source->Deactivate();
+    source->Deactivate();
   }
 }
 
