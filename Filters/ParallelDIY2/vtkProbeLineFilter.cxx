@@ -70,7 +70,7 @@ struct vtkProbeLineFilter::vtkInternals
   vtkMTimeType PreviousInputTime = 0;
   std::map<vtkDataSet*,vtkSmartPointer<vtkFindCellStrategy>> Strategies;
 
-  void UpdateLocators(vtkDataObject* input, int pattern)
+  void UpdateLocators(vtkDataObject* input, int pattern, const double tolerance)
   {
     vtkMTimeType inputTime = input->GetMTime();
     bool isInputDifferent = inputTime != this->PreviousInputTime;
@@ -86,16 +86,14 @@ struct vtkProbeLineFilter::vtkInternals
       {
         vtkNew<vtkStaticCellLocator> locator;
         locator->SetDataSet(ds);
-        locator->SetTolerance(0.0);
         locator->UseDiagonalLengthToleranceOff();
+        locator->SetTolerance(tolerance);
         locator->BuildLocator();
 
         vtkCellLocatorStrategy* strategy = vtkCellLocatorStrategy::New();
         strategy->SetCellLocator(locator);
-        vtkSmartPointer<vtkFindCellStrategy> holder;
-        holder.TakeReference(static_cast<vtkFindCellStrategy*>(strategy));
 
-        this->Strategies[ds] = holder;
+        this->Strategies[ds] = vtkSmartPointer<vtkFindCellStrategy>::Take(static_cast<vtkFindCellStrategy*>(strategy));
       }
     }
   }
@@ -104,123 +102,153 @@ struct vtkProbeLineFilter::vtkInternals
 namespace
 {
 //==============================================================================
-struct ProjInfo
+/**
+ * Store the information of the intersection between a cell and a ray. InT and OutT
+ * are the parameteric distances on the ray for the first (and second for 3D cells)
+ * intersection between the ray and the cell. CellId is the id of the intersected cell.
+ * If -1 then express intersection happening outside a cell.
+ */
+struct HitCellInfo
 {
-  double Projection;
-  vtkIdType CellID;
+  double InT;
+  double OutT;
+  vtkIdType CellId;
 
-  static bool SortFunction(const ProjInfo& l, const ProjInfo& r)
+  operator bool() const noexcept
   {
-    return l.Projection < r.Projection;
+    return this->InT >= 0.0 && this->OutT >= 0.0;
   }
-  static bool EqualFunction(const ProjInfo& l, const ProjInfo& r)
+
+  bool operator<(const HitCellInfo& r) const noexcept
   {
-    return l.CellID == r.CellID && vtkMathUtilities::NearlyEqual(l.Projection, r.Projection);
+    return this->InT < r.InT;
   }
-};
-struct OptionalPosition
-{
-  bool IsValid;
-  vtkVector3d Position;
 };
 
 //==============================================================================
 /**
  * Return the entry point and exit point (respectively result.first and result.second) of a given 3D cell for
- * the segment [p1,p2]. If only one intersection is found (can happen at the very tip of the cell) only the out
- * position is valid. If no intersection then both intersections are not valid.
- *
- * XXX(c++17): replace `OptionalPosition` with `std::optional<vtkVector3d>`
+ * the segment [p1,p2].
  */
-std::pair<OptionalPosition,OptionalPosition> GetInOutCell3D(const vtkVector3d& p1, const vtkVector3d& p2, vtkCell* cell, double tolerance)
+HitCellInfo GetInOutCell3D(const vtkVector3d& p1, const vtkVector3d& p2, vtkCell* cell, double tolerance)
 {
-  using PosAndDist = std::pair<vtkVector3d,double>;
-
-  const int nface = cell->GetNumberOfFaces();
-  std::vector<PosAndDist> intersections;
-  intersections.reserve(nface);
   double t, x[3], dummy3[3];
   int dummy;
-  for (int i = 0; i < nface; ++i)
-  {
-    if (cell->GetFace(i)->IntersectWithLine(p1.GetData(), p2.GetData(), 0.0, t, x, dummy3, dummy))
-    {
-      intersections.emplace_back(PosAndDist(vtkVector3d(x), t));
-    }
-  }
-  std::sort(intersections.begin(), intersections.end(), [](const PosAndDist& l, const PosAndDist& r)
-    {
-      return l.second < r.second;
-    });
-  auto last = std::unique(intersections.begin(), intersections.end(), [tolerance](const PosAndDist& l, const PosAndDist& r)
-    {
-      return vtkMathUtilities::NearlyEqual(l.second, r.second, tolerance);
-    });
+  HitCellInfo res{-1.0, -1.0, -1};
 
-  const std::size_t size = std::distance(intersections.begin(), last);
-  OptionalPosition inProj{false, vtkVector3d()};
-  OptionalPosition outProj{false, vtkVector3d()};
-  if (size == 1)
+  if (cell->IntersectWithLine(p1.GetData(), p2.GetData(), 0.0, t, x, dummy3, dummy))
   {
-    outProj = {true, intersections[0].first};
+    res.InT = t;
   }
-  else if (size >= 2)
+  if (cell->IntersectWithLine(p2.GetData(), p1.GetData(), 0.0, t, x, dummy3, dummy))
   {
-    inProj = {true, intersections[0].first};
-    outProj = {true, (last - 1)->first};
+    res.OutT = 1.0 - t;
   }
 
-  return std::pair<OptionalPosition,OptionalPosition>(inProj, outProj);
+  return res;
 }
 
 //==============================================================================
 /**
- * Process the limit points of the intersection of the @c input dataset (and its @c locator) with the segment [p1,p2].
- * Return the list of intersection projections between [p1,p2] and the cells p1 and p2 belong to. Never returns p1 nor
- * p2 itself.
+ * Return the intersection of a point p1 with a cell in an input dataset (and its locator).
+ * Also return the intersection from this point to the closest surface in the direction
+ * of p2.
  */
-std::vector<ProjInfo> ProcessLimitPoints(vtkVector3d p1, vtkVector3d p2, int pattern, vtkDataSet* input, vtkAbstractCellLocator* locator, double tolerance)
+HitCellInfo ProcessLimitPoint(vtkVector3d p1, vtkVector3d p2, int pattern, vtkDataSet* input, vtkAbstractCellLocator* locator, double tolerance)
 {
-  std::vector<ProjInfo> projections;
-  vtkVector3d nline = (p2 - p1).Normalized();
+  const double norm = (p2 - p1).Norm();
+  HitCellInfo result{0.0, -1.0, -1};
 
-  vtkIdType p1Cell = locator->FindCell(p1.GetData());
-  if (p1Cell >= 0)
+  vtkIdType cellId = locator->FindCell(p1.GetData());
+  if (cellId >= 0)
   {
-    vtkCell* cell = input->GetCell(p1Cell);
+    vtkCell* cell = input->GetCell(cellId);
+    result.CellId = cellId;
     if (cell->GetCellDimension() == 3)
     {
-      OptionalPosition outPos = ::GetInOutCell3D(p1, p2, cell, tolerance).second;
-      if (outPos.IsValid)
-      {
-        double projection = (pattern == vtkProbeLineFilter::SamplingPattern::SAMPLE_LINE_AT_SEGMENT_CENTERS)
-          ? nline.Dot(outPos.Position - p1) * 0.5
-          : nline.Dot((outPos.Position - p1) - tolerance * nline);
-        projections.emplace_back(ProjInfo{projection, p1Cell});
-      }
+      double outT = ::GetInOutCell3D(p1, p2, cell, tolerance).OutT;
+      result.OutT = outT - tolerance / norm;
+    }
+    else
+    {
+      result.OutT = 0.0;
+    }
+  }
+  else if (pattern == vtkProbeLineFilter::SamplingPattern::SAMPLE_LINE_AT_CELL_BOUNDARIES)
+  {
+    double t, x[3], pcoords[3];
+    int id;
+    if (locator->IntersectWithLine(p1.GetData(), p2.GetData(), tolerance, t, x, pcoords, id))
+    {
+      result.OutT = t - tolerance / norm;
     }
   }
 
-  vtkIdType p2Cell = locator->FindCell(p2.GetData());
-  if (p2Cell >= 0)
-  {
-    vtkCell* cell = input->GetCell(p2Cell);
-    if (cell->GetCellDimension() == 3)
-    {
-      auto inOut = ::GetInOutCell3D(p1, p2, cell, tolerance);
-      OptionalPosition inPos = inOut.first.IsValid ? inOut.first : inOut.second;
-      if (inPos.IsValid)
-      {
-        double projection = (pattern == vtkProbeLineFilter::SamplingPattern::SAMPLE_LINE_AT_SEGMENT_CENTERS)
-          ? nline.Dot((inPos.Position + p2) * 0.5 - p1)
-          : nline.Dot((inPos.Position - p1) + tolerance * nline);
-        projections.emplace_back(ProjInfo{projection, p2Cell});
-      }
-    }
-  }
-
-  return projections;
+  return result;
 }
+
+//==============================================================================
+/**
+ * Workers to project back intersections from their parametric representation to
+ * actual 3D coordinates.
+ */
+struct PointProjectionBordersWorker
+{
+  PointProjectionBordersWorker(const vtkVector3d& p1, const vtkVector3d& p2, const std::vector<HitCellInfo>& inter, vtkIdType offset, vtkPoints* result)
+    : P1(p1)
+    , V12(p2 - p1)
+    , Intersections(inter)
+    , Offset(offset)
+    , Result(result)
+  {}
+
+  void operator()(vtkIdType startId, vtkIdType endId)
+  {
+    vtkVector3d point;
+    vtkIdType idx = this->Offset + 2 * startId;
+    for (vtkIdType i = startId; i < endId; ++i)
+    {
+      point = this->P1 + this->Intersections[i].InT * this->V12;
+      this->Result->SetPoint(idx, point.GetData());
+      ++idx;
+      point = this->P1 + this->Intersections[i].OutT * this->V12;
+      this->Result->SetPoint(idx, point.GetData());
+      ++idx;
+    }
+  }
+
+  const vtkVector3d P1;
+  const vtkVector3d V12;
+  const std::vector<HitCellInfo>& Intersections;
+  vtkIdType Offset;
+  vtkPoints* Result;
+};
+
+struct PointProjectionCentersWorker
+{
+  PointProjectionCentersWorker(const vtkVector3d& p1, const vtkVector3d& p2, const std::vector<HitCellInfo>& inter, vtkPoints* result)
+    : P1(p1)
+    , V12(p2 - p1)
+    , Intersections(inter)
+    , Result(result)
+  {}
+
+  void operator()(vtkIdType startId, vtkIdType endId)
+  {
+    vtkVector3d point;
+    for (vtkIdType i = startId; i < endId; ++i)
+    {
+      point = this->P1 + (this->Intersections[i].InT + this->Intersections[i].OutT) * 0.5 * this->V12;
+      this->Result->SetPoint(i + 1, point.GetData());
+    }
+  }
+
+  const vtkVector3d P1;
+  const vtkVector3d V12;
+  const std::vector<HitCellInfo>& Intersections;
+  vtkPoints* Result;
+};
+
 }
 
 //------------------------------------------------------------------------------
@@ -256,16 +284,20 @@ int vtkProbeLineFilter::RequestData(
     vtkErrorMacro("No input or output information");
   }
 
+  const double tolerance = this->ComputeTolerance
+    ? VTK_TOL * (vtkVector3d(this->Point2) - vtkVector3d(this->Point1)).Norm()
+    : this->Tolerance;
+
   vtkDataObject* input = inInfo->Get(vtkDataObject::DATA_OBJECT());
   vtkDataSet* output = vtkDataSet::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
-  this->Internal->UpdateLocators(input, this->SamplingPattern);
+  this->Internal->UpdateLocators(input, this->SamplingPattern, tolerance);
 
   vtkSmartPointer<vtkPolyData> sampledLine;
   switch (this->SamplingPattern)
   {
     case SAMPLE_LINE_AT_CELL_BOUNDARIES:
     case SAMPLE_LINE_AT_SEGMENT_CENTERS:
-      sampledLine = this->SampleLineAtEachCell(vtkCompositeDataSet::GetDataSets(input));
+      sampledLine = this->SampleLineAtEachCell(vtkCompositeDataSet::GetDataSets(input), tolerance);
       break;
     case SAMPLE_LINE_UNIFORMLY:
       sampledLine = this->SampleLineUniformly();
@@ -329,7 +361,7 @@ vtkSmartPointer<vtkPolyData> vtkProbeLineFilter::SampleLineUniformly() const
 
 //------------------------------------------------------------------------------
 vtkSmartPointer<vtkPolyData> vtkProbeLineFilter::SampleLineAtEachCell(
-  const std::vector<vtkDataSet*>& inputs) const
+  const std::vector<vtkDataSet*>& inputs, const double tolerance) const
 {
   if (vtkMathUtilities::NearlyEqual(this->Point1[0], this->Point2[0]) &&
     vtkMathUtilities::NearlyEqual(this->Point1[1], this->Point2[1]) &&
@@ -343,16 +375,15 @@ vtkSmartPointer<vtkPolyData> vtkProbeLineFilter::SampleLineAtEachCell(
     return vtkPolyData::SafeDownCast(line->GetOutputDataObject(0));
   }
 
-  // Initialize useful variables and result array
-  const vtkVector3d p1{this->Point1};
-  const vtkVector3d p2{this->Point2};
-  vtkVector3d v12 = (p2 - p1).Normalized();
-  const double tolerance = this->ComputeTolerance
-    ? VTK_TOL * (p2 - p1).Norm()
-    : this->Tolerance;
-  std::vector<ProjInfo> projections;
+  vtkVector3d p1{this->Point1};
+  vtkVector3d p2{this->Point2};
+  vtkVector3d v12Epsilon = p2 - p1;
+  const double v12NormEpsilon = tolerance / v12Epsilon.Normalize();
+  v12Epsilon = v12Epsilon * tolerance;
+  std::vector<HitCellInfo> intersections;
 
-  // Add every intersection with all blocks of the dataset on our current rank
+  // Add every intersection with all blocks of the dataset on our current rank.
+  // First loop on all block of the input
   for (std::size_t dsId = 0; dsId < inputs.size(); ++dsId)
   {
     vtkDataSet* input = inputs[dsId];
@@ -360,57 +391,70 @@ vtkSmartPointer<vtkPolyData> vtkProbeLineFilter::SampleLineAtEachCell(
     assert(strategy);
     vtkAbstractCellLocator* locator = strategy->GetCellLocator();
 
-    vtkNew<vtkIdList> intersected;
-    locator->FindCellsAlongLine(this->Point1, this->Point2, 0.0, intersected);
+    vtkNew<vtkIdList> intersectedIds;
+    locator->FindCellsAlongLine(this->Point1, this->Point2, 0.0, intersectedIds);
 
     // We process p1 and p2 a bit differently so in the case of their intersection with a cell
     // they are not duplicated
-    auto processedProj = ::ProcessLimitPoints(p1, p2, this->SamplingPattern, input, locator, tolerance);
-    for (const ProjInfo& proj : processedProj)
+    auto AddLimitPointToIntersections = [&](const vtkVector3d& p1, const vtkVector3d& p2, bool inverse)
     {
-      intersected->DeleteId(proj.CellID);
-    }
-    projections.insert(projections.end(), processedProj.begin(), processedProj.end());
+      auto processed = ::ProcessLimitPoint(p1, p2, this->SamplingPattern, input, locator, tolerance);
+
+      if (processed.OutT >= 0.0)
+      {
+        if (inverse)
+        {
+          processed.InT = 1.0 - processed.OutT;
+          processed.OutT = 1.0; // - processed.InT (== 0.0)
+        }
+        intersections.emplace_back(processed);
+
+        if (processed.CellId >= 0.0)
+        {
+          intersectedIds->DeleteId(processed.CellId);
+        }
+      }
+    };
+    AddLimitPointToIntersections(p1, p2, false);
+    AddLimitPointToIntersections(p2, p1, true);
 
     // Process every cell intersection once we're done with limit points
     double t, x[3], pcoords[3];
     int subId;
-    for (vtkIdType i = 0; i < intersected->GetNumberOfIds(); ++i)
+    for (vtkIdType i = 0; i < intersectedIds->GetNumberOfIds(); ++i)
     {
-      vtkIdType cellId = intersected->GetId(i);
+      vtkIdType cellId = intersectedIds->GetId(i);
+      if (input->HasAnyGhostCells() && input->GetCellGhostArray()->GetValue(cellId))
+      {
+        continue;
+      }
       vtkCell* cell = input->GetCell(cellId);
+      auto inOut = ::GetInOutCell3D(p1, p2, cell, tolerance);
+      inOut.CellId = cellId;
+
+      // Handle degenerated intersection
+      if (!inOut || vtkMathUtilities::NearlyEqual(inOut.InT, inOut.OutT, tolerance))
+      {
+        continue;
+      }
+
+      // Add intersected cell
       if (cell->GetCellDimension() == 3)
       {
-        auto inOut = ::GetInOutCell3D(p1, p2, cell, tolerance);
-        if (inOut.first.IsValid)
-        {
-          double inProj = v12.Dot((inOut.first.Position - p1) + tolerance * v12);
-          double outProj = v12.Dot((inOut.second.Position - p1) - tolerance * v12);
-          if (this->SamplingPattern == SamplingPattern::SAMPLE_LINE_AT_CELL_BOUNDARIES)
-          {
-            projections.emplace_back(ProjInfo{inProj, cellId});
-            projections.emplace_back(ProjInfo{outProj, cellId});
-          }
-          else
-          {
-            projections.emplace_back(ProjInfo{(inProj + outProj) * 0.5, cellId});
-          }
-        }
+        inOut.InT += v12NormEpsilon;
+        inOut.OutT -= v12NormEpsilon;
       }
-      else
-      {
-        cell->IntersectWithLine(p1.GetData(), p2.GetData(), tolerance, t, x, pcoords, subId);
-        projections.emplace_back(ProjInfo{v12.Dot(vtkVector3d(x) - p1), cellId});
-      }
+
+      intersections.emplace_back(inOut);
     }
   }
 
-  // Sort our array of projections so the merge across ranks is faster afterwards.
-  vtkSMPTools::Sort(projections.begin(), projections.end(), &ProjInfo::SortFunction);
+  // // Sort our array of projections so the merge across ranks is faster afterwards.
+  vtkSMPTools::Sort(intersections.begin(), intersections.end());
 
   // We need to gather points from every ranks to every ranks because vtkProbeFilter
   // assumes that its input is replicated in every ranks.
-  using PointSetBlock = std::vector<std::vector<ProjInfo>>;
+  using PointSetBlock = std::vector<std::vector<HitCellInfo>>;
   diy::mpi::communicator comm = vtkDIYUtilities::GetCommunicator(this->Controller);
   diy::Master master(
     comm, 1, -1, []() { return static_cast<void*>(new PointSetBlock()); },
@@ -421,7 +465,7 @@ vtkSmartPointer<vtkPolyData> vtkProbeLineFilter::SampleLineAtEachCell(
   decomposer.decompose(comm.rank(), assigner, master);
 
   diy::all_to_all(
-    master, assigner, [&master, &projections](PointSetBlock* block, const diy::ReduceProxy& srp) {
+    master, assigner, [&master, &intersections](PointSetBlock* block, const diy::ReduceProxy& srp) {
       int myBlockId = srp.gid();
       if (srp.round() == 0)
       {
@@ -430,7 +474,7 @@ vtkSmartPointer<vtkPolyData> vtkProbeLineFilter::SampleLineAtEachCell(
           const diy::BlockID& blockId = srp.out_link().target(i);
           if (blockId.gid != myBlockId)
           {
-            srp.enqueue(blockId, projections);
+            srp.enqueue(blockId, intersections);
           }
         }
       }
@@ -441,7 +485,7 @@ vtkSmartPointer<vtkPolyData> vtkProbeLineFilter::SampleLineAtEachCell(
           const diy::BlockID& blockId = srp.in_link().target(i);
           if (blockId.gid != myBlockId)
           {
-            std::vector<ProjInfo> data;
+            std::vector<HitCellInfo> data;
             srp.dequeue(blockId, data);
             block->emplace_back(std::move(data));
           }
@@ -449,31 +493,102 @@ vtkSmartPointer<vtkPolyData> vtkProbeLineFilter::SampleLineAtEachCell(
       }
     });
 
-  // Merge local projections with projections from all other ranks
+  // Merge local intersections with intersections from all other ranks
   PointSetBlock* block = master.block<PointSetBlock>(0);
-  for (const auto& distProjections : *block)
+  double p1Hit = 1.0;
+  double p2Hit = 0.0;
+  auto ReduceLimitPointHit = [&p1Hit, &p2Hit](const std::vector<HitCellInfo>& intersections)
   {
-    auto prevEnd = projections.insert(projections.end(), distProjections.begin(), distProjections.end());
-    std::inplace_merge(projections.begin(), prevEnd, projections.end(), &ProjInfo::SortFunction);
+    if (intersections[0].CellId < 0 && intersections[0].OutT < p1Hit)
+    {
+      p1Hit = intersections[0].OutT;
+    }
+    if (intersections.back().CellId < 0 && intersections.back().InT > p2Hit)
+    {
+      p2Hit = intersections.back().InT;
+    }
+  };
+  if (!intersections.empty())
+  {
+    ReduceLimitPointHit(intersections);
+    if (intersections.back().CellId < 0)
+    {
+      intersections.pop_back();
+    }
+    if (!intersections.empty() && intersections[0].CellId < 0)
+    {
+      intersections.erase(intersections.begin());
+    }
   }
 
-  // Duplicate points can happen on composite data set so lets remove them
-  auto last = std::unique(projections.begin(), projections.end(), &ProjInfo::EqualFunction);
-  auto projectionSize = std::distance(projections.begin(), last);
-
-  // Transform projection back to coordinates
-  vtkNew<vtkPoints> coordinates;
-  coordinates->SetNumberOfPoints(projectionSize + 2);
-  coordinates->SetPoint(0, this->Point1);
-  coordinates->SetPoint(coordinates->GetNumberOfPoints() - 1, this->Point2);
-  vtkSMPTools::For(0, projectionSize, [&p1, &p2, &v12, &projections, &coordinates](vtkIdType begin, vtkIdType end)
+  for (const auto& distIntersections : *block)
+  {
+    if (!distIntersections.empty())
     {
-      for (vtkIdType pointId = begin; pointId < end; ++pointId)
+      ReduceLimitPointHit(distIntersections);
+      auto begin = distIntersections.begin();
+      auto end = distIntersections.end();
+      if (distIntersections[0].CellId < 0)
       {
-        vtkVector3d p = p1 + v12 * projections[pointId].Projection;
-        coordinates->SetPoint(pointId + 1, p.GetData());
+        begin += 1;
       }
-    });
+      if (distIntersections.back().CellId < 0)
+      {
+        end -= 1;
+      }
+
+      if (begin < end)
+      {
+        auto prevEnd = intersections.insert(intersections.end(), begin, end);
+        std::inplace_merge(intersections.begin(), prevEnd, intersections.end());
+      }
+    }
+  }
+
+  if (intersections.empty())
+  {
+    // In this instance, we probe only Point1 and Point2.
+    vtkNew<vtkLineSource> line;
+    line->SetPoint1(this->Point1);
+    line->SetPoint2(this->Point2);
+    line->Update();
+    return vtkPolyData::SafeDownCast(line->GetOutputDataObject(0));
+  }
+
+  // Tranform back the cells hit informations to 3D coordinates
+  vtkNew<vtkPoints> coordinates;
+  vtkVector3d point;
+  vtkVector3d v12 = p2 - p1;
+  if (this->SamplingPattern == SAMPLE_LINE_AT_CELL_BOUNDARIES)
+  {
+    bool addP1 = intersections[0].InT != 0.0;
+    bool addP2 = intersections.back().OutT != 1.0;
+    vtkIdType offset = addP1 ? 2 : 0;
+    vtkIdType numberOfPoints = intersections.size() * 2 + offset + (addP2 ? 2 : 0);
+    coordinates->SetNumberOfPoints(numberOfPoints);
+    if (addP1)
+    {
+      point = p1 + p1Hit * v12;
+      coordinates->SetPoint(0, this->Point1);
+      coordinates->SetPoint(1, point.GetData());
+    }
+    ::PointProjectionBordersWorker worker(p1, p2, intersections, offset, coordinates);
+    vtkSMPTools::For(0, intersections.size(), worker);
+    if (addP2)
+    {
+      point = p1 + p2Hit * v12;
+      coordinates->SetPoint(numberOfPoints - 2, point.GetData());
+      coordinates->SetPoint(numberOfPoints - 1, this->Point2);
+    }
+  }
+  else
+  {
+    coordinates->SetNumberOfPoints(intersections.size() + 2);
+    coordinates->SetPoint(0, this->Point1);
+    ::PointProjectionCentersWorker worker(p1, p2, intersections, coordinates);
+    vtkSMPTools::For(0, intersections.size(), worker);
+    coordinates->SetPoint(intersections.size() + 1, this->Point2);
+  }
 
   vtkNew<vtkPolyLineSource> polyLine;
   polyLine->SetPoints(coordinates);
