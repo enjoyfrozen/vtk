@@ -37,7 +37,6 @@ PURPOSE.  See the above copyright notice for more information.
 #include "vtkObjectFactory.h"
 #include "vtkOpenVRCamera.h"
 #include "vtkOpenVRControlsHelper.h"
-#include "vtkOpenVRHardwarePicker.h"
 #include "vtkOpenVRModel.h"
 #include "vtkOpenVROverlay.h"
 #include "vtkOpenVRRenderWindow.h"
@@ -55,9 +54,11 @@ PURPOSE.  See the above copyright notice for more information.
 #include "vtkStringArray.h"
 #include "vtkTextProperty.h"
 #include "vtkTimerLog.h"
+#include "vtkVRHardwarePicker.h"
+#include "vtkVRModel.h"
 
-#include "vtkOpenVRMenuRepresentation.h"
-#include "vtkOpenVRMenuWidget.h"
+#include "vtkVRMenuRepresentation.h"
+#include "vtkVRMenuWidget.h"
 
 #include <sstream>
 
@@ -430,7 +431,7 @@ bool vtkOpenVRInteractorStyle::HardwareSelect(vtkEventDataDevice controller, boo
     return false;
   }
 
-  vtkOpenVRModel* cmodel = renWin->GetTrackedDeviceModel(controller);
+  vtkOpenVRModel* cmodel = vtkOpenVRModel::SafeDownCast(renWin->GetTrackedDeviceModel(controller));
   if (!cmodel)
   {
     return false;
@@ -1013,7 +1014,7 @@ void vtkOpenVRInteractorStyle::ShowRay(vtkEventDataDevice controller)
   {
     return;
   }
-  vtkOpenVRModel* cmodel = renWin->GetTrackedDeviceModel(controller);
+  vtkVRModel* cmodel = renWin->GetTrackedDeviceModel(controller);
   if (cmodel)
   {
     cmodel->SetShowRay(true);
@@ -1030,7 +1031,7 @@ void vtkOpenVRInteractorStyle::HideRay(vtkEventDataDevice controller)
   {
     return;
   }
-  vtkOpenVRModel* cmodel = renWin->GetTrackedDeviceModel(controller);
+  vtkVRModel* cmodel = renWin->GetTrackedDeviceModel(controller);
   if (cmodel)
   {
     cmodel->SetShowRay(false);
@@ -1060,7 +1061,7 @@ void vtkOpenVRInteractorStyle::UpdateRay(vtkEventDataDevice controller)
   {
     return;
   }
-  vtkOpenVRModel* mod = renWin->GetTrackedDeviceModel(idx);
+  vtkOpenVRModel* mod = vtkOpenVRModel::SafeDownCast(renWin->GetTrackedDeviceModel(idx));
   if (!mod)
   {
     return;
