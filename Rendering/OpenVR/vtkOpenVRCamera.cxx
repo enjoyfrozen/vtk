@@ -118,7 +118,7 @@ void vtkOpenVRCamera::GetHMDEyeProjections(vtkRenderer* ren)
   this->RightEyeProjection->SetElement(3, 2, -2 * znear * zfar / (zfar - znear));
 }
 
-void vtkOpenVRCamera::ApplyEyePose(vtkOpenVRRenderWindow* win, bool left, double factor)
+void vtkOpenVRCamera::ApplyEyePose(vtkVRRenderWindow* win, bool left, double factor)
 {
   double physicalScale = win->GetPhysicalScale();
 
@@ -146,7 +146,7 @@ void vtkOpenVRCamera::Render(vtkRenderer* ren)
 {
   vtkOpenGLClearErrorMacro();
 
-  vtkOpenVRRenderWindow* win = vtkOpenVRRenderWindow::SafeDownCast(ren->GetRenderWindow());
+  vtkVRRenderWindow* win = vtkVRRenderWindow::SafeDownCast(ren->GetRenderWindow());
   vtkOpenGLState* ostate = win->GetState();
 
   int renSize[2];
@@ -308,4 +308,24 @@ void vtkOpenVRCamera::GetTrackingToDCMatrix(vtkMatrix4x4*& tcdc)
 void vtkOpenVRCamera::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
+
+  os << indent << "LeftEyePose : (" << this->LeftEyePose[0] << ", " << this->LeftEyePose[1] << ", "
+     << this->LeftEyePose[2] << ")\n";
+  os << indent << "RightEyePose : (" << this->RightEyePose[0] << ", " << this->RightEyePose[1]
+     << ", " << this->RightEyePose[2] << ")\n";
+
+  this->LeftEyeTCDCMatrix->PrintSelf(os, indent);
+  this->RightEyeTCDCMatrix->PrintSelf(os, indent);
+
+  if (this->LeftEyeProjection != nullptr)
+  {
+    this->LeftEyeProjection->PrintSelf(os, indent);
+  }
+
+  if (this->RightEyeProjection != nullptr)
+  {
+    this->RightEyeProjection->PrintSelf(os, indent);
+  }
+
+  this->PoseTransform->PrintSelf(os, indent);
 }
