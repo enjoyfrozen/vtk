@@ -144,6 +144,7 @@ set(classes
   vtkCollectionIterator
   vtkCommand
   vtkCommonInformationKeyManager
+  vtkDataCache
   vtkDataArray
   vtkDataArrayCollection
   vtkDataArrayCollectionIterator
@@ -329,6 +330,7 @@ set(private_headers
 
 set(templates
   vtkArrayIteratorTemplateImplicit.txx
+  vtkDataCache.txx
   ${vtk_smp_templates})
 
 set(private_templates
