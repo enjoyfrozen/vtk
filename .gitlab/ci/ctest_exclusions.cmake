@@ -167,16 +167,16 @@ if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "osmesa")
     "^VTK::RenderingOpenGL2Cxx-TestGlyph3DMapperPickability$")
 endif ()
 
-if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "stdthread") # They failed also on OpenMP build (non tested)
+if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "stdthread")
   list(APPEND test_exclusions
-    # Theses tests fail for stdthread + openmp builds they may be link to a bad use of ThreadLocal
+    # Timeouts. Does not occur under non-stdthread SMP backends.
     # Need investigations https://gitlab.kitware.com/vtk/vtk/-/issues/18222
     "^VTK::FiltersExtractionCxx-TestExtractSelectionUsingDataAssembly$"
     "^VTK::FiltersGeneralCxx-TestAnimateModes$"
     "^VTK::FiltersParallelDIY2Cxx-TestRedistributeDataSetFilterOnIoss$"
+    "^VTK::ImagingHybridPython-TestCheckerboardSplatter$"
     "^VTK::IOIossCxx-TestIossExodus$"
-    "^VTK::IOIossCxx-TestIossSuperelements$"
-    "^VTK::ImagingHybridPython-TestCheckerboardSplatter$")
+    "^VTK::IOIossCxx-TestIossSuperelements$")
 endif ()
 
 if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "macos_arm64")
