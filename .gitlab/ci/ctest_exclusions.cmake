@@ -167,18 +167,6 @@ if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "osmesa")
     "^VTK::RenderingOpenGL2Cxx-TestGlyph3DMapperPickability$")
 endif ()
 
-if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "stdthread") # They failed also on OpenMP build (non tested)
-  list(APPEND test_exclusions
-    # Theses tests fail for stdthread + openmp builds they may be link to a bad use of ThreadLocal
-    # Need investigations https://gitlab.kitware.com/vtk/vtk/-/issues/18222
-    "^VTK::FiltersExtractionCxx-TestExtractSelectionUsingDataAssembly$"
-    "^VTK::FiltersGeneralCxx-TestAnimateModes$"
-    "^VTK::FiltersParallelDIY2Cxx-TestRedistributeDataSetFilterOnIoss$"
-    "^VTK::IOIossCxx-TestIossExodus$"
-    "^VTK::IOIossCxx-TestIossSuperelements$"
-    "^VTK::ImagingHybridPython-TestCheckerboardSplatter$")
-endif ()
-
 if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "macos_arm64")
   list(APPEND test_exclusions
     # Crowded geometry?
