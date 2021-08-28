@@ -140,15 +140,15 @@ if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "windows")
     "^VTK::GUISupportQtCxx-TestQVTKOpenGLStereoWidget$"
     "^VTK::GUISupportQtCxx-TestQVTKOpenGLStereoWidgetPicking$"
     "^VTK::GUISupportQtCxx-TestQVTKOpenGLStereoWidgetQWidgetWidget$"
+    "^VTK::GUISupportQtCxx-TestQVTKOpenGLStereoWidgetWithChartHistogram2D$"
     "^VTK::GUISupportQtCxx-TestQVTKOpenGLStereoWidgetWithDisabledInteractor$"
     "^VTK::GUISupportQtCxx-TestQVTKOpenGLStereoWidgetWithMSAA$"
-    "^VTK::GUISupportQtCxx-TestQVTKOpenGLStereoWidgetWithChartHistogram2D$"
     "^VTK::GUISupportQtCxx-TestQVTKOpenGLWidget$"
     "^VTK::GUISupportQtCxx-TestQVTKOpenGLWidgetPicking$"
     "^VTK::GUISupportQtCxx-TestQVTKOpenGLWidgetQWidgetWidget$"
+    "^VTK::GUISupportQtCxx-TestQVTKOpenGLWidgetWithChartHistogram2D$"
     "^VTK::GUISupportQtCxx-TestQVTKOpenGLWidgetWithDisabledInteractor$"
     "^VTK::GUISupportQtCxx-TestQVTKOpenGLWidgetWithMSAA$"
-    "^VTK::GUISupportQtCxx-TestQVTKOpenGLWidgetWithChartHistogram2D$"
     "^VTK::GUISupportQtQuickCxx-TestQQuickVTKRenderItem$"
     "^VTK::GUISupportQtQuickCxx-TestQQuickVTKRenderItemWidget$"
     "^VTK::GUISupportQtQuickCxx-TestQQuickVTKRenderWindow$"
@@ -182,7 +182,7 @@ if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "macos_arm64")
 endif ()
 
 if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "macos")
-  # Screenshot issue for test comparison with background buffer
+  # Screenshot issue for test comparison with background buffer (intermittent)
   list(APPEND test_exclusions
     "^VTK::GUISupportQtQuickCxx-TestQQuickVTKRenderItem$"
     "^VTK::GUISupportQtQuickCxx-TestQQuickVTKRenderItemWidget$"
