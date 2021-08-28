@@ -26,6 +26,7 @@
 #include "vtkCellData.h"
 #include "vtkCellIterator.h"
 #include "vtkCellTypes.h"
+#include "vtkDataCache.h"
 #include "vtkDoubleArray.h"
 #include "vtkGenericCell.h"
 #include "vtkHexahedron.h"
@@ -112,19 +113,13 @@ bool StructuredExecuteWithBlanking(
     return false;
   }
 
-  int inExtent[6];
-  input->GetExtent(inExtent);
-  if (vtkStructuredData::GetDataDimension(inExtent) != 3 || !input->HasAnyBlankCells())
+  vtkTuple<int, 6> inExtent;
+  input->GetExtent(inExtent.GetData());
+  if (vtkStructuredData::GetDataDimension(inExtent.GetData()) != 3 || !input->HasAnyBlankCells())
   {
     // no need to use this logic for non 3D cells or if no blanking is provided.
     return false;
   }
-
-  vtkLogScopeF(TRACE, "StructuredExecuteWithBlanking (fastMode=%d)", (int)self->GetFastMode());
-  vtkNew<vtkPoints> points;
-  points->Allocate(input->GetNumberOfPoints() / 2);
-  output->AllocateEstimate(input->GetNumberOfCells(), 4);
-  output->SetPoints(points);
 
   // Extracts a either the min (or max) face along the `axis` for the cell
   // identified by `cellId` in the input dataset.
@@ -139,16 +134,16 @@ bool StructuredExecuteWithBlanking(
     }
 
     std::array<vtkIdType, 4> face;
-    face[0] = vtkStructuredData::ComputePointIdForExtent(inExtent, ptIjk);
+    face[0] = vtkStructuredData::ComputePointIdForExtent(inExtent.GetData(), ptIjk);
 
     ++ptIjk[iAxis];
-    face[1] = vtkStructuredData::ComputePointIdForExtent(inExtent, ptIjk);
+    face[1] = vtkStructuredData::ComputePointIdForExtent(inExtent.GetData(), ptIjk);
 
     ++ptIjk[jAxis];
-    face[2] = vtkStructuredData::ComputePointIdForExtent(inExtent, ptIjk);
+    face[2] = vtkStructuredData::ComputePointIdForExtent(inExtent.GetData(), ptIjk);
 
     --ptIjk[iAxis];
-    face[3] = vtkStructuredData::ComputePointIdForExtent(inExtent, ptIjk);
+    face[3] = vtkStructuredData::ComputePointIdForExtent(inExtent.GetData(), ptIjk);
 
     if (minFace)
     {
@@ -189,17 +184,77 @@ bool StructuredExecuteWithBlanking(
     outputDSA->Squeeze();
   };
 
+  auto passAttributeData = [&](vtkIdTypeArray* originalCellIds, vtkIdTypeArray* originalPtIds) {
+    // Now copy cell and point data. We want to copy global ids, however we don't
+    // want them to be flagged as global ids. So we do this.
+    passData(originalPtIds, input->GetPointData(), output->GetPointData(),
+      self->GetPassThroughPointIds() ? self->GetOriginalPointIdsName() : nullptr);
+    passData(originalCellIds, input->GetCellData(), output->GetCellData(),
+      self->GetPassThroughCellIds() ? self->GetOriginalCellIdsName() : nullptr);
+  };
+
+  vtkLogScopeF(TRACE, "StructuredExecuteWithBlanking (fastMode=%d)", (int)self->GetFastMode());
+  auto inputSG = vtkStructuredGrid::SafeDownCast(input);
+  auto ghostCells = input->GetCellGhostArray();
+  auto inPoints = inputSG ? inputSG->GetPoints() : nullptr;
+  auto cache = vtkDataCache::GetInstance();
+
+  auto points = cache->GetCachedData<vtkPoints>(
+    "vtkDataSetSurfaceFilter::StructuredExecuteWithBlanking::Points", ghostCells, inExtent,
+    inPoints);
+  auto originalPtIds = cache->GetCachedData<vtkIdTypeArray>(
+    "vtkDataSetSurfaceFilter::StructuredExecuteWithBlanking::OriginalPointIds", ghostCells,
+    inExtent, inPoints);
+  auto originalCellIds = cache->GetCachedData<vtkIdTypeArray>(
+    "vtkDataSetSurfaceFilter::StructuredExecuteWithBlanking::OriginalCellIds", ghostCells, inExtent,
+    inPoints);
+  auto polys = cache->GetCachedData<vtkCellArray>(
+    "vtkDataSetSurfaceFilter::StructuredExecuteWithBlanking::Polys", ghostCells, inExtent,
+    inPoints);
+
+  const bool recalculate = !(points && originalPtIds && originalCellIds && polys);
+  vtkLogF(INFO, "using cached points %s", (!recalculate ? "true" : "false"));
+
+  if (recalculate)
+  {
+    points = vtk::TakeSmartPointer(vtkPoints::New());
+    points->Allocate(input->GetNumberOfPoints() / 2);
+    output->AllocateEstimate(input->GetNumberOfCells(), 4);
+    cache->AddToCache(self, points,
+      "vtkDataSetSurfaceFilter::StructuredExecuteWithBlanking::Points", ghostCells, inExtent,
+      inPoints);
+
+    originalPtIds = vtk::TakeSmartPointer(vtkIdTypeArray::New());
+    originalPtIds->Allocate(input->GetNumberOfPoints());
+    cache->AddToCache(self, originalPtIds,
+      "vtkDataSetSurfaceFilter::StructuredExecuteWithBlanking::OriginalPointIds", ghostCells,
+      inExtent, inPoints);
+
+    originalCellIds = vtk::TakeSmartPointer(vtkIdTypeArray::New());
+    originalCellIds->Allocate(input->GetNumberOfCells());
+    cache->AddToCache(self, originalCellIds,
+      "vtkDataSetSurfaceFilter::StructuredExecuteWithBlanking::OriginalCellIds", ghostCells,
+      inExtent, inPoints);
+
+    polys = vtk::TakeSmartPointer(vtkCellArray::New());
+    polys->AllocateEstimate(input->GetNumberOfCells() / 6, 4);
+    cache->AddToCache(self, polys, "vtkDataSetSurfaceFilter::StructuredExecuteWithBlanking::Polys",
+      ghostCells, inExtent, inPoints);
+  }
+
+  output->SetPoints(points);
+  output->SetPolys(polys);
+  if (!recalculate)
+  {
+    passAttributeData(originalCellIds, originalPtIds);
+    return true;
+  }
+
   // This map is used to avoid inserting same point multiple times in the
   // output. Since points are looked up using their ids, we simply use that to
   // uniquify points and don't need any locator.
   // key: input point id, value: output point id.
   std::unordered_map<vtkIdType, vtkIdType> pointMap;
-
-  vtkNew<vtkIdTypeArray> originalPtIds;
-  originalPtIds->Allocate(input->GetNumberOfPoints());
-
-  vtkNew<vtkIdTypeArray> originalCellIds;
-  originalCellIds->Allocate(input->GetNumberOfCells());
 
   auto addFaceToOutput = [&](const std::array<vtkIdType, 4>& ptIds, vtkIdType inCellId) {
     vtkIdType outPtIds[5];
@@ -245,14 +300,14 @@ bool StructuredExecuteWithBlanking(
         for (int k = extent[4]; k < extent[5]; ++k)
         {
           ijk[axis] = k;
-          const auto cellId = vtkStructuredData::ComputeCellIdForExtent(inExtent, ijk);
+          const auto cellId = vtkStructuredData::ComputeCellIdForExtent(inExtent.GetData(), ijk);
           const bool cellVisible = input->IsCellVisible(cellId);
           if ((minFace && cellVisible) || (!minFace && !cellVisible))
           {
             ijk[axis] =
               minFace ? k : (k - 1); // this ensure correct cell-data is picked for the face.
             addFaceToOutput(getFace(ijk, axis, /*minFace=*/minFace),
-              vtkStructuredData::ComputeCellIdForExtent(inExtent, ijk));
+              vtkStructuredData::ComputeCellIdForExtent(inExtent.GetData(), ijk));
             if (self->GetFastMode())
             {
               // in fast mode, we immediately start iterating from the other
@@ -263,7 +318,8 @@ bool StructuredExecuteWithBlanking(
               for (int reverseK = extent[5] - 1; reverseK >= k; --reverseK)
               {
                 ijk[axis] = reverseK;
-                const auto reverseCellId = vtkStructuredData::ComputeCellIdForExtent(inExtent, ijk);
+                const auto reverseCellId =
+                  vtkStructuredData::ComputeCellIdForExtent(inExtent.GetData(), ijk);
                 if (input->IsCellVisible(reverseCellId))
                 {
                   addFaceToOutput(getFace(ijk, axis, /*minFace=*/false), reverseCellId);
@@ -280,7 +336,7 @@ bool StructuredExecuteWithBlanking(
         // capping-surface, add the capping surface.
         if (!minFace && !self->GetFastMode())
         {
-          const auto cellId = vtkStructuredData::ComputeCellIdForExtent(inExtent, ijk);
+          const auto cellId = vtkStructuredData::ComputeCellIdForExtent(inExtent.GetData(), ijk);
           ijk[axis] = extent[5] - 1;
           addFaceToOutput(getFace(ijk, axis, false), cellId);
         }
@@ -290,10 +346,7 @@ bool StructuredExecuteWithBlanking(
 
   // Now copy cell and point data. We want to copy global ids, however we don't
   // want them to be flagged as global ids. So we do this.
-  passData(originalPtIds, input->GetPointData(), output->GetPointData(),
-    self->GetPassThroughPointIds() ? self->GetOriginalPointIdsName() : nullptr);
-  passData(originalCellIds, input->GetCellData(), output->GetCellData(),
-    self->GetPassThroughCellIds() ? self->GetOriginalCellIdsName() : nullptr);
+  passAttributeData(originalCellIds, originalPtIds);
   output->Squeeze();
   return true;
 }
