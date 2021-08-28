@@ -306,6 +306,7 @@ set(headers
   vtkSystemIncludes.h
   vtkTemplateAliasMacro.h
   vtkTestDataArray.h
+  vtkTuple.h
   vtkType.h
   vtkTypeTraits.h
   vtkTypedDataArrayIterator.h
