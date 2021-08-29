@@ -58,7 +58,7 @@
         {
             "group": "master",
             "site": "gitlab-ci",
-            "buildname": "[fedora33_qt_tbb_ubsan]"
+            "buildname": "[fedora33_mpi_python_qt_tbb_ubsan]"
         },
         {
             "group": "master",
