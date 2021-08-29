@@ -22,6 +22,7 @@
 #include "vtkParseString.h"
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 /*----------------------------------------------------------------
  * String tokenization methods
@@ -871,9 +872,18 @@ void vtkParse_FreeStringCache(StringCache* cache)
 /* duplicate the first n bytes of a string and terminate it */
 const char* vtkParse_CacheString(StringCache* cache, const char* in, size_t n)
 {
-  char* res = vtkParse_NewString(cache, n);
-  strncpy(res, in, n);
-  res[n] = '\0';
+  char* res = NULL;
+  if (in)
+  {
+    res = vtkParse_NewString(cache, n);
+    strncpy(res, in, n);
+    res[n] = '\0';
+  }
+  else
+  {
+    /* if input is NULL, length must be zero */
+    assert(n == 0);
+  }
 
   return res;
 }
