@@ -5,4 +5,9 @@ LIBRARY_NAME
 DEPENDS
   VTK::CommonCore
   VTK::vtksys
+TEST_DEPENDS
+  # Required because `vtkInformationDataObjectKey` includes `vtkDataObject.h`
+  # and therefore needs the vtable for `vtkDataObject` available. This is
+  # exposed in sanitizer builds.
+  VTK::CommonDataModel
 EXCLUDE_WRAP
