@@ -366,6 +366,7 @@ build:fedora33-tidy:
 #         - .linux_qt_builder_tags
 #         - .cmake_build_artifacts
 #         - .run_manually
+#     timeout: 3 hours # seeing how long it actually takes
 
 # test:fedora33-asan:
 #     extends:
@@ -406,6 +407,7 @@ build:fedora33-tidy:
 #         - .linux_qt_builder_tags
 #         - .cmake_build_artifacts
 #         - .run_manually
+#     timeout: 3 hours # seeing how long it actually takes
 
 # test:fedora33-ubsan:
 #     extends:
