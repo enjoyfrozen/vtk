@@ -30,8 +30,9 @@
 #include "vtkTesting.h"
 #endif
 
-int TestMP4Writer(int argc, char* argv[])
+int TestMP4Writer(int argc, char* vtkNotUsed(argv)[])
 {
+  (void)argc; // argc may or may not be used depending on configuration
 #ifdef VTK_USE_MICROSOFT_MEDIA_FOUNDATION
   vtkNew<vtkImageMandelbrotSource> fractal;
   fractal->SetWholeExtent(0, 247, 0, 247, 0, 0);
