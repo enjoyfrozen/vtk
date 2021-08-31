@@ -541,6 +541,12 @@ if (vtk_include_dirs)
 endif ()
 
 vtk_module_link(VTK::CommonCore
+  INTERFACE
+    # Required because `vtkInformationDataObjectKey` includes
+    # `vtkDataObject.h`. This is exposed in sanitizer builds. VTK guarantees
+    # that these two modules will always be built, so this "backwards link" is
+    # OK.
+    "$<LINK_ONLY:VTK::CommonDataModel>"
   PUBLIC
     Threads::Threads
     ${vtk_smp_libraries}
