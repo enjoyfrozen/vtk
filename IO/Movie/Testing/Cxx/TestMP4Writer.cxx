@@ -30,7 +30,7 @@
 #include "vtkTesting.h"
 #endif
 
-int TestMP4Writer(int argc, char* argv[])
+int TestMP4Writer(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 {
 #ifdef VTK_USE_MICROSOFT_MEDIA_FOUNDATION
   vtkNew<vtkImageMandelbrotSource> fractal;
