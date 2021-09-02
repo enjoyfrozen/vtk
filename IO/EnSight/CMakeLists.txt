@@ -5,7 +5,8 @@ set(classes
   vtkEnSightGoldReader
   vtkEnSightMasterServerReader
   vtkEnSightReader
-  vtkGenericEnSightReader)
+  vtkGenericEnSightReader
+  vtkNewEnSightGoldReader)
 
 vtk_module_add_module(VTK::IOEnSight
   CLASSES ${classes})
