@@ -56,6 +56,73 @@ if (cond)
 - New class members should be added to the `PrintSelf` method so that they
   appear when the object is output using this debugging mechanism.
 
+[](#coding-guidelines-modules)
+### Modules
+
+New VTK modules should consider the following questions:
+
+- Does it belong to a "group" of modules?
+- Does it belong to a "kit"?
+
+The groups available in VTK are:
+
+- `StandAlone`: Modules in this group are added to VTK's default build
+  configuration. Generally, they should not require any external dependencies
+  to build.
+- `Rendering`: Modules which support rendering. These are also enabled by
+  default and should not depend on external packages.
+- `Imaging`: Modules handling images and filters to manipulate them. Includes
+  modules to support interaction with and rendering of images as well.
+- `MPI`: Modules using [MPI (Message Passing Interface)][mpi]. These are
+  enabled when `VTK_USE_MPI` is enabled.
+- `Qt`: Modules requiring [Qt][qt].
+- `Web`: Modules supporting VTK's support for web technologies.
+
+[mpi]: https://en.wikipedia.org/wiki/Message_Passing_Interface
+[qt]: https://www.qt.io
+
+Modules do not need to belong to any group as groups are ways of selecting a
+collection of modules for enabling or disabling as a batch.
+
+The kits available in VTK are:
+
+- `VTK::Common`: "Core" VTK modules.
+- `VTK::Filters`: Modules containing common filters without "exotic"
+  dependencies.
+- `VTK::Imaging`: Image manipulation modules.
+- `VTK::Interaction`: Support for interacting with VTK render windows.
+- `VTK::IO`: File reading and writing modules.
+- `VTK::Parallel`: MPI-using modules from across the codebase.
+- `VTK::Rendering`: Core rendering modules.
+- `VTK::OpenGL`: OpenGL rendering modules.
+
+Note that being part of a kit constrains the allowed dependency graph of the
+module. As an example, if kit A depends on kit B, no module in kit B may depend
+on any module in kit A.
+
+[](#coding-guidelines-modules-external-deps)
+#### Adding External Dependencies
+
+New dependencies in VTK modules must use `vtk_module_find_package` to find
+dependencies. This call ensures that:
+
+- the dependency not being found is an error; and
+- the dependency is exported to the build configuration properly.
+
+A normal `find_package` may be used only if:
+
+- it is under a `Testing` directory; or
+- it is a header-only dependency that is not exposed in the public headers of
+  the module (in this case pass the `PRIVATE` argument).
+
+Some dependencies need help beyond the normal variables used by CMake in the
+course of `find_package` logic. In these cases,
+`CMake/vtkInstallCMakePackageHelpers.cmake` should be updated with the relevant
+variables.
+
+If possible, CI should be updated to include these dependencies (or disable the
+module if it cannot be provided as CI tries to enable all modules).
+
 [](#coding-guidelines-cmake)
 ### CMake
 
