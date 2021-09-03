@@ -14,7 +14,6 @@
 =========================================================================*/
 #include "vtkMergeVectorComponents.h"
 
-#include "vtkArrayDispatch.h"
 #include "vtkDataArray.h"
 #include "vtkDataArrayRange.h"
 #include "vtkDataSet.h"
@@ -23,6 +22,7 @@
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
 #include "vtkObjectFactory.h"
+#include "vtkSMPTools.h"
 
 vtkStandardNewMacro(vtkMergeVectorComponents);
 
@@ -49,28 +49,38 @@ int vtkMergeVectorComponents::FillInputPortInformation(int vtkNotUsed(port), vtk
 //------------------------------------------------------------------------------
 namespace
 {
-
-struct vtkMergeComponents
+class vtkMergeVectorComponentsFunctor
 {
-  template <class T>
-  void operator()(T* vector, vtkDataArray* arrayX, vtkDataArray* arrayY, vtkDataArray* arrayZ)
+  vtkDataArray* ArrayX;
+  vtkDataArray* ArrayY;
+  vtkDataArray* ArrayZ;
+  vtkDataArray* Vector;
+
+public:
+  vtkMergeVectorComponentsFunctor(
+    vtkDataArray* arrayX, vtkDataArray* arrayY, vtkDataArray* arrayZ, vtkDataArray* vector)
+    : ArrayX(arrayX)
+    , ArrayY(arrayY)
+    , ArrayZ(arrayZ)
+    , Vector(vector)
   {
-    T* x = T::FastDownCast(arrayX);
-    T* y = T::FastDownCast(arrayY);
-    T* z = T::FastDownCast(arrayZ);
+  }
 
+  void operator()(vtkIdType begin, vtkIdType end)
+  {
     // mark out ranges as single component for better perf
-    auto inX = vtk::DataArrayValueRange<1>(x).begin();
-    auto inY = vtk::DataArrayValueRange<1>(y).begin();
-    auto inZ = vtk::DataArrayValueRange<1>(z).begin();
+    auto inX = vtk::DataArrayValueRange<1>(this->ArrayX).begin() + begin;
+    auto inY = vtk::DataArrayValueRange<1>(this->ArrayY).begin() + begin;
+    auto inZ = vtk::DataArrayValueRange<1>(this->ArrayZ).begin() + begin;
+    auto outVector = vtk::DataArrayTupleRange<3>(this->Vector).begin() + begin;
 
-    auto outRange = vtk::DataArrayTupleRange<3>(vector);
-
-    for (auto value : outRange)
+    for (vtkIdType i = begin; i < end; ++i)
     {
-      value[0] = *inX++;
-      value[1] = *inY++;
-      value[2] = *inZ++;
+      (*outVector)[0] = *inX++;
+      (*outVector)[1] = *inY++;
+      (*outVector)[2] = *inZ++;
+
+      ++outVector;
     }
   }
 };
@@ -135,10 +145,8 @@ int vtkMergeVectorComponents::RequestData(vtkInformation* vtkNotUsed(request),
   vectorFD->SetNumberOfTuples(xFD->GetNumberOfTuples());
   vectorFD->SetName(outVectorName.c_str());
 
-  if (!vtkArrayDispatch::Dispatch::Execute(vectorFD, vtkMergeComponents{}, xFD, yFD, zFD))
-  {
-    vtkMergeComponents{}(vectorFD, xFD, yFD, zFD);
-  }
+  vtkMergeVectorComponentsFunctor functor(xFD, yFD, zFD, vectorFD);
+  vtkSMPTools::For(0, vectorFD->GetNumberOfTuples(), functor);
 
   // add array and copy field data of same type
   outFD->PassData(inFD);
