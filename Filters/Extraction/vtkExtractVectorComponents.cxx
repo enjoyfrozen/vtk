@@ -14,7 +14,6 @@
 =========================================================================*/
 #include "vtkExtractVectorComponents.h"
 
-#include "vtkArrayDispatch.h"
 #include "vtkCellData.h"
 #include "vtkDataArray.h"
 #include "vtkDataArrayRange.h"
@@ -25,6 +24,7 @@
 #include "vtkInformationVector.h"
 #include "vtkObjectFactory.h"
 #include "vtkPointData.h"
+#include "vtkSMPTools.h"
 
 vtkStandardNewMacro(vtkExtractVectorComponents);
 
@@ -122,27 +122,39 @@ void vtkExtractVectorComponents::SetInputData(vtkDataSet* input)
 //------------------------------------------------------------------------------
 namespace
 {
-
-struct vtkExtractComponents
+class vtkExtractVectorComponentsFunctor
 {
-  template <class T>
-  void operator()(T* vectors, vtkDataArray* vx, vtkDataArray* vy, vtkDataArray* vz)
+  vtkDataArray* ArrayX;
+  vtkDataArray* ArrayY;
+  vtkDataArray* ArrayZ;
+  vtkDataArray* Vector;
+
+public:
+  vtkExtractVectorComponentsFunctor(
+    vtkDataArray* arrayX, vtkDataArray* arrayY, vtkDataArray* arrayZ, vtkDataArray* vector)
+    : ArrayX(arrayX)
+    , ArrayY(arrayY)
+    , ArrayZ(arrayZ)
+    , Vector(vector)
   {
-    T* x = T::FastDownCast(vx);
-    T* y = T::FastDownCast(vy);
-    T* z = T::FastDownCast(vz);
+  }
 
-    const auto inRange = vtk::DataArrayTupleRange<3>(vectors);
+  void operator()(vtkIdType begin, vtkIdType end)
+  {
+    auto inVector = vtk::DataArrayTupleRange<3>(this->Vector).begin() + begin;
+
     // mark out ranges as single component for better perf
-    auto outX = vtk::DataArrayValueRange<1>(x).begin();
-    auto outY = vtk::DataArrayValueRange<1>(y).begin();
-    auto outZ = vtk::DataArrayValueRange<1>(z).begin();
+    auto outX = vtk::DataArrayValueRange<1>(this->ArrayX).begin() + begin;
+    auto outY = vtk::DataArrayValueRange<1>(this->ArrayY).begin() + begin;
+    auto outZ = vtk::DataArrayValueRange<1>(this->ArrayZ).begin() + begin;
 
-    for (auto value : inRange)
+    for (vtkIdType i = begin; i < end; ++i)
     {
-      *outX++ = value[0];
-      *outY++ = value[1];
-      *outZ++ = value[2];
+      *outX++ = (*inVector)[0];
+      *outY++ = (*inVector)[1];
+      *outZ++ = (*inVector)[2];
+
+      ++inVector;
     }
   }
 };
@@ -239,10 +251,8 @@ int vtkExtractVectorComponents::RequestData(vtkInformation* vtkNotUsed(request),
     snprintf(newName, newNameSize, "%s-z", name);
     vz->SetName(newName);
 
-    if (!vtkArrayDispatch::Dispatch::Execute(vectors, vtkExtractComponents{}, vx, vy, vz))
-    {
-      vtkExtractComponents{}(vectors, vx, vy, vz);
-    }
+    vtkExtractVectorComponentsFunctor functor(vx, vy, vz, vectors);
+    vtkSMPTools::For(0, numVectors, functor);
 
     outVx->PassData(pd);
     outVx->AddArray(vx);
@@ -283,10 +293,8 @@ int vtkExtractVectorComponents::RequestData(vtkInformation* vtkNotUsed(request),
     snprintf(newName, newNameSize, "%s-z", name);
     vzc->SetName(newName);
 
-    if (!vtkArrayDispatch::Dispatch::Execute(vectorsc, vtkExtractComponents{}, vxc, vyc, vzc))
-    {
-      vtkExtractComponents{}(vectorsc, vxc, vyc, vzc);
-    }
+    vtkExtractVectorComponentsFunctor functor(vxc, vyc, vzc, vectorsc);
+    vtkSMPTools::For(0, numVectorsc, functor);
 
     outVxc->PassData(cd);
     outVxc->AddArray(vxc);
