@@ -6,7 +6,6 @@ KIT
   VTK::Views
 GROUPS
   Rendering
-  Views
 DEPENDS
   VTK::CommonCore
   VTK::RenderingCore
