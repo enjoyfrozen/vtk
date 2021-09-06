@@ -5,4 +5,4 @@ set(VTK_MODULE_USE_EXTERNAL_VTK_libharu OFF CACHE BOOL "")
 set(VTK_MODULE_USE_EXTERNAL_VTK_exprtk OFF CACHE BOOL "")
 set(VTK_MODULE_USE_EXTERNAL_VTK_ioss OFF CACHE BOOL "")
 
-include("${CMAKE_CURRENT_LIST_DIR}/configure_fedora33.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/configure_fedora34.cmake")
