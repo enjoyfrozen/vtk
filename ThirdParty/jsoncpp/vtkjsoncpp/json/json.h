@@ -590,6 +590,11 @@ public:
 namespace Json {
 
 #if JSON_USE_EXCEPTION
+
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4275) /* non dll-interface class 'std::exception' used as base for dll-interface class 'vtkJson::Exception' */
+#endif
 /** Base class for all exceptions we throw.
  *
  * We use nothing but these internally. Of course, STL can throw others.
@@ -603,6 +608,10 @@ public:
 protected:
   String msg_;
 };
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
+
 
 /** Exceptions which the user cannot easily avoid.
  *
