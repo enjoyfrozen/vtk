@@ -391,7 +391,7 @@ PyObject* PyVTKTemplate_NameFromKey(PyObject* self, PyObject* key)
       }
       else if (PyUnicode_Check(o))
       {
-#if PY_VERSION_HEX >= 0x03030000
+#ifdef VTK_PY3K
         tname = PyUnicode_AsUTF8(o);
 #else
         PyObject* s = _PyUnicode_AsDefaultEncodedString(o, nullptr);
@@ -575,8 +575,8 @@ PyObject* PyVTKTemplate_KeyFromName(PyObject* self, PyObject* arg)
   }
   else if (PyUnicode_Check(arg))
   {
-#if PY_VERSION_HEX >= 0x03030000
-    name = PyUnicode_AsUTF8(arg);
+#ifdef VTK_PY3K
+    name = PyUnicode_AsUTF8(o);
 #else
     PyObject* s = _PyUnicode_AsDefaultEncodedString(arg, nullptr);
     name = PyBytes_AS_STRING(s);
