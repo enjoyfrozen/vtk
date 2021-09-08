@@ -867,21 +867,13 @@ inline PyObject* vtkPythonArgs::BuildValue(const void* a)
 
 inline PyObject* vtkPythonArgs::BuildValue(const char* a, size_t l)
 {
-#if PY_VERSION_HEX < 0x03000000
-  return PyString_FromStringAndSize(a, static_cast<Py_ssize_t>(l));
-#else
-#if PY_VERSION_HEX >= 0x03030000
   PyObject* o = PyUnicode_FromStringAndSize(a, static_cast<Py_ssize_t>(l));
-#else
-  PyObject* o = PyUnicode_Decode(a, static_cast<Py_ssize_t>(l), nullptr, nullptr);
-#endif
   if (o == nullptr)
   {
     PyErr_Clear();
     o = PyBytes_FromStringAndSize(a, static_cast<Py_ssize_t>(l));
   }
   return o;
-#endif
 }
 
 inline PyObject* vtkPythonArgs::BuildValue(const char* a)
