@@ -204,6 +204,8 @@ vtkSmartPointer<vtkIdList> ExtractPointIdsInsideBoundingBox(vtkPoints* inputPoin
   auto inputPointsRange = vtk::DataArrayTupleRange<3>(inputPoints->GetData());
   using ConstPointRef = typename decltype(inputPointsRange)::ConstTupleReferenceType;
 
+  pointIds->Allocate(inputPoints->GetNumberOfPoints());
+
   for (vtkIdType pointId = 0; pointId < inputPointsRange.size(); ++pointId)
   {
     ConstPointRef point = inputPointsRange[pointId];
@@ -2366,6 +2368,7 @@ struct MatchingPointExtractor
       auto gidRange = vtk::DataArrayValueRange<1>(globalPointIds);
 
       inverseMap.reserve(gidRange.size());
+      this->MatchingSourcePointIds->Allocate(gidRange.size());
 
       using ConstRef = typename decltype(gidRange)::ConstReferenceType;
 
@@ -2388,6 +2391,7 @@ struct MatchingPointExtractor
       auto surfacePointsRange = vtk::DataArrayTupleRange<3>(surfacePoints);
 
       inverseMap.reserve(pointsRange.size());
+      this->MatchingSourcePointIds->Allocate(pointsRange.size());
 
       using ConstPointRef = typename decltype(pointsRange)::ConstTupleReferenceType;
       using ValueType = typename PointArrayT::ValueType;
@@ -2906,7 +2910,6 @@ void BuildTopologyBufferToSend(vtkIdTypeArray* seedPointIds,
   std::set<vtkIdType> pointIdsToSendAtLastLevel;
 
   pointIdsToSendAtLastLevel.insert(pointIdsToSend.cbegin(), pointIdsToSend.cend());
-  input->BuildLinks();
 
   vtkUnsignedCharArray* ghostCellArray = input->GetCellGhostArray();
 
@@ -3917,7 +3920,12 @@ void EnqueuePointData(const diy::Master::ProxyWithLink& cp,
   vtkNew<vtkPointData> pointData;
   vtkPointData* inputPointData = input->GetPointData();
   pointData->CopyStructure(inputPointData);
-  inputPointData->GetField(pointIds, pointData);
+  pointData->SetNumberOfTuples(pointIds->GetNumberOfIds());
+
+  for (int arrayId = 0; arrayId < pointData->GetNumberOfArrays(); ++arrayId)
+  {
+    inputPointData->GetArray(arrayId)->GetTuples(pointIds, pointData->GetAbstractArray(arrayId));
+  }
 
   cp.enqueue<vtkFieldData*>(blockId, pointData);
 }
@@ -3929,7 +3937,12 @@ void EnqueueCellData(const diy::Master::ProxyWithLink& cp,
   vtkNew<vtkCellData> cellData;
   vtkCellData* inputCellData = input->GetCellData();
   cellData->CopyStructure(inputCellData);
-  inputCellData->GetField(cellIds, cellData);
+  cellData->SetNumberOfTuples(cellIds->GetNumberOfIds());
+
+  for (int arrayId = 0; arrayId < cellData->GetNumberOfArrays(); ++arrayId)
+  {
+    inputCellData->GetArray(arrayId)->GetTuples(cellIds, cellData->GetAbstractArray(arrayId));
+  }
 
   cp.enqueue<vtkFieldData*>(blockId, cellData);
 }
