@@ -204,6 +204,8 @@ vtkSmartPointer<vtkIdList> ExtractPointIdsInsideBoundingBox(vtkPoints* inputPoin
   auto inputPointsRange = vtk::DataArrayTupleRange<3>(inputPoints->GetData());
   using ConstPointRef = typename decltype(inputPointsRange)::ConstTupleReferenceType;
 
+  pointIds->Allocate(inputPoints->GetNumberOfPoints());
+
   for (vtkIdType pointId = 0; pointId < inputPointsRange.size(); ++pointId)
   {
     ConstPointRef point = inputPointsRange[pointId];
@@ -2366,6 +2368,7 @@ struct MatchingPointExtractor
       auto gidRange = vtk::DataArrayValueRange<1>(globalPointIds);
 
       inverseMap.reserve(gidRange.size());
+      this->MatchingSourcePointIds->Allocate(gidRange.size());
 
       using ConstRef = typename decltype(gidRange)::ConstReferenceType;
 
@@ -2388,6 +2391,7 @@ struct MatchingPointExtractor
       auto surfacePointsRange = vtk::DataArrayTupleRange<3>(surfacePoints);
 
       inverseMap.reserve(pointsRange.size());
+      this->MatchingSourcePointIds->Allocate(pointsRange.size());
 
       using ConstPointRef = typename decltype(pointsRange)::ConstTupleReferenceType;
       using ValueType = typename PointArrayT::ValueType;
@@ -2906,7 +2910,6 @@ void BuildTopologyBufferToSend(vtkIdTypeArray* seedPointIds,
   std::set<vtkIdType> pointIdsToSendAtLastLevel;
 
   pointIdsToSendAtLastLevel.insert(pointIdsToSend.cbegin(), pointIdsToSend.cend());
-  input->BuildLinks();
 
   vtkUnsignedCharArray* ghostCellArray = input->GetCellGhostArray();
 
@@ -3476,12 +3479,8 @@ void CloneGrid(GridDataSetT* grid, GridDataSetT* clone)
 
   vtkCellData* cloneCellData = clone->GetCellData();
   vtkCellData* gridCellData = grid->GetCellData();
-  cloneCellData->CopyStructure(gridCellData);
-
-  for (int arrayId = 0; arrayId < cloneCellData->GetNumberOfArrays(); ++arrayId)
-  {
-    cloneCellData->GetAbstractArray(arrayId)->SetNumberOfTuples(clone->GetNumberOfCells());
-  }
+  cloneCellData->CopyAllocate(gridCellData, clone->GetNumberOfCells());
+  cloneCellData->SetNumberOfTuples(clone->GetNumberOfCells());
 
   const int* cloneExtent = clone->GetExtent();
   const int* gridExtent = grid->GetExtent();
@@ -3511,12 +3510,8 @@ void CloneGrid(GridDataSetT* grid, GridDataSetT* clone)
 
   vtkPointData* clonePointData = clone->GetPointData();
   vtkPointData* gridPointData = grid->GetPointData();
-  clonePointData->CopyStructure(gridPointData);
-
-  for (int arrayId = 0; arrayId < clonePointData->GetNumberOfArrays(); ++arrayId)
-  {
-    clonePointData->GetAbstractArray(arrayId)->SetNumberOfTuples(clone->GetNumberOfPoints());
-  }
+  clonePointData->CopyAllocate(gridPointData, clone->GetNumberOfPoints());
+  clonePointData->SetNumberOfTuples(clone->GetNumberOfPoints());
 
   imax = gridExtent[1];
   jmax = gridExtent[3];
@@ -3540,7 +3535,7 @@ void CloneCellData(vtkPointSet* ps, vtkPointSet* clone, UnstructuredDataInformat
 {
   vtkCellData* cloneCellData = clone->GetCellData();
   vtkCellData* psCellData = ps->GetCellData();
-  cloneCellData->CopyStructure(psCellData);
+  cloneCellData->CopyAllocate(psCellData, clone->GetNumberOfCells());
   cloneCellData->SetNumberOfTuples(clone->GetNumberOfCells());
 
   if (vtkIdList* redirectionMap = info.InputToOutputCellIdRedirectionMap)
@@ -3568,7 +3563,7 @@ void ClonePointData(vtkPointSet* ps, vtkPointSet* clone, UnstructuredDataInforma
 {
   vtkPointData* clonePointData = clone->GetPointData();
   vtkPointData* psPointData = ps->GetPointData();
-  clonePointData->CopyStructure(psPointData);
+  clonePointData->CopyAllocate(psPointData, clone->GetNumberOfPoints());
   clonePointData->SetNumberOfTuples(clone->GetNumberOfPoints());
 
   if (vtkIdList* redirectionMap = info.InputToOutputPointIdRedirectionMap)
@@ -3794,7 +3789,7 @@ void ClonePolyData(vtkPolyData* pd, vtkPolyData* clone, PolyDataInformation& inf
   // We cannot use CloneCellData here because the cell data gets all stirred up in a vtkPolyData
   vtkCellData* cloneCellData = clone->GetCellData();
   vtkCellData* pdCellData = pd->GetCellData();
-  cloneCellData->CopyStructure(pdCellData);
+  cloneCellData->CopyAllocate(pdCellData, clone->GetNumberOfCells());
   cloneCellData->SetNumberOfTuples(clone->GetNumberOfCells());
 
   if (info.InputToOutputCellIdRedirectionMap)
@@ -3914,10 +3909,16 @@ void ClonePolyData(vtkPolyData* pd, vtkPolyData* clone, PolyDataInformation& inf
 void EnqueuePointData(const diy::Master::ProxyWithLink& cp,
     const diy::BlockID& blockId, vtkDataSet* input, vtkIdList* pointIds)
 {
-  vtkNew<vtkPointData> pointData;
+  vtkNew<vtkFieldData> pointData;
   vtkPointData* inputPointData = input->GetPointData();
   pointData->CopyStructure(inputPointData);
-  inputPointData->GetField(pointIds, pointData);
+  pointData->SetNumberOfTuples(pointIds->GetNumberOfIds());
+
+  for (int arrayId = 0; arrayId < pointData->GetNumberOfArrays(); ++arrayId)
+  {
+    inputPointData->GetAbstractArray(arrayId)->GetTuples(
+        pointIds, pointData->GetAbstractArray(arrayId));
+  }
 
   cp.enqueue<vtkFieldData*>(blockId, pointData);
 }
@@ -3926,10 +3927,16 @@ void EnqueuePointData(const diy::Master::ProxyWithLink& cp,
 void EnqueueCellData(const diy::Master::ProxyWithLink& cp,
     const diy::BlockID& blockId, vtkDataSet* input, vtkIdList* cellIds)
 {
-  vtkNew<vtkCellData> cellData;
+  vtkNew<vtkFieldData> cellData;
   vtkCellData* inputCellData = input->GetCellData();
   cellData->CopyStructure(inputCellData);
-  inputCellData->GetField(cellIds, cellData);
+  cellData->SetNumberOfTuples(cellIds->GetNumberOfIds());
+
+  for (int arrayId = 0; arrayId < cellData->GetNumberOfArrays(); ++arrayId)
+  {
+    inputCellData->GetAbstractArray(arrayId)->GetTuples(
+        cellIds, cellData->GetAbstractArray(arrayId));
+  }
 
   cp.enqueue<vtkFieldData*>(blockId, cellData);
 }
