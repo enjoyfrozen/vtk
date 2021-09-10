@@ -14,6 +14,7 @@
 =========================================================================*/
 #include "vtkNewEnSightGoldReader.h"
 
+#include "vtkByteSwap.h"
 #include "vtkFloatArray.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
@@ -34,7 +35,16 @@
 
 namespace
 {
-constexpr int MAX_LINE_LENGTH = 256;
+constexpr int MAX_LINE_LENGTH = 80;
+// This is half the precision of an int.
+constexpr int MAXIMUM_PART_ID = 65536;
+
+enum class FileType
+{
+  ASCII,
+  CBinary,
+  FBinary
+};
 
 enum class GridType
 {
@@ -43,6 +53,13 @@ enum class GridType
   Rectilinear,
   Curvilinear,
   Unstructured
+};
+
+enum class Endianness
+{
+  Unknown,
+  Little,
+  Big
 };
 
 struct GridOptions
@@ -81,6 +98,37 @@ void evaluateOption(const char* option, GridOptions& opts)
   }
 }
 
+template <typename T>
+bool charTo(const char* input, T* output);
+
+template <>
+bool charTo(const char* input, int* output)
+{
+  try
+  {
+    *output = atoi(input);
+    return true;
+  }
+  catch (...)
+  {
+    return false;
+  }
+}
+
+template <>
+bool charTo(const char* input, float* output)
+{
+  try
+  {
+    *output = atof(input);
+    return true;
+  }
+  catch (...)
+  {
+    return false;
+  }
+}
+
 GridOptions getGridOptions(const char* line)
 {
   GridOptions opts;
@@ -111,6 +159,8 @@ struct EnSightFile
 {
   std::string FileName;
   vtksys::ifstream* Stream;
+  FileType Format = FileType::ASCII;
+  Endianness ByteOrder = Endianness::Unknown;
 
   EnSightFile();
   ~EnSightFile();
@@ -119,6 +169,10 @@ struct EnSightFile
   bool ReadNextLine(char result[MAX_LINE_LENGTH]);
   bool ReadLine(char result[MAX_LINE_LENGTH]);
   void SkipNLines(vtkIdType n);
+  bool DetectByteOrder(int* result);
+
+  template <typename T>
+  bool ReadNumber(T* result);
 };
 
 //------------------------------------------------------------------------------
@@ -144,19 +198,53 @@ EnSightFile::~EnSightFile()
 //------------------------------------------------------------------------------
 bool EnSightFile::OpenFile()
 {
-  this->Stream = new vtksys::ifstream(this->FileName, ios::in);
+  this->Stream = new vtksys::ifstream(this->FileName.c_str(), ios::binary);
   if (this->Stream->fail())
   {
     delete this->Stream;
     this->Stream = nullptr;
     return false;
   }
+
+  // read the first line to check the format
+  char line[MAX_LINE_LENGTH];
+  char subLine1[MAX_LINE_LENGTH], subLine2[MAX_LINE_LENGTH];
+  this->ReadLine(line);
+  sscanf(line, "%s %s", subLine1, subLine2);
+  if (strncmp(subLine2, "Binary", 6) == 0)
+  {
+    if (strncmp(subLine1, "C", 1) == 0)
+    {
+      this->Format = FileType::CBinary;
+    }
+    else if (strncmp(subLine2, "Fortran", 7) == 0)
+    {
+      this->Format = FileType::FBinary;
+    }
+    else
+    {
+      vtkGenericWarningMacro("File type could not be correctly determined");
+      return false;
+    }
+    this->Stream->seekg(MAX_LINE_LENGTH, ios::beg);
+  }
+  else
+  {
+    this->Format = FileType::ASCII;
+    this->Stream->seekg(0, ios::beg);
+  }
+
   return true;
 }
 
 //------------------------------------------------------------------------------
 bool EnSightFile::ReadNextLine(char result[MAX_LINE_LENGTH])
 {
+  if (this->Format != FileType::ASCII)
+  {
+    return this->ReadLine(result);
+  }
+
   bool isComment = true;
   bool lineRead = true;
 
@@ -185,10 +273,17 @@ bool EnSightFile::ReadNextLine(char result[MAX_LINE_LENGTH])
 
 //------------------------------------------------------------------------------
 // Internal function to read in a line up to MAX_LINE_LENGTH characters.
-// Returns zero if there was an error.
 bool EnSightFile::ReadLine(char result[MAX_LINE_LENGTH])
 {
-  this->Stream->getline(result, MAX_LINE_LENGTH);
+  if (this->Format == FileType::ASCII)
+  {
+    this->Stream->getline(result, MAX_LINE_LENGTH);
+  }
+  else
+  {
+    this->Stream->read(result, MAX_LINE_LENGTH);
+    result[79] = '\0';
+  }
   if (this->Stream->fail())
   {
     // Reset the error flag before returning. This way, we can keep working
@@ -202,11 +297,72 @@ bool EnSightFile::ReadLine(char result[MAX_LINE_LENGTH])
 //------------------------------------------------------------------------------
 void EnSightFile::SkipNLines(vtkIdType n)
 {
+  if (this->Format != FileType::ASCII)
+  {
+    return;
+  }
   char line[MAX_LINE_LENGTH];
   for (vtkIdType i = 0; i < n; i++)
   {
     this->ReadNextLine(line);
   }
+}
+
+//------------------------------------------------------------------------------
+bool EnSightFile::DetectByteOrder(int* result)
+{
+  if (this->ByteOrder == Endianness::Unknown)
+  {
+    int tmpLE = *result;
+    int tmpBE = *result;
+    vtkByteSwap::Swap4LE(&tmpLE);
+    vtkByteSwap::Swap4BE(&tmpBE);
+
+    if (tmpLE >= 0 && tmpLE < MAXIMUM_PART_ID)
+    {
+      this->ByteOrder = Endianness::Little;
+      *result = tmpLE;
+      return true;
+    }
+    if (tmpBE >= 0 && tmpBE < MAXIMUM_PART_ID)
+    {
+      this->ByteOrder = Endianness::Big;
+      *result = tmpBE;
+      return true;
+    }
+    vtkGenericWarningMacro("Byte order could not be determined.");
+    return false;
+  }
+  return true;
+}
+
+//------------------------------------------------------------------------------
+template <typename T>
+bool EnSightFile::ReadNumber(T* result)
+{
+  if (this->Format == FileType::ASCII)
+  {
+    char line[MAX_LINE_LENGTH];
+    this->ReadNextLine(line);
+    charTo(line, result);
+  }
+  else
+  {
+    if (!this->Stream->read((char*)result, sizeof(T)))
+    {
+      vtkGenericWarningMacro("read failed");
+      return false;
+    }
+    if (this->ByteOrder == Endianness::Little)
+    {
+      vtkByteSwap::Swap4LE(result);
+    }
+    else if (this->ByteOrder == Endianness::Big)
+    {
+      vtkByteSwap::Swap4BE(result);
+    }
+  }
+  return true;
 }
 
 class EnSightFileStream
@@ -227,6 +383,9 @@ private:
     int partId, const char* name, const GridOptions& opts, vtkPartitionedDataSetCollection* output);
   void CreateStructuredGridOutput(
     int partId, const char* name, const GridOptions& opts, vtkPartitionedDataSetCollection* output);
+
+  int ReadPartId();
+  void ReadDimensions(int dimensions[3]);
 
   bool IsSectionHeader(const char* line);
 
@@ -419,16 +578,8 @@ bool EnSightFileStream::ReadGeometry(vtkPartitionedDataSetCollection* output)
   }
 
   char line[MAX_LINE_LENGTH], subLine[MAX_LINE_LENGTH];
-  this->GeometryFile.ReadNextLine(line);
-  sscanf(line, " %*s %s", subLine);
-  if (strncmp(subLine, "Binary", 6) == 0)
-  {
-    vtkGenericWarningMacro("Binary not yet supported");
-    return false;
-  }
-
-  // since ascii, description line 1 already read
-  // read next one, but we don't care about it
+  // read 2 description lines
+  this->GeometryFile.ReadLine(line);
   this->GeometryFile.ReadLine(line);
 
   // read node id, which can be off/given/assign/ignore
@@ -460,8 +611,8 @@ bool EnSightFileStream::ReadGeometry(vtkPartitionedDataSetCollection* output)
 
   while (lineRead && strncmp(line, "part", 4) == 0)
   {
-    this->GeometryFile.ReadNextLine(line);
-    int partId = atoi(line) - 1; // EnSight starts #ing at 1.
+    int partId = this->ReadPartId();
+    partId--; // EnSight starts counts at 1
 
     this->GeometryFile.ReadNextLine(line); // part description line
     char* partName = strdup(line);
@@ -505,9 +656,8 @@ void EnSightFileStream::CreateUniformGridOutput(
 
   // read dimensions line
   char line[MAX_LINE_LENGTH];
-  this->GeometryFile.ReadNextLine(line);
   int dimensions[3];
-  sscanf(line, " %d %d %d", &dimensions[0], &dimensions[1], &dimensions[2]);
+  this->ReadDimensions(dimensions);
   data->SetDimensions(dimensions);
 
   // TODO if it has range, grab it here
@@ -516,8 +666,7 @@ void EnSightFileStream::CreateUniformGridOutput(
   float origin[3];
   for (int i = 0; i < 3; i++)
   {
-    this->GeometryFile.ReadNextLine(line);
-    sscanf(line, " %f", &origin[i]);
+    this->GeometryFile.ReadNumber(&origin[i]);
   }
   data->SetOrigin(origin[0], origin[1], origin[2]);
 
@@ -525,8 +674,7 @@ void EnSightFileStream::CreateUniformGridOutput(
   float delta[3];
   for (int i = 0; i < 3; i++)
   {
-    this->GeometryFile.ReadNextLine(line);
-    sscanf(line, " %f", &delta[i]);
+    this->GeometryFile.ReadNumber(&delta[i]);
   }
   data->SetSpacing(delta[0], delta[1], delta[2]);
 
@@ -583,9 +731,8 @@ void EnSightFileStream::CreateRectilinearGridOutput(
 
   // read dimensions line
   char line[MAX_LINE_LENGTH];
-  this->GeometryFile.ReadNextLine(line);
   int dimensions[3];
-  sscanf(line, " %d %d %d", &dimensions[0], &dimensions[1], &dimensions[2]);
+  this->ReadDimensions(dimensions);
   data->SetDimensions(dimensions);
 
   // TODO if it has range, grab it here
@@ -599,20 +746,20 @@ void EnSightFileStream::CreateRectilinearGridOutput(
 
   for (vtkIdType i = 0; i < dimensions[0]; i++)
   {
-    this->GeometryFile.ReadNextLine(line);
-    float val = atof(line);
+    float val;
+    this->GeometryFile.ReadNumber(&val);
     xCoords->InsertTuple(i, &val);
   }
   for (vtkIdType i = 0; i < dimensions[1]; i++)
   {
-    this->GeometryFile.ReadNextLine(line);
-    float val = atof(line);
+    float val;
+    this->GeometryFile.ReadNumber(&val);
     yCoords->InsertTuple(i, &val);
   }
   for (vtkIdType i = 0; i < dimensions[2]; i++)
   {
-    this->GeometryFile.ReadNextLine(line);
-    float val = atof(line);
+    float val;
+    this->GeometryFile.ReadNumber(&val);
     zCoords->InsertTuple(i, &val);
   }
   data->SetXCoordinates(xCoords);
@@ -666,9 +813,8 @@ void EnSightFileStream::CreateStructuredGridOutput(
 
   // read dimensions line
   char line[MAX_LINE_LENGTH];
-  this->GeometryFile.ReadNextLine(line);
   int dimensions[3];
-  sscanf(line, " %d %d %d", &dimensions[0], &dimensions[1], &dimensions[2]);
+  this->ReadDimensions(dimensions);
   data->SetDimensions(dimensions);
 
   // TODO if it has range, grab it here
@@ -679,22 +825,25 @@ void EnSightFileStream::CreateStructuredGridOutput(
 
   for (vtkIdType i = 0; i < numPts; i++)
   {
-    this->GeometryFile.ReadNextLine(line);
-    points->SetPoint(i, atof(line), 0.0, 0.0);
+    float val;
+    this->GeometryFile.ReadNumber(&val);
+    points->SetPoint(i, val, 0.0, 0.0);
   }
   for (vtkIdType i = 0; i < numPts; i++)
   {
-    this->GeometryFile.ReadNextLine(line);
+    float val;
+    this->GeometryFile.ReadNumber(&val);
     double point[3];
     points->GetPoint(i, point);
-    points->SetPoint(i, point[0], atof(line), point[2]);
+    points->SetPoint(i, point[0], val, point[2]);
   }
   for (vtkIdType i = 0; i < numPts; i++)
   {
-    this->GeometryFile.ReadNextLine(line);
+    float val;
+    this->GeometryFile.ReadNumber(&val);
     double point[3];
     points->GetPoint(i, point);
-    points->SetPoint(i, point[0], point[1], atof(line));
+    points->SetPoint(i, point[0], point[1], val);
   }
   data->SetPoints(points);
 
@@ -733,6 +882,37 @@ void EnSightFileStream::CreateStructuredGridOutput(
     // first a line that says element_ids
     this->GeometryFile.ReadNextLine(line);
     this->GeometryFile.SkipNLines(numCells);
+  }
+}
+
+//------------------------------------------------------------------------------
+int EnSightFileStream::ReadPartId()
+{
+  int partId;
+  this->GeometryFile.ReadNumber(&partId);
+  if (this->GeometryFile.Format != FileType::ASCII &&
+    this->GeometryFile.ByteOrder == Endianness::Unknown)
+  {
+    this->GeometryFile.DetectByteOrder(&partId);
+  }
+  return partId;
+}
+
+//------------------------------------------------------------------------------
+void EnSightFileStream::ReadDimensions(int dimensions[3])
+{
+  char line[MAX_LINE_LENGTH];
+  if (this->GeometryFile.Format == FileType::ASCII)
+  {
+    this->GeometryFile.ReadNextLine(line);
+    sscanf(line, " %d %d %d", &dimensions[0], &dimensions[1], &dimensions[2]);
+  }
+  else
+  {
+    for (int i = 0; i < 3; i++)
+    {
+      this->GeometryFile.ReadNumber(&dimensions[i]);
+    }
   }
 }
 
