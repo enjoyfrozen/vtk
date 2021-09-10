@@ -137,10 +137,21 @@ using ::boost::put;
 #include <utility> // STL Header
 
 #include <boost/config.hpp>
+
+#if BOOST_VERSION > 107300 && BOOST_VERSION < 107600
+#define BOOST_ALLOW_DEPRECATED_HEADERS
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
+#endif
+
 #include <boost/graph/adjacency_iterator.hpp>
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/properties.hpp>
 #include <boost/iterator/iterator_facade.hpp>
+
+#if BOOST_VERSION > 107300 && BOOST_VERSION < 107600
+#undef BOOST_ALLOW_DEPRECATED_HEADERS
+#undef BOOST_BIND_GLOBAL_PLACEHOLDERS
+#endif
 
 // The functions and classes in this file allows the user to
 // treat a vtkDirectedGraph or vtkUndirectedGraph object
