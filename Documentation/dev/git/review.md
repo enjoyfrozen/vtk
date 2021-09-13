@@ -291,6 +291,39 @@ APIs can relax these guidelines a bit, but it is best to follow them even then.
   allows the caller to pass `BOOL_ARG "${custom_value}"` rather than
   conditionally building up an argument list.
 
+[](#documentation)
+## Documentation
+
+Documentation in VTK
+
+- *API documentation*: Documents available APIs, parameters, return values,
+  classes, and so on. These end up rendered by [Doxygen][doxygen] and should
+  use [the syntax available][doxygen-syntax] for it. Additionally, methods
+  within classes may be "grouped" by using special `//@{` and `//@}` comments
+  around related methods. Grouping makes Doxygen render the methods next to
+  each other rather than separately (e.g., for getter and setter pairs). Some
+  points to consider that a user might be interested in for APIs (though by no
+  means an exhaustive list):
+  - Assumptions made (e.g., non-`nullptr` pointer values)
+  - Ownership of returned pointers (i.e., does the caller receive a new
+    instance or is it held onto by the callee?)
+  - Ownership of received pointers (i.e., does the callee take responsibility
+    over the object or is it merely used as a reference?)
+  - Thread safety
+  - Invariants that might need to be considered
+- *Usage guidelines*: Some APIs are complicated and interact with others that
+  are difficult to fit onto specific methods or other places. Generally,
+  documentation for classes end up containing this information.
+- *Examples*: VTK contains some examples of API usage in the top-level
+  `Examples` directory. They are intended to be tested as part of VTK's test
+  suite, so adding them to the relevant CMake directories is recommended.
+- *Release documentation*: See the
+  [section on release notes](#software-process-release-notes) for further
+  information.
+
+[doxygen]: https://www.doxygen.nl/index.html
+[doxygen-syntax]: https://www.star.bnl.gov/public/comp/sofi/doxygen/
+
 [](#testing)
 ## Testing
 
