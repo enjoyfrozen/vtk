@@ -375,7 +375,7 @@ public:
     for (auto& pair : this->Fields)
     {
       auto& fieldInfo = pair.second;
-      if (fieldInfo.Name == name)
+      if (name != nullptr && fieldInfo.Name == name)
       {
         return &fieldInfo;
       }
