@@ -43,9 +43,7 @@
 
 .fedora34:
     extends: .linux
-    image:
-      name: "kitware/vtk:ci-fedora34-20210824"
-      entrypoint: [ '/bin/sh', '-c' ]
+    image: "kitware/vtk:ci-fedora34-20210824"
     timeout: 2 hours
 
 .fedora_mpich_addon:
