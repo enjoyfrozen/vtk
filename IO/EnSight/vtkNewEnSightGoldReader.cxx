@@ -377,12 +377,9 @@ private:
   void ParseGeometrySection(const char* line);
   void SetGeometryFileName(const char* fname);
 
-  void CreateUniformGridOutput(
-    int partId, const char* name, const GridOptions& opts, vtkPartitionedDataSetCollection* output);
-  void CreateRectilinearGridOutput(
-    int partId, const char* name, const GridOptions& opts, vtkPartitionedDataSetCollection* output);
-  void CreateStructuredGridOutput(
-    int partId, const char* name, const GridOptions& opts, vtkPartitionedDataSetCollection* output);
+  void CreateUniformGridOutput(const GridOptions& opts, vtkUniformGrid* output);
+  void CreateRectilinearGridOutput(const GridOptions& opts, vtkRectilinearGrid* output);
+  void CreateStructuredGridOutput(const GridOptions& opts, vtkStructuredGrid* output);
 
   int ReadPartId();
   void ReadDimensions(int dimensions[3]);
@@ -619,46 +616,48 @@ bool EnSightFileStream::ReadGeometry(vtkPartitionedDataSetCollection* output)
 
     this->GeometryFile.ReadNextLine(line);
     auto opts = getGridOptions(line);
+    vtkDataSet* grid;
     switch (opts.Type)
     {
       case GridType::Uniform:
-        this->CreateUniformGridOutput(partId, partName, opts, output);
+        grid = vtkUniformGrid::New();
+        this->CreateUniformGridOutput(opts, vtkUniformGrid::SafeDownCast(grid));
         break;
       case GridType::Rectilinear:
-        this->CreateRectilinearGridOutput(partId, partName, opts, output);
+        grid = vtkRectilinearGrid::New();
+        this->CreateRectilinearGridOutput(opts, vtkRectilinearGrid::SafeDownCast(grid));
         break;
       case GridType::Curvilinear:
-        this->CreateStructuredGridOutput(partId, partName, opts, output);
+        grid = vtkStructuredGrid::New();
+        this->CreateStructuredGridOutput(opts, vtkStructuredGrid::SafeDownCast(grid));
         break;
       case GridType::Unstructured:
         vtkGenericWarningMacro("Unstructured grid not supported yet");
         break;
       default:
         vtkGenericWarningMacro("Grid type not correctly specified");
-        break;
+        return false;
     }
+    vtkNew<vtkPartitionedDataSet> pds;
+    pds->SetPartition(0, grid);
+    grid->Delete();
+    output->SetPartitionedDataSet(partId, pds);
+
+    // TODO set up assembly
+    // and set name
   }
 
   return true;
 }
 
 //------------------------------------------------------------------------------
-void EnSightFileStream::CreateUniformGridOutput(
-  int partId, const char* name, const GridOptions& opts, vtkPartitionedDataSetCollection* output)
+void EnSightFileStream::CreateUniformGridOutput(const GridOptions& opts, vtkUniformGrid* output)
 {
-  vtkNew<vtkUniformGrid> data;
-  vtkNew<vtkPartitionedDataSet> pds;
-  pds->SetPartition(0, data);
-  output->SetPartitionedDataSet(partId, pds);
-
-  // TODO set up assembly
-  // and set name
-
   // read dimensions line
   char line[MAX_LINE_LENGTH];
   int dimensions[3];
   this->ReadDimensions(dimensions);
-  data->SetDimensions(dimensions);
+  output->SetDimensions(dimensions);
 
   // TODO if it has range, grab it here
 
@@ -668,7 +667,7 @@ void EnSightFileStream::CreateUniformGridOutput(
   {
     this->GeometryFile.ReadNumber(&origin[i]);
   }
-  data->SetOrigin(origin[0], origin[1], origin[2]);
+  output->SetOrigin(origin[0], origin[1], origin[2]);
 
   // read spacing lines, each value is on a different line
   float delta[3];
@@ -676,7 +675,7 @@ void EnSightFileStream::CreateUniformGridOutput(
   {
     this->GeometryFile.ReadNumber(&delta[i]);
   }
-  data->SetSpacing(delta[0], delta[1], delta[2]);
+  output->SetSpacing(delta[0], delta[1], delta[2]);
 
   auto numPts = dimensions[0] * dimensions[1] * dimensions[2];
   auto numCells = (dimensions[0] - 1) * (dimensions[1] - 1) * (dimensions[2] - 1);
@@ -687,7 +686,7 @@ void EnSightFileStream::CreateUniformGridOutput(
       this->GeometryFile.ReadNextLine(line);
       if (!atoi(line))
       {
-        data->BlankPoint(i);
+        output->BlankPoint(i);
       }
     }
   }
@@ -719,21 +718,13 @@ void EnSightFileStream::CreateUniformGridOutput(
 
 //------------------------------------------------------------------------------
 void EnSightFileStream::CreateRectilinearGridOutput(
-  int partId, const char* name, const GridOptions& opts, vtkPartitionedDataSetCollection* output)
+  const GridOptions& opts, vtkRectilinearGrid* output)
 {
-  vtkNew<vtkRectilinearGrid> data;
-  vtkNew<vtkPartitionedDataSet> pds;
-  pds->SetPartition(0, data);
-  output->SetPartitionedDataSet(partId, pds);
-
-  // TODO set up assembly
-  // and set name
-
   // read dimensions line
   char line[MAX_LINE_LENGTH];
   int dimensions[3];
   this->ReadDimensions(dimensions);
-  data->SetDimensions(dimensions);
+  output->SetDimensions(dimensions);
 
   // TODO if it has range, grab it here
 
@@ -762,9 +753,9 @@ void EnSightFileStream::CreateRectilinearGridOutput(
     this->GeometryFile.ReadNumber(&val);
     zCoords->InsertTuple(i, &val);
   }
-  data->SetXCoordinates(xCoords);
-  data->SetYCoordinates(yCoords);
-  data->SetZCoordinates(zCoords);
+  output->SetXCoordinates(xCoords);
+  output->SetYCoordinates(yCoords);
+  output->SetZCoordinates(zCoords);
 
   auto numPts = dimensions[0] * dimensions[1] * dimensions[2];
   auto numCells = (dimensions[0] - 1) * (dimensions[1] - 1) * (dimensions[2] - 1);
@@ -801,21 +792,13 @@ void EnSightFileStream::CreateRectilinearGridOutput(
 
 //------------------------------------------------------------------------------
 void EnSightFileStream::CreateStructuredGridOutput(
-  int partId, const char* name, const GridOptions& opts, vtkPartitionedDataSetCollection* output)
+  const GridOptions& opts, vtkStructuredGrid* output)
 {
-  vtkNew<vtkStructuredGrid> data;
-  vtkNew<vtkPartitionedDataSet> pds;
-  pds->SetPartition(0, data);
-  output->SetPartitionedDataSet(partId, pds);
-
-  // TODO set up assembly
-  // and set name
-
   // read dimensions line
   char line[MAX_LINE_LENGTH];
   int dimensions[3];
   this->ReadDimensions(dimensions);
-  data->SetDimensions(dimensions);
+  output->SetDimensions(dimensions);
 
   // TODO if it has range, grab it here
 
@@ -845,7 +828,7 @@ void EnSightFileStream::CreateStructuredGridOutput(
     points->GetPoint(i, point);
     points->SetPoint(i, point[0], point[1], val);
   }
-  data->SetPoints(points);
+  output->SetPoints(points);
 
   auto numCells = (dimensions[0] - 1) * (dimensions[1] - 1) * (dimensions[2] - 1);
   if (opts.IBlanked)
@@ -855,7 +838,7 @@ void EnSightFileStream::CreateStructuredGridOutput(
       this->GeometryFile.ReadNextLine(line);
       if (!atoi(line))
       {
-        data->BlankPoint(i);
+        output->BlankPoint(i);
       }
     }
   }
