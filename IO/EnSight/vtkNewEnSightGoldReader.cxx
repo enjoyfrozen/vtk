@@ -15,6 +15,7 @@
 #include "vtkNewEnSightGoldReader.h"
 
 #include "vtkByteSwap.h"
+#include "vtkDataAssembly.h"
 #include "vtkDataSetAttributes.h"
 #include "vtkFloatArray.h"
 #include "vtkInformation.h"
@@ -138,8 +139,7 @@ GridOptions getGridOptions(const char* line)
   char s1[MAX_LINE_LENGTH], s2[MAX_LINE_LENGTH], s3[MAX_LINE_LENGTH], s4[MAX_LINE_LENGTH];
   // format of line
   // block <curvilinear/rectilinear/uniform/''> [iblanked] [with_ghost] [range]
-  auto num = sscanf(line, "%s %s %s %s %s", block, s1, s2, s3, s4);
-  if (num == 1)
+  if (sscanf(line, "%s %s %s %s %s", block, s1, s2, s3, s4) == 1)
   {
     opts.Type = GridType::Curvilinear;
     return opts;
@@ -697,9 +697,12 @@ bool EnSightFileStream::ReadGeometry(vtkPartitionedDataSetCollection* output)
     pds->SetPartition(0, grid);
     grid->Delete();
     output->SetPartitionedDataSet(partId, pds);
+    output->GetMetaData(partId)->Set(vtkCompositeDataSet::NAME(), partName);
 
-    // TODO set up assembly
-    // and set name
+    auto assembly = output->GetDataAssembly();
+    auto validName = vtkDataAssembly::MakeValidNodeName(partName);
+    auto node = assembly->AddNode(validName.c_str());
+    assembly->AddDataSetIndex(node, partId);
   }
 
   return true;
@@ -1060,6 +1063,8 @@ int vtkNewEnSightGoldReader::RequestData(
 
   vtkPartitionedDataSetCollection* output =
     vtkPartitionedDataSetCollection::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
+  vtkNew<vtkDataAssembly> assembly;
+  output->SetDataAssembly(assembly);
 
   if (!this->Impl->FileStream.ReadGeometry(output))
   {
