@@ -173,6 +173,9 @@ struct EnSightFile
 
   template <typename T>
   bool ReadNumber(T* result);
+
+  template <typename T>
+  bool ReadArray(T* result, vtkIdType n);
 };
 
 //------------------------------------------------------------------------------
@@ -365,6 +368,37 @@ bool EnSightFile::ReadNumber(T* result)
   return true;
 }
 
+//------------------------------------------------------------------------------
+template <typename T>
+bool EnSightFile::ReadArray(T* result, vtkIdType n)
+{
+  // TODO handle ascii format
+  if (this->Format == FileType::ASCII)
+  {
+    for (int i = 0; i < n; i++)
+    {
+      this->ReadNumber(&result[i]);
+    }
+  }
+  else
+  {
+    if (!this->Stream->read((char*)result, sizeof(T) * n))
+    {
+      vtkGenericWarningMacro("read array failed");
+      return false;
+    }
+    if (this->ByteOrder == Endianness::Little)
+    {
+      vtkByteSwap::Swap4LERange(result, n);
+    }
+    else if (this->ByteOrder == Endianness::Big)
+    {
+      vtkByteSwap::Swap4BERange(result, n);
+    }
+  }
+  return true;
+}
+
 class EnSightFileStream
 {
 public:
@@ -383,6 +417,7 @@ private:
 
   int ReadPartId();
   void ReadDimensions(int dimensions[3]);
+  void ReadRange(int range[6]);
 
   bool IsSectionHeader(const char* line);
 
@@ -599,10 +634,16 @@ bool EnSightFileStream::ReadGeometry(vtkPartitionedDataSetCollection* output)
   auto lineRead = this->GeometryFile.ReadNextLine(line);
   if (strncmp(line, "extents", 7) == 0)
   {
-    // Skipping the extent lines for now.
-    this->GeometryFile.ReadNextLine(line);
-    this->GeometryFile.ReadNextLine(line);
-    this->GeometryFile.ReadNextLine(line);
+    if (this->GeometryFile.Format == FileType::ASCII)
+    {
+      // two values per line in ASCII case
+      this->GeometryFile.SkipNLines(3);
+    }
+    else
+    {
+      float val[6];
+      this->GeometryFile.ReadArray(val, 6);
+    }
     lineRead = this->GeometryFile.ReadNextLine(line); // "part"
   }
 
@@ -659,22 +700,21 @@ void EnSightFileStream::CreateUniformGridOutput(const GridOptions& opts, vtkUnif
   this->ReadDimensions(dimensions);
   output->SetDimensions(dimensions);
 
-  // TODO if it has range, grab it here
+  if (opts.HasRange)
+  {
+    // TODO handle appropriately
+    int range[6];
+    this->ReadRange(range);
+  }
 
   // read origin lines, each value is on a different line
   float origin[3];
-  for (int i = 0; i < 3; i++)
-  {
-    this->GeometryFile.ReadNumber(&origin[i]);
-  }
+  this->GeometryFile.ReadArray(origin, 3);
   output->SetOrigin(origin[0], origin[1], origin[2]);
 
   // read spacing lines, each value is on a different line
   float delta[3];
-  for (int i = 0; i < 3; i++)
-  {
-    this->GeometryFile.ReadNumber(&delta[i]);
-  }
+  this->GeometryFile.ReadArray(delta, 3);
   output->SetSpacing(delta[0], delta[1], delta[2]);
 
   auto numPts = dimensions[0] * dimensions[1] * dimensions[2];
@@ -726,7 +766,12 @@ void EnSightFileStream::CreateRectilinearGridOutput(
   this->ReadDimensions(dimensions);
   output->SetDimensions(dimensions);
 
-  // TODO if it has range, grab it here
+  if (opts.HasRange)
+  {
+    // TODO handle appropriately
+    int range[6];
+    this->ReadRange(range);
+  }
 
   vtkNew<vtkFloatArray> xCoords;
   vtkNew<vtkFloatArray> yCoords;
@@ -800,7 +845,12 @@ void EnSightFileStream::CreateStructuredGridOutput(
   this->ReadDimensions(dimensions);
   output->SetDimensions(dimensions);
 
-  // TODO if it has range, grab it here
+  if (opts.HasRange)
+  {
+    // TODO handle appropriately
+    int range[6];
+    this->ReadRange(range);
+  }
 
   int numPts = dimensions[0] * dimensions[1] * dimensions[2];
   vtkNew<vtkPoints> points;
@@ -892,10 +942,23 @@ void EnSightFileStream::ReadDimensions(int dimensions[3])
   }
   else
   {
-    for (int i = 0; i < 3; i++)
-    {
-      this->GeometryFile.ReadNumber(&dimensions[i]);
-    }
+    this->GeometryFile.ReadArray(dimensions, 3);
+  }
+}
+
+//------------------------------------------------------------------------------
+void EnSightFileStream::ReadRange(int range[6])
+{
+  if (this->GeometryFile.Format == FileType::ASCII)
+  {
+    char line[MAX_LINE_LENGTH];
+    this->GeometryFile.ReadNextLine(line);
+    sscanf(
+      line, "%d %d %d %d %d %d", &range[0], &range[1], &range[2], &range[3], &range[4], &range[5]);
+  }
+  else
+  {
+    this->GeometryFile.ReadArray(range, 6);
   }
 }
 
