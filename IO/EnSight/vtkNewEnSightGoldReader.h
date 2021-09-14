@@ -15,9 +15,14 @@
 
 /**
  * @class vtkNewEnSightGoldReader.h
- * @brief class to read EnSight Gold ASCII files
+ * @brief class to read EnSight Gold files
  *
+ * vtkNewEnSightGoldReader is a class to read EnSight Gold files into vtk.
+ * This reader produces a vtkPartitionedDataSetCollection.
  *
+ * This reader is still in progress. Currently there is support for reading uniform,
+ * rectilinear, and curvilinear grids. ASCII and C Binary files are both supported by
+ * this reader. Fortran binary support will be added in the future.
  */
 
 #ifndef vtkNewEnSightGoldReader_h
@@ -35,9 +40,18 @@ public:
   vtkTypeMacro(vtkNewEnSightGoldReader, vtkPartitionedDataSetCollectionAlgorithm);
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
+  ///@{
+  /**
+   * Set/Get the case file name.
+   */
   vtkSetStringMacro(CaseFileName);
   vtkGetStringMacro(CaseFileName);
+  ///@}
 
+  /**
+   * Checks version information in the case file to determine if the file
+   * can be read by this reader.
+   */
   int CanReadFile(VTK_FILEPATH const char* casefilename);
 
 protected:

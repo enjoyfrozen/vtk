@@ -73,6 +73,7 @@ struct GridOptions
   bool HasRange = false;
 };
 
+// evaluates a single option from a "block" line
 void evaluateOption(const char* option, GridOptions& opts)
 {
   if (strncmp(option, "curvilinear", 11) == 0)
@@ -132,6 +133,7 @@ bool charTo(const char* input, float* output)
   }
 }
 
+// parse a "block" line to determine relevant options
 GridOptions getGridOptions(const char* line)
 {
   GridOptions opts;
@@ -157,6 +159,7 @@ GridOptions getGridOptions(const char* line)
   return opts;
 }
 
+// EnSightFile manages a single EnSight file
 struct EnSightFile
 {
   std::string FileName;
@@ -167,16 +170,47 @@ struct EnSightFile
   EnSightFile();
   ~EnSightFile();
 
+  /**
+   * Opens the file and performs some processing to determine the format of the file.
+   * Appropriately resets the position of the file stream depending on the type of file.
+   */
   bool OpenFile();
+
+  /**
+   * For ASCII files, reads the next line while skipping lines that contain only whitespace
+   * or a comment. For binary files, just calls ReadLine().
+   */
   bool ReadNextLine(char result[MAX_LINE_LENGTH]);
+
+  /**
+   * Reads the next line (ASCII) or MAX_LINE_LENGTH characters (binary)
+   */
   bool ReadLine(char result[MAX_LINE_LENGTH]);
+
+  /**
+   * Can be used on ASCII file to skip the specified number of lines when reading.
+   */
   void SkipNLines(vtkIdType n);
+
+  /**
+   * Move the read position of the file stream back by MAX_LINE_LENGTH characters.
+   */
   void GoBackOneLine();
+
+  /**
+   * Attempts to determine the byte order given an int read from the file.
+   */
   bool DetectByteOrder(int* result);
 
+  /**
+   * Read a number from file and store it in result
+   */
   template <typename T>
   bool ReadNumber(T* result);
 
+  /**
+   * Read an array of size n.
+   */
   template <typename T>
   bool ReadArray(T* result, vtkIdType n);
 };
@@ -413,8 +447,20 @@ bool EnSightFile::ReadArray(T* result, vtkIdType n)
 class EnSightFileStream
 {
 public:
+  /**
+   * Parses through case file until version information is found.
+   * Returns true if the file is an EnSight Gold file
+   */
   bool CheckVersion(const char* casefilename);
+
+  /**
+   * Parses all sections of a case file to get information such as filenames.
+   */
   bool ParseCaseFile(const char* casefilename);
+
+  /**
+   * Reads Geometry file
+   */
   bool ReadGeometry(vtkPartitionedDataSetCollection* output);
 
 private:
