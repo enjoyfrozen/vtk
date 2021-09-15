@@ -29,6 +29,7 @@
 #include "vtkUnstructuredGrid.h"
 
 #include <algorithm>
+#include <cstring>
 #include <map>
 #include <vector>
 
@@ -734,7 +735,7 @@ void vtkLSDynaPart::AddPointInformation(T* buffer, U* pointData, const vtkIdType
       if (std::is_same<T, U>::value)
 #endif
       {
-        memcpy(dest, src, msize);
+        std::memcpy(dest, src, msize);
       }
       else
       {
