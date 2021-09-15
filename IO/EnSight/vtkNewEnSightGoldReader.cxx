@@ -15,6 +15,7 @@
 #include "vtkNewEnSightGoldReader.h"
 
 #include "vtkByteSwap.h"
+#include "vtkCellData.h"
 #include "vtkDataAssembly.h"
 #include "vtkDataSetAttributes.h"
 #include "vtkFloatArray.h"
@@ -24,9 +25,11 @@
 #include "vtkObjectFactory.h"
 #include "vtkPartitionedDataSet.h"
 #include "vtkPartitionedDataSetCollection.h"
+#include "vtkPointData.h"
 #include "vtkPoints.h"
 #include "vtkRectilinearGrid.h"
 #include "vtkStructuredGrid.h"
+#include "vtkTypeInt32Array.h"
 #include "vtkUniformGrid.h"
 #include "vtkUnsignedCharArray.h"
 
@@ -475,7 +478,10 @@ private:
   int ReadPartId();
   void ReadDimensions(int dimensions[3]);
   void ReadRange(int range[6]);
-  std::vector<int> ReadOptionalValues(int numVals, std::string sectionName = "");
+  void ReadOptionalValues(int numVals, int* data, std::string sectionName = "");
+
+  void ProcessNodeIds(int numPts, vtkDataSet* output);
+  void ProcessElementIds(int numCells, vtkDataSet* output);
 
   bool IsSectionHeader(const char* line);
 
@@ -786,7 +792,8 @@ void EnSightFileStream::CreateUniformGridOutput(const GridOptions& opts, vtkUnif
   auto numCells = (dimensions[0] - 1) * (dimensions[1] - 1) * (dimensions[2] - 1);
   if (opts.IBlanked)
   {
-    auto data = this->ReadOptionalValues(numPts);
+    std::vector<int> data(numPts, 0);
+    this->ReadOptionalValues(numPts, data.data());
     for (int i = 0; i < data.size(); i++)
     {
       if (!data[i])
@@ -803,14 +810,12 @@ void EnSightFileStream::CreateUniformGridOutput(const GridOptions& opts, vtkUnif
 
   if (this->NodeIdsListed)
   {
-    vtkGenericWarningMacro("node ids not supported yet");
-    this->ReadOptionalValues(numPts, "node_ids");
+    this->ProcessNodeIds(numPts, output);
   }
 
   if (this->ElementIdsListed)
   {
-    vtkGenericWarningMacro("element ids not supported yet");
-    this->ReadOptionalValues(numCells, "element_ids");
+    this->ProcessElementIds(numCells, output);
   }
 }
 
@@ -869,7 +874,8 @@ void EnSightFileStream::CreateRectilinearGridOutput(
   if (opts.IBlanked)
   {
     vtkGenericWarningMacro("iblanked not supported for vtkRectilinearGrid");
-    this->ReadOptionalValues(numPts);
+    std::vector<int> data(numPts, 0);
+    this->ReadOptionalValues(numPts, data.data());
   }
 
   if (opts.WithGhost)
@@ -879,14 +885,12 @@ void EnSightFileStream::CreateRectilinearGridOutput(
 
   if (this->NodeIdsListed)
   {
-    vtkGenericWarningMacro("node ids not supported yet");
-    this->ReadOptionalValues(numPts, "node_ids");
+    this->ProcessNodeIds(numPts, output);
   }
 
   if (this->ElementIdsListed)
   {
-    vtkGenericWarningMacro("element ids not supported yet");
-    this->ReadOptionalValues(numCells, "element_ids");
+    this->ProcessElementIds(numCells, output);
   }
 }
 
@@ -942,7 +946,8 @@ void EnSightFileStream::CreateStructuredGridOutput(
   auto numCells = (dimensions[0] - 1) * (dimensions[1] - 1) * (dimensions[2] - 1);
   if (opts.IBlanked)
   {
-    auto data = this->ReadOptionalValues(numPts);
+    std::vector<int> data(numPts, 0);
+    this->ReadOptionalValues(numPts, data.data());
     for (int i = 0; i < numPts; i++)
     {
       if (!data[i])
@@ -959,14 +964,12 @@ void EnSightFileStream::CreateStructuredGridOutput(
 
   if (this->NodeIdsListed)
   {
-    vtkGenericWarningMacro("node ids not supported yet");
-    this->ReadOptionalValues(numPts, "node_ids");
+    this->ProcessNodeIds(numPts, output);
   }
 
   if (this->ElementIdsListed)
   {
-    vtkGenericWarningMacro("element ids not supported yet");
-    this->ReadOptionalValues(numCells, "element_ids");
+    this->ProcessElementIds(numCells, output);
   }
 }
 
@@ -1015,9 +1018,8 @@ void EnSightFileStream::ReadRange(int range[6])
 }
 
 //------------------------------------------------------------------------------
-std::vector<int> EnSightFileStream::ReadOptionalValues(int numVals, std::string sectionName)
+void EnSightFileStream::ReadOptionalValues(int numVals, int* array, std::string sectionName)
 {
-  std::vector<int> data(numVals, 0);
   // some data has an optional string before it. e.g., for ghost flags,
   // there may be a string "ghost_flags" preceeding it
   if (!sectionName.empty())
@@ -1031,14 +1033,36 @@ std::vector<int> EnSightFileStream::ReadOptionalValues(int numVals, std::string 
     }
   }
 
-  this->GeometryFile.ReadArray(data.data(), data.size());
-  return data;
+  this->GeometryFile.ReadArray(array, numVals);
+}
+
+//------------------------------------------------------------------------------
+void EnSightFileStream::ProcessNodeIds(int numPts, vtkDataSet* output)
+{
+  vtkNew<vtkTypeInt32Array> array;
+  array->SetNumberOfTuples(numPts);
+  array->SetName("Node Ids");
+  this->ReadOptionalValues(numPts, array->WritePointer(0, numPts), "node_ids");
+  vtkPointData* pointData = output->GetPointData();
+  pointData->SetGlobalIds(array);
+}
+
+//------------------------------------------------------------------------------
+void EnSightFileStream::ProcessElementIds(int numCells, vtkDataSet* output)
+{
+  vtkNew<vtkTypeInt32Array> array;
+  array->SetNumberOfTuples(numCells);
+  array->SetName("Element Ids");
+  this->ReadOptionalValues(numCells, array->WritePointer(0, numCells), "element_ids");
+  vtkCellData* cellData = output->GetCellData();
+  cellData->SetGlobalIds(array);
 }
 
 //------------------------------------------------------------------------------
 void EnSightFileStream::ProcessGhostCells(int numCells, vtkDataSet* output)
 {
-  auto ghostFlags = this->ReadOptionalValues(numCells, "ghost_flags");
+  std::vector<int> ghostFlags(numCells, 0);
+  this->ReadOptionalValues(numCells, ghostFlags.data(), "ghost_flags");
   vtkUnsignedCharArray* cellGhostArray = output->GetCellGhostArray();
   if (!cellGhostArray)
   {
