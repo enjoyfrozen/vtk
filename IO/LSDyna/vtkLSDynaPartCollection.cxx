@@ -25,6 +25,7 @@
 #include "vtkObjectFactory.h"
 #include "vtkPointData.h"
 #include "vtkPoints.h"
+#include "vtkSetGet.h"
 #include "vtkStringArray.h"
 #include "vtkUnsignedCharArray.h"
 #include "vtkUnstructuredGrid.h"
@@ -864,7 +865,7 @@ void vtkLSDynaPartCollection::SetupPointPropertyForReading(const vtkIdType& numT
     }
     else
     {
-      assert(false);
+      vtkErrorMacro(<< "Invalid word size: " << this->MetaData->Fam.GetWordSize());
     }
   }
   else if (this->MetaData->Fam.GetWordSize() == 8)
