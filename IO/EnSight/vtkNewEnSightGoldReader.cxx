@@ -16,6 +16,7 @@
 
 #include "vtkByteSwap.h"
 #include "vtkCellData.h"
+#include "vtkDataArraySelection.h"
 #include "vtkDataAssembly.h"
 #include "vtkDataSetAttributes.h"
 #include "vtkFloatArray.h"
@@ -166,7 +167,6 @@ GridOptions getGridOptions(const char* line)
 struct EnSightFile
 {
   std::string FileName;
-  vtksys::ifstream* Stream;
   FileType Format = FileType::ASCII;
   Endianness ByteOrder = Endianness::Unknown;
 
@@ -191,9 +191,17 @@ struct EnSightFile
   bool ReadLine(char result[MAX_LINE_LENGTH]);
 
   /**
-   * Can be used on ASCII file to skip the specified number of lines when reading.
+   * Skip the specified number of lines when reading.
    */
   void SkipNLines(vtkIdType n);
+
+  /**
+   * Skip the specified number of numbers when reading. For ASCII, this just
+   * calls SkipNLines(), for binary files, moves the read position the appropriate
+   * number of bytes.
+   */
+  template <typename T>
+  void SkipNNumbers(vtkIdType n);
 
   /**
    * Move the read position of the file stream back by MAX_LINE_LENGTH characters.
@@ -216,6 +224,24 @@ struct EnSightFile
    */
   template <typename T>
   bool ReadArray(T* result, vtkIdType n);
+
+  /**
+   * Move the read position ahead n bytes.
+   */
+  void MoveReadPosition(int numBytes);
+
+  /**
+   * Move the read position ahead to position pos.
+   */
+  void MoveToPosition(std::streampos pos);
+
+  /**
+   * Get current position of reader in stream.
+   */
+  std::streampos GetCurrentPosition();
+
+private:
+  vtksys::ifstream* Stream;
 };
 
 //------------------------------------------------------------------------------
@@ -340,14 +366,33 @@ bool EnSightFile::ReadLine(char result[MAX_LINE_LENGTH])
 //------------------------------------------------------------------------------
 void EnSightFile::SkipNLines(vtkIdType n)
 {
-  if (this->Format != FileType::ASCII)
+  if (this->Format == FileType::ASCII)
   {
-    return;
+    char line[MAX_LINE_LENGTH];
+    for (vtkIdType i = 0; i < n; i++)
+    {
+      this->ReadNextLine(line);
+    }
   }
-  char line[MAX_LINE_LENGTH];
-  for (vtkIdType i = 0; i < n; i++)
+  else
   {
-    this->ReadNextLine(line);
+    auto numBytes = n * MAX_LINE_LENGTH;
+    this->MoveReadPosition(numBytes);
+  }
+}
+
+//------------------------------------------------------------------------------
+template <typename T>
+void EnSightFile::SkipNNumbers(vtkIdType n)
+{
+  if (this->Format == FileType::ASCII)
+  {
+    this->SkipNLines(n);
+  }
+  else
+  {
+    auto numBytes = n * sizeof(T);
+    this->MoveReadPosition(numBytes);
   }
 }
 
@@ -447,6 +492,26 @@ bool EnSightFile::ReadArray(T* result, vtkIdType n)
   return true;
 }
 
+//------------------------------------------------------------------------------
+void EnSightFile::MoveReadPosition(int numBytes)
+{
+  auto pos = this->Stream->tellg();
+  pos += numBytes;
+  this->Stream->seekg(pos, ios::beg);
+}
+
+//------------------------------------------------------------------------------
+void EnSightFile::MoveToPosition(std::streampos pos)
+{
+  this->Stream->seekg(pos, ios::beg);
+}
+
+//------------------------------------------------------------------------------
+std::streampos EnSightFile::GetCurrentPosition()
+{
+  return this->Stream->tellg();
+}
+
 class EnSightFileStream
 {
 public:
@@ -464,7 +529,13 @@ public:
   /**
    * Reads Geometry file
    */
-  bool ReadGeometry(vtkPartitionedDataSetCollection* output);
+  bool ReadGeometry(vtkPartitionedDataSetCollection* output, vtkDataArraySelection* selection);
+
+  /**
+   * Only grabs Part (block) information from the Geometry file to be used
+   * in a vtkDataArraySelection to enable user to choose which parts to load
+   */
+  bool GetPartInfo(vtkDataArraySelection* selection);
 
 private:
   void ParseFormatSection();
@@ -475,10 +546,16 @@ private:
   void CreateRectilinearGridOutput(const GridOptions& opts, vtkRectilinearGrid* output);
   void CreateStructuredGridOutput(const GridOptions& opts, vtkStructuredGrid* output);
 
+  void PassThroughUniformGrid(const GridOptions& opts);
+  void PassThroughRectilinearGrid(const GridOptions& opts);
+  void PassThroughStructuredGrid(const GridOptions& opts);
+  void PassThroughOptionalSections(const GridOptions& opts, int numPts, int numCells);
+
   int ReadPartId();
-  void ReadDimensions(int dimensions[3]);
+  void ReadDimensions(bool hasRange, int dimensions[3], int& numPts, int& numCells);
   void ReadRange(int range[6]);
   void ReadOptionalValues(int numVals, int* data, std::string sectionName = "");
+  void CheckForOptionalHeader(const std::string& sectionName);
 
   void ProcessNodeIds(int numPts, vtkDataSet* output);
   void ProcessElementIds(int numCells, vtkDataSet* output);
@@ -496,6 +573,7 @@ private:
   std::string GeometryFileName;
   bool NodeIdsListed = false;
   bool ElementIdsListed = false;
+  int GeometryPartReadPos = 0;
 };
 
 //------------------------------------------------------------------------------
@@ -667,7 +745,94 @@ void EnSightFileStream::ParseGeometrySection(const char* line)
 }
 
 //------------------------------------------------------------------------------
-bool EnSightFileStream::ReadGeometry(vtkPartitionedDataSetCollection* output)
+bool EnSightFileStream::ReadGeometry(
+  vtkPartitionedDataSetCollection* output, vtkDataArraySelection* selection)
+{
+  // GetPartInfo() already read and saved necessary data from the first part of
+  // geometry file, now we just need to parse the parts that have been requested to
+  // be loaded
+  this->GeometryFile.MoveToPosition(this->GeometryPartReadPos);
+  char line[MAX_LINE_LENGTH];
+  auto lineRead = this->GeometryFile.ReadNextLine(line);
+  while (lineRead && strncmp(line, "part", 4) == 0)
+  {
+    int partId = this->ReadPartId();
+    partId--; // EnSight starts counts at 1
+
+    this->GeometryFile.ReadNextLine(line); // part description line
+    char* partName = strdup(line);
+    bool readPart = false;
+    if (selection->ArrayIsEnabled(partName))
+    {
+      readPart = true;
+    }
+
+    this->GeometryFile.ReadNextLine(line);
+    auto opts = getGridOptions(line);
+    if (readPart)
+    {
+      vtkDataSet* grid;
+      switch (opts.Type)
+      {
+        case GridType::Uniform:
+          grid = vtkUniformGrid::New();
+          this->CreateUniformGridOutput(opts, vtkUniformGrid::SafeDownCast(grid));
+          break;
+        case GridType::Rectilinear:
+          grid = vtkRectilinearGrid::New();
+          this->CreateRectilinearGridOutput(opts, vtkRectilinearGrid::SafeDownCast(grid));
+          break;
+        case GridType::Curvilinear:
+          grid = vtkStructuredGrid::New();
+          this->CreateStructuredGridOutput(opts, vtkStructuredGrid::SafeDownCast(grid));
+          break;
+        case GridType::Unstructured:
+          vtkGenericWarningMacro("Unstructured grid not supported yet");
+          break;
+        default:
+          vtkGenericWarningMacro("Grid type not correctly specified");
+          return false;
+      }
+      vtkNew<vtkPartitionedDataSet> pds;
+      pds->SetPartition(0, grid);
+      grid->Delete();
+      output->SetPartitionedDataSet(partId, pds);
+      output->GetMetaData(partId)->Set(vtkCompositeDataSet::NAME(), partName);
+
+      auto assembly = output->GetDataAssembly();
+      auto validName = vtkDataAssembly::MakeValidNodeName(partName);
+      auto node = assembly->AddNode(validName.c_str());
+      assembly->AddDataSetIndex(node, partId);
+    }
+    else
+    {
+      switch (opts.Type)
+      {
+        case GridType::Uniform:
+          this->PassThroughUniformGrid(opts);
+          break;
+        case GridType::Rectilinear:
+          this->PassThroughRectilinearGrid(opts);
+          break;
+        case GridType::Curvilinear:
+          this->PassThroughStructuredGrid(opts);
+          break;
+        case GridType::Unstructured:
+          vtkGenericWarningMacro("Unstructured grid not supported yet");
+          break;
+        default:
+          vtkGenericWarningMacro("Grid type not correctly specified");
+          return false;
+      }
+    }
+    lineRead = this->GeometryFile.ReadNextLine(line);
+  }
+
+  return true;
+}
+
+//------------------------------------------------------------------------------
+bool EnSightFileStream::GetPartInfo(vtkDataArraySelection* selection)
 {
   this->GeometryFile.FileName = this->GeometryFileName;
   if (!this->GeometryFile.OpenFile())
@@ -675,11 +840,8 @@ bool EnSightFileStream::ReadGeometry(vtkPartitionedDataSetCollection* output)
     return false;
   }
 
+  this->GeometryFile.SkipNLines(2);
   char line[MAX_LINE_LENGTH], subLine[MAX_LINE_LENGTH];
-  // read 2 description lines
-  this->GeometryFile.ReadLine(line);
-  this->GeometryFile.ReadLine(line);
-
   // read node id, which can be off/given/assign/ignore
   this->GeometryFile.ReadNextLine(line);
   sscanf(line, " %*s %*s %s", subLine);
@@ -696,7 +858,7 @@ bool EnSightFileStream::ReadGeometry(vtkPartitionedDataSetCollection* output)
     this->ElementIdsListed = true;
   }
 
-  // check if extents section is included and handle if so
+  this->GeometryPartReadPos = this->GeometryFile.GetCurrentPosition();
   auto lineRead = this->GeometryFile.ReadNextLine(line);
   if (strncmp(line, "extents", 7) == 0)
   {
@@ -707,9 +869,9 @@ bool EnSightFileStream::ReadGeometry(vtkPartitionedDataSetCollection* output)
     }
     else
     {
-      float val[6];
-      this->GeometryFile.ReadArray(val, 6);
+      this->GeometryFile.MoveReadPosition(6 * sizeof(float));
     }
+    this->GeometryPartReadPos = this->GeometryFile.GetCurrentPosition();
     lineRead = this->GeometryFile.ReadNextLine(line); // "part"
   }
 
@@ -720,23 +882,20 @@ bool EnSightFileStream::ReadGeometry(vtkPartitionedDataSetCollection* output)
 
     this->GeometryFile.ReadNextLine(line); // part description line
     char* partName = strdup(line);
+    selection->AddArray(partName);
 
     this->GeometryFile.ReadNextLine(line);
     auto opts = getGridOptions(line);
-    vtkDataSet* grid;
     switch (opts.Type)
     {
       case GridType::Uniform:
-        grid = vtkUniformGrid::New();
-        this->CreateUniformGridOutput(opts, vtkUniformGrid::SafeDownCast(grid));
+        this->PassThroughUniformGrid(opts);
         break;
       case GridType::Rectilinear:
-        grid = vtkRectilinearGrid::New();
-        this->CreateRectilinearGridOutput(opts, vtkRectilinearGrid::SafeDownCast(grid));
+        this->PassThroughRectilinearGrid(opts);
         break;
       case GridType::Curvilinear:
-        grid = vtkStructuredGrid::New();
-        this->CreateStructuredGridOutput(opts, vtkStructuredGrid::SafeDownCast(grid));
+        this->PassThroughStructuredGrid(opts);
         break;
       case GridType::Unstructured:
         vtkGenericWarningMacro("Unstructured grid not supported yet");
@@ -745,40 +904,18 @@ bool EnSightFileStream::ReadGeometry(vtkPartitionedDataSetCollection* output)
         vtkGenericWarningMacro("Grid type not correctly specified");
         return false;
     }
-    vtkNew<vtkPartitionedDataSet> pds;
-    pds->SetPartition(0, grid);
-    grid->Delete();
-    output->SetPartitionedDataSet(partId, pds);
-    output->GetMetaData(partId)->Set(vtkCompositeDataSet::NAME(), partName);
-
-    auto assembly = output->GetDataAssembly();
-    auto validName = vtkDataAssembly::MakeValidNodeName(partName);
-    auto node = assembly->AddNode(validName.c_str());
-    assembly->AddDataSetIndex(node, partId);
+    lineRead = this->GeometryFile.ReadNextLine(line);
   }
-
   return true;
 }
 
 //------------------------------------------------------------------------------
 void EnSightFileStream::CreateUniformGridOutput(const GridOptions& opts, vtkUniformGrid* output)
 {
-  // read dimensions line
-  char line[MAX_LINE_LENGTH];
   int dimensions[3];
-  this->ReadDimensions(dimensions);
+  int numPts, numCells;
+  this->ReadDimensions(opts.HasRange, dimensions, numPts, numCells);
   output->SetDimensions(dimensions);
-
-  if (opts.HasRange)
-  {
-    // TODO unsure if this is all that's needed to be done
-    int range[6];
-    this->ReadRange(range);
-    // range contains: imin, imax, jmin, jmax, kmin, kmax
-    dimensions[0] = range[1] - range[0] + 1;
-    dimensions[1] = range[3] - range[2] + 1;
-    dimensions[2] = range[5] - range[4] + 1;
-  }
 
   float origin[3];
   this->GeometryFile.ReadArray(origin, 3);
@@ -788,8 +925,6 @@ void EnSightFileStream::CreateUniformGridOutput(const GridOptions& opts, vtkUnif
   this->GeometryFile.ReadArray(delta, 3);
   output->SetSpacing(delta[0], delta[1], delta[2]);
 
-  auto numPts = dimensions[0] * dimensions[1] * dimensions[2];
-  auto numCells = (dimensions[0] - 1) * (dimensions[1] - 1) * (dimensions[2] - 1);
   if (opts.IBlanked)
   {
     std::vector<int> data(numPts, 0);
@@ -820,25 +955,25 @@ void EnSightFileStream::CreateUniformGridOutput(const GridOptions& opts, vtkUnif
 }
 
 //------------------------------------------------------------------------------
+void EnSightFileStream::PassThroughUniformGrid(const GridOptions& opts)
+{
+  int dimensions[3];
+  int numPts, numCells;
+  this->ReadDimensions(opts.HasRange, dimensions, numPts, numCells);
+
+  this->GeometryFile.SkipNNumbers<float>(6);
+
+  this->PassThroughOptionalSections(opts, numPts, numCells);
+}
+
+//------------------------------------------------------------------------------
 void EnSightFileStream::CreateRectilinearGridOutput(
   const GridOptions& opts, vtkRectilinearGrid* output)
 {
-  // read dimensions line
-  char line[MAX_LINE_LENGTH];
   int dimensions[3];
-  this->ReadDimensions(dimensions);
+  int numPts, numCells;
+  this->ReadDimensions(opts.HasRange, dimensions, numPts, numCells);
   output->SetDimensions(dimensions);
-
-  if (opts.HasRange)
-  {
-    // TODO unsure if this is all that's needed to be done
-    int range[6];
-    this->ReadRange(range);
-    // range contains: imin, imax, jmin, jmax, kmin, kmax
-    dimensions[0] = range[1] - range[0] + 1;
-    dimensions[1] = range[3] - range[2] + 1;
-    dimensions[2] = range[5] - range[4] + 1;
-  }
 
   vtkNew<vtkFloatArray> xCoords;
   vtkNew<vtkFloatArray> yCoords;
@@ -869,8 +1004,6 @@ void EnSightFileStream::CreateRectilinearGridOutput(
   output->SetYCoordinates(yCoords);
   output->SetZCoordinates(zCoords);
 
-  auto numPts = dimensions[0] * dimensions[1] * dimensions[2];
-  auto numCells = (dimensions[0] - 1) * (dimensions[1] - 1) * (dimensions[2] - 1);
   if (opts.IBlanked)
   {
     vtkGenericWarningMacro("iblanked not supported for vtkRectilinearGrid");
@@ -895,27 +1028,27 @@ void EnSightFileStream::CreateRectilinearGridOutput(
 }
 
 //------------------------------------------------------------------------------
+void EnSightFileStream::PassThroughRectilinearGrid(const GridOptions& opts)
+{
+  int dimensions[3];
+  int numPts, numCells;
+  this->ReadDimensions(opts.HasRange, dimensions, numPts, numCells);
+
+  // skip x, y, and z coords
+  this->GeometryFile.SkipNNumbers<float>(dimensions[0] + dimensions[1] + dimensions[2]);
+
+  this->PassThroughOptionalSections(opts, numPts, numCells);
+}
+
+//------------------------------------------------------------------------------
 void EnSightFileStream::CreateStructuredGridOutput(
   const GridOptions& opts, vtkStructuredGrid* output)
 {
-  // read dimensions line
-  char line[MAX_LINE_LENGTH];
   int dimensions[3];
-  this->ReadDimensions(dimensions);
+  int numPts, numCells;
+  this->ReadDimensions(opts.HasRange, dimensions, numPts, numCells);
   output->SetDimensions(dimensions);
 
-  if (opts.HasRange)
-  {
-    // TODO unsure if this is all that's needed to be done
-    int range[6];
-    this->ReadRange(range);
-    // range contains: imin, imax, jmin, jmax, kmin, kmax
-    dimensions[0] = range[1] - range[0] + 1;
-    dimensions[1] = range[3] - range[2] + 1;
-    dimensions[2] = range[5] - range[4] + 1;
-  }
-
-  int numPts = dimensions[0] * dimensions[1] * dimensions[2];
   vtkNew<vtkPoints> points;
   points->SetNumberOfPoints(numPts);
 
@@ -943,7 +1076,6 @@ void EnSightFileStream::CreateStructuredGridOutput(
   }
   output->SetPoints(points);
 
-  auto numCells = (dimensions[0] - 1) * (dimensions[1] - 1) * (dimensions[2] - 1);
   if (opts.IBlanked)
   {
     std::vector<int> data(numPts, 0);
@@ -974,6 +1106,46 @@ void EnSightFileStream::CreateStructuredGridOutput(
 }
 
 //------------------------------------------------------------------------------
+void EnSightFileStream::PassThroughStructuredGrid(const GridOptions& opts)
+{
+  int dimensions[3];
+  int numPts, numCells;
+  this->ReadDimensions(opts.HasRange, dimensions, numPts, numCells);
+
+  this->GeometryFile.SkipNNumbers<float>(numPts * 3);
+
+  this->PassThroughOptionalSections(opts, numPts, numCells);
+}
+
+//------------------------------------------------------------------------------
+void EnSightFileStream::PassThroughOptionalSections(
+  const GridOptions& opts, int numPts, int numCells)
+{
+  if (opts.IBlanked)
+  {
+    this->GeometryFile.SkipNNumbers<int>(numPts);
+  }
+
+  if (opts.WithGhost)
+  {
+    this->CheckForOptionalHeader("ghost_flags");
+    this->GeometryFile.SkipNNumbers<int>(numCells);
+  }
+
+  if (this->NodeIdsListed)
+  {
+    this->CheckForOptionalHeader("node_ids");
+    this->GeometryFile.SkipNNumbers<int>(numPts);
+  }
+
+  if (this->ElementIdsListed)
+  {
+    this->CheckForOptionalHeader("element_ids");
+    this->GeometryFile.SkipNNumbers<int>(numCells);
+  }
+}
+
+//------------------------------------------------------------------------------
 int EnSightFileStream::ReadPartId()
 {
   int partId;
@@ -987,7 +1159,7 @@ int EnSightFileStream::ReadPartId()
 }
 
 //------------------------------------------------------------------------------
-void EnSightFileStream::ReadDimensions(int dimensions[3])
+void EnSightFileStream::ReadDimensions(bool hasRange, int dimensions[3], int& numPts, int& numCells)
 {
   char line[MAX_LINE_LENGTH];
   if (this->GeometryFile.Format == FileType::ASCII)
@@ -999,6 +1171,19 @@ void EnSightFileStream::ReadDimensions(int dimensions[3])
   {
     this->GeometryFile.ReadArray(dimensions, 3);
   }
+
+  if (hasRange)
+  {
+    int range[6];
+    this->ReadRange(range);
+    // range contains: imin, imax, jmin, jmax, kmin, kmax
+    dimensions[0] = range[1] - range[0] + 1;
+    dimensions[1] = range[3] - range[2] + 1;
+    dimensions[2] = range[5] - range[4] + 1;
+  }
+
+  numPts = dimensions[0] * dimensions[1] * dimensions[2];
+  numCells = (dimensions[0] - 1) * (dimensions[1] - 1) * (dimensions[2] - 1);
 }
 
 //------------------------------------------------------------------------------
@@ -1020,6 +1205,13 @@ void EnSightFileStream::ReadRange(int range[6])
 //------------------------------------------------------------------------------
 void EnSightFileStream::ReadOptionalValues(int numVals, int* array, std::string sectionName)
 {
+  this->CheckForOptionalHeader(sectionName);
+  this->GeometryFile.ReadArray(array, numVals);
+}
+
+//------------------------------------------------------------------------------
+void EnSightFileStream::CheckForOptionalHeader(const std::string& sectionName)
+{
   // some data has an optional string before it. e.g., for ghost flags,
   // there may be a string "ghost_flags" preceeding it
   if (!sectionName.empty())
@@ -1027,13 +1219,11 @@ void EnSightFileStream::ReadOptionalValues(int numVals, int* array, std::string 
     char line[MAX_LINE_LENGTH], subLine[MAX_LINE_LENGTH];
     this->GeometryFile.ReadNextLine(line);
     sscanf(line, "%s", subLine);
-    if (strncmp(subLine, sectionName.c_str(), 11) != 0)
+    if (strncmp(subLine, sectionName.c_str(), sectionName.size()) != 0)
     {
       this->GeometryFile.GoBackOneLine();
     }
   }
-
-  this->GeometryFile.ReadArray(array, numVals);
 }
 
 //------------------------------------------------------------------------------
@@ -1082,6 +1272,7 @@ void EnSightFileStream::ProcessGhostCells(int numCells, vtkDataSet* output)
 struct vtkNewEnSightGoldReader::ReaderImpl
 {
   EnSightFileStream FileStream;
+  vtkNew<vtkDataArraySelection> BlockSelection;
 };
 
 vtkStandardNewMacro(vtkNewEnSightGoldReader);
@@ -1122,6 +1313,9 @@ int vtkNewEnSightGoldReader::RequestInformation(
     vtkErrorMacro("Case file " << this->CaseFileName << " could not be parsed without error");
     return 0;
   }
+
+  this->Impl->FileStream.GetPartInfo(this->Impl->BlockSelection);
+
   return 1;
 }
 
@@ -1136,13 +1330,25 @@ int vtkNewEnSightGoldReader::RequestData(
   vtkNew<vtkDataAssembly> assembly;
   output->SetDataAssembly(assembly);
 
-  if (!this->Impl->FileStream.ReadGeometry(output))
+  if (!this->Impl->FileStream.ReadGeometry(output, this->Impl->BlockSelection))
   {
     vtkErrorMacro("Geometry file could not be read");
     return 0;
   }
 
   return 1;
+}
+
+//------------------------------------------------------------------------------
+vtkDataArraySelection* vtkNewEnSightGoldReader::GetBlockSelection()
+{
+  return this->Impl->BlockSelection;
+}
+
+//------------------------------------------------------------------------------
+vtkMTimeType vtkNewEnSightGoldReader::GetMTime()
+{
+  return std::max(this->Superclass::GetMTime(), this->Impl->BlockSelection->GetMTime());
 }
 
 //------------------------------------------------------------------------------

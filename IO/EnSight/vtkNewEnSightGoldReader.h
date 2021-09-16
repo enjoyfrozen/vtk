@@ -31,6 +31,7 @@
 #include "vtkIOEnSightModule.h" // For export macro
 #include "vtkPartitionedDataSetCollectionAlgorithm.h"
 
+class vtkDataArraySelection;
 class vtkPartitionedDataSetCollection;
 
 class VTKIOENSIGHT_EXPORT vtkNewEnSightGoldReader : public vtkPartitionedDataSetCollectionAlgorithm
@@ -53,6 +54,17 @@ public:
    * can be read by this reader.
    */
   int CanReadFile(VTK_FILEPATH const char* casefilename);
+
+  /**
+   * Block (Part in EnSight terminology) selection, to determine which blocks/parts
+   * are loaded.
+   */
+  vtkDataArraySelection* GetBlockSelection();
+
+  /**
+   * Overridden to take into account mtimes for vtkDataArraySelection instances.
+   */
+  vtkMTimeType GetMTime() override;
 
 protected:
   vtkNewEnSightGoldReader();
