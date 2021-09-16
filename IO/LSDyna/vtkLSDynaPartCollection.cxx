@@ -31,6 +31,7 @@
 #include "vtkUnstructuredGrid.h"
 
 #include <algorithm>
+#include <cstdint> // for int32_t and int64_t
 #include <list>
 #include <vector>
 

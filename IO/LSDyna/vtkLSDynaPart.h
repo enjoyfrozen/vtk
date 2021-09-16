@@ -21,6 +21,8 @@
 #include "vtkObject.h"
 #include "vtkStdString.h" //needed for string
 
+#include <cstdint> // for int32_t and int64_t
+
 class vtkUnstructuredGrid;
 class vtkPoints;
 
