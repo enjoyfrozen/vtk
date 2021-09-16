@@ -65,11 +65,14 @@ if (NOT VTK_WHEEL_BUILD)
   endif ()
 endif ()
 
+set(_vtkmodules_all)
 set(_vtk_python_imports)
 foreach (_vtk_python_module IN LISTS vtk_python_wrapped_modules)
   get_property(_vtk_python_library_name
     TARGET    "${_vtk_python_module}"
     PROPERTY  "INTERFACE_vtk_module_library_name")
+  string(APPEND _vtkmodules_all
+    "    \'${_vtk_python_library_name}\',\n")
   string(APPEND _vtk_python_imports
     "from .${_vtk_python_library_name} import *\n")
 endforeach ()
