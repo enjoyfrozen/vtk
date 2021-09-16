@@ -855,17 +855,18 @@ void vtkLSDynaPartCollection::SetupPointPropertyForReading(const vtkIdType& numT
   }
   else if (isIdType)
   {
-    if (this->MetaData->Fam.GetWordSize() == 8)
+    auto wordSize = this->MetaData->Fam.GetWordSize();
+    if (wordSize == 8)
     {
       this->FillPointUserIds<std::int64_t>(numTuples, numComps, validParts, idx);
     }
-    else if (this->MetaData->Fam.GetWordSize() == 4)
+    else if (wordSize == 4)
     {
       this->FillPointUserIds<std::int32_t>(numTuples, numComps, validParts, idx);
     }
     else
     {
-      vtkErrorMacro(<< "Invalid word size: " << this->MetaData->Fam.GetWordSize());
+      vtkErrorMacro(<< "Invalid word size: " << wordSize);
     }
   }
   else if (this->MetaData->Fam.GetWordSize() == 8)
