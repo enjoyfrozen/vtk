@@ -33,8 +33,7 @@
 # endif
 # include <geodesic.h>
 #else
-# include <vtklibproj/src/projects.h>
-# include <vtklibproj/src/proj_api.h>
+# include <vtklibproj/src/proj.h>
 # include <vtklibproj/src/geodesic.h>
 #endif
 
