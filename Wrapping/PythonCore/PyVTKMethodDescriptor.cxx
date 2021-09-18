@@ -177,7 +177,7 @@ PyTypeObject PyVTKMethodDescriptor_Type = {
   0,                                       // tp_itemsize
   PyVTKMethodDescriptor_Delete,            // tp_dealloc
 #if PY_VERSION_HEX >= 0x03080000
-  //Prior to Py3.8, this member was a function pointer, 
+  //Prior to Py3.8, this member was a function pointer,
   //but as of Py3.8 it is an integer
   //(and therefore incompatible with nullptr).
   0,                                       // tp_vectorcall_offset
@@ -197,6 +197,9 @@ PyTypeObject PyVTKMethodDescriptor_Type = {
   PyObject_GenericGetAttr,                 // tp_getattro
   nullptr,                                 // tp_setattro
   nullptr,                                 // tp_as_buffer
+#if PY_VERSION_HEX >= 0x03080000
+  Py_TPFLAGS_METHOD_DESCRIPTOR |
+#endif
   Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC, // tp_flags
   nullptr,                                 // tp_doc
   PyVTKMethodDescriptor_Traverse,          // tp_traverse
