@@ -31,4 +31,6 @@ vtk_add_test_python(
   EnSightTensorsInversion.py
   EnSightTensorsInversionBin.py
   nacaBinary.py
+  NewEnSightGoldASCII.py
+  NewEnSightGoldBinary.py
   )
