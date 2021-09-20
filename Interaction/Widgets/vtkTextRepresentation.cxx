@@ -396,22 +396,22 @@ void vtkTextRepresentation::PrintSelf(ostream& os, vtkIndent indent)
   switch (this->WindowLocation)
   {
     case LowerLeftCorner:
-      os << "LowerLeftCorner\n";
+      os << "Lower Left Corner\n";
       break;
     case LowerRightCorner:
-      os << "LowerRightCorner\n";
+      os << "Lower Right Corner\n";
       break;
     case LowerCenter:
-      os << "LowerCenter\n";
+      os << "Lower Center\n";
       break;
     case UpperLeftCorner:
-      os << "UpperLeftCorner\n";
+      os << "Upper Left Corner\n";
       break;
     case UpperRightCorner:
-      os << "UpperRightCorner\n";
+      os << "Upper Right Corner\n";
       break;
     case UpperCenter:
-      os << "UpperCenter\n";
+      os << "Upper Center\n";
       break;
   }
 }
