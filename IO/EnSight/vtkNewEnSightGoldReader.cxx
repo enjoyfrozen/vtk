@@ -391,7 +391,7 @@ void EnSightFile::SkipNNumbers(vtkIdType n)
   }
   else
   {
-    auto numBytes = n * sizeof(T);
+    int numBytes = n * sizeof(T);
     this->MoveReadPosition(numBytes);
   }
 }
@@ -771,7 +771,7 @@ bool EnSightFileStream::ReadGeometry(
     auto opts = getGridOptions(line);
     if (readPart)
     {
-      vtkDataSet* grid;
+      vtkDataSet* grid = nullptr;
       switch (opts.Type)
       {
         case GridType::Uniform:
@@ -793,16 +793,19 @@ bool EnSightFileStream::ReadGeometry(
           vtkGenericWarningMacro("Grid type not correctly specified");
           return false;
       }
-      vtkNew<vtkPartitionedDataSet> pds;
-      pds->SetPartition(0, grid);
-      grid->Delete();
-      output->SetPartitionedDataSet(partId, pds);
-      output->GetMetaData(partId)->Set(vtkCompositeDataSet::NAME(), partName);
+      if (grid)
+      {
+        vtkNew<vtkPartitionedDataSet> pds;
+        pds->SetPartition(0, grid);
+        grid->Delete();
+        output->SetPartitionedDataSet(partId, pds);
+        output->GetMetaData(partId)->Set(vtkCompositeDataSet::NAME(), partName);
 
-      auto assembly = output->GetDataAssembly();
-      auto validName = vtkDataAssembly::MakeValidNodeName(partName);
-      auto node = assembly->AddNode(validName.c_str());
-      assembly->AddDataSetIndex(node, partId);
+        auto assembly = output->GetDataAssembly();
+        auto validName = vtkDataAssembly::MakeValidNodeName(partName);
+        auto node = assembly->AddNode(validName.c_str());
+        assembly->AddDataSetIndex(node, partId);
+      }
     }
     else
     {
@@ -1300,7 +1303,7 @@ int vtkNewEnSightGoldReader::CanReadFile(const char* casefilename)
 
 //------------------------------------------------------------------------------
 int vtkNewEnSightGoldReader::RequestInformation(
-  vtkInformation* request, vtkInformationVector** inputVector, vtkInformationVector* outputVector)
+  vtkInformation*, vtkInformationVector**, vtkInformationVector*)
 {
   if (!this->CaseFileName)
   {
@@ -1321,7 +1324,7 @@ int vtkNewEnSightGoldReader::RequestInformation(
 
 //------------------------------------------------------------------------------
 int vtkNewEnSightGoldReader::RequestData(
-  vtkInformation* request, vtkInformationVector** inputVector, vtkInformationVector* outputVector)
+  vtkInformation*, vtkInformationVector**, vtkInformationVector* outputVector)
 {
   vtkInformation* outInfo = outputVector->GetInformationObject(0);
 
