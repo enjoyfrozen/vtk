@@ -17,7 +17,9 @@
 #include "vtkAggregateDataSetFilter.h"
 #include "vtkAppendArcLength.h"
 #include "vtkAppendDataSets.h"
+#include "vtkCell.h"
 #include "vtkCellCenters.h"
+#include "vtkCellIterator.h"
 #include "vtkCellLocatorStrategy.h"
 #include "vtkCompositeDataSet.h"
 #include "vtkCutter.h"
@@ -25,6 +27,7 @@
 #include "vtkDIYUtilities.h"
 #include "vtkDataArrayRange.h"
 #include "vtkDataObject.h"
+#include "vtkDataObjectTreeIterator.h"
 #include "vtkDataSet.h"
 #include "vtkFindCellStrategy.h"
 #include "vtkInformation.h"
@@ -32,6 +35,7 @@
 #include "vtkLineSource.h"
 #include "vtkMath.h"
 #include "vtkMathUtilities.h"
+#include "vtkMultiBlockDataSet.h"
 #include "vtkMultiProcessController.h"
 #include "vtkNew.h"
 #include "vtkObjectFactory.h"
@@ -158,7 +162,10 @@ HitCellInfo ProcessLimitPoint(vtkVector3d p1, vtkVector3d p2, int pattern, vtkDa
   const double norm = (p2 - p1).Norm();
   HitCellInfo result{0.0, -1.0, -1};
 
-  vtkIdType cellId = locator->FindCell(p1.GetData());
+  // We offset a bit P1 only for finding its corresponding cell so there is no
+  // ambiguity in case of consecutive 3D cells
+  vtkVector3d findCellLocation = p1 +  (p2 - p1) * (tolerance / norm);
+  vtkIdType cellId = locator->FindCell(findCellLocation.GetData());
   if (cellId >= 0)
   {
     vtkCell* cell = input->GetCell(cellId);
@@ -202,11 +209,10 @@ struct PointProjectionBordersWorker
 
   void operator()(vtkIdType startId, vtkIdType endId)
   {
-    vtkVector3d point;
     vtkIdType idx = 2 + 2 * startId;
     for (vtkIdType i = startId; i < endId; ++i)
     {
-      point = this->P1 + this->Intersections[i].InT * this->V12;
+      vtkVector3d point = this->P1 + this->Intersections[i].InT * this->V12;
       this->Result->SetPoint(idx, point.GetData());
       ++idx;
       point = this->P1 + this->Intersections[i].OutT * this->V12;
@@ -232,10 +238,9 @@ struct PointProjectionCentersWorker
 
   void operator()(vtkIdType startId, vtkIdType endId)
   {
-    vtkVector3d point;
     for (vtkIdType i = startId; i < endId; ++i)
     {
-      point = this->P1 + (this->Intersections[i].InT + this->Intersections[i].OutT) * 0.5 * this->V12;
+      vtkVector3d point = this->P1 + (this->Intersections[i].InT + this->Intersections[i].OutT) * 0.5 * this->V12;
       this->Result->SetPoint(i + 1, point.GetData());
     }
   }
@@ -253,13 +258,11 @@ vtkProbeLineFilter::vtkProbeLineFilter()
   : Controller(nullptr)
   , SamplingPattern(SAMPLE_LINE_AT_CELL_BOUNDARIES)
   , LineResolution(1000)
-  , Point1{ -0.5, 0.0, 0.0 }
-  , Point2{ 0.5, 0.0, 0.0 }
   , ComputeTolerance(true)
   , Tolerance(1.0)
   , Internal(new vtkInternals)
 {
-  this->SetNumberOfInputPorts(1);
+  this->SetNumberOfInputPorts(2);
   this->SetController(vtkMultiProcessController::GetGlobalController());
 }
 
@@ -274,106 +277,223 @@ vtkProbeLineFilter::~vtkProbeLineFilter()
 int vtkProbeLineFilter::RequestData(
   vtkInformation*, vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
-  vtkInformation* inInfo = inputVector[0]->GetInformationObject(0);
+  vtkInformation* inputInfo = inputVector[0]->GetInformationObject(0);
+  vtkInformation* samplerInfo = inputVector[1]->GetInformationObject(0);
   vtkInformation* outInfo = outputVector->GetInformationObject(0);
-  if (!outInfo || !inInfo)
+  if (!outInfo || !inputInfo || !samplerInfo)
   {
-    vtkErrorMacro("No input or output information");
+    vtkErrorMacro("Missing input or output information");
+    return 0;
   }
 
-  const double tolerance = this->ComputeTolerance
-    ? VTK_TOL * (vtkVector3d(this->Point2) - vtkVector3d(this->Point1)).Norm()
-    : this->Tolerance;
+  vtkDataObject* input = inputInfo->Get(vtkDataObject::DATA_OBJECT());
+  auto* samplerLocal = vtkPointSet::SafeDownCast(samplerInfo->Get(vtkDataObject::DATA_OBJECT()));
+  auto* output = vtkMultiBlockDataSet::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
+  if (!output || !input || !samplerLocal)
+  {
+    vtkErrorMacro("Missing input or output");
+    return 0;
+  }
 
-  vtkDataObject* input = inInfo->Get(vtkDataObject::DATA_OBJECT());
-  vtkDataSet* output = vtkDataSet::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
+  // The prober source need to be the same on all data. We cannot reconstruct the correct dataset from
+  // an aggregation of dataset so instead we consider that the only valid prober is on rank 0.
+  vtkSmartPointer<vtkPointSet> sampler = samplerLocal->NewInstance();
+  if (this->Controller->GetLocalProcessId() == 0)
+  {
+    this->Controller->Broadcast(samplerLocal, 0);
+    sampler->ShallowCopy(samplerLocal);
+  }
+  else
+  {
+    this->Controller->Broadcast(sampler, 0);
+  }
+
+  double tolerance = this->Tolerance;
+  if (this->ComputeTolerance)
+  {
+    double bounds[6] = {0, 0, 0, 0, 0, 0};
+    if (auto cds = vtkCompositeDataSet::SafeDownCast(input))
+    {
+      cds->GetBounds(bounds);
+    }
+    else if (auto ds = vtkDataSet::SafeDownCast(input))
+    {
+      ds->GetBounds(bounds);
+    }
+    tolerance = VTK_TOL * vtkBoundingBox(bounds).GetDiagonalLength();
+  }
   this->Internal->UpdateLocators(input, this->SamplingPattern, tolerance);
 
-  vtkSmartPointer<vtkPolyData> sampledLine;
-  switch (this->SamplingPattern)
+  auto samplerCellsIt = vtkSmartPointer<vtkCellIterator>::Take(sampler->NewCellIterator());
+  for (samplerCellsIt->InitTraversal(); !samplerCellsIt->IsDoneWithTraversal(); samplerCellsIt->GoToNextCell())
   {
-    case SAMPLE_LINE_AT_CELL_BOUNDARIES:
-    case SAMPLE_LINE_AT_SEGMENT_CENTERS:
-      sampledLine = this->SampleLineAtEachCell(vtkCompositeDataSet::GetDataSets(input), tolerance);
-      break;
-    case SAMPLE_LINE_UNIFORMLY:
-      sampledLine = this->SampleLineUniformly();
-      break;
-    default:
-      vtkErrorMacro("Sampling heuristic wrongly set... Aborting");
-      return 0;
-  }
-
-  vtkNew<vtkPProbeFilter> prober;
-  prober->SetController(this->Controller);
-  prober->SetPassPartialArrays(this->PassPartialArrays);
-  prober->SetPassCellArrays(this->PassCellArrays);
-  prober->SetPassPointArrays(this->PassPointArrays);
-  prober->SetPassFieldArrays(this->PassFieldArrays);
-  prober->SetComputeTolerance(false);
-  prober->SetTolerance(0.0);
-  prober->SetSourceData(input);
-  prober->SetFindCellStrategyMap(this->Internal->Strategies);
-  prober->SetInputData(sampledLine);
-  prober->Update();
-
-  if (this->Controller->GetLocalProcessId() == 0 &&
-    this->SamplingPattern == SAMPLE_LINE_AT_CELL_BOUNDARIES)
-  {
-    // We move points to the cell interfaces.
-    // They were artificially moved away from the cell interfaces so probing works well.
-    vtkPointSet* points = vtkPointSet::SafeDownCast(prober->GetOutputDataObject(0));
-    auto pointsRange = vtk::DataArrayTupleRange<3>(points->GetPoints()->GetData());
-    using PointRef = decltype(pointsRange)::TupleReferenceType;
-    for (vtkIdType pointId = 1; pointId < pointsRange.size() - 1; pointId += 2)
+    if (samplerCellsIt->GetCellType() == VTK_LINE || samplerCellsIt->GetCellType() == VTK_POLY_LINE)
     {
-      PointRef p1 = pointsRange[pointId];
-      PointRef p2 = pointsRange[pointId + 1];
+      auto polyline = this->CreateSamplingPolyLine(sampler->GetPoints(), samplerCellsIt->GetPointIds(), input, tolerance);
+      if (!polyline)
+      {
+        continue;
+      }
 
-      p1[0] = p2[0] = 0.5 * (p1[0] + p2[0]);
-      p1[1] = p2[1] = 0.5 * (p1[1] + p2[1]);
-      p1[2] = p2[2] = 0.5 * (p1[2] + p2[2]);
+      vtkNew<vtkPProbeFilter> prober;
+      prober->SetController(this->Controller);
+      prober->SetPassPartialArrays(this->PassPartialArrays);
+      prober->SetPassCellArrays(this->PassCellArrays);
+      prober->SetPassPointArrays(this->PassPointArrays);
+      prober->SetPassFieldArrays(this->PassFieldArrays);
+      prober->SetComputeTolerance(false);
+      prober->SetTolerance(0.0);
+      prober->SetSourceData(input);
+      prober->SetFindCellStrategyMap(this->Internal->Strategies);
+      prober->SetInputData(polyline);
+      prober->Update();
+
+      if (this->Controller->GetLocalProcessId() == 0 &&
+        this->SamplingPattern == SAMPLE_LINE_AT_CELL_BOUNDARIES)
+      {
+        // We move points to the cell interfaces.
+        // They were artificially moved away from the cell interfaces so probing works well.
+        // XXX: this actually assume that every cells is next to each other i.e. this is only
+        // valid for 3D ImageData/RectilinearGrid/StructuredGrid.
+        vtkPointSet* pointSet = vtkPointSet::SafeDownCast(prober->GetOutputDataObject(0));
+        auto pointsRange = vtk::DataArrayTupleRange<3>(pointSet->GetPoints()->GetData());
+        using PointRef = decltype(pointsRange)::TupleReferenceType;
+        for (vtkIdType pointId = 1; pointId < pointsRange.size() - 1; pointId += 2)
+        {
+          PointRef p1 = pointsRange[pointId];
+          PointRef p2 = pointsRange[pointId + 1];
+
+          p1[0] = p2[0] = 0.5 * (p1[0] + p2[0]);
+          p1[1] = p2[1] = 0.5 * (p1[1] + p2[1]);
+          p1[2] = p2[2] = 0.5 * (p1[2] + p2[2]);
+        }
+      }
+
+      vtkNew<vtkAppendArcLength> arcs;
+      arcs->SetInputConnection(prober->GetOutputPort());
+      arcs->Update();
+
+      const unsigned int block = output->GetNumberOfBlocks();
+      output->SetNumberOfBlocks(block + 1);
+      output->SetBlock(block, arcs->GetOutputDataObject(0));
     }
-  }
-
-  vtkNew<vtkAppendArcLength> arcs;
-  arcs->SetInputConnection(prober->GetOutputPort());
-  arcs->Update();
-
-  output->ShallowCopy(arcs->GetOutputDataObject(0));
+  } // end for each cell
 
   return 1;
 }
 
 //------------------------------------------------------------------------------
-vtkSmartPointer<vtkPolyData> vtkProbeLineFilter::SampleLineUniformly() const
+vtkSmartPointer<vtkPolyData> vtkProbeLineFilter::CreateSamplingPolyLine(
+  vtkPoints* points, vtkIdList* pointIds, vtkDataObject* input, double tolerance) const
+{
+  auto resPointIds = vtkSmartPointer<vtkIdList>::New();
+  auto resPoints = vtkSmartPointer<vtkPoints>::New();
+  for (vtkIdType i = 0; i < pointIds->GetNumberOfIds() - 1; ++i)
+  {
+    const vtkVector3d p1(points->GetPoint(pointIds->GetId(i)));
+    const vtkVector3d p2(points->GetPoint(pointIds->GetId(i + 1)));
+    vtkSmartPointer<vtkPolyData> tmp;
+    switch (this->SamplingPattern)
+    {
+      case SAMPLE_LINE_AT_CELL_BOUNDARIES:
+      case SAMPLE_LINE_AT_SEGMENT_CENTERS:
+        tmp = this->SampleLineAtEachCell(p1, p2, vtkCompositeDataSet::GetDataSets(input), tolerance);
+        break;
+      case SAMPLE_LINE_UNIFORMLY:
+        tmp = this->SampleLineUniformly(p1, p2);
+        break;
+      default:
+        vtkErrorMacro("Sampling heuristic wrongly set ... abort filter");
+        return nullptr;
+    }
+
+    vtkPoints* tmpPoints = tmp->GetPoints();
+    vtkIdList* tmpPointIds = tmp->GetCell(0)->PointIds;
+    // We should have a single cell containing all points ..
+    // assert for future development insurance
+    assert(tmpPoints->GetNumberOfPoints() == tmpPointIds->GetNumberOfIds());
+
+    // If the pattern is not SAMPLE_LINE_AT_CELL_BOUNDARIES and we already have some
+    // generated probe location, we don't want to duplicate the previous last point with
+    // the current first point, which are at the same position.
+    vtkIdType oldNumberOfElmts = resPoints->GetNumberOfPoints();
+    vtkIdType newNumberOfElmts = oldNumberOfElmts + tmpPoints->GetNumberOfPoints();
+    vtkIdType offset = 0;
+    if (this->SamplingPattern != SAMPLE_LINE_AT_CELL_BOUNDARIES && oldNumberOfElmts != 0)
+    {
+      newNumberOfElmts -= 1;
+      offset = 1;
+    }
+
+    // Merge new points
+    if (!resPoints->Resize(newNumberOfElmts))
+    {
+      vtkErrorMacro("Error during allocation ... abort filter");
+      return nullptr;
+    }
+    resPoints->SetNumberOfPoints(newNumberOfElmts);
+    for (vtkIdType p = offset; p < tmpPoints->GetNumberOfPoints(); ++p)
+    {
+      resPoints->SetPoint(p + oldNumberOfElmts - offset, tmpPoints->GetPoint(p));
+    }
+
+    // Merge point ids
+    if (!resPointIds->Resize(newNumberOfElmts))
+    {
+      vtkErrorMacro("Error during allocation ... abort filter");
+      return nullptr;
+    }
+    resPointIds->SetNumberOfIds(newNumberOfElmts);
+    for (vtkIdType p = offset; p < tmpPointIds->GetNumberOfIds(); ++p)
+    {
+      resPointIds->SetId(p + oldNumberOfElmts - offset, tmpPointIds->GetId(p) + oldNumberOfElmts - offset);
+    }
+  }
+
+  if (resPoints->GetNumberOfPoints() == 0 || resPointIds->GetNumberOfIds() == 0)
+  {
+    return nullptr;
+  }
+
+  auto polyline = vtkSmartPointer<vtkPolyData>::New();
+  polyline->SetPoints(resPoints);
+  if (resPointIds->GetNumberOfIds() > 0)
+  {
+    vtkNew<vtkCellArray> cell;
+    cell->InsertNextCell(resPointIds);
+    polyline->SetLines(cell);
+  }
+
+  return polyline;
+}
+
+//-----------------------------------------------------------------------------
+vtkSmartPointer<vtkPolyData> vtkProbeLineFilter::SampleLineUniformly(const vtkVector3d& p1, const vtkVector3d& p2) const
 {
   vtkNew<vtkLineSource> lineSource;
-  lineSource->SetPoint1(this->Point1);
-  lineSource->SetPoint2(this->Point2);
+  lineSource->SetPoint1(p1.GetData());
+  lineSource->SetPoint2(p2.GetData());
   lineSource->SetResolution(this->LineResolution);
   lineSource->Update();
   return vtkPolyData::SafeDownCast(lineSource->GetOutputDataObject(0));
 }
 
 //------------------------------------------------------------------------------
-vtkSmartPointer<vtkPolyData> vtkProbeLineFilter::SampleLineAtEachCell(
+vtkSmartPointer<vtkPolyData> vtkProbeLineFilter::SampleLineAtEachCell(const vtkVector3d& p1, const vtkVector3d& p2,
   const std::vector<vtkDataSet*>& inputs, const double tolerance) const
 {
-  if (vtkMathUtilities::NearlyEqual(this->Point1[0], this->Point2[0]) &&
-    vtkMathUtilities::NearlyEqual(this->Point1[1], this->Point2[1]) &&
-    vtkMathUtilities::NearlyEqual(this->Point1[2], this->Point2[2]))
+  if (vtkMathUtilities::NearlyEqual(p1[0], p2[0]) &&
+    vtkMathUtilities::NearlyEqual(p1[1], p2[1]) &&
+    vtkMathUtilities::NearlyEqual(p1[2], p2[2]))
   {
     // In this instance, we probe only Point1 and Point2.
     vtkNew<vtkLineSource> line;
-    line->SetPoint1(this->Point1);
-    line->SetPoint2(this->Point2);
+    line->SetPoint1(p1.GetData());
+    line->SetPoint2(p2.GetData());
     line->Update();
     return vtkPolyData::SafeDownCast(line->GetOutputDataObject(0));
   }
 
-  vtkVector3d p1{this->Point1};
-  vtkVector3d p2{this->Point2};
   vtkVector3d v12Epsilon = p2 - p1;
   const double v12NormEpsilon = tolerance / v12Epsilon.Normalize();
   v12Epsilon = v12Epsilon * tolerance;
@@ -391,13 +511,13 @@ vtkSmartPointer<vtkPolyData> vtkProbeLineFilter::SampleLineAtEachCell(
     vtkAbstractCellLocator* locator = strategy->GetCellLocator();
 
     vtkNew<vtkIdList> intersectedIds;
-    locator->FindCellsAlongLine(this->Point1, this->Point2, 0.0, intersectedIds);
+    locator->FindCellsAlongLine(p1.GetData(), p2.GetData(), 0.0, intersectedIds);
 
     // We process p1 and p2 a bit differently so in the case of their intersection with a cell
     // they are not duplicated
-    auto AddLimitPointToIntersections = [&](const vtkVector3d& p1, const vtkVector3d& p2, bool inverse, HitCellInfo& hit)
+    auto AddLimitPointToIntersections = [&](const vtkVector3d& P1, const vtkVector3d& P2, bool inverse, HitCellInfo& hit)
     {
-      auto processed = ::ProcessLimitPoint(p1, p2, this->SamplingPattern, input, locator, tolerance);
+      auto processed = ::ProcessLimitPoint(P1, P2, this->SamplingPattern, input, locator, tolerance);
 
       if (processed.OutT >= 0.0)
       {
@@ -501,7 +621,7 @@ vtkSmartPointer<vtkPolyData> vtkProbeLineFilter::SampleLineAtEachCell(
       }
     });
 
-  auto ReduceLimitPointHit = [&p1Hit, &p2Hit, this](std::vector<HitCellInfo>& inter)
+  auto ReduceLimitPointHit = [&p1Hit, &p2Hit](std::vector<HitCellInfo>& inter)
   {
     HitCellInfo p2InterHit = inter.back();
     inter.pop_back();
@@ -536,7 +656,7 @@ vtkSmartPointer<vtkPolyData> vtkProbeLineFilter::SampleLineAtEachCell(
     const vtkVector3d v12 = p2 - p1;
     if (intersections.empty())
     {
-      coordinates->InsertNextPoint(this->Point1);
+      coordinates->InsertNextPoint(p1.GetData());
       if (p1Hit.CellId != p2Hit.CellId)
       {
         vtkVector3d point = p1 + p1Hit.OutT * v12;
@@ -544,35 +664,41 @@ vtkSmartPointer<vtkPolyData> vtkProbeLineFilter::SampleLineAtEachCell(
         point = p1 + p2Hit.InT * v12;
         coordinates->InsertNextPoint(point.GetData());
       }
-      coordinates->InsertNextPoint(this->Point2);
+      coordinates->InsertNextPoint(p2.GetData());
     }
     else
     {
       vtkIdType numberOfPoints = intersections.size() * 2 + 4;
       coordinates->SetNumberOfPoints(numberOfPoints);
 
-      vtkVector3d point = p1 + p1Hit.OutT * v12;
-      coordinates->SetPoint(0, this->Point1);
-      coordinates->SetPoint(1, point.GetData());
+      if (p1Hit.OutT != 0.0)
+      {
+        vtkVector3d point = p1 + p1Hit.OutT * v12;
+        coordinates->SetPoint(0, p1.GetData());
+        coordinates->SetPoint(1, point.GetData());
+      }
 
       ::PointProjectionBordersWorker worker(p1, p2, intersections, coordinates);
       vtkSMPTools::For(0, intersections.size(), worker);
 
-      point = p1 + p2Hit.InT * v12;
-      coordinates->SetPoint(numberOfPoints - 2, point.GetData());
-      coordinates->SetPoint(numberOfPoints - 1, this->Point2);
+      if (p2Hit.InT != 1.0)
+      {
+        vtkVector3d point = p1 + p2Hit.InT * v12;
+        coordinates->SetPoint(numberOfPoints - 2, point.GetData());
+        coordinates->SetPoint(numberOfPoints - 1, p2.GetData());
+      }
     }
   }
   else // SamplingPattern == SAMPLE_LINE_AT_SEGMENT_CENTERS
   {
     coordinates->SetNumberOfPoints(intersections.size() + 2);
-    coordinates->SetPoint(0, this->Point1);
+    coordinates->SetPoint(0, p1.GetData());
     if (!intersections.empty())
     {
       ::PointProjectionCentersWorker worker(p1, p2, intersections, coordinates);
       vtkSMPTools::For(0, intersections.size(), worker);
     }
-    coordinates->SetPoint(intersections.size() + 1, this->Point2);
+    coordinates->SetPoint(intersections.size() + 1, p2.GetData());
   }
 
   vtkNew<vtkPolyLineSource> polyLine;
@@ -583,11 +709,47 @@ vtkSmartPointer<vtkPolyData> vtkProbeLineFilter::SampleLineAtEachCell(
 }
 
 //------------------------------------------------------------------------------
-int vtkProbeLineFilter::FillInputPortInformation(int, vtkInformation* info)
+int vtkProbeLineFilter::FillInputPortInformation(int port, vtkInformation* info)
 {
-  info->Set(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "vtkDataSet");
-  info->Append(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "vtkCompositeDataSet");
+
+  switch (port)
+  {
+  case 0:
+    info->Set(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "vtkDataSet");
+    info->Append(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "vtkCompositeDataSet");
+    break;
+
+  case 1:
+    info->Set(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "vtkPolyData");
+    info->Append(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "vtkUnstructuredGrid");
+    break;
+
+  default:
+    break;
+  }
+
   return 1;
+}
+
+//------------------------------------------------------------------------------
+int vtkProbeLineFilter::RequestDataObject(vtkInformation* vtkNotUsed(request),
+  vtkInformationVector** vtkNotUsed(inputVector), vtkInformationVector* outputVector)
+{
+  vtkInformation* outInfo = outputVector->GetInformationObject(0);
+  vtkMultiBlockDataSet* output = vtkMultiBlockDataSet::GetData(outInfo);
+  if (!output)
+  {
+    vtkMultiBlockDataSet* newOutput = vtkMultiBlockDataSet::New();
+    outInfo->Set(vtkDataObject::DATA_OBJECT(), newOutput);
+    newOutput->Delete();
+  }
+  return 1;
+}
+
+//------------------------------------------------------------------------------
+void vtkProbeLineFilter::SetSourceConnection(vtkAlgorithmOutput* input)
+{
+  this->SetInputConnection(1, input);
 }
 
 //------------------------------------------------------------------------------
@@ -617,8 +779,4 @@ void vtkProbeLineFilter::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "PassFieldArrays: " << this->PassFieldArrays << endl;
   os << indent << "ComputeTolerance: " << this->ComputeTolerance << endl;
   os << indent << "Tolerance: " << this->Tolerance << endl;
-  os << indent << "Point1 = [" << this->Point1[0] << ", " << this->Point1[1] << ", "
-     << this->Point1[2] << "]" << endl;
-  os << indent << "Point2 = [" << this->Point2[0] << ", " << this->Point2[1] << ", "
-     << this->Point2[2] << "]" << endl;
 }
