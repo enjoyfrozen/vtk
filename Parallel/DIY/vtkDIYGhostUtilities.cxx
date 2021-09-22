@@ -1622,12 +1622,11 @@ struct ReplaceDuplicateByHiddenWorker
 
 //----------------------------------------------------------------------------
 template<class PointSetT>
-vtkAlgorithm* InstantiateInterfaceExtractor(int pointsDataType, PointSetT* input);
+vtkAlgorithm* InstantiateInterfaceExtractor(PointSetT* input);
 
 //----------------------------------------------------------------------------
 template<>
-vtkAlgorithm* InstantiateInterfaceExtractor<vtkUnstructuredGrid>(
-    int vtkNotUsed(pointsDataType), vtkUnstructuredGrid* input)
+vtkAlgorithm* InstantiateInterfaceExtractor<vtkUnstructuredGrid>(vtkUnstructuredGrid* input)
 {
   vtkDataSetSurfaceFilter* extractor = vtkDataSetSurfaceFilter::New();
 
@@ -1680,7 +1679,7 @@ vtkAlgorithm* InstantiateInterfaceExtractor<vtkUnstructuredGrid>(
 
 //----------------------------------------------------------------------------
 template<>
-vtkAlgorithm* InstantiateInterfaceExtractor<vtkPolyData>(int pointsDataType, vtkPolyData* input)
+vtkAlgorithm* InstantiateInterfaceExtractor<vtkPolyData>(vtkPolyData* input)
 {
   vtkFeatureEdges* extractor = vtkFeatureEdges::New();
   extractor->BoundaryEdgesOn();
@@ -1689,19 +1688,6 @@ vtkAlgorithm* InstantiateInterfaceExtractor<vtkPolyData>(int pointsDataType, vtk
   extractor->PassLinesOn();
   extractor->ColoringOff();
   extractor->SetInputData(input);
-
-  switch (pointsDataType)
-  {
-    case VTK_DOUBLE:
-      extractor->SetOutputPointsPrecision(vtkAlgorithm::DOUBLE_PRECISION);
-      break;
-    case VTK_FLOAT:
-      extractor->SetOutputPointsPrecision(vtkAlgorithm::SINGLE_PRECISION);
-      break;
-    default:
-      extractor->SetOutputPointsPrecision(vtkAlgorithm::DEFAULT_PRECISION);
-      break;
-  }
 
   return extractor;
 }
@@ -2042,11 +2028,11 @@ void InitializeInformationIdsForUnstructuredData(vtkPolyData* input, PolyDataInf
 {
   if (input->GetCellGhostArray())
   {
-    vtkIdList* cellIds = info.InputToOutputCellIdRedirectionMap;
-    vtkIdList* vertIds = info.InputToOutputVertCellIdRedirectionMap;
-    vtkIdList* lineIds = info.InputToOutputLineCellIdRedirectionMap;
-    vtkIdList* polyIds = info.InputToOutputPolyCellIdRedirectionMap;
-    vtkIdList* stripIds = info.InputToOutputStripCellIdRedirectionMap;
+    vtkIdList* cellIds = info.OutputToInputCellIdRedirectionMap;
+    vtkIdList* vertIds = info.OutputToInputVertCellIdRedirectionMap;
+    vtkIdList* lineIds = info.OutputToInputLineCellIdRedirectionMap;
+    vtkIdList* polyIds = info.OutputToInputPolyCellIdRedirectionMap;
+    vtkIdList* stripIds = info.OutputToInputStripCellIdRedirectionMap;
 
     vertIds->Allocate(input->GetNumberOfVerts());
     lineIds->Allocate(input->GetNumberOfVerts());
@@ -2186,11 +2172,11 @@ void InitializeInformationIdsForUnstructuredData(vtkUnstructuredGrid* input,
       info.InputConnectivitySize = worker.TotalSize;
     }
 
-    vtkIdTypeArray* faces = input->GetFaces();
+    vtkIdTypeArray* faceLocations = input->GetFaceLocations();
 
-    if (faces)
+    if (faceLocations && faceLocations->GetNumberOfValues() && faces && faces->GetNumberOfValues())
     {
-      ComputeFacesSizeWorker worker(faces, input->GetFaceLocations(), ghosts);
+      ComputeFacesSizeWorker worker(input->GetFaces(), faceLocations, ghosts);
       vtkSMPTools::For(0, numberOfCells, worker);
 
       info.InputFacesSize = worker.TotalSize;
@@ -2227,9 +2213,16 @@ void InitializeBlocksForUnstructuredData(diy::Master& master,
       vtkIdType numberOfInputCells = input->GetNumberOfCells();
 
       // We start by remapping ghost points.
-      vtkSmartPointer<vtkIdList>& pointIdMap = information.InputToOutputPointIdRedirectionMap;
+      vtkSmartPointer<vtkIdList>& pointIdMap = information.OutputToInputPointIdRedirectionMap;
       pointIdMap = vtkSmartPointer<vtkIdList>::New();
       pointIdMap->Allocate(numberOfInputPoints);
+
+      vtkSmartPointer<vtkIdList>& pointIdInverseMap = information.InputToOutputPointIdRedirectionMap;
+      pointIdInverseMap = vtkSmartPointer<vtkIdList>::New();
+      pointIdInverseMap->SetNumberOfIds(numberOfInputPoints);
+      // We set -1 where input id to input id doesn't map anywhere in the output. This happens
+      // for points that are only belonging exclusively to ghost cells.
+      pointIdInverseMap->Fill(-1);
 
       vtkNew<vtkIdList> ids;
       auto ghosts = vtk::DataArrayValueRange<1>(ghostCells);
@@ -2242,6 +2235,7 @@ void InitializeBlocksForUnstructuredData(diy::Master& master,
           // We are adjacent to a non-ghost cell: keep this point
           if (!(ghosts[ids->GetId(id)] & GHOST_CELL_TO_PEEL_IN_UNSTRUCTURED_DATA))
           {
+            pointIdInverseMap->SetId(pointId, pointIdMap->GetNumberOfIds());
             pointIdMap->InsertNextId(pointId);
             break;
           }
@@ -2250,7 +2244,7 @@ void InitializeBlocksForUnstructuredData(diy::Master& master,
 
       information.NumberOfInputPoints = pointIdMap->GetNumberOfIds();
 
-      vtkSmartPointer<vtkIdList>& cellIdMap = information.InputToOutputCellIdRedirectionMap;
+      vtkSmartPointer<vtkIdList>& cellIdMap = information.OutputToInputCellIdRedirectionMap;
       cellIdMap = vtkSmartPointer<vtkIdList>::New();
       cellIdMap->Allocate(numberOfInputCells);
 
@@ -2283,11 +2277,8 @@ void InitializeBlocksForUnstructuredData(diy::Master& master,
     inputWithLocalPointIds->ShallowCopy(input);
     inputWithLocalPointIds->GetPointData()->AddArray(pointIds);
 
-    vtkPoints* inputPoints = input->GetPoints();
-
     information.InterfaceExtractor = vtkSmartPointer<vtkAlgorithm>::Take(
-        InstantiateInterfaceExtractor<PointSetT>(
-          inputPoints ? inputPoints->GetDataType() : VTK_VOID, inputWithLocalPointIds));
+        InstantiateInterfaceExtractor<PointSetT>(inputWithLocalPointIds));
 
     vtkAlgorithm* interfaceFilter = information.InterfaceExtractor;
     interfaceFilter->Update();
@@ -2313,14 +2304,17 @@ void InitializeBlocksForUnstructuredData(diy::Master& master,
  * - The matching point ids in the source that are sorted in the same order as points appear in the
  *   source, in MatchingSourcePointIds
  * - Those same point ids, but sorted in the same order as points appear in the target, in
- *   MatchingReceivedPointIdsSortedLikeTarget.
+ *   RemappedMatchingReceivedPointIdsSortedLikeTarget. If the input had ghosts and points need to be
+ *   remapped from input to output, the remapping is already done in this array, i.e. one can query
+ *   points in the output, but not in the input using this array.
  */
 struct MatchingPointExtractor
 {
   MatchingPointExtractor(vtkIdTypeArray* sourcePointIds, vtkDataSet* surface,
-      vtkDataArray* sourcePoints, vtkIdTypeArray* sourceGlobalPointIds)
+      vtkDataArray* sourcePoints, vtkIdTypeArray* sourceGlobalPointIds, vtkIdList* pointIdMap)
     : SourcePointIds(sourcePointIds)
     , SourcePoints(sourcePoints)
+    , OutputToInputPointIdMap(pointIdMap)
   {
     if (sourceGlobalPointIds)
     {
@@ -2402,12 +2396,23 @@ struct MatchingPointExtractor
       }
     }
 
-    this->MatchingReceivedPointIdsSortedLikeTarget->Allocate(inverseMap.size());
+    this->RemappedMatchingReceivedPointIdsSortedLikeTarget->Allocate(inverseMap.size());
     std::sort(inverseMap.begin(), inverseMap.end());
 
-    for (const vtkIdType& id : inverseMap)
+    if (this->OutputToInputPointIdMap)
     {
-      this->MatchingReceivedPointIdsSortedLikeTarget->InsertNextValue(sourcePointIdsRange[id]);
+      for (const vtkIdType& id : inverseMap)
+      {
+        this->RemappedMatchingReceivedPointIdsSortedLikeTarget->InsertNextValue(
+            this->OutputToInputPointIdMap->GetId(sourcePointIdsRange[id]));
+      }
+    }
+    else
+    {
+      for (const vtkIdType& id : inverseMap)
+      {
+        this->RemappedMatchingReceivedPointIdsSortedLikeTarget->InsertNextValue(sourcePointIdsRange[id]);
+      }
     }
   }
 
@@ -2416,10 +2421,11 @@ struct MatchingPointExtractor
   vtkNew<vtkStaticPointLocator> Locator;
   vtkDataArray* SourcePoints;
   std::unordered_map<vtkIdType, vtkIdType> SourceGlobalPointIds;
+  vtkIdList* OutputToInputPointIdMap;
 
   // Outputs
   vtkIdTypeArray* MatchingSourcePointIds;
-  vtkIdTypeArray* MatchingReceivedPointIdsSortedLikeTarget;
+  vtkIdTypeArray* RemappedMatchingReceivedPointIdsSortedLikeTarget;
 };
 
 //----------------------------------------------------------------------------
@@ -2499,7 +2505,7 @@ struct FillUnstructuredDataTopologyBufferFunctor<InputArrayT, OutputArrayT, vtkU
    *   We tag them with a negative sign and the position of this point in the buffer we already sent
    *   to the block when exchanging interfaces to see who's connected to who. The neighboring block
    *   will use this index to retrieve which point we are talking about (this is retrieved with
-   *   MatchingReceivedPointIdsSortedLikeTarget in MatchingPointExtractor).
+   *   RemappedMatchingReceivedPointIdsSortedLikeTarget in MatchingPointExtractor).
    * - pointIdsToSendWithIndex: Every point ids, besides the one interfacing the current connected
    *   block, that we need to send, with their index in the point buffer we will send.
    */
@@ -2530,7 +2536,7 @@ struct FillUnstructuredDataTopologyBufferFunctor<InputArrayT, OutputArrayT, vtkU
 
     // faces and faceLocations deal with VTK_POLYHEDRON. If there are VTK_POLYHEDRON cells in the
     // input, we instantiate those arrays for our buffers.
-    if (inputFaces)
+    if (inputFaces && inputFaces->GetNumberOfValues())
     {
       buffer.Faces = vtkSmartPointer<vtkIdTypeArray>::New();
       buffer.Faces->SetNumberOfValues(blockStructure.FacesSize);
@@ -2702,7 +2708,7 @@ void UpdateCellBufferSize<vtkUnstructuredGrid>(vtkIdType cellIdToSend,
 
   vtkIdTypeArray* faces = info.Faces;
   vtkIdTypeArray* faceLocations = info.FaceLocations;
-  if (faces && faceLocations->GetValue(cellIdToSend) != -1) // i.e. is polyhedron
+  if (faces && faceLocations && faceLocations->GetValue(cellIdToSend) != -1) // i.e. is polyhedron
   {
     vtkIdType& facesSize = blockStructure.FacesSize;
     vtkIdType locationId = faceLocations->GetValue(cellIdToSend);
@@ -3029,15 +3035,15 @@ LinkMap ComputeLinkMapForUnstructuredData(const diy::Master& master,
 
     MatchingPointExtractor matchingPointExtractor(info.InterfacePointIds,
       vtkDataSet::SafeDownCast(info.InterfaceExtractor->GetOutputDataObject(0)),
-      info.InterfacePoints, globalPointIds);
+      info.InterfacePoints, globalPointIds, info.InputToOutputPointIdRedirectionMap);
 
     for (auto it = blockStructures.begin(); it != blockStructures.end();)
     {
       BlockStructureType& blockStructure = it->second;
       vtkIdTypeArray* matchingReceivedPointIds = blockStructure.MatchingReceivedPointIds;
       matchingPointExtractor.MatchingSourcePointIds = matchingReceivedPointIds;
-      matchingPointExtractor.MatchingReceivedPointIdsSortedLikeTarget =
-        blockStructure.MatchingReceivedPointIdsSortedLikeTarget;
+      matchingPointExtractor.RemappedMatchingReceivedPointIdsSortedLikeTarget =
+        blockStructure.RemappedMatchingReceivedPointIdsSortedLikeTarget;
 
       Dispatcher::Execute(blockStructure.InterfacingPoints->GetData(), matchingPointExtractor,
           blockStructure.InterfacingGlobalPointIds);
@@ -3528,7 +3534,7 @@ void CloneCellData(vtkPointSet* ps, vtkPointSet* clone, UnstructuredDataInformat
   cloneCellData->CopyAllocate(psCellData, clone->GetNumberOfCells());
   cloneCellData->SetNumberOfTuples(clone->GetNumberOfCells());
 
-  if (vtkIdList* redirectionMap = info.InputToOutputCellIdRedirectionMap)
+  if (vtkIdList* redirectionMap = info.OutputToInputCellIdRedirectionMap)
   {
     for (int arrayId = 0; arrayId < cloneCellData->GetNumberOfArrays(); ++arrayId)
     {
@@ -3555,7 +3561,7 @@ void ClonePointData(vtkPointSet* ps, vtkPointSet* clone, UnstructuredDataInforma
   clonePointData->CopyAllocate(psPointData, clone->GetNumberOfPoints());
   clonePointData->SetNumberOfTuples(clone->GetNumberOfPoints());
 
-  if (vtkIdList* redirectionMap = info.InputToOutputPointIdRedirectionMap)
+  if (vtkIdList* redirectionMap = info.OutputToInputPointIdRedirectionMap)
   {
     for (int arrayId = 0; arrayId < clonePointData->GetNumberOfArrays(); ++arrayId)
     {
@@ -3577,7 +3583,7 @@ void ClonePointData(vtkPointSet* ps, vtkPointSet* clone, UnstructuredDataInforma
 //----------------------------------------------------------------------------
 void ClonePoints(vtkPointSet* ps, vtkPointSet* clone, UnstructuredDataInformation& info)
 {
-  if (vtkIdList* redirectionMap = info.InputToOutputPointIdRedirectionMap)
+  if (vtkIdList* redirectionMap = info.OutputToInputPointIdRedirectionMap)
   {
     ps->GetPoints()->GetData()->GetTuples(redirectionMap, clone->GetPoints()->GetData());
   }
@@ -3613,7 +3619,8 @@ struct ArrayFiller
 
 //----------------------------------------------------------------------------
 template<class InputArrayT, class OutputArrayT>
-void DeepCopyCellsImpl(vtkCellArray* inputCells, vtkCellArray* outputCells, vtkIdList* ids)
+void DeepCopyCellsImpl(vtkCellArray* inputCells, vtkCellArray* outputCells,
+    vtkIdList* cellRedirectionMap, vtkIdList* pointRedirectionMap)
 {
   InputArrayT* inputConnectivity = vtkArrayDownCast<InputArrayT>(
       inputCells->GetConnectivityArray());
@@ -3629,9 +3636,10 @@ void DeepCopyCellsImpl(vtkCellArray* inputCells, vtkCellArray* outputCells, vtkI
 
   outputOffsetsRange[0] = 0;
 
-  for (vtkIdType outputCellId = 0; outputCellId < ids->GetNumberOfIds(); ++outputCellId)
+  for (vtkIdType outputCellId = 0; outputCellId < cellRedirectionMap->GetNumberOfIds();
+      ++outputCellId)
   {
-    vtkIdType inputCellId = ids->GetId(outputCellId);
+    vtkIdType inputCellId = cellRedirectionMap->GetId(outputCellId);
     vtkIdType inputOffset = inputOffsetsRange[inputCellId];
     vtkIdType cellSize = inputOffsetsRange[inputCellId + 1] - inputOffset;
     vtkIdType outputOffset = outputOffsetsRange[outputCellId + 1] =
@@ -3641,13 +3649,14 @@ void DeepCopyCellsImpl(vtkCellArray* inputCells, vtkCellArray* outputCells, vtkI
     for (vtkIdType pointId = 0; pointId < cellSize; ++pointId)
     {
       outputConnectivityRange[outputOffset + pointId] =
-        inputConnectivityRange[inputOffset + pointId];
+        pointRedirectionMap->GetId(inputConnectivityRange[inputOffset + pointId]);
     }
   }
 }
 
 //----------------------------------------------------------------------------
-void DeepCopyCells(vtkCellArray* inputCells, vtkCellArray* outputCells, vtkIdList* ids)
+void DeepCopyCells(vtkCellArray* inputCells, vtkCellArray* outputCells,
+    vtkIdList* cellRedirectionMap, vtkIdList* pointRedirectionMap)
 {
   using ArrayType32 = vtkCellArray::ArrayType32;
   using ArrayType64 = vtkCellArray::ArrayType64;
@@ -3656,16 +3665,20 @@ void DeepCopyCells(vtkCellArray* inputCells, vtkCellArray* outputCells, vtkIdLis
   switch(mask)
   {
     case 0:
-      DeepCopyCellsImpl<ArrayType32, ArrayType32>(inputCells, outputCells, ids);
+      DeepCopyCellsImpl<ArrayType32, ArrayType32>(inputCells, outputCells, cellRedirectionMap,
+          pointRedirectionMap);
       break;
     case 1:
-      DeepCopyCellsImpl<ArrayType64, ArrayType32>(inputCells, outputCells, ids);
+      DeepCopyCellsImpl<ArrayType64, ArrayType32>(inputCells, outputCells, cellRedirectionMap,
+          pointRedirectionMap);
       break;
     case 2:
-      DeepCopyCellsImpl<ArrayType32, ArrayType64>(inputCells, outputCells, ids);
+      DeepCopyCellsImpl<ArrayType32, ArrayType64>(inputCells, outputCells, cellRedirectionMap,
+          pointRedirectionMap);
       break;
     case 3:
-      DeepCopyCellsImpl<ArrayType64, ArrayType64>(inputCells, outputCells, ids);
+      DeepCopyCellsImpl<ArrayType64, ArrayType64>(inputCells, outputCells, cellRedirectionMap,
+          pointRedirectionMap);
       break;
   }
 }
@@ -3677,8 +3690,8 @@ void DeepCopyPolyhedrons(vtkUnstructuredGrid* ug, vtkUnstructuredGrid* clone,
   vtkIdTypeArray* ugFaceLocations = ug->GetFaceLocations();
   vtkIdTypeArray* cloneFaceLocations = clone->GetFaceLocations();
 
-  vtkIdList* cellRedirectionMap = info.InputToOutputCellIdRedirectionMap;
-  vtkIdList* pointRedirectionMap = info.InputToOutputPointIdRedirectionMap;
+  vtkIdList* cellRedirectionMap = info.OutputToInputCellIdRedirectionMap;
+  vtkIdList* pointRedirectionMap = info.OutputToInputPointIdRedirectionMap;
 
   ugFaceLocations->GetTuples(cellRedirectionMap, cloneFaceLocations);
 
@@ -3724,12 +3737,14 @@ void CloneUnstructuredGrid(vtkUnstructuredGrid* ug, vtkUnstructuredGrid* clone,
   ClonePoints(ug, clone, info);
   CloneCellData(ug, clone, info);
 
-  if (vtkIdList* redirectionMap = info.InputToOutputCellIdRedirectionMap)
+  if (vtkIdList* redirectionMap = info.OutputToInputCellIdRedirectionMap)
   {
-    DeepCopyCells(ug->GetCells(), clone->GetCells(), redirectionMap);
+    DeepCopyCells(ug->GetCells(), clone->GetCells(), redirectionMap,
+        info.InputToOutputPointIdRedirectionMap);
     ug->GetCellTypesArray()->GetTuples(redirectionMap, clone->GetCellTypesArray());
 
-    if (clone->GetFaces() && ug->GetFaces())
+    vtkIdTypeArray* ugFaceLocations = ug->GetFaceLocations();
+    if (clone->GetFaceLocations() && ugFaceLocations && ugFaceLocations->GetNumberOfValues())
     {
       DeepCopyPolyhedrons(ug, clone, info);
     }
@@ -3746,7 +3761,8 @@ void CloneUnstructuredGrid(vtkUnstructuredGrid* ug, vtkUnstructuredGrid* clone,
     ugOffsets->GetTuples(0, ugOffsets->GetNumberOfTuples() - 1, cloneCellArray->GetOffsetsArray());
     ug->GetCellTypesArray()->GetTuples(0, ug->GetNumberOfCells() - 1, clone->GetCellTypesArray());
 
-    if (clone->GetFaces() && ug->GetFaces())
+    vtkIdTypeArray* ugFaces = ug->GetFaces();
+    if (clone->GetFaces() && ugFaces && ugFaces->GetNumberOfValues())
     {
       ug->GetFaceLocations()->GetTuples(0, ug->GetNumberOfCells() - 1, clone->GetFaceLocations());
       ug->GetFaces()->GetTuples(0, ug->GetFaces()->GetNumberOfValues() - 1, clone->GetFaces());
@@ -3780,30 +3796,30 @@ void ClonePolyData(vtkPolyData* pd, vtkPolyData* clone, PolyDataInformation& inf
   cloneCellData->CopyAllocate(pdCellData, clone->GetNumberOfCells());
   cloneCellData->SetNumberOfTuples(clone->GetNumberOfCells());
 
-  if (info.InputToOutputCellIdRedirectionMap)
+  if (vtkIdList* pointIds = info.InputToOutputPointIdRedirectionMap)
   {
-    vtkIdList* vertIds = info.InputToOutputVertCellIdRedirectionMap;
+    vtkIdList* vertIds = info.OutputToInputVertCellIdRedirectionMap;
     if (vertIds->GetNumberOfIds())
     {
-      DeepCopyCells(pd->GetVerts(), clone->GetVerts(), vertIds);
+      DeepCopyCells(pd->GetVerts(), clone->GetVerts(), vertIds, pointIds);
     }
 
-    vtkIdList* lineIds = info.InputToOutputLineCellIdRedirectionMap;
+    vtkIdList* lineIds = info.OutputToInputLineCellIdRedirectionMap;
     if (lineIds->GetNumberOfIds())
     {
-      DeepCopyCells(pd->GetLines(), clone->GetLines(), lineIds);
+      DeepCopyCells(pd->GetLines(), clone->GetLines(), lineIds, pointIds);
     }
 
-    vtkIdList* polyIds = info.InputToOutputPolyCellIdRedirectionMap;
+    vtkIdList* polyIds = info.OutputToInputPolyCellIdRedirectionMap;
     if (polyIds->GetNumberOfIds())
     {
-      DeepCopyCells(pd->GetPolys(), clone->GetPolys(), polyIds);
+      DeepCopyCells(pd->GetPolys(), clone->GetPolys(), polyIds, pointIds);
     }
 
-    vtkIdList* stripIds = info.InputToOutputStripCellIdRedirectionMap;
+    vtkIdList* stripIds = info.OutputToInputStripCellIdRedirectionMap;
     if (stripIds->GetNumberOfIds())
     {
-      DeepCopyCells(pd->GetStrips(), clone->GetStrips(), stripIds);
+      DeepCopyCells(pd->GetStrips(), clone->GetStrips(), stripIds, pointIds);
     }
 
     vtkNew<vtkIdList> iotaVert;
@@ -3832,7 +3848,7 @@ void ClonePolyData(vtkPolyData* pd, vtkPolyData* clone, PolyDataInformation& inf
     std::iota(iotaCell->begin() + pdStripsOffset,
         iotaCell->begin() + pdStripsOffset + info.NumberOfInputStrips, cloneStripsOffset);
 
-    vtkIdList* cellIds = info.InputToOutputCellIdRedirectionMap;
+    vtkIdList* cellIds = info.OutputToInputCellIdRedirectionMap;
 
     for (int arrayId = 0; arrayId < pdCellData->GetNumberOfArrays(); ++arrayId)
     {
@@ -5170,14 +5186,14 @@ void FillReceivedGhosts(UnstructuredGridBlock* block, int myGid,
       blockStructure.RedirectionMapForDuplicatePointIds);
 
   InsertCells(buffer.CellArray, outputCellArray,
-      blockStructure.MatchingReceivedPointIdsSortedLikeTarget,
+      blockStructure.RemappedMatchingReceivedPointIdsSortedLikeTarget,
       blockStructure.RedirectionMapForDuplicatePointIds, pointIdOffsetIntervals,
       info.CurrentMaxPointId, info.CurrentMaxCellId, info.CurrentConnectivitySize);
 
   if (vtkIdTypeArray* faceLocations = buffer.FaceLocations)
   {
     PolyhedronsInserter inserter(faceLocations, buffer.Faces, outputFaceLocations, outputFaces,
-        blockStructure.MatchingReceivedPointIdsSortedLikeTarget,
+        blockStructure.RemappedMatchingReceivedPointIdsSortedLikeTarget,
         blockStructure.RedirectionMapForDuplicatePointIds, pointIdOffsetIntervals,
         info.CurrentMaxPointId, info.CurrentMaxCellId, info.CurrentFacesSize);
 
@@ -5231,7 +5247,7 @@ void FillReceivedGhosts(PolyDataBlock* block, int myGid,
   if (buffer.Polys->GetOffsetsArray()->GetNumberOfValues())
   {
     InsertCells(buffer.Polys, outputPolys,
-        blockStructure.MatchingReceivedPointIdsSortedLikeTarget,
+        blockStructure.RemappedMatchingReceivedPointIdsSortedLikeTarget,
         blockStructure.RedirectionMapForDuplicatePointIds, pointIdOffsetIntervals,
         info.CurrentMaxPointId, info.CurrentMaxPolyId, info.CurrentPolyConnectivitySize);
   }
@@ -5239,7 +5255,7 @@ void FillReceivedGhosts(PolyDataBlock* block, int myGid,
   if (buffer.Strips->GetOffsetsArray()->GetNumberOfValues())
   {
     InsertCells(buffer.Strips, outputStrips,
-        blockStructure.MatchingReceivedPointIdsSortedLikeTarget,
+        blockStructure.RemappedMatchingReceivedPointIdsSortedLikeTarget,
         blockStructure.RedirectionMapForDuplicatePointIds, pointIdOffsetIntervals,
         info.CurrentMaxPointId, info.CurrentMaxStripId, info.CurrentStripConnectivitySize);
   }
@@ -5247,7 +5263,7 @@ void FillReceivedGhosts(PolyDataBlock* block, int myGid,
   if (buffer.Lines->GetOffsetsArray()->GetNumberOfValues())
   {
     InsertCells(buffer.Lines, outputLines,
-        blockStructure.MatchingReceivedPointIdsSortedLikeTarget,
+        blockStructure.RemappedMatchingReceivedPointIdsSortedLikeTarget,
         blockStructure.RedirectionMapForDuplicatePointIds, pointIdOffsetIntervals,
         info.CurrentMaxPointId, info.CurrentMaxLineId, info.CurrentLineConnectivitySize);
   }
@@ -5470,8 +5486,15 @@ void vtkDIYGhostUtilities::InitializeBlocks(diy::Master& master,
     BlockType* block = master.block<BlockType>(localId);
     typename BlockType::InformationType& information = block->Information;
 
-    information.Faces = input->GetFaces();
-    information.FaceLocations = input->GetFaceLocations();
+    vtkIdTypeArray* faces = input->GetFaces();
+    information.Faces = faces && faces->GetNumberOfValues()
+      ? faces
+      : nullptr;
+
+    vtkIdTypeArray* faceLocations = input->GetFaceLocations();
+    information.FaceLocations = faceLocations && faceLocations->GetNumberOfValues()
+      ? faceLocations
+      : nullptr;
   }
 }
 
