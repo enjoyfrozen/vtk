@@ -106,6 +106,28 @@ void vtkDescriptiveStatistics::Aggregate(
   vtkTable* aggregatedTab = vtkTable::New();
   aggregatedTab->DeepCopy(primaryTab);
 
+  vtkDataArray* aggCardinality =
+    vtkArrayDownCast<vtkDataArray>(aggregatedTab->GetColumnByName("Cardinality"));
+  vtkDataArray* aggMinimum =
+    vtkArrayDownCast<vtkDataArray>(aggregatedTab->GetColumnByName("Minimum"));
+  vtkDataArray* aggMaximum =
+    vtkArrayDownCast<vtkDataArray>(aggregatedTab->GetColumnByName("Maximum"));
+  vtkDataArray* aggMean = vtkArrayDownCast<vtkDataArray>(aggregatedTab->GetColumnByName("Mean"));
+  vtkDataArray* aggM2 = vtkArrayDownCast<vtkDataArray>(aggregatedTab->GetColumnByName("M2"));
+  vtkDataArray* aggM3 = vtkArrayDownCast<vtkDataArray>(aggregatedTab->GetColumnByName("M3"));
+  vtkDataArray* aggM4 = vtkArrayDownCast<vtkDataArray>(aggregatedTab->GetColumnByName("M4"));
+
+  vtkDataArray* primCardinality =
+    vtkArrayDownCast<vtkDataArray>(primaryTab->GetColumnByName("Cardinality"));
+  vtkDataArray* primMinimum =
+    vtkArrayDownCast<vtkDataArray>(primaryTab->GetColumnByName("Minimum"));
+  vtkDataArray* primMaximum =
+    vtkArrayDownCast<vtkDataArray>(primaryTab->GetColumnByName("Maximum"));
+  vtkDataArray* primMean = vtkArrayDownCast<vtkDataArray>(primaryTab->GetColumnByName("Mean"));
+  vtkDataArray* primM2 = vtkArrayDownCast<vtkDataArray>(primaryTab->GetColumnByName("M2"));
+  vtkDataArray* primM3 = vtkArrayDownCast<vtkDataArray>(primaryTab->GetColumnByName("M3"));
+  vtkDataArray* primM4 = vtkArrayDownCast<vtkDataArray>(primaryTab->GetColumnByName("M4"));
+
   // Now, loop over all remaining models and update aggregated each time
   while ((inMetaDO = inMetaColl->GetNextDataObject(it)))
   {
@@ -147,26 +169,29 @@ void vtkDescriptiveStatistics::Aggregate(
         return;
       }
 
+      // It is important for n and n_c to be double, as later on they are multiplied by themselves,
+      // which can produce an overflow if they were integer types.
+
       // Get aggregated statistics
-      int n = aggregatedTab->GetValueByName(r, "Cardinality").ToInt();
-      double min = aggregatedTab->GetValueByName(r, "Minimum").ToDouble();
-      double max = aggregatedTab->GetValueByName(r, "Maximum").ToDouble();
-      double mean = aggregatedTab->GetValueByName(r, "Mean").ToDouble();
-      double M2 = aggregatedTab->GetValueByName(r, "M2").ToDouble();
-      double M3 = aggregatedTab->GetValueByName(r, "M3").ToDouble();
-      double M4 = aggregatedTab->GetValueByName(r, "M4").ToDouble();
+      double n = aggCardinality->GetTuple1(r);
+      double min = aggMinimum->GetTuple1(r);
+      double max = aggMaximum->GetTuple1(r);
+      double mean = aggMean->GetTuple1(r);
+      double M2 = aggM2->GetTuple1(r);
+      double M3 = aggM3->GetTuple1(r);
+      double M4 = aggM4->GetTuple1(r);
 
       // Get current model statistics
-      int n_c = primaryTab->GetValueByName(r, "Cardinality").ToInt();
-      double min_c = primaryTab->GetValueByName(r, "Minimum").ToDouble();
-      double max_c = primaryTab->GetValueByName(r, "Maximum").ToDouble();
-      double mean_c = primaryTab->GetValueByName(r, "Mean").ToDouble();
-      double M2_c = primaryTab->GetValueByName(r, "M2").ToDouble();
-      double M3_c = primaryTab->GetValueByName(r, "M3").ToDouble();
-      double M4_c = primaryTab->GetValueByName(r, "M4").ToDouble();
+      double n_c = primCardinality->GetTuple1(r);
+      double min_c = primMinimum->GetTuple1(r);
+      double max_c = primMaximum->GetTuple1(r);
+      double mean_c = primMean->GetTuple1(r);
+      double M2_c = primM2->GetTuple1(r);
+      double M3_c = primM3->GetTuple1(r);
+      double M4_c = primM4->GetTuple1(r);
 
       // Update global statics
-      int N = n + n_c;
+      double N = n + n_c;
 
       if (min_c < min)
       {
@@ -182,9 +207,9 @@ void vtkDescriptiveStatistics::Aggregate(
       double delta_sur_N = delta / static_cast<double>(N);
       double delta2_sur_N2 = delta_sur_N * delta_sur_N;
 
-      int n2 = n * n;
-      int n_c2 = n_c * n_c;
-      int prod_n = n * n_c;
+      double n2 = n * n;
+      double n_c2 = n_c * n_c;
+      double prod_n = n * n_c;
 
       M4 += M4_c + prod_n * (n2 - prod_n + n_c2) * delta * delta_sur_N * delta2_sur_N2 +
         6. * (n2 * M2_c + n_c2 * M2) * delta2_sur_N2 + 4. * (n * M3_c - n_c * M3) * delta_sur_N;
