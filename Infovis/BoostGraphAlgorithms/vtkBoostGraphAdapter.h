@@ -139,8 +139,7 @@ using ::boost::put;
 #include <boost/config.hpp>
 
 #if defined(__GNUC__) && BOOST_VERSION > 107300 && BOOST_VERSION < 107600
-#pragma warning push
-#pragma warning ignore -Wdeprecated-declarations
+#define BOOST_ALLOW_DEPRECATED_HEADERS
 #endif
 
 #include <boost/graph/adjacency_iterator.hpp>
@@ -149,7 +148,7 @@ using ::boost::put;
 #include <boost/iterator/iterator_facade.hpp>
 
 #if defined(__GNUC__) && BOOST_VERSION > 107300 && BOOST_VERSION < 107600
-#pragma warning pop
+#undef BOOST_ALLOW_DEPRECATED_HEADERS
 #endif
 
 // The functions and classes in this file allows the user to
