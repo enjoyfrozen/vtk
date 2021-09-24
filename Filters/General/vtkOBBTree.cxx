@@ -1046,6 +1046,7 @@ void vtkOBBNode::DebugPrintTree(int level, double* leaf_vol, int* minCells, int*
 //
 void vtkOBBTree::BuildLocator()
 {
+  this->Superclass::BuildLocator();
   vtkIdType numPts, numCells, i;
   vtkIdList* cellList;
 
