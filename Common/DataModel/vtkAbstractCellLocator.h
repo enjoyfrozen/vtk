@@ -40,6 +40,8 @@
 #include "vtkCommonDataModelModule.h" // For export macro
 #include "vtkLocator.h"
 
+#include <vector> // For Weights
+
 class vtkCellArray;
 class vtkGenericCell;
 class vtkIdList;
@@ -237,6 +239,8 @@ public:
   /**
    * Returns the Id of the cell containing the point,
    * returns -1 if no cell found. This interface uses a tolerance of zero
+   *
+   * @warning: This method is not thread safe!
    */
   virtual vtkIdType FindCell(double x[3]);
 
@@ -271,6 +275,12 @@ protected:
   virtual void FreeCellBounds();
   ///@}
 
+  /**
+   * To be called in `FindCell(double[3])`. If need be, the internal `Weights` array size is
+   * updated to be able to host all points of the largest cell of the input data set.
+   */
+  void UpdateInternalWeights();
+
   int NumberOfCellsPerNode;
   vtkTypeBool RetainCellLists;
   vtkTypeBool CacheCellBounds;
@@ -278,6 +288,22 @@ protected:
   vtkTypeBool UseExistingSearchStructure;
   vtkGenericCell* GenericCell;
   double (*CellBounds)[6];
+
+  /**
+   * This time stamp helps us decide if we want to update internal `Weights` array size.
+   */
+  vtkTimeStamp WeightsTime;
+
+  /**
+   * This array is of size 32 by default. It is resized if the input could have polygons and / or
+   * polyhedra.
+   *
+   * In the instance where the input is a `vtkUnstructuredGrid`, `Weights` is always resized,
+   * as there is no fast way to check for polygons like there is in `vtkPolyData`.
+   *
+   * @note Used in `FindCell(double[3])`.
+   */
+  std::vector<double> Weights;
 
 private:
   vtkAbstractCellLocator(const vtkAbstractCellLocator&) = delete;
