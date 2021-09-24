@@ -1395,6 +1395,8 @@ int vtkStaticCellLocator::IntersectWithLine(const double p1[3], const double p2[
 //------------------------------------------------------------------------------
 void vtkStaticCellLocator::BuildLocator()
 {
+  this->Superclass::BuildLocator();
+
   vtkDebugMacro(<< "Building static cell locator");
 
   // Do we need to build?

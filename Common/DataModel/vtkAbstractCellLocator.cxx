@@ -16,13 +16,77 @@
 #include "vtkAbstractCellLocator.h"
 
 #include "vtkCellArray.h"
+#include "vtkDataArray.h"
+#include "vtkDataArrayRange.h"
 #include "vtkDataSet.h"
 #include "vtkGenericCell.h"
 #include "vtkIdList.h"
+#include "vtkIdTypeArray.h"
 #include "vtkMath.h"
 #include "vtkObjectFactory.h"
 #include "vtkPoints.h"
+#include "vtkPolyData.h"
+#include "vtkSMPTools.h"
+#include "vtkUnstructuredGrid.h"
+
+namespace
+{
 //------------------------------------------------------------------------------
+template <class DataSetT>
+vtkDataArray* GetOffsetsArray(DataSetT*);
+
+//------------------------------------------------------------------------------
+template <>
+vtkDataArray* GetOffsetsArray<vtkUnstructuredGrid>(vtkUnstructuredGrid* ug)
+{
+  return ug->GetCells()->GetOffsetsArray();
+}
+
+//------------------------------------------------------------------------------
+template <>
+vtkDataArray* GetOffsetsArray<vtkPolyData>(vtkPolyData* pd)
+{
+  return pd->GetPolys()->GetOffsetsArray();
+}
+
+//==============================================================================
+template <class DataSetT, class ArrayT>
+struct FindCellWithMostPoints
+{
+  FindCellWithMostPoints(DataSetT* ds)
+    : DataSet(ds)
+  {
+  }
+
+  void operator()(vtkIdType startId, vtkIdType endId)
+  {
+    ArrayT* offsets = vtkArrayDownCast<ArrayT>(GetOffsetsArray(this->DataSet));
+    auto offsetsRange = vtk::DataArrayValueRange<1>(offsets);
+    vtkIdType& numberOfPoints = this->NumberOfPoints.Local();
+
+    for (vtkIdType cellId = startId; cellId < endId; ++cellId)
+    {
+      numberOfPoints =
+        std::max<vtkIdType>(offsetsRange[cellId + 1] - offsetsRange[cellId], numberOfPoints);
+    }
+  }
+
+  void Initialize() { this->NumberOfPoints.Local() = 0; }
+
+  void Reduce()
+  {
+    for (vtkIdType numberOfPoints : this->NumberOfPoints)
+    {
+      this->GlobalNumberOfPoints += numberOfPoints;
+    }
+  }
+
+  DataSetT* DataSet;
+  vtkSMPThreadLocal<vtkIdType> NumberOfPoints;
+  vtkIdType GlobalNumberOfPoints = 0;
+};
+} // anonymous namespace
+
 //------------------------------------------------------------------------------
 vtkAbstractCellLocator::vtkAbstractCellLocator()
 {
@@ -35,6 +99,7 @@ vtkAbstractCellLocator::vtkAbstractCellLocator()
   this->UseExistingSearchStructure = 0;
   this->LazyEvaluation = 0;
   this->GenericCell = vtkGenericCell::New();
+  this->Weights.resize(32);
 }
 //------------------------------------------------------------------------------
 vtkAbstractCellLocator::~vtkAbstractCellLocator()
@@ -63,6 +128,54 @@ void vtkAbstractCellLocator::FreeCellBounds()
   delete[] this->CellBounds;
   this->CellBounds = nullptr;
 }
+
+//------------------------------------------------------------------------------
+void vtkAbstractCellLocator::BuildLocator()
+{
+  using ArrayType32 = vtkCellArray::ArrayType32;
+  using ArrayType64 = vtkCellArray::ArrayType64;
+
+  if (auto ug = vtkUnstructuredGrid::SafeDownCast(this->DataSet))
+  {
+    if (vtkCellArray* cells = ug->GetCells())
+    {
+      if (cells->IsStorage64Bit())
+      {
+        FindCellWithMostPoints<vtkUnstructuredGrid, ArrayType64> worker(ug);
+        vtkSMPTools::For(0, ug->GetNumberOfCells(), worker);
+        this->Weights.resize(worker.GlobalNumberOfPoints);
+      }
+      else
+      {
+        FindCellWithMostPoints<vtkUnstructuredGrid, ArrayType32> worker(ug);
+        vtkSMPTools::For(0, ug->GetNumberOfCells(), worker);
+        this->Weights.resize(worker.GlobalNumberOfPoints);
+      }
+    }
+  }
+  if (auto pd = vtkPolyData::SafeDownCast(this->DataSet))
+  {
+    if (pd->GetNumberOfPolys())
+    {
+      if (vtkCellArray* polys = pd->GetPolys())
+      {
+        if (polys->IsStorage64Bit())
+        {
+          FindCellWithMostPoints<vtkPolyData, ArrayType64> worker(pd);
+          vtkSMPTools::For(0, pd->GetNumberOfPolys(), worker);
+          this->Weights.resize(worker.GlobalNumberOfPoints);
+        }
+        else
+        {
+          FindCellWithMostPoints<vtkPolyData, ArrayType32> worker(pd);
+          vtkSMPTools::For(0, pd->GetNumberOfPolys(), worker);
+          this->Weights.resize(worker.GlobalNumberOfPoints);
+        }
+      }
+    }
+  }
+}
+
 //------------------------------------------------------------------------------
 int vtkAbstractCellLocator::IntersectWithLine(const double p1[3], const double p2[3], double tol,
   double& t, double x[3], double pcoords[3], int& subId)
@@ -154,8 +267,8 @@ void vtkAbstractCellLocator::FindCellsAlongLine(const double vtkNotUsed(p1)[3],
 vtkIdType vtkAbstractCellLocator::FindCell(double x[3])
 {
   //
-  double dist2 = 0, pcoords[3], weights[32];
-  return this->FindCell(x, dist2, this->GenericCell, pcoords, weights);
+  double dist2 = 0, pcoords[3];
+  return this->FindCell(x, dist2, this->GenericCell, pcoords, this->Weights.data());
 }
 //------------------------------------------------------------------------------
 vtkIdType vtkAbstractCellLocator::FindCell(

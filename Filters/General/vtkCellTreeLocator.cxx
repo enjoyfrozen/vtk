@@ -607,6 +607,7 @@ void vtkCellTreeLocator::BuildLocatorInternal()
 
 void vtkCellTreeLocator::BuildLocator()
 {
+  this->Superclass::BuildLocator();
   if (this->LazyEvaluation)
   {
     return;

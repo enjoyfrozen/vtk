@@ -145,6 +145,7 @@ extern "C" int _compareMax(const void* pA, const void* B)
 //------------------------------------------------------------------------------
 void vtkModifiedBSPTree::BuildLocator()
 {
+  this->Superclass::BuildLocator();
   if (this->LazyEvaluation)
   {
     return;

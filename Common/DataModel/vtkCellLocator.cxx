@@ -1147,6 +1147,7 @@ vtkIdList* vtkCellLocator::GetCells(int octantId)
 //------------------------------------------------------------------------------
 void vtkCellLocator::BuildLocator()
 {
+  this->Superclass::BuildLocator();
   if (this->LazyEvaluation)
     return;
   this->ForceBuildLocator();
