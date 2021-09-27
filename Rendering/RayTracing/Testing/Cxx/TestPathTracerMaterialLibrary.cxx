@@ -68,13 +68,23 @@ int TestPathTracerMaterialLibrary(int argc, char* argv[])
     return VTK_ERROR;
   }
   cout << "Bumpy has a good texture too." << endl;
-  if (lib->GetTextureName("Bumpy", "map_bump") != "vtk")
+  std::string textureName;
+  lib->GetTextureName("Bumpy", "map_bump", textureName);
+  if (textureName != "vtk")
   {
     cerr << "Problem, expected Bumpy to have a 'map_bump' texture named 'vtk'." << endl;
     return VTK_ERROR;
   }
   cout << "Bumpy has a good texture name too." << endl;
-
+  std::string textureFilename;
+  lib->GetTextureFilename("Bumpy", "map_bump", textureFilename);
+  if (textureFilename != vtkTestUtilities::ExpandDataFileName(argc, argv, "Data/vtk.png"))
+  {
+    cerr << "Problem, expected Bumpy to have a 'map_bump' texture with filename named vtk.png"
+         << endl;
+    return VTK_ERROR;
+  }
+  cout << "Bumpy has a good texture filename too." << endl;
   // read a wavefront mtl file
   const char* materialFile2 =
     vtkTestUtilities::ExpandDataFileName(argc, argv, "Data/ospray_mats.mtl");
@@ -125,13 +135,21 @@ int TestPathTracerMaterialLibrary(int argc, char* argv[])
   }
   cout << "mat2 has a good texture too." << endl;
 
-  if (lib->GetTextureName("mat2", "map_Kd") != "vtk")
+  lib->GetTextureName("mat2", "map_Kd", textureName);
+  if (textureName != "vtk")
   {
     cerr << "Problem, expected mat2 to have a texture named 'vtk'." << endl;
     return VTK_ERROR;
   }
   cout << "mat2 has a good texture name too." << endl;
-
+  lib->GetTextureFilename("mat2", "map_Kd", textureFilename);
+  if (textureFilename != vtkTestUtilities::ExpandDataFileName(argc, argv, "Data/vtk.png"))
+  {
+    cerr << "Problem, expected Bumpy to have a 'map_bump' texture with filename named vtk.png"
+         << endl;
+    return VTK_ERROR;
+  }
+  cout << "mat2 has a good texture filename too." << endl;
   lib->RemoveAllTextures("mat2");
   if (lib->GetTexture("mat2", "map_Kd") != nullptr)
   {

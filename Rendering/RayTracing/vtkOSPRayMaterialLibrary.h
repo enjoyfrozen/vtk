@@ -58,8 +58,18 @@ public:
 
   /**
    * Serialize contents to an in memory buffer.
+   * If writeImageInline, all textures are stored in a XML format.
+   * Else, store the texture using its filename stored in its TextureInfo struct
    */
-  const char* WriteBuffer();
+  const char* WriteBuffer(bool writeImageInline = true);
+
+  /**
+   * Serialize contents to a file specified by \p filename.
+   * If writeImageInline, all textures are stored in a XML format.
+   * Else, store the texture using its filename stored in its TextureInfo struct
+   * Warning: if \p filename exists, its content is discarded.
+   */
+  void WriteFile(const std::string& filename, bool writeImageInline = false);
 
   /**
    * DeSerialize contents from an in memory buffer as ReadFile does from a
@@ -100,9 +110,17 @@ public:
   vtkTexture* GetTexture(const std::string& nickname, const std::string& varname);
 
   /**
-   * Returns the name (and not the shader variable name) associated to a texture
+   * Store in \p textureName the name (and not the shader variable name) associated to a
+   * texture
    */
-  std::string GetTextureName(const std::string& nickname, const std::string& varname);
+  void GetTextureName(
+    const std::string& nickname, const std::string& varname, std::string& textureName);
+
+  /**
+   * Store in \p filename the filename associated (if any)
+   */
+  void GetTextureFilename(
+    const std::string& nickname, const std::string& varname, std::string& filename);
 
   /**
    * Add Material
@@ -123,11 +141,13 @@ public:
    * Given a material @c nickname and a shader variable @c varname, set its data
    * to a specific texture @c tex named @c texturename. If not specified the texture
    * is called "unnamedTexture".
+   * The last parameter, filename, is defaulted to empty. If specified, the absolut path
+   * to find the texture will be stored. Useful when writing the library into a file.
    *
    * Replaces any previous content.
    **/
   void AddTexture(const std::string& nickname, const std::string& varname, vtkTexture* tex,
-    const std::string& texturename = "unnamedTexture");
+    const std::string& texturename = "unnamedTexture", const std::string& filename = "");
 
   /**
    * Remove Texture
@@ -197,6 +217,9 @@ protected:
   bool InternalParse(const char* name, bool IsFile);
   bool InternalParseJSON(const char* name, bool IsFile, std::istream* doc);
   bool InternalParseMTL(const char* name, bool IsFile, std::istream* doc);
+  bool ReadTextureFileOrData(const std::string& texFilenameOrData, bool fromfile,
+    const std::string& parentDir, vtkTexture* textr, std::string& textureName,
+    std::string& textureFilename);
 
 private:
   vtkOSPRayMaterialLibrary(const vtkOSPRayMaterialLibrary&) = delete;
