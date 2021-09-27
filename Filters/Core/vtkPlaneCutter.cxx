@@ -391,15 +391,17 @@ struct PointSetFunctor : public CuttingFunctor
     // Initialize specific cell data
     if (this->Interpolate)
     {
+      vtkCellData* inCD = this->Input->GetCellData();
+
       vtkLocalDataType& localData = this->LocalData.Local();
       vtkPolyData* output = localData.Output;
       vtkCellData* outCD = output->GetCellData();
       localData.NewVertsData = vtkCellData::New();
       localData.NewLinesData = vtkCellData::New();
       localData.NewPolysData = vtkCellData::New();
-      localData.NewVertsData->CopyAllocate(outCD);
-      localData.NewLinesData->CopyAllocate(outCD);
-      localData.NewPolysData->CopyAllocate(outCD);
+      localData.NewVertsData->CopyAllocate(inCD);
+      localData.NewLinesData->CopyAllocate(inCD);
+      localData.NewPolysData->CopyAllocate(inCD);
     }
   }
 
