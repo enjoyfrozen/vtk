@@ -1,0 +1,2 @@
+# proj uses large sql files to build proj.db
+*.sql              hooks.MaxObjectKiB=4096
