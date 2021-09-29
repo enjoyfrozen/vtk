@@ -29,6 +29,7 @@ include/CMakeLists.txt
 include/proj/CMakeLists.txt
 include/proj/*.hpp
 include/proj/internal/*.hpp
+include/proj/internal/vendor/nlohmann/*.hpp
 
 src/CMakeLists.txt
 src/lib_proj.cmake
