@@ -16,9 +16,10 @@
  * @class   vtkPStreamTracer
  * @brief    parallel streamline generators
  *
- * This class implements parallel streamline generators.  Note that all
- * processes must have access to the WHOLE seed source, i.e. the source must
- * be identical on all processes.
+ * This class implements parallel streamline generators. By default this filter
+ * will aggregate seed sources from all ranks into a single dataset. For performance
+ * issue it is still possible to force the filter to use the rank-local seed source
+ * and avoid the aggregation.
  * @sa
  * vtkStreamTracer
  */
@@ -54,6 +55,18 @@ public:
   vtkGetObjectMacro(Controller, vtkMultiProcessController);
   ///@}
 
+  ///@{
+  /**
+   * If true then the filter consider that the whole seed source is available on all ranks.
+   * Else the filter will aggregate all seed sources from all ranks and merge their points.
+   *
+   * Default is false.
+   */
+  vtkSetMacro(UseLocalSeedSource, bool);
+  vtkGetMacro(UseLocalSeedSource, bool);
+  vtkBooleanMacro(UseLocalSeedSource, bool);
+  ///@}
+
   static vtkPStreamTracer* New();
 
 protected:
@@ -69,6 +82,7 @@ protected:
   void SetInterpolator(vtkAbstractInterpolatedVelocityField*);
 
   int EmptyData;
+  bool UseLocalSeedSource = false;
 
 private:
   vtkPStreamTracer(const vtkPStreamTracer&) = delete;
