@@ -140,6 +140,7 @@ using ::boost::put;
 
 #if defined(__GNUC__) && BOOST_VERSION > 107300 && BOOST_VERSION < 107600
 #define BOOST_ALLOW_DEPRECATED_HEADERS
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #endif
 
 #include <boost/graph/adjacency_iterator.hpp>
@@ -149,6 +150,7 @@ using ::boost::put;
 
 #if defined(__GNUC__) && BOOST_VERSION > 107300 && BOOST_VERSION < 107600
 #undef BOOST_ALLOW_DEPRECATED_HEADERS
+#undef BOOST_BIND_GLOBAL_PLACEHOLDERS
 #endif
 
 // The functions and classes in this file allows the user to
