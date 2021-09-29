@@ -7,8 +7,8 @@ shopt -s dotglob
 readonly name="libproj"
 readonly ownership="Proj Upstream <kwrobot@kitware.com>"
 readonly subtree="ThirdParty/$name/vtk$name"
-readonly repo="https://gitlab.kitware.com/third-party/proj.git"
-readonly tag="for/vtk-20210925-8.1.0"
+readonly repo="https://gitlab.kitware.com/danlipsa/proj.git"
+readonly tag="ben-proj-8.1.0"
 readonly paths="
 .gitattributes
 ChangeLog
