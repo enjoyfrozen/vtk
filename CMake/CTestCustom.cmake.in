@@ -202,6 +202,9 @@ if (NOT cdash_show_third_party_warnings)
 
     # Warnings from template instantiations. Remove once cmake/cmake!4766 is releasted.
     "x(memory0|utility)\\([0-9]+\\): warning C4244"
+
+    # Boost graph lib 1.74,75,76 has known deprecated warnings
+    "boost/bind.hpp:.*pragma message: The practice of declaring the Bind placeholders"
   )
 endif ()
 
