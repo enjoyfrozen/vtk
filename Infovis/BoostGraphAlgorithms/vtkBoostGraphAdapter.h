@@ -149,11 +149,6 @@ using ::boost::put;
 #include <boost/graph/properties.hpp>
 #include <boost/iterator/iterator_facade.hpp>
 
-#if BOOST_VERSION > 107300 && BOOST_VERSION < 107600
-#undef BOOST_ALLOW_DEPRECATED_HEADERS
-#undef BOOST_BIND_GLOBAL_PLACEHOLDERS
-#endif
-
 // The functions and classes in this file allows the user to
 // treat a vtkDirectedGraph or vtkUndirectedGraph object
 // as a boost graph "as is".
