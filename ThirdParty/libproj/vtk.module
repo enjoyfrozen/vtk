@@ -4,4 +4,5 @@ LIBRARY_NAME
   vtklibproj
 DEPENDS
   VTK::sqlite
+  VTK::json
 THIRD_PARTY
