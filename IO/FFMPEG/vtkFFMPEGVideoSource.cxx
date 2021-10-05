@@ -159,7 +159,7 @@ vtkFFMPEGVideoSource::~vtkFFMPEGVideoSource()
   this->Stop();
   this->vtkFFMPEGVideoSource::ReleaseSystemResources();
   delete[] this->FileName;
-  delete this->Internal;
+  av_packet_free(&this->Internal->Packet) delete this->Internal;
 }
 
 //------------------------------------------------------------------------------
