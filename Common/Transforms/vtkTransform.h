@@ -207,7 +207,7 @@ public:
    * to make it possible to decompose a transformation into its
    * constituents, for example to save a transformation to a file.
    */
-  vtkLinearTransform* GetConcatenatedTransform(int i)
+  vtkAbstractTransform* GetConcatenatedTransform(int i)
   {
     vtkAbstractTransform* t;
     if (this->Input == nullptr)
@@ -230,7 +230,7 @@ public:
     {
       t = this->Input;
     }
-    return static_cast<vtkLinearTransform*>(t);
+    return t;
   }
   ///@}
 

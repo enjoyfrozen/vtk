@@ -69,7 +69,7 @@ void vtkTransform::PrintSelf(ostream& os, vtkIndent indent)
     int n = this->GetNumberOfConcatenatedTransforms();
     for (int i = 0; i < n; i++)
     {
-      vtkLinearTransform* t = this->GetConcatenatedTransform(i);
+      vtkAbstractTransform* t = this->GetConcatenatedTransform(i);
       os << indent << "    " << i << ": " << t->GetClassName() << " at " << t << "\n";
     }
   }
