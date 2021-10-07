@@ -35,6 +35,7 @@ public:
    */
   static vtkOpenVRControlsHelper* New();
   vtkTypeMacro(vtkOpenVRControlsHelper, vtkVRControlsHelper);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
 protected:
   vtkOpenVRControlsHelper() = default;

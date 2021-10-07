@@ -30,6 +30,7 @@ class VTKRENDERINGOPENVR_EXPORT vtkOpenVRRenderer : public vtkVRRenderer
 public:
   static vtkOpenVRRenderer* New();
   vtkTypeMacro(vtkOpenVRRenderer, vtkVRRenderer);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
    * Create a new Camera suitable for use with this type of Renderer.

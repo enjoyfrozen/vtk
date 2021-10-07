@@ -32,6 +32,10 @@ class VTKRENDERINGVR_EXPORT vtkVRCamera : public vtkOpenGLCamera
 {
 public:
   vtkTypeMacro(vtkVRCamera, vtkOpenGLCamera);
+  void PrintSelf(ostream& os, vtkIndent indent) override
+  {
+    this->Superclass::PrintSelf(os, indent);
+  }
 
   /**
    * Provides a matrix to go from absolute VR tracking coordinates

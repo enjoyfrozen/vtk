@@ -666,3 +666,13 @@ vr::TrackedDevicePose_t* vtkOpenVRRenderWindow::GetTrackedDevicePose(
   }
   return nullptr;
 }
+
+//------------------------------------------------------------------------------
+void vtkOpenVRRenderWindow::PrintSelf(ostream& os, vtkIndent indent)
+{
+  this->Superclass::PrintSelf(os, indent);
+  os << indent << "IsHMDPresent: " << this->IsHMDPresent() << "\n";
+  os << indent << "BaseStationVisibility: " << this->BaseStationVisibility << "\n";
+  os << indent << "DashboardOverlay: \n";
+  this->DashboardOverlay->PrintSelf(os, indent.GetNextIndent());
+}

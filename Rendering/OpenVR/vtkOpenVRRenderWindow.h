@@ -72,6 +72,7 @@ class VTKRENDERINGOPENVR_EXPORT vtkOpenVRRenderWindow : public vtkVRRenderWindow
 public:
   static vtkOpenVRRenderWindow* New();
   vtkTypeMacro(vtkOpenVRRenderWindow, vtkVRRenderWindow);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   void Initialize(void) override;
 

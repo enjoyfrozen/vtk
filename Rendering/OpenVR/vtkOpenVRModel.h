@@ -33,6 +33,7 @@ class VTKRENDERINGOPENVR_EXPORT vtkOpenVRModel : public vtkVRModel
 public:
   static vtkOpenVRModel* New();
   vtkTypeMacro(vtkOpenVRModel, vtkVRModel);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   vr::RenderModel_t* RawModel;
 

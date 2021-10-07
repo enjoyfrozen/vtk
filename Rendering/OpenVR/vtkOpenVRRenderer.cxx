@@ -31,3 +31,9 @@ vtkCamera* vtkOpenVRRenderer::MakeCamera()
   this->InvokeEvent(vtkCommand::CreateCameraEvent, cam);
   return cam;
 }
+
+//------------------------------------------------------------------------------
+void vtkOpenVRRenderer::PrintSelf(ostream& os, vtkIndent indent)
+{
+  this->Superclass::PrintSelf(os, indent);
+}

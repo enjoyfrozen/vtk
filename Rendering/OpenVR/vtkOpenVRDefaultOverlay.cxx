@@ -291,3 +291,9 @@ void vtkOpenVRDefaultOverlay::Render()
 
   this->Superclass::Render();
 }
+
+//------------------------------------------------------------------------------
+void vtkOpenVRDefaultOverlay::PrintSelf(ostream& os, vtkIndent indent)
+{
+  this->Superclass::PrintSelf(os, indent);
+}

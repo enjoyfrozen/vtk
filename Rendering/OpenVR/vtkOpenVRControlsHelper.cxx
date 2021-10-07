@@ -103,3 +103,9 @@ void vtkOpenVRControlsHelper::InitControlPosition()
     }
   }
 }
+
+//------------------------------------------------------------------------------
+void vtkOpenVRControlsHelper::PrintSelf(ostream& os, vtkIndent indent)
+{
+  this->Superclass::PrintSelf(os, indent);
+}

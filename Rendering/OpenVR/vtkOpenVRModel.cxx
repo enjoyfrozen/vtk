@@ -122,3 +122,10 @@ void vtkOpenVRModel::LoadModelAndTexture(vtkOpenGLRenderWindow* win)
     }
   }
 }
+
+//------------------------------------------------------------------------------
+void vtkOpenVRModel::PrintSelf(ostream& os, vtkIndent indent)
+{
+  this->Superclass::PrintSelf(os, indent);
+  os << indent << "RawModel: " << this->RawModel << "\n";
+}
