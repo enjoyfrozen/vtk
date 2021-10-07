@@ -873,8 +873,8 @@ void vtkXMLHyperTreeGridReader::ReadTrees_2(vtkXMLDataElement* element)
     return;
   }
 
-  auto treeIds = vtkSmartPointer<vtkTypeInt64Array>::Take(
-    vtkArrayDownCast<vtkTypeInt64Array>(this->CreateArray(treeIdsElement)));
+  auto treeIds = vtkSmartPointer<vtkLongLongArray>::Take(
+    vtkArrayDownCast<vtkLongLongArray>(this->CreateArray(treeIdsElement)));
   vtkIdType treeIdsSize;
 
   treeIdsElement->GetScalarAttribute("NumberOfTuples", treeIdsSize);
@@ -888,8 +888,8 @@ void vtkXMLHyperTreeGridReader::ReadTrees_2(vtkXMLDataElement* element)
 
   vtkXMLDataElement* depthPerTreeElement =
     treesElement->FindNestedElementWithNameAndAttribute("DataArray", "Name", "DepthPerTree");
-  auto depthPerTree = vtkSmartPointer<vtkTypeUInt32Array>::Take(
-    vtkArrayDownCast<vtkTypeUInt32Array>(this->CreateArray(depthPerTreeElement)));
+  auto depthPerTree = vtkSmartPointer<vtkUnsignedIntArray>::Take(
+    vtkArrayDownCast<vtkUnsignedIntArray>(this->CreateArray(depthPerTreeElement)));
   vtkIdType depthPerTreeSize;
   depthPerTreeElement->GetScalarAttribute("NumberOfTuples", depthPerTreeSize);
   depthPerTree->SetNumberOfValues(depthPerTreeSize);
@@ -904,8 +904,8 @@ void vtkXMLHyperTreeGridReader::ReadTrees_2(vtkXMLDataElement* element)
   vtkXMLDataElement* numberOfVerticesPerDepthElement =
     treesElement->FindNestedElementWithNameAndAttribute(
       "DataArray", "Name", "NumberOfVerticesPerDepth");
-  auto numberOfVerticesPerDepth = vtkSmartPointer<vtkTypeInt64Array>::Take(
-    vtkArrayDownCast<vtkTypeInt64Array>(this->CreateArray(numberOfVerticesPerDepthElement)));
+  auto numberOfVerticesPerDepth = vtkSmartPointer<vtkLongLongArray>::Take(
+    vtkArrayDownCast<vtkLongLongArray>(this->CreateArray(numberOfVerticesPerDepthElement)));
 
   vtkIdType numberOfVerticesPerDepthSize;
   numberOfVerticesPerDepthElement->GetScalarAttribute(
