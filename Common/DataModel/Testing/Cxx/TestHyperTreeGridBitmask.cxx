@@ -102,7 +102,7 @@ int TestUniformHyperTreeOneRootCell()
   //                       0
   return !compareMask(bm, { false });
 }
-void subdivide(vtkHyperTreeGridNonOrientedCursor* cursor, const std::vector<char>& sub)
+void subdivide(vtkHyperTreeGridNonOrientedCursor* cursor, const std::vector<int>& sub)
 {
   for (size_t i = 0; i < sub.size(); ++i)
   {
