@@ -95,7 +95,6 @@ set(classes
   vtkHigherOrderTriangle
   vtkHigherOrderWedge
   vtkHyperTree
-  vtkHyperTreeCursor
   vtkHyperTreeGrid
   vtkHyperTreeGridEntry
   vtkHyperTreeGridGeometryEntry

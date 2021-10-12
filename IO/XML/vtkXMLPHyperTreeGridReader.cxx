@@ -17,7 +17,6 @@
 #include "vtkCallbackCommand.h"
 #include "vtkCellData.h"
 #include "vtkHyperTree.h"
-#include "vtkHyperTreeCursor.h"
 #include "vtkHyperTreeGrid.h"
 #include "vtkHyperTreeGridNonOrientedCursor.h"
 #include "vtkInformation.h"
