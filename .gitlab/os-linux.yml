@@ -47,9 +47,9 @@
 
 .fedora_cuda_addon:
     variables:
-        CUDACC: "/usr/local/cuda-11.2/bin/nvcc"
-        CUDACXX: "/usr/local/cuda-11.2/bin/nvcc"
-        CTEST_MAX_PARALLELISM: 1
+        CUDACC: "/usr/local/cuda-11.4/bin/nvcc"
+        CUDACXX: "/usr/local/cuda-11.4/bin/nvcc"
+        CTEST_MAX_PARALLELISM: 2
 
 .fedora_mpich_addon:
     variables:
