@@ -86,8 +86,8 @@ public:
    */
   void ProbeData(vtkEventDataDevice controller);
   void LoadNextCameraPose();
-  virtual void PositionProp(vtkEventData*, double* lwpos = nullptr, double* lwori = nullptr);
-  virtual void Clip(vtkEventDataDevice3D*);
+  void PositionProp(vtkEventData*, double* lwpos = nullptr, double* lwori = nullptr) override;
+  void Clip(vtkEventDataDevice3D*);
   ///@}
 
   ///@{

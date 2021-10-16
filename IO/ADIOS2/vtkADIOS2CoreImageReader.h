@@ -203,7 +203,7 @@ public:
   /**
    * The main interface which triggers the reader to start
    */
-  virtual int ProcessRequest(
+  int ProcessRequest(
     vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
 protected:
@@ -212,9 +212,9 @@ protected:
 
   int RequestDataObjectInternal(vtkInformationVector*);
 
-  virtual int RequestInformation(
+  int RequestInformation(
     vtkInformation* request, vtkInformationVector** input, vtkInformationVector* output) override;
-  virtual int RequestData(
+  int RequestData(
     vtkInformation* request, vtkInformationVector** input, vtkInformationVector* output) override;
 
   std::string FetchTypeStringFromVarName(const std::string& name);

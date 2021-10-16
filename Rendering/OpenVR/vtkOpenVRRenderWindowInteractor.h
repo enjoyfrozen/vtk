@@ -46,12 +46,12 @@ public:
   static vtkOpenVRRenderWindowInteractor* New();
 
   vtkTypeMacro(vtkOpenVRRenderWindowInteractor, vtkRenderWindowInteractor3D);
-  void PrintSelf(ostream& os, vtkIndent indent);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
    * Initialize the event handler
    */
-  virtual void Initialize();
+  void Initialize() override;
 
   ///@{
   /**
@@ -68,17 +68,17 @@ public:
    * These methods correspond to the Exit, User and Pick
    * callbacks. They allow for the Style to invoke them.
    */
-  virtual void ExitCallback();
+  void ExitCallback() override;
 
   ///@{
   /**
    * Set/Get the optional translation to map world coordinates into the
    * 3D physical space (meters, 0,0,0).
    */
-  virtual void SetPhysicalTranslation(vtkCamera*, double, double, double);
-  virtual double* GetPhysicalTranslation(vtkCamera*);
-  virtual void SetPhysicalScale(double);
-  virtual double GetPhysicalScale();
+  void SetPhysicalTranslation(vtkCamera*, double, double, double) override;
+  double* GetPhysicalTranslation(vtkCamera*) override;
+  void SetPhysicalScale(double) override;
+  double GetPhysicalScale() override;
   ///@}
 
   /**
@@ -173,8 +173,8 @@ protected:
    * Win32-specific internal timer methods. See the superclass for detailed
    * documentation.
    */
-  virtual int InternalCreateTimer(int timerId, int timerType, unsigned long duration);
-  virtual int InternalDestroyTimer(int platformTimerId);
+  int InternalCreateTimer(int timerId, int timerType, unsigned long duration) override;
+  int InternalDestroyTimer(int platformTimerId) override;
   ///@}
 
   /**
@@ -182,7 +182,7 @@ protected:
    * call this method it will loop processing events until the
    * application is exited.
    */
-  virtual void StartEventLoop();
+  void StartEventLoop() override;
 
   /**
    * Handle multitouch events. Multitouch events recognition starts when
