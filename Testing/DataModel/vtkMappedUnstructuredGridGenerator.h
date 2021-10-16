@@ -54,7 +54,7 @@ public:
   static void GenerateUnstructuredGrid(vtkUnstructuredGrid** grid);
 
 protected:
-  vtkMappedUnstructuredGridGenerator() {}
+  vtkMappedUnstructuredGridGenerator() = default;
   vtkMappedUnstructuredGridGenerator(const vtkMappedUnstructuredGridGenerator&) = delete;
 
   void operator=(const vtkMappedUnstructuredGridGenerator&) = delete;
