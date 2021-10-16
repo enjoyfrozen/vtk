@@ -97,7 +97,6 @@ private:
   vtkProp* ViewProp;    // reference to vtkProp
   vtkMatrix4x4* Matrix; // associated matrix
 
-private:
   void operator=(const vtkAssemblyNode&) = delete;
   vtkAssemblyNode(const vtkAssemblyNode&) = delete;
 };

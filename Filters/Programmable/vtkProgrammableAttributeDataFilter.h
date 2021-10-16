@@ -145,7 +145,6 @@ private:
     vtkErrorMacro(<< "AddInput() must be called with a vtkDataSet not a vtkDataObject.");
   }
 
-private:
   vtkProgrammableAttributeDataFilter(const vtkProgrammableAttributeDataFilter&) = delete;
   void operator=(const vtkProgrammableAttributeDataFilter&) = delete;
 };
