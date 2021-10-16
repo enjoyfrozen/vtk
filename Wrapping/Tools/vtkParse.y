@@ -149,7 +149,7 @@ enum
   }
 
 /* the tokenizer */
-int yylex(void);
+int yylex();
 
 /* global variables */
 FileInfo* data = NULL;
@@ -203,18 +203,18 @@ void print_parser_error(const char* text, const char* cp, size_t n);
 /* helper functions */
 static const char* type_class(unsigned int type, const char* classname);
 static void start_class(const char* classname, int is_struct_or_union);
-static void end_class(void);
+static void end_class();
 static void add_base_class(ClassInfo* cls, const char* name, int access_lev, unsigned int extra);
-static void output_friend_function(void);
-static void output_function(void);
-static void reject_function(void);
+static void output_friend_function();
+static void output_function();
+static void reject_function();
 static void set_return(
   FunctionInfo* func, unsigned int attributes, unsigned int type, const char* typeclass, int count);
 static void add_template_parameter(unsigned int datatype, unsigned int extra, const char* funcSig);
 static void add_using(const char* name, int is_namespace);
 static void start_enum(const char* name, int is_scoped, unsigned int type, const char* basename);
 static void add_enum(const char* name, const char* value);
-static void end_enum(void);
+static void end_enum();
 static unsigned int guess_constant_type(const char* valstring);
 static void add_constant(const char* name, const char* value, unsigned int attributes,
   unsigned int type, const char* typeclass, int flag);
@@ -386,10 +386,10 @@ struct DoxygenCommandInfo doxygenCommands[] = {
 };
 /* clang-format on */
 
-void closeComment(void);
+void closeComment();
 
 /* Clear the comment buffer */
-void clearComment(void)
+void clearComment()
 {
   commentLength = 0;
   if (commentText)
@@ -418,7 +418,7 @@ void setCommentState(int state)
 }
 
 /* Get the text from the comment buffer */
-static const char* getComment(void)
+static const char* getComment()
 {
   const char* text = commentText;
   const char* cp = commentText;
@@ -576,7 +576,7 @@ void addCommentLine(const char* line, size_t n, int type)
 }
 
 /* Store a doxygen comment */
-static void storeComment(void)
+static void storeComment()
 {
   CommentInfo* info = (CommentInfo*)malloc(sizeof(CommentInfo));
   vtkParse_InitComment(info);
@@ -651,7 +651,7 @@ static void applyComment(ClassInfo* cls)
 }
 
 /* This is called when a comment block ends */
-void closeComment(void)
+void closeComment()
 {
   const char* cp;
   size_t l;
@@ -716,7 +716,7 @@ void closeComment(void)
 }
 
 /* This is called when a blank line occurs in the header file */
-void commentBreak(void)
+void commentBreak()
 {
   if (!commentMemberGroup && commentState == StickyComment)
   {
@@ -862,7 +862,7 @@ const char* macroName = NULL;
 int macroUsed = 0;
 int macroEnded = 0;
 
-static const char* getMacro(void)
+static const char* getMacro()
 {
   if (macroUsed == 0)
   {
@@ -910,7 +910,7 @@ static void pushNamespace(const char* name)
 }
 
 /* leave the namespace */
-static void popNamespace(void)
+static void popNamespace()
 {
   currentNamespace = namespaceStack[--namespaceDepth];
 }
@@ -927,14 +927,14 @@ parse_access_t classAccessStack[10];
 int classDepth = 0;
 
 /* start an internal class definition */
-static void pushClass(void)
+static void pushClass()
 {
   classAccessStack[classDepth] = access_level;
   classStack[classDepth++] = currentClass;
 }
 
 /* leave the internal class */
-static void popClass(void)
+static void popClass()
 {
   currentClass = classStack[--classDepth];
   access_level = classAccessStack[classDepth];
@@ -951,14 +951,14 @@ TemplateInfo* templateStack[10];
 int templateDepth = 0;
 
 /* begin a template */
-static void startTemplate(void)
+static void startTemplate()
 {
   currentTemplate = (TemplateInfo*)malloc(sizeof(TemplateInfo));
   vtkParse_InitTemplate(currentTemplate);
 }
 
 /* clear a template, if set */
-static void clearTemplate(void)
+static void clearTemplate()
 {
   if (currentTemplate)
   {
@@ -968,14 +968,14 @@ static void clearTemplate(void)
 }
 
 /* push the template onto the stack, and start a new one */
-static void pushTemplate(void)
+static void pushTemplate()
 {
   templateStack[templateDepth++] = currentTemplate;
   startTemplate();
 }
 
 /* pop a template off the stack */
-static void popTemplate(void)
+static void popTemplate()
 {
   currentTemplate = templateStack[--templateDepth];
 }
@@ -995,7 +995,7 @@ int sigMarkDepth = 0;
 char* signature = NULL;
 
 /* start a new signature */
-static void startSig(void)
+static void startSig()
 {
   signature = NULL;
   sigLength = 0;
@@ -1006,13 +1006,13 @@ static void startSig(void)
 }
 
 /* get the signature */
-static const char* getSig(void)
+static const char* getSig()
 {
   return signature;
 }
 
 /* get the signature length */
-static size_t getSigLength(void)
+static size_t getSigLength()
 {
   return sigLength;
 }
@@ -1040,13 +1040,13 @@ static void checkSigSize(size_t n)
 }
 
 /* close the signature, i.e. allow no more additions to it */
-static void closeSig(void)
+static void closeSig()
 {
   sigClosed = 1;
 }
 
 /* re-open the signature */
-static void openSig(void)
+static void openSig()
 {
   sigClosed = 0;
 }
@@ -1067,7 +1067,7 @@ static void postSig(const char* arg)
 }
 
 /* set a mark in the signature for later operations */
-static void markSig(void)
+static void markSig()
 {
   sigMark[sigMarkDepth] = 0;
   if (signature)
@@ -1078,7 +1078,7 @@ static void markSig(void)
 }
 
 /* get the contents of the sig from the mark, and clear the mark */
-static const char* copySig(void)
+static const char* copySig()
 {
   const char* cp = NULL;
   if (sigMarkDepth > 0)
@@ -1093,7 +1093,7 @@ static const char* copySig(void)
 }
 
 /* cut the sig from the mark to the current location, and clear the mark */
-static const char* cutSig(void)
+static const char* cutSig()
 {
   const char* cp = NULL;
   if (sigMarkDepth > 0)
@@ -1110,7 +1110,7 @@ static const char* cutSig(void)
 }
 
 /* chop the last space from the signature */
-static void chopSig(void)
+static void chopSig()
 {
   if (signature)
   {
@@ -1171,21 +1171,21 @@ unsigned int attributeStack[10];
 int typeDepth = 0;
 
 /* save the type on the stack */
-static void pushType(void)
+static void pushType()
 {
   attributeStack[typeDepth] = declAttributes;
   typeStack[typeDepth++] = storedType;
 }
 
 /* pop the type stack */
-static void popType(void)
+static void popType()
 {
   storedType = typeStack[--typeDepth];
   declAttributes = attributeStack[typeDepth];
 }
 
 /* clear the storage type */
-static void clearType(void)
+static void clearType()
 {
   storedType = 0;
   declAttributes = 0;
@@ -1213,7 +1213,7 @@ static void setTypePtr(unsigned int ind)
 }
 
 /* retrieve the storage type */
-static unsigned int getType(void)
+static unsigned int getType()
 {
   return storedType;
 }
@@ -1305,7 +1305,7 @@ static void addAttribute(unsigned int flags)
 }
 
 /* check if an attribute is set for the current declaration */
-static int getAttributes(void)
+static int getAttributes()
 {
   return declAttributes;
 }
@@ -1319,7 +1319,7 @@ int numberOfDimensions = 0;
 const char** arrayDimensions = NULL;
 
 /* clear the array counter */
-static void clearArray(void)
+static void clearArray()
 {
   numberOfDimensions = 0;
   arrayDimensions = NULL;
@@ -1347,13 +1347,13 @@ static void pushArrayFront(const char* size)
 }
 
 /* get the number of dimensions */
-static int getArrayNDims(void)
+static int getArrayNDims()
 {
   return numberOfDimensions;
 }
 
 /* get the whole array */
-static const char** getArray(void)
+static const char** getArray()
 {
   if (numberOfDimensions > 0)
   {
@@ -1372,7 +1372,7 @@ const char* currentVarValue = 0;
 const char* currentId = 0;
 
 /* clear the var Id */
-static void clearVarName(void)
+static void clearVarName()
 {
   currentVarName = NULL;
 }
@@ -1384,7 +1384,7 @@ static void setVarName(const char* text)
 }
 
 /* return the var id */
-static const char* getVarName(void)
+static const char* getVarName()
 {
   return currentVarName;
 }
@@ -1392,7 +1392,7 @@ static const char* getVarName(void)
 /* variable value -------------- */
 
 /* clear the var value */
-static void clearVarValue(void)
+static void clearVarValue()
 {
   currentVarValue = NULL;
 }
@@ -1404,7 +1404,7 @@ static void setVarValue(const char* text)
 }
 
 /* return the var value */
-static const char* getVarValue(void)
+static const char* getVarValue()
 {
   return currentVarValue;
 }
@@ -1412,7 +1412,7 @@ static const char* getVarValue(void)
 /* variable type -------------- */
 
 /* clear the current Id */
-static void clearTypeId(void)
+static void clearTypeId()
 {
   currentId = NULL;
 }
@@ -1439,7 +1439,7 @@ static void typeSig(const char* text)
 }
 
 /* return the current Id */
-static const char* getTypeId(void)
+static const char* getTypeId()
 {
   return currentId;
 }
@@ -1467,7 +1467,7 @@ static void scopeSig(const char* scope)
 }
 
 /* get the scope back */
-static const char* getScope(void)
+static const char* getScope()
 {
   return pointerScopeStack[--pointerScopeDepth];
 }
@@ -1484,7 +1484,7 @@ const char* functionVarNameStack[10];
 const char* functionTypeIdStack[10];
 int functionDepth = 0;
 
-static void pushFunction(void)
+static void pushFunction()
 {
   functionStack[functionDepth] = currentFunction;
   currentFunction = (FunctionInfo*)malloc(sizeof(FunctionInfo));
@@ -1503,7 +1503,7 @@ static void pushFunction(void)
   functionStack[functionDepth] = 0;
 }
 
-static void popFunction(void)
+static void popFunction()
 {
   FunctionInfo* newFunction = currentFunction;
 
@@ -1524,7 +1524,7 @@ static void popFunction(void)
   functionStack[functionDepth + 1] = newFunction;
 }
 
-static FunctionInfo* getFunction(void)
+static FunctionInfo* getFunction()
 {
   return functionStack[functionDepth + 1];
 }
@@ -1543,13 +1543,13 @@ static void setAttributeRole(int x)
 }
 
 /* Get the current kind of attribute */
-static int getAttributeRole(void)
+static int getAttributeRole()
 {
   return attributeRole;
 }
 
 /* Ignore attributes until further notice */
-static void clearAttributeRole(void)
+static void clearAttributeRole()
 {
   attributeRole = 0;
 }
@@ -1561,7 +1561,7 @@ static void setAttributePrefix(const char* x)
 }
 
 /* Get the "using" prefix for attributes */
-static const char* getAttributePrefix(void)
+static const char* getAttributePrefix()
 {
   return attributePrefix;
 }
@@ -3624,7 +3624,7 @@ static void start_class(const char* classname, int is_struct_or_union)
 }
 
 /* reached the end of a class definition */
-static void end_class(void)
+static void end_class()
 {
   /* add default constructors */
   vtkParse_AddDefaultConstructors(currentClass, data->Strings);
@@ -3741,7 +3741,7 @@ static void start_enum(const char* name, int is_scoped, unsigned int type, const
 }
 
 /* finish the enum */
-static void end_enum(void)
+static void end_enum()
 {
   if (currentClass && currentClass->ItemType == VTK_ENUM_INFO)
   {
@@ -4495,7 +4495,7 @@ static void add_legacy_parameter(FunctionInfo* func, ValueInfo* param)
 }
 
 /* reject the function, do not output it */
-static void reject_function(void)
+static void reject_function()
 {
   vtkParse_FreeFunction(currentFunction);
   currentFunction = (FunctionInfo*)malloc(sizeof(FunctionInfo));
@@ -4505,7 +4505,7 @@ static void reject_function(void)
 }
 
 /* a simple routine that updates a few variables */
-static void output_function(void)
+static void output_function()
 {
   size_t n;
   int i, j;
@@ -4732,7 +4732,7 @@ static void output_function(void)
 }
 
 /* output a function that is not a method of the current class */
-static void output_friend_function(void)
+static void output_friend_function()
 {
   ClassInfo* tmpc = currentClass;
   currentClass = NULL;
@@ -5044,7 +5044,7 @@ int vtkParse_ReadHints(FileInfo* file_info, FILE* hfile, FILE* errfile)
 }
 
 /* Free any caches or buffers, call just before program exits */
-void vtkParse_FinalCleanup(void)
+void vtkParse_FinalCleanup()
 {
   vtkParse_FreeFileCache(&system_cache);
   vtkParse_FreeStringCache(&system_strings);
