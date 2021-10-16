@@ -177,24 +177,24 @@ public:
   /**
    * Add a renderer to the list of renderers.
    */
-  virtual void AddRenderer(vtkRenderer*) override;
+  void AddRenderer(vtkRenderer*) override;
 
   /**
    * Begin the rendering process.
    */
-  virtual void Start() override;
+  void Start() override;
 
   /**
    * Initialize the rendering window.
    */
-  virtual void Initialize() override;
+  void Initialize() override;
 
   /**
    * Finalize the rendering window.  This will shutdown all system-specific
    * resources.  After having called this, it should be possible to destroy
    * a window that was used for a SetWindowId() call without any ill effects.
    */
-  virtual void Finalize() override;
+  void Finalize() override;
 
   /**
    * Make this windows OpenGL context the current context.
@@ -209,7 +209,7 @@ public:
   /**
    * Tells if this window is the current OpenGL context for the calling thread.
    */
-  virtual bool IsCurrent() override;
+  bool IsCurrent() override;
 
   /**
    * Get report of capabilities for the render window
@@ -226,12 +226,12 @@ public:
    * All other events are ignored by this method.
    * Maybe should return 1 always?
    */
-  virtual vtkTypeBool GetEventPending() override { return 0; }
+  vtkTypeBool GetEventPending() override { return 0; }
 
   /**
    * Get the current size of the screen in pixels.
    */
-  virtual int* GetScreenSize() override;
+  int* GetScreenSize() override;
 
   ///@{
   /**
@@ -246,34 +246,22 @@ public:
   ///@}
 
   // implement required virtual functions
-  virtual void* GetGenericDisplayId() override
-  {
-    return (void*)this->HelperWindow->GetGenericDisplayId();
-  }
-  virtual void* GetGenericWindowId() override
-  {
-    return (void*)this->HelperWindow->GetGenericWindowId();
-  }
-  virtual void* GetGenericParentId() override { return (void*)nullptr; }
-  virtual void* GetGenericContext() override
-  {
-    return (void*)this->HelperWindow->GetGenericContext();
-  }
-  virtual void* GetGenericDrawable() override
-  {
-    return (void*)this->HelperWindow->GetGenericDrawable();
-  }
+  void* GetGenericDisplayId() override { return (void*)this->HelperWindow->GetGenericDisplayId(); }
+  void* GetGenericWindowId() override { return (void*)this->HelperWindow->GetGenericWindowId(); }
+  void* GetGenericParentId() override { return (void*)nullptr; }
+  void* GetGenericContext() override { return (void*)this->HelperWindow->GetGenericContext(); }
+  void* GetGenericDrawable() override { return (void*)this->HelperWindow->GetGenericDrawable(); }
 
   /**
    * Does this render window support OpenGL? 0-false, 1-true
    */
-  virtual int SupportsOpenGL() override { return 1; }
+  int SupportsOpenGL() override { return 1; }
 
   /**
    * Overridden to not release resources that would interfere with an external
    * application's rendering. Avoiding round trip.
    */
-  virtual void Render() override;
+  void Render() override;
 
   /**
    * Set/Get the window to use for the openGL context
@@ -319,8 +307,8 @@ protected:
   vtkVRRenderWindow();
   ~vtkVRRenderWindow() override;
 
-  virtual void CreateAWindow() override {}
-  virtual void DestroyWindow() override {}
+  void CreateAWindow() override {}
+  void DestroyWindow() override {}
 
   /**
    * Attempt to get the size of the display from the API
