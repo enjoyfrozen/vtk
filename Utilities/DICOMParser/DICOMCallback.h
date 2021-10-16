@@ -43,7 +43,7 @@
 class DICOM_EXPORT DICOMCallback
 {
 public:
-  virtual ~DICOMCallback() {}
+  virtual ~DICOMCallback() = default;
   virtual void Execute(DICOMParser* parser, doublebyte group, doublebyte element,
     DICOMParser::VRTypes type, unsigned char* val, quadbyte len) = 0;
 };
