@@ -458,7 +458,7 @@ public:
     std::string Backend = vtk::detail::smp::vtkSMPToolsAPI::GetInstance().GetBackend();
     bool NestedParallelism = true;
 
-    Config() {}
+    Config() = default;
     Config(int maxNumberOfThreads)
       : MaxNumberOfThreads(maxNumberOfThreads)
     {

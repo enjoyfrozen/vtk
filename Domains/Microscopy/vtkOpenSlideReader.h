@@ -65,7 +65,7 @@ public:
   const char* GetDescriptiveName() override { return "Openslide::WholeSlideImage"; }
 
 protected:
-  vtkOpenSlideReader() {}
+  vtkOpenSlideReader() = default;
   ~vtkOpenSlideReader() override;
   ///@}
 
