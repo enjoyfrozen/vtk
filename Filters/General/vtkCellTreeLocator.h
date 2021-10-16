@@ -149,7 +149,6 @@ public:
     friend class vtkCellTreeBuilder;
     ///@}
 
-  public:
     float DataBBox[6]; // This store the bounding values of the dataset
   };
 

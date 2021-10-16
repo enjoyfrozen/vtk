@@ -166,7 +166,6 @@ private:
     std::deque<std::deque<vtkPixelExtent>>& guardExts,
     std::deque<std::deque<vtkPixelExtent>>& disjointGuardExts, float* vectors);
 
-private:
   vtkPPainterCommunicator* PainterComm; // mpi state
   vtkPPixelExtentOps* PixelOps;
   int CommRank;
