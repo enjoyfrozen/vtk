@@ -36,7 +36,6 @@ public:
   int MinorVersion;
   int FixedLengthFlag;
 
-public:
   vtkSegYBinaryHeaderBytesPositions() { initDefaultValues(); }
 
 private:

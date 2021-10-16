@@ -218,7 +218,6 @@ private:
   void Initialize();
   int PlaceAxes(vtkViewport* viewport, const int* size);
 
-private:
   vtkParallelCoordinatesActor(const vtkParallelCoordinatesActor&) = delete;
   void operator=(const vtkParallelCoordinatesActor&) = delete;
 };
