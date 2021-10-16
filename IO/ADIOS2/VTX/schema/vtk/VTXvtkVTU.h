@@ -41,7 +41,7 @@ class VTXvtkVTU : public VTXvtkBase
 {
 public:
   VTXvtkVTU(const std::string& schema, adios2::IO& io, adios2::Engine& engine);
-  ~VTXvtkVTU();
+  ~VTXvtkVTU() override;
 
 private:
   /** Could be extended in a container, this is a per-rank ImageData */

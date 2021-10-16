@@ -148,7 +148,7 @@ public:
 
 protected:
   vtkStructuredImplicitConnectivity();
-  virtual ~vtkStructuredImplicitConnectivity();
+  ~vtkStructuredImplicitConnectivity() override;
 
   vtkMPIController* Controller;
 
