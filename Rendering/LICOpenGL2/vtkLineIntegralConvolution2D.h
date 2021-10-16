@@ -393,7 +393,6 @@ protected:
   virtual void StartTimerEvent(const char*) {}
   virtual void EndTimerEvent(const char*) {}
 
-protected:
   vtkWeakPointer<vtkOpenGLRenderWindow> Context;
   vtkOpenGLFramebufferObject* FBO;
 

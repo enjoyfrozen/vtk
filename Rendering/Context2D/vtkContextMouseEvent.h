@@ -154,7 +154,6 @@ protected:
    */
   int Button;
 
-protected:
   vtkRenderWindowInteractor* Interactor;
 };
 
