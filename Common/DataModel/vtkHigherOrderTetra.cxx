@@ -872,7 +872,7 @@ vtkIdType vtkHigherOrderTetra::ComputeOrder()
   return vtkHigherOrderTetra::ComputeOrder(this->Points->GetNumberOfPoints());
 }
 
-vtkIdType vtkHigherOrderTetra::ComputeOrder(const vtkIdType nPoints)
+vtkIdType vtkHigherOrderTetra::ComputeOrder(vtkIdType nPoints)
 {
   switch (nPoints)
   {

@@ -814,7 +814,7 @@ struct Isort : public std::binary_function<Intersection, Intersection, bool>
 };
 //------------------------------------------------------------------------------
 int vtkModifiedBSPTree::IntersectWithLine(
-  const double p1[3], const double p2[3], const double tol, vtkPoints* points, vtkIdList* cellIds)
+  const double p1[3], const double p2[3], double tol, vtkPoints* points, vtkIdList* cellIds)
 {
   //
   BSPNode *node, *Near, *Mid, *Far;
@@ -997,7 +997,7 @@ int vtkModifiedBSPTree::IntersectWithLine(
 }
 //------------------------------------------------------------------------------
 int vtkModifiedBSPTree::IntersectCellInternal(vtkIdType cell_ID, const double p1[3],
-  const double p2[3], const double tol, double& t, double ipt[3], double pcoords[3], int& subId)
+  const double p2[3], double tol, double& t, double ipt[3], double pcoords[3], int& subId)
 {
   this->DataSet->GetCell(cell_ID, this->GenericCell);
   return this->GenericCell->IntersectWithLine(

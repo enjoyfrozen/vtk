@@ -883,7 +883,7 @@ bool vtkAMRInformation::GetOrigin(unsigned int level, unsigned int id, double* o
   return true;
 }
 
-void vtkAMRInformation::UpdateBounds(const int level, const int id)
+void vtkAMRInformation::UpdateBounds(int level, int id)
 {
   double bb[6];
   vtkAMRBox::GetBounds(

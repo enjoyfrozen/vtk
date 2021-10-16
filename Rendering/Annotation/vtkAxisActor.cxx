@@ -2249,7 +2249,7 @@ double vtkAxisActor::ComputeTitleLength(const double vtkNotUsed(center)[3])
 }
 
 //-----------------------------------------------------------------------------**
-void vtkAxisActor::SetLabelScale(const double s)
+void vtkAxisActor::SetLabelScale(double s)
 {
   for (int i = 0; i < this->NumberOfLabelsBuilt; i++)
   {
@@ -2258,14 +2258,14 @@ void vtkAxisActor::SetLabelScale(const double s)
 }
 
 //-----------------------------------------------------------------------------**
-void vtkAxisActor::SetLabelScale(int label, const double s)
+void vtkAxisActor::SetLabelScale(int label, double s)
 {
   this->LabelActors[label]->SetScale(s);
   this->LabelProps3D[label]->SetScale(s);
 }
 
 //-----------------------------------------------------------------------------**
-void vtkAxisActor::SetTitleScale(const double s)
+void vtkAxisActor::SetTitleScale(double s)
 {
   this->TitleActor->SetScale(s);
   this->TitleProp3D->SetScale(s);

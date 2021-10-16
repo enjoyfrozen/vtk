@@ -29,7 +29,7 @@
 #include "vtkPolyData.h"
 #include "vtkSmartPointer.h"
 
-bool vtkGraphWeightFilter::CheckRequirements(vtkGraph* const vtkNotUsed(graph)) const
+bool vtkGraphWeightFilter::CheckRequirements(vtkGraph* vtkNotUsed(graph)) const
 {
   return true;
 }

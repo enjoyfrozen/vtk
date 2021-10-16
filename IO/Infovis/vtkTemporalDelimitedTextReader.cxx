@@ -35,7 +35,7 @@ vtkTemporalDelimitedTextReader::vtkTemporalDelimitedTextReader()
 }
 
 //------------------------------------------------------------------------------
-void vtkTemporalDelimitedTextReader::SetTimeColumnName(const std::string name)
+void vtkTemporalDelimitedTextReader::SetTimeColumnName(std::string name)
 {
   if (this->TimeColumnName != name)
   {
@@ -47,7 +47,7 @@ void vtkTemporalDelimitedTextReader::SetTimeColumnName(const std::string name)
 }
 
 //------------------------------------------------------------------------------
-void vtkTemporalDelimitedTextReader::SetTimeColumnId(const int idx)
+void vtkTemporalDelimitedTextReader::SetTimeColumnId(int idx)
 {
   if (idx != this->TimeColumnId)
   {

@@ -27,7 +27,7 @@
 
 vtkArrayExtents::vtkArrayExtents() = default;
 
-vtkArrayExtents::vtkArrayExtents(const CoordinateT i)
+vtkArrayExtents::vtkArrayExtents(CoordinateT i)
   : Storage(1)
 {
   this->Storage[0] = vtkArrayRange(0, i);
@@ -39,7 +39,7 @@ vtkArrayExtents::vtkArrayExtents(const vtkArrayRange& i)
   this->Storage[0] = i;
 }
 
-vtkArrayExtents::vtkArrayExtents(const CoordinateT i, const CoordinateT j)
+vtkArrayExtents::vtkArrayExtents(CoordinateT i, CoordinateT j)
   : Storage(2)
 {
   this->Storage[0] = vtkArrayRange(0, i);
@@ -53,7 +53,7 @@ vtkArrayExtents::vtkArrayExtents(const vtkArrayRange& i, const vtkArrayRange& j)
   this->Storage[1] = j;
 }
 
-vtkArrayExtents::vtkArrayExtents(const CoordinateT i, const CoordinateT j, const CoordinateT k)
+vtkArrayExtents::vtkArrayExtents(CoordinateT i, CoordinateT j, CoordinateT k)
   : Storage(3)
 {
   this->Storage[0] = vtkArrayRange(0, i);

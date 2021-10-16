@@ -215,7 +215,7 @@ protected:
   // (Example : Particles stored in tree, have no dimension, so we must
   // override the cell test to return a value based on some particle size
   virtual int IntersectCellInternal(vtkIdType cell_ID, const double p1[3], const double p2[3],
-    const double tol, double& t, double ipt[3], double pcoords[3], int& subId);
+    double tol, double& t, double ipt[3], double pcoords[3], int& subId);
 
   int NumberOfBuckets;
 

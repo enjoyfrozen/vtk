@@ -34,9 +34,8 @@ vtkStructuredAMRNeighbor::vtkStructuredAMRNeighbor()
 }
 
 //------------------------------------------------------------------------------
-vtkStructuredAMRNeighbor::vtkStructuredAMRNeighbor(const int gridLevel, const int neiID,
-  const int neighborLevel, int gridOverlap[6], int neiOverlap[6], int orient[3],
-  const int relationShip)
+vtkStructuredAMRNeighbor::vtkStructuredAMRNeighbor(int gridLevel, int neiID, int neighborLevel,
+  int gridOverlap[6], int neiOverlap[6], int orient[3], int relationShip)
 {
   this->GridLevel = gridLevel;
   this->NeighborID = neiID;
@@ -125,7 +124,7 @@ std::string vtkStructuredAMRNeighbor::GetRelationShipString()
 }
 
 //------------------------------------------------------------------------------
-void vtkStructuredAMRNeighbor::GetReceiveExtentOnGrid(const int ng, int gridExtent[6], int ext[6])
+void vtkStructuredAMRNeighbor::GetReceiveExtentOnGrid(int ng, int gridExtent[6], int ext[6])
 {
   for (int i = 0; i < 6; ++i)
   {
@@ -159,8 +158,7 @@ void vtkStructuredAMRNeighbor::GetReceiveExtentOnGrid(const int ng, int gridExte
 
 //------------------------------------------------------------------------------
 void vtkStructuredAMRNeighbor::ComputeSendAndReceiveExtent(int gridRealExtent[6],
-  int* vtkNotUsed(gridGhostedExtent), int neiRealExtent[6], int* vtkNotUsed(WholeExtent),
-  const int N)
+  int* vtkNotUsed(gridGhostedExtent), int neiRealExtent[6], int* vtkNotUsed(WholeExtent), int N)
 {
 
   // TODO: Here we need to make sure that the send/rcv extent between a coarse

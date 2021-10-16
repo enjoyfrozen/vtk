@@ -55,7 +55,7 @@ T* vtkDenseArray<T>::HeapMemoryBlock::GetAddress()
 // vtkDenseArray::StaticMemoryBlock
 
 template <typename T>
-vtkDenseArray<T>::StaticMemoryBlock::StaticMemoryBlock(T* const storage)
+vtkDenseArray<T>::StaticMemoryBlock::StaticMemoryBlock(T* storage)
   : Storage(storage)
 {
 }
@@ -104,7 +104,7 @@ typename vtkDenseArray<T>::SizeT vtkDenseArray<T>::GetNonNullSize()
 }
 
 template <typename T>
-void vtkDenseArray<T>::GetCoordinatesN(const SizeT n, vtkArrayCoordinates& coordinates)
+void vtkDenseArray<T>::GetCoordinatesN(SizeT n, vtkArrayCoordinates& coordinates)
 {
   coordinates.SetDimensions(this->GetDimensions());
 
@@ -182,7 +182,7 @@ const T& vtkDenseArray<T>::GetValue(const vtkArrayCoordinates& coordinates)
 }
 
 template <typename T>
-const T& vtkDenseArray<T>::GetValueN(const SizeT n)
+const T& vtkDenseArray<T>::GetValueN(SizeT n)
 {
   return this->Begin[n];
 }
@@ -236,7 +236,7 @@ void vtkDenseArray<T>::SetValue(const vtkArrayCoordinates& coordinates, const T&
 }
 
 template <typename T>
-void vtkDenseArray<T>::SetValueN(const SizeT n, const T& value)
+void vtkDenseArray<T>::SetValueN(SizeT n, const T& value)
 {
   this->Begin[n] = value;
 }
