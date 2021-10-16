@@ -158,7 +158,7 @@ void vtkPythonInteractiveInterpreter::HandleEvents(
 }
 
 //------------------------------------------------------------------------------
-bool vtkPythonInteractiveInterpreter::Push(const char* const code)
+bool vtkPythonInteractiveInterpreter::Push(const char* code)
 {
   PyObject* console = this->Internals->GetInteractiveConsole();
   if (!console)

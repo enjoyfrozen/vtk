@@ -101,7 +101,7 @@ class vtkAMReXParticlesReader::AMReXParticleHeader
 {
   template <typename RealType, typename IntType>
   bool ReadParticles(
-    vtkPolyData* pd, const int count, istream& ifp, const vtkAMReXParticlesReader* self) const
+    vtkPolyData* pd, int count, istream& ifp, const vtkAMReXParticlesReader* self) const
   {
     auto selection = self->GetPointDataArraySelection();
 
@@ -804,7 +804,7 @@ bool vtkAMReXParticlesReader::ReadMetaData()
 
 //------------------------------------------------------------------------------
 bool vtkAMReXParticlesReader::ReadLevel(
-  const int level, vtkMultiPieceDataSet* levelDS, const int piece_idx, const int num_pieces) const
+  int level, vtkMultiPieceDataSet* levelDS, int piece_idx, int num_pieces) const
 {
   assert(level >= 0 && this->Header != nullptr && piece_idx >= 0 && num_pieces >= 1);
 
