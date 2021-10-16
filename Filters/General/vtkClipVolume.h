@@ -233,7 +233,6 @@ private:
   vtkCellArray* ClippedConnectivity;
   vtkUnsignedCharArray* ClippedTypes;
 
-private:
   vtkClipVolume(const vtkClipVolume&) = delete;
   void operator=(const vtkClipVolume&) = delete;
 };

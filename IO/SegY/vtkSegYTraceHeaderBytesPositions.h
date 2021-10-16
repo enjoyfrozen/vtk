@@ -28,7 +28,6 @@ public:
   int NumberSamples;
   int SampleInterval;
 
-public:
   vtkSegYTraceHeaderBytesPositions() { initDefaultValues(); }
 
 private:

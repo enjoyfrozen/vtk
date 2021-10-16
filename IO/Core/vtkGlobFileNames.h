@@ -130,7 +130,6 @@ private:
   vtkTypeBool Recurse;       // Recurse into subdirectories
   vtkStringArray* FileNames; // VTK array of files
 
-private:
   vtkGlobFileNames(const vtkGlobFileNames&) = delete;
   void operator=(const vtkGlobFileNames&) = delete;
 };

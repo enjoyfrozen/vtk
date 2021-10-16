@@ -213,7 +213,6 @@ private:
   // separate the mesh.
   void MarkAndSplit(vtkIdType ptId);
 
-private:
   vtkPolyDataNormals(const vtkPolyDataNormals&) = delete;
   void operator=(const vtkPolyDataNormals&) = delete;
 };

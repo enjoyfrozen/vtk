@@ -114,7 +114,6 @@ private:
   unsigned int Handle;
   vtkWeakPointer<vtkRenderWindow> Context;
 
-private:
   vtkRenderbuffer(const vtkRenderbuffer&) = delete;
   void operator=(const vtkRenderbuffer&) = delete;
 };

@@ -294,7 +294,6 @@ protected:
   double GridScale[3];
   unsigned int Dimension;
 
-protected:
   unsigned int Dimensions[3];
   bool TransposedRootIndexing;
   unsigned int MaxDepth;

@@ -115,7 +115,6 @@ private:
   vtkTypeBool UserManagedInputs;
   vtkTypeBool AppendByUnion;
 
-private:
   vtkAppendSelection(const vtkAppendSelection&) = delete;
   void operator=(const vtkAppendSelection&) = delete;
 };

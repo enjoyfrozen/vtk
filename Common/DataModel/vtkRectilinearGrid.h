@@ -313,7 +313,6 @@ protected:
 private:
   void Cleanup();
 
-private:
   vtkRectilinearGrid(const vtkRectilinearGrid&) = delete;
   void operator=(const vtkRectilinearGrid&) = delete;
 };

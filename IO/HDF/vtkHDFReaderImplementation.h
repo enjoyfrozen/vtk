@@ -128,7 +128,6 @@ protected:
     }
   };
 
-protected:
   /**
    * Opens the hdf5 dataset given the 'group'
    * and 'name'.
