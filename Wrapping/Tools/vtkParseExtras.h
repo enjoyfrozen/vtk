@@ -220,13 +220,13 @@ extern "C"
    * Get a zero-terminated array of the types in vtkTemplateMacro.
    */
   VTKWRAPPINGTOOLS_EXPORT
-  const char** vtkParse_GetTemplateMacroTypes(void);
+  const char** vtkParse_GetTemplateMacroTypes();
 
   /**
    * Get a zero-terminated array of the types in vtkArray.
    */
   VTKWRAPPINGTOOLS_EXPORT
-  const char** vtkParse_GetArrayTypes(void);
+  const char** vtkParse_GetArrayTypes();
 
 #ifdef __cplusplus
 } /* extern "C" */

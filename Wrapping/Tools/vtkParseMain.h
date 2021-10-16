@@ -72,7 +72,7 @@ extern "C"
    * Return the options provided on the command line
    */
   VTKWRAPPINGTOOLS_EXPORT
-  OptionInfo* vtkParse_GetCommandLineOptions(void);
+  OptionInfo* vtkParse_GetCommandLineOptions();
 
   /**
    * The main function, parses the file and returns the result.

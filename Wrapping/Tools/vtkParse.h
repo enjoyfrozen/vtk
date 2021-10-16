@@ -47,7 +47,7 @@ extern "C"
    * Do not pre-define any macros related to the system or platform.
    */
   VTKWRAPPINGTOOLS_EXPORT
-  void vtkParse_UndefinePlatformMacros(void);
+  void vtkParse_UndefinePlatformMacros();
 
   /**
    * Read macros from the provided header file.
@@ -102,7 +102,7 @@ extern "C"
    * This can safely be called multiple times.
    */
   VTKWRAPPINGTOOLS_EXPORT
-  void vtkParse_FinalCleanup(void);
+  void vtkParse_FinalCleanup();
 
 #ifdef __cplusplus
 } /* extern "C" */

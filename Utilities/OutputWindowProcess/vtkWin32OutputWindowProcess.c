@@ -141,7 +141,7 @@ typedef struct SelfDeleteRemoteCode_s
   BOOL(__stdcall* fnDeleteFile)(LPCTSTR lpFileName);
   void(__stdcall* fnSleep)(DWORD dwMilliseconds);
   void(__stdcall* fnExitProcess)(UINT uExitCode);
-  DWORD(__stdcall* fnGetLastError)(void);
+  DWORD(__stdcall* fnGetLastError)();
 
   TCHAR szFileName[MAX_PATH];
 } SelfDeleteRemoteCode;

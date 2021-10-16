@@ -50,7 +50,7 @@ public:
   /**
    * Synchronize camera and light parameters
    */
-  void Render(void) override;
+  void Render() override;
 
   /**
    * Create a new Camera sutible for use with this type of Renderer.
