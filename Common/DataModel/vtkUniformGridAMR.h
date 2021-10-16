@@ -70,7 +70,7 @@ public:
 
   // Description:
   // Returns the number of datasets at the given level, including null blocks
-  unsigned int GetNumberOfDataSets(const unsigned int level);
+  unsigned int GetNumberOfDataSets(unsigned int level);
 
   // Description:
   // Retrieve the bounds of the AMR domain
@@ -99,12 +99,12 @@ public:
   // Description:
   // Retrieves the composite index associated with the data at the given
   // (level,index) pair.
-  int GetCompositeIndex(const unsigned int level, const unsigned int index);
+  int GetCompositeIndex(unsigned int level, unsigned int index);
 
   // Description:
   // Given the compositeIdx (as set by SetCompositeIdx) this method returns the
   // corresponding level and dataset index within the level.
-  void GetLevelAndIndex(const unsigned int compositeIdx, unsigned int& level, unsigned int& idx);
+  void GetLevelAndIndex(unsigned int compositeIdx, unsigned int& level, unsigned int& idx);
 
   // Description:
   // Override ShallowCopy/DeepCopy and CopyStructure

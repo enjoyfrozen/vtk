@@ -161,7 +161,7 @@ vtkArray* vtkArray::CreateArray(int StorageType, int ValueType)
   return nullptr;
 }
 
-void vtkArray::Resize(const CoordinateT i)
+void vtkArray::Resize(CoordinateT i)
 {
   this->Resize(vtkArrayExtents(vtkArrayRange(0, i)));
 }
@@ -171,7 +171,7 @@ void vtkArray::Resize(const vtkArrayRange& i)
   this->Resize(vtkArrayExtents(i));
 }
 
-void vtkArray::Resize(const CoordinateT i, const CoordinateT j)
+void vtkArray::Resize(CoordinateT i, CoordinateT j)
 {
   this->Resize(vtkArrayExtents(vtkArrayRange(0, i), vtkArrayRange(0, j)));
 }
@@ -181,7 +181,7 @@ void vtkArray::Resize(const vtkArrayRange& i, const vtkArrayRange& j)
   this->Resize(vtkArrayExtents(i, j));
 }
 
-void vtkArray::Resize(const CoordinateT i, const CoordinateT j, const CoordinateT k)
+void vtkArray::Resize(CoordinateT i, CoordinateT j, CoordinateT k)
 {
   this->Resize(vtkArrayExtents(vtkArrayRange(0, i), vtkArrayRange(0, j), vtkArrayRange(0, k)));
 }
