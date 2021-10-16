@@ -41,7 +41,7 @@ void vtk::detail::smp::vtkSMPThreadPool::Join()
   }
 }
 
-void vtk::detail::smp::vtkSMPThreadPool::DoJob(std::function<void(void)> job)
+void vtk::detail::smp::vtkSMPThreadPool::DoJob(std::function<void()> job)
 {
   std::unique_lock<std::mutex> lock(this->Mutex);
 
@@ -51,7 +51,7 @@ void vtk::detail::smp::vtkSMPThreadPool::DoJob(std::function<void(void)> job)
 
 void vtk::detail::smp::vtkSMPThreadPool::ThreadJob()
 {
-  std::function<void(void)> job;
+  std::function<void()> job;
 
   while (true)
   {

@@ -73,7 +73,7 @@ public:
   static vtkOpenVRRenderWindow* New();
   vtkTypeMacro(vtkOpenVRRenderWindow, vtkVRRenderWindow);
 
-  void Initialize(void) override;
+  void Initialize() override;
 
   void ReleaseGraphicsResources(vtkWindow* renWin) override;
 

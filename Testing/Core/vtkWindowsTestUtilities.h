@@ -100,12 +100,12 @@ inline LONG WINAPI vtkWindowsTestUlititiesExceptionHandler(EXCEPTION_POINTERS* E
   return EXCEPTION_CONTINUE_SEARCH;
 }
 
-inline void vtkWindowsTestUtilitiesSetupForTesting(void)
+inline void vtkWindowsTestUtilitiesSetupForTesting()
 {
   SetUnhandledExceptionFilter(vtkWindowsTestUlititiesExceptionHandler);
 }
 #else
-inline void vtkWindowsTestUtilitiesSetupForTesting(void)
+inline void vtkWindowsTestUtilitiesSetupForTesting()
 {
   return;
 }
