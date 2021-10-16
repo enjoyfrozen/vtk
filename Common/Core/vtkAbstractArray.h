@@ -388,7 +388,7 @@ public:
   /**
    * Get the name of a data type as a string.
    */
-  virtual const char* GetDataTypeAsString(void) const
+  virtual const char* GetDataTypeAsString() const
   {
     return vtkImageScalarTypeNameMacro(this->GetDataType());
   }

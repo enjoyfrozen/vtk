@@ -373,7 +373,7 @@ private:
   void operator=(const vtkGL2PSExporter&) = delete;
 };
 
-inline const char* vtkGL2PSExporter::GetSortAsString(void)
+inline const char* vtkGL2PSExporter::GetSortAsString()
 {
   if (this->Sort == NO_SORT)
   {
@@ -389,7 +389,7 @@ inline const char* vtkGL2PSExporter::GetSortAsString(void)
   }
 }
 
-inline const char* vtkGL2PSExporter::GetFileFormatAsString(void)
+inline const char* vtkGL2PSExporter::GetFileFormatAsString()
 {
   if (this->FileFormat == PS_FILE)
   {

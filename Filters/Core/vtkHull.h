@@ -59,7 +59,7 @@ public:
   /**
    * Remove all planes from the current set of planes.
    */
-  void RemoveAllPlanes(void);
+  void RemoveAllPlanes();
 
   ///@{
   /**

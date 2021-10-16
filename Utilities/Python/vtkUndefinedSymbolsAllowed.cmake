@@ -24,14 +24,14 @@ add_executable(undefined_exe main.c)
 target_link_libraries(undefined_exe PRIVATE undefined)
 ")
   file(WRITE "${test_project_dir}/uses_undefined.c"
-"extern int undefined(void);
-int uses_undefined(void) {
+"extern int undefined();
+int uses_undefined() {
   return undefined() + 1;
 }
 ")
   file(WRITE "${test_project_dir}/main.c"
-"extern int uses_undefined(void);
-int main(void) {
+"extern int uses_undefined();
+int main() {
   return uses_undefined();
 }
 ")

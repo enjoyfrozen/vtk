@@ -85,7 +85,7 @@ public:
   /**
    * Get the number of cell arrays available in the input.
    */
-  int GetNumberOfCellArrays(void)
+  int GetNumberOfCellArrays()
   {
     return this->GetNumberOfSelectionArrays(this->CellDataArraySelection);
   }
@@ -121,7 +121,7 @@ public:
   /**
    * Get the number of point arrays available in the input.
    */
-  int GetNumberOfPointArrays(void)
+  int GetNumberOfPointArrays()
   {
     return this->GetNumberOfSelectionArrays(this->PointDataArraySelection);
   }
@@ -157,7 +157,7 @@ public:
   /**
    * Get the number of Lagrangian arrays available in the input.
    */
-  int GetNumberOfLagrangianArrays(void)
+  int GetNumberOfLagrangianArrays()
   {
     return this->GetNumberOfSelectionArrays(this->LagrangianDataArraySelection);
   }
@@ -199,7 +199,7 @@ public:
   /**
    * Get the number of Patches (including Internal Mesh) available in the input.
    */
-  int GetNumberOfPatchArrays(void)
+  int GetNumberOfPatchArrays()
   {
     return this->GetNumberOfSelectionArrays(this->PatchDataArraySelection);
   }

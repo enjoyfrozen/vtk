@@ -932,9 +932,9 @@ static void ${_vtk_python_TARGET_NAME}_load() {\n")
 #endif
 
 #if PY_VERSION_HEX >= 0x03000000
-  PyMODINIT_FUNC PyInit_${_vtk_python_static_importer_name}(void)
+  PyMODINIT_FUNC PyInit_${_vtk_python_static_importer_name}()
 #else
-  PyMODINIT_FUNC init${_vtk_python_static_importer_name}(void)
+  PyMODINIT_FUNC init${_vtk_python_static_importer_name}()
 #endif
   {
     // since this gets called after `Py_Initialize`, this will import the static
