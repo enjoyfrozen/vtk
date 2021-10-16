@@ -443,7 +443,6 @@ private:
   vtkDataObject* CurrentOutput;
   vtkInformation* CurrentOutputInformation;
 
-private:
   vtkXMLReader(const vtkXMLReader&) = delete;
   void operator=(const vtkXMLReader&) = delete;
 

@@ -158,7 +158,7 @@ protected:
 private Q_SLOTS:
   void slotQtSelectionChanged(const QItemSelection&, const QItemSelection&);
 
-private:
+private: // NOLINT(readability-redundant-access-specifiers)
   void SetVTKSelection();
 
   vtkMTimeType LastSelectionMTime;

@@ -84,7 +84,6 @@ protected:
 private:
   std::string LogFileName;
 
-private:
   vtkPSurfaceLICInterface(const vtkPSurfaceLICInterface&) = delete;
   void operator=(const vtkPSurfaceLICInterface&) = delete;
 };

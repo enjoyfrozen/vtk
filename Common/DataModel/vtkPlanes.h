@@ -137,7 +137,6 @@ private:
   double Planes[24];
   double Bounds[6];
 
-private:
   vtkPlanes(const vtkPlanes&) = delete;
   void operator=(const vtkPlanes&) = delete;
 };

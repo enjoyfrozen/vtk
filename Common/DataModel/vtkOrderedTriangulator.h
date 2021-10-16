@@ -358,7 +358,6 @@ private:
   void AddTemplate();
   TemplateIDType ComputeTemplateIndex();
 
-private:
   vtkOrderedTriangulator(const vtkOrderedTriangulator&) = delete;
   void operator=(const vtkOrderedTriangulator&) = delete;
 };

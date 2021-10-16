@@ -76,7 +76,7 @@ Q_SIGNALS:
 protected Q_SLOTS:
   void deleteConnection();
 
-protected:
+protected: // NOLINT(readability-redundant-access-specifiers)
   // the connection information
   vtkObject* VTKObject;
   vtkCallbackCommand* Callback;

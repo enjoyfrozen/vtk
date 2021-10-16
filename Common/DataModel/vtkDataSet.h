@@ -521,7 +521,6 @@ private:
 
   friend class vtkImageAlgorithmToDataSetFriendship;
 
-private:
   vtkDataSet(const vtkDataSet&) = delete;
   void operator=(const vtkDataSet&) = delete;
 };
