@@ -238,7 +238,6 @@ private:
   int PlaceAxes(vtkViewport* viewport, const int* size);
   int BuildPlot(vtkViewport*);
 
-private:
   vtkPieChartActor(const vtkPieChartActor&) = delete;
   void operator=(const vtkPieChartActor&) = delete;
 };
