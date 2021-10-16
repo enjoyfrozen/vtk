@@ -187,7 +187,7 @@ vtkIdType vtkPriorityQueue::Pop(vtkIdType location, double& priority)
 }
 
 // Protected method reallocates queue.
-vtkPriorityQueue::Item* vtkPriorityQueue::Resize(const vtkIdType sz)
+vtkPriorityQueue::Item* vtkPriorityQueue::Resize(vtkIdType sz)
 {
   vtkPriorityQueue::Item* newArray;
   vtkIdType newSize;

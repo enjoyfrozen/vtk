@@ -169,7 +169,7 @@ bool vtkAMRBaseParticlesReader::IsParallel()
 }
 
 //------------------------------------------------------------------------------
-bool vtkAMRBaseParticlesReader::IsBlockMine(const int blkIdx)
+bool vtkAMRBaseParticlesReader::IsBlockMine(int blkIdx)
 {
   if (!this->IsParallel())
   {
@@ -185,7 +185,7 @@ bool vtkAMRBaseParticlesReader::IsBlockMine(const int blkIdx)
 }
 
 //------------------------------------------------------------------------------
-int vtkAMRBaseParticlesReader::GetBlockProcessId(const int blkIdx)
+int vtkAMRBaseParticlesReader::GetBlockProcessId(int blkIdx)
 {
   if (!this->IsParallel())
   {
@@ -197,7 +197,7 @@ int vtkAMRBaseParticlesReader::GetBlockProcessId(const int blkIdx)
 }
 
 //------------------------------------------------------------------------------
-bool vtkAMRBaseParticlesReader::CheckLocation(const double x, const double y, const double z)
+bool vtkAMRBaseParticlesReader::CheckLocation(double x, double y, double z)
 {
   if (!this->FilterLocation)
   {

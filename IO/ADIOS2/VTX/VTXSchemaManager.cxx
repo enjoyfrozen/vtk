@@ -35,7 +35,7 @@ namespace vtx
 
 // PUBLIC
 void VTXSchemaManager::Update(
-  const std::string& streamName, const size_t /*step*/, const std::string& schemaName)
+  const std::string& streamName, size_t /*step*/, const std::string& schemaName)
 {
   // can't do it in the constructor as it need MPI initialized
   if (!this->ADIOS)
@@ -60,7 +60,7 @@ void VTXSchemaManager::Update(
   }
 }
 
-void VTXSchemaManager::Fill(vtkMultiBlockDataSet* multiBlock, const size_t step)
+void VTXSchemaManager::Fill(vtkMultiBlockDataSet* multiBlock, size_t step)
 {
   this->Reader->Fill(multiBlock, step);
 }

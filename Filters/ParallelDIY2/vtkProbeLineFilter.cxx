@@ -73,7 +73,7 @@ struct vtkProbeLineFilter::vtkInternals
   vtkMTimeType PreviousInputTime = 0;
   std::map<vtkDataSet*,vtkSmartPointer<vtkFindCellStrategy>> Strategies;
 
-  void UpdateLocators(vtkDataObject* input, int pattern, const double tolerance)
+  void UpdateLocators(vtkDataObject* input, int pattern, double tolerance)
   {
     vtkMTimeType inputTime = input->GetMTime();
     bool isInputDifferent = inputTime != this->PreviousInputTime;

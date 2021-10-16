@@ -55,7 +55,7 @@ public:
   virtual void SetInputData(vtkDataSet*);
   virtual void SetInputData(vtkRectilinearGrid*);
   virtual vtkDataSet* GetInput();
-  virtual vtkDataSet* GetInput(const int port);
+  virtual vtkDataSet* GetInput(int port);
   ///@}
 
   ///@{

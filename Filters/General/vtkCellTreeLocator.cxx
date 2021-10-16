@@ -1218,7 +1218,7 @@ void vtkCellTreeLocator::Classify(const double origin[3], const double dir[3], d
 }
 //------------------------------------------------------------------------------
 int vtkCellTreeLocator::IntersectCellInternal(vtkIdType cell_ID, const double p1[3],
-  const double p2[3], const double tol, double& t, double ipt[3], double pcoords[3], int& subId)
+  const double p2[3], double tol, double& t, double ipt[3], double pcoords[3], int& subId)
 {
   this->DataSet->GetCell(cell_ID, this->GenericCell);
   return this->GenericCell->IntersectWithLine(

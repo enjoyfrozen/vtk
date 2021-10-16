@@ -81,7 +81,7 @@ public:
    * set the number of grids and call AllocateUserRegisterDataStructures
    * in addition to defining any other additional functionality.
    */
-  virtual void SetNumberOfGrids(const unsigned int N) = 0;
+  virtual void SetNumberOfGrids(unsigned int N) = 0;
 
   /**
    * Returns the total number of grids.
@@ -99,7 +99,7 @@ public:
    * of 1, in which case 1 layer of cells would be added.
    * NOTE: This method is implemented by concrete implementations
    */
-  virtual void CreateGhostLayers(const int N = 1) = 0;
+  virtual void CreateGhostLayers(int N = 1) = 0;
 
   /**
    * Returns the ghosted points ghost array for the grid associated with the
@@ -107,7 +107,7 @@ public:
    * data-structure. The pointer may be nullptr iff there is no ghosted points
    * ghost array for the requested grid.
    */
-  vtkUnsignedCharArray* GetGhostedPointGhostArray(const int gridID);
+  vtkUnsignedCharArray* GetGhostedPointGhostArray(int gridID);
 
   /**
    * Returns the ghosted cells ghost array for the grid associated with the
@@ -115,7 +115,7 @@ public:
    * data-structure. The pointer may be nullptr iff there is no ghosted cells
    * ghost array for the requested grid.
    */
-  vtkUnsignedCharArray* GetGhostedCellGhostArray(const int gridID);
+  vtkUnsignedCharArray* GetGhostedCellGhostArray(int gridID);
 
   /**
    * Returns the ghosted grid point data for the grid associated with the
@@ -123,7 +123,7 @@ public:
    * data-structure. The pointer may be nullptr iff there is no ghosted point
    * data for the requested grid.
    */
-  vtkPointData* GetGhostedGridPointData(const int gridID);
+  vtkPointData* GetGhostedGridPointData(int gridID);
 
   /**
    * Returns the ghosted grid cell data for the grid associated with the
@@ -131,7 +131,7 @@ public:
    * data-structure. The pointer may be nullptr iff there is no ghosted cell
    * data for the requested grid.
    */
-  vtkCellData* GetGhostedGridCellData(const int gridID);
+  vtkCellData* GetGhostedGridCellData(int gridID);
 
   /**
    * Returns the ghosted grid points for the grid associated with the given
@@ -139,7 +139,7 @@ public:
    * structure. The pointer may be nullptr iff there are no ghosted points
    * created for the requested grid.
    */
-  vtkPoints* GetGhostedPoints(const int gridID);
+  vtkPoints* GetGhostedPoints(int gridID);
 
 protected:
   vtkAbstractGridConnectivity();
@@ -149,23 +149,23 @@ protected:
    * Fills the ghost arrays for the given grid.
    */
   virtual void FillGhostArrays(
-    const int gridId, vtkUnsignedCharArray* nodesArray, vtkUnsignedCharArray* cellsArray) = 0;
+    int gridId, vtkUnsignedCharArray* nodesArray, vtkUnsignedCharArray* cellsArray) = 0;
 
   /**
    * Registers the ghostarrays for the given grid.
    */
   void RegisterGridGhostArrays(
-    const int gridID, vtkUnsignedCharArray* nodesArray, vtkUnsignedCharArray* cellsArray);
+    int gridID, vtkUnsignedCharArray* nodesArray, vtkUnsignedCharArray* cellsArray);
 
   /**
    * Registers the grid's field data, i.e., the node and cell data.
    */
-  void RegisterFieldData(const int gridID, vtkPointData* PointData, vtkCellData* CellData);
+  void RegisterFieldData(int gridID, vtkPointData* PointData, vtkCellData* CellData);
 
   /**
    * Registers the grid nodes for the grid associated with the given gridID.
    */
-  void RegisterGridNodes(const int gridID, vtkPoints* nodes);
+  void RegisterGridNodes(int gridID, vtkPoints* nodes);
 
   ///@{
   /**
@@ -210,8 +210,7 @@ private:
 };
 
 //------------------------------------------------------------------------------
-inline vtkUnsignedCharArray* vtkAbstractGridConnectivity::GetGhostedPointGhostArray(
-  const int gridID)
+inline vtkUnsignedCharArray* vtkAbstractGridConnectivity::GetGhostedPointGhostArray(int gridID)
 {
   if (!this->AllocatedGhostDataStructures)
   {
@@ -227,7 +226,7 @@ inline vtkUnsignedCharArray* vtkAbstractGridConnectivity::GetGhostedPointGhostAr
 }
 
 //------------------------------------------------------------------------------
-inline vtkUnsignedCharArray* vtkAbstractGridConnectivity::GetGhostedCellGhostArray(const int gridID)
+inline vtkUnsignedCharArray* vtkAbstractGridConnectivity::GetGhostedCellGhostArray(int gridID)
 {
   if (!this->AllocatedGhostDataStructures)
   {
@@ -243,7 +242,7 @@ inline vtkUnsignedCharArray* vtkAbstractGridConnectivity::GetGhostedCellGhostArr
 }
 
 //------------------------------------------------------------------------------
-inline vtkPointData* vtkAbstractGridConnectivity::GetGhostedGridPointData(const int gridID)
+inline vtkPointData* vtkAbstractGridConnectivity::GetGhostedGridPointData(int gridID)
 {
   if (!this->AllocatedGhostDataStructures)
   {
@@ -259,7 +258,7 @@ inline vtkPointData* vtkAbstractGridConnectivity::GetGhostedGridPointData(const 
 }
 
 //------------------------------------------------------------------------------
-inline vtkCellData* vtkAbstractGridConnectivity::GetGhostedGridCellData(const int gridID)
+inline vtkCellData* vtkAbstractGridConnectivity::GetGhostedGridCellData(int gridID)
 {
   if (!this->AllocatedGhostDataStructures)
   {
@@ -275,7 +274,7 @@ inline vtkCellData* vtkAbstractGridConnectivity::GetGhostedGridCellData(const in
 }
 
 //------------------------------------------------------------------------------
-inline vtkPoints* vtkAbstractGridConnectivity::GetGhostedPoints(const int gridID)
+inline vtkPoints* vtkAbstractGridConnectivity::GetGhostedPoints(int gridID)
 {
   if (!this->AllocatedGhostDataStructures)
   {
@@ -417,7 +416,7 @@ inline void vtkAbstractGridConnectivity::DeAllocateInternalDataStructures()
 
 //------------------------------------------------------------------------------
 inline void vtkAbstractGridConnectivity::RegisterGridGhostArrays(
-  const int gridID, vtkUnsignedCharArray* nodesArray, vtkUnsignedCharArray* cellsArray)
+  int gridID, vtkUnsignedCharArray* nodesArray, vtkUnsignedCharArray* cellsArray)
 {
   // Sanity check
   assert("pre: GridID is out-of-bound GridPointData" && (gridID >= 0) &&
@@ -434,7 +433,7 @@ inline void vtkAbstractGridConnectivity::RegisterGridGhostArrays(
 
 //------------------------------------------------------------------------------
 inline void vtkAbstractGridConnectivity::RegisterFieldData(
-  const int gridID, vtkPointData* PointData, vtkCellData* CellData)
+  int gridID, vtkPointData* PointData, vtkCellData* CellData)
 {
   // Sanity check
   assert("pre: GridID is out-of-bound GridPointData" && (gridID >= 0) &&
@@ -469,7 +468,7 @@ inline void vtkAbstractGridConnectivity::RegisterFieldData(
 }
 
 //------------------------------------------------------------------------------
-inline void vtkAbstractGridConnectivity::RegisterGridNodes(const int gridID, vtkPoints* nodes)
+inline void vtkAbstractGridConnectivity::RegisterGridNodes(int gridID, vtkPoints* nodes)
 {
   // Sanity check
   assert("pre: GridID is out-of-bound GridPointData" && (gridID >= 0) &&
