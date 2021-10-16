@@ -266,7 +266,6 @@ private:
 
   vtkCaptionActor2DConnection* LeaderGlyphConnectionHolder;
 
-private:
   vtkCaptionActor2D(const vtkCaptionActor2D&) = delete;
   void operator=(const vtkCaptionActor2D&) = delete;
 };

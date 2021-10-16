@@ -219,7 +219,6 @@ private:
     vtkParallelTimer* Log;
   };
 
-private:
   int GlobalLevel;
   int Initialized;
   int WorldRank;

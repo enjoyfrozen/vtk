@@ -198,7 +198,6 @@ private:
   vtkPolyData* Mesh;
   void GetPointNeighbors(vtkIdType ptId, vtkIdList* nei);
 
-private:
   vtkSelectPolyData(const vtkSelectPolyData&) = delete;
   void operator=(const vtkSelectPolyData&) = delete;
 };

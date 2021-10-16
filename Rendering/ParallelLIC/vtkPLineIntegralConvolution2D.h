@@ -87,7 +87,6 @@ protected:
 private:
   std::string LogFileName;
 
-private:
   vtkPLineIntegralConvolution2D(const vtkPLineIntegralConvolution2D&) = delete;
   void operator=(const vtkPLineIntegralConvolution2D&) = delete;
 };

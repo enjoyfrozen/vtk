@@ -51,7 +51,6 @@ public:
 private:
   void ThreadJob();
 
-private:
   std::mutex Mutex;
   bool Joining = false;
   std::condition_variable ConditionVariable;

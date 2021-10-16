@@ -344,7 +344,6 @@ private:
 
   int InUnRegister;
 
-private:
   vtkAbstractTransform(const vtkAbstractTransform&) = delete;
   void operator=(const vtkAbstractTransform&) = delete;
 };

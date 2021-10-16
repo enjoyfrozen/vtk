@@ -264,7 +264,6 @@ private:
   char* LibraryVTKVersion;
   char* LibraryPath;
 
-private:
   vtkObjectFactory(const vtkObjectFactory&) = delete;
   void operator=(const vtkObjectFactory&) = delete;
 };
