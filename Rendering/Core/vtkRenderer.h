@@ -431,7 +431,7 @@ public:
    * observe the \p box in display coordinates.
    * \p OffsetRatio can be used to add a zoom offset.
    */
-  void ZoomToBoxUsingViewAngle(const vtkRecti& box, const double offsetRatio = 1.0);
+  void ZoomToBoxUsingViewAngle(const vtkRecti& box, double offsetRatio = 1.0);
 
   /**
    * Alternative version of ResetCameraScreenSpace(bounds[6]);

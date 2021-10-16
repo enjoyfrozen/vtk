@@ -212,7 +212,7 @@ protected:
    * This functions is expected to return a polydata with a single polyline in it.
    */
   vtkSmartPointer<vtkPolyData> SampleLineAtEachCell(const vtkVector3d& p1, const vtkVector3d& p2,
-    const std::vector<vtkDataSet*>& input, const double tolerance) const;
+    const std::vector<vtkDataSet*>& input, double tolerance) const;
   vtkSmartPointer<vtkPolyData> SampleLineUniformly(
     const vtkVector3d& p1, const vtkVector3d& p2) const;
   ///@}
