@@ -46,7 +46,7 @@ public:
   explicit vtkSMPThreadPool(int ThreadNumber);
 
   void Join();
-  void DoJob(std::function<void(void)> job);
+  void DoJob(std::function<void()> job);
 
 private:
   void ThreadJob();
@@ -55,7 +55,7 @@ private:
   std::mutex Mutex;
   bool Joining = false;
   std::condition_variable ConditionVariable;
-  std::queue<std::function<void(void)>> JobQueue;
+  std::queue<std::function<void()>> JobQueue;
   std::vector<std::thread> Threads;
 };
 

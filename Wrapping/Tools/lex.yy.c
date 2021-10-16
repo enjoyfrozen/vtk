@@ -302,10 +302,10 @@ YY_BUFFER_STATE yy_create_buffer(FILE* file, int size);
 void yy_delete_buffer(YY_BUFFER_STATE b);
 void yy_flush_buffer(YY_BUFFER_STATE b);
 void yypush_buffer_state(YY_BUFFER_STATE new_buffer);
-void yypop_buffer_state(void);
+void yypop_buffer_state();
 
-static void yyensure_buffer_stack(void);
-static void yy_load_buffer_state(void);
+static void yyensure_buffer_stack();
+static void yy_load_buffer_state();
 static void yy_init_buffer(YY_BUFFER_STATE b, FILE* file);
 #define YY_FLUSH_BUFFER yy_flush_buffer(YY_CURRENT_BUFFER)
 
@@ -354,9 +354,9 @@ extern char* yytext;
 #endif
 #define yytext_ptr yytext
 
-static yy_state_type yy_get_previous_state(void);
+static yy_state_type yy_get_previous_state();
 static yy_state_type yy_try_NUL_trans(yy_state_type current_state);
-static int yy_get_next_buffer(void);
+static int yy_get_next_buffer();
 static void yynoreturn yy_fatal_error(const char* msg);
 
 /* Done after the current pattern has been matched and before the
@@ -1251,38 +1251,38 @@ See the adjacent README.txt file for instructions.
  * then skip to the end of the line.
  * Return 0 if no match found.
  */
-static int skip_comment(void);
+static int skip_comment();
 static int skip_trailing_comment(const char* text, size_t l);
 static int skip_ahead_multi(const char* strings[]);
 static int skip_ahead_until(const char* text);
-static int skip_to_next_directive(void);
-static int skip_conditional_block(void);
+static int skip_to_next_directive();
+static int skip_conditional_block();
 
-static void doxygen_comment(void);
-static void doxygen_cpp_comment(void);
-static void doxygen_group_start(void);
-static void doxygen_group_end(void);
-static void vtk_comment(void);
-static void vtk_name_comment(void);
-static void vtk_section_comment(void);
-static void cpp_comment_line(void);
-static void blank_line(void);
+static void doxygen_comment();
+static void doxygen_cpp_comment();
+static void doxygen_group_start();
+static void doxygen_group_end();
+static void vtk_comment();
+static void vtk_name_comment();
+static void vtk_section_comment();
+static void cpp_comment_line();
+static void blank_line();
 
 static const char* raw_string(const char* begin);
 
 static void preprocessor_directive(const char* text, size_t l);
 static void print_preprocessor_error(int result, const char* cp, size_t n);
-static char* get_macro_arguments(void);
+static char* get_macro_arguments();
 
-static void push_buffer(void);
-static int pop_buffer(void);
+static void push_buffer();
+static int pop_buffer();
 
 static void push_include(const char* filename);
-static void pop_include(void);
+static void pop_include();
 
 static void push_macro(MacroInfo* macro);
-static void pop_macro(void);
-static int in_macro(void);
+static void pop_macro();
+static int in_macro();
 
 #define INITIAL 0
 
@@ -1298,34 +1298,34 @@ static int in_macro(void);
 #define YY_EXTRA_TYPE void*
 #endif
 
-static int yy_init_globals(void);
+static int yy_init_globals();
 
 /* Accessor methods to globals.
    These are made visible to non-reentrant scanners for convenience. */
 
-int yylex_destroy(void);
+int yylex_destroy();
 
-int yyget_debug(void);
+int yyget_debug();
 
 void yyset_debug(int debug_flag);
 
-YY_EXTRA_TYPE yyget_extra(void);
+YY_EXTRA_TYPE yyget_extra();
 
 void yyset_extra(YY_EXTRA_TYPE user_defined);
 
-FILE* yyget_in(void);
+FILE* yyget_in();
 
 void yyset_in(FILE* _in_str);
 
-FILE* yyget_out(void);
+FILE* yyget_out();
 
 void yyset_out(FILE* _out_str);
 
-int yyget_leng(void);
+int yyget_leng();
 
-char* yyget_text(void);
+char* yyget_text();
 
-int yyget_lineno(void);
+int yyget_lineno();
 
 void yyset_lineno(int _line_number);
 
@@ -1335,9 +1335,9 @@ void yyset_lineno(int _line_number);
 
 #ifndef YY_SKIP_YYWRAP
 #ifdef __cplusplus
-extern "C" int yywrap(void);
+extern "C" int yywrap();
 #else
-extern int yywrap(void);
+extern int yywrap();
 #endif
 #endif
 
@@ -1357,9 +1357,9 @@ static int yy_flex_strlen(const char*);
 
 #ifndef YY_NO_INPUT
 #ifdef __cplusplus
-static int yyinput(void);
+static int yyinput();
 #else
-static int input(void);
+static int input();
 #endif
 
 #endif
@@ -1448,9 +1448,9 @@ static int input(void);
 #ifndef YY_DECL
 #define YY_DECL_IS_OURS 1
 
-extern int yylex(void);
+extern int yylex();
 
-#define YY_DECL int yylex(void)
+#define YY_DECL int yylex()
 #endif /* !YY_DECL */
 
 /* Code executed at the beginning of each rule, after yytext and yyleng
@@ -2612,7 +2612,7 @@ YY_DECL
  *  EOB_ACT_CONTINUE_SCAN - continue scanning from current position
  *  EOB_ACT_END_OF_FILE - end of file
  */
-static int yy_get_next_buffer(void)
+static int yy_get_next_buffer()
 {
   char* dest = YY_CURRENT_BUFFER_LVALUE->yy_ch_buf;
   char* source = (yytext_ptr);
@@ -2742,7 +2742,7 @@ static int yy_get_next_buffer(void)
 
 /* yy_get_previous_state - get the state just before the EOB char was reached */
 
-static yy_state_type yy_get_previous_state(void)
+static yy_state_type yy_get_previous_state()
 {
   yy_state_type yy_current_state;
   char* yy_cp;
@@ -2844,9 +2844,9 @@ static void yyunput(int c, char* yy_bp)
 
 #ifndef YY_NO_INPUT
 #ifdef __cplusplus
-static int yyinput(void)
+static int yyinput()
 #else
-static int input(void)
+static int input()
 #endif
 
 {
@@ -2975,7 +2975,7 @@ void yy_switch_to_buffer(YY_BUFFER_STATE new_buffer)
   (yy_did_buffer_switch_on_eof) = 1;
 }
 
-static void yy_load_buffer_state(void)
+static void yy_load_buffer_state()
 {
   (yy_n_chars) = YY_CURRENT_BUFFER_LVALUE->yy_n_chars;
   (yytext_ptr) = (yy_c_buf_p) = YY_CURRENT_BUFFER_LVALUE->yy_buf_pos;
@@ -3124,7 +3124,7 @@ void yypush_buffer_state(YY_BUFFER_STATE new_buffer)
  *  The next element becomes the new top.
  *
  */
-void yypop_buffer_state(void)
+void yypop_buffer_state()
 {
   if (!YY_CURRENT_BUFFER)
     return;
@@ -3144,7 +3144,7 @@ void yypop_buffer_state(void)
 /* Allocates the stack if it does not exist.
  *  Guarantees space for at least one push.
  */
-static void yyensure_buffer_stack(void)
+static void yyensure_buffer_stack()
 {
   yy_size_t num_to_alloc;
 
@@ -3303,7 +3303,7 @@ static void yynoreturn yy_fatal_error(const char* msg)
 /** Get the current line number.
  *
  */
-int yyget_lineno(void)
+int yyget_lineno()
 {
 
   return yylineno;
@@ -3312,7 +3312,7 @@ int yyget_lineno(void)
 /** Get the input stream.
  *
  */
-FILE* yyget_in(void)
+FILE* yyget_in()
 {
   return yyin;
 }
@@ -3320,7 +3320,7 @@ FILE* yyget_in(void)
 /** Get the output stream.
  *
  */
-FILE* yyget_out(void)
+FILE* yyget_out()
 {
   return yyout;
 }
@@ -3328,7 +3328,7 @@ FILE* yyget_out(void)
 /** Get the length of the current token.
  *
  */
-int yyget_leng(void)
+int yyget_leng()
 {
   return yyleng;
 }
@@ -3337,7 +3337,7 @@ int yyget_leng(void)
  *
  */
 
-char* yyget_text(void)
+char* yyget_text()
 {
   return yytext;
 }
@@ -3368,7 +3368,7 @@ void yyset_out(FILE* _out_str)
   yyout = _out_str;
 }
 
-int yyget_debug(void)
+int yyget_debug()
 {
   return yy_flex_debug;
 }
@@ -3378,7 +3378,7 @@ void yyset_debug(int _bdebug)
   yy_flex_debug = _bdebug;
 }
 
-static int yy_init_globals(void)
+static int yy_init_globals()
 {
   /* Initialization is the same as for the non-reentrant scanner.
    * This function is called from yylex_destroy(), so don't allocate here.
@@ -3410,7 +3410,7 @@ static int yy_init_globals(void)
 }
 
 /* yylex_destroy is for both reentrant and non-reentrant scanners. */
-int yylex_destroy(void)
+int yylex_destroy()
 {
 
   /* Pop the buffer stack, destroying each element. */
