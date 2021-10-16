@@ -34,7 +34,7 @@ namespace vtx
 
 template <class T>
 void VTXSchema::GetDataArrayCommon(
-  adios2::Variable<T> variable, types::DataArray& dataArray, const size_t step)
+  adios2::Variable<T> variable, types::DataArray& dataArray, size_t step)
 {
   dataArray.IsUpdated = true;
 
@@ -70,7 +70,7 @@ void VTXSchema::GetDataArrayCommon(
 
 template <class T>
 void VTXSchema::GetDataArrayGlobal(
-  adios2::Variable<T> variable, types::DataArray& dataArray, const size_t step)
+  adios2::Variable<T> variable, types::DataArray& dataArray, size_t step)
 {
   SetDimensions(variable, dataArray, step);
   const size_t elements = helper::TotalElements(dataArray.Count);
@@ -82,7 +82,7 @@ void VTXSchema::GetDataArrayGlobal(
 
 template <class T>
 void VTXSchema::GetDataArrayLocal(
-  adios2::Variable<T> variable, types::DataArray& dataArray, const size_t step)
+  adios2::Variable<T> variable, types::DataArray& dataArray, size_t step)
 {
   // set partition: blocks per MPI visualization process
   SetBlocks(variable, dataArray, step);
@@ -124,7 +124,7 @@ void VTXSchema::GetDataArrayLocal(
 
 template <class T>
 void VTXSchema::GetDataValueGlobal(
-  adios2::Variable<T> variable, types::DataArray& dataArray, const size_t /*step*/)
+  adios2::Variable<T> variable, types::DataArray& dataArray, size_t /*step*/)
 {
   InitDataArray<T>(variable.Name(), 1, 1, dataArray);
   T* ptr = reinterpret_cast<T*>(dataArray.Data->GetVoidPointer(0));
@@ -132,8 +132,8 @@ void VTXSchema::GetDataValueGlobal(
 }
 
 template <class T>
-void VTXSchema::InitDataArray(const std::string& name, const size_t elements,
-  const size_t components, types::DataArray& dataArray)
+void VTXSchema::InitDataArray(
+  const std::string& name, size_t elements, size_t components, types::DataArray& dataArray)
 {
   if (dataArray.IsIdType)
   {

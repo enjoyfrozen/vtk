@@ -142,7 +142,7 @@ inline void vtkGreedyTerrainDecimation::GetPoint(vtkIdType id, double x[3])
 
 //------------------------------------------------------------------------------
 void vtkGreedyTerrainDecimation::EstimateOutputSize(
-  const vtkIdType numInputPts, vtkIdType& numPts, vtkIdType& numTris)
+  vtkIdType numInputPts, vtkIdType& numPts, vtkIdType& numTris)
 {
   switch (this->ErrorMeasure)
   {

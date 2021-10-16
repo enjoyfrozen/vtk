@@ -64,8 +64,7 @@ int MPIGetSize();
  * @return xml as pugi object
  * @throws std::invalid_argument
  */
-pugi::xml_document XMLDocument(
-  const std::string& input, const bool debugMode, const std::string& hint);
+pugi::xml_document XMLDocument(const std::string& input, bool debugMode, const std::string& hint);
 
 /**
  * Get safely a pugi::xml_document from a pugmi::xml_document
@@ -78,9 +77,8 @@ pugi::xml_document XMLDocument(
  * @return node if found, empty node if not mandatory
  * @throws std::invalid_argument
  */
-pugi::xml_node XMLNode(const std::string nodeName, const pugi::xml_document& xmlDocument,
-  const bool debugMode, const std::string& hint, const bool isMandatory = true,
-  const bool isUnique = false);
+pugi::xml_node XMLNode(std::string nodeName, const pugi::xml_document& xmlDocument, bool debugMode,
+  const std::string& hint, bool isMandatory = true, bool isUnique = false);
 
 /**
  * Overloaded version that gets a XML node from inside another node called
@@ -94,9 +92,8 @@ pugi::xml_node XMLNode(const std::string nodeName, const pugi::xml_document& xml
  * @return node if found, empty node if not mandatory
  * @throws std::invalid_argument
  */
-pugi::xml_node XMLNode(const std::string nodeName, const pugi::xml_node& upperNode,
-  const bool debugMode, const std::string& hint, const bool isMandatory = true,
-  const bool isUnique = false);
+pugi::xml_node XMLNode(std::string nodeName, const pugi::xml_node& upperNode, bool debugMode,
+  const std::string& hint, bool isMandatory = true, bool isUnique = false);
 
 /**
  * Translate file contents to string
@@ -115,8 +112,8 @@ std::string FileToString(const std::string& fileName);
  * @return attribute if found, empty node if not mandatory
  * @throws std::invalid_argument
  */
-pugi::xml_attribute XMLAttribute(const std::string attributeName, const pugi::xml_node& node,
-  const bool debugMode, const std::string& hint, const bool isMandatory = true);
+pugi::xml_attribute XMLAttribute(std::string attributeName, const pugi::xml_node& node,
+  bool debugMode, const std::string& hint, bool isMandatory = true);
 
 /**
  * Convert a set of strings into a csv "string1,string2,string3" string
