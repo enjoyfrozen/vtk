@@ -73,7 +73,7 @@ public:
     RenderWidth = RenderHeight = 600;
   }
 
-  virtual ~vtkRTTest() {}
+  virtual ~vtkRTTest() = default;
 
 protected:
   float TargetTime;
@@ -131,7 +131,7 @@ public:
     this->ChartResults = true;
   }
 
-  virtual ~vtkRTTestSequence() {}
+  virtual ~vtkRTTestSequence() = default;
 
 protected:
   std::vector<vtkRTTestResult> TestResults;
