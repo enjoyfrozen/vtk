@@ -327,7 +327,7 @@ public:
   /**
    * The size of the font used for vertex labeling
    */
-  virtual void SetVertexLabelFontSize(const int size);
+  virtual void SetVertexLabelFontSize(int size);
   virtual int GetVertexLabelFontSize();
   ///@}
 
@@ -335,7 +335,7 @@ public:
   /**
    * The size of the font used for edge labeling
    */
-  virtual void SetEdgeLabelFontSize(const int size);
+  virtual void SetEdgeLabelFontSize(int size);
   virtual int GetEdgeLabelFontSize();
   ///@}
 

@@ -585,7 +585,7 @@ void vtkHigherOrderInterpolation::Tensor3EvaluateDerivative(const int order[3],
 
 /// Wedge shape function computation
 void vtkHigherOrderInterpolation::WedgeShapeFunctions(const int order[3],
-  const vtkIdType numberOfPoints, const double pcoords[3], double* shape,
+  vtkIdType numberOfPoints, const double pcoords[3], double* shape,
   vtkHigherOrderTriangle& tri, void (*function_evaluate_shape_functions)(int, double, double*))
 {
   if (order[0] != order[1])
@@ -671,7 +671,7 @@ void vtkHigherOrderInterpolation::WedgeShapeFunctions(const int order[3],
 
 /// Wedge shape-function derivative evaluation
 void vtkHigherOrderInterpolation::WedgeShapeDerivatives(const int order[3],
-  const vtkIdType numberOfPoints, const double pcoords[3], double* derivs,
+  vtkIdType numberOfPoints, const double pcoords[3], double* derivs,
   vtkHigherOrderTriangle& tri,
   void (*function_evaluate_shape_and_gradient)(int, double, double*, double*))
 {
@@ -807,7 +807,7 @@ void vtkHigherOrderInterpolation::WedgeShapeDerivatives(const int order[3],
   }
 }
 
-void vtkHigherOrderInterpolation::WedgeEvaluate(const int order[3], const vtkIdType numberOfPoints,
+void vtkHigherOrderInterpolation::WedgeEvaluate(const int order[3], vtkIdType numberOfPoints,
   const double* pcoords, double* fieldVals, int fieldDim, double* fieldAtPCoords,
   vtkHigherOrderTriangle& tri, void (*function_evaluate_shape_functions)(int, double, double*))
 {
@@ -1273,7 +1273,7 @@ void vtkHigherOrderInterpolation::AppendWedgeCollocationPoints(vtkPoints* pts, i
 #endif // 0
 
 void vtkHigherOrderInterpolation::PrepareForOrder(
-  const int order[3], const vtkIdType numberOfPoints)
+  const int order[3], vtkIdType numberOfPoints)
 {
   // Ensure some scratch space is allocated for templated evaluation methods.
   std::size_t maxShape =

@@ -145,7 +145,7 @@ public:
     , hi(-1)
   {
   }
-  Interval(const int l, const int h)
+  Interval(int l, int h)
     : lo(l)
     , hi(h)
   {
@@ -156,7 +156,7 @@ public:
   int High() const { return this->hi; }
   int Cardinality() const { return (this->hi - this->lo + 1); }
   bool Valid() const { return (this->lo <= this->hi); }
-  void Set(const int l, const int h)
+  void Set(int l, int h)
   {
     this->lo = l;
     this->hi = h;
@@ -934,7 +934,7 @@ void vtkStructuredImplicitConnectivity::SetWholeExtent(int wholeExt[6])
 
 //------------------------------------------------------------------------------
 void vtkStructuredImplicitConnectivity::RegisterGrid(
-  const int gridID, int extent[6], vtkPoints* gridNodes, vtkPointData* pointData)
+  int gridID, int extent[6], vtkPoints* gridNodes, vtkPointData* pointData)
 {
   // Sanity Checks!
   assert("pre: nullptr Domain, whole extent is not set!" && (this->DomainInfo != nullptr));
@@ -954,7 +954,7 @@ void vtkStructuredImplicitConnectivity::RegisterGrid(
 }
 
 //------------------------------------------------------------------------------
-void vtkStructuredImplicitConnectivity::RegisterRectilinearGrid(const int gridID, int extent[6],
+void vtkStructuredImplicitConnectivity::RegisterRectilinearGrid(int gridID, int extent[6],
   vtkDataArray* xcoords, vtkDataArray* ycoords, vtkDataArray* zcoords, vtkPointData* pointData)
 {
   // Sanity Checks!
@@ -1167,7 +1167,7 @@ void vtkStructuredImplicitConnectivity::EstablishConnectivity()
 
 //------------------------------------------------------------------------------
 void vtkStructuredImplicitConnectivity::GetOutputStructuredGrid(
-  const int gridID, vtkStructuredGrid* grid)
+  int gridID, vtkStructuredGrid* grid)
 {
   assert("pre: nullptr output grid!" && (grid != nullptr));
   assert("pre: output grid is nullptr!" && (this->OutputGrid != nullptr));
@@ -1185,7 +1185,7 @@ void vtkStructuredImplicitConnectivity::GetOutputStructuredGrid(
 }
 
 //------------------------------------------------------------------------------
-void vtkStructuredImplicitConnectivity::GetOutputImageData(const int gridID, vtkImageData* grid)
+void vtkStructuredImplicitConnectivity::GetOutputImageData(int gridID, vtkImageData* grid)
 {
   assert("pre: nullptr output grid!" && (grid != nullptr));
   assert("pre: output grid is nullptr!" && (this->OutputGrid != nullptr));
@@ -1201,7 +1201,7 @@ void vtkStructuredImplicitConnectivity::GetOutputImageData(const int gridID, vtk
 
 //------------------------------------------------------------------------------
 void vtkStructuredImplicitConnectivity::GetOutputRectilinearGrid(
-  const int gridID, vtkRectilinearGrid* grid)
+  int gridID, vtkRectilinearGrid* grid)
 {
   assert("pre: nullptr output grid!" && (grid != nullptr));
   assert("pre: output grid is nullptr!" && (this->OutputGrid != nullptr));
@@ -1233,7 +1233,7 @@ void vtkStructuredImplicitConnectivity::ConstructOutput()
 }
 
 //------------------------------------------------------------------------------
-void vtkStructuredImplicitConnectivity::UpdateNeighborList(const int dim)
+void vtkStructuredImplicitConnectivity::UpdateNeighborList(int dim)
 {
   assert("pre: dimension index out-of-bounds!" && (dim >= 0) && (dim <= 2));
   assert("pre: input grid is nullptr!" && this->InputGrid != nullptr);
@@ -1431,7 +1431,7 @@ void vtkStructuredImplicitConnectivity::UnPackData(unsigned char* buffer, unsign
 }
 
 //------------------------------------------------------------------------------
-void vtkStructuredImplicitConnectivity::AllocateBuffers(const int dim)
+void vtkStructuredImplicitConnectivity::AllocateBuffers(int dim)
 {
   assert("pre: dimension index out-of-bounds!" && (dim >= 0) && (dim <= 2));
 
@@ -1472,7 +1472,7 @@ void vtkStructuredImplicitConnectivity::AllocateBuffers(const int dim)
 }
 
 //------------------------------------------------------------------------------
-void vtkStructuredImplicitConnectivity::GrowGrid(const int dim)
+void vtkStructuredImplicitConnectivity::GrowGrid(int dim)
 {
   assert("pre: dimension index out-of-bounds!" && (dim >= 0) && (dim <= 2));
   assert("pre: input grid is nullptr!" && this->InputGrid != nullptr);

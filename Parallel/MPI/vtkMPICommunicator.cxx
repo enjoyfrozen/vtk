@@ -1413,7 +1413,7 @@ int vtkMPICommunicator::AllReduceVoidArray(
 }
 
 //------------------------------------------------------------------------------
-int vtkMPICommunicator::WaitAll(const int count, Request requests[])
+int vtkMPICommunicator::WaitAll(int count, Request requests[])
 {
   if (count < 1)
   {
@@ -1432,7 +1432,7 @@ int vtkMPICommunicator::WaitAll(const int count, Request requests[])
 }
 
 //------------------------------------------------------------------------------
-int vtkMPICommunicator::WaitAny(const int count, Request requests[], int& idx)
+int vtkMPICommunicator::WaitAny(int count, Request requests[], int& idx)
 {
   if (count < 1)
   {
@@ -1453,7 +1453,7 @@ int vtkMPICommunicator::WaitAny(const int count, Request requests[], int& idx)
 
 //------------------------------------------------------------------------------
 int vtkMPICommunicator::WaitSome(
-  const int count, Request requests[], int& NCompleted, int* completed)
+  int count, Request requests[], int& NCompleted, int* completed)
 {
   if (count < 1)
   {
@@ -1472,7 +1472,7 @@ int vtkMPICommunicator::WaitSome(
 }
 
 //------------------------------------------------------------------------------
-int vtkMPICommunicator::TestAll(const int count, vtkMPICommunicator::Request requests[], int& flag)
+int vtkMPICommunicator::TestAll(int count, vtkMPICommunicator::Request requests[], int& flag)
 {
   if (count < 1)
   {
@@ -1493,7 +1493,7 @@ int vtkMPICommunicator::TestAll(const int count, vtkMPICommunicator::Request req
 
 //------------------------------------------------------------------------------
 int vtkMPICommunicator::TestAny(
-  const int count, vtkMPICommunicator::Request requests[], int& idx, int& flag)
+  int count, vtkMPICommunicator::Request requests[], int& idx, int& flag)
 {
   if (count < 1)
   {
@@ -1514,7 +1514,7 @@ int vtkMPICommunicator::TestAny(
 
 //------------------------------------------------------------------------------
 int vtkMPICommunicator::TestSome(
-  const int count, Request requests[], int& NCompleted, int* completed)
+  int count, Request requests[], int& NCompleted, int* completed)
 {
   if (count < 1)
   {

@@ -1250,7 +1250,7 @@ bool vtkChartXYZ::Rotate(const vtkContextMouseEvent& mouse)
 }
 
 //------------------------------------------------------------------------------
-bool vtkChartXYZ::Rotate(const RotateDirection rotateDirection)
+bool vtkChartXYZ::Rotate(RotateDirection rotateDirection)
 {
   if (this->Scene->GetSceneHeight() == 0 || this->Scene->GetSceneWidth() == 0)
   {

@@ -256,7 +256,7 @@ vtkAreaLayoutStrategy* vtkTreeAreaView::GetLayoutStrategy()
 }
 
 //------------------------------------------------------------------------------
-void vtkTreeAreaView::SetAreaLabelFontSize(const int size)
+void vtkTreeAreaView::SetAreaLabelFontSize(int size)
 {
   this->GetTreeAreaRepresentation()->GetAreaLabelTextProperty()->SetFontSize(size);
 }
@@ -268,7 +268,7 @@ int vtkTreeAreaView::GetAreaLabelFontSize()
 }
 
 //------------------------------------------------------------------------------
-void vtkTreeAreaView::SetEdgeLabelFontSize(const int size)
+void vtkTreeAreaView::SetEdgeLabelFontSize(int size)
 {
   vtkTextProperty* prop = this->GetTreeAreaRepresentation()->GetGraphEdgeLabelTextProperty();
   if (prop)

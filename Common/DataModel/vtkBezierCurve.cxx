@@ -42,7 +42,7 @@ void vtkBezierCurve::PrintSelf(ostream& os, vtkIndent indent)
  * are non-interpolatory .
  */
 void vtkBezierCurve::EvaluateLocationProjectedNode(
-  int& subId, const vtkIdType point_id, double x[3], double* weights)
+  int& subId, vtkIdType point_id, double x[3], double* weights)
 {
   this->vtkHigherOrderCurve::SetParametricCoords();
   double pcoords[3];
@@ -53,7 +53,7 @@ void vtkBezierCurve::EvaluateLocationProjectedNode(
 /**\brief Set the rational weight of the cell, given a vtkDataSet
  */
 void vtkBezierCurve::SetRationalWeightsFromPointData(
-  vtkPointData* point_data, const vtkIdType numPts)
+  vtkPointData* point_data, vtkIdType numPts)
 {
   vtkDataArray* v = point_data->GetRationalWeights();
   if (v)

@@ -371,7 +371,7 @@ bool vtkQtTableModelAdapter::noTableCheck() const
 // Description:
 // Selection conversion from VTK land to Qt land
 vtkSelection* vtkQtTableModelAdapter::QModelIndexListToVTKIndexSelection(
-  const QModelIndexList qmil) const
+  QModelIndexList qmil) const
 {
   // Create vtk index selection
   vtkSelection* IndexSelection = vtkSelection::New(); // Caller needs to delete

@@ -150,7 +150,7 @@ vtkDataArray* vtkAMRDataSetCache::GetAMRBlockPointData(int compositeIdx, const c
 }
 
 //------------------------------------------------------------------------------
-vtkUniformGrid* vtkAMRDataSetCache::GetAMRBlock(const int compositeIdx)
+vtkUniformGrid* vtkAMRDataSetCache::GetAMRBlock(int compositeIdx)
 {
   if (this->HasAMRBlock(compositeIdx))
   {

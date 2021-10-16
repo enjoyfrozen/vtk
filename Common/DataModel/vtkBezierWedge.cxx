@@ -153,7 +153,7 @@ vtkCell* vtkBezierWedge::GetFace(int faceId)
  * are non-interpolatory .
  */
 void vtkBezierWedge::EvaluateLocationProjectedNode(
-  int& subId, const vtkIdType point_id, double x[3], double* weights)
+  int& subId, vtkIdType point_id, double x[3], double* weights)
 {
   this->vtkHigherOrderWedge::SetParametricCoords();
   double pcoords[3];
@@ -193,7 +193,7 @@ void vtkBezierWedge::InterpolateDerivs(const double pcoords[3], double* derivs)
 /**\brief Set the rational weight of the cell, given a vtkDataSet
  */
 void vtkBezierWedge::SetRationalWeightsFromPointData(
-  vtkPointData* point_data, const vtkIdType numPts)
+  vtkPointData* point_data, vtkIdType numPts)
 {
   vtkDataArray* v = point_data->GetRationalWeights();
   if (v)

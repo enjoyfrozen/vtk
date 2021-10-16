@@ -203,7 +203,7 @@ public:
   // (Note: in current implementation the tolerance only works in the
   // neighborhood of the three vertices of the triangle.
   static int PointInTriangle(const double x[3], const double x1[3], const double x2[3],
-    const double x3[3], const double tol2);
+    const double x3[3], double tol2);
 
   ///@{
   /**

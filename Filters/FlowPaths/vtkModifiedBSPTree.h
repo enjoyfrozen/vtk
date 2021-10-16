@@ -217,7 +217,7 @@ public:
    * from ray start to end. If either vtkPoints or CellIds are nullptr
    * pointers, then no information is generated for that list.
    */
-  virtual int IntersectWithLine(const double p1[3], const double p2[3], const double tol,
+  virtual int IntersectWithLine(const double p1[3], const double p2[3], double tol,
     vtkPoints* points, vtkIdList* cellIds);
 
   /**
@@ -255,7 +255,7 @@ protected:
   // (Example : Particles stored in tree, have no dimension, so we must
   // override the cell test to return a value based on some particle size
   virtual int IntersectCellInternal(vtkIdType cell_ID, const double p1[3], const double p2[3],
-    const double tol, double& t, double ipt[3], double pcoords[3], int& subId);
+    double tol, double& t, double ipt[3], double pcoords[3], int& subId);
 
   void BuildLocatorIfNeeded();
   void ForceBuildLocator();

@@ -94,9 +94,9 @@ public:
   /**
    * Specialized methods for building links from cell array.
    */
-  void SerialBuildLinks(const vtkIdType numPts, const vtkIdType numCells, vtkCellArray* cellArray);
+  void SerialBuildLinks(vtkIdType numPts, vtkIdType numCells, vtkCellArray* cellArray);
   void ThreadedBuildLinks(
-    const vtkIdType numPts, const vtkIdType numCells, vtkCellArray* cellArray);
+    vtkIdType numPts, vtkIdType numCells, vtkCellArray* cellArray);
 
   ///@{
   /**

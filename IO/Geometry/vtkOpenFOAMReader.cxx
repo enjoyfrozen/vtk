@@ -1669,7 +1669,7 @@ public:
   bool IsPunctuation() const noexcept { return this->Type == PUNCTUATION; }
 
   // Token is PUNCTUATION and equal to parameter
-  bool IsPunctuation(const char c) const noexcept
+  bool IsPunctuation(char c) const noexcept
   {
     return this->Type == PUNCTUATION && c == this->Char;
   }
@@ -1733,7 +1733,7 @@ public:
     this->Type = IDENTIFIER;
   }
 
-  void operator=(const char c)
+  void operator=(char c)
   {
     this->Clear();
     this->Type = PUNCTUATION;
@@ -1759,7 +1759,7 @@ public:
       vtkGenericWarningMacro("Assigned int64 to int32 label - may lose precision");
     }
   }
-  void operator=(const double val)
+  void operator=(double val)
   {
     this->Clear();
     this->Type = SCALAR;
@@ -1785,8 +1785,8 @@ public:
     this->AssignData(tok);
     return *this;
   }
-  bool operator==(const char c) const noexcept { return this->IsPunctuation(c); }
-  bool operator!=(const char c) const noexcept { return !this->IsPunctuation(c); }
+  bool operator==(char c) const noexcept { return this->IsPunctuation(c); }
+  bool operator!=(char c) const noexcept { return !this->IsPunctuation(c); }
   bool operator==(const vtkTypeInt32 val) const { return this->IsLabel(val); }
   bool operator==(const vtkTypeInt64 val) const { return this->IsLabel(val); }
   bool operator==(const std::string& str) const { return this->IsString(str); }
@@ -2110,7 +2110,7 @@ private:
   void ThrowUnexpectedTokenException(char, int c);
   int ReadNext();
 
-  void PutBack(const int c)
+  void PutBack(int c)
   {
     if (--this->Superclass::BufPtr < this->Superclass::Outbuf)
     {
@@ -2810,7 +2810,7 @@ public:
     return readlen;
   }
 
-  void ReadExpecting(const char expected)
+  void ReadExpecting(char expected)
   {
     // skip prepending invalid chars
     // expanded the outermost loop in nextTokenHead() for performance
@@ -3763,7 +3763,7 @@ public:
     return this->Superclass::Type == LABEL ? this->Superclass::To<vtkTypeInt64>() : 0;
   }
 
-  void MakeLabelList(const vtkIdType len, const vtkTypeInt64 val = 0)
+  void MakeLabelList(vtkIdType len, vtkTypeInt64 val = 0)
   {
     this->Superclass::Type = vtkFoamToken::LABELLIST;
     if (this->IsLabel64())
@@ -3782,7 +3782,7 @@ public:
     }
   }
 
-  void MakeScalarList(const vtkIdType len, const float val = 0.0f)
+  void MakeScalarList(vtkIdType len, float val = 0.0f)
   {
     this->Superclass::Type = vtkFoamToken::SCALARLIST;
     this->Superclass::ScalarListPtr = vtkFloatArray::New();
@@ -11453,7 +11453,7 @@ void vtkOpenFOAMReader::AddSelectionNames(
 }
 
 //------------------------------------------------------------------------------
-bool vtkOpenFOAMReader::SetTimeValue(const double timeValue)
+bool vtkOpenFOAMReader::SetTimeValue(double timeValue)
 {
   bool modified = false;
   this->Readers->InitTraversal();

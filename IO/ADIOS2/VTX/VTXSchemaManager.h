@@ -57,7 +57,7 @@ public:
    * @param schemaName schema name to look for either as attribute or separate
    * file
    */
-  void Update(const std::string& streamName, const size_t step = 0,
+  void Update(const std::string& streamName, size_t step = 0,
     const std::string& schemaName = "vtk.xml");
 
   /**
@@ -65,7 +65,7 @@ public:
    * @param multiblock output structure to be filled by m_Reader
    * @param step input data for one step at a time
    */
-  void Fill(vtkMultiBlockDataSet* multiblock, const size_t step = 0);
+  void Fill(vtkMultiBlockDataSet* multiblock, size_t step = 0);
 
 private:
   /** Current stream name */

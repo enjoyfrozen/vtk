@@ -82,7 +82,7 @@ vtkCell* vtkBezierTriangle::GetEdge(int edgeId)
  * are non-interpolatory .
  */
 void vtkBezierTriangle::EvaluateLocationProjectedNode(
-  int& subId, const vtkIdType point_id, double x[3], double* weights)
+  int& subId, vtkIdType point_id, double x[3], double* weights)
 {
   this->vtkHigherOrderTriangle::SetParametricCoords();
   double pcoords[3];
@@ -93,7 +93,7 @@ void vtkBezierTriangle::EvaluateLocationProjectedNode(
 /**\brief Set the rational weight of the cell, given a vtkDataSet
  */
 void vtkBezierTriangle::SetRationalWeightsFromPointData(
-  vtkPointData* point_data, const vtkIdType numPts)
+  vtkPointData* point_data, vtkIdType numPts)
 {
   vtkDataArray* v = point_data->GetRationalWeights();
   if (v)

@@ -404,9 +404,9 @@ protected:
   virtual void TransformScreenToData(const vtkVector2f& in, vtkVector2f& out);
   virtual void TransformDataToScreen(const vtkVector2f& in, vtkVector2f& out);
   virtual void TransformScreenToData(
-    const double inX, const double inY, double& outX, double& outY);
+    double inX, double inY, double& outX, double& outY);
   virtual void TransformDataToScreen(
-    const double inX, const double inY, double& outX, double& outY);
+    double inX, double inY, double& outX, double& outY);
   ///@}
 
   /**

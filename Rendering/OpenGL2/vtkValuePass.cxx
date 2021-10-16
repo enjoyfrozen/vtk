@@ -696,7 +696,7 @@ vtkFloatArray* vtkValuePass::GetFloatImageDataArray(vtkRenderer* ren)
 
 //------------------------------------------------------------------------------
 void vtkValuePass::GetFloatImageData(
-  int const format, int const width, int const height, void* data)
+  int format, int width, int height, void* data)
 {
   auto ostate = this->ImplFloat->ValueFBO->GetContext()->GetState();
 

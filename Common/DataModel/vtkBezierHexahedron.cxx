@@ -116,7 +116,7 @@ vtkCell* vtkBezierHexahedron::GetFace(int faceId)
  * points are non-interpolatory .
  */
 void vtkBezierHexahedron::EvaluateLocationProjectedNode(
-  int& subId, const vtkIdType point_id, double x[3], double* weights)
+  int& subId, vtkIdType point_id, double x[3], double* weights)
 {
   this->vtkHigherOrderHexahedron::SetParametricCoords();
   double pcoords[3];
@@ -210,7 +210,7 @@ void vtkBezierHexahedron::InterpolateDerivs(const double pcoords[3], double* der
 /**\brief Set the rational weight of the cell, given a vtkDataSet
  */
 void vtkBezierHexahedron::SetRationalWeightsFromPointData(
-  vtkPointData* point_data, const vtkIdType numPts)
+  vtkPointData* point_data, vtkIdType numPts)
 {
   vtkDataArray* v = point_data->GetRationalWeights();
   if (v)
