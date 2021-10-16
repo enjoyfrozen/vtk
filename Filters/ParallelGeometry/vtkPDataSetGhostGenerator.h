@@ -68,8 +68,7 @@ protected:
   /**
    * Creates ghost layers. Implemented by concrete implementations.
    */
-  virtual void GenerateGhostLayers(
-    vtkMultiBlockDataSet* in, vtkMultiBlockDataSet* out) override = 0;
+  void GenerateGhostLayers(vtkMultiBlockDataSet* in, vtkMultiBlockDataSet* out) override = 0;
 
   int Rank;
   bool Initialized;
