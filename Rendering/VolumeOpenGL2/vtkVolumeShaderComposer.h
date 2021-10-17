@@ -33,7 +33,7 @@
 
 namespace
 {
-bool HasGradientOpacity(vtkOpenGLGPUVolumeRayCastMapper::VolumeInputMap& inputs)
+inline bool HasGradientOpacity(vtkOpenGLGPUVolumeRayCastMapper::VolumeInputMap& inputs)
 {
   for (auto& item : inputs)
   {
@@ -46,7 +46,7 @@ bool HasGradientOpacity(vtkOpenGLGPUVolumeRayCastMapper::VolumeInputMap& inputs)
   return false;
 }
 
-bool HasLighting(vtkOpenGLGPUVolumeRayCastMapper::VolumeInputMap& inputs)
+inline bool HasLighting(vtkOpenGLGPUVolumeRayCastMapper::VolumeInputMap& inputs)
 {
   for (auto& item : inputs)
   {
@@ -58,7 +58,7 @@ bool HasLighting(vtkOpenGLGPUVolumeRayCastMapper::VolumeInputMap& inputs)
   return false;
 }
 
-bool UseClippedVoxelIntensity(vtkOpenGLGPUVolumeRayCastMapper::VolumeInputMap& inputs)
+inline bool UseClippedVoxelIntensity(vtkOpenGLGPUVolumeRayCastMapper::VolumeInputMap& inputs)
 {
   for (auto& item : inputs)
   {
@@ -72,7 +72,7 @@ bool UseClippedVoxelIntensity(vtkOpenGLGPUVolumeRayCastMapper::VolumeInputMap& i
   return false;
 }
 
-const std::string ArrayBaseName(const std::string& arrayName)
+inline const std::string ArrayBaseName(const std::string& arrayName)
 {
   const std::string base = arrayName.substr(0, arrayName.length() - 3);
   return base;
@@ -88,7 +88,7 @@ const std::string ArrayBaseName(const std::string& arrayName)
 namespace vtkvolume
 {
 //--------------------------------------------------------------------------
-std::string ComputeClipPositionImplementation(
+inline std::string ComputeClipPositionImplementation(
   vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* vtkNotUsed(mapper), vtkVolume* vtkNotUsed(vol))
 {
   return std::string(
@@ -100,7 +100,7 @@ std::string ComputeClipPositionImplementation(
 }
 
 //--------------------------------------------------------------------------
-std::string ComputeTextureCoordinates(
+inline std::string ComputeTextureCoordinates(
   vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* vtkNotUsed(mapper), vtkVolume* vtkNotUsed(vol))
 {
   return std::string(
@@ -118,7 +118,7 @@ std::string ComputeTextureCoordinates(
 }
 
 //--------------------------------------------------------------------------
-std::string BaseDeclarationVertex(vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* mapper,
+inline std::string BaseDeclarationVertex(vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* mapper,
   vtkVolume* vtkNotUsed(vol), bool multipleInputs)
 {
   auto gpuMapper = vtkGPUVolumeRayCastMapper::SafeDownCast(mapper);
@@ -148,7 +148,7 @@ std::string BaseDeclarationVertex(vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper*
 }
 
 //--------------------------------------------------------------------------
-std::string BaseDeclarationFragment(vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* mapper,
+inline std::string BaseDeclarationFragment(vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* mapper,
   vtkOpenGLGPUVolumeRayCastMapper::VolumeInputMap& inputs, int vtkNotUsed(numberOfLights),
   int lightingComplexity, int noOfComponents, int independentComponents)
 {
@@ -356,7 +356,7 @@ std::string BaseDeclarationFragment(vtkRenderer* vtkNotUsed(ren), vtkVolumeMappe
 }
 
 //--------------------------------------------------------------------------
-std::string BaseInit(vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* mapper,
+inline std::string BaseInit(vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* mapper,
   vtkOpenGLGPUVolumeRayCastMapper::VolumeInputMap& inputs, int lightingComplexity)
 {
   vtkOpenGLGPUVolumeRayCastMapper* glMapper = vtkOpenGLGPUVolumeRayCastMapper::SafeDownCast(mapper);
@@ -474,7 +474,7 @@ std::string BaseInit(vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* mapper,
 }
 
 //--------------------------------------------------------------------------
-std::string BaseImplementation(
+inline std::string BaseImplementation(
   vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* mapper, vtkVolume* vtkNotUsed(vol))
 {
   vtkOpenGLGPUVolumeRayCastMapper* glMapper = vtkOpenGLGPUVolumeRayCastMapper::SafeDownCast(mapper);
@@ -585,14 +585,14 @@ std::string BaseImplementation(
 }
 
 //--------------------------------------------------------------------------
-std::string BaseExit(
+inline std::string BaseExit(
   vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* vtkNotUsed(mapper), vtkVolume* vtkNotUsed(vol))
 {
   return std::string();
 }
 
 //--------------------------------------------------------------------------
-std::string ComputeGradientOpacity1DDecl(vtkVolume* vol, int noOfComponents,
+inline std::string ComputeGradientOpacity1DDecl(vtkVolume* vol, int noOfComponents,
   int independentComponents, std::map<int, std::string> gradientTableMap)
 {
   auto volProperty = vol->GetProperty();
@@ -657,7 +657,7 @@ std::string ComputeGradientOpacity1DDecl(vtkVolume* vol, int noOfComponents,
 }
 
 //--------------------------------------------------------------------------
-std::string ComputeGradientDeclaration(
+inline std::string ComputeGradientDeclaration(
   vtkOpenGLGPUVolumeRayCastMapper* mapper, vtkOpenGLGPUVolumeRayCastMapper::VolumeInputMap& inputs)
 {
   const bool hasLighting = HasLighting(inputs);
@@ -788,7 +788,7 @@ std::string ComputeGradientDeclaration(
 }
 
 //--------------------------------------------------------------------------
-std::string ComputeLightingDeclaration(vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* mapper,
+inline std::string ComputeLightingDeclaration(vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* mapper,
   vtkVolume* vol, int noOfComponents, int independentComponents, int vtkNotUsed(numberOfLights),
   int lightingComplexity)
 {
@@ -1049,7 +1049,7 @@ std::string ComputeLightingDeclaration(vtkRenderer* vtkNotUsed(ren), vtkVolumeMa
 }
 
 //--------------------------------------------------------------------------
-std::string ComputeLightingMultiDeclaration(vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* mapper,
+inline std::string ComputeLightingMultiDeclaration(vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* mapper,
   vtkVolume* vol, int noOfComponents, int independentComponents, int vtkNotUsed(numberOfLights),
   int lightingComplexity)
 {
@@ -1141,7 +1141,7 @@ std::string ComputeLightingMultiDeclaration(vtkRenderer* vtkNotUsed(ren), vtkVol
 }
 
 //--------------------------------------------------------------------------
-std::string ComputeRayDirectionDeclaration(vtkRenderer* ren, vtkVolumeMapper* vtkNotUsed(mapper),
+inline std::string ComputeRayDirectionDeclaration(vtkRenderer* ren, vtkVolumeMapper* vtkNotUsed(mapper),
   vtkVolume* vtkNotUsed(vol), int vtkNotUsed(noOfComponents))
 {
   if (!ren->GetActiveCamera()->GetParallelProjection())
@@ -1165,7 +1165,7 @@ std::string ComputeRayDirectionDeclaration(vtkRenderer* ren, vtkVolumeMapper* vt
 }
 
 //--------------------------------------------------------------------------
-std::string ComputeColorDeclaration(vtkRenderer* vtkNotUsed(ren),
+inline std::string ComputeColorDeclaration(vtkRenderer* vtkNotUsed(ren),
   vtkVolumeMapper* vtkNotUsed(mapper), vtkVolume* vtkNotUsed(vol), int noOfComponents,
   int independentComponents, std::map<int, std::string> colorTableMap)
 {
@@ -1243,7 +1243,7 @@ std::string ComputeColorDeclaration(vtkRenderer* vtkNotUsed(ren),
 }
 
 //--------------------------------------------------------------------------
-std::string ComputeColorMultiDeclaration(vtkOpenGLGPUVolumeRayCastMapper::VolumeInputMap& inputs)
+inline std::string ComputeColorMultiDeclaration(vtkOpenGLGPUVolumeRayCastMapper::VolumeInputMap& inputs)
 {
   std::ostringstream ss;
   int i = 0;
@@ -1287,7 +1287,7 @@ std::string ComputeColorMultiDeclaration(vtkOpenGLGPUVolumeRayCastMapper::Volume
 }
 
 //--------------------------------------------------------------------------
-std::string ComputeOpacityMultiDeclaration(vtkOpenGLGPUVolumeRayCastMapper::VolumeInputMap& inputs)
+inline std::string ComputeOpacityMultiDeclaration(vtkOpenGLGPUVolumeRayCastMapper::VolumeInputMap& inputs)
 {
   std::ostringstream ss;
   int i = 0;
@@ -1311,7 +1311,7 @@ std::string ComputeOpacityMultiDeclaration(vtkOpenGLGPUVolumeRayCastMapper::Volu
 }
 
 //--------------------------------------------------------------------------
-std::string ComputeGradientOpacityMulti1DDecl(
+inline std::string ComputeGradientOpacityMulti1DDecl(
   vtkOpenGLGPUVolumeRayCastMapper::VolumeInputMap& inputs)
 {
   std::ostringstream ss;
@@ -1337,7 +1337,7 @@ std::string ComputeGradientOpacityMulti1DDecl(
 }
 
 //--------------------------------------------------------------------------
-std::string ComputeOpacityDeclaration(vtkRenderer* vtkNotUsed(ren),
+inline std::string ComputeOpacityDeclaration(vtkRenderer* vtkNotUsed(ren),
   vtkVolumeMapper* vtkNotUsed(mapper), vtkVolume* vtkNotUsed(vol), int noOfComponents,
   int independentComponents, std::map<int, std::string> opacityTableMap)
 {
@@ -1395,7 +1395,7 @@ std::string ComputeOpacityDeclaration(vtkRenderer* vtkNotUsed(ren),
 }
 
 //--------------------------------------------------------------------------
-std::string ComputeColor2DYAxisDeclaration(int noOfComponents,
+inline std::string ComputeColor2DYAxisDeclaration(int noOfComponents,
   int vtkNotUsed(independentComponents), std::map<int, std::string> colorTableMap)
 {
   if (noOfComponents == 1)
@@ -1421,7 +1421,7 @@ std::string ComputeColor2DYAxisDeclaration(int noOfComponents,
 }
 
 //--------------------------------------------------------------------------
-std::string ComputeColor2DDeclaration(vtkRenderer* vtkNotUsed(ren),
+inline std::string ComputeColor2DDeclaration(vtkRenderer* vtkNotUsed(ren),
   vtkVolumeMapper* vtkNotUsed(mapper), vtkVolume* vtkNotUsed(vol), int noOfComponents,
   int independentComponents, std::map<int, std::string> colorTableMap, int useGradient)
 {
@@ -1493,7 +1493,7 @@ std::string ComputeColor2DDeclaration(vtkRenderer* vtkNotUsed(ren),
 }
 
 //--------------------------------------------------------------------------
-std::string Transfer2DDeclaration(vtkOpenGLGPUVolumeRayCastMapper::VolumeInputMap& inputs)
+inline std::string Transfer2DDeclaration(vtkOpenGLGPUVolumeRayCastMapper::VolumeInputMap& inputs)
 {
   std::ostringstream ss;
   int i = 0;
@@ -1518,7 +1518,7 @@ std::string Transfer2DDeclaration(vtkOpenGLGPUVolumeRayCastMapper::VolumeInputMa
 }
 
 //--------------------------------------------------------------------------
-std::string ComputeOpacity2DDeclaration(vtkRenderer* vtkNotUsed(ren),
+inline std::string ComputeOpacity2DDeclaration(vtkRenderer* vtkNotUsed(ren),
   vtkVolumeMapper* vtkNotUsed(mapper), vtkVolume* vtkNotUsed(vol), int noOfComponents,
   int independentComponents, std::map<int, std::string> opacityTableMap, int useGradient)
 {
@@ -1634,14 +1634,14 @@ std::string ComputeOpacity2DDeclaration(vtkRenderer* vtkNotUsed(ren),
 }
 
 //--------------------------------------------------------------------------
-std::string ShadingDeclarationVertex(
+inline std::string ShadingDeclarationVertex(
   vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* vtkNotUsed(mapper), vtkVolume* vtkNotUsed(vol))
 {
   return std::string();
 }
 
 //--------------------------------------------------------------------------
-std::string ShadingDeclarationFragment(
+inline std::string ShadingDeclarationFragment(
   vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* mapper, vtkVolume* vtkNotUsed(vol))
 {
   if (mapper->GetBlendMode() == vtkVolumeMapper::MAXIMUM_INTENSITY_BLEND)
@@ -1680,7 +1680,7 @@ std::string ShadingDeclarationFragment(
 }
 
 //--------------------------------------------------------------------------
-std::string ShadingInit(
+inline std::string ShadingInit(
   vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* mapper, vtkVolume* vtkNotUsed(vol))
 {
   if (mapper->GetBlendMode() == vtkVolumeMapper::MAXIMUM_INTENSITY_BLEND)
@@ -1732,7 +1732,7 @@ std::string ShadingInit(
 }
 
 //--------------------------------------------------------------------------
-std::string GradientCacheDec(vtkRenderer* vtkNotUsed(ren), vtkVolume* vtkNotUsed(vol),
+inline std::string GradientCacheDec(vtkRenderer* vtkNotUsed(ren), vtkVolume* vtkNotUsed(vol),
   vtkOpenGLGPUVolumeRayCastMapper::VolumeInputMap& inputs, int independentComponents = 0)
 {
   const int numInputs = static_cast<int>(inputs.size());
@@ -1757,7 +1757,7 @@ std::string GradientCacheDec(vtkRenderer* vtkNotUsed(ren), vtkVolume* vtkNotUsed
 }
 
 //--------------------------------------------------------------------------
-std::string PreComputeGradientsImpl(vtkRenderer* vtkNotUsed(ren), vtkVolume* vtkNotUsed(vol),
+inline std::string PreComputeGradientsImpl(vtkRenderer* vtkNotUsed(ren), vtkVolume* vtkNotUsed(vol),
   int noOfComponents = 1, int independentComponents = 0)
 {
   std::ostringstream shader;
@@ -1785,7 +1785,7 @@ std::string PreComputeGradientsImpl(vtkRenderer* vtkNotUsed(ren), vtkVolume* vtk
 }
 
 //--------------------------------------------------------------------------
-std::string ShadingMultipleInputs(
+inline std::string ShadingMultipleInputs(
   vtkVolumeMapper* mapper, vtkOpenGLGPUVolumeRayCastMapper::VolumeInputMap& inputs)
 {
   std::ostringstream toShaderStr;
@@ -1886,7 +1886,7 @@ std::string ShadingMultipleInputs(
 }
 
 //--------------------------------------------------------------------------
-std::string ShadingSingleInput(vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* mapper,
+inline std::string ShadingSingleInput(vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* mapper,
   vtkVolume* vtkNotUsed(vol), vtkImageData* maskInput, vtkVolumeTexture* mask, int maskType,
   int noOfComponents, int independentComponents = 0)
 {
@@ -2274,7 +2274,7 @@ std::string ShadingSingleInput(vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* ma
 }
 
 //--------------------------------------------------------------------------
-std::string PickingActorPassExit(
+inline std::string PickingActorPassExit(
   vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* vtkNotUsed(mapper), vtkVolume* vtkNotUsed(vol))
 {
   return std::string("\
@@ -2293,7 +2293,7 @@ std::string PickingActorPassExit(
 };
 
 //--------------------------------------------------------------------------
-std::string PickingIdLow24PassExit(
+inline std::string PickingIdLow24PassExit(
   vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* vtkNotUsed(mapper), vtkVolume* vtkNotUsed(vol))
 {
   return std::string("\
@@ -2319,7 +2319,7 @@ std::string PickingIdLow24PassExit(
 };
 
 //--------------------------------------------------------------------------
-std::string PickingIdHigh24PassExit(
+inline std::string PickingIdHigh24PassExit(
   vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* vtkNotUsed(mapper), vtkVolume* vtkNotUsed(vol))
 {
   return std::string("\
@@ -2346,7 +2346,7 @@ std::string PickingIdHigh24PassExit(
 };
 
 //--------------------------------------------------------------------------
-std::string ShadingExit(vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* mapper,
+inline std::string ShadingExit(vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* mapper,
   vtkVolume* vtkNotUsed(vol), int noOfComponents, int independentComponents = 0)
 {
   vtkOpenGLGPUVolumeRayCastMapper* glMapper = vtkOpenGLGPUVolumeRayCastMapper::SafeDownCast(mapper);
@@ -2471,14 +2471,14 @@ std::string ShadingExit(vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* mapper,
 }
 
 //--------------------------------------------------------------------------
-std::string TerminationDeclarationVertex(
+inline std::string TerminationDeclarationVertex(
   vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* vtkNotUsed(mapper), vtkVolume* vtkNotUsed(vol))
 {
   return std::string();
 }
 
 //--------------------------------------------------------------------------
-std::string TerminationDeclarationFragment(
+inline std::string TerminationDeclarationFragment(
   vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* vtkNotUsed(mapper), vtkVolume* vtkNotUsed(vol))
 {
   return std::string("\
@@ -2486,7 +2486,7 @@ std::string TerminationDeclarationFragment(
 }
 
 //--------------------------------------------------------------------------
-std::string PickingActorPassDeclaration(
+inline std::string PickingActorPassDeclaration(
   vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* vtkNotUsed(mapper), vtkVolume* vtkNotUsed(vol))
 {
   return std::string("\
@@ -2494,7 +2494,7 @@ std::string PickingActorPassDeclaration(
 };
 
 //--------------------------------------------------------------------------
-std::string TerminationInit(vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* mapper, vtkVolume* vol)
+inline std::string TerminationInit(vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* mapper, vtkVolume* vol)
 {
   std::string shaderStr;
   shaderStr += std::string("\
@@ -2575,7 +2575,7 @@ std::string TerminationInit(vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* mappe
 }
 
 //--------------------------------------------------------------------------
-std::string TerminationImplementation(
+inline std::string TerminationImplementation(
   vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* vtkNotUsed(mapper), vtkVolume* vtkNotUsed(vol))
 {
   return std::string("\
@@ -2598,21 +2598,21 @@ std::string TerminationImplementation(
 }
 
 //--------------------------------------------------------------------------
-std::string TerminationExit(
+inline std::string TerminationExit(
   vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* vtkNotUsed(mapper), vtkVolume* vtkNotUsed(vol))
 {
   return std::string();
 }
 
 //--------------------------------------------------------------------------
-std::string CroppingDeclarationVertex(
+inline std::string CroppingDeclarationVertex(
   vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* vtkNotUsed(mapper), vtkVolume* vtkNotUsed(vol))
 {
   return std::string();
 }
 
 //--------------------------------------------------------------------------
-std::string CroppingDeclarationFragment(
+inline std::string CroppingDeclarationFragment(
   vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* mapper, vtkVolume* vtkNotUsed(vol))
 {
   if (!mapper->GetCropping())
@@ -2657,7 +2657,7 @@ std::string CroppingDeclarationFragment(
 }
 
 //--------------------------------------------------------------------------
-std::string CroppingInit(
+inline std::string CroppingInit(
   vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* mapper, vtkVolume* vtkNotUsed(vol))
 {
   if (!mapper->GetCropping())
@@ -2719,7 +2719,7 @@ std::string CroppingInit(
 }
 
 //--------------------------------------------------------------------------
-std::string CroppingImplementation(
+inline std::string CroppingImplementation(
   vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* mapper, vtkVolume* vtkNotUsed(vol))
 {
   if (!mapper->GetCropping())
@@ -2741,21 +2741,21 @@ std::string CroppingImplementation(
 }
 
 //--------------------------------------------------------------------------
-std::string CroppingExit(
+inline std::string CroppingExit(
   vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* vtkNotUsed(mapper), vtkVolume* vtkNotUsed(vol))
 {
   return std::string();
 }
 
 //--------------------------------------------------------------------------
-std::string ClippingDeclarationVertex(
+inline std::string ClippingDeclarationVertex(
   vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* vtkNotUsed(mapper), vtkVolume* vtkNotUsed(vol))
 {
   return std::string();
 }
 
 //--------------------------------------------------------------------------
-std::string ClippingDeclarationFragment(
+inline std::string ClippingDeclarationFragment(
   vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* mapper, vtkVolume* vtkNotUsed(vol))
 {
   if (!mapper->GetClippingPlanes())
@@ -2859,7 +2859,7 @@ std::string ClippingDeclarationFragment(
 }
 
 //--------------------------------------------------------------------------
-std::string ClippingInit(vtkRenderer* ren, vtkVolumeMapper* mapper, vtkVolume* vtkNotUsed(vol))
+inline std::string ClippingInit(vtkRenderer* ren, vtkVolumeMapper* mapper, vtkVolume* vtkNotUsed(vol))
 {
   if (!mapper->GetClippingPlanes())
   {
@@ -2906,21 +2906,21 @@ std::string ClippingInit(vtkRenderer* ren, vtkVolumeMapper* mapper, vtkVolume* v
 }
 
 //--------------------------------------------------------------------------
-std::string ClippingImplementation(
+inline std::string ClippingImplementation(
   vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* vtkNotUsed(mapper), vtkVolume* vtkNotUsed(vol))
 {
   return std::string();
 }
 
 //--------------------------------------------------------------------------
-std::string ClippingExit(
+inline std::string ClippingExit(
   vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* vtkNotUsed(mapper), vtkVolume* vtkNotUsed(vol))
 {
   return std::string();
 }
 
 //--------------------------------------------------------------------------
-std::string BinaryMaskDeclaration(vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* vtkNotUsed(mapper),
+inline std::string BinaryMaskDeclaration(vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* vtkNotUsed(mapper),
   vtkVolume* vtkNotUsed(vol), vtkImageData* maskInput, vtkVolumeTexture* mask,
   int vtkNotUsed(maskType))
 {
@@ -2935,7 +2935,7 @@ std::string BinaryMaskDeclaration(vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper*
 }
 
 //--------------------------------------------------------------------------
-std::string BinaryMaskImplementation(vtkRenderer* vtkNotUsed(ren),
+inline std::string BinaryMaskImplementation(vtkRenderer* vtkNotUsed(ren),
   vtkVolumeMapper* vtkNotUsed(mapper), vtkVolume* vtkNotUsed(vol), vtkImageData* maskInput,
   vtkVolumeTexture* mask, int maskType)
 {
@@ -2955,7 +2955,7 @@ std::string BinaryMaskImplementation(vtkRenderer* vtkNotUsed(ren),
 }
 
 //--------------------------------------------------------------------------
-std::string CompositeMaskDeclarationFragment(vtkRenderer* vtkNotUsed(ren),
+inline std::string CompositeMaskDeclarationFragment(vtkRenderer* vtkNotUsed(ren),
   vtkVolumeMapper* vtkNotUsed(mapper), vtkVolume* vtkNotUsed(vol), vtkImageData* maskInput,
   vtkVolumeTexture* mask, int maskType)
 {
@@ -2976,7 +2976,7 @@ std::string CompositeMaskDeclarationFragment(vtkRenderer* vtkNotUsed(ren),
 }
 
 //--------------------------------------------------------------------------
-std::string CompositeMaskImplementation(vtkRenderer* vtkNotUsed(ren),
+inline std::string CompositeMaskImplementation(vtkRenderer* vtkNotUsed(ren),
   vtkVolumeMapper* vtkNotUsed(mapper), vtkVolume* vtkNotUsed(vol), vtkImageData* maskInput,
   vtkVolumeTexture* mask, int maskType, int noOfComponents)
 {
@@ -3060,7 +3060,7 @@ std::string CompositeMaskImplementation(vtkRenderer* vtkNotUsed(ren),
 }
 
 //--------------------------------------------------------------------------
-std::string RenderToImageDeclarationFragment(
+inline std::string RenderToImageDeclarationFragment(
   vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* vtkNotUsed(mapper), vtkVolume* vtkNotUsed(vol))
 {
   return std::string("uniform bool in_clampDepthToBackface;\n"
@@ -3069,7 +3069,7 @@ std::string RenderToImageDeclarationFragment(
 }
 
 //--------------------------------------------------------------------------
-std::string RenderToImageInit(
+inline std::string RenderToImageInit(
   vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* vtkNotUsed(mapper), vtkVolume* vtkNotUsed(vol))
 {
   return std::string("\
@@ -3082,7 +3082,7 @@ std::string RenderToImageInit(
 }
 
 //--------------------------------------------------------------------------
-std::string RenderToImageImplementation(
+inline std::string RenderToImageImplementation(
   vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* vtkNotUsed(mapper), vtkVolume* vtkNotUsed(vol))
 {
   return std::string("\
@@ -3094,7 +3094,7 @@ std::string RenderToImageImplementation(
 }
 
 //--------------------------------------------------------------------------
-std::string RenderToImageExit(
+inline std::string RenderToImageExit(
   vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* vtkNotUsed(mapper), vtkVolume* vtkNotUsed(vol))
 {
   return std::string("\
@@ -3115,7 +3115,7 @@ std::string RenderToImageExit(
 }
 
 //--------------------------------------------------------------------------
-std::string DepthPassInit(
+inline std::string DepthPassInit(
   vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* vtkNotUsed(mapper), vtkVolume* vtkNotUsed(vol))
 {
   return std::string("\
@@ -3123,7 +3123,7 @@ std::string DepthPassInit(
 }
 
 //--------------------------------------------------------------------------
-std::string DepthPassImplementation(
+inline std::string DepthPassImplementation(
   vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* vtkNotUsed(mapper), vtkVolume* vtkNotUsed(vol))
 {
   return std::string("\
@@ -3135,7 +3135,7 @@ std::string DepthPassImplementation(
 }
 
 //--------------------------------------------------------------------------
-std::string DepthPassExit(
+inline std::string DepthPassExit(
   vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* vtkNotUsed(mapper), vtkVolume* vtkNotUsed(vol))
 {
   return std::string("\
@@ -3148,7 +3148,7 @@ std::string DepthPassExit(
 }
 
 //---------------------------------------------------------------------------
-std::string WorkerImplementation(
+inline std::string WorkerImplementation(
   vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* vtkNotUsed(mapper), vtkVolume* vtkNotUsed(vol))
 {
   return std::string("\
@@ -3158,7 +3158,7 @@ std::string WorkerImplementation(
 }
 
 //---------------------------------------------------------------------------
-std::string ImageSampleDeclarationFrag(
+inline std::string ImageSampleDeclarationFrag(
   const std::vector<std::string>& varNames, size_t usedNames)
 {
   std::string shader = "\n";
@@ -3170,7 +3170,7 @@ std::string ImageSampleDeclarationFrag(
 }
 
 //---------------------------------------------------------------------------
-std::string ImageSampleImplementationFrag(
+inline std::string ImageSampleImplementationFrag(
   const std::vector<std::string>& varNames, size_t usedNames)
 {
   std::string shader = "\n";
