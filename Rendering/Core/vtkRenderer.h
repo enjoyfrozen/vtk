@@ -598,7 +598,7 @@ public:
    * in a stereo render. Doesn't do anything except in the derived
    * vtkIceTRenderer in ParaView.
    */
-  virtual void StereoMidpoint() { return; }
+  virtual void StereoMidpoint() {}
 
   /**
    * Compute the aspect ratio of this renderer for the current tile. When
