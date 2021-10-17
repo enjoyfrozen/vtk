@@ -107,7 +107,6 @@ inline void vtkWindowsTestUtilitiesSetupForTesting()
 #else
 inline void vtkWindowsTestUtilitiesSetupForTesting()
 {
-  return;
 }
 #endif
 #endif
