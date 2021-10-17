@@ -105,10 +105,7 @@ inline void vtkWindowsTestUtilitiesSetupForTesting()
   SetUnhandledExceptionFilter(vtkWindowsTestUlititiesExceptionHandler);
 }
 #else
-inline void vtkWindowsTestUtilitiesSetupForTesting()
-{
-  return;
-}
+inline void vtkWindowsTestUtilitiesSetupForTesting() {}
 #endif
 #endif
 // VTK-HeaderTest-Exclude: vtkWindowsTestUtilities.h
