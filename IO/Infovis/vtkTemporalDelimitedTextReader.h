@@ -127,8 +127,8 @@ protected:
   void InternalModified();
 
   // Time column fields
-  std::string TimeColumnName = "";
-  std::string InternalColumnName = "";
+  std::string TimeColumnName;
+  std::string InternalColumnName;
   vtkIdType TimeColumnId = -1;
   bool RemoveTimeStepColumn = true;
   std::map<double, std::vector<vtkIdType>> TimeMap;
