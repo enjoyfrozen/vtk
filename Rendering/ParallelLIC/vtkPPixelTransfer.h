@@ -311,7 +311,7 @@ int vtkPPixelTransfer::Execute(MPI_Comm comm, int rank, int nComps, SOURCE_TYPE*
   if (rank == this->DestRank)
   {
     // use mpi to receive the data
-    if (destData == NULL)
+    if (destData == nullptr)
     {
       return -1;
     }
@@ -350,7 +350,7 @@ int vtkPPixelTransfer::Execute(MPI_Comm comm, int rank, int nComps, SOURCE_TYPE*
   if (rank == this->SrcRank)
   {
     // use mpi to send the data
-    if (srcData == NULL)
+    if (srcData == nullptr)
     {
       return -1;
     }
