@@ -103,8 +103,8 @@ public:
    * after being used by a filter.
    */
   static void SetGlobalReleaseDataFlag(int val);
-  void GlobalReleaseDataFlagOn() { this->SetGlobalReleaseDataFlag(1); }
-  void GlobalReleaseDataFlagOff() { this->SetGlobalReleaseDataFlag(0); }
+  void GlobalReleaseDataFlagOn() { vtkDataObject::SetGlobalReleaseDataFlag(1); }
+  void GlobalReleaseDataFlagOff() { vtkDataObject::SetGlobalReleaseDataFlag(0); }
   static int GetGlobalReleaseDataFlag();
   ///@}
 
