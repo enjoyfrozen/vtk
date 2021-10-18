@@ -793,7 +793,7 @@ void ExtractWordsFromString(std::string& str, std::vector<std::string>& words)
 #endif
 }
 
-static const char* const stop_words[] = { "a", "able", "about", "above", "abst", "accordance",
+const char* const stop_words[] = { "a", "able", "about", "above", "abst", "accordance",
   "according", "accordingly", "across", "act", "actually", "added", "adj", "affected", "affecting",
   "affects", "after", "afterwards", "again", "against", "ah", "all", "almost", "alone", "along",
   "already", "also", "although", "always", "am", "among", "amongst", "an", "and", "announce",
