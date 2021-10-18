@@ -89,6 +89,7 @@ public:
     if (!this->UseNew)
     {
       vtkVRMLAllocator::Initialize();
+      // NOLINTNEXTLINE(bugprone-sizeof-expression)
       void* mem = vtkVRMLAllocator::AllocateMemory(this->Allocated * sizeof(T));
       this->Data = new (mem) T[this->Allocated];
     }
@@ -108,6 +109,7 @@ public:
       T* temp = this->Data;
       if (!this->UseNew)
       {
+        // NOLINTNEXTLINE(bugprone-sizeof-expression)
         void* mem = vtkVRMLAllocator::AllocateMemory(this->Allocated * sizeof(T));
         this->Data = new (mem) T[this->Allocated];
       }
@@ -119,6 +121,7 @@ public:
       {
         return;
       }
+      // NOLINTNEXTLINE(bugprone-sizeof-expression)
       memcpy((void*)this->Data, (void*)temp, oldSize * sizeof(T));
       if (this->UseNew)
       {
