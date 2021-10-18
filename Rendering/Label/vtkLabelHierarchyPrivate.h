@@ -101,7 +101,6 @@ public:
     }
 
     LabelSet()
-      : std::multiset<vtkIdType, PriorityComparator>()
     {
       this->TotalAnchors = 0;
       this->Size = 1.;
