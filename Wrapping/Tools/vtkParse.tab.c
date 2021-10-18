@@ -7492,6 +7492,7 @@ static yybool yyinitStateSet(yyGLRStateSet* yyset)
 {
   yyset->yysize = 1;
   yyset->yycapacity = 16;
+  // NOLINTNEXTLINE(bugprone-sizeof-expression)
   yyset->yystates = (yyGLRState**)YYMALLOC(16 * sizeof yyset->yystates[0]);
   if (!yyset->yystates)
     return yyfalse;
@@ -8855,6 +8856,7 @@ static void yypdumpstack(yyGLRStack* yystackp)
 #undef yychar
 #undef yynerrs
 
+// NOLINTNEXTLINE(bugprone-suspicious-include)
 #include "lex.yy.c"
 #include <string.h>
 
