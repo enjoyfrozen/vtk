@@ -44,8 +44,7 @@ public:
    * Default constructor.
    */
   vtkContextScenePrivate(vtkAbstractContextItem* item)
-    : std::vector<vtkAbstractContextItem*>()
-    , Scene(nullptr)
+    : Scene(nullptr)
     , Item(item)
   {
   }
