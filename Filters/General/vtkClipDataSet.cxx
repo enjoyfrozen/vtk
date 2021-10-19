@@ -27,18 +27,13 @@
 #include "vtkIncrementalPointLocator.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
-#include "vtkIntArray.h"
 #include "vtkMergePoints.h"
 #include "vtkObjectFactory.h"
-#include "vtkPlane.h"
 #include "vtkPointData.h"
 #include "vtkPolyhedron.h"
 #include "vtkSmartPointer.h"
-#include "vtkStreamingDemandDrivenPipeline.h"
 #include "vtkUnsignedCharArray.h"
 #include "vtkUnstructuredGrid.h"
-
-#include <cmath>
 
 vtkStandardNewMacro(vtkClipDataSet);
 vtkCxxSetObjectMacro(vtkClipDataSet, ClipFunction, vtkImplicitFunction);
