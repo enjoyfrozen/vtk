@@ -862,7 +862,8 @@ struct BuildCellsImpl
   // VTKCellType. The functor must ensure that the input size and returned cell
   // type are valid for the target cell array or throw a std::runtime_error.
   template <typename CellStateT, typename SizeToTypeFunctor>
-  void operator()(CellStateT& state, vtkPolyData_detail::CellMap* map, SizeToTypeFunctor&& typer)
+  void operator()(CellStateT& state, vtkPolyData_detail::CellMap* map, vtkIdType beginCellId,
+    SizeToTypeFunctor&& typer)
   {
     const vtkIdType numCells = state.GetNumberOfCells();
     if (numCells == 0)
@@ -875,10 +876,13 @@ struct BuildCellsImpl
       throw std::runtime_error("Cell map storage capacity exceeded.");
     }
 
-    for (vtkIdType cellId = 0; cellId < numCells; ++cellId)
-    {
-      map->InsertNextCell(cellId, typer(state.GetCellSize(cellId)));
-    }
+    vtkSMPTools::For(0, numCells, [&](vtkIdType begin, vtkIdType end) {
+      for (vtkIdType cellId = begin, globalCellId = beginCellId + begin; cellId < end;
+           ++cellId, ++globalCellId)
+      {
+        map->InsertCell(globalCellId, cellId, typer(state.GetCellSize(cellId)));
+      }
+    });
   }
 };
 
@@ -903,35 +907,38 @@ void vtkPolyData::BuildCells()
   const vtkIdType nCells = nVerts + nLines + nPolys + nStrips;
 
   this->Cells = vtkSmartPointer<CellMap>::New();
-  this->Cells->SetCapacity(nCells);
+  this->Cells->SetNumberOfCells(nCells);
 
   try
   {
+    vtkIdType beginCellId = 0;
     if (nVerts > 0)
     {
-      verts->Visit(BuildCellsImpl{}, this->Cells, [](vtkIdType size) -> VTKCellType {
+      verts->Visit(BuildCellsImpl{}, this->Cells, beginCellId, [](vtkIdType size) -> VTKCellType {
         if (size < 1)
         {
           throw std::runtime_error("Invalid cell size for verts.");
         }
         return size == 1 ? VTK_VERTEX : VTK_POLY_VERTEX;
       });
+      beginCellId += nVerts;
     }
 
     if (nLines > 0)
     {
-      lines->Visit(BuildCellsImpl{}, this->Cells, [](vtkIdType size) -> VTKCellType {
+      lines->Visit(BuildCellsImpl{}, this->Cells, beginCellId, [](vtkIdType size) -> VTKCellType {
         if (size < 2)
         {
           throw std::runtime_error("Invalid cell size for lines.");
         }
         return size == 2 ? VTK_LINE : VTK_POLY_LINE;
       });
+      beginCellId += nLines;
     }
 
     if (nPolys > 0)
     {
-      polys->Visit(BuildCellsImpl{}, this->Cells, [](vtkIdType size) -> VTKCellType {
+      polys->Visit(BuildCellsImpl{}, this->Cells, beginCellId, [](vtkIdType size) -> VTKCellType {
         if (size < 3)
         {
           throw std::runtime_error("Invalid cell size for polys.");
@@ -947,11 +954,12 @@ void vtkPolyData::BuildCells()
             return VTK_POLYGON;
         }
       });
+      beginCellId += nPolys;
     }
 
     if (nStrips > 0)
     {
-      strips->Visit(BuildCellsImpl{}, this->Cells, [](vtkIdType size) -> VTKCellType {
+      strips->Visit(BuildCellsImpl{}, this->Cells, beginCellId, [](vtkIdType size) -> VTKCellType {
         if (size < 3)
         {
           throw std::runtime_error("Invalid cell size for polys.");
