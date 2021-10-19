@@ -3180,12 +3180,14 @@ int vtkTableBasedClipDataSet::RequestData(vtkInformation* vtkNotUsed(request),
       inputCopy->GetPointData()->SetScalars(pScalars);
     }
 
-    for (i = 0; i < numPoints; i++)
-    {
-      double s = this->ClipFunction->FunctionValue(inputCopy->GetPoint(i));
-      pScalars->SetTuple1(i, s);
-    }
-
+    vtkSMPTools::For(0, numPoints, [&](vtkIdType begin, vtkIdType end) {
+      double pt[3];
+      for (vtkIdType pointId = begin; pointId < end; ++pointId)
+      {
+        inputCopy->GetPoint(pointId, pt);
+        pScalars->SetValue(pointId, this->ClipFunction->FunctionValue(pt));
+      }
+    });
     clipArray = pScalars;
   }
   else // using input scalars
