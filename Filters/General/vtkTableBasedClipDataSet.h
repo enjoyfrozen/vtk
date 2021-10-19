@@ -98,8 +98,15 @@ class vtkCallbackCommand;
 class vtkImplicitFunction;
 class vtkIncrementalPointLocator;
 
+namespace detail
+{
+class ClipSpecialCellsFunctor;
+}
+
 class VTKFILTERSGENERAL_EXPORT vtkTableBasedClipDataSet : public vtkUnstructuredGridAlgorithm
 {
+  friend class detail::ClipSpecialCellsFunctor;
+
 public:
   vtkTypeMacro(vtkTableBasedClipDataSet, vtkUnstructuredGridAlgorithm);
   void PrintSelf(ostream& os, vtkIndent indent) override;
