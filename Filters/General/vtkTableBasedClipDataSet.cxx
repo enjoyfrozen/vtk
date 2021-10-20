@@ -72,6 +72,7 @@ vtkCxxSetObjectMacro(vtkTableBasedClipDataSet, ClipFunction, vtkImplicitFunction
 
 namespace detail
 {
+template <class IdTypeArray>
 class ConstructSimpleDataSetsFunctor;
 }
 
@@ -581,13 +582,16 @@ struct TableBasedClipperCommonPointsStructure
 
 class vtkTableBasedClipperVolumeFromVolume : public vtkTableBasedClipperDataSetFromVolume
 {
+  template <class IdTypeArray>
   friend class detail::ConstructSimpleDataSetsFunctor;
 
 public:
   vtkTableBasedClipperVolumeFromVolume(int precision, vtkIdType nPts, vtkIdType ptSizeGuess);
   ~vtkTableBasedClipperVolumeFromVolume() override = default;
 
+  template <class IdTypeArray>
   void ConstructDataSet(vtkDataSet*, vtkUnstructuredGrid*, double*);
+  template <class IdTypeArray>
   void ConstructDataSet(vtkDataSet*, vtkUnstructuredGrid*, int*, double*, double*, double*);
 
   vtkIdType AddCentroidPoint(int n, vtkIdType* p)
@@ -625,6 +629,8 @@ public:
   void AddLine(vtkIdType z, vtkIdType v0, vtkIdType v1) { this->lines.AddLine(z, v0, v1); }
   void AddVertex(vtkIdType z, vtkIdType v0) { this->vertices.AddVertex(z, v0); }
 
+  vtkIdType GetTotalNumberOfConnectivityIds();
+
 protected:
   vtkTableBasedClipperCentroidPointList centroid_list;
   vtkTableBasedClipperHexList hexes;
@@ -639,6 +645,7 @@ protected:
   std::array<vtkTableBasedClipperShapeList*, 8> shapes;
   int OutputPointsPrecision;
 
+  template <class IdTypeArray>
   void ConstructDataSet(vtkDataSet*, vtkUnstructuredGrid*, TableBasedClipperCommonPointsStructure&);
 };
 
@@ -1168,15 +1175,28 @@ void vtkTableBasedClipperVertexList::AddVertex(vtkIdType cellId, vtkIdType v1)
   currentShape++;
 }
 
+vtkIdType vtkTableBasedClipperVolumeFromVolume::GetTotalNumberOfConnectivityIds()
+{
+  vtkIdType connectivitySize = 0;
+  for (size_t i = 0; i < shapes.size(); i++)
+  {
+    vtkIdType ns = shapes[i]->GetTotalNumberOfShapes();
+    connectivitySize += static_cast<vtkIdType>(shapes[i]->GetShapeSize()) * ns;
+  }
+  return connectivitySize;
+}
+
+template <class IdTypeArray>
 void vtkTableBasedClipperVolumeFromVolume::ConstructDataSet(
   vtkDataSet* input, vtkUnstructuredGrid* output, double* pts_ptr)
 {
   TableBasedClipperCommonPointsStructure cps;
   cps.hasPtsList = true;
   cps.pts_ptr = pts_ptr;
-  ConstructDataSet(input, output, cps);
+  ConstructDataSet<IdTypeArray>(input, output, cps);
 }
 
+template <class IdTypeArray>
 void vtkTableBasedClipperVolumeFromVolume::ConstructDataSet(
   vtkDataSet* input, vtkUnstructuredGrid* output, int* dims, double* X, double* Y, double* Z)
 {
@@ -1186,9 +1206,10 @@ void vtkTableBasedClipperVolumeFromVolume::ConstructDataSet(
   cps.X = X;
   cps.Y = Y;
   cps.Z = Z;
-  ConstructDataSet(input, output, cps);
+  ConstructDataSet<IdTypeArray>(input, output, cps);
 }
 
+template <class IdTypeArray>
 void vtkTableBasedClipperVolumeFromVolume::ConstructDataSet(
   vtkDataSet* input, vtkUnstructuredGrid* output, TableBasedClipperCommonPointsStructure& cps)
 {
@@ -1459,10 +1480,10 @@ void vtkTableBasedClipperVolumeFromVolume::ConstructDataSet(
   vtkNew<vtkUnsignedCharArray> cellTypes;
   cellTypes->SetNumberOfValues(ncells);
 
-  vtkNew<vtkIdTypeArray> offsets;
+  vtkNew<IdTypeArray> offsets;
   offsets->SetNumberOfValues(offsetsSize);
 
-  vtkNew<vtkIdTypeArray> connectivity;
+  vtkNew<IdTypeArray> connectivity;
   connectivity->SetNumberOfValues(connectivitySize);
 
   vtkIdType ids[8]; // 8 (for hex)
@@ -2361,6 +2382,7 @@ public:
 };
 
 // Functor to construct simple cells datasets in parallel
+template <class IdTypeArray>
 class ConstructSimpleDataSetsFunctor
 {
 private:
@@ -2385,7 +2407,7 @@ public:
   {
     for (vtkIdType i = begin; i < end; ++i)
     {
-      this->TLDataType[i]->VisItVFV->ConstructDataSet(
+      this->TLDataType[i]->VisItVFV->template ConstructDataSet<IdTypeArray>(
         this->Input, this->TLDataType[i]->SimpleClippedCells, CPS);
     }
   }
@@ -2430,6 +2452,7 @@ public:
 // This functor merges unstructured grids in parallel.
 // The speed-up will be maximized if the unstructured grids have similar size.
 // Note: duplicate points won't be removed, and polyhedrons are not supported.
+template <typename IdTypeArray>
 class MergeUnstructuredGridsFunctor
 {
 private:
@@ -2447,8 +2470,8 @@ private:
   // output arrays which define the output
   vtkSmartPointer<vtkPoints> Points;
   vtkSmartPointer<vtkUnsignedCharArray> CellTypes;
-  vtkSmartPointer<vtkIdTypeArray> Offsets;
-  vtkSmartPointer<vtkIdTypeArray> Connectivity;
+  vtkSmartPointer<IdTypeArray> Offsets;
+  vtkSmartPointer<IdTypeArray> Connectivity;
 
   enum TransformCellFunction
   {
@@ -2487,7 +2510,7 @@ public:
           this->TLNumberOfCells[i] += simpleClippedCells->GetNumberOfCells();
           // add number of simple clipped cells' connectivity array size
           this->TLCellConnectivityArraySize[i] +=
-            simpleClippedCells->GetCells()->GetConnectivityArray()->GetNumberOfValues();
+            simpleClippedCells->GetCells()->GetNumberOfConnectivityIds();
         }
       }
 
@@ -2505,7 +2528,7 @@ public:
             this->TLNumberOfCells[i] += specialClippedCells->GetNumberOfCells();
             // add number of special clipped cells' connectivity array size
             this->TLCellConnectivityArraySize[i] +=
-              specialClippedCells->GetCells()->GetConnectivityArray()->GetNumberOfValues();
+              specialClippedCells->GetCells()->GetNumberOfConnectivityIds();
           }
         }
       }
@@ -2546,10 +2569,10 @@ public:
     this->CellTypes = vtkSmartPointer<vtkUnsignedCharArray>::New();
     this->CellTypes->SetNumberOfValues(totalNumberOfCells);
     // set offsets array size
-    this->Offsets = vtkSmartPointer<vtkIdTypeArray>::New();
+    this->Offsets = vtkSmartPointer<IdTypeArray>::New();
     this->Offsets->SetNumberOfValues(totalNumberOfCells + 1);
     // set connectivity array size
-    this->Connectivity = vtkSmartPointer<vtkIdTypeArray>::New();
+    this->Connectivity = vtkSmartPointer<IdTypeArray>::New();
     this->Connectivity->SetNumberOfValues(totalCellConnectivityArraySize);
     // copy from simpleClippedCells to ensure correctness in CopyData later on
     auto& firstSimpleClippedCells = this->TLDataType[0]->SimpleClippedCells;
@@ -2612,8 +2635,7 @@ public:
         if (simpleClippedCells->GetNumberOfCells() > 0)
         {
           beginCellsId += simpleClippedCells->GetNumberOfCells();
-          beginOffsetValue +=
-            simpleClippedCells->GetCells()->GetConnectivityArray()->GetNumberOfValues();
+          beginOffsetValue += simpleClippedCells->GetCells()->GetNumberOfConnectivityIds();
         }
       }
 
@@ -2653,8 +2675,7 @@ public:
           if (specialClippedCells->GetNumberOfCells() > 0)
           {
             beginCellsId += specialClippedCells->GetNumberOfCells();
-            beginOffsetValue +=
-              specialClippedCells->GetCells()->GetConnectivityArray()->GetNumberOfValues();
+            beginOffsetValue += specialClippedCells->GetCells()->GetNumberOfConnectivityIds();
           }
         }
       }
@@ -2688,7 +2709,7 @@ private:
       // subtract -1 to get the number of cells
       vtkIdType numberOfCells = inputPointsArray->GetNumberOfValues() - 1;
       auto inputArrayPtr = InputArrayType::SafeDownCast(inputPointsArray)->GetPointer(0);
-      auto outputArray = vtkIdTypeArray::SafeDownCast(outputPointsArray);
+      auto outputArray = IdTypeArray::SafeDownCast(outputPointsArray);
       std::transform(inputArrayPtr, inputArrayPtr + numberOfCells,
         outputArray->GetPointer(beginCellId),
         [&](const vtkIdType& offset) -> vtkIdType { return beginOffsetValue + offset; });
@@ -2697,7 +2718,7 @@ private:
     {
       vtkIdType connectivityArraySize = inputPointsArray->GetNumberOfValues();
       auto inputArrayPtr = InputArrayType::SafeDownCast(inputPointsArray)->GetPointer(0);
-      auto outputArray = vtkIdTypeArray::SafeDownCast(outputPointsArray);
+      auto outputArray = IdTypeArray::SafeDownCast(outputPointsArray);
       std::transform(inputArrayPtr, inputArrayPtr + connectivityArraySize,
         outputArray->GetPointer(beginOffsetValue),
         [&](const vtkIdType& pointId) -> vtkIdType { return beginPointId + pointId; });
@@ -2736,35 +2757,6 @@ struct ClipUnstructuredDataBaseWorker
     // gather results of clipUnstructuredDataFunctor
     ThreadLocalDataType tlDataType = clipUnstructuredData.GetTLDataType();
 
-    // check if point accuracy needs to be changed
-    vtkNew<vtkDoubleArray> cords;
-    vtkPoints* inputPts = input->GetPoints();
-    if (inputPts->GetDataType() == VTK_DOUBLE)
-    {
-      cords->ShallowCopy(inputPts->GetData());
-    }
-    else
-    {
-      cords->DeepCopy(inputPts->GetData());
-    }
-
-    // construct simple cells datasets
-    TableBasedClipperCommonPointsStructure cps;
-    cps.hasPtsList = true;
-    cps.pts_ptr = cords->GetPointer(0);
-    ConstructSimpleDataSetsFunctor constructSimpleDataSets(inputDS, tlDataType, cps);
-    vtkSMPTools::For(0, tlDataType.size(), constructSimpleDataSets);
-    // delete VisItVFV since they are no longer needed
-    for (auto& localDataType : tlDataType)
-    {
-      delete localDataType->VisItVFV;
-    }
-    // delete cords if they are no longer needed
-    if (inputPts->GetDataType() != VTK_DOUBLE)
-    {
-      cords->Initialize();
-    }
-
     // check if special cells exist
     bool haveSpecialCells = false;
     for (auto& localDataType : tlDataType)
@@ -2789,6 +2781,59 @@ struct ClipUnstructuredDataBaseWorker
       }
     }
 
+    // count connectivity array size
+    vtkIdType connectivityArraySize = 0;
+    for (auto& localDataType : tlDataType)
+    {
+      connectivityArraySize += localDataType->VisItVFV->GetTotalNumberOfConnectivityIds();
+      if (haveSpecialCells && localDataType->SpecialClippedCells->GetNumberOfCells() > 0)
+      {
+        connectivityArraySize +=
+          localDataType->SpecialClippedCells->GetCells()->GetNumberOfConnectivityIds();
+      }
+    }
+    // identify if 32 bits or 64 bits ids should be used
+    const bool use32BitsIds = connectivityArraySize < VTK_INT_MAX;
+
+    // check if point accuracy needs to be changed
+    vtkNew<vtkDoubleArray> cords;
+    vtkPoints* inputPts = input->GetPoints();
+    if (inputPts->GetDataType() == VTK_DOUBLE)
+    {
+      cords->ShallowCopy(inputPts->GetData());
+    }
+    else
+    {
+      cords->DeepCopy(inputPts->GetData());
+    }
+
+    // construct simple cells datasets
+    TableBasedClipperCommonPointsStructure cps;
+    cps.hasPtsList = true;
+    cps.pts_ptr = cords->GetPointer(0);
+    if (use32BitsIds)
+    {
+      ConstructSimpleDataSetsFunctor<vtkTypeInt32Array> constructSimpleDataSets(
+        inputDS, tlDataType, cps);
+      vtkSMPTools::For(0, tlDataType.size(), constructSimpleDataSets);
+    }
+    else
+    {
+      ConstructSimpleDataSetsFunctor<vtkTypeInt64Array> constructSimpleDataSets(
+        inputDS, tlDataType, cps);
+      vtkSMPTools::For(0, tlDataType.size(), constructSimpleDataSets);
+    }
+    // delete VisItVFV since they are no longer needed
+    for (auto& localDataType : tlDataType)
+    {
+      delete localDataType->VisItVFV;
+    }
+    // delete cords if they are no longer needed
+    if (inputPts->GetDataType() != VTK_DOUBLE)
+    {
+      cords->Initialize();
+    }
+
     // check if the special clipped cells have polyhedra
     bool havePolyhedra = false;
     if (haveSpecialCells)
@@ -2807,9 +2852,18 @@ struct ClipUnstructuredDataBaseWorker
     if (!havePolyhedra)
     {
       // merge unstructured grids
-      MergeUnstructuredGridsFunctor mergeUnstructuredGrids(
-        inputDS, tlDataType, haveSpecialCells, outputPointsPrecision, output);
-      vtkSMPTools::For(0, tlDataType.size(), mergeUnstructuredGrids);
+      if (use32BitsIds)
+      {
+        MergeUnstructuredGridsFunctor<vtkTypeInt32Array> mergeUnstructuredGrids(
+          inputDS, tlDataType, haveSpecialCells, outputPointsPrecision, output);
+        vtkSMPTools::For(0, tlDataType.size(), mergeUnstructuredGrids);
+      }
+      else
+      {
+        MergeUnstructuredGridsFunctor<vtkTypeInt64Array> mergeUnstructuredGrids(
+          inputDS, tlDataType, haveSpecialCells, outputPointsPrecision, output);
+        vtkSMPTools::For(0, tlDataType.size(), mergeUnstructuredGrids);
+      }
 
       // delete SimpleClippedCells and SpecialClippedCells since they are no longer needed
       for (auto& localDataType : tlDataType)
@@ -2825,9 +2879,19 @@ struct ClipUnstructuredDataBaseWorker
     {
       vtkNew<vtkUnstructuredGrid> simpleClippedCellsMerged;
       // construct dataSet using simpleClippedCells only
-      MergeUnstructuredGridsFunctor mergeUnstructuredGrids(
-        inputDS, tlDataType, false, outputPointsPrecision, simpleClippedCellsMerged);
-      vtkSMPTools::For(0, tlDataType.size(), mergeUnstructuredGrids);
+      if (use32BitsIds)
+      {
+        MergeUnstructuredGridsFunctor<vtkTypeInt32Array> mergeUnstructuredGrids(
+          inputDS, tlDataType, false, outputPointsPrecision, simpleClippedCellsMerged);
+        vtkSMPTools::For(0, tlDataType.size(), mergeUnstructuredGrids);
+      }
+      else
+      {
+        MergeUnstructuredGridsFunctor<vtkTypeInt64Array> mergeUnstructuredGrids(
+          inputDS, tlDataType, false, outputPointsPrecision, simpleClippedCellsMerged);
+        vtkSMPTools::For(0, tlDataType.size(), mergeUnstructuredGrids);
+      }
+
       // delete SimpleClippedCells since they are no longer needed
       for (auto& localDataType : tlDataType)
       {
@@ -2942,9 +3006,29 @@ struct ClipStructuredDataBaseWorker
     TableBasedClipperCommonPointsStructure cps =
       this->SetCords(input, gridDims, deleteCords, cords);
 
+    // count connectivity array size
+    vtkIdType connectivityArraySize = 0;
+    for (auto& localDataType : tlDataType)
+    {
+      connectivityArraySize += localDataType->VisItVFV->GetTotalNumberOfConnectivityIds();
+    }
+    // identify if 32 bits or 64 bits ids should be used
+    const bool use32BitsIds = connectivityArraySize < VTK_INT_MAX;
+
     // construct cells datasets
-    ConstructSimpleDataSetsFunctor constructSimpleDataSets(inputDS, tlDataType, cps);
-    vtkSMPTools::For(0, tlDataType.size(), constructSimpleDataSets);
+    if (use32BitsIds)
+    {
+      ConstructSimpleDataSetsFunctor<vtkTypeInt32Array> constructSimpleDataSets(
+        inputDS, tlDataType, cps);
+      vtkSMPTools::For(0, tlDataType.size(), constructSimpleDataSets);
+    }
+    else
+    {
+      ConstructSimpleDataSetsFunctor<vtkTypeInt64Array> constructSimpleDataSets(
+        inputDS, tlDataType, cps);
+      vtkSMPTools::For(0, tlDataType.size(), constructSimpleDataSets);
+    }
+
     // delete VisItVFV since they are no longer needed
     for (auto& localDataType : tlDataType)
     {
@@ -2960,9 +3044,18 @@ struct ClipStructuredDataBaseWorker
     }
 
     // merge unstructured grids
-    MergeUnstructuredGridsFunctor mergeUnstructuredGrids(
-      inputDS, tlDataType, false, outputPointsPrecision, output);
-    vtkSMPTools::For(0, tlDataType.size(), mergeUnstructuredGrids);
+    if (use32BitsIds)
+    {
+      MergeUnstructuredGridsFunctor<vtkTypeInt32Array> mergeUnstructuredGrids(
+        inputDS, tlDataType, false, outputPointsPrecision, output);
+      vtkSMPTools::For(0, tlDataType.size(), mergeUnstructuredGrids);
+    }
+    else
+    {
+      MergeUnstructuredGridsFunctor<vtkTypeInt64Array> mergeUnstructuredGrids(
+        inputDS, tlDataType, false, outputPointsPrecision, output);
+      vtkSMPTools::For(0, tlDataType.size(), mergeUnstructuredGrids);
+    }
 
     // delete SimpleClippedCells since they are no longer needed
     for (auto& localDataType : tlDataType)
