@@ -30,6 +30,8 @@
 #include "vtkTableBasedClipDataSet.h"
 
 #include "vtkAppendFilter.h"
+#include "vtkArrayDispatch.h"
+#include "vtkArrayListTemplate.h"
 #include "vtkCallbackCommand.h"
 #include "vtkCellArray.h"
 #include "vtkCellData.h"
@@ -50,6 +52,7 @@
 #include "vtkRectilinearGrid.h"
 #include "vtkSMPTools.h"
 #include "vtkSmartPointer.h"
+#include "vtkStaticPointLocator.h"
 #include "vtkStructuredGrid.h"
 #include "vtkTypeInt32Array.h"
 #include "vtkTypeInt64Array.h"
@@ -1557,7 +1560,7 @@ inline void GetPoint(
 
 namespace detail
 {
-// struct to collect all thread-local results into one object to ensure correct ordering
+// struct to collect all thread-local results into one object to ensure correct ordering.
 struct LocalDataType
 {
   // structure to save whatever can be clipped
@@ -1573,7 +1576,8 @@ struct LocalDataType
 
 using ThreadLocalDataType = std::vector<vtkSMPThreadLocal<LocalDataType>::iterator>;
 
-// Base functor used for vtkPolyData and vtkUnstructuredGrid
+// Functor used by vtkPolyData and vtkUnstructuredGrid to clip simple cells.
+// and identify special cells
 template <typename TGrid>
 class ClipUnstructuredDataFunctor
 {
@@ -1999,7 +2003,7 @@ public:
   }
 };
 
-// Base functor used for vtkRectilinearGridData and vtkStructuredGridData
+// Base functor used by vtkRectilinearGridData and vtkStructuredGridData to clip simple cells.
 template <typename TGrid>
 class ClipStructuredDataFunctor
 {
@@ -2381,7 +2385,7 @@ public:
   }
 };
 
-// Functor to construct simple cells datasets in parallel
+// Functor to construct simple cells datasets in parallel.
 template <class IdTypeArray>
 class ConstructSimpleDataSetsFunctor
 {
@@ -2397,25 +2401,23 @@ public:
     , TLDataType(tlDataType)
     , CPS(cps)
   {
-    for (auto& localDataType : this->TLDataType)
-    {
-      localDataType->SimpleClippedCells = vtkSmartPointer<vtkUnstructuredGrid>::New();
-    }
   }
 
   void operator()(vtkIdType begin, vtkIdType end)
   {
     for (vtkIdType i = begin; i < end; ++i)
     {
-      this->TLDataType[i]->VisItVFV->template ConstructDataSet<IdTypeArray>(
-        this->Input, this->TLDataType[i]->SimpleClippedCells, CPS);
+      auto& localDataType = this->TLDataType[i];
+      // initialize output
+      localDataType->SimpleClippedCells = vtkSmartPointer<vtkUnstructuredGrid>::New();
+      // construct output
+      localDataType->VisItVFV->template ConstructDataSet<IdTypeArray>(
+        this->Input, localDataType->SimpleClippedCells, this->CPS);
     }
   }
 };
 
-// Functor to clip special cells datasets in parallel
-// Note: if vtkClipDataSet ever becomes multithreaded in the future,
-// this functor might become slower because of nested parallelism.
+// Functor to clip special cells datasets in parallel.
 class ClipSpecialCellsFunctor
 {
 private:
@@ -2439,19 +2441,73 @@ public:
       auto& localDataType = this->TLDataType[i];
       // initialize output
       localDataType->SpecialClippedCells = vtkSmartPointer<vtkUnstructuredGrid>::New();
-      // clip if needed
-      if (localDataType->SpecialCells->GetNumberOfCells() > 0)
+      // clip
+      this->TableBasedClipDataSet->ClipDataSet(
+        localDataType->SpecialCells, this->ClipArray, localDataType->SpecialClippedCells);
+    }
+  }
+};
+
+// CopyPointsAlgorithm & CopyPointsLauncher were copied from vtkStaticCleanPolyData
+
+// Fast, threaded way to copy new points and attribute data to output.
+template <typename InArrayT, typename OutArrayT>
+struct CopyPointsAlgorithm
+{
+  vtkIdType* PtMap;
+  InArrayT* InPts;
+  OutArrayT* OutPts;
+  ArrayList Arrays;
+
+  CopyPointsAlgorithm(vtkIdType* ptMap, InArrayT* inPts, vtkPointData* inPD, vtkIdType numNewPts,
+    OutArrayT* outPts, vtkPointData* outPD)
+    : PtMap(ptMap)
+    , InPts(inPts)
+    , OutPts(outPts)
+  {
+    this->Arrays.AddArrays(numNewPts, inPD, outPD);
+  }
+
+  void operator()(vtkIdType ptId, vtkIdType endPtId)
+  {
+    using OutValueT = vtk::GetAPIType<OutArrayT>;
+    const vtkIdType* ptMap = this->PtMap;
+
+    const auto inPoints = vtk::DataArrayTupleRange<3>(this->InPts);
+    auto outPoints = vtk::DataArrayTupleRange<3>(this->OutPts);
+
+    for (; ptId < endPtId; ++ptId)
+    {
+      const vtkIdType outPtId = ptMap[ptId];
+      if (outPtId != -1)
       {
-        this->TableBasedClipDataSet->ClipDataSet(
-          localDataType->SpecialCells, this->ClipArray, localDataType->SpecialClippedCells);
+        const auto inP = inPoints[ptId];
+        auto outP = outPoints[outPtId];
+        outP[0] = static_cast<OutValueT>(inP[0]);
+        outP[1] = static_cast<OutValueT>(inP[1]);
+        outP[2] = static_cast<OutValueT>(inP[2]);
+        this->Arrays.Copy(ptId, outPtId);
       }
     }
   }
 };
 
-// This functor merges unstructured grids in parallel.
+struct CopyPointsLauncher
+{
+  template <typename InArrayT, typename OutArrayT>
+  void operator()(InArrayT* inPts, OutArrayT* outPts, vtkIdType* ptMap, vtkPointData* inPD,
+    vtkIdType numNewPts, vtkPointData* outPD)
+  {
+    const vtkIdType numPts = inPts->GetNumberOfTuples();
+    CopyPointsAlgorithm<InArrayT, OutArrayT> algo{ ptMap, inPts, inPD, numNewPts, outPts, outPD };
+    vtkSMPTools::For(0, numPts, algo);
+  }
+};
+
+// Functor to merge unstructured grids in parallel.
+// First execute the functor using ComputeMode = PointsMode and then ComputeMode = CellsMode.
 // The speed-up will be maximized if the unstructured grids have similar size.
-// Note: duplicate points won't be removed, and polyhedrons are not supported.
+// Note: duplicate points can be merged, and polyhedrons are not supported.
 template <typename IdTypeArray>
 class MergeUnstructuredGridsFunctor
 {
@@ -2467,12 +2523,25 @@ private:
   std::vector<vtkIdType> TLNumberOfCells;
   std::vector<vtkIdType> TLCellConnectivityArraySize;
 
+  // variables used for duplicates point removal
+  bool MergePoints;
+  vtkIdType* PointMap;
+
   // output arrays which define the output
   vtkSmartPointer<vtkPoints> Points;
   vtkSmartPointer<vtkUnsignedCharArray> CellTypes;
   vtkSmartPointer<IdTypeArray> Offsets;
   vtkSmartPointer<IdTypeArray> Connectivity;
 
+public:
+  enum ComputeMode
+  {
+    PointsMode,
+    CellsMode
+  };
+
+private:
+  ComputeMode Mode;
   enum TransformCellFunction
   {
     ConnectivityFunction,
@@ -2481,12 +2550,15 @@ private:
 
 public:
   MergeUnstructuredGridsFunctor(vtkDataSet* input, ThreadLocalDataType& tlDataType,
-    bool checkSpecialCells, int outputPointsPrecision, vtkUnstructuredGrid* output)
+    bool checkSpecialCells, int outputPointsPrecision, bool mergePoints,
+    vtkUnstructuredGrid* output)
     : Input(input)
     , TLDataType(tlDataType)
     , CheckSpecialCells(checkSpecialCells)
     , OutputPointsPrecision(outputPointsPrecision)
     , Output(output)
+    , MergePoints(mergePoints)
+    , Mode(ComputeMode::PointsMode)
   {
     const size_t numberOfTlObjects = this->TLDataType.size();
     this->TLNumberOfPoints.resize(numberOfTlObjects);
@@ -2579,9 +2651,18 @@ public:
     // initialize output point data
     this->Output->GetPointData()->CopyAllocate(
       firstSimpleClippedCells->GetPointData(), totalNumberOfPoints);
+    this->Output->GetPointData()->SetNumberOfTuples(totalNumberOfPoints);
     // initialize output cell data
     this->Output->GetCellData()->CopyAllocate(
       firstSimpleClippedCells->GetCellData(), totalNumberOfCells);
+    this->Output->GetCellData()->SetNumberOfTuples(totalNumberOfCells);
+  }
+
+  void SetComputeMode(ComputeMode mode) { this->Mode = mode; }
+
+  vtkIdType GetTotalNumberOfPoints()
+  {
+    return std::accumulate(this->TLNumberOfPoints.begin(), this->TLNumberOfPoints.end(), 0);
   }
 
   void Initialize() {}
@@ -2607,32 +2688,36 @@ public:
 
       if (simpleClippedCells->GetNumberOfPoints() > 0)
       {
-        // copy points
-        this->Points->InsertPoints(beginPointsId, simpleClippedCells->GetNumberOfPoints(), 0,
-          simpleClippedCells->GetPoints());
-        // copy point data
-        outPD->CopyData(inSimplePD, beginPointsId, simpleClippedCells->GetNumberOfPoints(), 0);
-
-        if (simpleClippedCells->GetNumberOfCells() > 0)
+        if (this->Mode == ComputeMode::PointsMode)
         {
-          // copy cell types
-          this->CellTypes->InsertTuples(beginCellsId, simpleClippedCells->GetNumberOfCells(), 0,
-            simpleClippedCells->GetCellTypesArray());
-          // set cell offsets array
-          this->TransformCellInformation(simpleClippedCells->GetCells()->GetOffsetsArray(),
-            this->Offsets, beginPointsId, beginCellsId, beginOffsetValue,
-            TransformCellFunction::OffsetsFunction);
-          // set cell connectivity array
-          this->TransformCellInformation(simpleClippedCells->GetCells()->GetConnectivityArray(),
-            this->Connectivity, beginPointsId, beginCellsId, beginOffsetValue,
-            TransformCellFunction::ConnectivityFunction);
-          // Copy cell data
-          outCD->CopyData(inSimpleCD, beginCellsId, simpleClippedCells->GetNumberOfCells(), 0);
+          // copy points
+          this->Points->InsertPoints(beginPointsId, simpleClippedCells->GetNumberOfPoints(), 0,
+            simpleClippedCells->GetPoints());
+          // copy point data
+          outPD->CopyData(inSimplePD, beginPointsId, simpleClippedCells->GetNumberOfPoints(), 0);
         }
-
+        else
+        {
+          if (simpleClippedCells->GetNumberOfCells() > 0)
+          {
+            // copy cell types
+            this->CellTypes->InsertTuples(beginCellsId, simpleClippedCells->GetNumberOfCells(), 0,
+              simpleClippedCells->GetCellTypesArray());
+            // set cell offsets array
+            this->TransformCellInformation(simpleClippedCells->GetCells()->GetOffsetsArray(),
+              this->Offsets, beginPointsId, beginCellsId, beginOffsetValue,
+              TransformCellFunction::OffsetsFunction);
+            // set cell connectivity array
+            this->TransformCellInformation(simpleClippedCells->GetCells()->GetConnectivityArray(),
+              this->Connectivity, beginPointsId, beginCellsId, beginOffsetValue,
+              TransformCellFunction::ConnectivityFunction);
+            // Copy cell data
+            outCD->CopyData(inSimpleCD, beginCellsId, simpleClippedCells->GetNumberOfCells(), 0);
+          }
+        }
         // update begin values
         beginPointsId += simpleClippedCells->GetNumberOfPoints();
-        if (simpleClippedCells->GetNumberOfCells() > 0)
+        if (this->Mode == ComputeMode::CellsMode && simpleClippedCells->GetNumberOfCells() > 0)
         {
           beginCellsId += simpleClippedCells->GetNumberOfCells();
           beginOffsetValue += simpleClippedCells->GetCells()->GetNumberOfConnectivityIds();
@@ -2647,32 +2732,40 @@ public:
 
         if (specialClippedCells->GetNumberOfPoints() > 0)
         {
-          // copy points
-          this->Points->InsertPoints(beginPointsId, specialClippedCells->GetNumberOfPoints(), 0,
-            specialClippedCells->GetPoints());
-          // copy point data
-          outPD->CopyData(inSpecialPD, beginPointsId, specialClippedCells->GetNumberOfPoints(), 0);
-
-          if (specialClippedCells->GetNumberOfCells() > 0)
+          if (this->Mode == ComputeMode::PointsMode)
           {
-            // copy cell types
-            this->CellTypes->InsertTuples(beginCellsId, specialClippedCells->GetNumberOfCells(), 0,
-              specialClippedCells->GetCellTypesArray());
-            // set cell offsets array
-            this->TransformCellInformation(specialClippedCells->GetCells()->GetOffsetsArray(),
-              this->Offsets, beginPointsId, beginCellsId, beginOffsetValue,
-              TransformCellFunction::OffsetsFunction);
-            // set cell connectivity array
-            this->TransformCellInformation(specialClippedCells->GetCells()->GetConnectivityArray(),
-              this->Connectivity, beginPointsId, beginCellsId, beginOffsetValue,
-              TransformCellFunction::ConnectivityFunction);
-            // Copy cell data
-            outCD->CopyData(inSpecialCD, beginCellsId, specialClippedCells->GetNumberOfCells(), 0);
+            // copy points
+            this->Points->InsertPoints(beginPointsId, specialClippedCells->GetNumberOfPoints(), 0,
+              specialClippedCells->GetPoints());
+            // copy point data
+            outPD->CopyData(
+              inSpecialPD, beginPointsId, specialClippedCells->GetNumberOfPoints(), 0);
+          }
+          else
+          {
+            if (specialClippedCells->GetNumberOfCells() > 0)
+            {
+              // copy cell types
+              this->CellTypes->InsertTuples(beginCellsId, specialClippedCells->GetNumberOfCells(),
+                0, specialClippedCells->GetCellTypesArray());
+              // set cell offsets array
+              this->TransformCellInformation(specialClippedCells->GetCells()->GetOffsetsArray(),
+                this->Offsets, beginPointsId, beginCellsId, beginOffsetValue,
+                TransformCellFunction::OffsetsFunction);
+              // set cell connectivity array
+              this->TransformCellInformation(
+                specialClippedCells->GetCells()->GetConnectivityArray(), this->Connectivity,
+                beginPointsId, beginCellsId, beginOffsetValue,
+                TransformCellFunction::ConnectivityFunction);
+              // Copy cell data
+              outCD->CopyData(
+                inSpecialCD, beginCellsId, specialClippedCells->GetNumberOfCells(), 0);
+            }
           }
 
           // update begin values
           beginPointsId += specialClippedCells->GetNumberOfPoints();
-          if (specialClippedCells->GetNumberOfCells() > 0)
+          if (this->Mode == ComputeMode::CellsMode && specialClippedCells->GetNumberOfCells() > 0)
           {
             beginCellsId += specialClippedCells->GetNumberOfCells();
             beginOffsetValue += specialClippedCells->GetCells()->GetNumberOfConnectivityIds();
@@ -2681,7 +2774,8 @@ public:
       }
 
       // the last tlId should define the last offset
-      if (tlId + 1 == static_cast<vtkIdType>(this->TLNumberOfPoints.size()))
+      if (this->Mode == ComputeMode::CellsMode &&
+        tlId + 1 == static_cast<vtkIdType>(this->TLDataType.size()))
       {
         // set last offset value
         this->Offsets->SetValue(beginCellsId, beginOffsetValue);
@@ -2689,39 +2783,43 @@ public:
     }
   }
 
-  void Reduce()
-  {
-    this->Output->SetPoints(this->Points);
-    vtkNew<vtkCellArray> cells;
-    cells->SetData(this->Offsets, this->Connectivity);
-    // set nullptr for faces since there will be, for sure, no polyhedrons.
-    this->Output->SetCells(this->CellTypes, cells, nullptr, nullptr);
-  }
-
 private:
-  template <class InputArrayType>
+  template <class InputIdArrayType>
   void TransformCellInformationT(vtkDataArray* inputPointsArray, vtkDataArray* outputPointsArray,
     vtkIdType beginPointId, vtkIdType beginCellId, vtkIdType beginOffsetValue,
     TransformCellFunction transformFunction)
   {
+    using InputIdType = typename InputIdArrayType::ValueType;
+    using OutputIdType = typename IdTypeArray::ValueType;
     if (transformFunction == TransformCellFunction::OffsetsFunction)
     {
       // subtract -1 to get the number of cells
       vtkIdType numberOfCells = inputPointsArray->GetNumberOfValues() - 1;
-      auto inputArrayPtr = InputArrayType::SafeDownCast(inputPointsArray)->GetPointer(0);
+      auto inputArrayPtr = InputIdArrayType::SafeDownCast(inputPointsArray)->GetPointer(0);
       auto outputArray = IdTypeArray::SafeDownCast(outputPointsArray);
       std::transform(inputArrayPtr, inputArrayPtr + numberOfCells,
         outputArray->GetPointer(beginCellId),
-        [&](const vtkIdType& offset) -> vtkIdType { return beginOffsetValue + offset; });
+        [&](const InputIdType& offset) -> OutputIdType { return beginOffsetValue + offset; });
     }
     else if (transformFunction == TransformCellFunction::ConnectivityFunction)
     {
       vtkIdType connectivityArraySize = inputPointsArray->GetNumberOfValues();
-      auto inputArrayPtr = InputArrayType::SafeDownCast(inputPointsArray)->GetPointer(0);
+      auto inputArrayPtr = InputIdArrayType::SafeDownCast(inputPointsArray)->GetPointer(0);
       auto outputArray = IdTypeArray::SafeDownCast(outputPointsArray);
-      std::transform(inputArrayPtr, inputArrayPtr + connectivityArraySize,
-        outputArray->GetPointer(beginOffsetValue),
-        [&](const vtkIdType& pointId) -> vtkIdType { return beginPointId + pointId; });
+      if (!this->MergePoints)
+      {
+        std::transform(inputArrayPtr, inputArrayPtr + connectivityArraySize,
+          outputArray->GetPointer(beginOffsetValue),
+          [&](const InputIdType& pointId) -> OutputIdType { return beginPointId + pointId; });
+      }
+      else
+      {
+        std::transform(inputArrayPtr, inputArrayPtr + connectivityArraySize,
+          outputArray->GetPointer(beginOffsetValue),
+          [&](const InputIdType& pointId) -> OutputIdType {
+            return this->PointMap[beginPointId + pointId];
+          });
+      }
     }
   }
 
@@ -2729,19 +2827,132 @@ private:
     vtkIdType beginPointId, vtkIdType beginCellId, vtkIdType beginOffsetValue,
     TransformCellFunction transformFunction)
   {
-    if (vtkTypeInt64Array::SafeDownCast(inputArray) != nullptr)
-    {
-      this->TransformCellInformationT<vtkTypeInt64Array>(
-        inputArray, outputArray, beginPointId, beginCellId, beginOffsetValue, transformFunction);
-    }
-    else
+    if (vtkTypeInt32Array::SafeDownCast(inputArray) != nullptr)
     {
       this->TransformCellInformationT<vtkTypeInt32Array>(
         inputArray, outputArray, beginPointId, beginCellId, beginOffsetValue, transformFunction);
     }
+    else
+    {
+      this->TransformCellInformationT<vtkTypeInt64Array>(
+        inputArray, outputArray, beginPointId, beginCellId, beginOffsetValue, transformFunction);
+    }
+  }
+
+public:
+  void Reduce()
+  {
+    if (this->Mode == ComputeMode::PointsMode)
+    {
+      this->Output->SetPoints(this->Points);
+      if (this->MergePoints)
+      {
+        vtkPoints* oldPoints = this->Points;
+        vtkNew<vtkPoints> newPoints;
+        const vtkIdType oldNumberOfPoints = oldPoints->GetNumberOfPoints();
+        // create locator
+        vtkIdType* mergeMap = new vtkIdType[oldNumberOfPoints];
+        vtkNew<vtkStaticPointLocator> locator;
+        locator->SetDataSet(this->Output);
+        locator->BuildLocator();
+        locator->MergePoints(0, mergeMap);
+        // count and map points to new points
+        this->PointMap = new vtkIdType[oldNumberOfPoints];
+        vtkIdType newNumberOfPoints = 0;
+        // count and map points to new points
+        for (vtkIdType id = 0; id < oldNumberOfPoints; ++id)
+        {
+          if (mergeMap[id] == id)
+          {
+            this->PointMap[id] = newNumberOfPoints++;
+          }
+        }
+        vtkIdType* pointMap = this->PointMap;
+        // now map old merged points to new points
+        vtkSMPTools::For(
+          0, oldNumberOfPoints, [&mergeMap, &pointMap](vtkIdType begin, vtkIdType end) {
+            for (vtkIdType id = begin; id < end; ++id)
+            {
+              if (mergeMap[id] != id)
+              {
+                pointMap[id] = pointMap[mergeMap[id]];
+              }
+            }
+          });
+        delete[] mergeMap;
+
+        if (this->OutputPointsPrecision == vtkAlgorithm::DEFAULT_PRECISION)
+        {
+          newPoints->SetDataType(oldPoints->GetDataType());
+        }
+        else if (this->OutputPointsPrecision == vtkAlgorithm::SINGLE_PRECISION)
+        {
+          newPoints->SetDataType(VTK_FLOAT);
+        }
+        else if (this->OutputPointsPrecision == vtkAlgorithm::DOUBLE_PRECISION)
+        {
+          newPoints->SetDataType(VTK_DOUBLE);
+        }
+        newPoints->SetNumberOfPoints(newNumberOfPoints);
+
+        vtkPointData* oldPD = this->Output->GetPointData();
+        vtkNew<vtkPointData> newPD;
+        newPD->CopyAllocate(oldPD);
+
+        // Use a fast path for when both arrays are some mix of float/double:
+        using FastValueTypes = vtkArrayDispatch::Reals;
+        using Dispatcher = vtkArrayDispatch::Dispatch2ByValueType<FastValueTypes, FastValueTypes>;
+
+        vtkDataArray* oldPtsArray = oldPoints->GetData();
+        vtkDataArray* newPtsArray = newPoints->GetData();
+        // copy new points
+        CopyPointsLauncher launcher;
+        if (!Dispatcher::Execute(
+              oldPtsArray, newPtsArray, launcher, pointMap, oldPD, newNumberOfPoints, newPD))
+        { // Fallback to slow path for unusual types:
+          launcher(oldPtsArray, newPtsArray, pointMap, oldPD, newNumberOfPoints, newPD);
+        }
+        pointMap = nullptr;
+        // deallocate implicitly the old points
+        this->Points->ShallowCopy(newPoints);
+        // set new points
+        this->Output->SetPoints(this->Points);
+        // set new point data, which implicitly deallocates old point data
+        this->Output->GetPointData()->ShallowCopy(newPD);
+      }
+    }
+    else
+    {
+      // set cells
+      vtkNew<vtkCellArray> cells;
+      cells->SetData(this->Offsets, this->Connectivity);
+      // set nullptr for faces since there will be, for sure, no polyhedrons.
+      this->Output->SetCells(this->CellTypes, cells, nullptr, nullptr);
+      if (this->MergePoints)
+      {
+        // free point map
+        delete[] this->PointMap;
+      }
+    }
+  }
+
+  static void Execute(vtkDataSet* input, ThreadLocalDataType& tlDataType, bool checkSpecialCells,
+    int outputPointsPrecision, bool mergePoints, vtkUnstructuredGrid* output)
+  {
+    using MergeUnstructuredGrids = MergeUnstructuredGridsFunctor<IdTypeArray>;
+    MergeUnstructuredGrids mergeUnstructuredGrids(
+      input, tlDataType, checkSpecialCells, outputPointsPrecision, mergePoints, output);
+    if (mergeUnstructuredGrids.GetTotalNumberOfPoints() > 0)
+    {
+      mergeUnstructuredGrids.SetComputeMode(MergeUnstructuredGrids::PointsMode);
+      vtkSMPTools::For(0, tlDataType.size(), mergeUnstructuredGrids);
+      mergeUnstructuredGrids.SetComputeMode(MergeUnstructuredGrids::CellsMode);
+      vtkSMPTools::For(0, tlDataType.size(), mergeUnstructuredGrids);
+    }
   }
 };
 
+// Worker to clip unstructured data
 template <typename TGrid>
 struct ClipUnstructuredDataBaseWorker
 {
@@ -2813,14 +3024,14 @@ struct ClipUnstructuredDataBaseWorker
     cps.pts_ptr = cords->GetPointer(0);
     if (use32BitsIds)
     {
-      ConstructSimpleDataSetsFunctor<vtkTypeInt32Array> constructSimpleDataSets(
-        inputDS, tlDataType, cps);
+      using ConstructSimpleDataSets = ConstructSimpleDataSetsFunctor<vtkTypeInt32Array>;
+      ConstructSimpleDataSets constructSimpleDataSets(inputDS, tlDataType, cps);
       vtkSMPTools::For(0, tlDataType.size(), constructSimpleDataSets);
     }
     else
     {
-      ConstructSimpleDataSetsFunctor<vtkTypeInt64Array> constructSimpleDataSets(
-        inputDS, tlDataType, cps);
+      using ConstructSimpleDataSets = ConstructSimpleDataSetsFunctor<vtkTypeInt64Array>;
+      ConstructSimpleDataSets constructSimpleDataSets(inputDS, tlDataType, cps);
       vtkSMPTools::For(0, tlDataType.size(), constructSimpleDataSets);
     }
     // delete VisItVFV since they are no longer needed
@@ -2851,18 +3062,19 @@ struct ClipUnstructuredDataBaseWorker
 
     if (!havePolyhedra)
     {
+      vtkNew<vtkUnstructuredGrid> clippedCellsMerged;
       // merge unstructured grids
       if (use32BitsIds)
       {
-        MergeUnstructuredGridsFunctor<vtkTypeInt32Array> mergeUnstructuredGrids(
-          inputDS, tlDataType, haveSpecialCells, outputPointsPrecision, output);
-        vtkSMPTools::For(0, tlDataType.size(), mergeUnstructuredGrids);
+        using MergeUnstructuredGrids = MergeUnstructuredGridsFunctor<vtkTypeInt32Array>;
+        MergeUnstructuredGrids::Execute(
+          inputDS, tlDataType, haveSpecialCells, outputPointsPrecision, true, clippedCellsMerged);
       }
       else
       {
-        MergeUnstructuredGridsFunctor<vtkTypeInt64Array> mergeUnstructuredGrids(
-          inputDS, tlDataType, haveSpecialCells, outputPointsPrecision, output);
-        vtkSMPTools::For(0, tlDataType.size(), mergeUnstructuredGrids);
+        using MergeUnstructuredGrids = MergeUnstructuredGridsFunctor<vtkTypeInt64Array>;
+        MergeUnstructuredGrids::Execute(
+          inputDS, tlDataType, haveSpecialCells, outputPointsPrecision, true, clippedCellsMerged);
       }
 
       // delete SimpleClippedCells and SpecialClippedCells since they are no longer needed
@@ -2874,6 +3086,7 @@ struct ClipUnstructuredDataBaseWorker
           localDataType->SpecialClippedCells->Initialize();
         }
       }
+      output->ShallowCopy(clippedCellsMerged);
     }
     else // if we have polyhedra, special treatment is needed
     {
@@ -2881,15 +3094,15 @@ struct ClipUnstructuredDataBaseWorker
       // construct dataSet using simpleClippedCells only
       if (use32BitsIds)
       {
-        MergeUnstructuredGridsFunctor<vtkTypeInt32Array> mergeUnstructuredGrids(
-          inputDS, tlDataType, false, outputPointsPrecision, simpleClippedCellsMerged);
-        vtkSMPTools::For(0, tlDataType.size(), mergeUnstructuredGrids);
+        using MergeUnstructuredGrids = MergeUnstructuredGridsFunctor<vtkTypeInt32Array>;
+        MergeUnstructuredGrids::Execute(
+          inputDS, tlDataType, false, outputPointsPrecision, true, simpleClippedCellsMerged);
       }
       else
       {
-        MergeUnstructuredGridsFunctor<vtkTypeInt64Array> mergeUnstructuredGrids(
-          inputDS, tlDataType, false, outputPointsPrecision, simpleClippedCellsMerged);
-        vtkSMPTools::For(0, tlDataType.size(), mergeUnstructuredGrids);
+        using MergeUnstructuredGrids = MergeUnstructuredGridsFunctor<vtkTypeInt64Array>;
+        MergeUnstructuredGrids::Execute(
+          inputDS, tlDataType, false, outputPointsPrecision, true, simpleClippedCellsMerged);
       }
 
       // delete SimpleClippedCells since they are no longer needed
@@ -2899,19 +3112,31 @@ struct ClipUnstructuredDataBaseWorker
       }
 
       // append simpleClippedCellsMerged with SpecialClippedCells
+      unsigned short numberOfSpecialDataSets = 0;
       vtkNew<vtkAppendFilter> appender;
+      appender->MergePointsOn();
       appender->AddInputData(simpleClippedCellsMerged);
       for (auto& localDataType : tlDataType)
       {
-        appender->AddInputData(localDataType->SpecialClippedCells);
+        if (localDataType->SpecialClippedCells->GetNumberOfCells() > 0)
+        {
+          appender->AddInputData(localDataType->SpecialClippedCells);
+          ++numberOfSpecialDataSets;
+        }
       }
       appender->Update();
 
-      // delete SpecialClippedCells since they are no longer needed
-      for (auto& localDataType : tlDataType)
+      // if there is only one dataset with special clipped cells, and no simple clipped cells
+      // the appender will shallow copy the only special dataset, so we should not initialize it
+      if (!(numberOfSpecialDataSets == 1 && simpleClippedCellsMerged->GetNumberOfCells() == 0))
       {
-        localDataType->SpecialClippedCells->Initialize();
+        // delete SpecialClippedCells since they are no longer needed
+        for (auto& localDataType : tlDataType)
+        {
+          localDataType->SpecialClippedCells->Initialize();
+        }
       }
+      simpleClippedCellsMerged->Initialize();
 
       output->ShallowCopy(appender->GetOutput());
     }
@@ -2920,6 +3145,7 @@ struct ClipUnstructuredDataBaseWorker
 using ClipPolyDataWorker = ClipUnstructuredDataBaseWorker<vtkPolyData>;
 using ClipUnstructuredGridWorker = ClipUnstructuredDataBaseWorker<vtkUnstructuredGrid>;
 
+// Worker to clip structured data
 template <typename TGrid>
 struct ClipStructuredDataBaseWorker
 {
@@ -3018,14 +3244,14 @@ struct ClipStructuredDataBaseWorker
     // construct cells datasets
     if (use32BitsIds)
     {
-      ConstructSimpleDataSetsFunctor<vtkTypeInt32Array> constructSimpleDataSets(
-        inputDS, tlDataType, cps);
+      using ConstructSimpleDataSets = ConstructSimpleDataSetsFunctor<vtkTypeInt32Array>;
+      ConstructSimpleDataSets constructSimpleDataSets(inputDS, tlDataType, cps);
       vtkSMPTools::For(0, tlDataType.size(), constructSimpleDataSets);
     }
     else
     {
-      ConstructSimpleDataSetsFunctor<vtkTypeInt64Array> constructSimpleDataSets(
-        inputDS, tlDataType, cps);
+      using ConstructSimpleDataSets = ConstructSimpleDataSetsFunctor<vtkTypeInt64Array>;
+      ConstructSimpleDataSets constructSimpleDataSets(inputDS, tlDataType, cps);
       vtkSMPTools::For(0, tlDataType.size(), constructSimpleDataSets);
     }
 
@@ -3043,18 +3269,19 @@ struct ClipStructuredDataBaseWorker
       }
     }
 
+    vtkNew<vtkUnstructuredGrid> clippedCellsMerged;
     // merge unstructured grids
     if (use32BitsIds)
     {
-      MergeUnstructuredGridsFunctor<vtkTypeInt32Array> mergeUnstructuredGrids(
-        inputDS, tlDataType, false, outputPointsPrecision, output);
-      vtkSMPTools::For(0, tlDataType.size(), mergeUnstructuredGrids);
+      using MergeUnstructuredGrids = MergeUnstructuredGridsFunctor<vtkTypeInt32Array>;
+      MergeUnstructuredGrids::Execute(
+        inputDS, tlDataType, false, outputPointsPrecision, true, clippedCellsMerged);
     }
     else
     {
-      MergeUnstructuredGridsFunctor<vtkTypeInt64Array> mergeUnstructuredGrids(
-        inputDS, tlDataType, false, outputPointsPrecision, output);
-      vtkSMPTools::For(0, tlDataType.size(), mergeUnstructuredGrids);
+      using MergeUnstructuredGrids = MergeUnstructuredGridsFunctor<vtkTypeInt64Array>;
+      MergeUnstructuredGrids::Execute(
+        inputDS, tlDataType, false, outputPointsPrecision, true, clippedCellsMerged);
     }
 
     // delete SimpleClippedCells since they are no longer needed
@@ -3062,6 +3289,7 @@ struct ClipStructuredDataBaseWorker
     {
       localDataType->SimpleClippedCells->Initialize();
     }
+    output->ShallowCopy(clippedCellsMerged);
   }
 };
 using ClipRectilinearGridWorker = ClipStructuredDataBaseWorker<vtkRectilinearGrid>;
