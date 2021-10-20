@@ -79,7 +79,7 @@ if (TARGET vtkm::cuda)
   list(TRANSFORM nowrap_classes APPEND ".cxx" OUTPUT_VARIABLE cuda_impl)
   set(cuda_impl vtkmDataArray.cxx ${nowrap_classes})
   set_source_files_properties(${cuda_impl} PROPERTIES
-    LANGUAGE CUDA 
+    LANGUAGE CUDA
     CUDA_SOURCE_PROPERTY_FORMAT OBJ
     CUDA_SEPARABLE_COMPILATION ON)
 
