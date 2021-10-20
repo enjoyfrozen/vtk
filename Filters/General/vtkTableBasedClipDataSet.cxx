@@ -41,11 +41,9 @@
 #include "vtkGenericCell.h"
 #include "vtkImageData.h"
 #include "vtkImplicitFunction.h"
-#include "vtkIncrementalPointLocator.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
 #include "vtkLogger.h"
-#include "vtkMergePoints.h"
 #include "vtkObjectFactory.h"
 #include "vtkPointData.h"
 #include "vtkPolyData.h"
@@ -3114,6 +3112,7 @@ struct ClipUnstructuredDataBaseWorker
       // append simpleClippedCellsMerged with SpecialClippedCells
       unsigned short numberOfSpecialDataSets = 0;
       vtkNew<vtkAppendFilter> appender;
+      appender->SetOutputPointsPrecision(outputPointsPrecision);
       appender->MergePointsOn();
       appender->AddInputData(simpleClippedCellsMerged);
       for (auto& localDataType : tlDataType)
@@ -3301,7 +3300,6 @@ using ClipStructuredGridWorker = ClipStructuredDataBaseWorker<vtkStructuredGrid>
 // set to 0.0; and generate clip scalars turned off.
 vtkTableBasedClipDataSet::vtkTableBasedClipDataSet(vtkImplicitFunction* cf)
 {
-  this->Locator = nullptr;
   this->ClipFunction = cf;
 
   // setup a callback to report progress
@@ -3333,11 +3331,6 @@ vtkTableBasedClipDataSet::vtkTableBasedClipDataSet(vtkImplicitFunction* cf)
 //------------------------------------------------------------------------------
 vtkTableBasedClipDataSet::~vtkTableBasedClipDataSet()
 {
-  if (this->Locator)
-  {
-    this->Locator->UnRegister(this);
-    this->Locator = nullptr;
-  }
   this->SetClipFunction(nullptr);
   this->InternalProgressObserver->Delete();
   this->InternalProgressObserver = nullptr;
@@ -3375,15 +3368,10 @@ vtkMTimeType vtkTableBasedClipDataSet::GetMTime()
     mTime = (time > mTime ? time : mTime);
   }
 
-  if (this->Locator != nullptr)
-  {
-    time = this->Locator->GetMTime();
-    mTime = (time > mTime ? time : mTime);
-  }
-
   return mTime;
 }
 
+//------------------------------------------------------------------------------
 vtkUnstructuredGrid* vtkTableBasedClipDataSet::GetClippedOutput()
 {
   if (!this->GenerateClippedOutput)
@@ -3392,40 +3380,6 @@ vtkUnstructuredGrid* vtkTableBasedClipDataSet::GetClippedOutput()
   }
 
   return vtkUnstructuredGrid::SafeDownCast(this->GetExecutive()->GetOutputData(1));
-}
-
-//------------------------------------------------------------------------------
-void vtkTableBasedClipDataSet::SetLocator(vtkIncrementalPointLocator* locator)
-{
-  if (this->Locator == locator)
-  {
-    return;
-  }
-
-  if (this->Locator)
-  {
-    this->Locator->UnRegister(this);
-    this->Locator = nullptr;
-  }
-
-  if (locator)
-  {
-    locator->Register(this);
-  }
-
-  this->Locator = locator;
-  this->Modified();
-}
-
-//------------------------------------------------------------------------------
-void vtkTableBasedClipDataSet::CreateDefaultLocator()
-{
-  if (this->Locator == nullptr)
-  {
-    this->Locator = vtkMergePoints::New();
-    this->Locator->Register(this);
-    this->Locator->Delete();
-  }
 }
 
 //------------------------------------------------------------------------------
@@ -3611,6 +3565,7 @@ void vtkTableBasedClipDataSet::ClipDataSet(
 {
   vtkNew<vtkClipDataSet> clipData;
   clipData->SetInputData(pDataSet);
+  clipData->SetMergeTolerance(this->MergeTolerance);
   clipData->SetValue(this->Value);
   clipData->SetInsideOut(this->InsideOut);
   clipData->SetClipFunction(this->ClipFunction);
@@ -3714,15 +3669,8 @@ void vtkTableBasedClipDataSet::PrintSelf(ostream& os, vtkIndent indent)
     os << indent << "Clip Function: (none)\n";
   }
   os << indent << "InsideOut: " << (this->InsideOut ? "On\n" : "Off\n");
+
   os << indent << "Value: " << this->Value << "\n";
-  if (this->Locator)
-  {
-    os << indent << "Locator: " << this->Locator << "\n";
-  }
-  else
-  {
-    os << indent << "Locator: (none)\n";
-  }
 
   os << indent << "Generate Clip Scalars: " << (this->GenerateClipScalars ? "On\n" : "Off\n");
 

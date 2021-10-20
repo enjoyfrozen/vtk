@@ -96,7 +96,6 @@
 
 class vtkCallbackCommand;
 class vtkImplicitFunction;
-class vtkIncrementalPointLocator;
 
 namespace detail
 {
@@ -181,32 +180,13 @@ public:
 
   ///@{
   /**
-   * Set/Get a point locator locator for merging duplicate points. By default,
-   * an instance of vtkMergePoints is used. Note that this IVAR is provided
-   * in this class only because this filter may resort to its sibling class
-   * vtkClipDataSet when processing some special grids (such as cylinders or
-   * cones with capping faces in the form of a vtkPolyData) while the latter
-   * requires a point locator. This filter itself does not need a locator.
-   */
-  void SetLocator(vtkIncrementalPointLocator* locator);
-  vtkGetObjectMacro(Locator, vtkIncrementalPointLocator);
-  ///@}
-
-  ///@{
-  /**
    * Set/Get the tolerance used for merging duplicate points near the clipping
    * intersection cells. This tolerance may prevent the generation of degenerate
-   * primitives. Note that only 3D cells actually use this IVAR.
+   * primitives. Note that only 3D cells actually use this IVAR. The default is 0.01.
    */
   vtkSetClampMacro(MergeTolerance, double, 0.0001, 0.25);
   vtkGetMacro(MergeTolerance, double);
   ///@}
-
-  /**
-   * Create a default point locator when none is specified. The point locator is
-   * used to merge coincident points.
-   */
-  void CreateDefaultLocator();
 
   ///@{
   /**
@@ -245,14 +225,14 @@ protected:
    * special grids (such as cylinders or cones with capping faces in the
    * form a vtkPolyData).
    */
-  void ClipDataSet(vtkDataSet* pDataSet, vtkDataArray* clipAray, vtkUnstructuredGrid* unstruct);
+  void ClipDataSet(vtkDataSet* pDataSet, vtkDataArray* clipArray, vtkUnstructuredGrid* unstruct);
 
   /**
    * This function takes a vtkImageData as a vtkRectilinearGrid, which is then
    * clipped by ClipRectilinearGridData(......).
    */
   void ClipImageData(
-    vtkDataSet* inputGrd, vtkDataArray* clipAray, double isoValue, vtkUnstructuredGrid* outputUG);
+    vtkDataSet* inputGrd, vtkDataArray* clipArray, double isoValue, vtkUnstructuredGrid* outputUG);
 
   /**
    * This function clips a vtkPolyData object based on a specified iso-value
@@ -261,7 +241,7 @@ protected:
    * (provided via SetClipFunction()). The clipping result is exported to outputUG.
    */
   void ClipPolyData(
-    vtkDataSet* inputGrd, vtkDataArray* clipAray, double isoValue, vtkUnstructuredGrid* outputUG);
+    vtkDataSet* inputGrd, vtkDataArray* clipArray, double isoValue, vtkUnstructuredGrid* outputUG);
 
   /**
    * This function clips a vtkRectilinearGrid based on a specified iso-value
@@ -270,7 +250,7 @@ protected:
    * (provided via SetClipFunction()). The clipping result is exported to outputUG.
    */
   void ClipRectilinearGridData(
-    vtkDataSet* inputGrd, vtkDataArray* clipAray, double isoValue, vtkUnstructuredGrid* outputUG);
+    vtkDataSet* inputGrd, vtkDataArray* clipArray, double isoValue, vtkUnstructuredGrid* outputUG);
 
   /**
    * This function clips a vtkStructuredGrid based on a specified iso-value
@@ -279,7 +259,7 @@ protected:
    * (provided via SetClipFunction()). The clipping result is exported to outputUG.
    */
   void ClipStructuredGridData(
-    vtkDataSet* inputGrd, vtkDataArray* clipAray, double isoValue, vtkUnstructuredGrid* outputUG);
+    vtkDataSet* inputGrd, vtkDataArray* clipArray, double isoValue, vtkUnstructuredGrid* outputUG);
 
   /**
    * This function clips a vtkUnstructuredGrid based on a specified iso-value
@@ -288,7 +268,7 @@ protected:
    * (provided via SetClipFunction()). The clipping result is exported to outputUG.
    */
   void ClipUnstructuredGridData(
-    vtkDataSet* inputGrd, vtkDataArray* clipAray, double isoValue, vtkUnstructuredGrid* outputUG);
+    vtkDataSet* inputGrd, vtkDataArray* clipArray, double isoValue, vtkUnstructuredGrid* outputUG);
 
   /**
    * Register a callback function with the InternalProgressObserver.
@@ -308,7 +288,6 @@ protected:
   double MergeTolerance;
   vtkCallbackCommand* InternalProgressObserver;
   vtkImplicitFunction* ClipFunction;
-  vtkIncrementalPointLocator* Locator;
 
   int OutputPointsPrecision;
 
