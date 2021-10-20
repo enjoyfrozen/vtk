@@ -1398,7 +1398,7 @@ template <typename TIds>
 void BucketList<TIds>::MergePoints(double tol, vtkIdType* mergeMap)
 {
   // First mark all points as uninitialized
-  std::fill_n(mergeMap, this->NumPts, (-1));
+  vtkSMPTools::Fill(mergeMap, mergeMap + this->NumPts, (-1));
 
   // If tol=0, then just process points bucket by bucket. Don't have to worry
   // about points in other buckets.
