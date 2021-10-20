@@ -77,31 +77,33 @@ build:fedora34-cuda-mpi:
         - .linux_builder_tags
         - .cmake_build_artifacts
         - .run_manually
-    timeout: 4 hours
+    timeout: 8 hours
 
 test:fedora34-cuda-mpi:
     extends:
         - .fedora34_cuda_mpi
         - .cmake_test_linux
-        - .linux_builder_tags
+        - .linux_qt_tester_tags
         - .cmake_test_artifacts
         - .run_automatically
     dependencies:
         - build:fedora34-cuda-mpi
     needs:
         - build:fedora34-cuda-mpi
+    timeout: 3 hours
 
 test-ext:vtk:fedora34-cuda-mpi:
     extends:
         - .fedora34_cuda_mpi_ext_vtk
         - .cmake_test_external_linux
-        - .linux_builder_tags
+        - .linux_qt_tester_tags
         - .cmake_tidy_artifacts
         - .run_automatically
     dependencies:
         - test:fedora34-cuda-mpi
     needs:
         - test:fedora34-cuda-mpi
+    timeout: 3 hours
 
 build:fedora34-mpi-offscreen-osmesa-python:
     extends:
