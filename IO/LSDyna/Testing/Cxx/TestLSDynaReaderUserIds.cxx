@@ -62,7 +62,7 @@ std::unordered_map<std::size_t, std::tuple<ElemIds, NodeIds>> ReadIdsFromDynaInp
   std::unordered_map<std::size_t, std::tuple<ElemIds, NodeIds>> results;
 
   std::ifstream ifs(fpath);
-  assert(ifs.is_open());
+  assert("pre: open LS-DYNA input" && ifs.is_open());
 
   std::string line;
   std::string block{ "" };
@@ -91,7 +91,7 @@ std::unordered_map<std::size_t, std::tuple<ElemIds, NodeIds>> ReadIdsFromDynaInp
     else if (block.substr(0, 8) == "ELEMENT_")
     {
       auto splitted = split(line);
-      assert(splitted.size() > 2);
+      assert("pre: has eid, pid and connectivities" && splitted.size() > 2);
 
       const std::size_t eid = std::stoull(splitted[0]);
       const std::size_t pid = std::stoull(splitted[1]);
@@ -105,7 +105,8 @@ std::unordered_map<std::size_t, std::tuple<ElemIds, NodeIds>> ReadIdsFromDynaInp
       for (std::size_t i = 2; i < splitted.size(); i++)
       {
         auto nid = std::stoull(splitted[i]);
-        assert(std::find(nodeid_glob.begin(), nodeid_glob.end(), nid) != nodeid_glob.end());
+        assert("pre: nid is in global nodes" &&
+          std::find(nodeid_glob.begin(), nodeid_glob.end(), nid) != nodeid_glob.end());
         std::get<1>(res).emplace(nid);
       }
     }
@@ -115,7 +116,7 @@ std::unordered_map<std::size_t, std::tuple<ElemIds, NodeIds>> ReadIdsFromDynaInp
 
 std::size_t GetPartId(const std::string& pname)
 {
-  assert(pname.substr(0, 4) == "Part");
+  assert("pre: expected part name" && pname.substr(0, 4) == "Part");
   return std::stoull(pname.substr(4));
 }
 
@@ -156,8 +157,8 @@ int TestLSDynaReaderUserIds(int argc, char* argv[])
     auto cell_data = block->GetCellData();
     auto point_data = block->GetPointData();
 
-    assert(cell_data->HasArray(name_elem_id));
-    assert(point_data->HasArray(name_node_id));
+    assert("pre: has user elem ID" && cell_data->HasArray(name_elem_id));
+    assert("pre: has user node ID" && point_data->HasArray(name_node_id));
 
     auto arr_elem_id = cell_data->GetAbstractArray(name_elem_id);
     auto arr_node_id = point_data->GetAbstractArray(name_node_id);
@@ -172,22 +173,25 @@ int TestLSDynaReaderUserIds(int argc, char* argv[])
       const auto& expected_eid = std::get<0>(item);
       const auto& expected_nid = std::get<1>(item);
 
-      assert(expected_eid.size() == arr_elem_id->GetNumberOfTuples());
-      assert(expected_nid.size() == arr_node_id->GetNumberOfTuples());
+      assert("post: same length for elem IDs" &&
+        expected_eid.size() == arr_elem_id->GetNumberOfTuples());
+      assert("post: same length for node IDs" &&
+        expected_nid.size() == arr_node_id->GetNumberOfTuples());
 
       for (std::size_t i = 0; i < arr_elem_id->GetNumberOfTuples(); i++)
       {
         auto v = arr_elem_id->GetVariantValue(i);
-        assert(v.IsLongLong());
-        assert(v.ToLongLong() == expected_eid.at(i));
+        assert("post: correct type for elem ID" && v.IsLongLong());
+        assert("post: user elem ID value is expected" && v.ToLongLong() == expected_eid.at(i));
       }
 
       for (std::size_t i = 0; i < arr_node_id->GetNumberOfTuples(); i++)
       {
         // TODO: check the order of node IDs
         auto v = arr_node_id->GetVariantValue(i);
-        assert(v.IsLongLong());
-        assert(expected_nid.find(v.ToLongLong()) != expected_nid.end());
+        assert("post: correct type for node ID" && v.IsLongLong());
+        assert("post: user node ID value is expected" &&
+          expected_nid.find(v.ToLongLong()) != expected_nid.end());
       }
     }
   }
