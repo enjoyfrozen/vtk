@@ -26,6 +26,7 @@
 
 #include "vtkAbstractWidget.h"
 #include "vtkGUISupportQtModule.h" // For export macro
+#include "vtkDeprecation.h"      // For VTK_DEPRECATED_IN_9_2_0
 #include <QPointF>                 // for ivar
 
 class QWidget;
@@ -83,11 +84,14 @@ protected:
 
   // Manage the state of the widget
   int WidgetState;
-  enum _WidgetState
+  enum WidgetStateType
   {
     Start = 0,
     Active
   };
+  #if !defined(VTK_LEGACY_REMOVE)
+    VTK_DEPRECATED_IN_9_2_0("because trailing underscore is reserved") typedef WidgetStateType _WidgetState;
+  #endif
 
   QWidget* Widget;
   QPointF LastWidgetCoordinates;

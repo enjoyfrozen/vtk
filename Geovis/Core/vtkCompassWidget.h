@@ -66,6 +66,7 @@
 
 #include "vtkAbstractWidget.h"
 #include "vtkGeovisCoreModule.h" // For export macro
+#include "vtkDeprecation.h"      // For VTK_DEPRECATED_IN_9_2_0
 
 class vtkCompassRepresentation;
 
@@ -123,7 +124,7 @@ protected:
   static void TimerAction(vtkAbstractWidget*);
 
   int WidgetState;
-  enum _WidgetState
+  enum WidgetStateType
   {
     Start = 0,
     Highlighting,
@@ -131,6 +132,9 @@ protected:
     TiltAdjusting,
     DistanceAdjusting
   };
+  #if !defined(VTK_LEGACY_REMOVE)
+    VTK_DEPRECATED_IN_9_2_0("because trailing underscore is reserved") typedef WidgetStateType _WidgetState;
+  #endif
 
   int TimerId;
   int TimerDuration;

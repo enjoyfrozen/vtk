@@ -75,6 +75,7 @@
 
 #include "vtkAbstractWidget.h"
 #include "vtkInteractionWidgetsModule.h" // For export macro
+#include "vtkDeprecation.h"      // For VTK_DEPRECATED_IN_9_2_0
 
 class vtkBorderRepresentation;
 
@@ -180,13 +181,16 @@ protected:
 
   // widget state
   int WidgetState;
-  enum _WidgetState
+  enum WidgetStateType
   {
     Start = 0,
     Define,
     Manipulate,
     Selected
   };
+  #if !defined(VTK_LEGACY_REMOVE)
+    VTK_DEPRECATED_IN_9_2_0("because trailing underscore is reserved") typedef WidgetStateType _WidgetState;
+  #endif
 
 private:
   vtkBorderWidget(const vtkBorderWidget&) = delete;

@@ -38,6 +38,7 @@
 
 #include "vtkAbstractWidget.h"
 #include "vtkInteractionWidgetsModule.h" // For export macro
+#include "vtkDeprecation.h"      // For VTK_DEPRECATED_IN_9_2_0
 
 class vtkPolyLineRepresentation;
 
@@ -75,11 +76,14 @@ protected:
   ~vtkPolyLineWidget() override;
 
   int WidgetState;
-  enum _WidgetState
+  enum WidgetStateType
   {
     Start = 0,
     Active
   };
+  #if !defined(VTK_LEGACY_REMOVE)
+    VTK_DEPRECATED_IN_9_2_0("because trailing underscore is reserved") typedef WidgetStateType _WidgetState;
+  #endif
 
   // These methods handle events
   static void SelectAction(vtkAbstractWidget*);
