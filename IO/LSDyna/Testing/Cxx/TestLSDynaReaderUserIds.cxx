@@ -50,10 +50,6 @@ std::unordered_map<std::size_t, std::tuple<ElemIds, NodeIds>> ReadIdsFromDynaInp
     while ((start = s.find_first_not_of(SPACE, end)) != std::string::npos)
     {
       end = s.find_first_of(SPACE, start);
-      if (end == std::string::npos)
-      {
-        end = s.size();
-      }
       result.push_back(s.substr(start, end - start));
     }
     return result;
