@@ -123,7 +123,7 @@ protected:
   static void TimerAction(vtkAbstractWidget*);
 
   int WidgetState;
-  enum _WidgetState
+  enum WidgetStateType
   {
     Start = 0,
     Highlighting,

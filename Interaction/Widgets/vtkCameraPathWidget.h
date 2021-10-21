@@ -63,7 +63,7 @@ protected:
   ~vtkCameraPathWidget() override = default;
 
   int WidgetState = vtkCameraPathWidget::Start;
-  enum _WidgetState
+  enum WidgetStateType
   {
     Start = 0,
     Active

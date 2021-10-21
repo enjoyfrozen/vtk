@@ -166,7 +166,7 @@ protected:
 
   // Manage the state of the widget
   int WidgetState;
-  enum _WidgetState
+  enum WidgetStateType
   {
     Start = 0,
     Active

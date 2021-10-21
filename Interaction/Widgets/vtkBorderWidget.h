@@ -174,7 +174,7 @@ protected:
 
   // widget state
   int WidgetState;
-  enum _WidgetState
+  enum WidgetStateType
   {
     Start = 0,
     Define,

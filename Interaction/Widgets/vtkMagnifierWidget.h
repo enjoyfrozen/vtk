@@ -118,7 +118,7 @@ protected:
   static void CharAction(vtkAbstractWidget*);
 
   int WidgetState;
-  enum _WidgetState
+  enum WidgetStateType
   {
     Invisible = 0,
     Visible

@@ -158,7 +158,7 @@ public:
   ///@}
 
   // Manage the state of the widget
-  enum _WidgetState
+  enum WidgetStateType
   {
     Start = 0,
     Active,
