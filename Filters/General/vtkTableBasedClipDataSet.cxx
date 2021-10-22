@@ -1561,6 +1561,8 @@ namespace detail
 // struct to collect all thread-local results into one object to ensure correct ordering.
 struct LocalDataType
 {
+  // list to ensure thread safe traversal of cells
+  vtkSmartPointer<vtkIdList> IdList;
   // structure to save whatever can be clipped
   vtkTableBasedClipperVolumeFromVolume* VisItVFV;
   // the cells that can not be clipped by this filter
@@ -1639,6 +1641,10 @@ public:
 
   void Initialize()
   {
+    auto& idList = this->TLDataType.Local().IdList;
+    idList = vtkSmartPointer<vtkIdList>::New();
+    idList->SetNumberOfIds(8); // 8 because of hexahedron
+
     // volume from volume structure
     auto& visItVFV = this->TLDataType.Local().VisItVFV;
     visItVFV =
@@ -1658,6 +1664,7 @@ public:
 
   void operator()(vtkIdType beginCellId, vtkIdType endCellId)
   {
+    auto& idList = this->TLDataType.Local().IdList;
     auto& visItVFV = this->TLDataType.Local().VisItVFV;
     auto& numberOfSpecialCells = this->TLDataType.Local().NumberOfSpecialCells;
     auto& specialCells = this->TLDataType.Local().SpecialCells;
@@ -1669,7 +1676,7 @@ public:
     {
       cellType = this->Input->GetCellType(cellId);
       const vtkIdType* pointIndices = nullptr;
-      this->Input->GetCellPoints(cellId, numPoints, pointIndices);
+      this->Input->GetCellPoints(cellId, numPoints, pointIndices, idList);
 
       // identify if cell can be clipped fast
       cellCanBeClippedFast = false;
