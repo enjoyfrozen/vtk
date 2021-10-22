@@ -25,11 +25,18 @@
 # define proj_list_operations pj_get_list_ref
 #endif
 
+#if VTK_MODULE_USE_EXTERNAL_vtklibproj
 # if VTK_LibPROJ_MAJOR_VERSION >= 5
 #  include <proj.h>
 # else
 #  include <projects.h>
 # endif
 # include <geodesic.h>
+#else
+# include <vtklibproj/src/projects.h>
+# include <vtklibproj/src/proj_api.h>
+# include <vtklibproj/src/geodesic.h>
+#endif
+
 
 #endif
