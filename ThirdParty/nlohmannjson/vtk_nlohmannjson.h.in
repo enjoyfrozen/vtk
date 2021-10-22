@@ -22,7 +22,8 @@
 # define VTK_NLOHMANN_JSON(x) <nlohmann/x>
 #else
 # define nlohmann vtknlohmann
-# define VTK_NLOHMANN_JSON(x) <vtknlohmann/include/vtknlohmann/x>
+# define VTK_NLOHMANN_JSON(x) <vtknlohmannjson/include/vtknlohmann/x>
 #endif
+#include VTK_NLOHMANN_JSON(json.hpp)
 
 #endif

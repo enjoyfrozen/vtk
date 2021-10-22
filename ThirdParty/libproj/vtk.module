@@ -3,6 +3,7 @@ NAME
 LIBRARY_NAME
   vtklibproj
 DEPENDS
-  VTK::sqlite
   VTK::nlohmannjson
+PRIVATE_DEPENDS
+  VTK::sqlite
 THIRD_PARTY
