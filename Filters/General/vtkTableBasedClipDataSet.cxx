@@ -2963,7 +2963,7 @@ struct ClipUnstructuredDataBaseWorker
 {
   void operator()(vtkDataSet* inputDS, vtkDataArray* clipArray, double isoValue,
     vtkUnstructuredGrid* output, vtkTableBasedClipDataSet* tableBasedClipDataSet,
-    int outputPointsPrecision, vtkTypeBool insideOut)
+    int outputPointsPrecision, vtkTypeBool insideOut, bool mergeThreadedPoints)
   {
     // clip the simple cells and detect the special cells
     TGrid* input = TGrid::SafeDownCast(inputDS);
@@ -3072,14 +3072,14 @@ struct ClipUnstructuredDataBaseWorker
       if (use32BitsIds)
       {
         using MergeUnstructuredGrids = MergeUnstructuredGridsFunctor<vtkTypeInt32Array>;
-        MergeUnstructuredGrids::Execute(
-          inputDS, tlDataType, haveSpecialCells, outputPointsPrecision, true, clippedCellsMerged);
+        MergeUnstructuredGrids::Execute(inputDS, tlDataType, haveSpecialCells,
+          outputPointsPrecision, mergeThreadedPoints, clippedCellsMerged);
       }
       else
       {
         using MergeUnstructuredGrids = MergeUnstructuredGridsFunctor<vtkTypeInt64Array>;
-        MergeUnstructuredGrids::Execute(
-          inputDS, tlDataType, haveSpecialCells, outputPointsPrecision, true, clippedCellsMerged);
+        MergeUnstructuredGrids::Execute(inputDS, tlDataType, haveSpecialCells,
+          outputPointsPrecision, mergeThreadedPoints, clippedCellsMerged);
       }
 
       // delete SimpleClippedCells and SpecialClippedCells since they are no longer needed
@@ -3100,14 +3100,14 @@ struct ClipUnstructuredDataBaseWorker
       if (use32BitsIds)
       {
         using MergeUnstructuredGrids = MergeUnstructuredGridsFunctor<vtkTypeInt32Array>;
-        MergeUnstructuredGrids::Execute(
-          inputDS, tlDataType, false, outputPointsPrecision, true, simpleClippedCellsMerged);
+        MergeUnstructuredGrids::Execute(inputDS, tlDataType, false, outputPointsPrecision,
+          mergeThreadedPoints, simpleClippedCellsMerged);
       }
       else
       {
         using MergeUnstructuredGrids = MergeUnstructuredGridsFunctor<vtkTypeInt64Array>;
-        MergeUnstructuredGrids::Execute(
-          inputDS, tlDataType, false, outputPointsPrecision, true, simpleClippedCellsMerged);
+        MergeUnstructuredGrids::Execute(inputDS, tlDataType, false, outputPointsPrecision,
+          mergeThreadedPoints, simpleClippedCellsMerged);
       }
 
       // delete SimpleClippedCells since they are no longer needed
@@ -3120,7 +3120,10 @@ struct ClipUnstructuredDataBaseWorker
       unsigned short numberOfSpecialDataSets = 0;
       vtkNew<vtkAppendFilter> appender;
       appender->SetOutputPointsPrecision(outputPointsPrecision);
-      appender->MergePointsOn();
+      if (mergeThreadedPoints)
+      {
+        appender->MergePointsOn();
+      }
       appender->AddInputData(simpleClippedCellsMerged);
       for (auto& localDataType : tlDataType)
       {
@@ -3220,7 +3223,8 @@ struct ClipStructuredDataBaseWorker
   }
 
   void operator()(vtkDataSet* inputDS, vtkDataArray* clipArray, double isoValue,
-    vtkUnstructuredGrid* output, int outputPointsPrecision, vtkTypeBool insideOut)
+    vtkUnstructuredGrid* output, int outputPointsPrecision, vtkTypeBool insideOut,
+    bool mergeThreadedPoints)
   {
     // clip the simple cells and detect the special cells
     TGrid* input = TGrid::SafeDownCast(inputDS);
@@ -3281,13 +3285,13 @@ struct ClipStructuredDataBaseWorker
     {
       using MergeUnstructuredGrids = MergeUnstructuredGridsFunctor<vtkTypeInt32Array>;
       MergeUnstructuredGrids::Execute(
-        inputDS, tlDataType, false, outputPointsPrecision, true, clippedCellsMerged);
+        inputDS, tlDataType, false, outputPointsPrecision, mergeThreadedPoints, clippedCellsMerged);
     }
     else
     {
       using MergeUnstructuredGrids = MergeUnstructuredGridsFunctor<vtkTypeInt64Array>;
       MergeUnstructuredGrids::Execute(
-        inputDS, tlDataType, false, outputPointsPrecision, true, clippedCellsMerged);
+        inputDS, tlDataType, false, outputPointsPrecision, mergeThreadedPoints, clippedCellsMerged);
     }
 
     // delete SimpleClippedCells since they are no longer needed
@@ -3319,6 +3323,7 @@ vtkTableBasedClipDataSet::vtkTableBasedClipDataSet(vtkImplicitFunction* cf)
   this->InsideOut = 0;
   this->MergeTolerance = 0.01;
   this->UseValueAsOffset = true;
+  this->MergeThreadedPoints = true;
   this->GenerateClipScalars = 0;
   this->GenerateClippedOutput = 0;
 
@@ -3630,8 +3635,8 @@ void vtkTableBasedClipDataSet::ClipPolyData(
   vtkDataSet* inputGrd, vtkDataArray* clipArray, double isoValue, vtkUnstructuredGrid* outputUG)
 {
   detail::ClipPolyDataWorker clipPolyDataWorker;
-  clipPolyDataWorker(
-    inputGrd, clipArray, isoValue, outputUG, this, this->OutputPointsPrecision, this->InsideOut);
+  clipPolyDataWorker(inputGrd, clipArray, isoValue, outputUG, this, this->OutputPointsPrecision,
+    this->InsideOut, this->MergeThreadedPoints);
 }
 
 //------------------------------------------------------------------------------
@@ -3639,8 +3644,8 @@ void vtkTableBasedClipDataSet::ClipRectilinearGridData(
   vtkDataSet* inputGrd, vtkDataArray* clipArray, double isoValue, vtkUnstructuredGrid* outputUG)
 {
   detail::ClipRectilinearGridWorker clipRectilinearGridWorker;
-  clipRectilinearGridWorker(
-    inputGrd, clipArray, isoValue, outputUG, this->OutputPointsPrecision, this->InsideOut);
+  clipRectilinearGridWorker(inputGrd, clipArray, isoValue, outputUG, this->OutputPointsPrecision,
+    this->InsideOut, this->MergeThreadedPoints);
 }
 
 //------------------------------------------------------------------------------
@@ -3648,8 +3653,8 @@ void vtkTableBasedClipDataSet::ClipStructuredGridData(
   vtkDataSet* inputGrd, vtkDataArray* clipArray, double isoValue, vtkUnstructuredGrid* outputUG)
 {
   detail::ClipStructuredGridWorker clipStructuredGridWorker;
-  clipStructuredGridWorker(
-    inputGrd, clipArray, isoValue, outputUG, this->OutputPointsPrecision, this->InsideOut);
+  clipStructuredGridWorker(inputGrd, clipArray, isoValue, outputUG, this->OutputPointsPrecision,
+    this->InsideOut, this->MergeThreadedPoints);
 }
 
 //------------------------------------------------------------------------------
@@ -3657,8 +3662,8 @@ void vtkTableBasedClipDataSet::ClipUnstructuredGridData(
   vtkDataSet* inputGrd, vtkDataArray* clipArray, double isoValue, vtkUnstructuredGrid* outputUG)
 {
   detail::ClipUnstructuredGridWorker clipPolyDataWorker;
-  clipPolyDataWorker(
-    inputGrd, clipArray, isoValue, outputUG, this, this->OutputPointsPrecision, this->InsideOut);
+  clipPolyDataWorker(inputGrd, clipArray, isoValue, outputUG, this, this->OutputPointsPrecision,
+    this->InsideOut, this->MergeThreadedPoints);
 }
 
 //------------------------------------------------------------------------------

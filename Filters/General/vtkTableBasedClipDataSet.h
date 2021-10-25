@@ -81,6 +81,11 @@
  *  points produces degenerate cells, which can be fixed by post-processing the
  *  output with a filter like vtkCleanGrid.
  *
+ * @warning
+ * This class has been threaded with vtkSMPTools. Using TBB or other
+ * non-sequential type (set in the CMake variable
+ * VTK_SMP_IMPLEMENTATION_TYPE) may improve performance significantly.
+ *
  * @par Thanks:
  *  This filter was adapted from the VisIt clipper (vtkVisItClipper).
  *
@@ -198,6 +203,17 @@ public:
   vtkBooleanMacro(GenerateClippedOutput, vtkTypeBool);
   ///@}
 
+  ///@{
+  /**
+   * Set/Get flag MergeThreadedPoints, with true as the default value. With this
+   * flag on, the points of each threaded dataset are merged so that duplicate points
+   * can be removed. Disabling this flag, significantly improves the performance.
+   */
+  vtkSetMacro(MergeThreadedPoints, bool);
+  vtkGetMacro(MergeThreadedPoints, bool);
+  vtkBooleanMacro(MergeThreadedPoints, bool);
+  ///@}
+
   /**
    * Return the clipped output.
    */
@@ -286,6 +302,7 @@ protected:
   bool UseValueAsOffset;
   double Value;
   double MergeTolerance;
+  bool MergeThreadedPoints;
   vtkCallbackCommand* InternalProgressObserver;
   vtkImplicitFunction* ClipFunction;
 
