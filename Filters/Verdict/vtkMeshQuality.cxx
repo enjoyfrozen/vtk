@@ -39,6 +39,8 @@
 
 #include "vtk_verdict.h"
 
+#include <limits>
+
 vtkStandardNewMacro(vtkMeshQuality);
 
 typedef double (*CellQualityType)(vtkCell*);
@@ -691,7 +693,7 @@ int vtkMeshQuality::RequestData(vtkInformation* vtkNotUsed(request),
           ++nhex;
           break;
         default:
-          q = 0.;
+          q = std::numeric_limits<double>::quiet_NaN();
       }
 
       if (this->SaveCellQuality)
