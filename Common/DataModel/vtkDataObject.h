@@ -39,6 +39,7 @@
 
 class vtkAbstractArray;
 class vtkDataArray;
+class vtkUnsignedCharArray;
 class vtkDataSetAttributes;
 class vtkFieldData;
 class vtkInformation;
@@ -304,7 +305,7 @@ public:
    * ghosts arrays are not defined for now outside of
    * point or cell.
    */
-  virtual vtkDataArray* GetGhostArray(int type);
+  virtual vtkUnsignedCharArray* GetGhostArray(int type);
 
   /**
    * Returns the attributes of the data object as a vtkFieldData.

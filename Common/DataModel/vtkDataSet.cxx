@@ -917,6 +917,24 @@ vtkUnsignedCharArray* vtkDataSet::GetPointGhostArray()
 }
 
 //------------------------------------------------------------------------------
+vtkUnsignedCharArray* vtkDataSet::GetGhostArray(int attributeType)
+{
+  if (attributeType == POINT)
+  {
+    return GetPointGhostArray();
+  }
+  else if (attributeType == CELL)
+  {
+    return GetCellGhostArray();
+  }
+  else
+  {
+    vtkErrorMacro("Invalid attribute type for ghost arrays: " << attributeType);
+    return nullptr;
+  }
+}
+
+//------------------------------------------------------------------------------
 void vtkDataSet::UpdatePointGhostArrayCache()
 {
   this->PointGhostArray = vtkArrayDownCast<vtkUnsignedCharArray>(
