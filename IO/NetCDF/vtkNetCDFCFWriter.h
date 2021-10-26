@@ -109,6 +109,10 @@ protected:
   int AttributeType;
   class Implementation;
   Implementation* Impl;
+
+private:
+  vtkNetCDFCFWriter(const vtkNetCDFCFWriter&) = delete;
+  void operator=(const vtkNetCDFCFWriter&) = delete;
 };
 
 #endif
