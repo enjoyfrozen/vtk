@@ -93,7 +93,7 @@ nc_type VTKTypeToNetCDFType(int type)
 //------------------------------------------------------------------------------
 void SaveCoords(int ncid, int attributeType, const std::array<int, 3>& coordid,
   const std::array<std::vector<double>, 3>& coord, const std::array<int, 3>& boundsid,
-  std::array<std::vector<std::array<double, 2>>, 3> bounds, int nvid)
+  std::array<std::vector<std::array<double, 2>>, 3> bounds)
 {
   int status;
   for (int i = 0; i < 3; ++i)
@@ -361,8 +361,9 @@ public:
     return ncid;
   }
   void DefineCoords(int ncid, int attributeType, const std::array<std::vector<double>, 3>& coords,
-    std::array<int, 3>& dimid, std::array<int, 3>& coordid, std::array<int, 3>& boundsid, int* nvid)
+    std::array<int, 3>& dimid, std::array<int, 3>& coordid, std::array<int, 3>& boundsid)
   {
+    int nvid;
     int status;
     std::array<std::string, 3> coordNameUpper = { { "X", "Y", "Z" } };
     std::array<std::string, 3> standardName = { { "projection_x_coordinate",
@@ -383,7 +384,7 @@ public:
     {
       // number of vertices for a cell along an axis
       const char* nvName = "nv";
-      if ((status = nc_def_dim(ncid, nvName, 2, nvid)))
+      if ((status = nc_def_dim(ncid, nvName, 2, &nvid)))
       {
         std::ostringstream ostr;
         ostr << "Error nc_def_dim " << nvName << ": " << nc_strerror(status);
@@ -464,7 +465,7 @@ public:
     {
       for (int i = 0; i < 3; ++i)
       {
-        int boundsdim[2] = { dimid[i], *nvid };
+        int boundsdim[2] = { dimid[i], nvid };
         if ((status =
                 nc_def_var(ncid, BOUNDS_NAME[i].c_str(), NC_DOUBLE, 2, boundsdim, &boundsid[i])))
         {
@@ -636,13 +637,12 @@ void vtkNetCDFCFWriter::WriteData()
     // needed only for CELLs
     std::array<std::vector<std::array<double, 2>>, 3> bounds;
     std::array<int, 3> boundsid;
-    int nvid;
 
     // create the nc file
     int ncid = this->Impl->CreateFile();
 
     GetCoords(id, this->AttributeType, &coords, &bounds);
-    this->Impl->DefineCoords(ncid, this->AttributeType, coords, dimid, coordid, boundsid, &nvid);
+    this->Impl->DefineCoords(ncid, this->AttributeType, coords, dimid, coordid, boundsid);
     attributeid.resize(attributes->GetNumberOfArrays());
     for (int i = 0; i < attributes->GetNumberOfArrays(); ++i)
     {
@@ -668,7 +668,7 @@ void vtkNetCDFCFWriter::WriteData()
       throw std::runtime_error(ostr.str());
     }
 
-    SaveCoords(ncid, this->AttributeType, coordid, coords, boundsid, bounds, nvid);
+    SaveCoords(ncid, this->AttributeType, coordid, coords, boundsid, bounds);
     for (int i = 0; i < attributes->GetNumberOfArrays(); ++i)
     {
       vtkDataArray* a = attributes->GetArray(i);
