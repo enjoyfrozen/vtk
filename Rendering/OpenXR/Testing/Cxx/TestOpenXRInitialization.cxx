@@ -80,7 +80,15 @@ int TestOpenXRInitialization(int argc, char* argv[])
   actor->GetProperty()->SetSpecularPower(20.0);
   actor->GetProperty()->SetOpacity(1.0);
 
-  iren->Start();
+  iren->Initialize();
+  iren->ProcessXrEvents();
+
+  renderWindow->Render();
+  int retVal = vtkRegressionTester::Test(argc, argv, renderWindow, 10);
+  if (retVal == vtkRegressionTester::DO_INTERACTOR)
+  {
+    iren->Start();
+  }
 
   return 0;
 }
