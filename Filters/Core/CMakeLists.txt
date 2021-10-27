@@ -40,6 +40,7 @@ set(classes
   vtkExecutionTimer
   vtkExplicitStructuredGridCrop
   vtkExplicitStructuredGridToUnstructuredGrid
+  vtkExtractCellsAlongPolyLine
   vtkFeatureEdges
   vtkFieldDataToAttributeDataFilter
   vtkFlyingEdges2D
