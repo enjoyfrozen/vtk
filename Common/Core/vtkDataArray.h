@@ -82,6 +82,7 @@ public:
   void InsertTuples(
     vtkIdType dstStart, vtkIdType n, vtkIdType srcStart, vtkAbstractArray* source) override;
   void GetTuples(vtkIdList* tupleIds, vtkAbstractArray* output) override;
+  void GetTuples(vtkIdList* tupleIds, vtkAbstractArray* output, vtkIdType destStartId) override;
   void GetTuples(vtkIdType p1, vtkIdType p2, vtkAbstractArray* output) override;
   void InterpolateTuple(vtkIdType dstTupleIdx, vtkIdList* ptIndices, vtkAbstractArray* source,
     double* weights) override;

@@ -257,9 +257,11 @@ struct InterpolateTupleWorker
 struct GetTuplesFromListWorker
 {
   vtkIdList* Ids;
+  vtkIdType DestStartId;
 
-  GetTuplesFromListWorker(vtkIdList* ids)
+  GetTuplesFromListWorker(vtkIdList* ids, vtkIdType destStartId)
     : Ids(ids)
+    , DestStartId(destStartId)
   {
   }
 
@@ -272,7 +274,7 @@ struct GetTuplesFromListWorker
     vtkIdType* srcTupleId = this->Ids->GetPointer(0);
     vtkIdType* srcTupleIdEnd = this->Ids->GetPointer(Ids->GetNumberOfIds());
 
-    auto dstTupleIter = dstTuples.begin();
+    auto dstTupleIter = dstTuples.begin() + this->DestStartId;
     while (srcTupleId != srcTupleIdEnd)
     {
       *dstTupleIter++ = srcTuples[*srcTupleId++];
@@ -1333,6 +1335,12 @@ vtkDataArray* vtkDataArray::CreateDataArray(int dataType)
 //------------------------------------------------------------------------------
 void vtkDataArray::GetTuples(vtkIdList* tupleIds, vtkAbstractArray* aa)
 {
+  this->GetTuples(tupleIds, aa, 0);
+}
+
+//------------------------------------------------------------------------------
+void vtkDataArray::GetTuples(vtkIdList* tupleIds, vtkAbstractArray* aa, vtkIdType destStartId)
+{
   vtkDataArray* da = vtkDataArray::FastDownCast(aa);
   if (!da)
   {
@@ -1351,7 +1359,7 @@ void vtkDataArray::GetTuples(vtkIdList* tupleIds, vtkAbstractArray* aa)
     return;
   }
 
-  GetTuplesFromListWorker worker(tupleIds);
+  GetTuplesFromListWorker worker(tupleIds, destStartId);
   if (!vtkArrayDispatch::Dispatch2::Execute(this, da, worker))
   {
     // Use fallback if dispatch fails.
