@@ -1642,6 +1642,25 @@ void vtkChartXY::RemovePlotSelections()
 }
 
 //------------------------------------------------------------------------------
+void vtkChartXY::SetAxesZoom(int index, bool v)
+{
+  if ((index >= 0) && (index < 4))
+  {
+    this->AxesZoom[index] = v;
+  }
+}
+
+//------------------------------------------------------------------------------
+bool vtkChartXY::GetAxesZoom(int index)
+{
+  if ((index >= 0) && (index < 4))
+  {
+    return this->AxesZoom[index];
+  }
+  return false;
+}
+
+//------------------------------------------------------------------------------
 bool vtkChartXY::Hit(const vtkContextMouseEvent& mouse)
 {
   if (!this->Interactive)
@@ -2454,6 +2473,11 @@ bool vtkChartXY::MouseWheelEvent(const vtkContextMouseEvent&, int delta)
   // Get the bounds of each plot.
   for (int i = 0; i < 4; ++i)
   {
+    if (!this->AxesZoom[i])
+    {
+      continue;
+    }
+
     vtkAxis* axis = this->ChartPrivate->axes[i];
     double min = axis->GetMinimum();
     double max = axis->GetMaximum();
