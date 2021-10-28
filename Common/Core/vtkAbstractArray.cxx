@@ -241,6 +241,12 @@ void vtkAbstractArray::SetInformation(vtkInformation* args)
 //------------------------------------------------------------------------------
 void vtkAbstractArray::GetTuples(vtkIdList* tupleIds, vtkAbstractArray* aa)
 {
+  this->GetTuples(tupleIds, aa, 0);
+}
+
+//------------------------------------------------------------------------------
+void vtkAbstractArray::GetTuples(vtkIdList* tupleIds, vtkAbstractArray* aa, vtkIdType destStartId)
+{
   if (aa->GetNumberOfComponents() != this->GetNumberOfComponents())
   {
     vtkWarningMacro("Number of components for input and output do not match.");
@@ -251,7 +257,7 @@ void vtkAbstractArray::GetTuples(vtkIdList* tupleIds, vtkAbstractArray* aa)
   vtkIdType num = tupleIds->GetNumberOfIds();
   for (vtkIdType i = 0; i < num; i++)
   {
-    aa->SetTuple(i, tupleIds->GetId(i), this);
+    aa->SetTuple(destStartId + i, tupleIds->GetId(i), this);
   }
 }
 
