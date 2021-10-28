@@ -152,6 +152,14 @@ public:
   void GetTuples(vtkIdList* ptIds, vtkAbstractArray* output) override;
 
   /**
+   * Given a list of indices, return an array of values starting at index destStartId. You must
+   * ensure that the output array has been previously allocated with
+   * enough space to hold the data and that the types match
+   * sufficiently to allow conversion (if necessary).
+   */
+  void GetTuples(vtkIdList* ptIds, vtkAbstractArray* output, vtkIdType destStartId) override;
+
+  /**
    * Get the values for the range of indices specified (i.e.,
    * p1->p2 inclusive). You must ensure that the output array has been
    * previously allocated with enough space to hold the data and that

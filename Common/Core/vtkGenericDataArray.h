@@ -302,6 +302,7 @@ public:
   vtkIdType InsertNextTuple(const float* tuple) override;
   vtkIdType InsertNextTuple(const double* tuple) override;
   void GetTuples(vtkIdList* tupleIds, vtkAbstractArray* output) override;
+  void GetTuples(vtkIdList* tupleIds, vtkAbstractArray* output, vtkIdType destStartId) override;
   void GetTuples(vtkIdType p1, vtkIdType p2, vtkAbstractArray* output) override;
   double* GetTuple(vtkIdType tupleIdx) override;
   void GetTuple(vtkIdType tupleIdx, double* tuple) override;

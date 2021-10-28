@@ -225,6 +225,13 @@ public:
   virtual void GetTuples(vtkIdList* tupleIds, vtkAbstractArray* output);
 
   /**
+   * Given a list of tuple ids, return an array of tuples starting at index destStartId.
+   * You must ensure that the output array has been previously
+   * allocated with enough space to hold the data.
+   */
+  virtual void GetTuples(vtkIdList* tupleIds, vtkAbstractArray* output, vtkIdType destStartId);
+
+  /**
    * Get the tuples for the range of tuple ids specified
    * (i.e., p1->p2 inclusive). You must ensure that the output array has
    * been previously allocated with enough space to hold the data.

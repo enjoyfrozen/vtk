@@ -682,6 +682,12 @@ vtkStdString& vtkStringArray::GetValue(vtkIdType id)
 //------------------------------------------------------------------------------
 void vtkStringArray::GetTuples(vtkIdList* indices, vtkAbstractArray* aa)
 {
+  this->GetTuples(indices, aa, 0);
+}
+
+//------------------------------------------------------------------------------
+void vtkStringArray::GetTuples(vtkIdList* indices, vtkAbstractArray* aa, vtkIdType destStartId)
+{
   if (aa == nullptr)
   {
     vtkErrorMacro(<< "GetTuples: Output array is null!");
@@ -700,7 +706,7 @@ void vtkStringArray::GetTuples(vtkIdList* indices, vtkAbstractArray* aa)
   for (vtkIdType i = 0; i < indices->GetNumberOfIds(); ++i)
   {
     vtkIdType index = indices->GetId(i);
-    output->SetValue(i, this->GetValue(index));
+    output->SetValue(destStartId + i, this->GetValue(index));
   }
 }
 

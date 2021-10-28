@@ -678,6 +678,14 @@ template <class DerivedT, class ValueTypeT>
 void vtkGenericDataArray<DerivedT, ValueTypeT>::GetTuples(
   vtkIdList* tupleIds, vtkAbstractArray* output)
 {
+  this->GetTuples(tupleIds, output, 0);
+}
+
+//-----------------------------------------------------------------------------
+template <class DerivedT, class ValueTypeT>
+void vtkGenericDataArray<DerivedT, ValueTypeT>::GetTuples(
+  vtkIdList* tupleIds, vtkAbstractArray* output, vtkIdType destStartId)
+{
   // First, check for the common case of typeid(source) == typeid(this). This
   // way we don't waste time redoing the other checks in the superclass, and
   // can avoid doing a dispatch for the most common usage of this method.
@@ -685,7 +693,7 @@ void vtkGenericDataArray<DerivedT, ValueTypeT>::GetTuples(
   if (!other)
   {
     // Let the superclass handle dispatch/fallback.
-    this->Superclass::GetTuples(tupleIds, output);
+    this->Superclass::GetTuples(tupleIds, output, destStartId);
     return;
   }
 
@@ -703,7 +711,7 @@ void vtkGenericDataArray<DerivedT, ValueTypeT>::GetTuples(
 
   vtkIdType* srcTuple = tupleIds->GetPointer(0);
   vtkIdType* srcTupleEnd = tupleIds->GetPointer(tupleIds->GetNumberOfIds());
-  vtkIdType dstTuple = 0;
+  vtkIdType dstTuple = destStartId;
 
   while (srcTuple != srcTupleEnd)
   {
