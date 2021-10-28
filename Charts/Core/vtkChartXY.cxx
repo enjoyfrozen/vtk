@@ -220,6 +220,10 @@ vtkChartXY::vtkChartXY()
   this->ForceAxesToBounds = false;
   this->IgnoreNanInBounds = false;
   this->ZoomWithMouseWheel = true;
+  for (int i = 0; i < 4; ++i)
+  {
+    this->AxesZoom[i] = true;
+  }
   this->AdjustLowerBoundForLogPlot = false;
 
   this->DragPoint = false;
