@@ -3,13 +3,7 @@ vtk_add_test_cxx(vtkIOLSDynaCxxTests tests
   TestLSDynaReaderDeflection.cxx
   #TestLSDynaReaderNoDefl.cxx
   TestLSDynaReaderSPH.cxx
+  TestLSDynaReaderUserIds.cxx,NO_VALID
   )
 
 vtk_test_cxx_executable(vtkIOLSDynaCxxTests tests)
-
-vtk_add_test_cxx(vtkIOLSDynaCxxTests-NoValid tests
-  NO_VALID
-  TestLSDynaReaderUserIds.cxx
-  )
-
-vtk_test_cxx_executable(vtkIOLSDynaCxxTests-NoValid tests)
