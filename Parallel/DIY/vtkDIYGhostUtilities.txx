@@ -39,7 +39,6 @@
 #include "vtkUnstructuredGrid.h"
 
 #include <limits>
-#include <numeric>
 #include <string>
 #include <vector>
 
