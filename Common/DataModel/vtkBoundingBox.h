@@ -243,12 +243,12 @@ public:
 
   ///@{
   /**
-   * Returns 1 if the point is contained in the box else 0.
+   * Returns 1 if the point is contained in the box else 0, given a tolerance parameter.
    */
-  vtkTypeBool ContainsPoint(const double p[3]) const;
-  vtkTypeBool ContainsPoint(double px, double py, double pz) const;
+  vtkTypeBool ContainsPoint(const double p[3], double tol = 0.0) const;
+  vtkTypeBool ContainsPoint(double px, double py, double pz, double tol = 0.0) const;
   template <class PointT>
-  bool ContainsPoint(const PointT& p) const;
+  bool ContainsPoint(const PointT& p, double tol = 0.0) const;
   ///@}
 
   /**
@@ -515,32 +515,22 @@ inline void vtkBoundingBox::GetMaxPoint(double& x, double& y, double& z) const
   z = this->MaxPnt[2];
 }
 
-inline vtkTypeBool vtkBoundingBox::ContainsPoint(double px, double py, double pz) const
+inline vtkTypeBool vtkBoundingBox::ContainsPoint(double px, double py, double pz, double tol) const
 {
-  if ((px < this->MinPnt[0]) || (px > this->MaxPnt[0]))
-  {
-    return 0;
-  }
-  if ((py < this->MinPnt[1]) || (py > this->MaxPnt[1]))
-  {
-    return 0;
-  }
-  if ((pz < this->MinPnt[2]) || (pz > this->MaxPnt[2]))
-  {
-    return 0;
-  }
-  return 1;
+  return !(px <= this->MinPnt[0] - tol || px >= this->MaxPnt[0] + tol) &&
+    !(py <= this->MinPnt[1] - tol || py >= this->MaxPnt[1] + tol) &&
+    !(pz <= this->MinPnt[2] - tol || pz >= this->MaxPnt[2] + tol);
 }
 
-inline vtkTypeBool vtkBoundingBox::ContainsPoint(const double p[3]) const
+inline vtkTypeBool vtkBoundingBox::ContainsPoint(const double p[3], double tol) const
 {
-  return this->ContainsPoint(p[0], p[1], p[2]);
+  return this->ContainsPoint(p[0], p[1], p[2], tol);
 }
 
 template <class PointT>
-inline bool vtkBoundingBox::ContainsPoint(const PointT& p) const
+inline bool vtkBoundingBox::ContainsPoint(const PointT& p, double tol) const
 {
-  return this->ContainsPoint(p[0], p[1], p[2]);
+  return this->ContainsPoint(p[0], p[1], p[2], tol);
 }
 
 inline void vtkBoundingBox::GetCorner(int corner, double p[3]) const
