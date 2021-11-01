@@ -204,12 +204,17 @@ vtkSmartPointer<vtkIdList> ExtractPointIdsInsideBoundingBox(vtkPoints* inputPoin
   auto inputPointsRange = vtk::DataArrayTupleRange<3>(inputPoints->GetData());
   using ConstPointRef = typename decltype(inputPointsRange)::ConstTupleReferenceType;
 
+  // We'd rather have false positives than false negatives.
+  // Proper discrimination is done later on in `MatchingPointExtractor`
+  // with tighter bounds.
+  constexpr double EPS = static_cast<double>(std::numeric_limits<float>::epsilon());
+
   pointIds->Allocate(inputPoints->GetNumberOfPoints());
 
   for (vtkIdType pointId = 0; pointId < inputPointsRange.size(); ++pointId)
   {
     ConstPointRef point = inputPointsRange[pointId];
-    if (bb.ContainsPoint(point))
+    if (bb.ContainsPoint(point, EPS))
     {
       pointIds->InsertNextId(pointId);
     }
