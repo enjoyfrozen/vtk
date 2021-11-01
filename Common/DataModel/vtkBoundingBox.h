@@ -245,10 +245,10 @@ public:
   /**
    * Returns 1 if the point is contained in the box else 0, given a tolerance parameter.
    */
-  vtkTypeBool ContainsPoint(const double p[3], double tol = 0.0) const;
-  vtkTypeBool ContainsPoint(double px, double py, double pz, double tol = 0.0) const;
+  vtkTypeBool ContainsPoint(const double p[3], double tolerance = 0.0) const;
+  vtkTypeBool ContainsPoint(double px, double py, double pz, double tolerange = 0.0) const;
   template <class PointT>
-  bool ContainsPoint(const PointT& p, double tol = 0.0) const;
+  bool ContainsPoint(const PointT& p, double tolerance = 0.0) const;
   ///@}
 
   /**

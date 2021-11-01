@@ -190,6 +190,51 @@ void FillPointArrayForStructuredData(ArrayT* array, GridDataSetT* grid, int imin
   }
 }
 
+//============================================================================
+template<class ValueT, bool IsIntegerT = std::numeric_limits<ValueT>::is_integer>
+struct Epsilon;
+
+//============================================================================
+template<class ValueT>
+struct Epsilon<ValueT, true>
+{
+  static constexpr ValueT Value = 0;
+  static constexpr ValueT Min = 0;
+};
+
+//============================================================================
+template<class ValueT>
+struct Epsilon<ValueT, false>
+{
+  static constexpr ValueT Value = std::numeric_limits<ValueT>::epsilon();
+  static constexpr ValueT Min = std::numeric_limits<ValueT>::min();
+};
+
+//============================================================================
+struct ExtractPointIdsInsideBoundingBoxWorker
+{
+  template<class ArrayT>
+  void operator()(ArrayT* points, vtkIdList* pointIds, const vtkBoundingBox& bb)
+  {
+    using ValueType = typename ArrayT::ValueType;
+    constexpr double Eps = static_cast<double>(Epsilon<ValueType>::Value);
+    constexpr double Min = static_cast<double>(Epsilon<ValueType>::Min);
+
+    double p[3];
+
+    for (vtkIdType pointId = 0; pointId < points->GetNumberOfTuples(); ++pointId)
+    {
+      points->GetTuple(pointId, p);
+      double eps = std::max(
+          std::max({ std::abs(p[0]), std::abs(p[1]), std::abs(p[2]) }) * Eps, Min);
+      if (bb.ContainsPoint(p, eps))
+      {
+        pointIds->InsertNextId(pointId);
+      }
+    }
+  }
+};
+
 //----------------------------------------------------------------------------
 vtkSmartPointer<vtkIdList> ExtractPointIdsInsideBoundingBox(vtkPoints* inputPoints,
     const vtkBoundingBox& bb)
@@ -201,19 +246,11 @@ vtkSmartPointer<vtkIdList> ExtractPointIdsInsideBoundingBox(vtkPoints* inputPoin
     return pointIds;
   }
 
-  auto inputPointsRange = vtk::DataArrayTupleRange<3>(inputPoints->GetData());
-  using ConstPointRef = typename decltype(inputPointsRange)::ConstTupleReferenceType;
-
   pointIds->Allocate(inputPoints->GetNumberOfPoints());
 
-  for (vtkIdType pointId = 0; pointId < inputPointsRange.size(); ++pointId)
-  {
-    ConstPointRef point = inputPointsRange[pointId];
-    if (bb.ContainsPoint(point))
-    {
-      pointIds->InsertNextId(pointId);
-    }
-  }
+  using Dispatcher = vtkArrayDispatch::Dispatch;
+  ExtractPointIdsInsideBoundingBoxWorker worker;
+  Dispatcher::Execute(inputPoints->GetData(), worker, pointIds, bb);
 
   return pointIds;
 }
@@ -921,24 +958,6 @@ struct Comparator<false>
             std::max(std::fabs(val1), std::fabs(val2)),
         std::numeric_limits<Scalar>::min());
   }
-};
-
-//============================================================================
-template<class ValueT, bool IsIntegerT = std::numeric_limits<ValueT>::is_integer>
-struct Epsilon;
-
-//============================================================================
-template<class ValueT>
-struct Epsilon<ValueT, true>
-{
-  static constexpr ValueT Value = 0;
-};
-
-//============================================================================
-template<class ValueT>
-struct Epsilon<ValueT, false>
-{
-  static constexpr ValueT Value = std::numeric_limits<ValueT>::epsilon();
 };
 
 //============================================================================
