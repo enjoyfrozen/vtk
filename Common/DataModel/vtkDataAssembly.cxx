@@ -1205,7 +1205,10 @@ std::vector<int> vtkDataAssembly::SelectNodes(
     }
   }
 
+  vtkLogStartScope(TRACE, "visit-scope", "visit data assembly");
   this->Visit(visitor, traversal_order);
+  vtkLogEndScope("visit-scope");
+
   return visitor->SelectedNodes;
 }
 
