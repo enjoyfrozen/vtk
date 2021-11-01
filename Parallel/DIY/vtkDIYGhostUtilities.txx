@@ -17,6 +17,7 @@
 
 #include "vtkDIYGhostUtilities.h"
 
+#include "vtkArrayDispatch.h"
 #include "vtkBoundingBox.h"
 #include "vtkCellData.h"
 #include "vtkCommunicator.h"
@@ -41,6 +42,7 @@
 #include <limits>
 #include <numeric>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 // clang-format off
@@ -87,6 +89,86 @@ struct vtkDIYGhostUtilities::DataSetTypeToBlockTypeConverter<vtkPolyData>
   typedef PolyDataBlock BlockType;
 };
 
+namespace vtkDIYGhostUtilities_detail
+{
+//============================================================================
+template <class ValueT, bool IsIntegerT = std::numeric_limits<ValueT>::is_integer>
+struct Limits;
+
+//============================================================================
+template <class ValueT>
+struct Limits<ValueT, true>
+{
+  static constexpr ValueT Epsilon = 0;
+  static constexpr ValueT Min = 0;
+};
+
+//============================================================================
+template <class ValueT>
+struct Limits<ValueT, false>
+{
+  static constexpr ValueT Epsilon = std::numeric_limits<ValueT>::epsilon();
+  static constexpr ValueT Min = std::numeric_limits<ValueT>::min();
+};
+
+//----------------------------------------------------------------------------
+template <class ValueT>
+ValueT ComputePrecision(ValueT val)
+{
+  constexpr ValueT Epsilon = Limits<ValueT>::Epsilon;
+  constexpr ValueT Min = Limits<ValueT>::Min;
+  return std::max<ValueT>(val * Epsilon, Min);
+}
+
+//============================================================================
+struct ComputeBoundingBoxPrecisionWorker
+{
+  template <class ArrayT>
+  void operator()(ArrayT*, const double* bounds, double& eps)
+  {
+    eps = 2 * ComputePrecision<typename ArrayT::ValueType>(
+      std::max({ bounds[0], bounds[1], bounds[2], bounds[3], bounds[4], bounds[5] }));
+  }
+};
+
+//----------------------------------------------------------------------------
+void InflateBoundingBoxIfNecessaryImpl(vtkPointSet* input, const double* bounds, vtkBoundingBox& bb)
+{
+  vtkPoints* points = input->GetPoints();
+
+  if (points && points->GetData())
+  {
+    double eps;
+    using Dispatch = vtkArrayDispatch::Dispatch;
+    vtkDIYGhostUtilities_detail::ComputeBoundingBoxPrecisionWorker worker;
+    Dispatch::Execute(points->GetData(), worker, bounds, eps);
+    bb.Inflate(eps);
+  }
+}
+
+//----------------------------------------------------------------------------
+template <class DataSetT>
+void InflateBoundingBoxIfNecessary(
+  DataSetT* vtkNotUsed(input), const double* vtkNotUsed(bounds), vtkBoundingBox& vtkNotUsed(bb))
+{
+}
+
+//----------------------------------------------------------------------------
+template <>
+void InflateBoundingBoxIfNecessary(vtkPolyData* input, const double* bounds, vtkBoundingBox& bb)
+{
+  InflateBoundingBoxIfNecessaryImpl(input, bounds, bb);
+}
+
+//----------------------------------------------------------------------------
+template <>
+void InflateBoundingBoxIfNecessary(
+  vtkUnstructuredGrid* input, const double* bounds, vtkBoundingBox& bb)
+{
+  InflateBoundingBoxIfNecessaryImpl(input, bounds, bb);
+}
+} // namesapce vtkDIYGhostUtilities_detail
+
 //----------------------------------------------------------------------------
 template <class DataSetT>
 void vtkDIYGhostUtilities::ExchangeBoundingBoxes(
@@ -102,26 +184,35 @@ void vtkDIYGhostUtilities::ExchangeBoundingBoxes(
       if (srp.round() == 0)
       {
         const double* bounds = input->GetBounds();
-        block->BoundingBox = vtkBoundingBox(bounds);
+        vtkBoundingBox& bb = block->BoundingBox;
+        bb = vtkBoundingBox(bounds);
+
+        vtkDIYGhostUtilities_detail::InflateBoundingBoxIfNecessary<DataSetT>(input, bounds, bb);
+
         for (int i = 0; i < srp.out_link().size(); ++i)
         {
           const diy::BlockID& blockId = srp.out_link().target(i);
           if (blockId.gid != myBlockId)
           {
-            srp.enqueue(blockId, bounds, 6);
+            srp.enqueue(blockId, bb.GetMinPoint(), 3);
+            srp.enqueue(blockId, bb.GetMaxPoint(), 3);
           }
         }
       }
       else
       {
-        double bounds[6];
+        double minPoint[3], maxPoint[3];
         for (int i = 0; i < static_cast<int>(srp.in_link().size()); ++i)
         {
           const diy::BlockID& blockId = srp.in_link().target(i);
           if (blockId.gid != myBlockId)
           {
-            srp.dequeue(blockId, bounds, 6);
-            block->NeighborBoundingBoxes[blockId.gid] = vtkBoundingBox(bounds);
+            srp.dequeue(blockId, minPoint, 3);
+            srp.dequeue(blockId, maxPoint, 3);
+
+            block->NeighborBoundingBoxes.emplace(blockId.gid,
+              vtkBoundingBox(
+                minPoint[0], maxPoint[0], minPoint[1], maxPoint[1], minPoint[2], maxPoint[2]));
           }
         }
       }
