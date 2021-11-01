@@ -286,7 +286,7 @@ int vtkBoundingBox::IntersectBox(const vtkBoundingBox& bbox)
 }
 
 //------------------------------------------------------------------------------
-int vtkBoundingBox::Intersects(const vtkBoundingBox& bbox) const
+int vtkBoundingBox::Intersects(const vtkBoundingBox& bbox, double tol) const
 {
   // if either box is not valid they don't intersect
   if (!(this->IsValid() && bbox.IsValid()))
@@ -296,19 +296,19 @@ int vtkBoundingBox::Intersects(const vtkBoundingBox& bbox) const
   int i;
   for (i = 0; i < 3; i++)
   {
-    if ((bbox.MinPnt[i] >= this->MinPnt[i]) && (bbox.MinPnt[i] <= this->MaxPnt[i]))
+    if ((bbox.MinPnt[i] >= this->MinPnt[i] - tol) && (bbox.MinPnt[i] <= this->MaxPnt[i] + tol))
     {
       continue;
     }
-    if ((this->MinPnt[i] >= bbox.MinPnt[i]) && (this->MinPnt[i] <= bbox.MaxPnt[i]))
+    if ((this->MinPnt[i] >= bbox.MinPnt[i] - tol) && (this->MinPnt[i] <= bbox.MaxPnt[i] + tol))
     {
       continue;
     }
-    if ((bbox.MaxPnt[i] >= this->MinPnt[i]) && (bbox.MaxPnt[i] <= this->MaxPnt[i]))
+    if ((bbox.MaxPnt[i] >= this->MinPnt[i] - tol) && (bbox.MaxPnt[i] <= this->MaxPnt[i] + tol))
     {
       continue;
     }
-    if ((this->MaxPnt[i] >= bbox.MinPnt[i]) && (this->MaxPnt[i] <= bbox.MaxPnt[i]))
+    if ((this->MaxPnt[i] >= bbox.MinPnt[i] - tol) && (this->MaxPnt[i] <= bbox.MaxPnt[i] + tol))
     {
       continue;
     }
