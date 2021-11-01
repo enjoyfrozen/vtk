@@ -174,10 +174,19 @@ vtkDIYGhostUtilities::LinkMap vtkDIYGhostUtilities::ComputeLinkMapUsingBoundingB
     Links& links = linkMap[localId];
     BlockT* block = master.block<BlockT>(localId);
     vtkBoundingBox& localbb = block->BoundingBox;
-    BlockMapType<vtkBoundingBox>& bb = block->NeighborBoundingBoxes;
-    for (auto item : bb)
+    BlockMapType<vtkBoundingBox>& bbs = block->NeighborBoundingBoxes;
+    for (auto item : bbs)
     {
-      if (localbb.Intersects(item.second))
+      const vtkBoundingBox& bb = item.second;
+
+      // It is not worth it to specialize epsilon calculation per type.
+      // We're still early in the pipeline, we just weed out obvious data sets.
+      double epsilon = static_cast<double>(
+        std::max(std::numeric_limits<float>::min(), std::numeric_limits<float>::epsilon()) *
+        std::max({ std::abs(bb.GetBound(0)), std::abs(bb.GetBound(1)), std::abs(bb.GetBound(2)),
+          std::abs(bb.GetBound(3)), std::abs(bb.GetBound(4)), std::abs(bb.GetBound(5)) }));
+
+      if (localbb.Intersects(bb, epsilon))
       {
         links.insert(item.first);
       }
