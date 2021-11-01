@@ -244,11 +244,24 @@ public:
   ///@{
   /**
    * Returns 1 if the point is contained in the box else 0.
+   *
+   * @warning Points on the boundary of the bounding box are excluded.
+   * Please use `LooseContainsPoint` to catch points on the boundary.
    */
   vtkTypeBool ContainsPoint(const double p[3]) const;
   vtkTypeBool ContainsPoint(double px, double py, double pz) const;
   template <class PointT>
   bool ContainsPoint(const PointT& p) const;
+  ///@}
+
+  ///@{
+  /**
+   * Returns 1 if the point is contained in the box given a tolerance, else 0.
+   */
+  bool LooseContainsPoint(const double p[3], double tol) const;
+  bool LooseContainsPoint(double px, double py, double pz, double tol) const;
+  template <class PointT>
+  bool LooseContainsPoint(const PointT& p, double tol) const;
   ///@}
 
   /**
@@ -513,6 +526,34 @@ inline void vtkBoundingBox::GetMaxPoint(double& x, double& y, double& z) const
   x = this->MaxPnt[0];
   y = this->MaxPnt[1];
   z = this->MaxPnt[2];
+}
+
+inline bool vtkBoundingBox::LooseContainsPoint(double px, double py, double pz, double tol) const
+{
+  if (px <= this->MinPnt[0] - tol || px >= this->MaxPnt[0] + tol)
+  {
+    return 0;
+  }
+  if (py <= this->MinPnt[1] - tol || py >= this->MaxPnt[1] + tol)
+  {
+    return 0;
+  }
+  if (pz <= this->MinPnt[2] - tol || pz >= this->MaxPnt[2] + tol)
+  {
+    return 0;
+  }
+  return 1;
+}
+
+inline bool vtkBoundingBox::LooseContainsPoint(const double p[3], double tol) const
+{
+  return this->LooseContainsPoint(p[0], p[1], p[2], tol);
+}
+
+template <class PointT>
+inline bool vtkBoundingBox::LooseContainsPoint(const PointT& p, double tol) const
+{
+  return this->LooseContainsPoint(p[0], p[1], p[2], tol);
 }
 
 inline vtkTypeBool vtkBoundingBox::ContainsPoint(double px, double py, double pz) const
