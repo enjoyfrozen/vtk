@@ -28,6 +28,9 @@
 #if VTK_MODULE_USE_EXTERNAL_vtklibproj
 # if VTK_LibPROJ_MAJOR_VERSION >= 5
 #  include <proj.h>
+#  include <io.hpp>
+#  include <nn.hpp>
+#  include <crs.hpp>
 # else
 #  include <projects.h>
 # endif
@@ -35,6 +38,9 @@
 #else
 # include <vtklibproj/src/proj.h>
 # include <vtklibproj/src/geodesic.h>
+# include <vtklibproj/include/proj/io.hpp>
+# include <vtklibproj/include/proj/nn.hpp>
+# include <vtklibproj/include/proj/crs.hpp>
 #endif
 
 
