@@ -451,12 +451,36 @@ namespace Ioex {
     // buggy mpiio code.  Therefore, we always do chdir call.  Maybe in several
     // years, we can remove this code and everything will work...
 
-#ifndef _WIN32
+#if !defined(__IOSS_WINDOWS__)
     Ioss::FileInfo file(filename);
     std::string    path = file.pathname();
     filename            = file.tailname();
     char *current_cwd   = getcwd(nullptr, 0);
-    chdir(path.c_str());
+    if (!path.empty()) {
+      auto success = chdir(path.c_str());
+      if (success == -1) {
+        if (write_message || error_msg != nullptr) {
+          std::ostringstream errmsg;
+          fmt::print(errmsg,
+                     "ERROR: Directory '{}' does not exist.  Error in filename specification.",
+                     path);
+          fmt::print(errmsg, "\n");
+          if (error_msg != nullptr) {
+            *error_msg = errmsg.str();
+          }
+          if (write_message && myProcessor == 0) {
+            fmt::print(Ioss::OUTPUT(), "{}", errmsg.str());
+          }
+          if (bad_count != nullptr) {
+            *bad_count = 1;
+          }
+          if (abort_if_error) {
+            IOSS_ERROR(errmsg);
+          }
+        }
+        return false;
+      }
+    }
 #endif
 
     bool do_timer = false;
@@ -475,8 +499,10 @@ namespace Ioex {
       }
     }
 
-#ifndef _WIN32
-    chdir(current_cwd);
+#if !defined(__IOSS_WINDOWS__)
+    if (!path.empty()) {
+      chdir(current_cwd);
+    }
     std::free(current_cwd);
 #endif
 
@@ -546,7 +572,7 @@ namespace Ioex {
 
     std::string filename = get_dwname();
 
-#ifndef _WIN32
+#if !defined(__IOSS_WINDOWS__)
     Ioss::FileInfo file(filename);
     std::string    path = file.pathname();
     filename            = file.tailname();
@@ -590,7 +616,7 @@ namespace Ioex {
       }
     }
 
-#ifndef _WIN32
+#if !defined(__IOSS_WINDOWS__)
     chdir(current_cwd);
     std::free(current_cwd);
 #endif
@@ -1179,7 +1205,7 @@ namespace Ioex {
           "global_entity_count", static_cast<int64_t>(decomp->el_blocks[iblk].ioss_count())));
 
       if (block_name != alias) {
-        get_region()->add_alias(block_name, alias);
+        get_region()->add_alias(block_name, alias, io_block->type());
       }
 
       // Check for additional variables.
@@ -1382,8 +1408,9 @@ namespace Ioex {
             }
             get_region()->add(side_set);
 
-            get_region()->add_alias(side_set_name, alias);
-            get_region()->add_alias(side_set_name, Ioss::Utils::encode_entity_name("sideset", id));
+            get_region()->add_alias(side_set_name, alias, Ioss::SIDESET);
+            get_region()->add_alias(side_set_name, Ioss::Utils::encode_entity_name("sideset", id),
+                                    Ioss::SIDESET);
           }
 
           //      split_type = SPLIT_BY_ELEMENT_BLOCK;
@@ -1472,7 +1499,7 @@ namespace Ioex {
             // topology and the side number, determine the side
             // type.
 
-            for (auto side_topo : sideTopology) {
+            for (auto &side_topo : sideTopology) {
               topo_map[std::make_pair(side_topo.first->name(), side_topo.second)] = 0;
               side_map[std::make_pair(side_topo.first->name(), side_topo.second)] = 0;
             }
@@ -1731,8 +1758,9 @@ void ParallelDatabaseIO::get_sets(ex_entity_type type, int64_t count, const std:
       Xset->property_add(Ioss::Property("db_name", *db_name));
     }
     get_region()->add(Xset);
-    get_region()->add_alias(Xset_name, alias);
-    get_region()->add_alias(Xset_name, Ioss::Utils::encode_entity_name(base + "set", id));
+    get_region()->add_alias(Xset_name, alias, Xset->type());
+    get_region()->add_alias(Xset_name, Ioss::Utils::encode_entity_name(base + "set", id),
+                            Xset->type());
     add_attribute_fields(type, Xset, num_attr, "");
     add_results_fields(type, Xset, ins);
   }
@@ -4787,4 +4815,6 @@ void ParallelDatabaseIO::check_valid_values() const
   }
 }
 } // namespace Ioex
+#else
+const char ioss_exodus_parallel_database_unused_symbol_dummy = '\0';
 #endif

@@ -170,7 +170,7 @@ namespace glob {
       return vec;
     }
 
-    template <class T, typename... Args> size_t NewState(Args &&...args)
+    template <class T, typename... Args> size_t NewState(Args &&... args)
     {
       size_t state_pos = states_.size();
       auto   state     = std::unique_ptr<State<charT>>(new T(*this, std::forward<Args>(args)...));
@@ -426,27 +426,23 @@ namespace glob {
 
     bool Check(const String<charT> &str, size_t pos) override
     {
+      bool r = false;
       switch (type_) {
       case Type::BASIC:
       case Type::AT:
       case Type::ANY:
       case Type::STAR:
       case Type::PLUS: {
-        bool r;
         std::tie(r, std::ignore) = BasicCheck(str, pos);
-        return r;
         break;
       }
 
       case Type::NEG: {
-        bool r;
         std::tie(r, std::ignore) = BasicCheck(str, pos);
-        return !r;
         break;
       }
-
-      default: return false; break;
       }
+      return r;
     }
 
     std::tuple<size_t, size_t> Next(const String<charT> &str, size_t pos) override
@@ -457,27 +453,22 @@ namespace glob {
       case Type::BASIC:
       case Type::AT: {
         return NextBasic(str, pos);
-        break;
       }
 
       case Type::ANY: {
         return NextAny(str, pos);
-        break;
       }
 
       case Type::STAR: {
         return NextStar(str, pos);
-        break;
       }
 
       case Type::PLUS: {
         return NextPlus(str, pos);
-        break;
       }
 
       case Type::NEG: {
         return NextNeg(str, pos);
-        break;
       }
       }
       return std::tuple<size_t, size_t>(0, 0);
@@ -1110,34 +1101,25 @@ namespace glob {
       Token<charT> &tk = GetToken();
 
       switch (tk.Kind()) {
-      case TokenKind::QUESTION:
-        Advance();
-        return AstNodePtr<charT>(new AnyNode<charT>());
-        break;
+      case TokenKind::QUESTION: Advance(); return AstNodePtr<charT>(new AnyNode<charT>());
 
-      case TokenKind::STAR:
-        Advance();
-        return AstNodePtr<charT>(new StarNode<charT>());
-        break;
+      case TokenKind::STAR: Advance(); return AstNodePtr<charT>(new StarNode<charT>());
 
-      case TokenKind::SUB:
-        Advance();
-        return AstNodePtr<charT>(new CharNode<charT>('-'));
-        break;
+      case TokenKind::SUB: Advance(); return AstNodePtr<charT>(new CharNode<charT>('-'));
 
-      case TokenKind::CHAR: return ParserChar(); break;
+      case TokenKind::CHAR: return ParserChar();
 
       case TokenKind::LBRACKET:
-      case TokenKind::NEGLBRACKET: return ParserSet(); break;
+      case TokenKind::NEGLBRACKET: return ParserSet();
 
       case TokenKind::LPAREN:
       case TokenKind::QUESTLPAREN:
       case TokenKind::STARLPAREN:
       case TokenKind::PLUSLPAREN:
       case TokenKind::NEGLPAREN:
-      case TokenKind::ATLPAREN: return ParserGroup(); break;
+      case TokenKind::ATLPAREN: return ParserGroup();
 
-      default: throw Error("basic glob expected"); break;
+      default: throw Error("basic glob expected");
       }
     }
 
@@ -1179,9 +1161,9 @@ namespace glob {
         switch (tk.Kind()) {
         case TokenKind::EOS:
         case TokenKind::RPAREN:
-        case TokenKind::UNION: return true; break;
+        case TokenKind::UNION: return true;
 
-        default: return false; break;
+        default: return false;
         }
       };
 
@@ -1425,7 +1407,7 @@ namespace glob {
       return vec_automatas;
     }
 
-    template <class T, typename... Args> void NewState(Automata<charT> &automata, Args &&...args)
+    template <class T, typename... Args> void NewState(Automata<charT> &automata, Args &&... args)
     {
       current_state_ = automata.template NewState<T>(std::forward<Args>(args)...);
       if (preview_state_ >= 0) {

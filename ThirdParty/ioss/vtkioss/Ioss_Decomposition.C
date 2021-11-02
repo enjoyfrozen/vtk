@@ -68,7 +68,7 @@ namespace {
     return false;
   }
 
-  std::string get_decomposition_method(const Ioss::PropertyManager &properties, int my_processor)
+  std::string get_decomposition_method(const Ioss::PropertyManager &properties)
   {
     std::string method = "LINEAR";
 
@@ -108,7 +108,7 @@ namespace {
 
     int common_nodes = INT_MAX;
 
-    for (const auto block : el_blocks) {
+    for (const auto &block : el_blocks) {
       if (block.global_count() == 0) {
         continue;
       }
@@ -148,7 +148,10 @@ namespace Ioss {
   {
     static const std::vector<std::string> valid_methods
     {
-      "LINEAR", "MAP", "VARIABLE"
+      "EXTERNAL"
+#ifdef SEACAS_HAVE_MPI
+          ,
+          "LINEAR", "MAP", "VARIABLE"
 #if !defined(NO_ZOLTAN_SUPPORT)
           ,
           "BLOCK", "CYCLIC", "RANDOM", "RCB", "RIB", "HSFC"
@@ -156,6 +159,7 @@ namespace Ioss {
 #if !defined(NO_PARMETIS_SUPPORT)
           ,
           "KWAY", "KWAY_GEOM", "GEOM_KWAY", "METIS_SFC"
+#endif
 #endif
     };
     return valid_methods;
@@ -169,7 +173,7 @@ namespace Ioss {
       : m_comm(comm), m_pu(comm), m_processor(m_pu.parallel_rank()),
         m_processorCount(m_pu.parallel_size())
   {
-    m_method = get_decomposition_method(props, m_processor);
+    m_method = get_decomposition_method(props);
     if (m_method == "MAP" || m_method == "VARIABLE") {
       m_decompExtra = props.get_optional("DECOMPOSITION_EXTRA", "processor_id");
     }
@@ -220,10 +224,9 @@ namespace Ioss {
 
     // First iterate the local element indices and count number in
     // each block.
-    size_t b = 0;
     for (auto loc_elem : localElementMap) {
       size_t elem = loc_elem + m_elementOffset;
-      b           = Ioss::Utils::find_index_location(elem, m_fileBlockIndex);
+      size_t b    = Ioss::Utils::find_index_location(elem, m_fileBlockIndex);
 
       assert(elem >= m_fileBlockIndex[b] && elem < m_fileBlockIndex[b + 1]);
       size_t off = std::max(m_fileBlockIndex[b], m_elementOffset);
@@ -233,7 +236,6 @@ namespace Ioss {
     // Now iterate the imported element list...
     // Find number of imported elements that are less than the current
     // local_map[0]
-    b                        = 0;
     size_t              proc = 0;
     std::vector<size_t> imp_index(el_blocks.size());
     for (size_t i = 0; i < importElementMap.size(); i++) {
@@ -242,7 +244,7 @@ namespace Ioss {
         proc++;
       }
 
-      b          = Ioss::Utils::find_index_location(elem, m_fileBlockIndex);
+      size_t b   = Ioss::Utils::find_index_location(elem, m_fileBlockIndex);
       size_t off = std::max(m_fileBlockIndex[b], m_elementOffset);
 
       if (!el_blocks[b].localMap.empty() && elem < el_blocks[b].localMap[0] + off) {
@@ -257,14 +259,13 @@ namespace Ioss {
 
     // Now for the exported data...
     proc = 0;
-    b    = 0;
     for (size_t i = 0; i < exportElementMap.size(); i++) {
       size_t elem = exportElementMap[i];
       while (i >= (size_t)exportElementIndex[proc + 1]) {
         proc++;
       }
 
-      b = Ioss::Utils::find_index_location(elem, m_fileBlockIndex);
+      size_t b = Ioss::Utils::find_index_location(elem, m_fileBlockIndex);
 
       size_t off = std::max(m_fileBlockIndex[b], m_elementOffset);
       el_blocks[b].exportMap.push_back(elem - off);
