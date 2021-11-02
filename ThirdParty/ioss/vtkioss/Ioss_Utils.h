@@ -24,6 +24,7 @@
 #include <string>    // for string
 #include <vector>    // for vector
 namespace Ioss {
+  class DatabaseIO;
   class Field;
   class GroupingEntity;
   class Region;
@@ -117,6 +118,9 @@ namespace Ioss {
         IOSS_ERROR(errmsg);
       }
     }
+
+    /** \brief guess file type from extension */
+    static std::string get_type_from_file(const std::string &filename);
 
     template <typename T> static void uniquify(std::vector<T> &vec, bool skip_first = false)
     {
@@ -279,8 +283,8 @@ namespace Ioss {
 
     static std::string decode_filename(const std::string &filename, int processor,
                                        int num_processors);
-    static size_t      get_number(const std::string &suffix);
-    static int64_t     extract_id(const std::string &name_id);
+    static int         get_number(const std::string &suffix);
+    static int         extract_id(const std::string &name_id);
     static std::string encode_entity_name(const std::string &entity_type, int64_t id);
 
     /** \brief create a string that describes the list of input `ids` collapsing ranges if possible.
@@ -410,9 +414,8 @@ namespace Ioss {
     static std::string local_filename(const std::string &relative_filename, const std::string &type,
                                       const std::string &working_directory);
 
-    static void get_fields(int64_t entity_count, char **names, size_t num_names,
-                           Ioss::Field::RoleType fld_role, bool enable_field_recognition,
-                           char suffix_separator, int *local_truth,
+    static void get_fields(int64_t entity_count, char **names, int num_names,
+                           Ioss::Field::RoleType fld_role, const DatabaseIO *db, int *local_truth,
                            std::vector<Ioss::Field> &fields);
 
     static int field_warning(const Ioss::GroupingEntity *ge, const Ioss::Field &field,

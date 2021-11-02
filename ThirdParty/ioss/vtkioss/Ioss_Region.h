@@ -1,4 +1,4 @@
-// Copyright(C) 1999-2020 National Technology & Engineering Solutions
+// Copyright(C) 1999-2021 National Technology & Engineering Solutions
 // of Sandia, LLC (NTESS).  Under the terms of Contract DE-NA0003525 with
 // NTESS, the U.S. Government retains certain rights in this software.
 //
@@ -205,15 +205,16 @@ namespace Ioss {
     // Add the name 'alias' as an alias for the database entity with the
     // name 'db_name'. Returns true if alias added; false if problems
     // adding alias.
-    bool        add_alias(const std::string &db_name, const std::string &alias);
+    bool        add_alias(const std::string &db_name, const std::string &alias, EntityType type);
     bool        add_alias(const GroupingEntity *ge);
-    std::string get_alias(const std::string &alias) const;
-    std::string get_alias__(const std::string &alias) const; // Not locked by mutex
+    std::string get_alias(const std::string &alias, EntityType type) const;
+    std::string get_alias__(const std::string &alias, EntityType type) const; // Not locked by mutex
 
-    const AliasMap &get_alias_map() const;
+    const AliasMap &get_alias_map(EntityType entity_type) const;
 
-    /// Get a map containing all aliases defined for the entity with basename 'name'
-    int get_aliases(const std::string &my_name, std::vector<std::string> &aliases) const;
+    /// Get a map containing all aliases defined for the entity with basename 'my_name'
+    int get_aliases(const std::string &my_name, EntityType type,
+                    std::vector<std::string> &aliases) const;
 
     // This routine transfers all relevant aliases from the 'this'
     // region and applies them to the 'to' file.
@@ -231,6 +232,8 @@ namespace Ioss {
     // code is repeated here instead of something more generic.
     bool is_valid_io_entity(const std::string &my_name, unsigned int io_type,
                             std::string *my_type = nullptr) const;
+
+    void check_for_duplicate_names(const Ioss::GroupingEntity *entity) const;
 
     // Retrieve the element block that contains the specified element
     // The 'local_id' is the local database id (1-based), not the global id.
@@ -268,7 +271,7 @@ namespace Ioss {
     // Add the name 'alias' as an alias for the database entity with the
     // name 'db_name'. Returns true if alias added; false if problems
     // adding alias. Not protected by mutex -- call internally only.
-    bool add_alias__(const std::string &db_name, const std::string &alias);
+    bool add_alias__(const std::string &db_name, const std::string &alias, EntityType type);
     bool add_alias__(const GroupingEntity *ge);
 
     bool begin_mode__(State new_state);
@@ -276,7 +279,7 @@ namespace Ioss {
 
     void delete_database() override;
 
-    AliasMap aliases_; ///< Stores alias mappings
+    mutable std::map<EntityType, AliasMap> aliases_; ///< Stores alias mappings
 
     // Containers for all grouping entities
     NodeBlockContainer    nodeBlocks;
