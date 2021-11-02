@@ -795,8 +795,8 @@ namespace Ioex {
     int ierr = 0;
     if (field.get_name() == "mesh_model_coordinates_x") {
       m_decomposition.show_progress("\tex_get_partial_coord X");
-      ierr = ex_get_partial_coord_component(filePtr, decomp_node_offset() + 1, decomp_node_count(),
-                                            1, tmp.data());
+      int ierr = ex_get_partial_coord_component(filePtr, decomp_node_offset() + 1,
+                                                decomp_node_count(), 1, tmp.data());
       if (ierr >= 0) {
         communicate_node_data(tmp.data(), ioss_data, 1);
       }
@@ -1300,7 +1300,7 @@ namespace Ioex {
     // Find blk_seq corresponding to block the specified id...
     size_t blk_seq = get_block_seq(EX_ELEM_BLOCK, id);
     size_t count   = get_block_element_count(blk_seq);
-    size_t offset  = get_block_element_offset(blk_seq);
+    size_t offset  = count == 0 ? 0 : get_block_element_offset(blk_seq);
 
     std::vector<double> file_data(count * comp_count);
     int ierr = ex_get_partial_attr(filePtr, EX_ELEM_BLOCK, id, offset + 1, count, file_data.data());
@@ -1552,7 +1552,6 @@ namespace Ioex {
                                              T *ioss_data) const
   {
     m_decomposition.show_progress(__func__);
-    int ierr = 0;
 
     // SideSet Distribution Factor data can be very complicated.
     // For some sanity, handle all requests for those here.  Only handles sidesets
@@ -1606,6 +1605,7 @@ namespace Ioex {
       // Constant face topology in sideset
       // Simply read the values in the file decomposition and
       // communicate with a comp count of set.distributionFactorValsPerEntity.
+      int            ierr = 0;
       std::vector<T> file_data;
       if (m_processor == set.root_) {
         file_data.resize(set.distributionFactorValsPerEntity * set.fileCount);
@@ -1845,4 +1845,6 @@ namespace Ioex {
     }
   }
 } // namespace Ioex
+#else
+const char ioss_exodus_decomposition_data_unused_symbol_dummy = '\0';
 #endif
