@@ -15,7 +15,9 @@
 #include <string>
 
 #if defined(SEACAS_HAVE_CGNS) && !defined(BUILT_IN_SIERRA)
-using INT = std::int64_t;
+#include <vtk_cgns.h> // xxx(kitware)
+#include VTK_CGNS(cgnstypes.h)
+using INT = cgsize_t;
 #else
 // If this is not being built with CGNS, then default to using 32-bit integers.
 // Currently there is no way to input/output a structured mesh without CGNS,
@@ -136,7 +138,7 @@ namespace Ioss {
     bool m_ownsSharedNodes{false}; // Deprecate soon
 
     // True if this zc is created due to processor decompositions in a parallel run
-    bool m_fromDecomp{false};
+    mutable bool m_fromDecomp{false};
 
     bool m_isActive{true}; // True if non-zero range. That is, it has at least one face
 
