@@ -13,6 +13,7 @@
 #include <fides/predefined/DataModelHelperFunctions.h>
 #include <fides/predefined/InternalMetadataSource.h>
 
+#include <algorithm>
 #include <ios>
 #include <stdexcept>
 #include <string>
