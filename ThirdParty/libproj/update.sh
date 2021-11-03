@@ -50,6 +50,7 @@ extract_source () {
     git_archive
     pushd "$extractdir/$name-reduced"
     rm -rvf data/tests/
+    rm data/Makefile.am
     popd
 }
 
