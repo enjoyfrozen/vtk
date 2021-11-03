@@ -19,6 +19,7 @@
 
 #include "vtkDebugLeaks.h"
 
+#include "VtkIntArray.h"
 #include "vtkCellType.h"
 #include "vtkCellTypes.h"
 
