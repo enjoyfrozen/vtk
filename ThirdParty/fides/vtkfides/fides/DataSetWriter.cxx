@@ -14,6 +14,7 @@
 #include <fides/predefined/InternalMetadataSource.h>
 
 #include <ios>
+#include <numeric>
 #include <stdexcept>
 #include <string>
 #include <vector>
