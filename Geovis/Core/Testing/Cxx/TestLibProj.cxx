@@ -1,4 +1,5 @@
 #include <iostream>
+#include <set>
 #include <sstream>
 
 #include "vtk_libproj.h"
@@ -6,8 +7,13 @@
 int TestLibProj(int, char*[])
 {
   int epsgCode = 3978;
-  const char* expectedProjString = "+proj=lcc +lat_0=49 +lon_0=-95 +lat_1=49 +lat_2=77 +x_0=0 "
-                                   "+y_0=0 +datum=NAD83 +units=m +no_defs +type=crs";
+  std::set<std::string> expectedProjStrings = {
+    "+proj=lcc +lat_0=49 +lon_0=-95 +lat_1=49 +lat_2=77 +x_0=0 "
+    "+y_0=0 +datum=NAD83 +units=m +no_defs +type=crs",
+
+    "+proj=lcc +lat_0=49 +lon_0=-95 +lat_1=49 +lat_2=77 +x_0=0 +y_0=0 +ellps=GRS80 "
+    "+towgs84=0,0,0,0,0,0,0 +units=m +no_defs +type=crs"
+  };
   try
   {
     namespace projio = osgeo::proj::io;
@@ -48,10 +54,13 @@ int TestLibProj(int, char*[])
       projio::PROJStringFormatter::Convention::PROJ_5, dbContext);
     formatter->setMultiLine(false);
     std::string projString = objToExport->exportToPROJString(formatter.get());
-    if (projString != expectedProjString)
+    if (expectedProjStrings.find(projString) == expectedProjStrings.end())
     {
-      std::cerr << "Error: Expected: " << expectedProjString << " but got: " << projString
-                << std::endl;
+      std::cerr << "Error: Proj string " << projString << " not expected:" << std::endl;
+      for (auto s : expectedProjStrings)
+      {
+        std::cerr << s << std::endl;
+      }
       return 1;
     }
   }
