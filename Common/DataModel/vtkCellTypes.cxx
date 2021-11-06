@@ -26,7 +26,7 @@ namespace
 // This list should contain the cell class names in
 // the same order as the enums in vtkCellType.h. Make sure
 // this list is nullptr terminated.
-static const char* vtkCellTypesStrings[] = { "vtkEmptyCell", "vtkVertex", "vtkPolyVertex",
+const char* vtkCellTypesStrings[] = { "vtkEmptyCell", "vtkVertex", "vtkPolyVertex",
   "vtkLine", "vtkPolyLine", "vtkTriangle", "vtkTriangleStrip", "vtkPolygon", "vtkPixel", "vtkQuad",
   "vtkTetra", "vtkVoxel", "vtkHexahedron", "vtkWedge", "vtkPyramid", "vtkPentagonalPrism",
   "vtkHexagonalPrism", "UnknownClass", "UnknownClass", "UnknownClass", "UnknownClass",
