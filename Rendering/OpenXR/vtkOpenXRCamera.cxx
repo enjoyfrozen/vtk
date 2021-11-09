@@ -67,9 +67,8 @@ void vtkOpenXRCamera::GetHMDEyePoses(vtkRenderer* ren)
   // Get physical to world matrix, which we then invert as we are trying to
   // compute the world to view matrix which we do as
   // viewCoord = physicalToEye * worldToPhysical * worldCoord
-  vtkNew<vtkMatrix4x4> worldToPhysicalMatrix;
-  win->GetPhysicalToWorldMatrix(worldToPhysicalMatrix);
-  worldToPhysicalMatrix->Invert();
+  win->GetPhysicalToWorldMatrix(this->WorldToPhysicalMatrix);
+  this->WorldToPhysicalMatrix->Invert();
   // at this point it is now correctly worldToPhysical
 
   const XrPosef* xrPose = vtkOpenXRManager::GetInstance()->GetViewPose(LEFT_EYE);
@@ -79,8 +78,9 @@ void vtkOpenXRCamera::GetHMDEyePoses(vtkRenderer* ren)
     return;
   }
   // Convert a XrPosef to a vtk view matrix
-  vtkOpenXRUtilities::CreateViewMatrix(this->LeftEyeView, *xrPose);
-  vtkMatrix4x4::Multiply4x4(this->LeftEyeView, worldToPhysicalMatrix, this->LeftEyeView);
+  vtkOpenXRUtilities::SetMatrixFromXrPose(this->LeftEyeView, *xrPose);
+  this->LeftEyeView->Invert();
+  vtkMatrix4x4::Multiply4x4(this->LeftEyeView, this->WorldToPhysicalMatrix, this->LeftEyeView);
 
   xrPose = vtkOpenXRManager::GetInstance()->GetViewPose(RIGHT_EYE);
   if (xrPose == nullptr)
@@ -89,8 +89,9 @@ void vtkOpenXRCamera::GetHMDEyePoses(vtkRenderer* ren)
     return;
   }
   // Convert a XrPosef to a vtk view matrix
-  vtkOpenXRUtilities::CreateViewMatrix(this->RightEyeView, *xrPose);
-  vtkMatrix4x4::Multiply4x4(this->RightEyeView, worldToPhysicalMatrix, this->RightEyeView);
+  vtkOpenXRUtilities::SetMatrixFromXrPose(this->RightEyeView, *xrPose);
+  this->RightEyeView->Invert();
+  vtkMatrix4x4::Multiply4x4(this->RightEyeView, this->WorldToPhysicalMatrix, this->RightEyeView);
 }
 
 //------------------------------------------------------------------------------
@@ -127,6 +128,8 @@ void vtkOpenXRCamera::GetKeyMatrices(vtkRenderer* ren, vtkMatrix4x4*& wcvc, vtkM
     return this->Superclass::GetKeyMatrices(ren, wcvc, normMat, vcdc, wcdc);
   }
 
+  vtkOpenXRRenderWindow* win = static_cast<vtkOpenXRRenderWindow*>(ren->GetRenderWindow());
+
   // has the camera changed?
   if (ren != this->LastRenderer || this->MTime > this->KeyMatrixTime ||
     ren->GetMTime() > this->KeyMatrixTime)
@@ -138,6 +141,7 @@ void vtkOpenXRCamera::GetKeyMatrices(vtkRenderer* ren, vtkMatrix4x4*& wcvc, vtkM
       this->GetHMDEyePoses(ren);
 
       this->ModelViewTransform->Identity();
+      this->SetCameraFromWorldToPoseMatrix(this->LeftEyeView, win->GetPhysicalScale());
       this->ModelViewTransform->SetMatrix(this->LeftEyeView);
 
       vtkMatrix4x4* w2v = this->GetModelViewTransformMatrix();
@@ -152,8 +156,6 @@ void vtkOpenXRCamera::GetKeyMatrices(vtkRenderer* ren, vtkMatrix4x4*& wcvc, vtkM
         }
       }
       this->NormalMatrix->Invert();
-
-      vtkOpenXRRenderWindow* win = vtkOpenXRRenderWindow::SafeDownCast(ren->GetRenderWindow());
 
       this->WCVCMatrix->Transpose();
 
@@ -185,6 +187,7 @@ void vtkOpenXRCamera::GetKeyMatrices(vtkRenderer* ren, vtkMatrix4x4*& wcvc, vtkM
     else
     {
       this->ModelViewTransform->Identity();
+      this->SetCameraFromWorldToPoseMatrix(this->RightEyeView, win->GetPhysicalScale());
       this->ModelViewTransform->SetMatrix(this->RightEyeView);
       vtkMatrix4x4* w2v = this->GetModelViewTransformMatrix();
       this->WCVCMatrix->DeepCopy(w2v);
