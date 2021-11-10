@@ -1,1 +1,5 @@
 include("${CMAKE_CURRENT_LIST_DIR}/configure_fedora34.cmake")
+
+set(VTK_USE_CUDA ON CACHE BOOL "")
+set(VTK_USE_MPI OFF CACHE BOOL "")
+set(VTK_WRAP_PYTHON OFF CACHE BOOL "")
