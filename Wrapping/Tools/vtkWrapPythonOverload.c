@@ -431,7 +431,7 @@ int* vtkWrapPython_ArgCountToOverloadMap(FunctionInfo** wrappedFunctions,
  * this is also used to write out all constructors for the class */
 
 void vtkWrapPython_OverloadMethodDef(FILE* fp, const char* classname, ClassInfo* data,
-  int* overloadMap, FunctionInfo** wrappedFunctions, int numberOfWrappedFunctions, int fnum,
+  const int* overloadMap, const FunctionInfo** wrappedFunctions, int numberOfWrappedFunctions, int fnum,
   int numberOfOccurrences)
 {
   char occSuffix[16];
@@ -507,7 +507,7 @@ void vtkWrapPython_OverloadMethodDef(FILE* fp, const char* classname, ClassInfo*
 /* -------------------------------------------------------------------- */
 /* make a method that will choose which overload to call */
 
-void vtkWrapPython_OverloadMasterMethod(FILE* fp, const char* classname, int* overloadMap,
+void vtkWrapPython_OverloadMasterMethod(FILE* fp, const char* classname, const int* overloadMap,
   int maxArgs, FunctionInfo** wrappedFunctions, int numberOfWrappedFunctions, int fnum,
   int is_vtkobject)
 {

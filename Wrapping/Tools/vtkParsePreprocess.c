@@ -4672,7 +4672,7 @@ const char* vtkParsePreprocess_ProcessString(PreprocessInfo* info, const char* t
 /**
  * Free a string returned by ExpandMacro
  */
-void vtkParsePreprocess_FreeMacroExpansion(PreprocessInfo* info, MacroInfo* macro, const char* text)
+void vtkParsePreprocess_FreeMacroExpansion(const PreprocessInfo* info, MacroInfo* macro, const char* text)
 {
   /* only free expansion if it is different from definition */
   if (info && text != macro->Definition)
@@ -4684,7 +4684,7 @@ void vtkParsePreprocess_FreeMacroExpansion(PreprocessInfo* info, MacroInfo* macr
 /**
  * Free a string returned by ProcessString
  */
-void vtkParsePreprocess_FreeProcessedString(PreprocessInfo* info, const char* text)
+void vtkParsePreprocess_FreeProcessedString(const PreprocessInfo* info, const char* text)
 {
   if (info)
   {
