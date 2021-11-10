@@ -22,7 +22,7 @@
 
 /* print out the code for one method, including all of its overloads */
 void vtkWrapPython_GenerateOneMethod(FILE* fp, const char* classname, ClassInfo* data,
-  HierarchyInfo* hinfo, FunctionInfo* wrappedFunctions[], int numberOfWrappedFunctions, int fnum,
+  HierarchyInfo* hinfo, const FunctionInfo* wrappedFunctions[], int numberOfWrappedFunctions, int fnum,
   int is_vtkobject, int do_constructors);
 
 /* declare all variables needed by the wrapper method */
