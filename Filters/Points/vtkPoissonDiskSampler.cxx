@@ -54,6 +54,8 @@ struct DartThrowerWorker
     this->AlreadyProcessed->Fill(false);
   }
 
+  void Initialize() {}
+
   void operator()(vtkIdType startId, vtkIdType endId)
   {
     if (!this->Input->GetNumberOfPoints())
@@ -66,16 +68,14 @@ struct DartThrowerWorker
     auto rng = std::default_random_engine{};
     std::shuffle(candidates.begin(), candidates.end(), rng);
 
+    std::vector<vtkIdType>& pickedPoints = this->PickedPoints.Local();
+    pickedPoints.reserve(pickedPoints.size() + candidates.size());
+
     vtkNew<vtkIdList> neighbors;
     double p[3], lockedP[3];
     double squaredRadius = this->Radius * this->Radius;
 
-    vtkPointData* inputPointData = this->Input->GetPointData();
-    vtkPointData* outputPointData = this->Output->GetPointData();
-    outputPointData->CopyAllOn();
-
     vtkPoints* inputPoints = this->Input->GetPoints();
-    vtkPoints* outputPoints = this->Output->GetPoints();
 
     for (vtkIdType candidate : candidates)
     {
@@ -101,10 +101,7 @@ struct DartThrowerWorker
         }
         this->LockedIds.insert(candidate);
         this->Mutex.unlock();
-        this->OutputMutex.lock();
-        outputPoints->InsertNextPoint(p);
-        outputPointData->InsertNextTuple(candidate, inputPointData);
-        this->OutputMutex.unlock();
+        pickedPoints.push_back(candidate);
         this->Locator->FindPointsWithinRadius(this->Radius, p, neighbors);
         for (vtkIdType i = 0; i < neighbors->GetNumberOfIds(); ++i)
         {
@@ -124,10 +121,40 @@ struct DartThrowerWorker
     }
   }
 
+  void Reduce()
+  {
+    vtkIdType numberOfPickedPoints = 0;
+    for (const std::vector<vtkIdType>& pickedPoints : this->PickedPoints)
+    {
+      numberOfPickedPoints += pickedPoints.size();
+    }
+    vtkNew<vtkIdList> pickedPointsGlobal;
+    pickedPointsGlobal->SetNumberOfIds(numberOfPickedPoints);
+    vtkIdType* ptr = pickedPointsGlobal->GetPointer(0);
+    for (const std::vector<vtkIdType>& pickedPoints : this->PickedPoints)
+    {
+      std::copy(pickedPoints.begin(), pickedPoints.end(), ptr);
+      ptr += pickedPoints.size();
+    }
+
+    // This avoids shuffling the output points ordering inside a multithreaded environment.
+    std::sort(pickedPointsGlobal->begin(), pickedPointsGlobal->end());
+
+    vtkPoints* inputPoints = this->Input->GetPoints();
+    vtkPoints* outputPoints = this->Output->GetPoints();
+    outputPoints->GetData()->InsertTuplesStartingAt(0, pickedPointsGlobal, inputPoints->GetData());
+
+    vtkPointData* inputPointData = this->Input->GetPointData();
+    vtkPointData* outputPointData = this->Output->GetPointData();
+    outputPointData->CopyData(inputPointData, pickedPointsGlobal);
+  }
+
   vtkPointSet* Input;
   vtkAbstractPointLocator* Locator;
   vtkPointSet* Output;
   double Radius;
+
+  vtkSMPThreadLocal<std::vector<vtkIdType>> PickedPoints;
 
   /**
    * This bit array keeps track of which points are already been processed
@@ -140,13 +167,10 @@ struct DartThrowerWorker
    */
   std::unordered_set<vtkIdType> LockedIds;
 
-  //@{
   /**
    * Mutices used to ensure atomic read and write.
    */
   std::mutex Mutex;
-  std::mutex OutputMutex;
-  //@}
 };
 } // anonymous namespace
 
@@ -202,13 +226,12 @@ int vtkPoissonDiskSampler::RequestData(vtkInformation* vtkNotUsed(request),
   }
 
   output->SetPoints(vtkNew<vtkPoints>());
-  output->GetPointData()->CopyStructure(input->GetPointData());
+  vtkPointData* outputPD = output->GetPointData();
+  outputPD->CopyAllOn();
+  outputPD->CopyAllocate(input->GetPointData());
 
   DartThrowerWorker worker(input, this->Locator, output, this->Radius);
   vtkSMPTools::For(0, input->GetNumberOfPoints(), worker);
-
-  output->GetPointData()->SetNormals(
-    output->GetPointData()->GetArray(input->GetPointData()->GetNormals()->GetName()));
 
   return 1;
 }
