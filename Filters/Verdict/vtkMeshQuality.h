@@ -63,6 +63,7 @@
 #define vtkMeshQuality_h
 
 #include "vtkDataSetAlgorithm.h"
+#include "vtkDeprecation.h"          // For deprecation
 #include "vtkFiltersVerdictModule.h" // For export macro
 
 class vtkCell;
@@ -752,6 +753,7 @@ public:
    * mode is off, since it does not make a lot of sense for
    * meshes with non-tetrahedral cells.
    */
+  VTK_DEPRECATED_IN_9_2_0("Part of deprecating compatibility mode for this filter")
   virtual void SetVolume(vtkTypeBool cv)
   {
     if (!((cv != 0) ^ (this->Volume != 0)))
@@ -765,7 +767,9 @@ public:
       this->CompatibilityModeOn();
     }
   }
+  VTK_DEPRECATED_IN_9_2_0("Part of deprecating compatibility mode for this filter")
   vtkTypeBool GetVolume() { return this->Volume; }
+  VTK_DEPRECATED_IN_9_2_0("Part of eprecating compatibility mode for this filter")
   vtkBooleanMacro(Volume, vtkTypeBool);
   ///@}
 
@@ -797,6 +801,7 @@ public:
    * diving off of the Combinatorial Coding Cliff into
    * Certain Insanity.
    */
+  VTK_DEPRECATED_IN_9_2_0("Deprecating compatibility mode for this filter")
   virtual void SetCompatibilityMode(vtkTypeBool cm)
   {
     if (!((cm != 0) ^ (this->CompatibilityMode != 0)))
@@ -811,7 +816,9 @@ public:
       this->TetQualityMeasure = VTK_QUALITY_RADIUS_RATIO;
     }
   }
+  VTK_DEPRECATED_IN_9_2_0("Deprecating compatibility mode for this filter")
   vtkGetMacro(CompatibilityMode, vtkTypeBool);
+  VTK_DEPRECATED_IN_9_2_0("Deprecating compatibility mode for this filter")
   vtkBooleanMacro(CompatibilityMode, vtkTypeBool);
   ///@}
 
@@ -833,6 +840,8 @@ protected:
   int HexQualityMeasure;
   bool LinearApproximation;
 
+  // VTK_DEPRECATED_IN_9_2_0 Those 2 attributes need to be removed, and instance in the code as
+  // well.
   vtkTypeBool CompatibilityMode;
   vtkTypeBool Volume;
 
