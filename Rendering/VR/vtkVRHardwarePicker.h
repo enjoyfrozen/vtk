@@ -28,6 +28,7 @@ PURPOSE.  See the above copyright notice for more information.
 
 #include "vtkPropPicker.h"
 #include "vtkRenderingVRModule.h" // For export macro
+#include "vtkSmartPointer.h"      // for ivar
 
 class vtkSelection;
 
@@ -53,7 +54,7 @@ protected:
   ~vtkVRHardwarePicker() override = default;
 
   void Initialize() override;
-  vtkSelection* Selection = nullptr;
+  vtkSmartPointer<vtkSelection> Selection;
 
 private:
   vtkVRHardwarePicker(const vtkVRHardwarePicker&) = delete;
