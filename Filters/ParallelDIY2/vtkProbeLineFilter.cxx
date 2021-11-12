@@ -298,6 +298,11 @@ int vtkProbeLineFilter::RequestData(
     return 0;
   }
 
+  bool computeTolerance = this->ComputeTolerance;
+  double tolerance = this->ComputeTolerance
+    ? VTK_TOL * (vtkVector3d(this->Point2) - vtkVector3d(this->Point1)).Norm()
+    : this->Tolerance;
+
   // The probe locations source need to be the same on all ranks : always take rank 0 source
   auto sampler = vtkSmartPointer<vtkPointSet>::Take(samplerLocal->NewInstance());
   if (this->Controller->GetLocalProcessId() == 0)
@@ -356,8 +361,8 @@ int vtkProbeLineFilter::RequestData(
       prober->SetPassCellArrays(this->PassCellArrays);
       prober->SetPassPointArrays(this->PassPointArrays);
       prober->SetPassFieldArrays(this->PassFieldArrays);
-      prober->SetComputeTolerance(false);
-      prober->SetTolerance(0.0);
+      prober->SetComputeTolerance(computeTolerance);
+      prober->SetTolerance(tolerance);
       prober->SetSourceData(input);
       prober->SetFindCellStrategyMap(this->Internal->Strategies);
       prober->SetInputData(polyline);
