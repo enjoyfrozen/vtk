@@ -310,8 +310,8 @@ int vtkProbeLineFilter::RequestData(
   prober->SetPassCellArrays(this->PassCellArrays);
   prober->SetPassPointArrays(this->PassPointArrays);
   prober->SetPassFieldArrays(this->PassFieldArrays);
-  prober->SetComputeTolerance(false);
-  prober->SetTolerance(0.0);
+  prober->SetComputeTolerance(this->ComputeTolerance);
+  prober->SetTolerance(this->Tolerance);
   prober->SetSourceData(input);
   prober->SetFindCellStrategyMap(this->Internal->Strategies);
   prober->SetInputData(sampledLine);
