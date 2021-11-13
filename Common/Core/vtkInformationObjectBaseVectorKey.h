@@ -38,7 +38,7 @@ public:
   void PrintSelf(ostream& os, vtkIndent indent) override;
   ///@{
   /**
-   * The name of the static instance and the class in which
+   * The name of the static VTK_NEWINSTANCE instance and the class in which
    * it is defined(location) should be passed to the constructor.
    * Providing "requiredClass" name one can ensure that only
    * objects of type "requiredClass" are stored in vectors
@@ -57,7 +57,7 @@ public:
    * which class types can be set with this key). This method is provided
    * for wrappers. Use the constructor directly from C++ instead.
    */
-  static vtkInformationObjectBaseVectorKey* MakeKey(
+  static VTK_NEWINSTANCE vtkInformationObjectBaseVectorKey* MakeKey(
     const char* name, const char* location, const char* requiredClass = nullptr)
   {
     return new vtkInformationObjectBaseVectorKey(name, location, requiredClass);
