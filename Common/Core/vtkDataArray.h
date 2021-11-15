@@ -78,6 +78,7 @@ public:
   // Reimplemented virtuals (doc strings are inherited from superclass):
   void InsertTuple(vtkIdType dstTupleIdx, vtkIdType srcTupleIdx, vtkAbstractArray* source) override;
   vtkIdType InsertNextTuple(vtkIdType srcTupleIdx, vtkAbstractArray* source) override;
+  using Superclass::InsertTuples;
   void InsertTuples(vtkIdList* dstIds, vtkIdList* srcIds, vtkAbstractArray* source) override;
   void InsertTuples(vtkIdType dstStart, vtkIdList* srcIds, vtkAbstractArray* source) override;
   void InsertTuples(

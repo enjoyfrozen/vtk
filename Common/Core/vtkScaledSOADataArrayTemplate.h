@@ -238,6 +238,7 @@ public:
   void SetNumberOfComponents(int numComps) override;
   void ShallowCopy(vtkDataArray* other) override;
 
+  using Superclass::InsertTuples;
   // Reimplemented for efficiency:
   void InsertTuples(
     vtkIdType dstStart, vtkIdType n, vtkIdType srcStart, vtkAbstractArray* source) override;

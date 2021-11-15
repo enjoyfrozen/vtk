@@ -47,6 +47,8 @@ public:
   static vtkIntArray* ExtendedNew();
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
+  using Superclass::InsertTuples;
+
   // This macro expands to the set of method declarations that
   // make up the interface of vtkAOSDataArrayTemplate, which is ignored
   // by the wrappers.
