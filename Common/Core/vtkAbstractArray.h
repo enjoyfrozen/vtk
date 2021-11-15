@@ -58,6 +58,7 @@
 #define vtkAbstractArray_h
 
 #include "vtkCommonCoreModule.h" // For export macro
+#include "vtkIdList.h"           // For InsertTuples
 #include "vtkObject.h"
 #include "vtkVariant.h" // for variant arguments
 
@@ -211,12 +212,28 @@ public:
    */
   virtual void InsertTuples(vtkIdType dstStart, vtkIdList* srcIds, vtkAbstractArray* source) = 0;
 
+protected:
+  template <class T>
+  struct EnableHelper
+  {
+    static constexpr bool IsNumerical = std::is_scalar<T>::value && !std::is_pointer<T>::value;
+    static constexpr bool IsVtkIdType = std::is_same<vtkIdType, T>::value;
+  };
+  template <bool IsEnabledT, class T>
+  using EnableIf = typename std::enable_if<IsEnabledT, T>::type;
+
+public:
   /**
    * This method is only here to handle calls to `InsertTuples(0, ...)`.
    * Without this method, `InserTuples(0, ...)` produces an ambiguous call. This method can be
    * disregarded.
+   * We disable this method if T is not a numerical type, and if T is a vtkIdType.
+   *
+   * @note Subclasses should have `using Superclass::InsertTuples;`. If not, this method is
+   * shadowed.
    */
-  template <class T, class EnableT = typename std::enable_if<std::is_scalar<T>::value, T>::type>
+  template <class T,
+    class EnableT = EnableIf<EnableHelper<T>::IsNumerical && !EnableHelper<T>::IsVtkIdType, T>>
   void InsertTuples(T dstStart, vtkIdList* srcIds, vtkAbstractArray* source)
   {
     this->InsertTuples(static_cast<vtkIdType>(dstStart), srcIds, source);

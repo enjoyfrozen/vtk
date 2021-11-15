@@ -56,6 +56,8 @@ public:
   vtkCreateWrappedArrayInterface(unsigned long);
 #endif
 
+  using Superclass::InsertTuples;
+
   /**
    * A faster alternative to SafeDownCast for downcasting vtkAbstractArrays.
    */
