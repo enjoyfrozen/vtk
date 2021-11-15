@@ -35,6 +35,8 @@ public:
   static vtkCellData* New();
   static vtkCellData* ExtendedNew();
 
+  using Superclass::CopyData;
+
   vtkTypeMacro(vtkCellData, vtkDataSetAttributes);
   void PrintSelf(ostream& os, vtkIndent indent) override;
 

@@ -520,14 +520,23 @@ public:
   void CopyData(vtkDataSetAttributes* fromPd, vtkIdList* fromIds, vtkIdType destStartId);
   ///@}
 
+protected:
+  template <class T>
+  struct EnableHelper
+  {
+    static constexpr bool IsNumerical = std::is_scalar<T>::value && !std::is_pointer<T>::value;
+  };
+  template <class T>
+  using EnableIfScalar = typename std::enable_if<EnableHelper<T>::IsNumerical, T>::type;
+
+public:
   /**
    * This method is only here to handle calls to `CopyData(fromId, 0, 0)`.
    * Without this method, `CopyData(fromId, 0, 0)` produces an ambiguous call. This method can be
    * disregarded.
    */
-  template <class T1, class T2,
-    class EnableT1 = typename std::enable_if<std::is_scalar<T1>::value, T1>::type,
-    class EnableT2 = typename std::enable_if<std::is_scalar<T2>::value, T2>::type>
+  template <class T1, class T2, class EnableT1 = EnableIfScalar<T1>,
+    class EnableT2 = EnableIfScalar<T2>>
   void CopyData(vtkDataSetAttributes* fromPd, T1 fromId, T2 toId)
   {
     this->CopyData(fromPd, static_cast<vtkIdType>(fromId), static_cast<vtkIdType>(toId));
@@ -538,7 +547,7 @@ public:
    * Without this method, `CopyData(fromId, 0, toIds)` produces an ambiguous call.
    * This method can be disregarded.
    */
-  template <class T, class EnableT = typename std::enable_if<std::is_scalar<T>::value, T>::type>
+  template <class T, class EnableT = EnableIfScalar<T>>
   void CopyData(vtkDataSetAttributes* fromPd, T fromId, vtkIdList* toIds)
   {
     this->CopyData(fromPd, static_cast<vtkIdType>(fromId), toIds);
