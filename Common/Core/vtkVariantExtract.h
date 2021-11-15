@@ -144,6 +144,7 @@ inline vtkStdString vtkVariantExtract<vtkStdString>(const vtkVariant& value, boo
   return valid ? value.ToString() : vtkStdString();
 }
 
+template <>
 inline vtkVariant vtkVariantExtract<vtkVariant>(const vtkVariant& value, bool& valid)
 {
   valid = true;
