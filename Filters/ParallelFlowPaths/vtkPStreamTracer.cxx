@@ -1562,7 +1562,7 @@ int vtkPStreamTracer::RequestData(
     int resTerm = vtkStreamTracer::OUT_OF_DOMAIN;
     vtkIntArray* resTermArray =
       vtkArrayDownCast<vtkIntArray>(traceOut->GetCellData()->GetArray("ReasonForTermination"));
-    if (resTermArray)
+    if (resTermArray && resTermArray->GetNumberOfValues() > 0)
     {
       resTerm = resTermArray->GetValue(0);
     }
