@@ -35,6 +35,8 @@ public:
   static vtkPointData* New();
   static vtkPointData* ExtendedNew();
 
+  using vtkDataSetAttributes::CopyData;
+
   vtkTypeMacro(vtkPointData, vtkDataSetAttributes);
   void PrintSelf(ostream& os, vtkIndent indent) override;
   VTK_DEPRECATED_IN_9_1_0("Use vtkFieldData::NullData")

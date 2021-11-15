@@ -520,14 +520,26 @@ public:
   void CopyData(vtkDataSetAttributes* fromPd, vtkIdList* fromIds, vtkIdType destStartId);
   ///@}
 
+protected:
+  template <class T>
+  struct EnableHelper
+  {
+    static constexpr bool IsNumerical = std::is_scalar<T>::value && !std::is_pointer<T>::value;
+    static constexpr bool IsVtkIdType = std::is_same<vtkIdType, T>::value;
+  };
+  template <bool IsEnabledT, class T>
+  using EnableIf = typename std::enable_if<IsEnabledT, T>::type;
+
+public:
   /**
    * This method is only here to handle calls to `CopyData(fromId, 0, 0)`.
    * Without this method, `CopyData(fromId, 0, 0)` produces an ambiguous call. This method can be
    * disregarded.
+   * We disable this method if T1 and T2 are not numerical types, and if T1 AND T2 are vtkIdType.
    */
-  template <class T1, class T2,
-    class EnableT1 = typename std::enable_if<std::is_scalar<T1>::value, T1>::type,
-    class EnableT2 = typename std::enable_if<std::is_scalar<T2>::value, T2>::type>
+  template <class T1, class T2, class EnableT1 = EnableIf<EnableHelper<T1>::IsNumerical, T1>,
+    class EnableT2 = EnableIf<EnableHelper<T2>::IsNumerical, T2>,
+    class EnableT = EnableIf<!EnableHelper<T1>::IsVtkIdType || !EnableHelper<T2>::IsVtkIdType, T1>>
   void CopyData(vtkDataSetAttributes* fromPd, T1 fromId, T2 toId)
   {
     this->CopyData(fromPd, static_cast<vtkIdType>(fromId), static_cast<vtkIdType>(toId));
@@ -537,11 +549,13 @@ public:
    * This method is only here to handle calls to `CopyData(fromId, 0, toIds)`.
    * Without this method, `CopyData(fromId, 0, toIds)` produces an ambiguous call.
    * This method can be disregarded.
+   * We disable this method if T is not a numerical type, and if T is a vtkIdType.
    */
-  template <class T, class EnableT = typename std::enable_if<std::is_scalar<T>::value, T>::type>
-  void CopyData(vtkDataSetAttributes* fromPd, T fromId, vtkIdList* toIds)
+  template <class T,
+    class EnableT = EnableIf<EnableHelper<T>::IsNumerical && !EnableHelper<T>::IsVtkIdType, T>>
+  void CopyData(vtkDataSetAttributes* fromPd, vtkIdList* fromIds, T toId)
   {
-    this->CopyData(fromPd, static_cast<vtkIdType>(fromId), toIds);
+    this->CopyData(fromPd, fromIds, static_cast<vtkIdType>(toId));
   }
 
   /**
