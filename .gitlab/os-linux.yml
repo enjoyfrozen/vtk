@@ -81,7 +81,7 @@
         - .fedora_mpich_addon
 
     variables:
-        CMAKE_CONFIGURATION: fedora34_cuda_mpi
+        CMAKE_CONFIGURATION: fedora34_cuda_mpi_offscreen_osmesa
         VTK_INSTALL: 1
 
 .fedora34_cuda_mpi_ext_vtk:
@@ -91,7 +91,7 @@
         - .fedora_mpich_addon
 
     variables:
-        CMAKE_CONFIGURATION: fedora34_cuda_mpi_ext_vtk
+        CMAKE_CONFIGURATION: fedora34_cuda_mpi_ext_vtk_offscreen_osmesa
 
 .fedora34_mpi_offscreen_osmesa_python:
     extends:
@@ -248,6 +248,12 @@
         - linux
         - x11
         - vtk
+
+.linux_cuda_tester_tags:
+    tags:
+        - cuda-rt
+        - docker
+        - linux
 
 .linux_qt_tester_tags:
     tags:
