@@ -980,7 +980,7 @@ struct TracerIntegrator
     double* weightsPtr = nullptr;
     if (maxCellSize > 0)
     {
-      weights.reserve(maxCellSize);
+      weights.resize(maxCellSize);
       weightsPtr = weights.data();
     }
 
