@@ -85,6 +85,7 @@ public:
    */
   void InsertTuple(vtkIdType i, vtkIdType j, vtkAbstractArray* source) override;
 
+  using Superclass::InsertTuples;
   /**
    * Copy the tuples indexed in srcIds from the source array to the tuple
    * locations indexed by dstIds in this array.

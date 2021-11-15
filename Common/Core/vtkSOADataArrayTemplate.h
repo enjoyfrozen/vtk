@@ -194,6 +194,7 @@ public:
   void ShallowCopy(vtkDataArray* other) override;
 
   // Reimplemented for efficiency:
+  using Superclass::InsertTuples;
   void InsertTuples(
     vtkIdType dstStart, vtkIdType n, vtkIdType srcStart, vtkAbstractArray* source) override;
   // MSVC doesn't like 'using' here (error C2487). Just forward instead:

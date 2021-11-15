@@ -100,6 +100,7 @@ public:
    */
   void InsertTuple(vtkIdType i, vtkIdType j, vtkAbstractArray* source) override;
 
+  using Superclass::InsertTuples;
   /**
    * Copy the tuples indexed in srcIds from the source array to the tuple
    * locations indexed by dstIds in this array.
@@ -107,6 +108,11 @@ public:
    */
   void InsertTuples(vtkIdList* dstIds, vtkIdList* srcIds, vtkAbstractArray* source) override;
 
+  /**
+   * Copy the tuples indexed in srcIds from the source array to the tuple
+   * locations starting at index dstStart.
+   * Note that memory allocation is performed as necessary to hold the data.
+   */
   void InsertTuples(vtkIdType dstStart, vtkIdList* srcIds, vtkAbstractArray* source) override;
 
   /**

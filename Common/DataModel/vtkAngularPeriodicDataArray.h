@@ -46,6 +46,8 @@ public:
   static vtkAngularPeriodicDataArray* New();
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
+  using Superclass::InsertTuples;
+
   /**
    * Initialize the mapped array with the original input data array.
    */

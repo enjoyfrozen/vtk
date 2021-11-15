@@ -175,6 +175,8 @@ public:
    */
   void SetTuple(vtkIdType i, const double* source) override;
 
+  using Superclass::InsertTuple;
+
   /**
    * Read only container, not supported.
    */

@@ -117,6 +117,7 @@ public:
    */
   void SetTuple(vtkIdType i, vtkIdType j, vtkAbstractArray* source) override;
 
+  using Superclass::InsertTuples;
   /**
    * Insert the jth tuple in the source array, at ith location in this array.
    * Note that memory allocation is performed as necessary to hold the data.

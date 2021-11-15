@@ -285,6 +285,7 @@ public:
     this->Superclass::SetTuple(tupleIdx, tuple);
   }
 
+  using Superclass::InsertTuples;
   void InsertTuples(vtkIdType dstStart, vtkIdList* srcIds, vtkAbstractArray* source) override;
   void InsertTuples(vtkIdList* dstIds, vtkIdList* srcIds, vtkAbstractArray* source) override;
   // MSVC doesn't like 'using' here (error C2487). Just forward instead:

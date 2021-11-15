@@ -86,6 +86,7 @@ public:
   void InsertTuple(vtkIdType i, vtkIdType j, vtkAbstractArray* source) override;
   void InsertTuple(vtkIdType i, const float* source) override;
   void InsertTuple(vtkIdType i, const double* source) override;
+  using Superclass::InsertTuples;
   void InsertTuples(vtkIdList* dstIds, vtkIdList* srcIds, vtkAbstractArray* source) override;
   void InsertTuples(vtkIdType dstStart, vtkIdList* srcIds, vtkAbstractArray* source) override;
   void InsertTuples(
