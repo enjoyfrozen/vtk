@@ -97,6 +97,10 @@
             # Debugging logs
             - build/Testing/Temporary/Last*.log
 
+            # CMake Logs
+            - build/CMakeFiles/CMakeError.log
+            - build/CMakeFiles/CMakeOutput.log
+
 .cmake_tidy_artifacts:
     artifacts:
         expire_in: 1d
