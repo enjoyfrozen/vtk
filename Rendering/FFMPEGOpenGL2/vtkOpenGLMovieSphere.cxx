@@ -59,6 +59,10 @@ vtkOpenGLMovieSphere::vtkOpenGLMovieSphere()
 
 vtkOpenGLMovieSphere::~vtkOpenGLMovieSphere()
 {
+  if (this->VideoSource)
+  {
+    this->VideoSource->SetVideoCallback(nullptr, nullptr);
+  }
   for (int i = 0; i < 6; ++i)
   {
     delete[] this->TextureData[i];
@@ -75,13 +79,26 @@ void vtkOpenGLMovieSphere::UpdateUniforms(vtkObject* a, unsigned long eid, void*
   program->SetUniformi("VTexture", this->VTexture);
 }
 
+vtkFFMPEGVideoSource* vtkOpenGLMovieSphere::GetVideoSource()
+{
+  return this->VideoSource.Get();
+}
+
 void vtkOpenGLMovieSphere::SetVideoSource(vtkFFMPEGVideoSource* video)
 {
+  if (this->VideoSource == video)
+  {
+    return;
+  }
+
+  this->VideoSource = video;
+
   this->NewData = 0;
   this->HaveData = 0;
 
   video->SetVideoCallback(
     std::bind(&vtkOpenGLMovieSphere::VideoCallback, this, std::placeholders::_1), nullptr);
+  this->Modified();
 }
 
 void vtkOpenGLMovieSphere::VideoCallback(vtkFFMPEGVideoSourceVideoCallbackData const& cbd)

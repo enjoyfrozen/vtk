@@ -35,8 +35,9 @@
 #include "vtkNew.h" // for ivars
 #include "vtkOpenGLSkybox.h"
 #include "vtkRenderingFFMPEGOpenGL2Module.h" // For export macro
-#include <atomic>                            // for ivars
-#include <mutex>                             // for ivars
+#include "vtkSmartPointer.h"
+#include <atomic> // for ivars
+#include <mutex>  // for ivars
 
 class vtkFFMPEGVideoSource;
 struct vtkFFMPEGVideoSourceVideoCallbackData;
@@ -58,6 +59,7 @@ public:
   void Render(vtkRenderer* ren, vtkMapper* mapper) override;
 
   void SetVideoSource(vtkFFMPEGVideoSource* val);
+  vtkFFMPEGVideoSource* GetVideoSource();
 
 protected:
   vtkOpenGLMovieSphere();
@@ -86,6 +88,7 @@ protected:
   int Width;
   int UVHeight;
   int UVWidth;
+  vtkSmartPointer<vtkFFMPEGVideoSource> VideoSource;
 
 private:
   vtkOpenGLMovieSphere(const vtkOpenGLMovieSphere&) = delete;
