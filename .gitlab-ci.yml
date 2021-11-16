@@ -83,7 +83,7 @@ test:fedora34-cuda-mpi:
     extends:
         - .fedora34_cuda_mpi
         - .cmake_test_linux
-        - .linux_qt_tester_tags
+        - .linux_cuda_tester_tags
         - .cmake_test_artifacts
         - .run_automatically
     dependencies:
@@ -96,7 +96,7 @@ test-ext:vtk:fedora34-cuda-mpi:
     extends:
         - .fedora34_cuda_mpi_ext_vtk
         - .cmake_test_external_linux
-        - .linux_qt_tester_tags
+        - .linux_cuda_tester_tags
         - .cmake_tidy_artifacts
         - .run_automatically
     dependencies:
