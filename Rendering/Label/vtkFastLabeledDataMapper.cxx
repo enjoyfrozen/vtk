@@ -27,6 +27,7 @@
 #include "vtkObjectFactory.h"
 #include "vtkOpenGLRenderWindow.h"
 #include "vtkOpenGLResourceFreeCallback.h"
+#include "vtkOpenGLShaderProperty.h"
 #include "vtkPNGWriter.h"
 #include "vtkPointData.h"
 #include "vtkPolyData.h"
@@ -37,9 +38,8 @@
 #include "vtkTextProperty.h"
 #include "vtkTextureObject.h"
 #include "vtkTimerLog.h"
-#include "vtkUnicodeStringArray.h"
-//#include "vtkXMLPolyDataWriter.h"
 #include "vtkWindow.h"
+//#include "vtkXMLPolyDataWriter.h"
 
 #include <array>
 
@@ -408,7 +408,6 @@ vtkFastLabeledDataMapper::vtkFastLabeledDataMapper()
   prop->SetBackgroundColor(1.0, 0.0, 0.0);
   this->SetLabelTextProperty(prop);
 
-  this->MakeupShaders();
   this->SetPointIdArrayName("pid");
 
   this->FrameColorsName = nullptr;
@@ -654,9 +653,9 @@ void vtkFastLabeledDataMapper::SetFieldDataName(const char* arrayName)
 }
 
 //----------------------------------------------------------------------------
-void vtkFastLabeledDataMapper::MakeupShaders()
+void vtkFastLabeledDataMapper::MakeupShaders(vtkOpenGLShaderProperty* sp)
 {
-  this->AddShaderReplacement(vtkShader::Vertex,
+  sp->AddShaderReplacement(vtkShader::Vertex,
     "//VTK::Normal::Dec",  // replace the normal block
     true,                  // before the standard replacements
     "//VTK::Normal::Dec\n" // we still want the default
@@ -675,7 +674,7 @@ void vtkFastLabeledDataMapper::MakeupShaders()
     false // only do it once
   );
 
-  this->AddShaderReplacement(vtkShader::Vertex,
+  sp->AddShaderReplacement(vtkShader::Vertex,
     "//VTK::Normal::Impl",  // replace the normal block
     true,                   // before the standard replacements
     "//VTK::Normal::Impl\n" // we still want the default
@@ -916,22 +915,22 @@ void vtkFastLabeledDataMapper::MakeupShaders()
     "    EndPrimitive();\n"
     "  }\n"
     "}\n");
-  this->SetGeometryShaderCode(geomp_str.c_str());
+  sp->SetGeometryShaderCode(geomp_str.c_str());
 
-  this->AddShaderReplacement(vtkShader::Fragment, "//VTK::TCoord::Dec", true,
+  sp->AddShaderReplacement(vtkShader::Fragment, "//VTK::TCoord::Dec", true,
     "in vec2 UV2;\n"
     "flat in int FPROPID;\n"
     "flat in int layer;\n",
     false);
-  this->AddShaderReplacement(
+  sp->AddShaderReplacement(
     vtkShader::Fragment, "//VTK::Color::Impl", true, "//NO COLOR IMPL", false);
-  this->AddShaderReplacement(
+  sp->AddShaderReplacement(
     vtkShader::Fragment, "//VTK::Normal::Impl", true, "//NO NORMAL IMPL", false);
 
-  this->AddShaderReplacement(vtkShader::Fragment, "//VTK::Coincident::Dec", true,
+  sp->AddShaderReplacement(vtkShader::Fragment, "//VTK::Coincident::Dec", true,
     "float cscale = length(vec2(dFdx(gl_FragCoord.z),dFdy(gl_FragCoord.z)));\n", false);
 
-  this->AddShaderReplacement(vtkShader::Fragment, "//VTK::Depth::Impl", true,
+  sp->AddShaderReplacement(vtkShader::Fragment, "//VTK::Depth::Impl", true,
     "if (layer == 0) {\n"
     "  gl_FragDepth = gl_FragCoord.z;\n"
     "}\n"
@@ -943,13 +942,13 @@ void vtkFastLabeledDataMapper::MakeupShaders()
     "}\n",
     false);
 
-  this->AddShaderReplacement(vtkShader::Fragment, "//VTK::Light::Dec", true,
+  sp->AddShaderReplacement(vtkShader::Fragment, "//VTK::Light::Dec", true,
     "uniform vec4 BackgroundColors[" SMAXPROPS "];\n"
     "uniform sampler2D atlasTex;\n"
     "flat in vec3 framecolorsFS;\n"
     "//VTK::Light::Dec",
     false);
-  this->AddShaderReplacement(vtkShader::Fragment, "//VTK::Light::Impl", true,
+  sp->AddShaderReplacement(vtkShader::Fragment, "//VTK::Light::Impl", true,
     "if (layer == 0) {\n"
     " gl_FragData[0] = texture(atlasTex, UV2);\n"
     "}\n"
@@ -960,7 +959,7 @@ void vtkFastLabeledDataMapper::MakeupShaders()
     " gl_FragData[0] = vec4(framecolorsFS,1);\n"
     "}\n",
     false);
-  this->AddShaderReplacement(
+  sp->AddShaderReplacement(
     vtkShader::Fragment, "//VTK::TCoord::Impl", true, "//NO TCOORD IMPL", false);
 }
 
@@ -1074,7 +1073,6 @@ void vtkFastLabeledDataMapper::BuildLabelsInternal(vtkDataSet* input)
   vtkAbstractArray* abstractData = nullptr;
   vtkDataArray* numericData = nullptr;
   vtkStringArray* stringData = nullptr;
-  vtkUnicodeStringArray* uStringData = nullptr;
   if (input->GetNumberOfPoints() == 0)
   {
     return;
@@ -1144,7 +1142,6 @@ void vtkFastLabeledDataMapper::BuildLabelsInternal(vtkDataSet* input)
       }
       numericData = vtkArrayDownCast<vtkDataArray>(abstractData);
       stringData = vtkArrayDownCast<vtkStringArray>(abstractData);
-      uStringData = vtkArrayDownCast<vtkUnicodeStringArray>(abstractData);
     };
     break;
   }
@@ -1169,10 +1166,6 @@ void vtkFastLabeledDataMapper::BuildLabelsInternal(vtkDataSet* input)
     if (stringData)
     {
       numComp = stringData->GetNumberOfComponents();
-    }
-    else if (uStringData)
-    {
-      numComp = uStringData->GetNumberOfComponents();
     }
     else
     {
@@ -1265,13 +1258,6 @@ void vtkFastLabeledDataMapper::BuildLabelsInternal(vtkDataSet* input)
     {
       FormatString = "";
     }
-    else if (uStringData)
-    {
-      vtkWarningMacro(
-        "Unicode string arrays are not adequately supported by the vtkFastLabeledDataMapper.  "
-        "Unicode strings will be converted to vtkStdStrings for rendering.");
-      FormatString = "unicode";
-    }
     else
     {
       FormatString = "BUG - COULDN'T DETECT DATA TYPE";
@@ -1363,14 +1349,7 @@ void vtkFastLabeledDataMapper::BuildLabelsInternal(vtkDataSet* input)
         // we'll sidestep a lot of snprintf nonsense.
         if (this->LabelFormat == nullptr)
         {
-          if (uStringData)
-          {
-            ResultString = uStringData->GetValue(i).utf8_str();
-          }
-          else
-          {
-            ResultString = stringData->GetValue(i);
-          }
+          ResultString = stringData->GetValue(i);
         }
         else // the user specified a label format
         {
@@ -1590,4 +1569,23 @@ void vtkFastLabeledDataMapper::ReleaseGraphicsResources(vtkWindow* win)
 {
   this->Implementation->glyphsTO->ReleaseGraphicsResources(win);
   this->Superclass::ReleaseGraphicsResources(win);
+}
+
+//-----------------------------------------------------------------------------
+void vtkFastLabeledDataMapper::BuildShaders(
+  std::map<vtkShader::Type, vtkShader*> shaders, vtkRenderer* ren, vtkActor* actor)
+{
+  if (this->LegacyShaderProperty)
+  {
+    vtkErrorMacro("Legacy shaders have been used. Cannot build shaders.");
+    return;
+  }
+
+  vtkOpenGLShaderProperty* sp = vtkOpenGLShaderProperty::SafeDownCast(actor->GetShaderProperty());
+  if (sp != nullptr)
+  {
+    MakeupShaders(sp);
+  }
+
+  vtkOpenGLPolyDataMapper::BuildShaders(shaders, ren, actor);
 }

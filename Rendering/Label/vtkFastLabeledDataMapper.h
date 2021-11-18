@@ -232,7 +232,7 @@ protected:
   void BuildLabelsInternal(vtkDataSet*);
   void MakeShaderArrays(
     int numCurLabels, const std::vector<std::string>&, vtkIntArray*, vtkFloatArray*);
-  void MakeupShaders();
+  void MakeupShaders(vtkOpenGLShaderProperty* sp);
 
   vtkTimeStamp BuildTime;
   vtkDataSet* Input;
@@ -255,6 +255,10 @@ protected:
 private:
   vtkFastLabeledDataMapper(const vtkFastLabeledDataMapper&) = delete;
   void operator=(const vtkFastLabeledDataMapper&) = delete;
+
+protected:
+  virtual void BuildShaders(
+    std::map<vtkShader::Type, vtkShader*> shaders, vtkRenderer* ren, vtkActor* act) override;
 };
 
 #endif
