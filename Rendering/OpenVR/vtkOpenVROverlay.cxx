@@ -184,6 +184,7 @@ void vtkOpenVROverlay::SaveCameraPose(int slot)
 
 void vtkOpenVROverlay::LoadCameraPose(int slot)
 {
+  
   vtkOpenVRCameraPose* pose = this->GetSavedCameraPose(slot);
   if (pose && pose->Loaded)
   {
