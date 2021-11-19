@@ -52,7 +52,7 @@ void vtkIdList::Initialize()
   {
     delete[] this->Ids;
   }
-  this->ManageMemory = false;
+  this->ManageMemory = true;
   this->Ids = nullptr;
   this->NumberOfIds = 0;
   this->Size = 0;
@@ -203,7 +203,7 @@ vtkIdType* vtkIdList::Resize(const vtkIdType sz)
     {
       delete[] this->Ids;
     }
-    this->ManageMemory = false;
+    this->ManageMemory = true;
   }
 
   this->Size = newSize;
