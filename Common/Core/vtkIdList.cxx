@@ -52,7 +52,7 @@ void vtkIdList::Initialize()
   {
     delete[] this->Ids;
   }
-  this->ManageMemory = false;
+  this->ManageMemory = true;
   this->Ids = nullptr;
   this->NumberOfIds = 0;
   this->Size = 0;
