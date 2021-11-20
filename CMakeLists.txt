@@ -554,6 +554,8 @@ if (VTK_WRAP_PYTHON)
     TARGET_SPECIFIC_COMPONENTS "${VTK_TARGET_SPECIFIC_COMPONENTS}"
     TARGET          VTK::vtkpythonmodules)
 
+  include(vtkPythonMetadata)
+
   if (APPLE AND VTK_WHEEL_BUILD)
     list(REMOVE_ITEM CMAKE_INSTALL_RPATH
       "@loader_path/.dylibs")
@@ -647,7 +649,7 @@ install(
 
 # TODO: HeaderTest exclusions for memcheck.
 
-if (VTK_WHEEL_BUILD)
+if (VTK_WRAP_PYTHON)
   include(vtkWheelFinalization)
 endif ()
 

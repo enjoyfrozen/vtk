@@ -96,21 +96,4 @@ elseif (UNIX)
 endif ()
 set(VTK_PYTHON_OPTIONAL_LINK ON)
 
-configure_file(
-  "${CMAKE_CURRENT_LIST_DIR}/setup.py.in"
-  "${CMAKE_BINARY_DIR}/setup.py"
-  @ONLY)
-configure_file(
-  "${CMAKE_CURRENT_LIST_DIR}/MANIFEST.in.in"
-  "${CMAKE_BINARY_DIR}/MANIFEST.in"
-  @ONLY)
-configure_file(
-  "${CMAKE_SOURCE_DIR}/Copyright.txt"
-  "${CMAKE_BINARY_DIR}/LICENSE"
-  COPYONLY)
-configure_file(
-  "${CMAKE_SOURCE_DIR}/README.md"
-  "${CMAKE_BINARY_DIR}/README.md"
-  COPYONLY)
-
 unset(wheel_data_dir)
