@@ -20,6 +20,7 @@
 #include "vtkCellIterator.h"
 #include "vtkCellType.h"
 #include "vtkDataArrayRange.h"
+#include "vtkDataObjectTypes.h"
 #include "vtkExtractCells.h"
 #include "vtkIdList.h"
 #include "vtkIdTypeArray.h"
@@ -47,6 +48,22 @@ vtkExtractSelectedIds::vtkExtractSelectedIds()
 
 //------------------------------------------------------------------------------
 vtkExtractSelectedIds::~vtkExtractSelectedIds() = default;
+
+//------------------------------------------------------------------------------
+int vtkExtractSelectedIds::FillOutputPortInformation(int port, vtkInformation* info)
+{
+  int outputType = this->OutputDataSetType;
+  if (outputType != VTK_DATA_OBJECT && outputType != VTK_POLY_DATA &&
+    outputType != VTK_UNSTRUCTURED_GRID)
+  {
+    outputType = VTK_DATA_OBJECT;
+  }
+
+  vtkExtractSelectionBase::FillOutputPortInformation(port, info);
+  info->Set(
+    vtkDataObject::DATA_TYPE_NAME(), vtkDataObjectTypes::GetClassNameFromTypeId(outputType));
+  return 1;
+}
 
 //------------------------------------------------------------------------------
 int vtkExtractSelectedIds::FillInputPortInformation(int port, vtkInformation* info)
@@ -118,6 +135,8 @@ int vtkExtractSelectedIds::RequestData(vtkInformation* vtkNotUsed(request),
       return this->ExtractCells(node, input, output);
     case vtkSelectionNode::POINT:
       return this->ExtractPoints(node, input, output);
+    default:
+      vtkWarningMacro("Unsupported vtkSelectionNode Field Type: " << fieldType);
   }
   return 1;
 }
