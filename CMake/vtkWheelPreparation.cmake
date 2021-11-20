@@ -113,5 +113,4 @@ configure_file(
   "${CMAKE_BINARY_DIR}/README.md"
   COPYONLY)
 
-unset(license_file)
 unset(wheel_data_dir)
