@@ -62,5 +62,5 @@ foreach (vtk_feature IN LISTS vtk_features)
   string(APPEND vtk_feature_entries
     "    '${vtk_feature}': [],\n")
 endforeach ()
-file(WRITE "${CMAKE_BINARY_DIR}/vtk_features.py"
+file(WRITE "${CMAKE_BINARY_DIR}/${VTK_PYTHON_SITE_PACKAGES_SUFFIX}/vtk_features.py"
   "FEATURES = {\n${vtk_feature_entries}}\n")

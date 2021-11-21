@@ -489,7 +489,7 @@ if (VTK_WRAP_PYTHON)
     list(REMOVE_DUPLICATES vtk_required_python_modules)
   endif ()
   string(REPLACE ";" "\n" vtk_required_python_modules "${vtk_required_python_modules}")
-  file(WRITE "${CMAKE_BINARY_DIR}/requirements.txt"
+  file(WRITE "${CMAKE_BINARY_DIR}/${VTK_PYTHON_SITE_PACKAGES_SUFFIX}/requirements.txt"
     "${vtk_required_python_modules}\n")
   get_property(vtk_web_python_modules GLOBAL
     PROPERTY  vtk_web_python_modules)
@@ -497,7 +497,7 @@ if (VTK_WRAP_PYTHON)
     list(REMOVE_DUPLICATES vtk_web_python_modules)
   endif ()
   string(REPLACE ";" "\n" vtk_web_python_modules "${vtk_web_python_modules}")
-  file(WRITE "${CMAKE_BINARY_DIR}/requirements_web.txt"
+  file(WRITE "${CMAKE_BINARY_DIR}/${VTK_PYTHON_SITE_PACKAGES_SUFFIX}/requirements_web.txt"
     "${vtk_web_python_modules}\n")
   get_property(vtk_soabi GLOBAL
     PROPERTY  _vtk_python_soabi)
