@@ -19,7 +19,6 @@ PRIVATE_DEPENDS
   VTK::CommonTransforms
   VTK::FiltersGeneral
   VTK::ImagingCore
-  VTK::IOImage
   VTK::octree
 TEST_DEPENDS
   VTK::FiltersGeneral

@@ -28,7 +28,9 @@
 #include "vtkOpenGLRenderWindow.h"
 #include "vtkOpenGLResourceFreeCallback.h"
 #include "vtkOpenGLShaderProperty.h"
+#if 0
 #include "vtkPNGWriter.h"
+#endif
 #include "vtkPointData.h"
 #include "vtkPolyData.h"
 #include "vtkRenderer.h"
@@ -1390,7 +1392,7 @@ void vtkFastLabeledDataMapper::BuildLabelsInternal(vtkDataSet* input)
     stringlist.push_back(ResultString);
   }
 
-  if ((this->Implementation->InputPlusArrays->GetNumberOfCells() != numCurChars) && !rebuildcnt)
+  if ((asPD->GetMTime() > this->BuildTime) && !rebuildcnt)
   {
     // the data has changed, but we don't need any new characters
     // rebuild the structure to get the data right
@@ -1575,12 +1577,6 @@ void vtkFastLabeledDataMapper::ReleaseGraphicsResources(vtkWindow* win)
 void vtkFastLabeledDataMapper::BuildShaders(
   std::map<vtkShader::Type, vtkShader*> shaders, vtkRenderer* ren, vtkActor* actor)
 {
-  if (this->LegacyShaderProperty)
-  {
-    vtkErrorMacro("Legacy shaders have been used. Cannot build shaders.");
-    return;
-  }
-
   vtkOpenGLShaderProperty* sp = vtkOpenGLShaderProperty::SafeDownCast(actor->GetShaderProperty());
   if (sp != nullptr)
   {
