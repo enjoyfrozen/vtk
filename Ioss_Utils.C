@@ -44,7 +44,9 @@
 // For memory utilities...
 #if defined(__IOSS_WINDOWS__)
 #define WIN32_LEAN_AND_MEAN
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
 #if 0
 #include <psapi.h>
 #endif
@@ -622,6 +624,9 @@ namespace {
       else {
         char *name         = names[0];
         name[match_length] = '\0';
+        if (strip_trailing_ && name[match_length - 1] == '_') {
+          name[match_length - 1] = '\0';
+        }
         Ioss::Field field(name, Ioss::Field::REAL, type, fld_role, entity_count);
         if (field.is_valid()) {
           fields.push_back(field);
