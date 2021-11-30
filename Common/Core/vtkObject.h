@@ -47,8 +47,13 @@
 #include "vtkTimeStamp.h"
 #include "vtkWeakPointerBase.h" // needed for vtkWeakPointer
 
+#include <memory> // for std::weak_ptr
+#include <mutex>  // for std::mutex
+
 class vtkSubjectHelper;
 class vtkCommand;
+template <typename T>
+class vtkWeakPtr;
 
 class VTKCOMMONCORE_EXPORT vtkObject : public vtkObjectBase
 {
@@ -381,6 +386,24 @@ private:
       return false;
     }
   };
+  ///@}
+
+  ///@{
+  template <typename T>
+  friend class vtkWeakPtr;
+  struct WeakControlBlock
+  {
+    WeakControlBlock(vtkObject* obj)
+      : Object(obj)
+    {
+    }
+
+    vtkObject* Object;
+    std::mutex Mutex;
+  };
+  std::shared_ptr<WeakControlBlock> GetWeakControlBlock();
+  std::mutex WeakMutex;
+  std::weak_ptr<WeakControlBlock> WeakBlock;
   ///@}
 
   ///@{

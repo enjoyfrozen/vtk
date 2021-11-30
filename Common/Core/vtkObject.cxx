@@ -892,6 +892,24 @@ void vtkObject::UnRegisterInternal(vtkObjectBase* o, vtkTypeBool check)
     vtkDebugMacro(<< "UnRegistered by nullptr, ReferenceCount = " << (this->ReferenceCount - 1));
   }
 
+  // Note that the ReferenceCount check must happen under the weak mutex
+  // because it may be modified on another thread via `vtkWeakPtr::Lock()`.
+  if (!this->WeakBlock.expired())
+  {
+    std::lock_guard<std::mutex> guard(this->WeakMutex);
+    (void)guard;
+
+    if (this->ReferenceCount == 1)
+    {
+      // Clear out the weak block (if needed).
+      if (auto block = this->WeakBlock.lock())
+      {
+        // We're going down, so inject `nullptr` into the control block.
+        block->Object = nullptr;
+      }
+    }
+  }
+
   if (this->ReferenceCount == 1)
   {
     // The reference count is 1, so the object is about to be deleted.
@@ -940,6 +958,22 @@ protected:
   vtkObjectCommandInternal() { this->Callable = nullptr; }
   ~vtkObjectCommandInternal() override { delete this->Callable; }
 };
+
+//------------------------------------------------------------------------------
+std::shared_ptr<vtkObject::WeakControlBlock> vtkObject::GetWeakControlBlock()
+{
+  std::lock_guard<std::mutex> guard(this->WeakMutex);
+  (void)guard;
+
+  auto block = this->WeakBlock.lock();
+  if (!block)
+  {
+    block = std::make_shared<WeakControlBlock>(this);
+    this->WeakBlock = block;
+  }
+
+  return block;
+}
 
 //------------------------------------------------------------------------------
 unsigned long vtkObject::AddTemplatedObserver(
