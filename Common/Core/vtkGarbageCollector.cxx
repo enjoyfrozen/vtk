@@ -887,8 +887,24 @@ void vtkGarbageCollector::Collect()
 }
 
 //------------------------------------------------------------------------------
+// This mutex is used to coordinate between weak pointer upgrades and garbage
+// collection traversings its graph. The reference count cannot change while
+// the graph traversal is happening so that the bookkeeping of the traversal
+// algorithm is accurate.
+static std::mutex WeakPtrMutexInstance;
+
+//------------------------------------------------------------------------------
+std::mutex* vtkGarbageCollector::WeakPtrMutex()
+{
+  return &WeakPtrMutexInstance;
+}
+
+//------------------------------------------------------------------------------
 void vtkGarbageCollector::Collect(vtkObjectBase* root)
 {
+  std::lock_guard<std::mutex> guard(WeakPtrMutexInstance);
+  (void)guard;
+
   // Create a collector instance.
   vtkGarbageCollectorImpl collector;
 
