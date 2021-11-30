@@ -50,6 +50,7 @@
         CUDACC: "/usr/local/cuda-11.4/bin/nvcc"
         CUDACXX: "/usr/local/cuda-11.4/bin/nvcc"
         CTEST_MAX_PARALLELISM: 1
+        SCCACHE_LOG: "debug"
 
 .fedora_mpich_addon:
     variables:
@@ -81,7 +82,7 @@
         - .fedora_mpich_addon
 
     variables:
-        CMAKE_CONFIGURATION: fedora34_cuda_mpi
+        CMAKE_CONFIGURATION: fedora34_mpi_cuda_offscreen_osmesa
         VTK_INSTALL: 1
 
 .fedora34_cuda_mpi_ext_vtk:
@@ -91,7 +92,7 @@
         - .fedora_mpich_addon
 
     variables:
-        CMAKE_CONFIGURATION: fedora34_cuda_mpi_ext_vtk
+        CMAKE_CONFIGURATION: fedora34_mpi_cuda_ext_vtk_offscreen_osmesa
 
 .fedora34_mpi_offscreen_osmesa_python:
     extends:
@@ -234,6 +235,13 @@
         - linux
         - vtk
 
+.linux_cuda_builder_tags:
+    tags:
+        - build
+        - docker
+        - large-memory
+        - linux
+
 .linux_qt_builder_tags:
     tags:
         - build
@@ -248,6 +256,12 @@
         - linux
         - x11
         - vtk
+
+.linux_cuda_tester_tags:
+    tags:
+        - cuda-rt
+        - docker
+        - linux
 
 .linux_qt_tester_tags:
     tags:
@@ -335,6 +349,7 @@
     script:
         - yum install -y --setopt=install_weak_deps=False libX11-devel libXcursor-devel mesa-libGL-devel mesa-libGLU-devel git-core git-lfs gcc-c++
         - *before_script_linux
+        - export SCCACHE_ERROR_LOG="$GIT_CLONE_PATH/sccache.log"
         - .gitlab/ci/sccache.sh
         - sccache --start-server
         - sccache --show-stats
