@@ -68,6 +68,11 @@
             # Virtual environment
             - build/ci-venv/
 
+            # CMake Logs
+            - build/CMakeFiles/CMakeError.log
+            - build/CMakeFiles/CMakeOutput.log
+            - build/CMakeFiles/rules.ninja
+
 .cmake_junit_artifacts:
     artifacts:
         expire_in: 1d
