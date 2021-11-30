@@ -32,6 +32,8 @@ template <typename ArrayType>
 class vtkSmartPointer;
 template <typename ArrayType>
 class vtkWeakPointer;
+template <typename ArrayType>
+class vtkWeakPtr;
 
 namespace vtk
 {
@@ -66,6 +68,12 @@ struct StripPointers<vtkSmartPointer<ArrayType>>
 
 template <typename ArrayType>
 struct StripPointers<vtkWeakPointer<ArrayType>>
+{
+  using type = ArrayType;
+};
+
+template <typename ArrayType>
+struct StripPointers<vtkWeakPtr<ArrayType>>
 {
   using type = ArrayType;
 };
