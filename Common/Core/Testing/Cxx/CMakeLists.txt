@@ -157,14 +157,15 @@ vtk_add_test_cxx(vtkCommonCoreCxxTests tests
   TestVariant.cxx
   TestVariantComparison.cxx
   TestWeakPointer.cxx
+  TestWeakPtr.cxx
   TestXMLFileOutputWindow.cxx
   UnitTestInformationKeys.cxx
   otherArrays.cxx
   otherByteSwap.cxx
   # These two need vtkLookupTableWithEnabling/vtkLogLookupTable - move
   # them to RenderingCore or somewhere out there.
-  #otherLookupTable.cxx
-  #otherLookupTableWithEnabling.cxx
+  otherLookupTable.cxx
+  otherLookupTableWithEnabling.cxx
   otherStringArray.cxx
 
   ${data_array_tests}
