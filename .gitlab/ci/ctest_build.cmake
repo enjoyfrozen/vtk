@@ -92,6 +92,7 @@ endif ()
 
 if (NOT "$ENV{VTK_INSTALL}" STREQUAL "")
   ctest_build(APPEND
+    FLAGS "-v"
     TARGET install
     RETURN_VALUE install_result)
 
