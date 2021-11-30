@@ -76,6 +76,8 @@
 #include "vtkGarbageCollectorManager.h" // Needed for singleton initialization.
 #include "vtkObject.h"
 
+#include <mutex> // For `std::mutex` (cannot be forward-declared)
+
 // This function is a friend of the collector so that it can call the
 // internal report method.
 void VTKCOMMONCORE_EXPORT vtkGarbageCollectorReportInternal(
@@ -171,6 +173,8 @@ private:
 
   friend class vtkGarbageCollectorManager;
   friend class vtkObjectBaseToGarbageCollectorFriendship;
+
+  static std::mutex* WeakPtrMutex();
 
   // Internal report callback and friend function that calls it.
   virtual void Report(vtkObjectBase* obj, void* ptr, const char* desc);
