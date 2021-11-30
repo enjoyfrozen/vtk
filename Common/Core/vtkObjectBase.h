@@ -44,6 +44,8 @@
 #include "vtkType.h"
 
 #include <atomic> // For std::atomic
+#include <memory> // for std::weak_ptr
+#include <mutex>  // for std::mutex
 #include <string>
 
 VTK_ABI_NAMESPACE_BEGIN
@@ -51,6 +53,8 @@ class vtkGarbageCollector;
 class vtkGarbageCollectorToObjectBaseFriendship;
 class vtkWeakPointerBase;
 class vtkWeakPointerBaseToObjectBaseFriendship;
+template <typename T>
+class vtkWeakPtr;
 
 // typedefs for malloc and free compatible replacement functions
 typedef void* (*vtkMallocingFunction)(size_t);
@@ -301,6 +305,25 @@ private:
   static void SetUsingMemkind(bool);
   bool IsInMemkind;
   void SetIsInMemkind(bool);
+
+  ///@{
+  template <typename T>
+  friend class vtkWeakPtr;
+  struct WeakControlBlock
+  {
+    WeakControlBlock(vtkObjectBase* obj)
+      : Object(obj)
+    {
+    }
+
+    vtkObjectBase* Object;
+    std::mutex Mutex;
+  };
+  bool TryUpgradeRegister(vtkObjectBase* o);
+  std::shared_ptr<WeakControlBlock> GetWeakControlBlock();
+  std::mutex WeakBlockMutex;
+  std::weak_ptr<WeakControlBlock> WeakBlock;
+  ///@}
 
   ///@{
   /**
