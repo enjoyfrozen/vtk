@@ -157,6 +157,7 @@ vtk_add_test_cxx(vtkCommonCoreCxxTests tests
   TestVariant.cxx
   TestVariantComparison.cxx
   TestWeakPointer.cxx
+  TestWeakPtr.cxx
   TestXMLFileOutputWindow.cxx
   UnitTestInformationKeys.cxx
   otherArrays.cxx
