@@ -110,8 +110,9 @@ struct ProbePoints
       {
         vtkStdString outName = arrayName;
         outName += "_deriv";
-        if (vtkDataArray* outArray = this->DerivArrays.AddArrayPair(
-              array->GetNumberOfTuples(), array, outName, nullV, this->Promote))
+        if (vtkDataArray* outArray = vtkArrayDownCast<vtkDataArray>(
+            this->DerivArrays.AddArrayPair(
+                array->GetNumberOfTuples(), array, outName, nullV, this->Promote)))
         {
           outPD->AddArray(outArray);
         }
