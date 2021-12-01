@@ -198,6 +198,15 @@ public:
 
   ///@{
   /**
+   * Get the next argument as a vtkObjectBase derived type,
+   * and put into a smart pointer.
+   */
+  bool GetVTKObject(vtkSmartPointerBase& v, const char* classname);
+  bool GetVTKObject(PyObject* o, vtkSmartPointerBase& v, const char* classname);
+  ///@}
+
+  ///@{
+  /**
    * Get the next argument as a special object.  If a constructor
    * was needed to convert the arg, the constructed object will be
    * returned in "o" and must be freed after "v" is used.
@@ -525,6 +534,12 @@ public:
    * If a null pointer is given, then None will be returned.
    */
   static PyObject* BuildVTKObject(const void* v);
+
+  /**
+   * Build a vtkObjectBase object from a smart pointer.
+   * If pointer is empty, then None will be returned.
+   */
+  static PyObject* BuildVTKObject(vtkSmartPointerBase& v);
 
   /**
    * Build a non-vtkObjectBase object of the specified type.

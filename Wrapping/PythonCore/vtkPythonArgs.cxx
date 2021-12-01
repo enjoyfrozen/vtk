@@ -32,6 +32,7 @@ resulting in wrapper code that is faster and more compact.
 #include "vtkPythonUtil.h"
 
 #include "vtkObjectBase.h"
+#include "vtkSmartPointerBase.h"
 
 //------------------------------------------------------------------------------
 // Extract various C++ types from python objects.  The rules are
@@ -957,6 +958,13 @@ VTK_PYTHON_BUILD_TUPLE(vtkUnicodeString)
 
 //------------------------------------------------------------------------------
 
+PyObject* vtkPythonArgs::BuildVTKObject(vtkSmartPointerBase& v)
+{
+  return vtkPythonUtil::GetObjectFromPointer(v.GetPointer());
+}
+
+//------------------------------------------------------------------------------
+
 PyObject* vtkPythonArgs::BuildEnumValue(int val, const char* enumname)
 {
   PyTypeObject* pytype = vtkPythonUtil::FindEnum(enumname);
@@ -1079,6 +1087,23 @@ int vtkPythonArgs::GetArgAsEnum(PyObject* o, const char* enumname, bool& valid)
     valid = false;
   }
   return i;
+}
+
+//------------------------------------------------------------------------------
+// Define GetVTKObject methods for smart pointers
+
+bool vtkPythonArgs::GetVTKObject(vtkSmartPointerBase& v, const char* classname)
+{
+  bool b;
+  v = this->GetArgAsVTKObject(classname, b);
+  return b;
+}
+
+bool vtkPythonArgs::GetVTKObject(PyObject* o, vtkSmartPointerBase& v, const char* classname)
+{
+  bool b;
+  v = vtkPythonArgs::GetArgAsVTKObject(o, classname, b);
+  return b;
 }
 
 //------------------------------------------------------------------------------
