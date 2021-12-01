@@ -25,7 +25,6 @@
 
 #include "vtkObject.h"
 #include "vtkPythonCommand.h"
-#include "vtkSmartPointerBase.h"
 #include "vtkStdString.h"
 #include "vtkUnicodeString.h"
 #include "vtkVariant.h"
