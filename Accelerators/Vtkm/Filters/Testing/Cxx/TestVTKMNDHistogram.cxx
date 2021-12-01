@@ -118,7 +118,9 @@ int TestVTKMNDHistogram(int, char*[])
         std::cout << "value does not match at index " << n << " dimension " << d << std::endl;
       }
     }
-    assert(resultFrequency[n] == sa->GetValue(coordinates));
+    
+    size_t frequency = resultFrequency[n];
+    assert(frequency == sa->GetValue(coordinates));
   }
   return 0;
 }
