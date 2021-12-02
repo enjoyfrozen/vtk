@@ -33,15 +33,21 @@ vtkCommand::vtkCommand()
 //----------------------------------------------------------------
 void vtkCommand::UnRegister()
 {
-  int refcount = this->GetReferenceCount() - 1;
-  this->SetReferenceCount(refcount);
-  if (refcount <= 0)
-  {
+  this->UnRegister(nullptr);
+}
+
+//----------------------------------------------------------------
+void vtkCommand::UnRegister(vtkObjectBase*)
+{
+  this->Superclass::UnRegister(nullptr);
+}
+
+//----------------------------------------------------------------
+void vtkCommand::ObjectFinalize()
+{
 #ifdef VTK_DEBUG_LEAKS
-    vtkDebugLeaks::DestructClass(leakname);
+  vtkDebugLeaks::DestructClass(leakname);
 #endif
-    delete this;
-  }
 }
 
 //----------------------------------------------------------------
