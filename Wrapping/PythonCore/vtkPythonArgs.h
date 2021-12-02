@@ -42,6 +42,8 @@ resulting in wrapper code that is faster and more compact.
 #include <cstring>
 #include <string>
 
+class vtkSmartPointerBase;
+
 class VTKWRAPPINGPYTHONCORE_EXPORT vtkPythonArgs
 {
 public:
@@ -421,6 +423,7 @@ public:
   bool GetArray(std::string* a, size_t n);
   VTK_DEPRECATED_IN_9_1_0("Use bool GetArray(std::string* a, size_t n)")
   bool GetArray(vtkUnicodeString* a, size_t n);
+  bool GetArray(vtkSmartPointerBase* a, size_t n, const char* classname);
   ///@}
 
   ///@{
@@ -617,6 +620,7 @@ public:
   static PyObject* BuildTuple(const std::string* a, size_t n);
   VTK_DEPRECATED_IN_9_1_0("Use static PyObject* BuildTuple(const std::string* a, size_t n)")
   static PyObject* BuildTuple(const vtkUnicodeString* a, size_t n);
+  static PyObject* BuildTuple(vtkSmartPointerBase* a, size_t n);
   ///@}
 
   /**
