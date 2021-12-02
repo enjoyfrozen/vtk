@@ -396,14 +396,6 @@ public:
   vtkBaseTypeMacro(vtkCommand, vtkObjectBase);
 
   /**
-   * Decrease the reference count (release by another object). This has
-   * the same effect as invoking Delete() (i.e., it reduces the reference
-   * count by 1).
-   */
-  void UnRegister();
-  void UnRegister(vtkObjectBase*) override { this->UnRegister(); }
-
-  /**
    * All derived classes of vtkCommand must implement this
    * method. This is the method that actually does the work of the
    * callback. The caller argument is the object invoking the event,
@@ -475,6 +467,9 @@ protected:
   {
   }
   void operator=(const vtkCommand&) {}
+
+private:
+  void ObjectFinalize() final;
 };
 
 #endif /* vtkCommand_h */
