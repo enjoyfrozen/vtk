@@ -1312,13 +1312,15 @@ char* vtkWrap_SafeSuperclassName(const char* name)
 
 char* vtkWrap_TemplateArg(const char* name)
 {
+  /* ignore 2nd arg if present (e.g. std::vector allocator) */
+  const char* defaults[2] = { NULL, "" };
   const char** args;
   char* arg;
 
-  vtkParse_DecomposeTemplatedType(name, NULL, 1, &args, NULL);
+  vtkParse_DecomposeTemplatedType(name, NULL, 2, &args, defaults);
   arg = malloc(strlen(args[0]) + 1);
   strcpy(arg, args[0]);
-  vtkParse_FreeTemplateDecomposition(NULL, 1, args);
+  vtkParse_FreeTemplateDecomposition(NULL, 2, args);
 
   return arg;
 }
