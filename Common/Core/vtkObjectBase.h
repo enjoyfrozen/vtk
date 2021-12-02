@@ -277,6 +277,8 @@ protected:
   // Call this to unconditionally call memkind_free
   static vtkFreeingFunction GetAlternateFreeFunction();
 
+  virtual void Finalize();
+
 private:
   friend VTKCOMMONCORE_EXPORT ostream& operator<<(ostream& os, vtkObjectBase& o);
   friend class vtkGarbageCollectorToObjectBaseFriendship;

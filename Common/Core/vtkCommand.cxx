@@ -31,17 +31,11 @@ vtkCommand::vtkCommand()
 }
 
 //----------------------------------------------------------------
-void vtkCommand::UnRegister()
+void vtkCommand::Finalize()
 {
-  int refcount = this->GetReferenceCount() - 1;
-  this->SetReferenceCount(refcount);
-  if (refcount <= 0)
-  {
 #ifdef VTK_DEBUG_LEAKS
-    vtkDebugLeaks::DestructClass(leakname);
+  vtkDebugLeaks::DestructClass(leakname);
 #endif
-    delete this;
-  }
 }
 
 //----------------------------------------------------------------
