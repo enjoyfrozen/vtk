@@ -248,7 +248,7 @@ public:
    * UpperCenter)
    * related to the render window
    */
-  virtual void SetWindowLocation(int enumLocation);
+  void SetWindowLocation(int enumLocation) override;
   vtkGetMacro(WindowLocation, int);
   ///@}
 
