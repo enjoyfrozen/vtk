@@ -1,6 +1,5 @@
 set(classes
   vtkDynamic2DLabelMapper
-  vtkFastLabeledDataMapper
   vtkFreeTypeLabelRenderStrategy
   vtkLabeledDataMapper
   vtkLabeledTreeMapDataMapper

@@ -22,7 +22,9 @@ PRIVATE_DEPENDS
   VTK::CommonMath
   VTK::CommonSystem
   VTK::CommonTransforms
+  VTK::ImagingCore
   VTK::opengl
+  VTK::RenderingFreeType
   VTK::vtksys
 TEST_DEPENDS
   VTK::CommonSystem

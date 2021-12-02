@@ -31,7 +31,7 @@
 #define vtkFastLabeledDataMapper_h
 
 #include "vtkOpenGLPolyDataMapper.h"
-#include "vtkRenderingLabelModule.h" // For export macro
+#include "vtkRenderingOpenGL2Module.h" // For export macro
 
 class vtkDataObject;
 class vtkDataSet;
@@ -48,7 +48,7 @@ class vtkTransform;
 #define VTK_LABEL_TENSORS 5
 #define VTK_LABEL_FIELD_DATA 6
 
-class VTKRENDERINGLABEL_EXPORT vtkFastLabeledDataMapper : public vtkOpenGLPolyDataMapper
+class VTKRENDERINGOPENGL2_EXPORT vtkFastLabeledDataMapper : public vtkOpenGLPolyDataMapper
 {
 public:
   static vtkFastLabeledDataMapper* New();
