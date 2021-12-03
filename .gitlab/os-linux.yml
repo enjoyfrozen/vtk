@@ -43,12 +43,13 @@
 
 .fedora34:
     extends: .linux
-    image: "kitware/vtk:ci-fedora34-20211020"
+    image: "kitware/vtk:ci-fedora34-20210824"
 
 .fedora_cuda_addon:
     variables:
-        CUDACC: "/usr/local/cuda-11.2/bin/nvcc"
-        CUDACXX: "/usr/local/cuda-11.2/bin/nvcc"
+        CUDACC: "/usr/local/cuda-11.4/bin/nvcc"
+        CUDACXX: "/usr/local/cuda-11.4/bin/nvcc"
+        CTEST_MAX_PARALLELISM: 4
 
 .fedora_mpich_addon:
     variables:
@@ -76,21 +77,19 @@
 .fedora34_cuda_mpi:
     extends:
         - .fedora34
-        - .fedora_cuda_addon
         - .fedora_mpich_addon
 
     variables:
-        CMAKE_CONFIGURATION: fedora34_cuda_mpi
+        CMAKE_CONFIGURATION: fedora34_mpi_cuda_offscreen_osmesa
         VTK_INSTALL: 1
 
 .fedora34_cuda_mpi_ext_vtk:
     extends:
         - .fedora34
-        - .fedora_cuda_addon
         - .fedora_mpich_addon
 
     variables:
-        CMAKE_CONFIGURATION: fedora34_cuda_mpi_ext_vtk
+        CMAKE_CONFIGURATION: fedora34_mpi_cuda_ext_vtk_offscreen_osmesa
 
 .fedora34_mpi_offscreen_osmesa_python:
     extends:
@@ -233,6 +232,13 @@
         - linux
         - vtk
 
+.linux_cuda_builder_tags:
+    tags:
+        - build
+        - docker
+        - large-memory
+        - linux
+
 .linux_qt_builder_tags:
     tags:
         - build
@@ -247,6 +253,12 @@
         - linux
         - x11
         - vtk
+
+.linux_cuda_tester_tags:
+    tags:
+        - cuda-rt
+        - docker
+        - linux
 
 .linux_qt_tester_tags:
     tags:
@@ -293,6 +305,8 @@
 
     script:
         - *before_script_linux
+        - export SCCACHE_CONF="$GIT_CLONE_PATH/sccache_config"
+        - touch $SCCACHE_CONF
         - .gitlab/ci/sccache.sh
         - sccache --start-server
         - sccache --show-stats
