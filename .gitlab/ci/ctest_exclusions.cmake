@@ -117,6 +117,15 @@ if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "fedora")
   endif ()
 endif ()
 
+# We do not have Runners for tests with Qt installed
+if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "cuda")
+  list(APPEND test_exclusions
+    "^VTKExample-GUI/Qt"
+    "^VTKExample-Infovis/Cxx"
+    "^VTK::IOExportCxx.*PNG$"
+    )
+endif ()
+
 if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "offscreen")
   list(APPEND test_exclusions
     # Failed to open the display
