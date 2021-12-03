@@ -33,6 +33,10 @@ struct vtkXVisualInfo : public XVisualInfo
 };
 #endif // VTK_USE_X
 
+#ifdef _WIN32
+#include "vtkWindows.h"
+#endif // _WIN32
+
 #include <cstring>
 #include <iostream>
 #include <string>
@@ -860,8 +864,8 @@ bool vtkOpenXRManager::CreateGraphicsBinding(vtkOpenGLRenderWindow* helperWindow
     });
   this->GraphicsBinding = graphicsBindingGLWin32;
 
-  graphicsBindingGLWin32->hDC = reinterpret_cast<HDC>(helperWindow->GetGenericContext());
-  graphicsBindingGLWin32->hGLRC = reinterpret_cast<HGLRC>(helperWindow->GetGenericDisplayId());
+  graphicsBindingGLWin32->hDC = wglGetCurrentDC();
+  graphicsBindingGLWin32->hGLRC = wglGetCurrentContext();
 
 #else
   vtkErrorMacro(<< "Only X11 and Win32 are supported at the moment.");
