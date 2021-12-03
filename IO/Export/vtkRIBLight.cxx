@@ -40,6 +40,7 @@ void vtkRIBLight::Render(vtkRenderer* ren, int index)
   ref = this->Light->GetReferenceCount();
   this->Light->DeepCopy(this);
   // this->Light->SetDeleteMethod(nullptr);
+  // XXX: check why this ref manip is needed
   this->Light->SetReferenceCount(ref);
 
   // Render the light
