@@ -74,33 +74,42 @@ fedora34-cuda-mpi:build:
     extends:
         - .fedora34_cuda_mpi
         - .cmake_build_linux
-        - .linux_builder_tags
+        - .linux_cuda_builder_tags
         - .cmake_build_artifacts
         - .run_manually
+    variables:
+        CTEST_MAX_PARALLELISM: 4
+    timeout: 8 hours
 
 fedora34-cuda-mpi:test:
     extends:
         - .fedora34_cuda_mpi
         - .cmake_test_linux
-        - .linux_builder_tags
+        - .linux_cuda_tester_tags
         - .cmake_test_artifacts
         - .run_automatically
     dependencies:
-        - build:fedora34-cuda-mpi
+        - fedora34-cuda-mpi:build
     needs:
-        - build:fedora34-cuda-mpi
+        - fedora34-cuda-mpi:build
+    variables:
+        CTEST_MAX_PARALLELISM: 8
+    timeout: 2 hours
 
 vtk:fedora34-cuda-mpi:test-ext:
     extends:
         - .fedora34_cuda_mpi_ext_vtk
         - .cmake_test_external_linux
-        - .linux_builder_tags
+        - .linux_cuda_tester_tags
         - .cmake_tidy_artifacts
         - .run_automatically
     dependencies:
-        - test:fedora34-cuda-mpi
+        - fedora34-cuda-mpi:test
     needs:
-        - test:fedora34-cuda-mpi
+        - fedora34-cuda-mpi:test
+    variables:
+        CTEST_MAX_PARALLELISM: 8
+    timeout: 2 hours
 
 fedora34-mpi-offscreen-osmesa-python:build:
     extends:
