@@ -24,7 +24,7 @@
 #include "vtkPythonStdStreamCaptureHelper.h"
 #include "vtkResourceFileLocator.h"
 #include "vtkVersion.h"
-#include "vtkWeakPointer.h"
+#include "vtkWeakPtr.h"
 
 #include <vtksys/SystemInformation.hxx>
 #include <vtksys/SystemTools.hxx>
@@ -130,17 +130,17 @@ char* vtk_Py_EncodeLocale(const wchar_t* arg, size_t* size)
 }
 #endif
 
-std::vector<vtkWeakPointer<vtkPythonInterpreter>>* GlobalInterpreters;
+std::vector<vtkWeakPtr<vtkPythonInterpreter>>* GlobalInterpreters;
 std::vector<std::string> PythonPaths;
 
 void NotifyInterpreters(unsigned long eventid, void* calldata = nullptr)
 {
-  std::vector<vtkWeakPointer<vtkPythonInterpreter>>::iterator iter;
+  std::vector<vtkWeakPtr<vtkPythonInterpreter>>::iterator iter;
   for (iter = GlobalInterpreters->begin(); iter != GlobalInterpreters->end(); ++iter)
   {
-    if (iter->GetPointer())
+    if (auto interp = iter->Lock())
     {
-      iter->GetPointer()->InvokeEvent(eventid, calldata);
+      interp->InvokeEvent(eventid, calldata);
     }
   }
 }
@@ -172,7 +172,7 @@ vtkPythonGlobalInterpreters::vtkPythonGlobalInterpreters()
 {
   if (vtkPythonInterpretersCounter++ == 0)
   {
-    GlobalInterpreters = new std::vector<vtkWeakPointer<vtkPythonInterpreter>>();
+    GlobalInterpreters = new std::vector<vtkWeakPtr<vtkPythonInterpreter>>();
   };
 }
 
@@ -197,7 +197,7 @@ vtkStandardNewMacro(vtkPythonInterpreter);
 //------------------------------------------------------------------------------
 vtkPythonInterpreter::vtkPythonInterpreter()
 {
-  GlobalInterpreters->push_back(this);
+  GlobalInterpreters->emplace_back(vtkWeakPtr::FromOwningRawPointer(this));
 }
 
 //------------------------------------------------------------------------------
@@ -212,10 +212,11 @@ vtkPythonInterpreter::~vtkPythonInterpreter()
   {
     return;
   }
-  std::vector<vtkWeakPointer<vtkPythonInterpreter>>::iterator iter;
+  std::vector<vtkWeakPtr<vtkPythonInterpreter>>::iterator iter;
   for (iter = GlobalInterpreters->begin(); iter != GlobalInterpreters->end(); ++iter)
   {
-    if (*iter == this)
+    auto interp = iter->Lock();
+    if (interp && interp == this)
     {
       GlobalInterpreters->erase(iter);
       break;
