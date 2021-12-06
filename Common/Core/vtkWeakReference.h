@@ -25,8 +25,10 @@
 #define vtkWeakReference_h
 
 #include "vtkCommonCoreModule.h" // For export macro
+#include "vtkDeprecation.h"      // For VTK_DEPRECATED_IN_9_2_0
 #include "vtkObject.h"
-#include "vtkWeakPointer.h"
+#include "vtkSmartPointer.h"
+#include "vtkWeakPtr.h"
 
 class VTKCOMMONCORE_EXPORT vtkWeakReference : public vtkObject
 {
@@ -44,10 +46,20 @@ public:
   /**
    * Get the vtkObject pointer or nullptr if the object has been collected.
    */
+  VTK_DEPRECATED_IN_9_2_0(
+    "Use GetOwned() which ensures the caller has a reference that lives long enough")
   vtkObject* Get();
 
+  /**
+   * Get the vtkObject pointer or nullptr if the object has been collected.
+   *
+   * The returned object has an increased reference count to make sure it is
+   * useful for as long as the caller needs it.
+   */
+  vtkSmartPointer<vtkObject> GetOwned();
+
 private:
-  vtkWeakPointer<vtkObject> Object;
+  vtkWeakPtr<vtkObject> Object;
 };
 
 #endif

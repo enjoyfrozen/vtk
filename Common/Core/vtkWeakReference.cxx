@@ -15,7 +15,6 @@
 
 #include "vtkWeakReference.h"
 #include "vtkObjectFactory.h"
-#include "vtkWeakPointer.h"
 
 //------------------------------------------------------------------------------
 vtkStandardNewMacro(vtkWeakReference);
@@ -29,11 +28,25 @@ vtkWeakReference::~vtkWeakReference() = default;
 //------------------------------------------------------------------------------
 void vtkWeakReference::Set(vtkObject* object)
 {
-  this->Object = object;
+  this->Object.Reset(object);
 }
 
 //------------------------------------------------------------------------------
 vtkObject* vtkWeakReference::Get()
 {
-  return this->Object;
+  auto obj = this->GetOwned();
+  // Extract the pointer. The caller doesn't know if it owns this or not, so it
+  // cannot be passed back with a new reference without leaking in existing
+  // code.
+  vtkObject* obj_ptr = obj;
+  // XXX(thread-safety): This may not be valid after this function returns if
+  // the chart is released on other threads. Previous code had problems with
+  // this, so this is no worse than before.
+  return obj_ptr;
+}
+
+//------------------------------------------------------------------------------
+vtkSmartPointer<vtkObject> vtkWeakReference::GetOwned()
+{
+  return this->Object.Lock();
 }
