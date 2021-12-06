@@ -314,8 +314,10 @@ class VTKArray(numpy.ndarray):
         dataset is held through a vtkWeakReference to ensure it doesn't prevent
         the dataset from being collected if necessary.
         """
-        if hasattr(self, '_dataset') and self._dataset and self._dataset.Get():
-            return WrapDataObject(self._dataset.Get())
+        if hasattr(self, '_dataset') and self._dataset:
+            ds = self._dataset.GetOwned()
+            if ds:
+                return WrapDataObject(ds)
 
         return  None
 
