@@ -5,8 +5,6 @@ LIBRARY_NAME
 IMPLEMENTABLE
 KIT
   VTK::Rendering
-GROUPS
-  Rendering
 DEPENDS
   VTK::CommonCore
   VTK::CommonDataModel
