@@ -13,3 +13,4 @@ new references because the callers would not know whether to call
 * `vtkMultiProcessController::GetLocalController()` is now `vtkMultiProcessController::GetLocalControllerOwned()`
 * `QQuickVTKInteractiveWidget::widget()` is now `QQuickVTKInteractiveWidget::widgetOwned()`
 * `vtkChartLegend::GetChart()` is now `vtkChartLegend::GetChartOwned()`
+* `vtkScatterPlotMatrix::GetMainChart()` is now `vtkScatterPlotMatrix::GetMainChartOwned()`
