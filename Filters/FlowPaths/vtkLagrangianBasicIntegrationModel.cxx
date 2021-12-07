@@ -73,7 +73,6 @@ vtkLagrangianBasicIntegrationModel::vtkLagrangianBasicIntegrationModel()
   , Tolerance(1.0e-8)
   , NonPlanarQuadSupport(false)
   , UseInitialIntegrationTime(false)
-  , Tracker(nullptr)
 {
   SurfaceArrayDescription surfaceTypeDescription;
   surfaceTypeDescription.nComp = 1;
@@ -135,7 +134,7 @@ void vtkLagrangianBasicIntegrationModel::PrintSelf(ostream& os, vtkIndent indent
 //------------------------------------------------------------------------------
 void vtkLagrangianBasicIntegrationModel::SetTracker(vtkLagrangianParticleTracker* tracker)
 {
-  this->Tracker = tracker;
+  this->Tracker.Reset(tracker);
 }
 
 //------------------------------------------------------------------------------
@@ -493,8 +492,9 @@ bool vtkLagrangianBasicIntegrationModel::BreakParticle(vtkLagrangianParticle* pa
   surface->GetCellData()->GetNormals()->GetTuple(cellId, normal);
 
   // Create new particles
-  vtkLagrangianParticle* particle1 = particle->NewParticle(this->Tracker->GetNewParticleId());
-  vtkLagrangianParticle* particle2 = particle->NewParticle(this->Tracker->GetNewParticleId());
+  auto tracker = this->Tracker.Lock(); // XXX(weakptr): check for validity?
+  vtkLagrangianParticle* particle1 = particle->NewParticle(tracker->GetNewParticleId());
+  vtkLagrangianParticle* particle2 = particle->NewParticle(tracker->GetNewParticleId());
 
   // Compute bounce for each new particle
   double* nextVel = particle->GetNextVelocity();

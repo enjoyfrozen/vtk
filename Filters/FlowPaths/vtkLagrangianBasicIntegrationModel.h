@@ -53,8 +53,8 @@
 
 #include "vtkFiltersFlowPathsModule.h" // For export macro
 #include "vtkFunctionSet.h"
-#include "vtkNew.h"         // For arrays
-#include "vtkWeakPointer.h" // For weak pointer
+#include "vtkNew.h"     // For arrays
+#include "vtkWeakPtr.h" // For weak pointer
 
 #include <map>   // for array indexes
 #include <mutex> // for mutexes
@@ -647,7 +647,7 @@ protected:
   vtkNew<vtkStringArray> SurfaceArrayEnumValues;
   vtkNew<vtkDoubleArray> SurfaceArrayDefaultValues;
 
-  vtkWeakPointer<vtkLagrangianParticleTracker> Tracker;
+  vtkWeakPtr<vtkLagrangianParticleTracker> Tracker;
   std::mutex ParticleQueueMutex;
 
 private:
