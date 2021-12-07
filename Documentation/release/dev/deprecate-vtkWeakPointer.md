@@ -8,3 +8,4 @@ new references because the callers would not know whether to call
 `vtkSmartPointer` are available.
 
 * `vtkWeakReference::Get()` is now `vtkWeakReference::GetOwned()`
+* `vtkObjectIdMap::GetActiveObject()` is now `vtkObjectIdMap::GetActiveObjectOwned()`
