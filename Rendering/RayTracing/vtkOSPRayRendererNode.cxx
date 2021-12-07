@@ -48,7 +48,7 @@
 #include "vtkTransform.h"
 #include "vtkVolume.h"
 #include "vtkVolumeCollection.h"
-#include "vtkWeakPointer.h"
+#include "vtkWeakPtr.h"
 
 #include "RTWrapper/RTWrapper.h"
 
@@ -223,11 +223,14 @@ public:
     {
       envTextureTime = envTexture->GetMTime();
     }
-    if (this->lTexture[index] != envTexture || envTextureTime > this->lTextureTime[index])
     {
-      this->lTexture[index] = envTexture;
-      this->lTextureTime[index] = envTextureTime;
-      retval = false;
+      auto tex = this->lTexture[index].Lock();
+      if (tex != envTexture || envTextureTime > this->lTextureTime[index])
+      {
+        this->lTexture[index].Reset(envTexture);
+        this->lTextureTime[index] = envTextureTime;
+        retval = false;
+      }
     }
     bool useGradient =
       (forbackplate ? ren->GetGradientBackground() : ren->GetGradientEnvironmentalBG());
@@ -442,7 +445,7 @@ public:
   bool lUseGradient[2] = { false, false };
   double lColor2[2][3] = { { 0.0, 0.0, 0.0 }, { 0.0, 0.0, 0.0 } };
   bool lUseTexture[2] = { false, false };
-  vtkWeakPointer<vtkTexture> lTexture[2] = { nullptr, nullptr };
+  vtkWeakPtr<vtkTexture> lTexture[2];
   vtkMTimeType lTextureTime[2] = { 0, 0 };
   double lup[3];
   double least[3];
