@@ -26,9 +26,11 @@
 #ifndef vtkViewNode_h
 #define vtkViewNode_h
 
+#include "vtkDeprecation.h" // For VTK_DEPRECATED_IN_9_2_0
 #include "vtkObject.h"
 #include "vtkRenderingSceneGraphModule.h" // For export macro
-#include "vtkWeakPointer.h"               //avoid ref loop to parent
+#include "vtkSmartPointer.h"              // For vtkSmartPointer
+#include "vtkWeakPtr.h"                   //avoid ref loop to parent
 #include <list>                           // for ivar
 #include <map>                            // for ivar
 
@@ -73,7 +75,9 @@ public:
    * Access the node that owns this one.
    */
   virtual void SetParent(vtkViewNode*);
+  VTK_DEPRECATED_IN_9_2_0("Use GetParentOwned() to ensure the pointer is valid")
   virtual vtkViewNode* GetParent();
+  vtkSmartPointer<vtkViewNode> GetParentOwned();
   ///@}
 
   ///@{
@@ -101,7 +105,9 @@ public:
   /**
    * Find the first parent/grandparent of the desired type
    */
+  VTK_DEPRECATED_IN_9_2_0("Use GetFirstAncestorOfTypeOwned() to ensure the pointer is valid")
   vtkViewNode* GetFirstAncestorOfType(const char* type);
+  vtkSmartPointer<vtkViewNode> GetFirstAncestorOfTypeOwned(const char* type);
 
   /**
    * Find the first child of the desired type
@@ -174,7 +180,7 @@ protected:
   virtual vtkViewNode* CreateViewNode(vtkObject* obj);
 
   vtkObject* Renderable;
-  vtkWeakPointer<vtkViewNode> Parent;
+  vtkWeakPtr<vtkViewNode> Parent;
   std::list<vtkViewNode*> Children;
   vtkViewNodeFactory* MyFactory;
   std::map<vtkObject*, vtkViewNode*> Renderables;
