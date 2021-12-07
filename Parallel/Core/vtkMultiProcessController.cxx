@@ -29,7 +29,7 @@
 #include "vtkProcess.h"
 #include "vtkProcessGroup.h"
 #include "vtkSubCommunicator.h"
-#include "vtkWeakPointer.h"
+#include "vtkWeakPtr.h"
 
 #include <algorithm>
 #include <list>
@@ -908,26 +908,54 @@ int vtkMultiProcessController::AllReduce(
 
 //============================================================================
 // The intent is to give access to a processes controller from a static method.
-static vtkWeakPointer<vtkMultiProcessController> VTK_GLOBAL_MULTI_PROCESS_CONTROLLER;
+static vtkWeakPtr<vtkMultiProcessController> VTK_GLOBAL_MULTI_PROCESS_CONTROLLER;
 //------------------------------------------------------------------------------
 vtkMultiProcessController* vtkMultiProcessController::GetGlobalController()
 {
-  if (VTK_GLOBAL_MULTI_PROCESS_CONTROLLER == nullptr)
+  auto controller = vtkMultiProcessController::GetGlobalControllerOwned();
+  // Extract the pointer. The caller doesn't know if it owns this or not, so it
+  // cannot be passed back with a new reference without leaking in existing
+  // code.
+  vtkMultiProcessController* controller_ptr = controller;
+  // XXX(thread-safety): This may not be valid after this function returns if
+  // the controller is released on other threads. Previous code had problems
+  // with this, so this is no worse than before.
+  return controller_ptr;
+}
+//------------------------------------------------------------------------------
+vtkMultiProcessController* vtkMultiProcessController::GetGlobalControllerOwned()
+{
+  auto global = VTK_GLOBAL_MULTI_PROCESS_CONTROLLER.Lock();
+  if (global == nullptr)
   {
     return nullptr;
   }
 
-  return VTK_GLOBAL_MULTI_PROCESS_CONTROLLER->GetLocalController();
+  return global->GetLocalController();
 }
 //------------------------------------------------------------------------------
 // This can be overridden in the subclass to translate controllers.
 vtkMultiProcessController* vtkMultiProcessController::GetLocalController()
 {
-  return VTK_GLOBAL_MULTI_PROCESS_CONTROLLER;
+  auto controller = this->GetLocalControllerOwned();
+  // Extract the pointer. The caller doesn't know if it owns this or not, so it
+  // cannot be passed back with a new reference without leaking in existing
+  // code.
+  vtkMultiProcessController* controller_ptr = controller;
+  // XXX(thread-safety): This may not be valid after this function returns if
+  // the controller is released on other threads. Previous code had problems
+  // with this, so this is no worse than before.
+  return controller_ptr;
+}
+//------------------------------------------------------------------------------
+// This can be overridden in the subclass to translate controllers.
+vtkSmartPointer<vtkMultiProcessController> vtkMultiProcessController::GetLocalControllerOwned()
+{
+  return VTK_GLOBAL_MULTI_PROCESS_CONTROLLER.Lock();
 }
 //------------------------------------------------------------------------------
 // This can be overridden in the subclass to translate controllers.
 void vtkMultiProcessController::SetGlobalController(vtkMultiProcessController* controller)
 {
-  VTK_GLOBAL_MULTI_PROCESS_CONTROLLER = controller;
+  VTK_GLOBAL_MULTI_PROCESS_CONTROLLER.Reset(controller);
 }
