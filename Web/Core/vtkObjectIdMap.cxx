@@ -16,7 +16,7 @@
 
 #include "vtkObjectFactory.h"
 #include "vtkSmartPointer.h"
-#include "vtkWeakPointer.h"
+#include "vtkWeakPtr.h"
 
 #include <map>
 #include <set>
@@ -26,7 +26,7 @@ struct vtkObjectIdMap::vtkInternals
 {
   std::map<vtkTypeUInt32, vtkSmartPointer<vtkObject>> Object;
   std::map<vtkSmartPointer<vtkObject>, vtkTypeUInt32> GlobalId;
-  std::map<std::string, vtkWeakPointer<vtkObject>> ActiveObjects;
+  std::map<std::string, vtkWeakPtr<vtkObject>> ActiveObjects;
   vtkTypeUInt32 NextAvailableId;
 
   vtkInternals()
@@ -90,7 +90,7 @@ vtkTypeUInt32 vtkObjectIdMap::SetActiveObject(const char* objectType, vtkObject*
 {
   if (objectType)
   {
-    this->Internals->ActiveObjects[objectType] = obj;
+    this->Internals->ActiveObjects[objectType].Reset(obj);
     return this->GetGlobalId(obj);
   }
   return 0;
@@ -99,9 +99,23 @@ vtkTypeUInt32 vtkObjectIdMap::SetActiveObject(const char* objectType, vtkObject*
 //------------------------------------------------------------------------------
 vtkObject* vtkObjectIdMap::GetActiveObject(const char* objectType)
 {
+  auto obj = this->GetActiveObjectOwned(objectType);
+  // Extract the pointer. The caller doesn't know if it owns this or not, so it
+  // cannot be passed back with a new reference without leaking in existing
+  // code.
+  vtkObject* obj_ptr = obj;
+  // XXX(thread-safety): This may not be valid after this function returns if
+  // the object is released on other threads. Previous code had problems with
+  // this, so this is no worse than before.
+  return obj_ptr;
+}
+
+//------------------------------------------------------------------------------
+vtkSmartPointer<vtkObject> vtkObjectIdMap::GetActiveObjectOwned(const char* objectType)
+{
   if (objectType)
   {
-    return this->Internals->ActiveObjects[objectType];
+    return this->ActiveObjects[objectType].Lock();
   }
   return nullptr;
 }

@@ -21,7 +21,9 @@
 #ifndef vtkObjectIdMap_h
 #define vtkObjectIdMap_h
 
+#include "vtkDeprecation.h" // For VTK_DEPRECATED_IN_9_2_0
 #include "vtkObject.h"
+#include "vtkSmartPointer.h"  // For vtkSmartPointer
 #include "vtkWebCoreModule.h" // needed for exports
 
 class VTKWEBCORE_EXPORT vtkObjectIdMap : public vtkObject
@@ -50,10 +52,14 @@ public:
    */
   vtkTypeUInt32 SetActiveObject(const char* objectType, vtkObject* obj);
 
+  ///@{
   /**
    * Retrieve a previously stored object based on a name
    */
+  VTK_DEPRECATED_IN_9_2_0("Use GetActiveObjectOwned() to ensure the pointer is valid")
   vtkObject* GetActiveObject(const char* objectType);
+  vtkSmartPointer<vtkObject> GetActiveObjectOwned(const char* objectType);
+  ///@}
 
   /**
    * Given an object, remove any internal reference count due to
