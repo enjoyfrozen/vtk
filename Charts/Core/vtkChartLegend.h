@@ -28,8 +28,10 @@
 
 #include "vtkChartsCoreModule.h" // For export macro
 #include "vtkContextItem.h"
-#include "vtkNew.h"  // For vtkNew
-#include "vtkRect.h" // For vtkRectf return value
+#include "vtkDeprecation.h"  // For VTK_DEPRECATED_IN_9_2_0
+#include "vtkNew.h"          // For vtkNew
+#include "vtkRect.h"         // For vtkRectf return value
+#include "vtkSmartPointer.h" // For vtkSmartPointer
 
 class vtkChart;
 class vtkPen;
@@ -178,7 +180,13 @@ public:
   /**
    * Get the chart that the legend belongs to and will draw the legend for.
    */
+  VTK_DEPRECATED_IN_9_2_0("Use GetChartOwned() to ensure the pointer is valid")
   vtkChart* GetChart();
+
+  /**
+   * Get the chart that the legend belongs to and will draw the legend for.
+   */
+  vtkSmartPointer<vtkChart> GetChartOwned();
 
   /**
    * Update the geometry of the axis. Takes care of setting up the tick mark
