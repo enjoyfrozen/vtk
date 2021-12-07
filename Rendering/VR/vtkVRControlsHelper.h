@@ -28,7 +28,8 @@ PURPOSE.  See the above copyright notice for more information.
 #include "vtkNew.h"       // for iVar
 #include "vtkProp.h"
 #include "vtkRenderingVRModule.h" // For export macro
-#include "vtkWeakPointer.h"       // needed for vtkWeakPointer iVar.
+#include "vtkSmartPointer.h"      // For vtkSmartPointer
+#include "vtkWeakPtr.h"           // needed for vtkWeakPtr iVar.
 #include <string>                 // for std::string
 
 class vtkActor;
@@ -106,7 +107,9 @@ public:
   void SetDevice(vtkEventDataDevice val);
 
   virtual void SetRenderer(vtkRenderer* ren);
+  VTK_DEPRECATED_IN_9_2_0("Use GetRendererOwned() to ensure the pointer is valid")
   virtual vtkRenderer* GetRenderer();
+  vtkSmartPointer<vtkRenderer> GetRendererOwned() const;
 
 protected:
   vtkVRControlsHelper();
@@ -135,7 +138,7 @@ protected:
   double ControlPositionLC[3];
 
   // The renderer in which this widget is placed
-  vtkWeakPointer<vtkRenderer> Renderer;
+  vtkWeakPtr<vtkRenderer> Renderer;
 
   vtkCallbackCommand* MoveCallbackCommand;
   unsigned long ObserverTag;
