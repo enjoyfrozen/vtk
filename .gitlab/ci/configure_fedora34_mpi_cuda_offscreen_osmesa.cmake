@@ -10,8 +10,5 @@ set(VTK_MODULE_ENABLE_VTK_fides NO CACHE STRING "")
 # Nothing with Qt
 set(VTK_GROUP_ENABLE_Qt "NO" CACHE STRING "")
 
-# Compile for a range of hardware to support testing on any available machine.
-set(CMAKE_CUDA_ARCHITECTURES 60-real 70-real 75-real 80 CACHE STRING "")
-
 # Lowest-common denominator.
 set(VTKm_CUDA_Architecture "pascal" CACHE STRING "")

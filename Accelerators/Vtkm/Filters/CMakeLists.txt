@@ -82,7 +82,6 @@ vtkm_add_target_information(${vtkm_accel_target}
 vtk_module_set_property(VTK::AcceleratorsVTKmFilters
   PROPERTY  JOB_POOL_COMPILE
   VALUE     vtkm_pool)
-
 vtk_module_link(VTK::AcceleratorsVTKmFilters
   PRIVATE
     vtkm_worklet
@@ -91,7 +90,7 @@ vtk_module_link(VTK::AcceleratorsVTKmFilters
 if (TARGET vtkm::cuda)
   list(TRANSFORM classes APPEND ".cxx" OUTPUT_VARIABLE cuda_impl)
   set_source_files_properties(${cuda_impl} PROPERTIES
-    LANGUAGE CUDA 
+    LANGUAGE CUDA
     CUDA_SOURCE_PROPERTY_FORMAT OBJ
     CUDA_SEPARABLE_COMPILATION ON)
 
