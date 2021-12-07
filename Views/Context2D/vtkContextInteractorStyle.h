@@ -25,10 +25,12 @@
 #ifndef vtkContextInteractorStyle_h
 #define vtkContextInteractorStyle_h
 
+#include "vtkDeprecation.h" // For VTK_DEPRECATED_IN_9_2_0
 #include "vtkInteractorStyle.h"
 #include "vtkNew.h"                  // For ivars
+#include "vtkSmartPointer.h"         // For ivars
 #include "vtkViewsContext2DModule.h" // For export macro
-#include "vtkWeakPointer.h"          // For ivars
+#include "vtkWeakPtr.h"              // For ivars
 
 class vtkContextMouseEvent;
 class vtkContextScene;
@@ -52,7 +54,13 @@ public:
   /**
    * Return the observed scene.
    */
+  VTK_DEPRECATED_IN_9_2_0("Use GetSceneOwned() to ensure the pointer is valid")
   vtkContextScene* GetScene();
+
+  /**
+   * Return the observed scene.
+   */
+  vtkSmartPointer<vtkContextScene> GetSceneOwned();
 
   /**
    * Called when the scene is modified. Refresh the scene if needed.
@@ -178,7 +186,7 @@ protected:
    */
   void EndProcessingEvent();
 
-  vtkWeakPointer<vtkContextScene> Scene;
+  vtkWeakPtr<vtkContextScene> Scene;
   vtkNew<vtkCallbackCommand> SceneCallbackCommand;
   vtkNew<vtkCallbackCommand> InteractorCallbackCommand;
   int ProcessingEvents;
