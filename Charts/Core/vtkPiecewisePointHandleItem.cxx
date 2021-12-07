@@ -76,7 +76,6 @@ vtkStandardNewMacro(vtkPiecewisePointHandleItem);
 vtkPiecewisePointHandleItem::vtkPiecewisePointHandleItem()
 {
   this->MouseOverHandleIndex = -1;
-  this->PiecewiseFunction = nullptr;
   this->Callback = vtkCallbackCommand::New();
   this->Callback->SetClientData(this);
   this->Callback->SetCallback(vtkPiecewisePointHandleItem::CallRedraw);
@@ -105,7 +104,7 @@ void vtkPiecewisePointHandleItem::SetParent(vtkAbstractContextItem* parent)
   }
   else if (this->Parent)
   {
-    if (this->PiecewiseFunction)
+    if (auto func = this->PiecewiseFunction.Lock())
     {
       this->Parent->RemoveObserver(this->Callback);
     }
@@ -120,8 +119,9 @@ void vtkPiecewisePointHandleItem::SetParent(vtkAbstractContextItem* parent)
 //------------------------------------------------------------------------------
 bool vtkPiecewisePointHandleItem::Paint(vtkContext2D* painter)
 {
+  auto func = this->PiecewiseFunction.Lock();
   vtkControlPointsItem* parentControl = vtkControlPointsItem::SafeDownCast(this->GetParent());
-  if (!parentControl || parentControl->GetCurrentPoint() < 0 || !this->GetPiecewiseFunction())
+  if (!parentControl || parentControl->GetCurrentPoint() < 0 || !func)
   {
     this->CurrentPointIndex = -1;
     return true;
@@ -157,15 +157,16 @@ bool vtkPiecewisePointHandleItem::Paint(vtkContext2D* painter)
   vtkIdType nxtIdx = currentIdx + 1;
   double preMid = 0.0, preSharp = 0.0, curMid = point[2], curSharp = point[3];
   double prePoint[4], nxtPoint[4];
+  auto func = this->PiecewiseFunction.Lock();
   if (preIdx >= 0)
   {
-    this->PiecewiseFunction->GetNodeValue(preIdx, prePoint);
+    func->GetNodeValue(preIdx, prePoint);
     preMid = prePoint[2];
     preSharp = prePoint[3];
   }
   if (nxtIdx < parentControl->GetNumberOfPoints())
   {
-    this->PiecewiseFunction->GetNodeValue(nxtIdx, nxtPoint);
+    func->GetNodeValue(nxtIdx, nxtPoint);
     preMid = prePoint[2];
     preSharp = prePoint[3];
   }
@@ -260,8 +261,9 @@ bool vtkPiecewisePointHandleItem::Hit(const vtkContextMouseEvent& mouse)
 //------------------------------------------------------------------------------
 int vtkPiecewisePointHandleItem::IsOverHandle(float* scenePos)
 {
+  auto func = this->PiecewiseFunction.Lock();
   vtkControlPointsItem* parentControl = vtkControlPointsItem::SafeDownCast(this->GetParent());
-  if (!parentControl || parentControl->GetCurrentPoint() < 0 || !this->GetPiecewiseFunction() ||
+  if (!parentControl || parentControl->GetCurrentPoint() < 0 || !func ||
     !this->Scene->GetLastPainter())
   {
     return -1;
@@ -295,16 +297,17 @@ bool vtkPiecewisePointHandleItem::MouseMoveEvent(const vtkContextMouseEvent& mou
       PointHandle* activeHandle = &this->Internal->PointHandles[this->MouseOverHandleIndex];
       float deltaX = mouse.GetScenePos().GetX() - activeHandle->ScenePos[0];
       float deltaY = mouse.GetScenePos().GetY() - activeHandle->ScenePos[1];
+      auto func = this->PiecewiseFunction.Lock();
 
       vtkControlPointsItem* parentControl = vtkControlPointsItem::SafeDownCast(this->GetParent());
       if (activeHandle->fDistance <= 0 || !parentControl || parentControl->GetCurrentPoint() < 0 ||
-        !this->GetPiecewiseFunction())
+        !func)
       {
         return false;
       }
       vtkIdType curIdx = activeHandle->PointIndex;
       double point[4];
-      this->PiecewiseFunction->GetNodeValue(curIdx, point);
+      func->GetNodeValue(curIdx, point);
       if (activeHandle->enType == enMidPoint)
       {
         double fMid = deltaX / activeHandle->fDistance + activeHandle->fValue;
@@ -323,7 +326,7 @@ bool vtkPiecewisePointHandleItem::MouseMoveEvent(const vtkContextMouseEvent& mou
         fSharp = std::min(fSharp, 1.0);
         point[3] = fSharp;
       }
-      this->GetPiecewiseFunction()->SetNodeValue(curIdx, point);
+      func->SetNodeValue(curIdx, point);
       return true;
     }
   }
@@ -363,26 +366,41 @@ bool vtkPiecewisePointHandleItem::MouseButtonReleaseEvent(const vtkContextMouseE
 //------------------------------------------------------------------------------
 vtkWeakPointer<vtkPiecewiseFunction> vtkPiecewisePointHandleItem::GetPiecewiseFunction()
 {
-  return this->PiecewiseFunction;
+  auto func = this->GetPiecewiseFunctionOwned();
+  // Extract the pointer. The caller doesn't know if it owns this or not, so it
+  // cannot be passed back with a new reference without leaking in existing
+  // code.
+  vtkPiecewiseFunction* func_ptr = func;
+  // XXX(thread-safety): This may not be valid after this function returns if
+  // the function is released on other threads. Previous code had problems with
+  // this, so this is no worse than before.
+  return func_ptr;
+}
+
+//------------------------------------------------------------------------------
+vtkSmartPointer<vtkPiecewiseFunction> vtkPiecewisePointHandleItem::GetPiecewiseFunctionOwned() const
+{
+  return this->PiecewiseFunction.Lock();
 }
 
 //------------------------------------------------------------------------------
 void vtkPiecewisePointHandleItem::SetPiecewiseFunction(vtkPiecewiseFunction* function)
 {
-  if (function == this->PiecewiseFunction)
+  auto func = this->PiecewiseFunction.Lock();
+  if (function == func)
   {
     return;
   }
-  if (this->PiecewiseFunction)
+  if (func)
   {
-    this->PiecewiseFunction->RemoveObserver(this->Callback);
+    func->RemoveObserver(this->Callback);
   }
-  this->PiecewiseFunction = function;
-  if (this->PiecewiseFunction)
+  if (function)
   {
-    this->PiecewiseFunction->AddObserver(vtkCommand::ModifiedEvent, this->Callback);
-    this->PiecewiseFunction->AddObserver(vtkCommand::EndEvent, this->Callback);
+    function->AddObserver(vtkCommand::ModifiedEvent, this->Callback);
+    function->AddObserver(vtkCommand::EndEvent, this->Callback);
   }
+  this->PiecewiseFunction.Reset(function);
   this->Redraw();
 }
 //------------------------------------------------------------------------------
@@ -415,10 +433,11 @@ void vtkPiecewisePointHandleItem::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
   os << indent << "PiecewiseFunction: ";
-  if (this->PiecewiseFunction)
+  auto func = this->PiecewiseFunction.Lock();
+  if (func)
   {
     os << endl;
-    this->PiecewiseFunction->PrintSelf(os, indent.GetNextIndent());
+    func->PrintSelf(os, indent.GetNextIndent());
   }
   else
   {
