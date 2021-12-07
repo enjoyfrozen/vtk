@@ -16,3 +16,4 @@ new references because the callers would not know whether to call
 * `vtkScatterPlotMatrix::GetMainChart()` is now `vtkScatterPlotMatrix::GetMainChartOwned()`
 * `vtkViewNode::GetParent()` is now `vtkViewNode::GetParentOwned()`
 * `vtkViewNode::GetFirstAncestorOfType()` is now `vtkViewNode::GetFirstChildOfTypeOwned()`
+* `vtkVRControlsHelper::GetRenderer()` is now `vtkVRControlsHelper::GetRendererOwned()`
