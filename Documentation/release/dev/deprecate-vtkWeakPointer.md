@@ -9,3 +9,5 @@ new references because the callers would not know whether to call
 
 * `vtkWeakReference::Get()` is now `vtkWeakReference::GetOwned()`
 * `vtkObjectIdMap::GetActiveObject()` is now `vtkObjectIdMap::GetActiveObjectOwned()`
+* `vtkMultiProcessController::GetGlobalController()` is now `vtkMultiProcessController::GetGlobalControllerOwned()`
+* `vtkMultiProcessController::GetLocalController()` is now `vtkMultiProcessController::GetLocalControllerOwned()`
