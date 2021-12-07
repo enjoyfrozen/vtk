@@ -17,3 +17,4 @@ new references because the callers would not know whether to call
 * `vtkViewNode::GetParent()` is now `vtkViewNode::GetParentOwned()`
 * `vtkViewNode::GetFirstAncestorOfType()` is now `vtkViewNode::GetFirstChildOfTypeOwned()`
 * `vtkVRControlsHelper::GetRenderer()` is now `vtkVRControlsHelper::GetRendererOwned()`
+* `vtkContextInteractorStyle::GetScene()` is now `vtkContextInteractorStyle::GetSceneOwned()`
