@@ -290,11 +290,12 @@ void vtkCameraOrientationWidget::MoveAction(vtkAbstractWidget* w)
     rep->ComputeInteractionState(X, Y, 0);
   }
 
-  if (self->ParentRenderer == nullptr)
+  auto parent_renderer = self->ParentRenderer.Lock();
+  if (parent_renderer == nullptr)
   {
     return;
   }
-  auto cam = self->ParentRenderer->GetActiveCamera();
+  auto cam = parent_renderer->GetActiveCamera();
   if (cam == nullptr)
   {
     return;
@@ -311,10 +312,10 @@ void vtkCameraOrientationWidget::MoveAction(vtkAbstractWidget* w)
   cam->Azimuth(rep->GetAzimuth());
   cam->Elevation(rep->GetElevation());
   cam->OrthogonalizeViewUp();
-  self->ParentRenderer->ResetCameraClippingRange();
+  parent_renderer->ResetCameraClippingRange();
   if (self->Interactor->GetLightFollowCamera())
   {
-    self->ParentRenderer->UpdateLightsGeometryToFollowCamera();
+    parent_renderer->UpdateLightsGeometryToFollowCamera();
   }
 
   self->EventCallbackCommand->AbortFlagOn();
@@ -325,12 +326,13 @@ void vtkCameraOrientationWidget::MoveAction(vtkAbstractWidget* w)
 //-----------------------------------------------------------------------------
 void vtkCameraOrientationWidget::OrientParentCamera(double back[3], double up[3])
 {
-  if (this->ParentRenderer == nullptr)
+  auto parent_renderer = this->ParentRenderer.Lock();
+  if (parent_renderer == nullptr)
   {
     return;
   }
 
-  vtkCamera* cam = this->ParentRenderer->GetActiveCamera();
+  vtkCamera* cam = parent_renderer->GetActiveCamera();
 
   this->CameraInterpolator->Initialize();
 
@@ -360,7 +362,8 @@ void vtkCameraOrientationWidget::OrientParentCamera(double back[3], double up[3]
 //-----------------------------------------------------------------------------
 void vtkCameraOrientationWidget::OrientWidgetRepresentation()
 {
-  if (this->ParentRenderer == nullptr)
+  auto parent_renderer = this->ParentRenderer.Lock();
+  if (parent_renderer == nullptr)
   {
     return;
   }
@@ -369,7 +372,7 @@ void vtkCameraOrientationWidget::OrientWidgetRepresentation()
   {
     return;
   }
-  vtkCamera* cam = this->ParentRenderer->GetActiveCamera();
+  vtkCamera* cam = parent_renderer->GetActiveCamera();
   if (cam != nullptr)
   {
     const double* orient = cam->GetOrientationWXYZ();
@@ -383,11 +386,12 @@ void vtkCameraOrientationWidget::OrientWidgetRepresentation()
 
 void vtkCameraOrientationWidget::InterpolateCamera(int t)
 {
-  if (this->ParentRenderer == nullptr)
+  auto parent_renderer = self->ParentRenderer.Lock();
+  if (parent_renderer == nullptr)
   {
     return;
   }
-  vtkCamera* cam = this->ParentRenderer->GetActiveCamera();
+  vtkCamera* cam = parent_renderer->GetActiveCamera();
   if (cam == nullptr)
   {
     return;
@@ -482,10 +486,11 @@ void vtkCameraOrientationWidget::PrintSelf(ostream& os, vtkIndent indent)
     default:
       break;
   }
-  if (this->ParentRenderer != nullptr)
+  auto parent_renderer = this->ParentRenderer.Lock();
+  if (parent_renderer != nullptr)
   {
     os << indent << "ParentRenderer:" << endl;
-    this->ParentRenderer->PrintSelf(os, indent);
+    parent_renderer->PrintSelf(os, indent);
   }
   os << indent << "CameraInterpolator:" << endl;
   this->CameraInterpolator->PrintSelf(os, indent);
