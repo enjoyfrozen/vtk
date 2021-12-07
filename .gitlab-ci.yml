@@ -76,7 +76,7 @@ fedora34-cuda-mpi:build:
         - .cmake_build_linux
         - .cmake_build_artifacts
         - .linux_cuda_builder_tags
-        - .run_manually
+        - .run_automatically
     variables:
         CTEST_MAX_PARALLELISM: 4
     timeout: 8 hours
