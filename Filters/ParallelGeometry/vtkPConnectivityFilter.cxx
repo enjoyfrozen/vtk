@@ -41,7 +41,7 @@
 #include "vtkTypeList.h"
 #include "vtkUnsignedCharArray.h"
 #include "vtkUnstructuredGrid.h"
-#include "vtkWeakPointer.h"
+#include "vtkWeakPtr.h"
 
 #include <algorithm>
 #include <map>
@@ -62,14 +62,14 @@ typedef vtkTypeList::Unique<
 struct WorkerBase
 {
   WorkerBase(vtkMPIController* subController)
-    : SubController(subController)
+    : SubController(std::move(vtkWeakPtr::FromOwnedRawPointer(subController)))
   {
   }
 
   /**
    * MPI controller for ranks with data.
    */
-  vtkWeakPointer<vtkMPIController> SubController;
+  vtkWeakPtr<vtkMPIController> SubController;
 };
 
 /**
@@ -106,9 +106,10 @@ struct ExchangeBoundsWorker : public WorkerBase
       typedBounds[i] = static_cast<typename TArray::ValueType>(bounds[i]);
     }
 
+    auto subcontroller = this->SubController.Lock(); // XXX(weakptr): check for validity?
     allBounds->SetNumberOfComponents(6);
-    allBounds->SetNumberOfTuples(this->SubController->GetNumberOfProcesses());
-    this->SubController->AllGather(
+    allBounds->SetNumberOfTuples(subcontroller->GetNumberOfProcesses());
+    subcontroller->AllGather(
       typedBounds, reinterpret_cast<typename TArray::ValueType*>(allBounds->GetVoidPointer(0)), 6);
   }
 
@@ -152,8 +153,10 @@ struct FindMyNeighborsWorker : public WorkerBase
     myBoundingBox.GetBounds(bounds);
 
     // Identify neighboring ranks.
-    int myRank = this->SubController->GetLocalProcessId();
-    for (int p = 0; p < this->SubController->GetNumberOfProcesses(); ++p)
+    auto subcontroller = this->SubController.Lock();     // XXX(weakptr): check for validity?
+    auto all_bounds_array = this->AllBoundsArray.Lock(); // XXX(weakptr): check for validity?
+    int myRank = subcontroller->GetLocalProcessId();
+    for (int p = 0; p < subcontroller->GetNumberOfProcesses(); ++p)
     {
       if (p == myRank)
       {
@@ -161,7 +164,7 @@ struct FindMyNeighborsWorker : public WorkerBase
       }
 
       double potentialNeighborBounds[6];
-      this->AllBoundsArray->GetTuple(p, potentialNeighborBounds);
+      all_bounds_array->GetTuple(p, potentialNeighborBounds);
 
       vtkBoundingBox potentialNeighborBoundingBox(potentialNeighborBounds);
       if (myBoundingBox.Intersects(potentialNeighborBoundingBox))
@@ -176,7 +179,7 @@ protected:
   double Bounds[6];
 
   // Input - Bounds on all ranks
-  vtkWeakPointer<vtkDataArray> AllBoundsArray;
+  vtkWeakPtr<vtkDataArray> AllBoundsArray;
 
   // Output - List of this rank's neighbors.
   std::vector<int>* MyNeighbors;
@@ -221,12 +224,14 @@ struct AssemblePointsAndRegionIdsWorker : public WorkerBase
     this->PointsForMyNeighbors->clear();
     this->RegionIdsForMyNeighbors->clear();
 
-    int myRank = this->SubController->GetLocalProcessId();
-    vtkPoints* outputPoints = this->LocalResult->GetPoints();
+    auto subcontroller = this->SubController.Lock(); // XXX(weakptr): check for validity?
+    auto local_result = this->LocalResult.Lock();    // XXX(weakptr): check for validity?
+    int myRank = subcontroller->GetLocalProcessId();
+    vtkPoints* outputPoints = local_result->GetPoints();
     TArray* pointArray = TArray::SafeDownCast(outputPoints->GetData());
-    vtkPointData* outputPD = this->LocalResult->GetPointData();
+    vtkPointData* outputPD = local_result->GetPointData();
     vtkIdTypeArray* pointRegionIds = vtkIdTypeArray::SafeDownCast(outputPD->GetArray("RegionId"));
-    for (int p = 0; p < this->SubController->GetNumberOfProcesses(); ++p)
+    for (int p = 0; p < subcontroller->GetNumberOfProcesses(); ++p)
     {
       if (myRank == p)
       {
@@ -242,7 +247,7 @@ struct AssemblePointsAndRegionIdsWorker : public WorkerBase
       allBounds->GetTypedTuple(p, bb);
 
       vtkBoundingBox neighborBB(bb[0], bb[1], bb[2], bb[3], bb[4], bb[5]);
-      for (vtkIdType id = 0; id < this->LocalResult->GetNumberOfPoints(); ++id)
+      for (vtkIdType id = 0; id < local_result->GetNumberOfPoints(); ++id)
       {
         typename TArray::ValueType pt[3];
         pointArray->GetTypedTuple(id, pt);
@@ -266,7 +271,7 @@ protected:
   const std::vector<int>* RegionStarts;
 
   // Input - Output from the local connectivity operation.
-  vtkWeakPointer<vtkPointSet> LocalResult;
+  vtkWeakPtr<vtkPointSet> LocalResult;
 
   // Output
   std::map<int, vtkSmartPointer<vtkDataArray>>* PointsForMyNeighbors;
@@ -321,6 +326,8 @@ struct SendReceivePointsWorker : public WorkerBase
     std::vector<vtkMPICommunicator::Request> recvRequestsPoints(this->RecvLengths.size());
     std::vector<vtkMPICommunicator::Request> recvRequestsRegionIds(this->RecvLengths.size());
 
+    auto subcontroller = this->SubController.Lock(); // XXX(weakptr): check for validity?
+
     // Receive neighbors' points.
     int requestIdx = 0;
     for (auto iter = this->RecvLengths.begin(); iter != this->RecvLengths.end(); ++iter)
@@ -333,14 +340,14 @@ struct SendReceivePointsWorker : public WorkerBase
         pfmn->SetNumberOfComponents(3);
         pfmn->SetNumberOfTuples(numFromRank);
         (*this->PointsFromMyNeighbors)[fromRank].TakeReference(pfmn);
-        this->SubController->NoBlockReceive(pfmn->GetPointer(0), 3 * numFromRank, fromRank,
+        subcontroller->NoBlockReceive(pfmn->GetPointer(0), 3 * numFromRank, fromRank,
           PCF_POINTS_TAG, recvRequestsPoints[requestIdx]);
 
         vtkIdTypeArray* idArray = vtkIdTypeArray::New();
         idArray->SetNumberOfComponents(1);
         idArray->SetNumberOfTuples(numFromRank);
         (*this->RegionIdsFromMyNeighbors)[fromRank].TakeReference(idArray);
-        this->SubController->NoBlockReceive(idArray->GetPointer(0), numFromRank, fromRank,
+        subcontroller->NoBlockReceive(idArray->GetPointer(0), numFromRank, fromRank,
           PCF_REGIONIDS_TAG, recvRequestsRegionIds[requestIdx++]);
       }
     }
@@ -353,17 +360,17 @@ struct SendReceivePointsWorker : public WorkerBase
       if (numToRank > 0)
       {
         TArray* pfmn = TArray::SafeDownCast(this->PointsForMyNeighbors.at(toRank));
-        this->SubController->NoBlockSend(
+        subcontroller->NoBlockSend(
           pfmn->GetPointer(0), 3 * numToRank, toRank, PCF_POINTS_TAG, sendRequestsPoints[toRank]);
 
         vtkIdTypeArray* idArray = this->RegionIdsForMyNeighbors.at(toRank);
-        this->SubController->NoBlockSend(idArray->GetPointer(0), numToRank, toRank,
-          PCF_REGIONIDS_TAG, sendRequestsRegionIds[toRank]);
+        subcontroller->NoBlockSend(idArray->GetPointer(0), numToRank, toRank, PCF_REGIONIDS_TAG,
+          sendRequestsRegionIds[toRank]);
       }
     }
 
-    this->SubController->WaitAll(requestIdx, &recvRequestsPoints[0]);
-    this->SubController->WaitAll(requestIdx, &recvRequestsRegionIds[0]);
+    subcontroller->WaitAll(requestIdx, &recvRequestsPoints[0]);
+    subcontroller->WaitAll(requestIdx, &recvRequestsRegionIds[0]);
   }
 
 protected:
