@@ -18,3 +18,4 @@ new references because the callers would not know whether to call
 * `vtkViewNode::GetFirstAncestorOfType()` is now `vtkViewNode::GetFirstAncestorOfTypeOwned()`
 * `vtkVRControlsHelper::GetRenderer()` is now `vtkVRControlsHelper::GetRendererOwned()`
 * `vtkContextInteractorStyle::GetScene()` is now `vtkContextInteractorStyle::GetSceneOwned()`
+* `vtkPiecewisePointHandleItem::GetPiecewiseFunction()` is now `vtkPiecewisePointHandleItem::GetPiecewiseFunctionOwned()`

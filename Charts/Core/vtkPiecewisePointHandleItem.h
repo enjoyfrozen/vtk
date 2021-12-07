@@ -29,7 +29,10 @@
 
 #include "vtkChartsCoreModule.h" // For export macro
 #include "vtkContextItem.h"
-#include "vtkWeakPointer.h" // Needed for weak pointer to the PiecewiseFunction.
+#include "vtkDeprecation.h"  // for VTK_DEPRECATED_IN_9_2_0
+#include "vtkSmartPointer.h" // for vtkSmartPointer
+#include "vtkWeakPointer.h"  // Needed for weak pointer to the PiecewiseFunction.
+#include "vtkWeakPtr.h"      // Needed for weak pointer to the PiecewiseFunction.
 
 class vtkContext2D;
 class vtkPiecewiseFunction;
@@ -68,7 +71,9 @@ public:
    * Set the PieceWiseFunction the handles will manipulate
    */
   virtual void SetPiecewiseFunction(vtkPiecewiseFunction* piecewiseFunc);
+  VTK_DEPRECATED_IN_9_2_0("Use GetPiecewiseFunctionOwned() to ensure the pointer is valid")
   vtkWeakPointer<vtkPiecewiseFunction> GetPiecewiseFunction();
+  vtkSmartPointer<vtkPiecewiseFunction> GetPiecewiseFunctionOwned();
   ///@}
 
   /**
@@ -110,7 +115,7 @@ protected:
   vtkIdType CurrentPointIndex;
   float HandleRadius;
 
-  vtkWeakPointer<vtkPiecewiseFunction> PiecewiseFunction;
+  vtkWeakPtr<vtkPiecewiseFunction> PiecewiseFunction;
   vtkCallbackCommand* Callback;
 
 private:
