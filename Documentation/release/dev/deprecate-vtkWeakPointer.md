@@ -11,3 +11,4 @@ new references because the callers would not know whether to call
 * `vtkObjectIdMap::GetActiveObject()` is now `vtkObjectIdMap::GetActiveObjectOwned()`
 * `vtkMultiProcessController::GetGlobalController()` is now `vtkMultiProcessController::GetGlobalControllerOwned()`
 * `vtkMultiProcessController::GetLocalController()` is now `vtkMultiProcessController::GetLocalControllerOwned()`
+* `QQuickVTKInteractiveWidget::widget()` is now `QQuickVTKInteractiveWidget::widgetOwned()`

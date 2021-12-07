@@ -27,7 +27,9 @@
 #include <QObject>
 
 // vtk includes
-#include "vtkWeakPointer.h" // For vtkWeakPointer
+#include "vtkDeprecation.h"  // for VTK_DEPRECATED_IN_9_2_0
+#include "vtkSmartPointer.h" // For vtkSmartPointer
+#include "vtkWeakPtr.h"      // For vtkWeakPtr
 
 #include "vtkGUISupportQtQuickModule.h" // for export macro
 
@@ -51,7 +53,9 @@ public:
    * Set/Get the widget reference
    */
   void setWidget(vtkAbstractWidget* w);
+  VTK_DEPRECATED_IN_9_2_0("Use widgetOwned() to ensure the pointer is valid")
   vtkAbstractWidget* widget() const;
+  vtkSmartPointer<vtkAbstractWidget> widgetOwned() const;
   ///@}
 
   ///@{
@@ -70,7 +74,7 @@ Q_SIGNALS:
 
 protected:
   // Helper members
-  vtkWeakPointer<vtkAbstractWidget> m_widget;
+  vtkWeakPtr<vtkAbstractWidget> m_widget;
 
   // Enabled/disabled
   bool m_enabled = false;
