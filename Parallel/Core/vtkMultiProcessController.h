@@ -49,8 +49,10 @@
 #ifndef vtkMultiProcessController_h
 #define vtkMultiProcessController_h
 
+#include "vtkDeprecation.h" // For VTK_DEPRECATED_IN_9_2_0
 #include "vtkObject.h"
 #include "vtkParallelCoreModule.h" // For export macro
+#include "vtkSmartPointer.h"       // For vtkSmartPointer
 
 #include "vtkCommunicator.h" // Needed for direct access to communicator
 
@@ -160,13 +162,17 @@ public:
    */
   int GetLocalProcessId();
 
+  ///@{
   /**
    * This convenience method returns the controller associated with the
    * local process.  It returns nullptr until the processes are spawned.
    * It is better if you hang on to the controller passed as an argument to the
    * SingleMethod or MultipleMethod functions.
    */
+  VTK_DEPRECATED_IN_9_2_0("Use GetGlobalControllerOwned() to ensure the pointer is valid")
   static vtkMultiProcessController* GetGlobalController();
+  static vtkSmartPointer<vtkMultiProcessController> GetGlobalControllerOwned();
+  ///@}
 
   /**
    * This method can be used to tell the controller to create
@@ -1434,9 +1440,13 @@ protected:
 
   void ProcessRMI(int remoteProcessId, void* arg, int argLength, int rmiTag);
 
+  ///@{
   // This method implements "GetGlobalController".
   // It needs to be virtual and static.
+  VTK_DEPRECATED_IN_9_2_0("Use GetLocalControllerOwned() to ensure the pointer is valid")
   virtual vtkMultiProcessController* GetLocalController();
+  virtual vtkSmartPointer<vtkMultiProcessController> GetLocalControllerOwned() const;
+  ///@}
 
   // This flag can force deep copies during send.
   int ForceDeepCopy;
