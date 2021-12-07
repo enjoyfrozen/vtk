@@ -14,3 +14,5 @@ new references because the callers would not know whether to call
 * `QQuickVTKInteractiveWidget::widget()` is now `QQuickVTKInteractiveWidget::widgetOwned()`
 * `vtkChartLegend::GetChart()` is now `vtkChartLegend::GetChartOwned()`
 * `vtkScatterPlotMatrix::GetMainChart()` is now `vtkScatterPlotMatrix::GetMainChartOwned()`
+* `vtkViewNode::GetParent()` is now `vtkViewNode::GetParentOwned()`
+* `vtkViewNode::GetFirstAncestorOfType()` is now `vtkViewNode::GetFirstAncestorOfTypeOwned()`

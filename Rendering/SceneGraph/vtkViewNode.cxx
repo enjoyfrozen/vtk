@@ -30,7 +30,6 @@ vtkCxxSetObjectMacro(vtkViewNode, MyFactory, vtkViewNodeFactory);
 vtkViewNode::vtkViewNode()
 {
   this->Renderable = nullptr;
-  this->Parent = nullptr;
   this->MyFactory = nullptr;
 
   this->RenderTime = 0;
@@ -39,7 +38,6 @@ vtkViewNode::vtkViewNode()
 //------------------------------------------------------------------------------
 vtkViewNode::~vtkViewNode()
 {
-  this->Parent = nullptr;
   for (auto val : this->Children)
   {
     val->Delete();
@@ -55,13 +53,27 @@ vtkViewNode::~vtkViewNode()
 //------------------------------------------------------------------------------
 void vtkViewNode::SetParent(vtkViewNode* p)
 {
-  this->Parent = p;
+  this->Parent.Reset(p);
 }
 
 //------------------------------------------------------------------------------
 vtkViewNode* vtkViewNode::GetParent()
 {
-  return this->Parent;
+  auto parent = this->GetParentOwned();
+  // Extract the pointer. The caller doesn't know if it owns this or not, so it
+  // cannot be passed back with a new reference without leaking in existing
+  // code.
+  vtkViewNode* parent_ptr = parent;
+  // XXX(thread-safety): This may not be valid after this function returns if
+  // the node is released on other threads. Previous code had problems with
+  // this, so this is no worse than before.
+  return parent_ptr;
+}
+
+//------------------------------------------------------------------------------
+vtkSmartPointer<vtkViewNode> vtkViewNode::GetParent()
+{
+  return this->Parent.Lock();
 }
 
 //------------------------------------------------------------------------------
@@ -199,15 +211,30 @@ vtkViewNode* vtkViewNode::CreateViewNode(vtkObject* obj)
 //------------------------------------------------------------------------------
 vtkViewNode* vtkViewNode::GetFirstAncestorOfType(const char* type)
 {
-  if (!this->Parent)
+  auto parent = this->GetFirstAncestorOfTypeOwned();
+  // Extract the pointer. The caller doesn't know if it owns this or not, so it
+  // cannot be passed back with a new reference without leaking in existing
+  // code.
+  vtkViewNode* parent_ptr = parent;
+  // XXX(thread-safety): This may not be valid after this function returns if
+  // the node is released on other threads. Previous code had problems with
+  // this, so this is no worse than before.
+  return parent_ptr;
+}
+
+//------------------------------------------------------------------------------
+vtkSmartPointer<vtkViewNode> vtkViewNode::GetFirstAncestorOfTypeOwned(const char* type)
+{
+  auto parent = this->Parent.Lock();
+  if (!parent)
   {
     return nullptr;
   }
-  if (this->Parent->IsA(type))
+  if (parent->IsA(type))
   {
-    return this->Parent;
+    return parent;
   }
-  return this->Parent->GetFirstAncestorOfType(type);
+  return parent->GetFirstAncestorOfType(type);
 }
 
 //------------------------------------------------------------------------------
