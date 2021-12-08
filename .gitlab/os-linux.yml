@@ -90,7 +90,7 @@
         - .fedora_mpich_addon
 
     variables:
-        CMAKE_CONFIGURATION: fedora34_mpi_cuda_ext_vtk_offscreen_osmesa
+        CMAKE_CONFIGURATION: fedora34_mpi_cuda_offscreen_osmesa_ext_vtk
 
 .fedora34_mpi_offscreen_osmesa_python:
     extends:

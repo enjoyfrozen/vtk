@@ -117,7 +117,7 @@ if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "fedora")
   endif ()
 endif ()
 
-# We do not have Runners for tests with Qt installed
+# The CUDA build does not include Qt
 if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "cuda")
   list(APPEND test_exclusions
     "^VTKExample-GUI/Qt"
