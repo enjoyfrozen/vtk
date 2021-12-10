@@ -39,5 +39,7 @@ if (TARGET vtkm::cuda)
   # When cuda is enabled VTK::AcceleratorsVTKmDataModel is built statically but with fpic
   # enabled so the tests are also built with fpic enabled
   set_target_properties(vtkAcceleratorsVTKmDataModelCxxTests PROPERTIES
-    POSITION_INDEPENDENT_CODE ON)
+    CUDA_ARCHITECTURES OFF
+    POSITION_INDEPENDENT_CODE ON
+    )
 endif()
