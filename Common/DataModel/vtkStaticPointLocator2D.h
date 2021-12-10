@@ -48,6 +48,7 @@
 #include "vtkCommonDataModelModule.h" // For export macro
 
 VTK_ABI_NAMESPACE_BEGIN
+class vtkDoubleArray;
 class vtkIdList;
 struct vtkBucketList2D;
 
@@ -129,6 +130,27 @@ public:
   void FindClosestNPoints(int N, const double x[3], vtkIdList* result) override;
 
   /**
+   * Find approximately N close points which are strictly greater than
+   * >minDist2 away from the query point x (minDist2 is the square of the
+   * distance). (Note: if minDist2==0.0, then no points coincident to x are
+   * returned. To obtain coincident points, set minDist2<0.) The number of
+   * points returned may != N either because there are fewer than N points in
+   * the locator, the query region >minDist2 defines a subset of <N points,
+   * or >N points may be returned because 1) its computationally simpler to
+   * do so, and 2) *all* points of distance maxDist2 are returned. The method
+   * returns the maximum distance squared (maxDist2) of the points, the point
+   * ids in the vtkIdList result, and the point's r**2 from x in radii2.
+   * Optionally, the points can be sorted by distance from the query point
+   * (sorted from closest to farthest).  This method is thread safe if
+   * BuildLocator() is directly or indirectly called from a single thread
+   * first. Finally, a powerful feature of this method in that it's possible
+   * to identify disjoint sets of points within nested annuli.
+   */
+  double FindNPointsInAnnulus(int N, const double x[3], vtkIdList* result,
+                              vtkDoubleArray* radii2=nullptr, double minDist2=(-0.1),
+                              bool sort=true);
+
+  /**
    * Find all points within a specified radius R of position x.
    * The result is not sorted in any specific manner.
    * These methods are thread safe if BuildLocator() is directly or
@@ -151,9 +173,10 @@ public:
   ///@{
   /**
    * Special method for 2D operations (e.g., vtkVoronoi2D). The method
-   * returns the approximate number of points requested, returning the radius
-   * R of the furthest point, with the guarantee that all points are included
-   * that are closer than <=R.
+   * obtains the approximate number of points requested and places them in
+   * the result vtkIdList, returning the radius squared R**2 of the furthest
+   * point, with the guarantee that all points are included that are closer
+   * than <=R.
    */
   double FindCloseNBoundedPoints(int N, const double x[3], vtkIdList* result);
   ///@}

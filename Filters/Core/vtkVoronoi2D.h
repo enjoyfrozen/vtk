@@ -8,7 +8,8 @@
  * list of input points. The points are assumed to lie in a plane. These
  * points may be represented by any dataset of type vtkPointSet and
  * subclasses. The output of the filter is a polygonal dataset. Each output
- * cell is a convex polygon.
+ * cell is a convex polygon, although options exist for producing
+ * other outputs including a 2D Delaunay triangulation.
  *
  * The 2D Voronoi tessellation is a tiling of space, where each Voronoi tile
  * represents the region nearest to one of the input points. Voronoi
@@ -48,24 +49,37 @@
  * metric (the union of error spheres) is compared to the extent of the
  * region containing the neighboring clip points. The clip region (along with
  * the points contained in it) is grown by careful expansion (e.g., outward
- * spiraling iterator over all candidate clip points). When the Voronoi
- * Flower is contained within the clip region, the algorithm terminates and
- * the Voronoi tile is output. Once complete, it is possible to construct the
- * Delaunay triangulation from the Voronoi tessellation. Note that
- * topological and geometric information is used to generate a valid
- * triangulation (e.g., merging points and validating topology).
+ * spiraling using a vtkSphericalPointIterator over all candidate clip
+ * points). When the Voronoi Flower is contained within the clip region, the
+ * algorithm terminates and the Voronoi tile is output. Once complete, it is
+ * possible to construct the Delaunay triangulation from the Voronoi
+ * tessellation. Note that topological and geometric information is used to
+ * generate a valid triangulation (e.g., merging points and validating
+ * topology).
+ *
+ * There are up to four outputs to this filter. The first is the Voronoi
+ * tessellation. The next three are optional: the second is the Delaunay
+ * triangulation (if GenerateDelaunayTriangulation is enabled); the third and
+ * fourth outputs are available when the PointOfInterest p is set to a value
+ * 0 <= p < (number of input points) and GenerateVoronoiFlower is
+ * enabled. The third output is a random sampling of points within the
+ * flower; the fourth is the Voronoi tile of interest along with scalar
+ * values corresponding to the error radii at each point.
  *
  * @warning
- * Coincident input points will result in overlapping tiles.  This is because
+ * Coincident input points will result in overlapping tiles. This is because
  * the Voronoi tessellation requires unique input points.
  *
  * @warning
  * This is a novel approach which implements an embarrassingly parallel
  * algorithm. At the core of the algorithm a locator is used to determine
- * points close to a specified position. A vtkStaticPointLocator2D is used
- * because it is both threaded (when constructed) and supports thread-safe
- * queries. While other locators could be used in principal, they must
- * support thread-safe operations.
+ * points close to a specified position (the Voronoi tile generating point),
+ * in combination with a spherical point iterator used visit these close
+ * points. A vtkStaticPointLocator2D is used because it is both threaded
+ * (when constructed) and supports thread-safe queries. While other locators
+ * could be used in principal, they must support thread-safe operations. Also,
+ * vtkStaticPointLocator2D supports some special methods which interact with
+ * an internal vtkSphericalPointIterator.
  *
  * @warning
  * This class has been threaded with vtkSMPTools. Using TBB or other
@@ -74,21 +88,29 @@
  *
  * @sa
  * vtkDelaunay2D vtkTransformFilter vtkStaticPointLocator2D
+ * vtkSphericalPointIterator
  */
 
 #ifndef vtkVoronoi2D_h
 #define vtkVoronoi2D_h
 
 #include "vtkFiltersCoreModule.h" // For export macro
-#include "vtkPolyDataAlgorithm.h"
+#include "vtkPointSetAlgorithm.h"
+#include "vtkAbstractTransform.h" // For transforming input points
+#include "vtkSmartPointer.h" // For self-destructing data members
+#include "vtkSpheres.h" // For Voronoi Flower
+#include "vtkStaticPointLocator2D.h" // For point locator
 
 VTK_ABI_NAMESPACE_BEGIN
+<<<<<<< HEAD
 class vtkStaticPointLocator2D;
 class vtkAbstractTransform;
 class vtkPointSet;
 class vtkSpheres;
 
-class VTKFILTERSCORE_EXPORT vtkVoronoi2D : public vtkPolyDataAlgorithm
+=======
+>>>>>>> 4746f54e26 (Rebasing)
+class VTKFILTERSCORE_EXPORT vtkVoronoi2D : public vtkPointSetAlgorithm
 {
 public:
   ///@{
@@ -96,7 +118,7 @@ public:
    * Standard methods for instantiation, type information, and printing.
    */
   static vtkVoronoi2D* New();
-  vtkTypeMacro(vtkVoronoi2D, vtkPolyDataAlgorithm);
+  vtkTypeMacro(vtkVoronoi2D, vtkPointSetAlgorithm);
   void PrintSelf(ostream& os, vtkIndent indent) override;
   ///@}
 
@@ -113,22 +135,28 @@ public:
 
   enum GenerateScalarsStrategy
   {
-    NONE = 0,
-    POINT_IDS = 1,
-    THREAD_IDS = 2
+    NONE=0,
+    POINT_IDS=1,
+    NUMBER_SIDES=2,
+    THREAD_IDS=3
   };
 
   ///@{
   /**
-   * Indicate whether to create a scalar array as part of the output. No
-   * scalars; point ids, or execution thread ids may be output. By default no
-   * scalars are generated.
+   * Indicate whether to create a scalar array as part of the output. Point
+   * ids, the number of sides of each Voronoi polygon, or execution thread
+   * ids may be output. By default no scalars are generated. Note that
+   * different algorithm executions likely generate different thread ids as
+   * execution order is unpredictable.
    */
-  vtkSetMacro(GenerateScalars, int);
+  vtkSetClampMacro(GenerateScalars, int, NONE, THREAD_IDS);
   vtkGetMacro(GenerateScalars, int);
   void SetGenerateScalarsToNone() { this->SetGenerateScalars(NONE); }
   void SetGenerateScalarsToPointIds() { this->SetGenerateScalars(POINT_IDS); }
-  void SetGenerateScalarsToThreadIds() { this->SetGenerateScalars(THREAD_IDS); }
+  void SetGenerateScalarsToNumberOfSides()
+    { this->SetGenerateScalars(NUMBER_SIDES); }
+  void SetGenerateScalarsToThreadIds()
+    { this->SetGenerateScalars(THREAD_IDS); }
   ///@}
 
   ///@{
@@ -141,8 +169,8 @@ public:
    * any subclass of vtkAbstractTransform (thus it does not need to be a
    * linear or invertible transform).
    */
-  virtual void SetTransform(vtkAbstractTransform*);
-  vtkGetObjectMacro(Transform, vtkAbstractTransform);
+  vtkSetSmartPointerMacro(Transform, vtkAbstractTransform);
+  vtkGetSmartPointerMacro(Transform, vtkAbstractTransform);
   ///@}
 
   enum ProjectionPlaneStrategy
@@ -176,9 +204,21 @@ public:
 
   ///@{
   /**
+   * Produce an optional (second) output which is the Delaunay triangulation
+   * of the input points. This is generated by extracting the dual of the
+   * Voronoi tessellation. Note however additional processing is performed to
+   * resolve degenerate Delaunay cases.
+   */
+  vtkSetMacro(GenerateDelaunayTriangulation, vtkTypeBool);
+  vtkGetMacro(GenerateDelaunayTriangulation, vtkTypeBool);
+  vtkBooleanMacro(GenerateDelaunayTriangulation, vtkTypeBool);
+  //@}
+
+  ///@{
+  /**
    * These methods are for debugging or instructional purposes. When the
-   * point of interest is specified (i.e., to a non-negative number) then the
-   * algorithm will only process this single point (whose id is the
+   * point of interest is specified (i.e., set to a non-negative number) then
+   * the algorithm will only process this single point (whose id is the
    * PointOfInterest). The maximum number of clips (the
    * MaximumNumberOfTileClips) can be specified. If
    * MaximumNumberOfTileClips=0, then the initial tile (single point within
@@ -229,6 +269,23 @@ public:
   vtkGetObjectMacro(Spheres, vtkSpheres);
   ///@}
 
+  //@{
+  /**
+   * Specify a numerical tolerance for merging nearly coincident points. The
+   * tolerance is a fraction of the length of the diagonal of the locator
+   * bins. This is used to ignore input points that are within tolerance of
+   * one another, thereby avoiding numerical issues.
+   */
+  vtkSetClampMacro(Tolerance,double,0.0,1.0);
+  vtkGetMacro(Tolerance,double);
+  //@}
+
+  /**
+   *  Return the maximum number of sides across all Voronoi tiles. This is
+   *  valid only after algorithm execution.
+   */
+  int GetMaximumNumberOfSides() {return this->MaximumNumberOfSides;}
+
   /**
    *  Return the number of threads actually used during execution. This is
    *  valid only after algorithm execution.
@@ -242,23 +299,26 @@ public:
 
 protected:
   vtkVoronoi2D();
-  ~vtkVoronoi2D() override;
+  ~vtkVoronoi2D() override = default;
 
   int GenerateScalars;
   double Padding;
   double Tolerance;
   int ProjectionPlaneMode; // selects the plane in 3D where the tessellation will be computed
-  vtkStaticPointLocator2D* Locator;
-  vtkAbstractTransform* Transform;
+  vtkSmartPointer<vtkStaticPointLocator2D> Locator;
+  vtkSmartPointer<vtkAbstractTransform> Transform;
+  bool GenerateDelaunayTriangulation;
   vtkIdType PointOfInterest;
   vtkIdType MaximumNumberOfTileClips;
   vtkTypeBool GenerateVoronoiFlower;
   int NumberOfThreadsUsed;
-  vtkSpheres* Spheres;
+  vtkSmartPointer<vtkSpheres> Spheres;
+  int MaximumNumberOfSides;
 
   // Satisfy pipeline-related API
   int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
-  int FillInputPortInformation(int, vtkInformation*) override;
+  // Specify that the output is of type vtkPolyData
+  int FillOutputPortInformation(int port, vtkInformation* info) override;
 
 private:
   vtkVoronoi2D(const vtkVoronoi2D&) = delete;

@@ -125,6 +125,7 @@ set(classes
   vtkVectorDot
   vtkVectorNorm
   vtkVoronoi2D
+  vtkVoronoi3D
   vtkWindowedSincPolyDataFilter)
 
 set(private_headers
