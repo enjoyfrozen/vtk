@@ -105,8 +105,8 @@ int TestVTKMNDHistogram(int, char*[])
   }
   vtkSparseArray<double>* sa = static_cast<vtkSparseArray<double>*>(arrayData->GetArray(0));
   vtkArrayCoordinates coordinates;
-  vtkIdType dimensions = sa->GetDimensions();     // 4
-  vtkIdType non_null_size = sa->GetNonNullSize(); // 8
+  const vtkIdType dimensions = sa->GetDimensions();     // 4
+  const vtkIdType non_null_size = sa->GetNonNullSize(); // 8
   for (vtkIdType n = 0; n != non_null_size; ++n)
   {
     sa->GetCoordinatesN(n, coordinates);
@@ -118,7 +118,9 @@ int TestVTKMNDHistogram(int, char*[])
         std::cout << "value does not match at index " << n << " dimension " << d << std::endl;
       }
     }
-    assert(resultFrequency[n] == sa->GetValue(coordinates));
+    
+    size_t frequency = resultFrequency[n];
+    assert(frequency == sa->GetValue(coordinates));
   }
   return 0;
 }
