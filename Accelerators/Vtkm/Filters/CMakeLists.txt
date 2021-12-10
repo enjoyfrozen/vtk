@@ -14,6 +14,8 @@
 ##
 ##=============================================================================
 
+set(VTKm_NO_DEPRECATED_VIRTUAL ON)
+
 list(INSERT CMAKE_MODULE_PATH 0
   "${VTK_SOURCE_DIR}/ThirdParty/vtkm/vtkvtkm/vtk-m/CMake")
 
@@ -63,13 +65,7 @@ if (TARGET vtkm::cuda)
   string(APPEND CMAKE_CUDA_FLAGS " -Xnvlink -w")
 endif ()
 
-set(force_static)
-if (TARGET vtkm::cuda AND BUILD_SHARED_LIBS)
-  set(force_static FORCE_STATIC)
-endif ()
-
 vtk_module_add_module(VTK::AcceleratorsVTKmFilters
-  ${force_static}
   SOURCES ${sources}
   HEADERS ${headers}
   CLASSES ${classes})
