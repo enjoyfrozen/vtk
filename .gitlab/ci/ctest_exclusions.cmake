@@ -117,7 +117,8 @@ if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "fedora")
   endif ()
 endif ()
 
-# The CUDA build does not include Qt
+# We build CUDA without Qt, the following tests insist in using Qt
+# binaries/libs which in turns fails for obscure reasons.
 if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "cuda")
   list(APPEND test_exclusions
     "^VTKExample-GUI/Qt"
