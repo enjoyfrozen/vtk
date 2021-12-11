@@ -26,11 +26,7 @@ vtkTreeIterator::vtkTreeIterator()
 
 vtkTreeIterator::~vtkTreeIterator()
 {
-  if (this->Tree)
-  {
-    this->Tree->Delete();
-    this->Tree = nullptr;
-  }
+  this->SetTree(nullptr);
 }
 
 void vtkTreeIterator::PrintSelf(ostream& os, vtkIndent indent)
