@@ -116,7 +116,7 @@ public:
    * Set the window interactor associated with the manager.
    */
   void SetInteractor(vtkRenderWindowInteractor* iren);
-  vtkGetMacro(Interactor, vtkRenderWindowInteractor*);
+  vtkGetObjectMacro(Interactor, vtkRenderWindowInteractor);
   ///@}
 
   /**

@@ -319,11 +319,13 @@ void vtkPickingManager::SetInteractor(vtkRenderWindowInteractor* rwi)
   if (this->Interactor)
   {
     this->Interactor->RemoveObserver(this->Internal->TimerCallback);
+    this->Interactor->UnRegister(this);
   }
 
   this->Interactor = rwi;
   if (this->Interactor)
   {
+    this->Interactor->Register(this);
     this->Interactor->AddObserver(vtkCommand::ModifiedEvent, this->Internal->TimerCallback);
   }
 
