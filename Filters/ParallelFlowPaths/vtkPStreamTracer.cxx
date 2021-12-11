@@ -549,7 +549,7 @@ public:
 
   vtkGetMacro(VecName, char*);
   vtkGetMacro(VecType, int);
-  vtkGetMacro(Input0, vtkDataSet*);
+  vtkGetObjectMacro(Input0, vtkDataSet);
 
   virtual ProcessLocator* GetProcessLocator() { return nullptr; }
 
@@ -616,7 +616,7 @@ public:
       iterP->GoToFirstItem();
       if (!iterP->IsDoneWithTraversal())
       {
-        Input0 = vtkDataSet::SafeDownCast(iterP->GetCurrentDataObject());
+        this->SetInput0(vtkDataSet::SafeDownCast(iterP->GetCurrentDataObject()));
         // iterP->GotoNextitem();
       }
       vtkDataArray* vectors = tracer->GetInputArrayToProcess(0, this->Input0, this->VecType);
@@ -638,6 +638,7 @@ protected:
     , InputData(nullptr)
   {
   }
+  ~AbstractPStreamTracerUtils() override { this->SetInput0(nullptr); }
 
   virtual vtkSmartPointer<PStreamTracerPoint> NewPoint(int id, double* x, int dir) = 0;
   virtual bool InBound(PStreamTracerPoint* p) = 0;
@@ -746,7 +747,7 @@ class AMRPStreamTracerUtils : public AbstractPStreamTracerUtils
 public:
   vtkTypeMacro(AMRPStreamTracerUtils, AbstractPStreamTracerUtils);
   static AMRPStreamTracerUtils* New();
-  vtkSetMacro(AMR, vtkOverlappingAMR*);
+  vtkSetObjectMacro(AMR, vtkOverlappingAMR);
 
   void InitializeVelocityFunction(
     PStreamTracerPoint* point, vtkAbstractInterpolatedVelocityField* func) override
@@ -844,7 +845,7 @@ public:
   {
     this->Superclass::Initialize(tracer);
     AssertNe(this->InputData, nullptr);
-    this->AMR = vtkOverlappingAMR::SafeDownCast(this->InputData);
+    this->SetAMR(vtkOverlappingAMR::SafeDownCast(this->InputData));
 
     vtkParallelAMRUtilities::DistributeProcessInformation(
       this->AMR, this->Controller, BlockProcess);
@@ -853,6 +854,7 @@ public:
 
 protected:
   AMRPStreamTracerUtils() { this->AMR = nullptr; }
+  ~AMRPStreamTracerUtils() { this->SetAMR(nullptr); }
   vtkOverlappingAMR* AMR;
 
   std::vector<int> BlockProcess; // stores block->process information
