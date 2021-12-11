@@ -72,14 +72,12 @@ public:
 
   /**
    * Compute the bounds of a label. Must be performed after the renderer is set.
-   * Only the unicode string version must be implemented in subclasses.
    */
   virtual void ComputeLabelBounds(vtkTextProperty* tprop, vtkStdString label, double bds[4]) = 0;
 
   /**
    * Render a label at a location in display coordinates.
    * Must be performed between StartFrame() and EndFrame() calls.
-   * Only the unicode string version must be implemented in subclasses.
    * The optional final parameter maxWidth specifies a maximum width for the label.
    * Longer labels can be shorted with an ellipsis (...). Only renderer strategies
    * that return true from SupportsBoundedSize must implement this version of th

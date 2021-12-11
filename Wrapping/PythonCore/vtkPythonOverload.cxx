@@ -244,49 +244,6 @@ static int vtkPythonIntPenalty(PY_LONG_LONG tmpi, int penalty, char format)
 
 #ifdef VTK_PY3K
 //------------------------------------------------------------------------------
-// Check if a unicode string is ascii, which makes it more suitable
-// as a match for "char *" or "std::string".
-
-static int vtkPythonStringPenalty(PyObject* u, char format, int penalty)
-{
-  int ascii = 0;
-  if (PyUnicode_READY(u) != -1)
-  {
-    if (PyUnicode_KIND(u) == PyUnicode_1BYTE_KIND)
-    {
-      Py_UCS1* cp = PyUnicode_1BYTE_DATA(u);
-      Py_ssize_t l = PyUnicode_GET_LENGTH(u);
-      Py_UCS1 c = 0;
-      for (int i = 0; i < l; i++)
-      {
-        c |= cp[i];
-      }
-      ascii = ((c & 0x80) == 0);
-    }
-  }
-  else
-  {
-    PyErr_Clear();
-  }
-
-  if ((format == 'u') ^ (ascii == 0))
-  {
-    if (penalty < VTK_PYTHON_GOOD_MATCH)
-    {
-      penalty = VTK_PYTHON_GOOD_MATCH;
-    }
-    else
-    {
-      penalty++;
-    }
-  }
-
-  return penalty;
-}
-#endif
-
-#ifdef VTK_PY3K
-//------------------------------------------------------------------------------
 // Check if object supports conversion to integer
 
 static bool vtkPythonCanConvertToInt(PyObject* arg)
