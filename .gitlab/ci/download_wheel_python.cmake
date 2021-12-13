@@ -6,20 +6,20 @@ set(python_url_root "https://www.paraview.org/files/dependencies/python-for-whee
 # Python version specifics.
 set(python36_version "3.6.8") # Source-only releases after this.
 set(python37_version "3.7.9") # Source-only releases after this.
-set(python38_version "3.8.8")
-set(python39_version "3.9.4")
+set(python38_version "3.8.10") # Source-only releases after this.
+set(python39_version "3.9.9")
 
 # Hashes for various deployments.
 set(python36_windows_x86_64_hash "3f70798c4885d11842869c9fb2842c8f8bafed1ebfac04e3f4ae1af6498527ce")
 set(python37_windows_x86_64_hash "edd1b8c491635939f7b7e538650607db8307d6dfd3fef043ec5bc21ce4035700")
-set(python38_windows_x86_64_hash "a2670a015179b73aba169f60f872b929bcb2d2b19a4e98fdaeffd4b531d81539")
-set(python39_windows_x86_64_hash "80cdc6e5eafdec26fd6cd9b7cfd01aa578116b588b67531001af6f343b862681")
+set(python38_windows_x86_64_hash "ea898990a11ecd89177ba64c2b63132431214a877e9c2d80b3435e26086cc9d1")
+set(python39_windows_x86_64_hash "2a0756e62ca30978baf530c55b5ca2ff6c8a8679d2eec9c3729f81a089e8efb4")
 
 set(python36_macos_x86_64_hash "bd3b68dfc9787c39312c8bd554853fe750abd999e100690c3ed81c29447b02d3")
 set(python37_macos_x86_64_hash "1d31a228ac921c13787f74e0b9e7a04ae5806e70c5226e23711840bf0f0c9e90")
-set(python38_macos_x86_64_hash "0665ce12462b0cc91afeec26355306136325ce49c8fa388a0e5f3ccf384d1e20")
-set(python39_macos_arm64_hash "ba83efdffd37a6cf2b9e126da173af2d11b7f6dcba7d6206e66fc61efe52365d")
-set(python39_macos_x86_64_hash "24154d1571453bee30053b0103a9c47d48969014d9bda4a29174c66ae4efd46e")
+set(python38_macos_x86_64_hash "8c49fa50d34529e58769d3901e9e079554424d59bc1aa7dceb82c8c63f09cbc1")
+set(python39_macos_arm64_hash "082334689bd31fdeff84e15e83e745418838bf4f918cbda96c7d123dba574453")
+set(python39_macos_x86_64_hash "d1fa6db1adab392657b4bbb00b26be23f2a40b93ce8ca3dde53eec0f6f5400e8")
 
 # Extracting information from the build configuration.
 if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "windows")
