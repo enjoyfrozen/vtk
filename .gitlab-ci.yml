@@ -667,7 +667,7 @@ wheel-macos-python39-x86_64:build:
         - .cmake_build_wheel_macos
         - .macos_wheel_builder_tags
         - .cmake_wheel_artifacts
-        - .merged_only
+        - .run_manually
     timeout: 90 minutes
 
 wheel-macos-python39-x86_64:test:
@@ -675,7 +675,7 @@ wheel-macos-python39-x86_64:test:
         - .wheel_macos39_x86_64
         - .cmake_test_wheel_macos
         - .macos_wheel_builder_tags
-        - .merged_only
+        - .run_automatically
     dependencies:
         - wheel-macos-python39-x86_64:build
     needs:
@@ -865,14 +865,14 @@ wheel-windows-python38-x86_64:build:
         - .cmake_build_wheel_windows
         - .windows_wheel_builder_tags
         - .cmake_wheel_artifacts
-        - .merged_only
+        - .run_manually
 
 wheel-windows-python38-x86_64:test:
     extends:
         - .wheel_windows38_x86_64
         - .cmake_test_wheel_windows
         - .windows_wheel_builder_tags
-        - .merged_only
+        - .run_automatically
     dependencies:
         - wheel-windows-python38-x86_64:build
     needs:
@@ -884,14 +884,14 @@ wheel-windows-python39-x86_64:build:
         - .cmake_build_wheel_windows
         - .windows_wheel_builder_tags
         - .cmake_wheel_artifacts
-        - .merged_only
+        - .run_manually
 
 wheel-windows-python39-x86_64:test:
     extends:
         - .wheel_windows39_x86_64
         - .cmake_test_wheel_windows
         - .windows_wheel_builder_tags
-        - .merged_only
+        - .run_automatically
     dependencies:
         - wheel-windows-python39-x86_64:build
     needs:
