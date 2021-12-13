@@ -11,12 +11,23 @@ fi
 cd relocatable-python
 git pull
 
+case "$version" in
+    3.?.*)
+        os_version="10.9"
+        ;;
+    3.1?.*)
+        os_version="11"
+        ;;
+esac
+readonly os_version
+
 readonly dirname="python-$version-macos-x86_64"
 
 touch requirements.txt
 ./make_relocatable_python_framework.py \
     --destination="$dirname" \
     --python-version="$version" \
+    --os-version="$os_version" \
     --pip-requirements=requirements.txt
 
 tar cJf "$dirname.tar.xz" "$dirname"
