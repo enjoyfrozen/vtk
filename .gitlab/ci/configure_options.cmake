@@ -63,16 +63,19 @@ if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "renderless")
   set(VTK_MODULE_ENABLE_VTK_IOMPIParallel NO CACHE STRING "")
 endif ()
 
-# "tbb"/"openmp"/"stdthread" builds
-if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "tbb")
-  set(VTK_SMP_IMPLEMENTATION_TYPE TBB CACHE STRING "")
-elseif ("$ENV{CMAKE_CONFIGURATION}" MATCHES "openmp")
-  set(VTK_SMP_IMPLEMENTATION_TYPE OpenMP CACHE STRING "")
-elseif ("$ENV{CMAKE_CONFIGURATION}" MATCHES "stdthread")
-  set(VTK_SMP_IMPLEMENTATION_TYPE STDThread CACHE STRING "")
-else ()
-  set(VTK_SMP_IMPLEMENTATION_TYPE Sequential CACHE STRING "")
-endif ()
+# # "tbb"/"openmp"/"stdthread" builds
+# if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "tbb")
+#   set(VTK_SMP_IMPLEMENTATION_TYPE TBB CACHE STRING "")
+# elseif ("$ENV{CMAKE_CONFIGURATION}" MATCHES "openmp")
+#   set(VTK_SMP_IMPLEMENTATION_TYPE OpenMP CACHE STRING "")
+# elseif ("$ENV{CMAKE_CONFIGURATION}" MATCHES "stdthread")
+#   set(VTK_SMP_IMPLEMENTATION_TYPE STDThread CACHE STRING "")
+# else ()
+#   set(VTK_SMP_IMPLEMENTATION_TYPE Sequential CACHE STRING "")
+# endif ()
+
+# TODO: remove this, hardcoded test
+set(VTK_SMP_IMPLEMENTATION_TYPE STDThread CACHE STRING "")
 
 # Shared/static
 if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "shared")
