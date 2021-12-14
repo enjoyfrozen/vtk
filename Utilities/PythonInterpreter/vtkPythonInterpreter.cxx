@@ -238,16 +238,36 @@ void vtkPythonInterpreter::PrintSelf(ostream& os, vtkIndent indent)
 //------------------------------------------------------------------------------
 bool vtkPythonInterpreter::Initialize(int initsigs /*=0*/)
 {
+  return vtkPythonInterpreter::InitializeWithArgs(initsigs, 0, nullptr);
+}
+
+//------------------------------------------------------------------------------
+bool vtkPythonInterpreter::InitializeWithArgs(int initsigs, int argc, char* argv[])
+{
   if (Py_IsInitialized() == 0)
   {
     // guide the mechanism to locate Python standard library, if possible.
     vtkPythonInterpreter::SetupPythonPrefix();
+    bool signals_installed = initsigs != 0;
 
+#if PY_VERSION_HEX < 0x03080000
     Py_InitializeEx(initsigs);
 
     // setup default argv. Without this, code snippets that check `sys.argv` may
     // fail when run in embedded VTK Python environment.
-    PySys_SetArgvEx(0, nullptr, 0);
+    PySys_SetArgvEx(argc, argv, 0);
+#else
+    PyConfig config;
+    PyStatus status;
+    PyConfig_InitPythonConfig(&config);
+    config.install_signal_handlers = initsigs;
+    status = PyConfig_SetBytesArgv(&config, argc, argv);
+    // TODO: Check status.
+
+    status = Py_InitializeFromConfig(&config);
+    // TODO: Check status.
+    PyConfig_Clear(&config);
+#endif
 
 #ifdef VTK_PYTHON_FULL_THREADSAFE
 #if PY_VERSION_HEX < 0x03090000
@@ -266,8 +286,11 @@ bool vtkPythonInterpreter::Initialize(int initsigs /*=0*/)
 #endif
 
 #ifdef SIGINT
-    // Put default SIGINT handler back after Py_Initialize/Py_InitializeEx.
-    signal(SIGINT, SIG_DFL);
+    if (signals_installed)
+    {
+      // Put default SIGINT handler back after Py_Initialize/Py_InitializeEx.
+      signal(SIGINT, SIG_DFL);
+    }
 #endif
   }
 
