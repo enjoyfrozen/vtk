@@ -2,21 +2,21 @@
 
 set -e
 
-readonly rkcommon_version="1.5.1"
+readonly rkcommon_version="1.8.0"
 readonly rkcommon_tarball="v$rkcommon_version.tar.gz"
-readonly rkcommon_sha256sum="27dc42796aaa4ea4a6322f14ad64a46e83f42724c20c0f7b61d069ac91310295"
+readonly rkcommon_sha256sum="f037c15f7049610ef8bca37500b2ab00775af60ebbb9d491ba5fc2e5c04a7794"
 
-readonly embree_version="3.12.2"
+readonly embree_version="3.13.2"
 readonly embree_tarball="v$embree_version.tar.gz"
-readonly embree_sha256sum="22a527622497e07970e733f753cc9c10b2bd82c3b17964e4f71a5fd2cdfca210"
+readonly embree_sha256sum="dcda827e5b7a606c29d00c1339f1ef00f7fa6867346bc46a2318e8f0a601c6f9"
 
-readonly openvkl_version="0.12.1"
+readonly openvkl_version="1.1.0"
 readonly openvkl_tarball="v$openvkl_version.tar.gz"
-readonly openvkl_sha256sum="58ce13fe09699a9966b665c89fac0fca96a1155606889e11ec8f0fc34834e25a"
+readonly openvkl_sha256sum="d193c75a2c57acd764649215b244c432694a0169da374a9d769a81b02a9132e9"
 
-readonly ospray_version="2.4.0"
+readonly ospray_version="2.8.0"
 readonly ospray_tarball="v$ospray_version.tar.gz"
-readonly ospray_sha256sum="5eaf7409b08147cbeaf087dbf4b3887c15ffeeaa9cfd16dae3ee85504d9014c2"
+readonly ospray_sha256sum="2dabc75446a0e2e970952d325f930853a51a9b4d1868c8135f05552a4ae04d39"
 
 readonly ospray_root="$HOME/ospray"
 
@@ -82,6 +82,7 @@ cd "$openvkl_build"
 cmake -GNinja "$openvkl_src" \
     -DBUILD_TESTING=OFF \
     -DCMAKE_BUILD_TYPE=Release \
+    -DBUILD_EXAMPLES=OFF \
     -DCMAKE_INSTALL_PREFIX=/usr/local
 ninja
 ninja install
