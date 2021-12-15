@@ -87,7 +87,7 @@
         - .fedora_mpich_addon
 
     variables:
-        CMAKE_CONFIGURATION: fedora35_mpi_cuda_offscreen_osmesa
+        CMAKE_CONFIGURATION: fedora35_cuda_mpi_offscreen_osmesa
         VTK_INSTALL: 1
 
 .fedora35_cuda_mpi_ext_vtk:
@@ -97,7 +97,7 @@
         - .fedora_mpich_addon
 
     variables:
-        CMAKE_CONFIGURATION: fedora35_mpi_cuda_offscreen_osmesa_ext_vtk
+        CMAKE_CONFIGURATION: fedora35_cuda_mpi_offscreen_osmesa_ext_vtk
 
 .fedora35_mpi_offscreen_osmesa_python:
     extends:
