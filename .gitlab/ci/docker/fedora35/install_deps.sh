@@ -34,10 +34,10 @@ dnf install -y --setopt=install_weak_deps=False \
     hdf5-devel hdf5-mpich-devel hdf5-openmpi-devel hdf5-devel netcdf-devel \
     netcdf-mpich-devel netcdf-openmpi-devel libogg-devel libtheora-devel \
     jsoncpp-devel gl2ps-devel protobuf-devel libxkbcommon libxcrypt-compat \
-    boost-devel tbb-devel postgresql-server-devel libpq-devel mariadb-devel \
+    boost-devel tbb-devel postgresql-server-devel mariadb-devel \
     libiodbc-devel PDAL-devel liblas-devel openslide-devel libarchive-devel \
     freeglut-devel sqlite-devel PEGTL-devel cgnslib-devel proj-devel \
-    wkhtmltopdf cli11-devel fmt-devel openvdb-devel json-devel
+    wkhtmltopdf cli11-devel fmt-devel openvdb-devel json-devel ghostscript
 
 # Python dependencies
 dnf install -y --setopt=install_weak_deps=False \
@@ -53,7 +53,7 @@ dnf install -y --setopt=install_weak_deps=False \
 
 # RPMFusion (for ffmpeg)
 dnf install -y --setopt=install_weak_deps=False \
-    https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-34.noarch.rpm
+    https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-35.noarch.rpm
 
 # RPMFusion external dependencies
 dnf install -y --setopt=install_weak_deps=False \
@@ -64,7 +64,7 @@ dnf install -y --setopt=install_weak_deps=False \
     dnf-plugins-core
 
 # Openturns dependencies
-dnf config-manager --add-repo https://download.opensuse.org/repositories/science:/openturns/Fedora_34/science:openturns.repo
+dnf config-manager --add-repo https://download.opensuse.org/repositories/science:/openturns/Fedora_35/science:openturns.repo
 dnf install -y --setopt=install_weak_deps=False \
     openturns-libs openturns-devel
 
