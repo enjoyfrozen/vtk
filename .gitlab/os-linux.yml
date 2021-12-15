@@ -385,7 +385,7 @@
 
 .cmake_source_tarballs:
     stage: build
-    image: "fedora:34"
+    image: "fedora:35"
     tags:
         - linux
         - docker
@@ -402,7 +402,7 @@
 
 .cmake_doc_tarball:
     stage: release-prep
-    image: "fedora:34"
+    image: "fedora:35"
     tags:
         - linux
         - docker
