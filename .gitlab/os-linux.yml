@@ -48,12 +48,11 @@
         CMAKE_CONFIGURATION: wheel_linux310_x86_64
         PYTHON_PREFIX: /opt/python/cp310-cp310
 
-.fedora34:
+.fedora35:
     extends: .linux
-    image: "kitware/vtk:ci-fedora34-20211020"
+    image: "kitware/vtk:ci-fedora35-20211020"
 
 .fedora_cuda_addon:
-    image: "kitware/vtk:ci-fedora34-20210824"
     variables:
         CUDACC: "/usr/local/cuda-11.4/bin/nvcc"
         CUDACXX: "/usr/local/cuda-11.4/bin/nvcc"
@@ -73,107 +72,107 @@
         OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
         MODULES: mpi/openmpi-x86_64
 
-.fedora34_doxygen_mpi_python_qt_tbb:
+.fedora35_doxygen_mpi_python_qt_tbb:
     extends:
-        - .fedora34
+        - .fedora35
         - .fedora_mpich_addon
 
     variables:
-        CMAKE_CONFIGURATION: fedora34_doxygen_mpi_python_qt_tbb
+        CMAKE_CONFIGURATION: fedora35_doxygen_mpi_python_qt_tbb
 
-.fedora34_cuda_mpi:
+.fedora35_cuda_mpi:
     extends:
-        - .fedora34
+        - .fedora35
         - .fedora_cuda_addon
         - .fedora_mpich_addon
 
     variables:
-        CMAKE_CONFIGURATION: fedora34_mpi_cuda_offscreen_osmesa
+        CMAKE_CONFIGURATION: fedora35_mpi_cuda_offscreen_osmesa
         VTK_INSTALL: 1
 
-.fedora34_cuda_mpi_ext_vtk:
+.fedora35_cuda_mpi_ext_vtk:
     extends:
-        - .fedora34
+        - .fedora35
         - .fedora_cuda_addon
         - .fedora_mpich_addon
 
     variables:
-        CMAKE_CONFIGURATION: fedora34_mpi_cuda_offscreen_osmesa_ext_vtk
+        CMAKE_CONFIGURATION: fedora35_mpi_cuda_offscreen_osmesa_ext_vtk
 
-.fedora34_mpi_offscreen_osmesa_python:
+.fedora35_mpi_offscreen_osmesa_python:
     extends:
-        - .fedora34
+        - .fedora35
         - .fedora_mpich_addon
 
     variables:
-        CMAKE_CONFIGURATION: fedora34_mpi_offscreen_osmesa_python
+        CMAKE_CONFIGURATION: fedora35_mpi_offscreen_osmesa_python
         VTK_INSTALL: 1
 
-.fedora34_mpi_offscreen_osmesa_python_ext_vtk:
+.fedora35_mpi_offscreen_osmesa_python_ext_vtk:
     extends:
-        - .fedora34
+        - .fedora35
         - .fedora_mpich_addon
 
     variables:
-        CMAKE_CONFIGURATION: fedora34_mpi_offscreen_osmesa_python_ext_vtk
+        CMAKE_CONFIGURATION: fedora35_mpi_offscreen_osmesa_python_ext_vtk
 
-.fedora34_mpi_renderless:
+.fedora35_mpi_renderless:
     extends:
-        - .fedora34
+        - .fedora35
         - .fedora_mpich_addon
 
     variables:
-        CMAKE_CONFIGURATION: fedora34_mpi_renderless
+        CMAKE_CONFIGURATION: fedora35_mpi_renderless
         VTK_INSTALL: 1
 
-.fedora34_mpi_renderless_ext_vtk:
+.fedora35_mpi_renderless_ext_vtk:
     extends:
-        - .fedora34
+        - .fedora35
         - .fedora_mpich_addon
 
     variables:
-        CMAKE_CONFIGURATION: fedora34_mpi_renderless_ext_vtk
+        CMAKE_CONFIGURATION: fedora35_mpi_renderless_ext_vtk
 
-.fedora34_java_mpi_qt_tbb:
+.fedora35_java_mpi_qt_tbb:
     extends:
-        - .fedora34
+        - .fedora35
         - .fedora_mpich_addon
 
     variables:
-        CMAKE_CONFIGURATION: fedora34_java_mpi_qt_tbb
+        CMAKE_CONFIGURATION: fedora35_java_mpi_qt_tbb
 
-.fedora34_mpi_python_qt_tbb:
+.fedora35_mpi_python_qt_tbb:
     extends:
-        - .fedora34
+        - .fedora35
         - .fedora_mpich_addon
 
     variables:
-        CMAKE_CONFIGURATION: fedora34_mpi_python_qt_tbb
+        CMAKE_CONFIGURATION: fedora35_mpi_python_qt_tbb
         VTK_INSTALL: 1
 
-.fedora34_mpi_python_qt_tbb_ext_vtk:
+.fedora35_mpi_python_qt_tbb_ext_vtk:
     extends:
-        - .fedora34
+        - .fedora35
         - .fedora_mpich_addon
 
     variables:
-        CMAKE_CONFIGURATION: fedora34_mpi_python_qt_tbb_ext_vtk
+        CMAKE_CONFIGURATION: fedora35_mpi_python_qt_tbb_ext_vtk
 
-.fedora34_mpi_python_qt_stdthread:
+.fedora35_mpi_python_qt_stdthread:
     extends:
-        - .fedora34
+        - .fedora35
         - .fedora_mpich_addon
 
     variables:
-        CMAKE_CONFIGURATION: fedora34_mpi_python_qt_stdthread
+        CMAKE_CONFIGURATION: fedora35_mpi_python_qt_stdthread
 
-.fedora34_tidy:
+.fedora35_tidy:
     extends:
-        - .fedora34
+        - .fedora35
         - .fedora_mpich_addon
 
     variables:
-        CMAKE_CONFIGURATION: fedora34_mpi_python_qt_tbb_tidy
+        CMAKE_CONFIGURATION: fedora35_mpi_python_qt_tbb_tidy
         # Disabled for now. There are two deprecation warnings currently in the codebase:
         #   - TBB deprecated header (#18107)
         #   - a deprecated Python API call
@@ -204,27 +203,27 @@
     variables:
         CTEST_MEMORYCHECK_TYPE: UndefinedBehaviorSanitizer
 
-.fedora34_asan:
+.fedora35_asan:
     extends:
-        - .fedora34
+        - .fedora35
         - .fedora_mpich_addon
         - .fedora_asan_addon
 
     variables:
-        CMAKE_CONFIGURATION: fedora34_asan_mpi_python_qt_tbb
+        CMAKE_CONFIGURATION: fedora35_asan_mpi_python_qt_tbb
 
-.fedora34_tsan:
+.fedora35_tsan:
     extends:
-        - .fedora34
+        - .fedora35
         - .fedora_mpich_addon
         - .fedora_tsan_addon
 
     variables:
-        CMAKE_CONFIGURATION: fedora34_mpi_qt_tbb_tsan
+        CMAKE_CONFIGURATION: fedora35_mpi_qt_tbb_tsan
 
-.fedora34_ubsan:
+.fedora35_ubsan:
     extends:
-        - .fedora34
+        - .fedora35
         - .fedora_mpich_addon
         - .fedora_ubsan_addon
 
@@ -232,7 +231,7 @@
         # MPI and Python are currently not part of this list because there are
         # issues with tests using external executables when testing UBSan
         # around ASan not being first in the initial library list.
-        CMAKE_CONFIGURATION: fedora34_mpi_python_qt_tbb_ubsan
+        CMAKE_CONFIGURATION: fedora35_mpi_python_qt_tbb_ubsan
 
 .linux_builder_tags:
     tags:
