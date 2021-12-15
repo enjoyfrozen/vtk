@@ -13,7 +13,7 @@ RUN sh /root/install_adios.sh
 COPY install_openvr.sh /root/install_openvr.sh
 RUN sh /root/install_openvr.sh
 
-# XXX(fedora35): ispc is too old in Fedora 34
+# XXX(fedora35): ispc crashes building openvkl
 # COPY install_ospray.sh /root/install_ospray.sh
 # RUN sh /root/install_ospray.sh
 
