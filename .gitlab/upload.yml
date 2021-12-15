@@ -1,7 +1,7 @@
 # Steps for uploading artifacts
 
 .rsync_upload:
-    image: "fedora:34"
+    image: "fedora:35"
     stage: upload
     tags:
         - docker
@@ -18,7 +18,7 @@
         - rsync -tv --recursive -e "ssh -i $RSYNC_BINARY_KEY -o StrictHostKeyChecking=no" build/$SRC_SUBDIR kitware@web.kitware.com:$RSYNC_DESTINATION/
 
 .pypi_upload:
-    image: "fedora:34"
+    image: "fedora:35"
     stage: upload
     tags:
         - docker
@@ -34,7 +34,7 @@
         - twine upload -u __token__ -p $PYPI_UPLOAD_TOKEN dist/*
 
 .pypi_vtk_upload:
-    image: "fedora:34"
+    image: "fedora:35"
     stage: upload
     tags:
         - docker
