@@ -30,6 +30,7 @@
 #ifndef vtkFastLabeledDataMapper_h
 #define vtkFastLabeledDataMapper_h
 
+#include "vtkLabeledDatatypeDefinitions.h"
 #include "vtkOpenGLPolyDataMapper.h"
 #include "vtkRenderingOpenGL2Module.h" // For export macro
 
@@ -40,14 +41,6 @@ class vtkIntArray;
 class vtkTextProperty;
 class vtkTransform;
 
-#define VTK_LABEL_IDS 0
-#define VTK_LABEL_SCALARS 1
-#define VTK_LABEL_VECTORS 2
-#define VTK_LABEL_NORMALS 3
-#define VTK_LABEL_TCOORDS 4
-#define VTK_LABEL_TENSORS 5
-#define VTK_LABEL_FIELD_DATA 6
-
 class VTKRENDERINGOPENGL2_EXPORT vtkFastLabeledDataMapper : public vtkOpenGLPolyDataMapper
 {
 public:
@@ -55,8 +48,6 @@ public:
   vtkTypeMacro(vtkFastLabeledDataMapper, vtkOpenGLPolyDataMapper);
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  // SHARED API WITH LABELDATAMAPPER --------------------------------------
-  // todo: unify the code
   //@{
   /**
    * Set/Get the format with which to print the labels.  This should
@@ -179,53 +170,73 @@ public:
   vtkGetMacro(TextAnchor, int);
   //@}
 
-  // REQUIREMENTS OF A POLYDATAMAPPER -------------------------------------
-
+  //@{
   /**
    * Overridden to rebuild labels if necessary.
    */
   void RenderPiece(vtkRenderer* ren, vtkActor* act) override;
+  //@}
+
+  //@{
   /**
    * Overridden to setup textureobject.
    */
   void RenderPieceStart(vtkRenderer* ren, vtkActor* act) override;
+  //@}
+
+  //@{
   /**
    * Overridden to teardown textureobject.
    */
   void RenderPieceFinish(vtkRenderer* ren, vtkActor* act) override;
+  //@}
 
-  // SPECIFIC THINGS WE NEED TO DO -------------------------------------
-
+  //@{
   /**
    * Set the input dataset to the mapper. This mapper handles any vtkDataSet.
    */
   virtual void SetInputData(vtkDataSet*);
+  //@}
 
+  //@{
   /**
    * Uses GetInputDataObject() to get the input data set.
    */
   vtkDataSet* GetInput();
+  //@}
 
+  //@{
   /**
    * Overridden to take into account LabelTextProperty's mtime
    */
   vtkMTimeType GetMTime() override;
+  //@}
 
+  //@{
   /**
    * Overridden to release internal textureobject.
    */
   void ReleaseGraphicsResources(vtkWindow*) override;
+  //@}
 
 protected:
   vtkFastLabeledDataMapper();
   ~vtkFastLabeledDataMapper() override;
 
-  // overridden to set up uniforms for the shaders
+  //@{
+  /**
+   * Overridden to set up uniforms for the shaders
+   */
   virtual void SetMapperShaderParameters(
     vtkOpenGLHelper& cellBO, vtkRenderer* ren, vtkActor* act) override;
+  //@}
 
-  // overridden to declare support for any vtkDataSet, not just vtkPolyData
+  //@{
+  /**
+   * Overridden to declare support for any vtkDataSet, not just vtkPolyData
+   */
   int FillInputPortInformation(int, vtkInformation*) override;
+  //@}
 
   void AllocateLabels(int numLabels);
   void BuildLabels();

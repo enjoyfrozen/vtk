@@ -15,6 +15,7 @@ DEPENDS
   VTK::FiltersGeneral
   VTK::RenderingCore
   VTK::RenderingHyperTreeGrid
+  VTK::RenderingLabel
   VTK::RenderingUI
   VTK::glew
 PRIVATE_DEPENDS

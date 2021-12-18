@@ -161,8 +161,6 @@ void UpdatePlaneArrays(int prefix = 0)
   pointData->AddArray(frames);
 
   xform->Modified();
-  // matrix->Modified();
-  // ldm->Modified();
 }
 
 //-----------------------------------------------------------------------------
@@ -328,8 +326,6 @@ public:
   {
     vtkNew<vtkTextProperty> p;
     p->SetBackgroundColor(0.5, 0.5, 0.5);
-    // p->ItalicOn();
-    // p->SetOrientation(45.0);
 
     cout << "Font Change: ";
     switch (cnt)
@@ -342,14 +338,6 @@ public:
         p->SetFontSize(24);
         break;
       case 1:
-        /*
-        std::cout << "Arial Red Italic" << std::endl;
-        p->SetFontFamilyAsString("Arial");
-        p->SetColor(1.0, 0.0, 0.0);
-        p->SetBackgroundColor(1.0, 0.0, 0.0);
-        p->SetFontSize(24);
-        p->ItalicOn();
-        */
         std::cout << "Arial grey w blue frame" << std::endl;
         p->SetFontFamilyAsString("Arial");
         p->SetColor(0.5, 0.5, 0.5);
@@ -465,7 +453,6 @@ public:
     selector->SetFieldAssociation(vtkDataObject::FIELD_ASSOCIATION_POINTS);
     vtkSelection* selection = selector->Select();
     std::cout << "Selection has " << selection->GetNumberOfNodes() << " nodes." << std::endl;
-    // selection->PrintSelf(cout, vtkIndent(0));
 #if 0
         for (unsigned int cnt = 0; cnt < selection->GetNumberOfNodes(); cnt++)
         {
@@ -547,9 +534,6 @@ int TestLabeledDataMappers(int argc, char* argv[])
 
   // Scale data
   xform->SetInputConnection(plane->GetOutputPort());
-  // matrix->RotateZ(90);
-  // matrix->Scale(100, 1000, 1);
-  // matrix->Translate(1000, 10, 10000);
   xform->SetTransform(matrix);
 
   // Generate ids for labeling
@@ -562,7 +546,10 @@ int TestLabeledDataMappers(int argc, char* argv[])
   labelMapper->SetFieldDataName(LABEL_TEXT_NAMES);
   labelMapper->SetInputArrayToProcess(
     0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, LABEL_TYPES);
-  // labelMapper->SetFrameColorsName(LABEL_FRAMES); //comment this out to use TextProperty colors
+#if 0
+  // Disable: this to use TextProperty colors
+  // labelMapper->SetFrameColorsName(LABEL_FRAMES);
+#endif
 #define INSRC 0
 #if INSRC == 0
   labelMapper->SetInputConnection(ids->GetOutputPort());
@@ -571,7 +558,6 @@ int TestLabeledDataMappers(int argc, char* argv[])
   vtkNew<vtkPolyData> pd;
   pd->ShallowCopy(ids->GetOutput());
   labelMapper->SetInputData(pd);
-  // labelMapper->SetInputData(ids->GetOutput());
 #endif
 #if INSRC == 2
   vtkNew<vtkTrivialProducer> tp;
@@ -582,7 +568,7 @@ int TestLabeledDataMappers(int argc, char* argv[])
 
   //-----------------------------------------------------------------------------
   // Filtered PolyData Labels
-  filter->SetOutputType("vtkPolyData");
+  filter->SetOutputDataSetType(VTK_POLY_DATA);
   filter->SetInputData(0, GetFilteredPolyDataInput());
   filter->SetInputData(1, GetFilterSelection(3, 7));
 
@@ -621,7 +607,6 @@ int TestLabeledDataMappers(int argc, char* argv[])
   ren->AddActor(statusTextLabelActor);
 
   ren->SetBackground(.5, .5, 6.);
-  // ren->GetActiveCamera()->Zoom(1.8);
 
   vtkNew<vtkRenderWindow> renWin;
   renWin->AddRenderer(ren);

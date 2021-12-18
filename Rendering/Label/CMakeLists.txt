@@ -12,6 +12,9 @@ set(classes
   vtkLabelRenderStrategy
   vtkLabelSizeCalculator
   vtkPointSetToLabelHierarchy)
+  
+set(headers
+  vtkLabeledDatatypeDefinitions)
 
 vtk_module_add_module(VTK::RenderingLabel
   CLASSES ${classes})

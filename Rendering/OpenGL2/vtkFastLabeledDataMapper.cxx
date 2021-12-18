@@ -16,6 +16,7 @@
 
 #include "vtkAlgorithmOutput.h"
 #include "vtkDataSet.h"
+#include "vtkDoubleArray.h"
 #include "vtkFloatArray.h"
 #include "vtkFreeTypeTools.h"
 #include "vtkIdTypeArray.h"
@@ -29,6 +30,7 @@
 #include "vtkOpenGLResourceFreeCallback.h"
 #include "vtkOpenGLShaderProperty.h"
 #if 0
+// Enable to write textures out to debug file
 #include "vtkPNGWriter.h"
 #endif
 #include "vtkPointData.h"
@@ -41,7 +43,10 @@
 #include "vtkTextureObject.h"
 #include "vtkTimerLog.h"
 #include "vtkWindow.h"
-//#include "vtkXMLPolyDataWriter.h"
+#if 0
+// Enable to write textures out to debug file
+#include "vtkXMLPolyDataWriter.h"
+#endif
 
 #include <array>
 
@@ -155,21 +160,22 @@ public:
     nchar->GetExtent(charExt);
     double bg[4];
     prop->GetBackgroundColor(bg);
-    bg[0] = bg[0] * 255; // to uchar
-    bg[1] = bg[1] * 255;
-    bg[2] = bg[2] * 255;
-    bg[3] = prop->GetBackgroundOpacity() * 255;
+    vtkSmartPointer<vtkDoubleArray> bgScaled = vtkSmartPointer<vtkDoubleArray>::New();
+    bgScaled->InsertNextValue(bg[0] * 255); // to uchar
+    bgScaled->InsertNextValue(bg[1] * 255);
+    bgScaled->InsertNextValue(bg[2] * 255);
+    bgScaled->InsertNextValue(prop->GetBackgroundOpacity() * 255);
 
     // freetypetools renderstring pads with BG, which messes up our spacing, so unpad
     // see vtkFreeTypeTools::CalculateBoundingBox
-    int clipPix = ((bg[3] > 0) ? 2 : 0);
+    int clipPix = ((bgScaled->GetValue(3) > 0) ? 2 : 0);
     this->ImageClipper->SetInputData(nchar);
     this->ImageClipper->SetOutputWholeExtent(
       charExt[0] + clipPix, charExt[1] - clipPix, charExt[2] + clipPix, charExt[3] - clipPix, 0, 0);
 
     // make a safety zone to prevent bleed through
     this->ImagePadder->SetInputConnection(this->ImageClipper->GetOutputPort());
-    this->ImagePadder->SetConstants(4, bg);
+    this->ImagePadder->SetConstants(bgScaled);
     this->ImagePadder->SetOutputWholeExtent(charExt[0] + clipPix - PADSZ,
       charExt[1] - clipPix + PADSZ, charExt[2] + clipPix - PADSZ, charExt[3] - clipPix + PADSZ, 0,
       0);
@@ -180,6 +186,7 @@ public:
     nchar->ShallowCopy(outI);
 
 #if 0
+    // Enable to write textures out to debug file
     auto writer = vtkSmartPointer<vtkPNGWriter>::New();
     std::string fname = "/home/demarle/Desktop/foo";
     fname += word;
@@ -1270,8 +1277,6 @@ void vtkFastLabeledDataMapper::BuildLabelsInternal(vtkDataSet* input)
 
   int numCurLabels = input->GetNumberOfPoints();
   int numCurChars = 0;
-  // We are assured that
-  // this->NumberOfLabelsAllocated >= (this->NumberOfLabels + numCurLabels)
   if (this->NumberOfLabelsAllocated < (this->NumberOfLabels + numCurLabels))
   {
     vtkErrorMacro("Number of labels must be allocated before this method is called.");
@@ -1296,7 +1301,6 @@ void vtkFastLabeledDataMapper::BuildLabelsInternal(vtkDataSet* input)
 
   int rebuildcnt = 0;
   std::vector<std::string> stringlist;
-  // stringlist.reserve(numCurLabels*2);
   for (i = 0; i < numCurLabels; i++)
   {
     vtkStdString ResultString;
@@ -1430,6 +1434,7 @@ void vtkFastLabeledDataMapper::BuildLabelsInternal(vtkDataSet* input)
     tappend->StopTimer();
     tappendt += tappend->GetElapsedTime();
 #if 0
+    // Enable to write textures out to debug file
     auto dwriter = vtkSmartPointer<vtkXMLPolyDataWriter>::New();
     dwriter->SetFileName("/home/demarle/Desktop/foo.vtp");
     dwriter->SetInputData(this->Implementation->InputPlusArrays);
@@ -1468,9 +1473,6 @@ void vtkFastLabeledDataMapper::BuildLabelsInternal(vtkDataSet* input)
   this->NumberOfLabels += numCurLabels;
 
   ttotal->StopTimer();
-
-  // cerr << numCurLabels << " " << ttotal->GetElapsedTime() << " " << tfreetypet << " " << tappendt
-  // << endl;
 }
 
 //----------------------------------------------------------------------------
@@ -1489,7 +1491,6 @@ void vtkFastLabeledDataMapper::BuildLabels()
   {
     vtkErrorMacro("Unsupported data type: " << inputDO->GetClassName());
   }
-  // this->BuildTime.Modified();
 }
 
 //-----------------------------------------------------------------------------
