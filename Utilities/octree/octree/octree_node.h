@@ -1,5 +1,5 @@
-#ifndef __octree_node
-#define __octree_node
+#ifndef octree_node_
+#define octree_node_
 
 #include <iterator>
 
@@ -57,4 +57,4 @@ struct octree_node
   const_reference operator*() const { return _M_data; }
 };
 
-#endif // __octree_node
+#endif // octree_node_

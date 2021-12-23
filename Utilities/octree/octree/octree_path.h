@@ -1,5 +1,5 @@
-#ifndef __octree_path
-#define __octree_path
+#ifndef octree_path_
+#define octree_path_
 
 // Included by octree
 
@@ -56,4 +56,4 @@ public:
   }
 };
 
-#endif // __octree_path
+#endif // octree_path_

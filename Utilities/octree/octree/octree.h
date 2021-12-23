@@ -1,5 +1,5 @@
-#ifndef __octree_h
-#define __octree_h
+#ifndef octree_h_
+#define octree_h_
 
 #include <iostream>
 
@@ -119,4 +119,4 @@ protected:
   double _M_size;
 };
 
-#endif // __octree_h
+#endif // octree_h_

@@ -1,5 +1,5 @@
-#ifndef __octree_iterator
-#define __octree_iterator
+#ifndef octree_iterator_
+#define octree_iterator_
 
 // Included by octree
 
@@ -69,4 +69,4 @@ public:
   }
 };
 
-#endif // __octree_iterator
+#endif // octree_iterator_
