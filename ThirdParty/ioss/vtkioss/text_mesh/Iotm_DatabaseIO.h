@@ -4,25 +4,25 @@
 //
 // See packages/seacas/LICENSE for details
 
-#ifndef IOSS_Iogn_DatabaseIO_h
-#define IOSS_Iogn_DatabaseIO_h
+#ifndef IOSS_Iotm_DatabaseIO_h
+#define IOSS_Iotm_DatabaseIO_h
 
-#include "vtk_ioss_mangle.h"
-
-#include "Ioss_State.h" // for State
 #include <Ioss_CodeTypes.h>
 #include <Ioss_DBUsage.h>    // for DatabaseUsage
 #include <Ioss_DatabaseIO.h> // for DatabaseIO
 #include <Ioss_IOFactory.h>  // for IOFactory
 #include <Ioss_Map.h>        // for Map
-#include <cstddef>           // for size_t
-#include <cstdint>           // for int64_t
-#include <string>            // for string
-#include <vector>            // for vector
 
-namespace Iogn {
-  class GeneratedMesh;
-} // namespace Iogn
+#include <cstddef> // for size_t
+#include <cstdint> // for int64_t
+#include <string>  // for string
+#include <vector>  // for vector
+
+#include "Ioss_State.h" // for State
+
+namespace Iotm {
+  class TextMesh;
+} // namespace Iotm
 namespace Ioss {
   class CommSet;
   class EdgeBlock;
@@ -48,8 +48,7 @@ namespace Ioss {
 
 /** \brief A namespace for the generated database format.
  */
-namespace Iogn {
-
+namespace Iotm {
   class IOFactory : public Ioss::IOFactory
   {
   public:
@@ -72,7 +71,7 @@ namespace Iogn {
 
     ~DatabaseIO() override;
 
-    const std::string get_format() const override { return "Generated"; }
+    const std::string get_format() const override { return "TextMesh"; }
 
     // Check capabilities of input/output database...  Returns an
     // unsigned int with the supported Ioss::EntityTypes or'ed
@@ -82,11 +81,9 @@ namespace Iogn {
 
     int int_byte_size_db() const override { return int_byte_size_api(); }
 
-    const GeneratedMesh *get_generated_mesh() const { return m_generatedMesh; }
+    const TextMesh *get_text_mesh() const { return m_textMesh; }
 
-    void setGeneratedMesh(Iogn::GeneratedMesh *generatedMesh) { m_generatedMesh = generatedMesh; }
-
-    const std::vector<std::string> &get_sideset_names() const { return m_sideset_names; }
+    void set_text_mesh(Iotm::TextMesh *textMesh) { m_textMesh = textMesh; }
 
   private:
     void read_meta_data__() override;
@@ -96,13 +93,10 @@ namespace Iogn {
 
     bool begin_state__(int state, double time) override;
 
-    void        get_step_times__() override;
-    void        get_nodeblocks();
-    void        get_elemblocks();
-    void        get_nodesets();
-    void        get_sidesets();
-    void        get_commsets();
-    std::string get_sideset_topology() const;
+    void get_step_times__() override;
+    void get_nodeblocks();
+    void get_elemblocks();
+    void get_commsets();
 
     const Ioss::Map &get_node_map() const;
     const Ioss::Map &get_element_map() const;
@@ -194,17 +188,12 @@ namespace Iogn {
 
     void add_transient_fields(Ioss::GroupingEntity *entity);
 
-    GeneratedMesh *          m_generatedMesh{nullptr};
-    std::vector<std::string> m_sideset_names{};
+    TextMesh *m_textMesh{nullptr};
 
     double currentTime{0.0};
     int    spatialDimension{3};
 
     int elementBlockCount{0};
-    int nodesetCount{0};
-    int sidesetCount{0};
-
-    bool m_useVariableDf{true};
   };
-} // namespace Iogn
-#endif // IOSS_Iogn_DatabaseIO_h
+} // namespace Iotm
+#endif // IOSS_Iotm_DatabaseIO_h

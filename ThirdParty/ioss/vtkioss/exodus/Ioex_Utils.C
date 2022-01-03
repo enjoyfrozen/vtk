@@ -5,7 +5,6 @@
 // See packages/seacas/LICENSE for details
 
 #include <Ioss_Assembly.h>
-#include <Ioss_CodeTypes.h>
 #include <Ioss_ElementTopology.h>
 #include <Ioss_Region.h>
 #include <Ioss_SmartAssert.h>
@@ -464,19 +463,23 @@ namespace Ioex {
       size_t base_size = basename.size();
       if (std::strncmp(basename.c_str(), &buffer[0], base_size) == 0) {
         int64_t name_id = extract_id(buffer.data());
-        if (name_id > 0 && name_id != id) {
-          // See if name is truly of form "basename_name_id"
-          std::string tmp_name = Ioss::Utils::encode_entity_name(basename, name_id);
-          if (tmp_name == buffer.data()) {
-            std::string new_name = Ioss::Utils::encode_entity_name(basename, id);
-            fmt::print(Ioss::WARNING(),
-                       "The entity named '{}' has the id {} which does not match the "
-                       "embedded id {}.\n"
-                       "         This can cause issues later; the entity will be renamed to '{}' "
-                       "(IOSS)\n\n",
-                       buffer.data(), id, name_id, new_name);
+
+        // See if name is truly of form "basename_name_id" (e.g. "surface_{id}")
+        std::string tmp_name = Ioss::Utils::encode_entity_name(basename, name_id);
+        if (tmp_name == buffer.data()) {
+          if (name_id > 0) {
             db_has_name = false;
-            return new_name;
+            if (name_id != id) {
+              std::string new_name = Ioss::Utils::encode_entity_name(basename, id);
+              fmt::print(Ioss::WARNING(),
+                         "The entity named '{}' has the id {} which does not match the "
+                         "embedded id {}.\n"
+                         "         This can cause issues later; the entity will be renamed to '{}' "
+                         "(IOSS)\n\n",
+                         buffer.data(), id, name_id, new_name);
+              return new_name;
+            }
+            return tmp_name;
           }
         }
       }
@@ -613,8 +616,8 @@ namespace Ioex {
     for (const auto &block : element_blocks) {
 
       if (Ioss::Utils::block_is_omitted(block)) {
-        ioss_ssize_t min_id = block->get_offset() + 1;
-        ioss_ssize_t max_id = min_id + block->entity_count() - 1;
+        int64_t min_id = block->get_offset() + 1;
+        int64_t max_id = min_id + block->entity_count() - 1;
         for (size_t i = 0; i < elements.size(); i++) {
           if (min_id <= elements[i] && elements[i] <= max_id) {
             omitted     = true;
