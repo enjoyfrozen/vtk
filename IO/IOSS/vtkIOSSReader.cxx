@@ -1263,7 +1263,7 @@ Ioss::Region* vtkIOSSReader::vtkInternals::GetRegion(const std::string& dbasenam
     // fixme: should this be configurable? it won't really work if we made it
     // configurable since our vtkDataArraySelection object would need to purged
     // and refilled.
-    properties.add(Ioss::Property("FIELD_SUFFIX_SEPARATOR", ""));
+    properties.add(Ioss::Property("FIELD_SUFFIX_SEPARATOR", "_"));
 
     // tell the reader to read all blocks, even if empty. necessary to avoid
     // having to read all files to gather metadata, if possible
