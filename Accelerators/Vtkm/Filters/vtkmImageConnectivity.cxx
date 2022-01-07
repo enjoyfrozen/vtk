@@ -24,6 +24,7 @@
 #include "vtkmlib/ArrayConverters.h"
 #include "vtkmlib/DataSetConverters.h"
 #include "vtkmlib/PolyDataConverter.h"
+#include "vtkmlib/vtkmInitializer.h"
 
 #include "vtkmFilterPolicy.h"
 
@@ -65,6 +66,7 @@ int vtkmImageConnectivity::RequestData(
 
   try
   {
+    InitializeVTKm();
     vtkm::filter::ImageConnectivity filter;
     filter.SetActiveField(inputArray->GetName(), vtkm::cont::Field::Association::POINTS);
     // the field should be named 'RegionId'

@@ -24,6 +24,7 @@
 
 #include "vtkmlib/ArrayConverters.h"
 #include "vtkmlib/DataSetConverters.h"
+#include "vtkmlib/vtkmInitializer.h"
 
 #include "vtkmFilterPolicy.h"
 
@@ -68,6 +69,7 @@ int vtkmAverageToPoints::RequestData(vtkInformation* vtkNotUsed(request),
     auto field = tovtkm::Convert(fieldArray, association);
     in.AddField(field);
 
+    InitializeVTKm();
     vtkm::filter::PointAverage filter;
     filter.SetActiveField(fieldName, vtkm::cont::Field::Association::CELL_SET);
     filter.SetOutputFieldName(fieldName); // should we expose this control?

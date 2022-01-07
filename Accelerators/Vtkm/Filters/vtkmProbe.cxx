@@ -27,6 +27,7 @@
 
 #include "vtkmlib/ArrayConverters.h"
 #include "vtkmlib/DataSetConverters.h"
+#include "vtkmlib/vtkmInitializer.h"
 
 #include "vtkmFilterPolicy.h"
 
@@ -83,6 +84,8 @@ int vtkmProbe::RequestData(vtkInformation* vtkNotUsed(request), vtkInformationVe
 
   // Copy the input to the output as a starting point
   output->CopyStructure(input);
+
+  InitializeVTKm();
 
   try
   {

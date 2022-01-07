@@ -15,12 +15,14 @@
 
 #include "vtkmClipInternals.h"
 #include "vtkmlib/DataSetConverters.h"
+#include "vtkmlib/vtkmInitializer.h"
 
 #include <vtkm/filter/ClipWithImplicitFunction.h>
 
 //------------------------------------------------------------------------------
 vtkm::cont::DataSet vtkmClip::internals::ExecuteClipWithImplicitFunction(vtkm::cont::DataSet& in)
 {
+  InitializeVTKm();
   auto function = this->ClipFunctionConverter->Get();
 
   vtkm::cont::DataSet result;

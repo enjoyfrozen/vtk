@@ -34,6 +34,7 @@
 #include "vtkmlib/ImplicitFunctionConverter.h"
 #include "vtkmlib/PolyDataConverter.h"
 #include "vtkmlib/UnstructuredGridConverter.h"
+#include "vtkmlib/vtkmInitializer.h"
 
 #include "vtkmFilterPolicy.h"
 
@@ -147,6 +148,8 @@ int vtkmClip::RequestData(
   {
     return 1; // nothing to do
   }
+
+  InitializeVTKm();
 
   try
   {
