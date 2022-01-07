@@ -26,6 +26,7 @@
 #include "vtkmlib/ArrayConverters.h"
 #include "vtkmlib/DataSetConverters.h"
 #include "vtkmlib/UnstructuredGridConverter.h"
+#include "vtkmlib/vtkmInitializer.h"
 
 #include "vtkmFilterPolicy.h"
 
@@ -74,6 +75,7 @@ int vtkmCleanGrid::RequestData(vtkInformation* vtkNotUsed(request),
     vtkm::cont::DataSet in = tovtkm::Convert(input, fieldsFlag);
 
     // apply the filter
+    InitializeVTKm();
     vtkm::filter::CleanGrid filter;
     filter.SetCompactPointFields(this->CompactPoints);
     auto result = filter.Execute(in);

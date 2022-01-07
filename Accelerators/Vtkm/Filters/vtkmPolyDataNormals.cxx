@@ -23,6 +23,7 @@
 
 #include "vtkmlib/ArrayConverters.h"
 #include "vtkmlib/PolyDataConverter.h"
+#include "vtkmlib/vtkmInitializer.h"
 
 #include "vtkmFilterPolicy.h"
 
@@ -74,6 +75,7 @@ int vtkmPolyDataNormals::RequestData(
     bool unsupported = this->Splitting != 0;
     if (!unsupported)
     {
+      InitializeVTKm();
       vtkm::filter::SurfaceNormals filter;
       filter.SetGenerateCellNormals((this->ComputeCellNormals != 0));
       filter.SetCellNormalsName("Normals");

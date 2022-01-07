@@ -23,6 +23,7 @@
 
 #include "vtkmlib/ArrayConverters.h"
 #include "vtkmlib/ImageDataConverter.h"
+#include "vtkmlib/vtkmInitializer.h"
 
 #include "vtkmFilterPolicy.h"
 
@@ -65,6 +66,7 @@ int vtkmExtractVOI::RequestData(
     }
 
     // apply the filter
+    InitializeVTKm();
     vtkm::filter::ExtractStructured filter;
     filter.SetVOI(voi[0], voi[1], voi[2], voi[3], voi[4], voi[5]);
     filter.SetSampleRate(this->SampleRate[0], this->SampleRate[1], this->SampleRate[2]);

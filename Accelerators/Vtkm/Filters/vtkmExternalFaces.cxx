@@ -29,6 +29,7 @@
 #include "vtkmlib/CellSetConverters.h"
 #include "vtkmlib/DataSetConverters.h"
 #include "vtkmlib/UnstructuredGridConverter.h"
+#include "vtkmlib/vtkmInitializer.h"
 
 #include "vtkmFilterPolicy.h"
 
@@ -112,6 +113,7 @@ int vtkmExternalFaces::RequestData(vtkInformation* vtkNotUsed(request),
     auto in = tovtkm::Convert(input, tovtkm::FieldsFlag::PointsAndCells);
 
     // apply the filter
+    InitializeVTKm();
     vtkm::filter::ExternalFaces filter;
     filter.SetCompactPoints(this->CompactPoints);
     filter.SetPassPolyData(true);

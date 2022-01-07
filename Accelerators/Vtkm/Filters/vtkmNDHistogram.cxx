@@ -29,6 +29,7 @@
 
 #include "vtkmlib/ArrayConverters.h"
 #include "vtkmlib/DataSetConverters.h"
+#include "vtkmlib/vtkmInitializer.h"
 
 #include <vtkm/filter/NDHistogram.h>
 
@@ -126,6 +127,7 @@ int vtkmNDHistogram::RequestData(vtkInformation* vtkNotUsed(request),
   {
     vtkm::cont::DataSet in = tovtkm::Convert(input, tovtkm::FieldsFlag::PointsAndCells);
 
+    InitializeVTKm();
     vtkm::filter::NDHistogram filter;
     for (size_t i = 0; i < this->FieldNames.size(); i++)
     {
