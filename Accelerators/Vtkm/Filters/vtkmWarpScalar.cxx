@@ -29,6 +29,7 @@
 
 #include "vtkmlib/ArrayConverters.h"
 #include "vtkmlib/DataSetConverters.h"
+#include "vtkmlib/vtkmInitializer.h"
 
 #include "vtkm/cont/DataSetFieldAdd.h"
 #include "vtkmFilterPolicy.h"
@@ -96,6 +97,8 @@ int vtkmWarpScalar::RequestData(vtkInformation* vtkNotUsed(request),
     vtkDebugMacro(<< "No data to warp");
     return 1;
   }
+
+  InitializeVTKm();
 
   try
   {

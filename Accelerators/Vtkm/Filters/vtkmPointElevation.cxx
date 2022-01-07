@@ -25,6 +25,7 @@
 
 #include "vtkmlib/ArrayConverters.h"
 #include "vtkmlib/DataSetConverters.h"
+#include "vtkmlib/vtkmInitializer.h"
 
 #include "vtkmFilterPolicy.h"
 
@@ -64,6 +65,7 @@ int vtkmPointElevation::RequestData(
     auto in = tovtkm::Convert(input, tovtkm::FieldsFlag::Points);
 
     // Setup input
+    InitializeVTKm();
     vtkm::filter::PointElevation filter;
     filter.SetLowPoint(this->LowPoint[0], this->LowPoint[1], this->LowPoint[2]);
     filter.SetHighPoint(this->HighPoint[0], this->HighPoint[1], this->HighPoint[2]);
