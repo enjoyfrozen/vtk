@@ -71,6 +71,8 @@ if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "fedora")
     "^VTK::FiltersHyperTreeCxx-TestHyperTreeGridBinaryEllipseMaterial$"
     "^VTK::FiltersHyperTreeCxx-TestHyperTreeGridTernary3DAxisClipBox$"
     "^VTK::FiltersHyperTreeCxx-TestHyperTreeGridTernary3DDualContour$"
+    "^VTK::FiltersHyperTreeCxx-TestHyperTreeGridTernary3DDualContourMaterial$"
+    "^VTK::FiltersHyperTreeCxx-TestHyperTreeGridTernary3DGeometryLargeMaterialBits$"
     "^VTK::FiltersHyperTreeCxx-TestHyperTreeGridToDualGrid$"
     "^VTK::InteractionWidgetsPython-TestTensorWidget$"
     "^VTK::RenderingCoreCxx-TestEdgeFlags$"
