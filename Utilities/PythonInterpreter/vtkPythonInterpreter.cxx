@@ -25,6 +25,7 @@
 #include "vtkResourceFileLocator.h"
 #include "vtkVersion.h"
 #include "vtkWeakPointer.h"
+#include "vtksys/Encoding.h"
 
 #include <vtksys/Encoding.hxx>
 #include <vtksys/SystemInformation.hxx>
@@ -103,11 +104,12 @@ wchar_t* vtk_Py_UTF8ToWide(const char* arg)
   wchar_t* result = nullptr;
   if (arg != nullptr)
   {
-    size_t length = strlen(arg);
-    result = new wchar_t[length + 1];
-    PyObject* str = PyUnicode_FromString(arg);
-    Py_ssize_t last_index = PyUnicode_AsWideChar(str, result, length);
-    result[last_index] = L'\0';
+    size_t length = vtksysEncoding_mbstowcs(nullptr, arg, 0);
+    if (length > 0)
+    {
+      result = new wchar_t[length + 1];
+      vtksysEncoding_mbstowcs(result, arg, length + 1);
+    }
   }
 
   return result;
@@ -115,9 +117,16 @@ wchar_t* vtk_Py_UTF8ToWide(const char* arg)
 
 std::string vtk_Py_WideToUTF8(const wchar_t* arg)
 {
-  PyObject* str = PyUnicode_FromWideChar(arg, wcslen(arg));
-  PyObject* bytes = PyUnicode_AsUTF8String(str);
-  return std::string(PyBytes_AsString(bytes));
+  std::string result;
+  size_t length = vtksysEncoding_wcstombs(nullptr, arg, 0);
+  if (length > 0)
+  {
+    std::vector<char> chars(length + 1);
+    vtksysEncoding_wcstombs(&chars[0], arg, length + 1);
+    result.assign(&chars[0], length);
+  }
+
+  return result;
 }
 #endif
 
@@ -184,6 +193,11 @@ std::string vtkPythonInterpreter::StdErrBuffer;
 std::string vtkPythonInterpreter::StdOutBuffer;
 int vtkPythonInterpreter::LogVerbosity = vtkLogger::VERBOSITY_TRACE;
 
+struct CharDeleter
+{
+  void operator()(wchar_t* str) { delete[] str; }
+};
+
 vtkStandardNewMacro(vtkPythonInterpreter);
 //------------------------------------------------------------------------------
 vtkPythonInterpreter::vtkPythonInterpreter()
@@ -241,38 +255,37 @@ bool vtkPythonInterpreter::InitializeWithArgs(int initsigs, int argc, char* argv
     vtkPythonInterpreter::SetupPythonPrefix();
     bool signals_installed = initsigs != 0;
 
-#if PY_VERSION_HEX < 0x03080000
-    Py_InitializeEx(initsigs);
-
     // Need two copies of args, because programs might modify the first
-    using OwnedWideString = std::unique_ptr<wchar_t, decltype(&PyMem_Free)>;
+    using OwnedWideString = std::unique_ptr<wchar_t, CharDeleter>;
     std::vector<wchar_t*> argvForPython;
     std::vector<OwnedWideString> argvCleanup;
     for (int i = 0; i < argc; i++)
     {
-      OwnedWideString argCopy(vtk_Py_UTF8ToWide(argv[i]), &PyMem_Free);
+      OwnedWideString argCopy(vtk_Py_UTF8ToWide(argv[i]), CharDeleter());
       if (argCopy == nullptr)
       {
         fprintf(stderr,
           "Fatal vtkpython error: "
           "unable to decode the command line argument #%i\n",
           i + 1);
-        return 1;
+        return false;
       }
 
       argvForPython.push_back(argCopy.get());
       argvCleanup.emplace_back(std::move(argCopy));
     }
 
+#if PY_VERSION_HEX < 0x03080000
+    Py_InitializeEx(initsigs);
     // setup default argv. Without this, code snippets that check `sys.argv` may
     // fail when run in embedded VTK Python environment.
-    PySys_SetArgvEx(static_cast<int>(argvForPython.size()), argvForPython.data(), 0);
+    PySys_SetArgvEx(argc, argvForPython.data(), 0);
 #else
     PyConfig config;
     PyStatus status;
     PyConfig_InitPythonConfig(&config);
     config.install_signal_handlers = initsigs;
-    status = PyConfig_SetBytesArgv(&config, argc, argv);
+    status = PyConfig_SetArgv(&config, argc, argvForPython.data());
     if (PyStatus_IsError(status))
     {
       PyConfig_Clear(&config);
@@ -593,12 +606,12 @@ int vtkPythonInterpreter::PyMain(int argc, char** argv)
 
 #if PY_VERSION_HEX < 0x03080000
   // Need two copies of args, because programs might modify the first
-  using OwnedWideString = std::unique_ptr<wchar_t, decltype(&PyMem_Free)>;
+  using OwnedWideString = std::unique_ptr<wchar_t, CharDeleter>;
   std::vector<wchar_t*> argvForPythonWide;
   std::vector<OwnedWideString> argvCleanupWide;
   for (int i = 0; i < argc; i++)
   {
-    OwnedWideString argCopy(vtk_Py_UTF8ToWide(argv[i]), &PyMem_Free);
+    OwnedWideString argCopy(vtk_Py_UTF8ToWide(argv[i]), CharDeleter());
     if (argCopy == nullptr)
     {
       fprintf(stderr,
