@@ -98,7 +98,7 @@ using WCharStringPool = PoolT<wchar_t>;
 #endif
 
 #if PY_VERSION_HEX >= 0x03000000
-wchar_t* vtk_Py_DecodeUTF8(const char* arg)
+wchar_t* vtk_Py_UTF8ToWide(const char* arg)
 {
   wchar_t* result = nullptr;
   if (arg != nullptr)
@@ -107,13 +107,13 @@ wchar_t* vtk_Py_DecodeUTF8(const char* arg)
     result = new wchar_t[length + 1];
     PyObject* str = PyUnicode_FromString(arg);
     Py_ssize_t last_index = PyUnicode_AsWideChar(str, result, length);
-    result[last_index] = '\0';
+    result[last_index] = L'\0';
   }
 
   return result;
 }
 
-std::string vtk_Py_EncodeUTF8(const wchar_t* arg)
+std::string vtk_Py_WideToUTF8(const wchar_t* arg)
 {
   PyObject* str = PyUnicode_FromWideChar(arg, wcslen(arg));
   PyObject* bytes = PyUnicode_AsUTF8String(str);
@@ -250,7 +250,7 @@ bool vtkPythonInterpreter::InitializeWithArgs(int initsigs, int argc, char* argv
     std::vector<OwnedWideString> argvCleanup;
     for (int i = 0; i < argc; i++)
     {
-      OwnedWideString argCopy(vtk_Py_DecodeUTF8(argv[i]), &PyMem_Free);
+      OwnedWideString argCopy(vtk_Py_UTF8ToWide(argv[i]), &PyMem_Free);
       if (argCopy == nullptr)
       {
         fprintf(stderr,
@@ -397,7 +397,7 @@ void vtkPythonInterpreter::SetProgramName(const char* programname)
 // the program's execution. No code in the Python interpreter will change the
 // contents of this storage.
 #if PY_VERSION_HEX >= 0x03000000
-    wchar_t* argv0 = vtk_Py_DecodeUTF8(programname);
+    wchar_t* argv0 = vtk_Py_UTF8ToWide(programname);
     if (argv0 == nullptr)
     {
       fprintf(stderr,
@@ -598,7 +598,7 @@ int vtkPythonInterpreter::PyMain(int argc, char** argv)
   std::vector<OwnedWideString> argvCleanupWide;
   for (int i = 0; i < argc; i++)
   {
-    OwnedWideString argCopy(vtk_Py_DecodeUTF8(argv[i]), &PyMem_Free);
+    OwnedWideString argCopy(vtk_Py_UTF8ToWide(argv[i]), &PyMem_Free);
     if (argCopy == nullptr)
     {
       fprintf(stderr,
@@ -756,7 +756,7 @@ void vtkPythonInterpreter::SetupPythonPrefix()
     "calling Py_SetProgramName(" << newprogramname << ") to aid in setup of Python prefix.");
 #if PY_VERSION_HEX >= 0x03000000
   static WCharStringPool wpool;
-  Py_SetProgramName(wpool.push_back(vtk_Py_DecodeUTF8(newprogramname.c_str())));
+  Py_SetProgramName(wpool.push_back(vtk_Py_UTF8ToWide(newprogramname.c_str())));
 #else
   static StringPool pool;
   Py_SetProgramName(pool.push_back(systools::DuplicateString(newprogramname.c_str())));
@@ -785,7 +785,7 @@ void vtkPythonInterpreter::SetupVTKPythonPaths()
   if (vtklib.empty())
   {
 #if PY_VERSION_HEX >= 0x03000000
-    vtklib = vtk_Py_EncodeUTF8(Py_GetProgramName());
+    vtklib = vtk_Py_WideToUTF8(Py_GetProgramName());
 #else
     vtklib = Py_GetProgramName();
 #endif
