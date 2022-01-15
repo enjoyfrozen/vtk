@@ -22,10 +22,15 @@ This file provides a unified front-end for the wrapper generators.
 #include "vtkParseMain.h"
 #include "vtkParse.h"
 #include "vtkParseData.h"
+#include "vtkParseSystem.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 /* This is the struct that contains the options */
 OptionInfo options;
@@ -103,7 +108,7 @@ static int read_option_file(StringCache* strings, const char* filename, int* arg
   int j;
   int in_string;
 
-  fp = fopen(filename, "r");
+  fp = vtkParse_FileOpen(filename, "r");
 
   if (fp == NULL)
   {
@@ -450,7 +455,7 @@ FileInfo* vtkParse_Main(int argc, char* argv[])
   /* open the input file */
   options.InputFileName = options.Files[0];
 
-  if (!(ifile = fopen(options.InputFileName, "r")))
+  if (!(ifile = vtkParse_FileOpen(options.InputFileName, "r")))
   {
     fprintf(stderr, "Error opening input file %s\n", options.InputFileName);
     exit(1);
@@ -494,7 +499,7 @@ FileInfo* vtkParse_Main(int argc, char* argv[])
     hfilename = options.HintFileNames[ihfiles];
     if (hfilename && hfilename[0] != '\0')
     {
-      if (!(hfile = fopen(hfilename, "r")))
+      if (!(hfile = vtkParse_FileOpen(hfilename, "r")))
       {
         fprintf(stderr, "Error opening hint file %s\n", hfilename);
         fclose(ifile);
@@ -566,3 +571,47 @@ StringCache* vtkParse_MainMulti(int argc, char* argv[])
   options.InputFileName = options.Files[0];
   return strings;
 }
+
+#ifdef _WIN32
+
+/* Convert wchar_t args to utf8 and set console code page to CP_UTF8 */
+unsigned int vtkParse_Win32ToUTF8(int argc, wchar_t* wargv[], char*** argv_p)
+{
+  UINT oldCP;
+  int i, n;
+  char** argv = (char**)malloc(2 * argc);
+  *argv_p = argv + argc;
+
+  for (i = 0; i < argc; i++)
+  {
+    n = WideCharToMultiByte(CP_UTF8, 0, wargv[i], -1, NULL, 0, NULL, NULL);
+    argv[i] = (char*)malloc(n);
+    WideCharToMultiByte(CP_UTF8, 0, wargv[i], -1, argv[i], n, NULL, NULL);
+    argv[i + argc] = argv[i];
+  }
+
+  oldCP = GetConsoleOutputCP();
+  if (oldCP != 65001)
+  {
+    SetConsoleOutputCP(65001);
+  }
+
+  return oldCP;
+}
+
+/* Release the converted args and reset the console code page */
+void vtkParse_Win32Restore(unsigned int oldCP, int argc, char** argv)
+{
+  if ((UINT)oldCP != 65001)
+  {
+    SetConsoleOutputCP((UINT)oldCP);
+  }
+
+  argv -= argc;
+  while (argc >= 0)
+  {
+    free(argv[--argc]);
+  }
+  free(argv);
+}
+#endif
