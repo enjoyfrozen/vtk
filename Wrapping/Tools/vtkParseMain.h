@@ -46,6 +46,9 @@
 #include "vtkParseData.h"
 #include "vtkWrappingToolsModule.h"
 #include <stdio.h>
+#ifdef _WIN32
+#include <stddef.h> /* for wchar_t */
+#endif
 
 /**
  * Options for the wrappers
@@ -87,8 +90,48 @@ extern "C"
   VTKWRAPPINGTOOLS_EXPORT
   StringCache* vtkParse_MainMulti(int argc, char* argv[]);
 
+#ifdef _WIN32
+
+  /**
+   * Converts wmain args to utf8 and sets console code page to utf8.
+   * The generated argument list can be safely modified.
+   * The return value is the previous code page.
+   */
+  VTKWRAPPINGTOOLS_EXPORT
+  unsigned int vtkParse_Win32ToUTF8(int argc, wchar_t* wargv[], char*** argv_p);
+
+  /**
+   * Resets the console code page and releases the converted arguments.
+   */
+  VTKWRAPPINGTOOLS_EXPORT
+  void vtkParse_Win32Restore(unsigned int oldCP, int argc, char** argv);
+
+#endif /* _WIN32 */
+
 #ifdef __cplusplus
 } /* extern "C" */
+#endif
+
+#if defined(_WIN32) && !defined(__CYGWIN__) && !defined(__MINGW32__)
+
+/* This macro will define wmain() on Win32 and will handle conversion to UTF8 */
+#define VTK_PARSE_MAIN(a, b)                                                                       \
+  main_with_utf8_args(a, b);                                                                       \
+  int wmain(int wargc, wchar_t* wargv[])                                                           \
+  {                                                                                                \
+    int argc = 0;                                                                                  \
+    char** argv = 0;                                                                               \
+    unsigned int oldCP = vtkParse_Win32ToUTF8(wargc, wargv, &argv);                                \
+    int rval = main_with_utf8_args(wargc, argv);                                                   \
+    vtkParse_Win32Restore(oldCP, wargc, argv);                                                     \
+    return rval;                                                                                   \
+  }                                                                                                \
+  int main_with_utf8_args(a, b)
+
+#else
+
+#define VTK_PARSE_MAIN(a, b) main(a, b)
+
 #endif
 
 #endif
