@@ -579,17 +579,31 @@ unsigned int vtkParse_Win32ToUTF8(int argc, wchar_t* wargv[], char*** argv_p)
 {
   UINT oldCP;
   int i, n;
-  char** argv = (char**)malloc(2 * argc * sizeof(char*));
-  *argv_p = argv + argc;
+  char** argv;
+  char* cp;
+  size_t l = 0;
 
+  /* compute total command-line length */
   for (i = 0; i < argc; i++)
   {
-    n = WideCharToMultiByte(CP_UTF8, 0, wargv[i], -1, NULL, 0, NULL, NULL);
-    argv[i] = (char*)malloc(n);
-    WideCharToMultiByte(CP_UTF8, 0, wargv[i], -1, argv[i], n, NULL, NULL);
-    argv[i + argc] = argv[i];
+    l += WideCharToMultiByte(CP_UTF8, 0, wargv[i], -1, NULL, 0, NULL, NULL);
   }
 
+  /* allocate combined buffer for argv and arg strings */
+  argv = (char**)malloc(argc * sizeof(char*) + l);
+  *argv_p = argv;
+  cp = (char*)(argv + argc);
+
+  /* convert all arguments */
+  for (i = 0; i < argc; i++)
+  {
+    argv[i] = cp;
+    n = WideCharToMultiByte(CP_UTF8, 0, wargv[i], -1, NULL, 0, NULL, NULL);
+    WideCharToMultiByte(CP_UTF8, 0, wargv[i], -1, argv[i], n, NULL, NULL);
+    cp += n;
+  }
+
+  /* set console I/O to UTF8 */
   oldCP = GetConsoleOutputCP();
   if (oldCP != CP_UTF8)
   {
@@ -599,17 +613,12 @@ unsigned int vtkParse_Win32ToUTF8(int argc, wchar_t* wargv[], char*** argv_p)
   return oldCP;
 }
 
-/* Release the converted args and reset the console code page */
+/* Release the converted args and restore the console code page */
 void vtkParse_Win32Restore(unsigned int oldCP, int argc, char** argv)
 {
   if ((UINT)oldCP != CP_UTF8)
   {
     SetConsoleOutputCP((UINT)oldCP);
-  }
-  argv -= argc;
-  while (argc > 0)
-  {
-    free(argv[--argc]);
   }
   free(argv);
 }
