@@ -273,10 +273,12 @@ bool vtkPythonInterpreter::InitializeWithArgs(int initsigs, int argc, char* argv
       argvForPython.push_back(argCopy.get());
       argvCleanup.emplace_back(std::move(argCopy));
     }
+    int argvForPythonSize = argvForPython.size();
+    argvForPython.push_back(nullptr);
 
     // setup default argv. Without this, code snippets that check `sys.argv` may
     // fail when run in embedded VTK Python environment.
-    PySys_SetArgvEx(static_cast<int>(argvForPython.size()), argvForPython.data(), 0);
+    PySys_SetArgvEx(argvForPythonSize, argvForPython.data(), 0);
 #else
     PyConfig config;
     PyStatus status;
@@ -621,9 +623,11 @@ int vtkPythonInterpreter::PyMain(int argc, char** argv)
     argvForPythonWide.push_back(argCopy.get());
     argvCleanupWide.emplace_back(std::move(argCopy));
   }
+  int argvForPythonWideSize = argvForPythonWide.size();
+  argvForPythonWide.push_back(nullptr);
 
   vtkPythonScopeGilEnsurer gilEnsurer(false, true);
-  return Py_Main(static_cast<int>(argvForPythonWide.size()), argvForPythonWide.data());
+  return Py_Main(argvForPythonWideSize, argvForPythonWide.data());
 #else
   vtkPythonScopeGilEnsurer gilEnsurer(false, true);
   return Py_RunMain();
