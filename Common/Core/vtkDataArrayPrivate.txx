@@ -84,7 +84,13 @@ struct has_infinity;
 template <typename T>
 struct has_infinity<T, true>
 {
+#ifdef __INTEL_LLVM_COMPILER
+  // `std::isinf` doesn't work with the OneAPI compilers and returns false
+  // negatives.
+  static bool isinf(T x) { return x > std::numeric_limits<T>::max(); }
+#else
   static bool isinf(T x) { return std::isinf(x); }
+#endif
 };
 
 template <typename T>
