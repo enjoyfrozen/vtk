@@ -1,3 +1,11 @@
+# `isnan` returns `0` for values which print `nan`
+set(VTK_HAS_STD_ISNAN FALSE CACHE BOOL "")
+set(VTK_HAS_ISNAN FALSE CACHE BOOL "")
+
+# `isinf` returns `0` for values which print `inf`
+set(VTK_HAS_STD_ISINF FALSE CACHE BOOL "")
+set(VTK_HAS_ISINF FALSE CACHE BOOL "")
+
 # Disable modules for which there are missing dependencies.
 set(VTK_MODULE_ENABLE_VTK_CommonArchive NO CACHE STRING "") # libarchive
 set(VTK_MODULE_ENABLE_VTK_DomainsMicroscopy NO CACHE STRING "") # openslide
