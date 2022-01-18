@@ -1,3 +1,7 @@
+# `isnan` returns `0` for values which print `nan`
+set(VTK_HAS_STD_ISNAN FALSE CACHE BOOL "")
+set(VTK_HAS_ISNAN FALSE CACHE BOOL "")
+
 # Disable modules for which there are missing dependencies.
 set(VTK_ENABLE_MODULE_VTK_CommonArchive "NO" CACHE STRING "")
 set(VTK_ENABLE_MODULE_VTK_DomainsMicroscopy "NO" CACHE STRING "")
