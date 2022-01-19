@@ -30,7 +30,7 @@
 #include "vtkPoints2D.h"
 #include "vtkTable.h"
 #include "vtkVectorOperators.h"
-#include "vtkWeakPointer.h"
+#include "vtkWeakPtr.h"
 
 #include <algorithm>
 #include <cmath>
@@ -140,10 +140,11 @@ private:
   {
     assert(array);
 
-    if (this->ValidPointMask)
+    auto mask = this->ValidPointMask.Lock();
+    if (mask)
     {
-      assert(array->GetNumberOfTuples() == this->ValidPointMask->GetNumberOfTuples());
-      assert(array->GetNumberOfComponents() == this->ValidPointMask->GetNumberOfComponents());
+      assert(array->GetNumberOfTuples() == mask->GetNumberOfTuples());
+      assert(array->GetNumberOfComponents() == mask->GetNumberOfComponents());
 
       using Dispatcher =
         vtkArrayDispatch::Dispatch2ByArray<vtkArrayDispatch::Arrays, // First array is input, can be
@@ -152,7 +153,7 @@ private:
           >;
       ComputeArrayRange worker;
 
-      if (!Dispatcher::Execute(array, this->ValidPointMask, worker))
+      if (!Dispatcher::Execute(array, mask, worker))
       {
         vtkGenericWarningMacro(<< "Error computing range. Unsupported array type: "
                                << array->GetClassName() << " (" << array->GetDataTypeAsString()
@@ -298,10 +299,10 @@ private:
 public:
   // Array which marks valid points in the array. If nullptr (the default), all
   // points in the input array are considered valid.
-  vtkWeakPointer<vtkCharArray> ValidPointMask;
+  vtkWeakPtr<vtkCharArray> ValidPointMask;
 
   // References to input arrays.
-  vtkTuple<vtkWeakPointer<vtkDataArray>, 3> InputArrays;
+  vtkTuple<vtkWeakPtr<vtkDataArray>, 3> InputArrays;
 
   // Array for the points. These maintain the points that form the QuadStrip for
   // the area plot.
@@ -314,7 +315,7 @@ public:
 
   void Reset()
   {
-    this->ValidPointMask = nullptr;
+    this->ValidPointMask.Reset(nullptr);
     this->Points->Initialize();
     this->Points->SetDataTypeToFloat();
     this->BadPoints.clear();
@@ -322,7 +323,11 @@ public:
 
   bool IsInputDataValid() const
   {
-    return this->InputArrays[1] != nullptr && this->InputArrays[2] != nullptr;
+    // XXX(thread-safety): Other threads may release the data between this
+    // check and uses of the pointers behind the validity.
+    auto input_1 = this->InputArrays[1].Lock();
+    auto input_2 = this->InputArrays[2].Lock();
+    return input_1 != nullptr && input_2 != nullptr;
   }
 
   bool SetPoints(vtkDataArray* x, vtkDataArray* y1, vtkDataArray* y2)
@@ -338,9 +343,9 @@ public:
     assert((x == nullptr || x->GetNumberOfTuples() == numTuples) &&
       y2->GetNumberOfTuples() == numTuples);
 
-    this->InputArrays[0] = x;
-    this->InputArrays[1] = y1;
-    this->InputArrays[2] = y2;
+    this->InputArrays[0].Reset(x);
+    this->InputArrays[1].Reset(y1);
+    this->InputArrays[2].Reset(y2);
     this->Points->SetNumberOfPoints(numTuples * 2);
     this->SortedPoints.clear();
     this->DataMTime.Modified();
@@ -352,17 +357,20 @@ public:
     if (this->DataMTime > this->BoundsMTime)
     {
       vtkTuple<double, 2> rangeX, rangeY1, rangeY2;
-      if (this->InputArrays[0])
+      auto input_0 = this->InputArrays[0].Lock();
+      if (input_0)
       {
-        rangeX = this->GetDataRange(this->InputArrays[0]);
+        rangeX = this->GetDataRange(input_0);
       }
       else
       {
         rangeX[0] = 0;
         rangeX[1] = (this->Points->GetNumberOfPoints() / 2 - 1);
       }
-      rangeY1 = this->GetDataRange(this->InputArrays[1]);
-      rangeY2 = this->GetDataRange(this->InputArrays[2]);
+      auto input_1 = this->InputArrays[1].Lock();
+      auto input_2 = this->InputArrays[2].Lock();
+      rangeY1 = this->GetDataRange(input_1);
+      rangeY2 = this->GetDataRange(input_2);
 
       this->DataBounds.Reset();
       this->DataBounds.SetMinPoint(rangeX[0], std::min(rangeY1[0], rangeY2[0]), 0);
@@ -392,13 +400,15 @@ public:
     useLog[0] = xaxis->GetLogScaleActive();
     useLog[1] = yaxis->GetLogScaleActive();
 
-    vtkIdType numTuples = this->InputArrays[1]->GetNumberOfTuples();
+    auto input_1 = this->InputArrays[1].Lock();
+    vtkIdType numTuples = input_1->GetNumberOfTuples();
     assert(this->Points->GetNumberOfPoints() == 2 * numTuples);
 
     float* data = reinterpret_cast<float*>(this->Points->GetVoidPointer(0));
-    if (this->InputArrays[0])
+    auto input_0 = this->InputArrays[0].Lock();
+    if (input_0)
     {
-      vtkDataArray* array = this->InputArrays[0];
+      vtkDataArray* array = input_0;
       vtkIdType numValues = array->GetNumberOfTuples() * array->GetNumberOfComponents();
 
       CopyToPoints worker1(data, 4, numValues, vtkVector2d(ss[0], ss[2]), useLog[0]);
@@ -421,8 +431,8 @@ public:
       worker2();
     }
 
-    vtkDataArray* array1 = this->InputArrays[1];
-    vtkDataArray* array2 = this->InputArrays[2];
+    auto array1 = this->InputArrays[1].Lock();
+    auto array2 = this->InputArrays[2].Lock();
     vtkIdType numValues1 = array1->GetNumberOfTuples() * array1->GetNumberOfComponents();
     vtkIdType numValues2 = array2->GetNumberOfTuples() * array2->GetNumberOfComponents();
 
@@ -438,9 +448,10 @@ public:
 
     // Set the bad-points mask.
     vtkVector2f* vec2f = reinterpret_cast<vtkVector2f*>(this->Points->GetVoidPointer(0));
+    auto mask = this->ValidPointMask.Lock();
     for (vtkIdType cc = 0; cc < numTuples; cc++)
     {
-      bool is_bad = (this->ValidPointMask && this->ValidPointMask->GetValue(cc) == 0);
+      bool is_bad = (mask && mask->GetValue(cc) == 0);
       is_bad = is_bad || vtkIsBadPoint(vec2f[2 * cc]);
       is_bad = is_bad || vtkIsBadPoint(vec2f[2 * cc + 1]);
       if (is_bad)
@@ -513,9 +524,9 @@ void vtkPlotArea::Update()
     vtkTableCache& cache = (*this->TableCache);
 
     cache.Reset();
-    cache.ValidPointMask = !this->ValidPointMaskName.empty()
-      ? vtkArrayDownCast<vtkCharArray>(table->GetColumnByName(this->ValidPointMaskName))
-      : nullptr;
+    cache.ValidPointMask.Reset(!this->ValidPointMaskName.empty()
+        ? vtkArrayDownCast<vtkCharArray>(table->GetColumnByName(this->ValidPointMaskName))
+        : nullptr);
     cache.SetPoints(
       this->UseIndexForXSeries ? nullptr : this->Data->GetInputArrayToProcess(0, table),
       this->Data->GetInputArrayToProcess(1, table), this->Data->GetInputArrayToProcess(2, table));

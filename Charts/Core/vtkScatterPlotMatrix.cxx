@@ -182,7 +182,7 @@ public:
 
   vtkNew<vtkTable> Histogram;
   bool VisibleColumnsModified;
-  vtkWeakPointer<vtkChart> BigChart;
+  vtkWeakPtr<vtkChart> BigChart;
   vtkVector2i BigChartPos;
   bool ResizingBigChart;
   vtkNew<vtkAnnotationLink> Link;
@@ -396,7 +396,7 @@ void vtkScatterPlotMatrix::Update()
 
 bool vtkScatterPlotMatrix::Paint(vtkContext2D* painter)
 {
-  this->CurrentPainter = painter;
+  this->CurrentPainter.Reset(painter);
   this->Update();
   bool ret = this->Superclass::Paint(painter);
   this->ResizeBigChart();
@@ -468,16 +468,16 @@ bool vtkScatterPlotMatrix::SetActivePlot(const vtkVector2i& pos)
         }
       }
     }
-    if (this->Private->BigChart)
+    if (auto chart = this->Private->BigChart.Lock();)
     {
-      vtkPlot* plot = this->Private->BigChart->GetPlot(0);
+      vtkPlot* plot = chart->GetPlot(0);
       vtkStdString column = this->GetColumnName(pos.GetX());
       vtkStdString row = this->GetRowName(pos.GetY());
       if (!plot)
       {
-        plot = this->Private->BigChart->AddPlot(vtkChart::POINTS);
+        plot = chart->AddPlot(vtkChart::POINTS);
         vtkChart* active = this->GetChart(this->ActivePlot);
-        vtkChartXY* xy = vtkChartXY::SafeDownCast(this->Private->BigChart);
+        vtkChartXY* xy = vtkChartXY::SafeDownCast(chart);
         if (xy)
         {
           // Set plot corner, and axis visibility
@@ -513,9 +513,9 @@ bool vtkScatterPlotMatrix::SetActivePlot(const vtkVector2i& pos)
       }
       else
       {
-        this->Private->BigChart->ClearPlots();
-        plot = this->Private->BigChart->AddPlot(vtkChart::POINTS);
-        vtkChartXY* xy = vtkChartXY::SafeDownCast(this->Private->BigChart);
+        chart->ClearPlots();
+        plot = chart->AddPlot(vtkChart::POINTS);
+        vtkChartXY* xy = vtkChartXY::SafeDownCast(chart);
         if (xy)
         {
           xy->SetPlotCorner(plot, 2);
@@ -530,7 +530,7 @@ bool vtkScatterPlotMatrix::SetActivePlot(const vtkVector2i& pos)
       }
       plot->SetInputData(this->Input, column, row);
       plot->SetPen(this->Private->ChartSettings[ACTIVEPLOT]->PlotPen);
-      this->ApplyAxisSetting(this->Private->BigChart, column, row);
+      this->ApplyAxisSetting(chart, column, row);
 
       // Set marker size and style.
       vtkPlotPoints* plotPoints = vtkPlotPoints::SafeDownCast(plot);
@@ -538,17 +538,15 @@ bool vtkScatterPlotMatrix::SetActivePlot(const vtkVector2i& pos)
       plotPoints->SetMarkerStyle(this->Private->ChartSettings[ACTIVEPLOT]->MarkerStyle);
 
       // Add supplementary plot if any
-      this->AddSupplementaryPlot(this->Private->BigChart, ACTIVEPLOT, row, column, 2);
+      this->AddSupplementaryPlot(chart, ACTIVEPLOT, row, column, 2);
 
       // Set background color.
-      this->Private->BigChart->SetBackgroundBrush(
-        this->Private->ChartSettings[ACTIVEPLOT]->BackgroundBrush);
-      this->Private->BigChart->GetAxis(vtkAxis::TOP)
-        ->SetTitle(this->VisibleColumns->GetValue(pos.GetX()));
-      this->Private->BigChart->GetAxis(vtkAxis::RIGHT)
+      chart->SetBackgroundBrush(this->Private->ChartSettings[ACTIVEPLOT]->BackgroundBrush);
+      chart->GetAxis(vtkAxis::TOP)->SetTitle(this->VisibleColumns->GetValue(pos.GetX()));
+      chart->GetAxis(vtkAxis::RIGHT)
         ->SetTitle(this->VisibleColumns->GetValue(this->GetSize().GetX() - pos.GetY() - 1));
       // Calculate the ideal range.
-      // this->Private->BigChart->RecalculateBounds();
+      // chart->RecalculateBounds();
     }
     return true;
   }
@@ -652,6 +650,7 @@ void vtkScatterPlotMatrix::AdvanceAnimation()
   // 5: Make BigChart3D invisible and BigChart visible.
   // 6: Stop the timer.
   this->InvokeEvent(vtkCommand::AnimationCueTickEvent);
+  auto chart = this->Private->BigChart.Lock();
   switch (this->Private->AnimationPhase)
   {
     case 0: // Remove decoration from the big chart, load up the 3D chart
@@ -667,7 +666,7 @@ void vtkScatterPlotMatrix::AdvanceAnimation()
       bool isX = false;
       int zColumn = 0;
 
-      vtkRectf size = this->Private->BigChart->GetSize();
+      vtkRectf size = chart->GetSize();
       float zSize;
       this->Private->FinalAngle = 90.0;
       this->Private->IncAngle = this->Private->FinalAngle / this->NumberOfFrames;
@@ -732,7 +731,7 @@ void vtkScatterPlotMatrix::AdvanceAnimation()
       return;
     }
     case 1: // Make BigChart invisible, and BigChart3D visible.
-      this->Private->BigChart->SetVisible(false);
+      chart->SetVisible(false);
       this->AddItem(this->Private->BigChart3D);
       this->Private->BigChart3D->SetVisible(true);
       this->GetScene()->SetDirty(true);
@@ -753,7 +752,7 @@ void vtkScatterPlotMatrix::AdvanceAnimation()
       return;
     case 3: // Transition to new dimensionality, update the big chart.
       this->SetActivePlot(this->Private->NextActivePlot);
-      this->Private->BigChart->Update();
+      chart->Update();
       this->GetScene()->SetDirty(true);
       ++this->Private->AnimationPhase;
       break;
@@ -764,7 +763,7 @@ void vtkScatterPlotMatrix::AdvanceAnimation()
       this->Private->AnimationPhase = 0;
       if (this->Private->AnimationIter == this->Private->AnimationPath.end())
       {
-        this->Private->BigChart->SetVisible(true);
+        chart->SetVisible(true);
         this->RemoveItem(this->Private->BigChart3D);
         this->Private->BigChart3D->SetVisible(false);
         this->Private->Interactor->DestroyTimer(this->Private->TimerId);
@@ -1035,8 +1034,7 @@ void vtkScatterPlotMatrix::SetPlotMarkerStyle(int plotType, int style)
 
     if (plotType == ACTIVEPLOT)
     {
-      vtkChart* chart = this->Private->BigChart;
-      if (chart)
+      if (auto chart = this->Private->BigChart.Lock())
       {
         vtkPlotPoints* plot = vtkPlotPoints::SafeDownCast(chart->GetPlot(0));
         if (plot)
@@ -1079,8 +1077,7 @@ void vtkScatterPlotMatrix::SetPlotMarkerSize(int plotType, float size)
     if (plotType == ACTIVEPLOT)
     {
       // update marker size on current active plot
-      vtkChart* chart = this->Private->BigChart;
-      if (chart)
+      if (auto chart = this->Private->BigChart.Lock())
       {
         vtkPlotPoints* plot = vtkPlotPoints::SafeDownCast(chart->GetPlot(0));
         if (plot)
@@ -1436,14 +1433,15 @@ void vtkScatterPlotMatrix::UpdateLayout()
       else if (this->GetPlotType(pos) == ACTIVEPLOT)
       {
         // This big plot in the top-right
-        this->Private->BigChart = this->GetChart(pos);
+        vtkChart* chart = this->GetChart(pos);
+        this->Private->BigChart.Reset(chart);
         this->Private->BigChartPos = pos;
-        this->Private->BigChart->SetAnnotationLink(this->Private->Link);
-        this->Private->BigChart->AddObserver(vtkCommand::SelectionChangedEvent, this,
+        chart->SetAnnotationLink(this->Private->Link);
+        chart->AddObserver(vtkCommand::SelectionChangedEvent, this,
           &vtkScatterPlotMatrix::BigChartSelectionCallback);
 
         // set tooltip item
-        vtkChartXY* chartXY = vtkChartXY::SafeDownCast(this->Private->BigChart);
+        vtkChartXY* chartXY = vtkChartXY::SafeDownCast(chart);
         if (chartXY)
         {
           chartXY->SetTooltip(this->Private->TooltipItem);
@@ -1506,7 +1504,7 @@ void vtkScatterPlotMatrix::ResizeBigChart()
       // 30*30 is an acceptable default size to resize with
       int resizeX = 30;
       int resizeY = 30;
-      if (this->CurrentPainter)
+      if (auto painter = this->CurrentPainter.Lock())
       {
         // Try to use painter to resize the big plot
         int i = this->Private->BigChartPos.GetX();
@@ -1520,8 +1518,7 @@ void vtkScatterPlotMatrix::ResizeBigChart()
           vtkAxis* leftAxis = leftChart->GetAxis(vtkAxis::RIGHT);
           if (leftAxis)
           {
-            resizeX = std::max(
-              leftAxis->GetBoundingRect(this->CurrentPainter).GetWidth() - this->Gutter.GetX(),
+            resizeX = std::max(leftAxis->GetBoundingRect(painter).GetWidth() - this->Gutter.GetX(),
               this->Gutter.GetX());
           }
         }
@@ -1530,9 +1527,9 @@ void vtkScatterPlotMatrix::ResizeBigChart()
           vtkAxis* bottomAxis = bottomChart->GetAxis(vtkAxis::TOP);
           if (bottomAxis)
           {
-            resizeY = std::max(
-              bottomAxis->GetBoundingRect(this->CurrentPainter).GetHeight() - this->Gutter.GetY(),
-              this->Gutter.GetY());
+            resizeY =
+              std::max(bottomAxis->GetBoundingRect(painter).GetHeight() - this->Gutter.GetY(),
+                this->Gutter.GetY());
           }
         }
       }
@@ -1781,14 +1778,17 @@ void vtkScatterPlotMatrix::UpdateChartSettings(int plotType)
       }
     }
   }
-  else if (plotType == ACTIVEPLOT && this->Private->BigChart)
+  else if (plotType == ACTIVEPLOT)
   {
-    this->Private->UpdateAxis(
-      this->Private->BigChart->GetAxis(vtkAxis::TOP), this->Private->ChartSettings[ACTIVEPLOT]);
-    this->Private->UpdateAxis(
-      this->Private->BigChart->GetAxis(vtkAxis::RIGHT), this->Private->ChartSettings[ACTIVEPLOT]);
-    this->Private->UpdateChart(this->Private->BigChart, this->Private->ChartSettings[ACTIVEPLOT]);
-    this->Private->BigChart->SetSelectionMode(this->SelectionMode);
+    if (auto chart = this->Private->BigChart.Lock())
+    {
+      this->Private->UpdateAxis(
+        chart->GetAxis(vtkAxis::TOP), this->Private->ChartSettings[ACTIVEPLOT]);
+      this->Private->UpdateAxis(
+        chart->GetAxis(vtkAxis::RIGHT), this->Private->ChartSettings[ACTIVEPLOT]);
+      this->Private->UpdateChart(chart, this->Private->ChartSettings[ACTIVEPLOT]);
+      chart->SetSelectionMode(this->SelectionMode);
+    }
   }
   this->Modified();
 }
@@ -1801,9 +1801,9 @@ void vtkScatterPlotMatrix::SetSelectionMode(int selMode)
     return;
   }
   this->SelectionMode = selMode;
-  if (this->Private->BigChart)
+  if (auto chart = this->Private->BigChart.Lock())
   {
-    this->Private->BigChart->SetSelectionMode(selMode);
+    chart->SetSelectionMode(selMode);
   }
 
   this->Modified();
@@ -1901,7 +1901,8 @@ void vtkScatterPlotMatrix::SetTooltip(vtkTooltipItem* tooltip)
     this->Private->TooltipItem = tooltip;
     this->Modified();
 
-    vtkChartXY* chartXY = vtkChartXY::SafeDownCast(this->Private->BigChart);
+    auto chart = this->Storage->Chart->Lock();
+    vtkChartXY* chartXY = vtkChartXY::SafeDownCast(chart);
 
     if (chartXY)
     {
@@ -1924,9 +1925,9 @@ void vtkScatterPlotMatrix::SetIndexedLabels(vtkStringArray* labels)
     this->Private->IndexedLabelsArray = labels;
     this->Modified();
 
-    if (this->Private->BigChart)
+    if (auto chart = this->Private->BigChart.Lock())
     {
-      vtkPlot* plot = this->Private->BigChart->GetPlot(0);
+      vtkPlot* plot = chart->GetPlot(0);
 
       if (plot)
       {
@@ -1957,7 +1958,21 @@ vtkColor4ub vtkScatterPlotMatrix::GetScatterPlotSelectedActiveColor()
 //------------------------------------------------------------------------------
 vtkChart* vtkScatterPlotMatrix::GetMainChart()
 {
-  return this->Private->BigChart;
+  auto chart = this->GetMainChartOwned();
+  // Extract the pointer. The caller doesn't know if it owns this or not, so it
+  // cannot be passed back with a new reference without leaking in existing
+  // code.
+  vtkChart* chart_ptr = chart;
+  // XXX(thread-safety): This may not be valid after this function returns if
+  // the chart is released on other threads. Previous code had problems with
+  // this, so this is no worse than before.
+  return chart_ptr;
+}
+
+//------------------------------------------------------------------------------
+vtkSmartPointer<vtkChart> vtkScatterPlotMatrix::GetMainChartOwned() const
+{
+  return this->Private->BigChart->Lock();
 }
 
 //------------------------------------------------------------------------------

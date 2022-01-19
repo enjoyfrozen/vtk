@@ -29,10 +29,11 @@
 #include "vtkChartMatrix.h"
 #include "vtkChartsCoreModule.h" // For export macro
 #include "vtkColor.h"            // For member function return
+#include "vtkDeprecation.h"      // For VTK_DEPRECATED_IN_9_2_0
 #include "vtkNew.h"              // For ivars
 #include "vtkSmartPointer.h"     // For ivars
 #include "vtkStdString.h"        // For ivars
-#include "vtkWeakPointer.h"      // For currentPainter
+#include "vtkWeakPtr.h"          // For currentPainter
 
 class vtkStringArray;
 class vtkTable;
@@ -402,10 +403,14 @@ public:
    */
   virtual void AdvanceAnimation();
 
+  ///@{
   /**
    * Get the main plot (the one in the top-right of the matrix.
    */
+  VTK_DEPRECATED_IN_9_2_0("Use GetMainChartOwned() to ensure the pointer is valid")
   virtual vtkChart* GetMainChart();
+  vtkSmartPointer<vtkChart> GetMainChartOwned() const;
+  ///@}
 
 protected:
   vtkScatterPlotMatrix();
@@ -498,7 +503,7 @@ private:
   PIMPL* Private;
   friend class PIMPL;
 
-  vtkWeakPointer<vtkContext2D> CurrentPainter;
+  vtkWeakPtr<vtkContext2D> CurrentPainter;
   vtkMTimeType LayoutUpdatedTime;
 
   // Go through the process of calculating axis ranges, etc...

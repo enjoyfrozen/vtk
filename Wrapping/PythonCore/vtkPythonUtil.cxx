@@ -29,7 +29,7 @@
 #include "vtkStdString.h"
 #include "vtkUnicodeString.h"
 #include "vtkVariant.h"
-#include "vtkWeakPointer.h"
+#include "vtkWeakPtr.h"
 #include "vtkWindows.h"
 
 #include <algorithm>
@@ -166,7 +166,7 @@ class vtkPythonModuleList : public std::vector<std::string>
 };
 
 // Keep track of all vtkPythonCommand instances.
-class vtkPythonCommandList : public std::vector<vtkWeakPointer<vtkPythonCommand>>
+class vtkPythonCommandList : public std::vector<vtkWeakPtr<vtkPythonCommand>>
 {
 public:
   ~vtkPythonCommandList()
@@ -183,7 +183,12 @@ public:
   }
   void findAndErase(vtkPythonCommand* ptr)
   {
-    this->erase(std::remove(this->begin(), this->end(), ptr), this->end());
+    this->erase(std::remove_if(this->begin(), this->end(), ptr,
+                  [this](vtkWeakPtr<vtkPythonCommand> const& weak) {
+                    auto target = weak.Lock();
+                    return target && target == ptr;
+                  }),
+      this->end());
   }
 };
 
@@ -249,7 +254,7 @@ void vtkPythonUtil::RegisterPythonCommand(vtkPythonCommand* cmd)
 {
   if (cmd)
   {
-    vtkPythonMap->PythonCommandList->push_back(cmd);
+    vtkPythonMap->PythonCommandList->emplace_back(vtkWeakPtr::FromOwningRawPointer(cmd));
   }
 }
 

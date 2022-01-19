@@ -28,7 +28,7 @@
 #include "vtkTextProperty.h"
 #include "vtkVector.h"
 #include "vtkVectorOperators.h"
-#include "vtkWeakPointer.h"
+#include "vtkWeakPtr.h"
 
 #include "vtkObjectFactory.h"
 
@@ -45,7 +45,7 @@ public:
   ~Private() = default;
 
   vtkVector2f Point;
-  vtkWeakPointer<vtkChart> Chart;
+  vtkWeakPtr<vtkChart> Chart;
   std::vector<vtkPlot*> ActivePlots;
 };
 
@@ -88,19 +88,23 @@ vtkChartLegend::~vtkChartLegend()
 //------------------------------------------------------------------------------
 void vtkChartLegend::Update()
 {
-  this->Storage->ActivePlots.clear();
-  for (int i = 0; i < this->Storage->Chart->GetNumberOfPlots(); ++i)
+  auto chart = this->Storage->Chart->Lock();
+  if (!chart)
   {
-    if (this->Storage->Chart->GetPlot(i)->GetVisible() &&
-      this->Storage->Chart->GetPlot(i)->GetLabel().length() > 0)
+    return;
+  }
+
+  this->Storage->ActivePlots.clear();
+  for (int i = 0; i < chart->GetNumberOfPlots(); ++i)
+  {
+    if (chart->GetPlot(i)->GetVisible() && chart->GetPlot(i)->GetLabel().length() > 0)
     {
-      this->Storage->ActivePlots.push_back(this->Storage->Chart->GetPlot(i));
+      this->Storage->ActivePlots.push_back(chart->GetPlot(i));
     }
     // If we have a plot with multiple labels, we generally only want to show
     // the labels/legend symbols for the first one. So truncate at the first
     // one we encounter.
-    if (this->Storage->Chart->GetPlot(i)->GetLabels() &&
-      this->Storage->Chart->GetPlot(i)->GetLabels()->GetNumberOfTuples() > 1)
+    if (chart->GetPlot(i)->GetLabels() && chart->GetPlot(i)->GetLabels()->GetNumberOfTuples() > 1)
     {
       break;
     }
@@ -274,13 +278,14 @@ vtkTextProperty* vtkChartLegend::GetLabelProperties()
 //------------------------------------------------------------------------------
 void vtkChartLegend::SetChart(vtkChart* chart)
 {
-  if (this->Storage->Chart == chart)
+  auto current_chart = this->Storage->Chart->Lock();
+  if (current_chart == chart)
   {
     return;
   }
   else
   {
-    this->Storage->Chart = chart;
+    this->Storage->Chart.Reset(chart);
     this->Modified();
   }
 }
@@ -288,7 +293,21 @@ void vtkChartLegend::SetChart(vtkChart* chart)
 //------------------------------------------------------------------------------
 vtkChart* vtkChartLegend::GetChart()
 {
-  return this->Storage->Chart;
+  auto chart = this->GetChartOwned();
+  // Extract the pointer. The caller doesn't know if it owns this or not, so it
+  // cannot be passed back with a new reference without leaking in existing
+  // code.
+  vtkChart* chart_ptr = chart;
+  // XXX(thread-safety): This may not be valid after this function returns if
+  // the chart is released on other threads. Previous code had problems with
+  // this, so this is no worse than before.
+  return chart_ptr;
+}
+
+//------------------------------------------------------------------------------
+vtkSmartPointer<vtkChart> vtkChartLegend::GetChartOwned() const
+{
+  return this->Storage->Chart->Lock();
 }
 
 //------------------------------------------------------------------------------

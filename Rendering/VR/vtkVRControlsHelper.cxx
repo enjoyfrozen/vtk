@@ -73,7 +73,6 @@ vtkVRControlsHelper::vtkVRControlsHelper()
   this->MoveCallbackCommand->SetPassiveObserver(1);
 
   this->Device = vtkEventDataDevice::Unknown;
-  this->Renderer = nullptr;
 
   this->NeedUpdate = false;
   this->LabelVisible = false;
@@ -110,7 +109,8 @@ void vtkVRControlsHelper::MoveEvent(vtkObject*, unsigned long, void* clientdata,
 {
   vtkVRControlsHelper* self = static_cast<vtkVRControlsHelper*>(clientdata);
 
-  vtkVRRenderWindow* renWin = static_cast<vtkVRRenderWindow*>(self->Renderer->GetRenderWindow());
+  auto renderer = self->Renderer.Lock(); // XXX(weakptr): Check for validity?
+  vtkVRRenderWindow* renWin = static_cast<vtkVRRenderWindow*>(renderer->GetRenderWindow());
 
   vtkEventData* ed = static_cast<vtkEventData*>(calldata);
   vtkEventDataDevice3D* ed3 = ed->GetAsEventDataDevice3D();
@@ -139,10 +139,10 @@ void vtkVRControlsHelper::UpdateRepresentation()
     return;
   }
 
-  if (this->Renderer && this->Renderer->GetRenderWindow() &&
-    this->Renderer->GetRenderWindow()->GetInteractor())
+  auto renderer = self->Renderer.Lock();
+  if (renderer && renderer->GetRenderWindow() && renderer->GetRenderWindow()->GetInteractor())
   {
-    vtkVRRenderWindow* renWin = static_cast<vtkVRRenderWindow*>(this->Renderer->GetRenderWindow());
+    vtkVRRenderWindow* renWin = static_cast<vtkVRRenderWindow*>(renderer->GetRenderWindow());
     if (!renWin)
     {
       return;
@@ -181,7 +181,7 @@ void vtkVRControlsHelper::UpdateRepresentation()
     this->TempTransform->Identity();
     this->TempTransform->RotateWXYZ(wxyz[0], wxyz[1], wxyz[2], wxyz[3]);
 
-    double* frameForward = this->Renderer->GetActiveCamera()->GetDirectionOfProjection();
+    double* frameForward = renderer->GetActiveCamera()->GetDirectionOfProjection();
     // Controller up direction in WC
     double* controllerUpWC = this->TempTransform->TransformDoubleVector(0.0, 1.0, 0.0);
 
@@ -222,7 +222,7 @@ void vtkVRControlsHelper::UpdateRepresentation()
       controllerPositionWC[2] + controlOriginWC[2] * physicalScale };
 
     // Frame main directions in WC
-    double* frameUp = this->Renderer->GetActiveCamera()->GetViewUp();
+    double* frameUp = renderer->GetActiveCamera()->GetViewUp();
     double frameRight[3];
     vtkMath::Cross(frameForward, frameUp, frameRight);
     vtkMath::Normalize(frameRight);
@@ -253,7 +253,7 @@ void vtkVRControlsHelper::UpdateRepresentation()
     framePosition[1] += tooltipOffset * controllerUpWC[1] * dotFactor * this->ButtonSide;
     framePosition[2] += tooltipOffset * controllerUpWC[2] * dotFactor * this->ButtonSide;
 
-    double* ori = this->Renderer->GetActiveCamera()->GetOrientationWXYZ();
+    double* ori = renderer->GetActiveCamera()->GetOrientationWXYZ();
     this->TempTransform->Identity();
     this->TempTransform->RotateWXYZ(-ori[0], ori[1], ori[2], ori[3]);
 
@@ -421,31 +421,46 @@ void vtkVRControlsHelper::SetEnabled(bool val)
 //------------------------------------------------------------------------------
 void vtkVRControlsHelper::SetRenderer(vtkRenderer* ren)
 {
-  if (ren == this->Renderer)
+  auto renderer = self->Renderer.Lock();
+  if (ren == renderer)
   {
     return;
   }
 
-  if (this->Renderer)
+  if (renderer)
   {
     vtkRenderWindowInteractor* i =
-      static_cast<vtkRenderWindow*>(this->Renderer->GetVTKWindow())->GetInteractor();
+      static_cast<vtkRenderWindow*>(renderer->GetVTKWindow())->GetInteractor();
     i->RemoveObserver(this->ObserverTag);
   }
 
-  this->Renderer = ren;
-  if (this->Renderer)
+  if (ren)
   {
     vtkRenderWindowInteractor* i =
-      static_cast<vtkRenderWindow*>(this->Renderer->GetVTKWindow())->GetInteractor();
+      static_cast<vtkRenderWindow*>(ren->GetVTKWindow())->GetInteractor();
     this->ObserverTag = i->AddObserver(vtkCommand::Move3DEvent, this->MoveCallbackCommand, 10.0);
   }
 
+  this->Renderer.Reset(ren);
   this->Modified();
 }
 
 //------------------------------------------------------------------------------
 vtkRenderer* vtkVRControlsHelper::GetRenderer()
 {
-  return this->Renderer;
+  auto ren = this->GetRendererOwned();
+  // Extract the pointer. The caller doesn't know if it owns this or not, so it
+  // cannot be passed back with a new reference without leaking in existing
+  // code.
+  vtkRenderer* ren_ptr = ren;
+  // XXX(thread-safety): This may not be valid after this function returns if
+  // the renderer is released on other threads. Previous code had problems with
+  // this, so this is no worse than before.
+  return ren_ptr;
+}
+
+//------------------------------------------------------------------------------
+vtkSmartPointer<vtkRenderer> vtkVRControlsHelper::GetRendererOwned() const
+{
+  return this->Renderer.Lock();
 }

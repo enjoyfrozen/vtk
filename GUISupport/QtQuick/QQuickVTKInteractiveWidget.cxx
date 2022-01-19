@@ -30,13 +30,27 @@ QQuickVTKInteractiveWidget::QQuickVTKInteractiveWidget(QObject* parent)
 //-------------------------------------------------------------------------------------------------
 void QQuickVTKInteractiveWidget::setWidget(vtkAbstractWidget* w)
 {
-  this->m_widget = w;
+  this->m_widget.Reset(w);
 }
 
 //-------------------------------------------------------------------------------------------------
 vtkAbstractWidget* QQuickVTKInteractiveWidget::widget() const
 {
-  return this->m_widget;
+  auto widget = this->widgetOwned();
+  // Extract the pointer. The caller doesn't know if it owns this or not, so it
+  // cannot be passed back with a new reference without leaking in existing
+  // code.
+  vtkAbstractWidget* widget_ptr = widget;
+  // XXX(thread-safety): This may not be valid after this function returns if
+  // the widget is released on other threads. Previous code had problems with
+  // this, so this is no worse than before.
+  return widget_ptr;
+}
+
+//-------------------------------------------------------------------------------------------------
+vtkSmartPointer<vtkAbstractWidget> QQuickVTKInteractiveWidget::widgetOwned() const
+{
+  return this->m_widget.Lock();
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -60,14 +74,15 @@ bool QQuickVTKInteractiveWidget::enabled() const
 //-------------------------------------------------------------------------------------------------
 void QQuickVTKInteractiveWidget::sync(vtkRenderer* ren)
 {
-  if (!ren || !this->m_widget)
+  auto widget = this->m_widget.Lock();
+  if (!ren || !widget)
   {
     return;
   }
 
   auto iren = ren->GetRenderWindow()->GetInteractor();
-  this->m_widget->SetInteractor(iren);
-  this->m_widget->SetCurrentRenderer(ren);
-  this->m_widget->SetEnabled(this->m_enabled);
-  this->m_widget->SetProcessEvents(this->m_enabled);
+  widget->SetInteractor(iren);
+  widget->SetCurrentRenderer(ren);
+  widget->SetEnabled(this->m_enabled);
+  widget->SetProcessEvents(this->m_enabled);
 }

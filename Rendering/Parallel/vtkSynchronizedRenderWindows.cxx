@@ -19,7 +19,7 @@
 #include "vtkMultiProcessStream.h"
 #include "vtkObjectFactory.h"
 #include "vtkRenderWindow.h"
-#include "vtkWeakPointer.h"
+#include "vtkWeakPtr.h"
 
 #include <map>
 
@@ -61,7 +61,7 @@ public:
 //------------------------------------------------------------------------------
 namespace
 {
-typedef std::map<unsigned int, vtkWeakPointer<vtkSynchronizedRenderWindows>>
+typedef std::map<unsigned int, vtkWeakPtr<vtkSynchronizedRenderWindows>>
   GlobalSynRenderWindowsMapType;
 GlobalSynRenderWindowsMapType GlobalSynRenderWindowsMap;
 
@@ -73,10 +73,13 @@ void RenderRMI(
   unsigned int id = 0;
   stream >> id;
   GlobalSynRenderWindowsMapType::iterator iter = GlobalSynRenderWindowsMap.find(id);
-  if (iter != GlobalSynRenderWindowsMap.end() && iter->second != nullptr &&
-    iter->second->GetRenderWindow() != nullptr)
+  if (iter != GlobalSynRenderWindowsMap.end())
   {
-    iter->second->GetRenderWindow()->Render();
+    auto windows = iter->second.Lock();
+    if (windows != nullptr && windows->GetRenderWindow() != nullptr)
+    {
+      windows->GetRenderWindow()->Render();
+    }
   }
 }
 };
@@ -135,7 +138,7 @@ void vtkSynchronizedRenderWindows::SetIdentifier(unsigned int id)
   this->Identifier = id;
   if (id > 0)
   {
-    GlobalSynRenderWindowsMap[id] = this;
+    GlobalSynRenderWindowsMap[id].Reset(this);
   }
 }
 

@@ -57,7 +57,7 @@
 
 #include "vtkAbstractWidget.h"
 #include "vtkInteractionWidgetsModule.h" // needed for export macro
-#include "vtkWeakPointer.h"              // for weak pointer ivar
+#include "vtkWeakPtr.h"                  // for weak pointer ivar
 
 class vtkCameraInterpolator;
 class vtkCameraOrientationRepresentation;
@@ -134,7 +134,7 @@ protected:
   };
   WidgetStateType WidgetState = WidgetStateType::Inactive;
 
-  vtkWeakPointer<vtkRenderer> ParentRenderer;
+  vtkWeakPtr<vtkRenderer> ParentRenderer;
 
   // Store camera interpolations.
   vtkNew<vtkCameraInterpolator> CameraInterpolator;

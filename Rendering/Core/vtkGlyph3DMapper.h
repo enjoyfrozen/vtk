@@ -31,7 +31,6 @@
 #include "vtkGlyph3D.h" // for the constants (VTK_SCALE_BY_SCALAR, ...).
 #include "vtkMapper.h"
 #include "vtkRenderingCoreModule.h" // For export macro
-#include "vtkWeakPointer.h"         // needed for vtkWeakPointer.
 
 class vtkCompositeDataDisplayAttributes;
 class vtkDataObjectTree;
