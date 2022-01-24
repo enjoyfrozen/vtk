@@ -302,6 +302,51 @@
         - x11
         - vtk
 
+.linux_qt_tester_tags_dejagore:
+    tags:
+        - docker
+        - linux
+        - linux-3.17
+        - x11
+        - vtk
+        - dejagore
+
+.linux_qt_tester_tags_venal:
+    tags:
+        - docker
+        - linux
+        - linux-3.17
+        - x11
+        - vtk
+        - venal
+
+.linux_qt_tester_tags_eeloo:
+    tags:
+        - docker
+        - linux
+        - linux-3.17
+        - x11
+        - vtk
+        - eeloo
+
+.linux_qt_tester_tags_minmus:
+    tags:
+        - docker
+        - linux
+        - linux-3.17
+        - x11
+        - vtk
+        - minmus
+
+.linux_qt_tester_tags_jool:
+    tags:
+        - docker
+        - linux
+        - linux-3.17
+        - x11
+        - vtk
+        - jool
+
 .linux_qt_tester_priv_tags:
     tags:
         - docker
@@ -355,6 +400,7 @@
 
     script:
         - *before_script_linux
+        - 'mount | grep shm'
         - ctest -V --output-on-failure -S .gitlab/ci/ctest_test.cmake
 
     interruptible: true

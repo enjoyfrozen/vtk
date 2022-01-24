@@ -46,11 +46,59 @@ el8-mpi-python:build:
         - .cmake_build_artifacts
         - .run_manually
 
-el8-mpi-python:test:
+el8-mpi-python:test-venal:
     extends:
         - .el8_icc_mpi_python
         - .cmake_test_linux
-        - .linux_qt_tester_tags
+        - .linux_qt_tester_tags_venal
+        - .cmake_test_artifacts
+        - .run_automatically
+    dependencies:
+        - el8-mpi-python:build
+    needs:
+        - el8-mpi-python:build
+
+el8-mpi-python:test-dejagore:
+    extends:
+        - .el8_icc_mpi_python
+        - .cmake_test_linux
+        - .linux_qt_tester_tags_dejagore
+        - .cmake_test_artifacts
+        - .run_automatically
+    dependencies:
+        - el8-mpi-python:build
+    needs:
+        - el8-mpi-python:build
+
+el8-mpi-python:test-eeloo:
+    extends:
+        - .el8_icc_mpi_python
+        - .cmake_test_linux
+        - .linux_qt_tester_tags_eeloo
+        - .cmake_test_artifacts
+        - .run_automatically
+    dependencies:
+        - el8-mpi-python:build
+    needs:
+        - el8-mpi-python:build
+
+el8-mpi-python:test-jool:
+    extends:
+        - .el8_icc_mpi_python
+        - .cmake_test_linux
+        - .linux_qt_tester_tags_jool
+        - .cmake_test_artifacts
+        - .run_automatically
+    dependencies:
+        - el8-mpi-python:build
+    needs:
+        - el8-mpi-python:build
+
+el8-mpi-python:test-minmus:
+    extends:
+        - .el8_icc_mpi_python
+        - .cmake_test_linux
+        - .linux_qt_tester_tags_minmus
         - .cmake_test_artifacts
         - .run_automatically
     dependencies:
