@@ -301,6 +301,7 @@
         - linux-3.17
         - x11
         - vtk
+        - eeloo
 
 .linux_qt_tester_priv_tags:
     tags:
