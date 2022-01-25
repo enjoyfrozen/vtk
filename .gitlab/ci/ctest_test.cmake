@@ -26,6 +26,12 @@ if (NOT "$ENV{CTEST_MAX_PARALLELISM}" STREQUAL "")
   endif ()
 endif ()
 
+if (nproc GREATER 8 AND
+    "$ENV{CI_RUNNER_ID}" STREQUAL "venal.x11" AND
+    "$ENV{CMAKE_CONFIGURATION}" MATCHES "icc")
+  set(nproc 8)
+endif ()
+
 # Default to a reasonable test timeout.
 set(CTEST_TEST_TIMEOUT 100)
 
