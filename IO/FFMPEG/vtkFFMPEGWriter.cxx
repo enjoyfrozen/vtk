@@ -21,9 +21,16 @@
 
 extern "C"
 {
+#include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libswscale/swscale.h>
 }
+
+#if LIBAVFORMAT_VERSION_MAJOR < 59
+#define vtk_ff_const59
+#else
+#define vtk_ff_const59 const
+#endif
 
 #if defined(LIBAVFORMAT_VERSION_MAJOR) && LIBAVFORMAT_VERSION_MAJOR >= 57
 extern "C"
@@ -51,7 +58,7 @@ private:
 
   AVFormatContext* avFormatContext;
 
-  AVOutputFormat* avOutputFormat;
+  vtk_ff_const59 AVOutputFormat* avOutputFormat;
 
   AVStream* avStream;
 
@@ -115,14 +122,15 @@ int vtkFFMPEGWriterInternal::Start()
     return 0;
   }
 
+  enum AVCodecID video_codec = this->avOutputFormat->video_codec;
   if (this->Writer->GetCompression())
   {
     // choose a codec that is easily playable on windows
-    this->avOutputFormat->video_codec = AV_CODEC_ID_MJPEG;
+    video_codec = AV_CODEC_ID_MJPEG;
   }
   else
   {
-    this->avOutputFormat->video_codec = AV_CODEC_ID_RAWVIDEO;
+    video_codec = AV_CODEC_ID_RAWVIDEO;
   }
 
   // create the format context that wraps all of the media output structures
@@ -133,8 +141,8 @@ int vtkFFMPEGWriterInternal::Start()
     return 0;
   }
 
-  AVCodec* codec;
-  if (!(codec = avcodec_find_encoder(this->avOutputFormat->video_codec)))
+  vtk_ff_const59 AVCodec* codec;
+  if (!(codec = avcodec_find_encoder(video_codec)))
   {
     vtkGenericWarningMacro(<< "Failed to get video codec.");
     return 0;
@@ -155,7 +163,7 @@ int vtkFFMPEGWriterInternal::Start()
     return 0;
   }
 
-  this->avStream->codecpar->codec_id = static_cast<AVCodecID>(this->avOutputFormat->video_codec);
+  this->avStream->codecpar->codec_id = video_codec;
   this->avStream->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
   this->avStream->codecpar->width = this->Dim[0];
   this->avStream->codecpar->height = this->Dim[1];
