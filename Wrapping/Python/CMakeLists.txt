@@ -213,11 +213,18 @@ foreach (_vtk_python_module IN LISTS vtk_python_wrapped_modules)
   endif ()
 endforeach ()
 
-set(_vtk_python_exe "$<TARGET_FILE:VTK::vtkpython>")
+if (TARGET vtkpython)
+  set(_vtk_python_exe "$<TARGET_FILE:VTK::vtkpython>")
+else ()
+  set(_vtk_python_exe "${Python3_EXECUTABLE}")
+endif ()
+
 set(_vtk_pyi_script "${VTK_SOURCE_DIR}/Utilities/Maintenance/vtk_generate_pyi.py")
 add_custom_command(
   OUTPUT    ${_vtk_python_pyi_files}
-  COMMAND   "${_vtk_python_exe}"
+  COMMAND   "${CMAKE_COMMAND}" -E env
+            "PYTHONPATH=${CMAKE_BINARY_DIR}/${VTK_PYTHON_SITE_PACKAGES_SUFFIX}"
+            "${_vtk_python_exe}"
             "${_vtk_pyi_script}"
             -p vtkmodules
   DEPENDS   ${_vtk_python_module_targets}
