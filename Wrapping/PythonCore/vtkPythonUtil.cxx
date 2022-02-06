@@ -644,6 +644,12 @@ PyObject* vtkPythonUtil::GetObjectFromObject(PyObject* arg, const char* type)
   union vtkPythonUtilPointerUnion u;
   PyObject* tmp = nullptr;
 
+  if (PyUnicode_Check(arg))
+  {
+    tmp = PyUnicode_AsUTF8String(arg);
+    arg = tmp;
+  }
+
   if (PyBytes_Check(arg))
   {
     vtkObjectBase* ptr;

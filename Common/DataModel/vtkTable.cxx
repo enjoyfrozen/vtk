@@ -294,17 +294,6 @@ void vtkTable::MoveRowData(vtkIdType first, vtkIdType last, vtkIdType delta)
         }
       }
     }
-    else if (vtkArrayDownCast<vtkUnicodeStringArray>(arr))
-    {
-      vtkUnicodeStringArray* data = vtkArrayDownCast<vtkUnicodeStringArray>(arr);
-      for (vtkIdType row = start; row * step <= stop * step; row += step)
-      {
-        for (int j = 0; j < comps; j++)
-        {
-          data->SetValue((row + delta) * comps + j, data->GetValue(row * comps + j));
-        }
-      }
-    }
   }
 }
 
