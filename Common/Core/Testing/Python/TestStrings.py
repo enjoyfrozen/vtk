@@ -63,12 +63,6 @@ class TestString(Testing.vtkTest):
         u = a.GetValue(0)
         self.assertEqual(u, cedilla)
 
-    def testPassBytesAsUnicode(self):
-        """Pass 8-bit string when unicode is expected.  Should fail."""
-        a = vtk.vtkStringArray()
-        self.assertRaises(TypeError,
-                          a.InsertNextValue, eightbit)
-
     def testPassUnicodeAsString(self):
         """Pass unicode where string is expected.  Should succeed."""
         a = vtk.vtkStringArray()
