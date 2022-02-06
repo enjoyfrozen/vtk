@@ -64,7 +64,7 @@ static PyObject* PyVTKReference_CompatibleObject(PyObject* self, PyObject* opn)
   // check if it is a string
   if (self == nullptr || Py_TYPE(self) == &PyVTKStringReference_Type)
   {
-    if (PyBytes_Check(opn))
+    if (PyUnicode_Check(opn) || PyBytes_Check(opn))
     {
       Py_INCREF(opn);
       return opn;
@@ -905,7 +905,7 @@ static PyObject* PyVTKReference_New(PyTypeObject*, PyObject* args, PyObject* kwd
     if (o)
     {
       PyVTKReference* self;
-      if (PyBytes_Check(o))
+      if (PyUnicode_Check(o) || PyBytes_Check(o))
       {
         self = PyObject_New(PyVTKReference, &PyVTKStringReference_Type);
       }

@@ -480,7 +480,7 @@ int vtkPythonOverload::CheckArg(PyObject* arg, const char* format, const char* n
           penalty = VTK_PYTHON_INCOMPATIBLE;
         }
       }
-      else if (!PyBytes_Check(arg) && !PyByteArray_Check(arg))
+      else if (!PyUnicode_Check(arg) && !PyBytes_Check(arg) && !PyByteArray_Check(arg))
       {
         penalty = VTK_PYTHON_INCOMPATIBLE;
 #if PY_VERSION_HEX >= 0x03060000
