@@ -990,6 +990,52 @@ static void ${_vtk_python_TARGET_NAME}_load() {\n")
         LIBRARY DESTINATION "${_vtk_python_MODULE_DESTINATION}"
         ARCHIVE DESTINATION "${_vtk_python_STATIC_MODULE_DESTINATION}")
     endif () # if (_vtk_python_BUILD_STATIC)
+
+    set(_vtk_python_pyi_files)
+    set(_vtk_python_module_targets)
+    foreach (_vtk_python_module IN LISTS _vtk_python_sorted_modules_filtered)
+      get_property(_vtk_python_library_name
+        TARGET    "${_vtk_python_module}"
+        PROPERTY  "INTERFACE_vtk_module_library_name")
+      list(APPEND _vtk_python_pyi_files
+        "${CMAKE_BINARY_DIR}/${VTK_PYTHON_SITE_PACKAGES_SUFFIX}/${_vtk_python_PYTHON_PACKAGE}/${_vtk_python_library_name}.pyi")
+      if (TARGET "${_vtk_python_library_name}Python")
+        list(APPEND _vtk_python_module_targets "${_vtk_python_library_name}Python")
+      endif ()
+    endforeach ()
+
+    # TODO the vtkpython target doesn't exist yet
+    if (TARGET vtkpython)
+      set(_vtk_python_exe "$<TARGET_FILE:VTK::vtkpython>")
+    else ()
+      set(_vtk_python_exe "${Python3_EXECUTABLE}")
+    endif ()
+
+    set(_vtk_pyi_script "${VTK_SOURCE_DIR}/Utilities/Maintenance/vtk_generate_pyi.py")
+    add_custom_command(
+      OUTPUT    ${_vtk_python_pyi_files}
+      COMMAND   "${CMAKE_COMMAND}" -E env
+                "PYTHONPATH=${CMAKE_BINARY_DIR}/${VTK_PYTHON_SITE_PACKAGES_SUFFIX}"
+                "${_vtk_python_exe}"
+                "${_vtk_pyi_script}"
+                -p "${_vtk_python_PYTHON_PACKAGE}"
+      DEPENDS   ${_vtk_python_module_targets}
+      COMMENT   "Creating .pyi files for Python modules."
+      COMPONENT "python")
+
+    if (BUILD_SHARED_LIBS)
+      install(
+        FILES       ${_vtk_python_pyi_files}
+        DESTINATION "${VTK_PYTHON_SITE_PACKAGES_SUFFIX}/${_vtk_python_PYTHON_PACKAGE}"
+        COMPONENT   "python")
+    endif ()
+
+    list(APPEND _vtk_python_files
+      ${_python_pyi_files})
+
+    add_custom_target(vtk_python_pyi ALL
+      DEPENDS ${_vtk_python_pyi_files})
+
   endif ()
 endfunction ()
 
