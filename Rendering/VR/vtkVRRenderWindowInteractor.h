@@ -50,7 +50,7 @@ public:
   /**
    * Implements the event loop.
    */
-  virtual void DoOneEvent(vtkVRRenderWindow* renWin, vtkRenderer* ren) = 0;
+  virtual void DoOneEvent(vtkVRRenderWindow* renWin, vtkRenderer* ren, bool doRender = true) = 0;
 
   ///@{
   /**
