@@ -430,15 +430,13 @@ private:
   /**
    * Internal helper called by RenderString methods
    */
-  template <typename StringType>
   bool RenderStringInternal(
-    vtkTextProperty* tprop, const StringType& str, int dpi, vtkImageData* data, int textDims[2]);
+    vtkTextProperty* tprop, const std::string& str, int dpi, vtkImageData* data, int textDims[2]);
 
   /**
    * Internal helper method called by StringToPath methods
    */
-  template <typename StringType>
-  bool StringToPathInternal(vtkTextProperty* tprop, const StringType& str, int dpi, vtkPath* path);
+  bool StringToPathInternal(vtkTextProperty* tprop, const std::string& str, int dpi, vtkPath* path);
 
   ///@{
   /**
@@ -446,8 +444,8 @@ private:
    * and stores it in the MetaData provided.
    */
   bool CalculateBoundingBox(const vtkStdString& str, MetaData& metaData);
-  template <typename T>
-  bool CalculateBoundingBox(const T& str, MetaData& metaData, const T& defaultHeightString);
+  bool CalculateBoundingBox(
+    const std::string& str, MetaData& metaData, const std::string& defaultHeightString);
   ///@}
 
   /**
@@ -455,25 +453,23 @@ private:
    * metaData is passed through the character renderer and caches properties
    * about data (e.g. range, dimensions, increments, etc).
    */
-  template <typename StringType, typename DataType>
-  bool PopulateData(const StringType& str, DataType data, MetaData& metaData);
+  template <typename DataType>
+  bool PopulateData(const std::string& str, DataType data, MetaData& metaData);
 
   /**
    * Renders a single line of text (between begin and end) to the image data.
    */
-  template <typename IteratorType, typename DataType>
-  bool RenderLine(
-    IteratorType begin, IteratorType end, int lineIndex, DataType data, MetaData& metaData);
+  template <typename DataType>
+  bool RenderLine(std::string::const_iterator begin, std::string::const_iterator end, int lineIndex,
+    DataType data, MetaData& metaData);
 
   ///@{
   /**
    * Implementations for rendering a single character to a specific target.
    */
-  template <typename CharType>
-  bool RenderCharacter(CharType character, int& x, int& y, FT_UInt& previousGlyphIndex,
+  bool RenderCharacter(FT_UInt32 codepoint, int& x, int& y, FT_UInt& previousGlyphIndex,
     vtkImageData* image, MetaData& metaData);
-  template <typename CharType>
-  bool RenderCharacter(CharType character, int& x, int& y, FT_UInt& previousGlyphIndex,
+  bool RenderCharacter(FT_UInt32 codepoint, int& x, int& y, FT_UInt& previousGlyphIndex,
     vtkPath* path, MetaData& metaData);
   ///@}
 
@@ -484,8 +480,8 @@ private:
    * fontsize (in points) that will fit the return string @a str into the @a
    * targetWidth and @a targetHeight.
    */
-  template <typename T>
-  int FitStringToBBox(const T& str, MetaData& metaData, int targetWidth, int targetHeight);
+  int FitStringToBBox(
+    const std::string& str, MetaData& metaData, int targetWidth, int targetHeight);
 
   ///@{
   /**
@@ -495,8 +491,8 @@ private:
    * is a tight fitting bbox around the rendering string, assuming (0, 0)
    * is the pen origin.
    */
-  template <typename T>
-  void GetLineMetrics(T begin, T end, MetaData& metaData, int& width, int bbox[4]);
+  void GetLineMetrics(std::string::const_iterator begin, std::string::const_iterator end,
+    MetaData& metaData, int& width, int bbox[4]);
   ///@}
 };
 
