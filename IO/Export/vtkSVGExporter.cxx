@@ -164,7 +164,7 @@ void vtkSVGExporter::PrepareDocument()
   {
     vtkNew<vtkXMLDataElement> title;
     title->SetName("title");
-    title->SetCharacterData(this->Title, static_cast<int>(std::strlen(this->Title)));
+    title->SetCharacterData(this->Title, std::strlen(this->Title));
     this->RootNode->AddNestedElement(title);
   }
 
@@ -172,7 +172,7 @@ void vtkSVGExporter::PrepareDocument()
   {
     vtkNew<vtkXMLDataElement> desc;
     desc->SetName("desc");
-    desc->SetCharacterData(this->Description, static_cast<int>(std::strlen(this->Description)));
+    desc->SetCharacterData(this->Description, std::strlen(this->Description));
     this->RootNode->AddNestedElement(desc);
   }
 

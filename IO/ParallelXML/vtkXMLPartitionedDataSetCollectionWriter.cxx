@@ -239,7 +239,7 @@ bool vtkXMLPartitionedDataSetCollectionWriter::WriteSummaryXML(
       vtkBase64Utilities::Encode(reinterpret_cast<const unsigned char*>(xml.c_str()),
         static_cast<unsigned long>(xml.size()), encoded_buffer);
     child->SetCharacterData(
-      reinterpret_cast<char*>(encoded_buffer), static_cast<int>(encoded_buffer_size));
+      reinterpret_cast<char*>(encoded_buffer), static_cast<size_t>(encoded_buffer_size));
     delete[] encoded_buffer;
     root->AddNestedElement(child);
   }

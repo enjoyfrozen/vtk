@@ -175,7 +175,7 @@ void vtkXMLDataElement::SetName(const char* _arg)
 }
 
 //------------------------------------------------------------------------------
-void vtkXMLDataElement::SetCharacterData(const char* data, int length)
+void vtkXMLDataElement::SetCharacterData(const char* data, size_t length)
 {
   // Sanity check.
   if (length < 0)
@@ -1089,7 +1089,7 @@ void vtkXMLDataElement::DeepCopy(vtkXMLDataElement* elem)
   this->SetXMLByteIndex(elem->GetXMLByteIndex());
   this->SetAttributeEncoding(elem->GetAttributeEncoding()); ///
   const char* elem_cdata = elem->GetCharacterData();
-  this->SetCharacterData(elem_cdata, elem_cdata ? static_cast<int>(strlen(elem_cdata)) : 0);
+  this->SetCharacterData(elem_cdata, elem_cdata ? strlen(elem_cdata) : 0);
   this->SetCharacterDataWidth(elem->GetCharacterDataWidth());
 
   // Copy attributes

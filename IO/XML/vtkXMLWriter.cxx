@@ -1769,7 +1769,7 @@ void writeScalarInfo(KeyType* key, vtkInformation* info, std::ostream& os, vtkIn
 
   str.str("");
   str << key->Get(info);
-  element->SetCharacterData(str.str().c_str(), static_cast<int>(str.str().size()));
+  element->SetCharacterData(str.str().c_str(), str.str().size());
 
   element->PrintXML(os, indent);
 }
@@ -1797,7 +1797,7 @@ void writeVectorInfo(KeyType* key, vtkInformation* info, std::ostream& os, vtkIn
 
     str.str("");
     str << key->Get(info, i);
-    value->SetCharacterData(str.str().c_str(), static_cast<int>(str.str().size()));
+    value->SetCharacterData(str.str().c_str(), str.str().size());
 
     element->AddNestedElement(value);
   }

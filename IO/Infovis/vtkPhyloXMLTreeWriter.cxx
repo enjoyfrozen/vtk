@@ -123,7 +123,7 @@ void vtkPhyloXMLTreeWriter::WriteTreeLevelElement(vtkTree* input, vtkXMLDataElem
     vtkNew<vtkXMLDataElement> element;
     element->SetName(elementName);
     vtkStdString val = array->GetVariantValue(0).ToString();
-    element->SetCharacterData(val, static_cast<int>(val.length()));
+    element->SetCharacterData(val, val.length());
 
     // set the attribute for this element if one was requested.
     if (strcmp(attributeName, "") != 0)
@@ -241,7 +241,7 @@ void vtkPhyloXMLTreeWriter::WriteNameElement(vtkIdType vertex, vtkXMLDataElement
   {
     vtkNew<vtkXMLDataElement> nameElement;
     nameElement->SetName("name");
-    nameElement->SetCharacterData(name, static_cast<int>(name.length()));
+    nameElement->SetCharacterData(name, name.length());
     element->AddNestedElement(nameElement);
   }
 
@@ -274,7 +274,7 @@ void vtkPhyloXMLTreeWriter::WriteConfidenceElement(
       confidenceElement->SetAttribute("type", type);
     }
 
-    confidenceElement->SetCharacterData(confidence, static_cast<int>(confidence.length()));
+    confidenceElement->SetCharacterData(confidence, confidence.length());
     element->AddNestedElement(confidenceElement);
   }
 
@@ -301,17 +301,17 @@ void vtkPhyloXMLTreeWriter::WriteColorElement(
   vtkNew<vtkXMLDataElement> redElement;
   redElement->SetName("red");
   std::string r = vtkVariant(colorArray->GetComponent(vertex, 0)).ToString();
-  redElement->SetCharacterData(r.c_str(), static_cast<int>(r.length()));
+  redElement->SetCharacterData(r.c_str(), r.length());
 
   vtkNew<vtkXMLDataElement> greenElement;
   greenElement->SetName("green");
   std::string g = vtkVariant(colorArray->GetComponent(vertex, 1)).ToString();
-  greenElement->SetCharacterData(g.c_str(), static_cast<int>(g.length()));
+  greenElement->SetCharacterData(g.c_str(), g.length());
 
   vtkNew<vtkXMLDataElement> blueElement;
   blueElement->SetName("blue");
   std::string b = vtkVariant(colorArray->GetComponent(vertex, 2)).ToString();
-  blueElement->SetCharacterData(b.c_str(), static_cast<int>(b.length()));
+  blueElement->SetCharacterData(b.c_str(), b.length());
 
   colorElement->AddNestedElement(redElement);
   colorElement->AddNestedElement(greenElement);
@@ -449,7 +449,7 @@ void vtkPhyloXMLTreeWriter::WritePropertyElement(
   {
     propertyElement->SetAttribute("unit", unit.c_str());
   }
-  propertyElement->SetCharacterData(val, static_cast<int>(val.length()));
+  propertyElement->SetCharacterData(val, val.length());
 
   element->AddNestedElement(propertyElement);
 }
