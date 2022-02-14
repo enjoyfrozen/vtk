@@ -39,6 +39,7 @@ from vtkmodules.vtkCommonCore import vtkObject, vtkSOADataArrayTemplate
 import sys
 import os
 import re
+import ast
 import argparse
 import builtins
 import inspect
@@ -521,6 +522,8 @@ def main(argv=sys.argv):
                         help="Output directory [package directory].")
     parser.add_argument('-e', '--ext', type=str, default=".pyi",
                         help="Output file suffix [.pyi].")
+    parser.add_argument('--test', action='count', default=0,
+                        help="Test .pyi files instead of creating them.")
     parser.add_argument('modules', type=str, nargs='*',
                         help="Modules to process [all].")
     args = parser.parse_args(argv[1:])
@@ -559,10 +562,17 @@ def main(argv=sys.argv):
     # iterate through the modules in the package
     errflag = False
     for modname in modules:
-        mod = importlib.import_module(f"{packagename}.{modname}")
-        outfile = os.path.join(basedir, f"{modname}{ext}")
-        with open(outfile, "w") as output:
-            module_pyi(mod, output)
+        pyifile = os.path.join(basedir, f"{modname}{ext}")
+        if args.test:
+            # test the syntax of the .pyi file
+            flags = ast.PyCF_TYPE_COMMENTS if sys.hexversion >= 0x3080000 else 0
+            with open(pyifile, 'r') as f:
+                compile(f.read(), pyifile, 'exec', flags)
+        else:
+            # generate the .pyi file for the module
+            mod = importlib.import_module(f"{packagename}.{modname}")
+            with open(pyifile, "w") as f:
+                module_pyi(mod, f)
 
 if __name__ == '__main__':
     result = main(sys.argv)
