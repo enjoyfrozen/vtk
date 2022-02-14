@@ -1041,6 +1041,15 @@ static void ${_vtk_python_TARGET_NAME}_load() {\n")
 
       add_custom_target(vtk_python_pyi ALL
         DEPENDS ${_vtk_python_pyi_files})
+
+      if (BUILD_TESTING AND VTK_SOURCE_DIR)
+        add_test(
+          NAME    "Python-${_vtk_python_PYTHON_PACKAGE}-TypeHintTest"
+          COMMAND "${Python3_EXECUTABLE}"
+                  "${VTK_SOURCE_DIR}/Testing/Core/PythonTypeHintTesting.py"
+                  "${CMAKE_BINARY_DIR}/${VTK_PYTHON_SITE_PACKAGES_SUFFIX}/${_vtk_python_PYTHON_PACKAGE}"
+                  ${_vtk_python_modules})
+      endif ()
     endif ()
 
   endif ()
