@@ -23,6 +23,7 @@
 #include "vtkCommunicator.h"
 #include "vtkDIYExplicitAssigner.h"
 #include "vtkDIYUtilities.h"
+#include "vtkDataArrayRange.h"
 #include "vtkDataSetAttributes.h"
 #include "vtkDataSetSurfaceFilter.h"
 #include "vtkFieldData.h"
@@ -35,10 +36,13 @@
 #include "vtkPoints.h"
 #include "vtkPolyData.h"
 #include "vtkRectilinearGrid.h"
+#include "vtkSMPTools.h"
+#include "vtkStructuredData.h"
 #include "vtkStructuredGrid.h"
 #include "vtkUnsignedCharArray.h"
 #include "vtkUnstructuredGrid.h"
 
+#include <atomic>
 #include <limits>
 #include <string>
 #include <type_traits>
@@ -58,6 +62,7 @@ template <>
 struct vtkDIYGhostUtilities::DataSetTypeToBlockTypeConverter<vtkImageData>
 {
   typedef ImageDataBlock BlockType;
+  static constexpr bool IsUnstructuredData = false;
 };
 
 //============================================================================
@@ -65,6 +70,7 @@ template <>
 struct vtkDIYGhostUtilities::DataSetTypeToBlockTypeConverter<vtkRectilinearGrid>
 {
   typedef RectilinearGridBlock BlockType;
+  static constexpr bool IsUnstructuredData = false;
 };
 
 //============================================================================
@@ -72,6 +78,7 @@ template <>
 struct vtkDIYGhostUtilities::DataSetTypeToBlockTypeConverter<vtkStructuredGrid>
 {
   typedef StructuredGridBlock BlockType;
+  static constexpr bool IsUnstructuredData = false;
 };
 
 //============================================================================
@@ -79,6 +86,7 @@ template <>
 struct vtkDIYGhostUtilities::DataSetTypeToBlockTypeConverter<vtkUnstructuredGrid>
 {
   typedef UnstructuredGridBlock BlockType;
+  static constexpr bool IsUnstructuredData = true;
 };
 
 //============================================================================
@@ -86,6 +94,7 @@ template <>
 struct vtkDIYGhostUtilities::DataSetTypeToBlockTypeConverter<vtkPolyData>
 {
   typedef PolyDataBlock BlockType;
+  static constexpr bool IsUnstructuredData = true;
 };
 
 namespace vtkDIYGhostUtilities_detail
@@ -118,6 +127,180 @@ ValueT ComputePrecision(ValueT val)
   constexpr ValueT Min = Limits<ValueT>::Min;
   return std::max<ValueT>(val * Epsilon, Min);
 }
+
+//============================================================================
+template <bool CellVersionT>
+struct ConvertIdToCoordinatesFromCroppedExtentToFullExtentWorker;
+
+//============================================================================
+template <>
+struct ConvertIdToCoordinatesFromCroppedExtentToFullExtentWorker<true>
+{
+  vtkIdType operator()(vtkIdType id, const vtkDIYGhostUtilities::ExtentType& fullExtent,
+    const vtkDIYGhostUtilities::ExtentType& croppedExtent)
+  {
+    int ijk[3];
+    vtkStructuredData::ComputeCellStructuredCoordsForExtent(id, croppedExtent.data(), ijk);
+    return vtkStructuredData::ComputeCellIdForExtent(fullExtent.data(), ijk);
+  }
+};
+
+//============================================================================
+template <>
+struct ConvertIdToCoordinatesFromCroppedExtentToFullExtentWorker<false>
+{
+  vtkIdType operator()(vtkIdType id, const vtkDIYGhostUtilities::ExtentType& fullExtent,
+    const vtkDIYGhostUtilities::ExtentType& croppedExtent)
+  {
+    int ijk[3];
+    vtkStructuredData::ComputePointStructuredCoordsForExtent(id, croppedExtent.data(), ijk);
+    return vtkStructuredData::ComputePointIdForExtent(fullExtent.data(), ijk);
+  }
+};
+
+//============================================================================
+template <bool CellVersionT>
+struct GhostFinder
+{
+  using ExtentType = vtkDIYGhostUtilities::ExtentType;
+
+  GhostFinder(vtkUnsignedCharArray* ghosts, const ExtentType& fullExtent,
+    const ExtentType& croppedExtent, unsigned char ghostTarget)
+    : Ghosts(ghosts)
+    , FullExtent(fullExtent)
+    , CroppedExtent(croppedExtent)
+    , GhostTarget(ghostTarget)
+    , FoundGhost(false)
+  {
+  }
+
+  void operator()(vtkIdType startId, vtkIdType endId)
+  {
+    auto ghosts = vtk::DataArrayValueRange<1>(this->Ghosts);
+    using RefType = typename decltype(ghosts)::ReferenceType;
+
+    for (vtkIdType id = startId; id < endId; ++id)
+    {
+      if (this->FoundGhost)
+      {
+        return;
+      }
+
+      ConvertIdToCoordinatesFromCroppedExtentToFullExtentWorker<CellVersionT> worker;
+      vtkIdType remappedId = worker(id, this->FullExtent, this->CroppedExtent);
+
+      RefType ghost = ghosts[remappedId];
+
+      if (ghost & this->GhostTarget)
+      {
+        this->FoundGhost = true;
+      }
+    }
+  }
+
+  vtkUnsignedCharArray* Ghosts;
+  const ExtentType& FullExtent;
+  const ExtentType& CroppedExtent;
+  unsigned char GhostTarget;
+
+  std::atomic<bool> FoundGhost;
+};
+
+//----------------------------------------------------------------------------
+template <class StructuredDataSetT>
+vtkSmartPointer<StructuredDataSetT> CleanGhostsIfPossibleForStructuredData(
+  typename vtkDIYGhostUtilities::DataSetTypeToBlockTypeConverter<StructuredDataSetT>::BlockType*
+    block,
+  StructuredDataSetT* ds)
+{
+  vtkLog(INFO, "Cleaning");
+  using ExtentType = vtkDIYGhostUtilities::ExtentType;
+
+  vtkSmartPointer<StructuredDataSetT> cleanedDS = vtkSmartPointer<StructuredDataSetT>::New();
+  cleanedDS->ShallowCopy(ds);
+  const ExtentType& extent = block->Information.Extent;
+  const int* dsExtent = ds->GetExtent();
+  const ExtentType fullExtent{ dsExtent[0], dsExtent[1], dsExtent[2], dsExtent[3], dsExtent[4],
+    dsExtent[5] };
+
+  if (vtkUnsignedCharArray* ghostCells = ds->GetCellGhostArray())
+  {
+    const vtkIdType numberOfCells = vtkStructuredData::GetNumberOfCells(extent.data());
+    vtkDIYGhostUtilities_detail::GhostFinder<true> worker(
+      ghostCells, fullExtent, extent, vtkDataSetAttributes::HIDDENCELL);
+    vtkSMPTools::For(0, numberOfCells, worker);
+    if (!worker.FoundGhost)
+    {
+      vtkLog(INFO, "removing ghost cells");
+      cleanedDS->GetCellData()->RemoveArray(ghostCells->GetName());
+    }
+  }
+  if (vtkUnsignedCharArray* ghostPoints = ds->GetPointGhostArray())
+  {
+    const vtkIdType numberOfPoints = vtkStructuredData::GetNumberOfPoints(extent.data());
+    vtkDIYGhostUtilities_detail::GhostFinder<false> worker(
+      ghostPoints, fullExtent, extent, vtkDataSetAttributes::HIDDENPOINT);
+    vtkSMPTools::For(0, numberOfPoints, worker);
+    if (!worker.FoundGhost)
+    {
+      vtkLog(INFO, "removing ghost points");
+      cleanedDS->GetPointData()->RemoveArray(ghostPoints->GetName());
+    }
+  }
+
+  return cleanedDS;
+}
+
+/*
+//============================================================================
+template <bool IsUnstructuredDataT>
+struct CleanGhostsIfPossibleWorkerImpl;
+
+//============================================================================
+template <>
+struct CleanGhostsIfPossibleWorkerImpl<true>
+{
+  template <class DataSetT>
+  vtkSmartPointer<DataSetT> operator()(
+    typename vtkDIYGhostUtilities::DataSetTypeToBlockTypeConverter<DataSetT>::BlockType*,
+    DataSetT* ds)
+  {
+    vtkLog(INFO, "clean impl regular");
+    return ds;
+  }
+};
+
+//============================================================================
+template <>
+struct CleanGhostsIfPossibleWorkerImpl<false>
+{
+  template <class DataSetT>
+  vtkSmartPointer<DataSetT> operator()(
+    typename vtkDIYGhostUtilities::DataSetTypeToBlockTypeConverter<DataSetT>::BlockType* block,
+    DataSetT* ds)
+  {
+    vtkLog(INFO, "clean impl for sturctured data ");
+    return vtkDIYGhostUtilities_detail::CleanGhostsIfPossibleForStructuredData(block, ds);
+  }
+};
+
+//============================================================================
+template <class DataSetT>
+struct CleanGhostsIfPossibleWorker
+{
+  using DataSetInfo = vtkDIYGhostUtilities::DataSetTypeToBlockTypeConverter<DataSetT>;
+  using BlockType = typename DataSetInfo::BlockType;
+  static constexpr bool IsUnstructuredData = DataSetInfo::IsUnstructuredData;
+
+  vtkSmartPointer<DataSetT> operator()(BlockType* block, DataSetT* ds)
+  {
+    vtkLog(INFO, "CleanGhostsIfPossibleWorker");
+    return this->Impl(block, ds);
+  }
+
+  CleanGhostsIfPossibleWorkerImpl<IsUnstructuredData> Impl;
+};
+*/
 } // namesapce vtkDIYGhostUtilities_detail
 
 //----------------------------------------------------------------------------
@@ -230,6 +413,40 @@ vtkDIYGhostUtilities::LinkMap vtkDIYGhostUtilities::ComputeLinkMapUsingBoundingB
 
 //----------------------------------------------------------------------------
 template <class DataSetT>
+void vtkDIYGhostUtilities::CopyInputsAndAllocateGhosts(const diy::Master& master,
+  std::vector<DataSetT*>& inputs, std::vector<DataSetT*>& outputs, int outputGhostLevels)
+{
+  vtkLog(INFO, "vtkDIYGhostUtilities::CopyInputsAndAllocateGhosts");
+  using BlockType = typename DataSetTypeToBlockTypeConverter<DataSetT>::BlockType;
+
+  for (int localId = 0; localId < static_cast<int>(inputs.size()); ++localId)
+  {
+    vtkLog(INFO, "localId " << localId);
+    DataSetT* input = inputs[localId];
+    DataSetT* output = outputs[localId];
+    BlockType* block = master.block<BlockType>(localId);
+
+    vtkUnsignedCharArray* ghostCells = input->GetCellGhostArray();
+
+    if (outputGhostLevels == 0 && !ghostCells)
+    {
+      vtkLog(INFO, "Shallw copying");
+      output->ShallowCopy(input);
+    }
+    else
+    {
+//      vtkDIYGhostUtilities_detail::CleanGhostsIfPossibleWorker<DataSetT> cleaner;
+//      vtkSmartPointer<DataSetT> cleanedInput = cleaner(block, input);
+//      vtkLog(INFO, "cleanedInput " << cleanedInput);
+
+      //vtkDIYGhostUtilities::DeepCopyInputAndAllocateGhosts(block, cleanedInput, output);
+      vtkDIYGhostUtilities::DeepCopyInputAndAllocateGhosts(block, input, output);
+    }
+  }
+}
+
+//----------------------------------------------------------------------------
+template <class DataSetT>
 void vtkDIYGhostUtilities::AddGhostArrays(diy::Master& master, std::vector<DataSetT*>& outputs)
 {
   using BlockType = typename DataSetTypeToBlockTypeConverter<DataSetT>::BlockType;
@@ -240,14 +457,18 @@ void vtkDIYGhostUtilities::AddGhostArrays(diy::Master& master, std::vector<DataS
     BlockType* block = master.block<BlockType>(localId);
 
     output->GetPointData()->AddArray(block->GhostPointArray);
-    output->GetCellData()->AddArray(block->GhostCellArray);
+
+    if (block->GhostCellArray)
+    {
+      output->GetCellData()->AddArray(block->GhostCellArray);
+    }
   }
 }
 
 //----------------------------------------------------------------------------
 template <class DataSetT>
 void vtkDIYGhostUtilities::InitializeGhostArrays(
-  diy::Master& master, std::vector<DataSetT*>& outputs)
+  diy::Master& master, std::vector<DataSetT*>& outputs, int outputGhostLevels)
 {
   using BlockType = typename DataSetTypeToBlockTypeConverter<DataSetT>::BlockType;
 
@@ -256,7 +477,11 @@ void vtkDIYGhostUtilities::InitializeGhostArrays(
     DataSetT* output = outputs[localId];
     BlockType* block = master.block<BlockType>(localId);
 
-    vtkDIYGhostUtilities::InitializeGhostCellArray(block, output);
+    if (outputGhostLevels != 0)
+    {
+      vtkDIYGhostUtilities::InitializeGhostCellArray(block, output);
+    }
+
     vtkDIYGhostUtilities::InitializeGhostPointArray(block, output);
   }
 }
@@ -274,8 +499,8 @@ void vtkDIYGhostUtilities::InitializeGhostCellArray(
     ghostCellArray->SetName(vtkDataSetAttributes::GhostArrayName());
     ghostCellArray->SetNumberOfComponents(1);
     ghostCellArray->SetNumberOfValues(output->GetNumberOfCells());
+    ghostCellArray->Fill(0);
   }
-  ghostCellArray->Fill(0);
 }
 
 //----------------------------------------------------------------------------
@@ -291,8 +516,8 @@ void vtkDIYGhostUtilities::InitializeGhostPointArray(
     ghostPointArray->SetName(vtkDataSetAttributes::GhostArrayName());
     ghostPointArray->SetNumberOfComponents(1);
     ghostPointArray->SetNumberOfValues(output->GetNumberOfPoints());
+    ghostPointArray->Fill(0);
   }
-  ghostPointArray->Fill(0);
 }
 
 //----------------------------------------------------------------------------
@@ -324,7 +549,7 @@ int vtkDIYGhostUtilities::GenerateGhostCells(std::vector<DataSetT*>& inputs,
     : std::string("No ghosts to generate for empty rank");
   vtkLogStartScope(TRACE, logMessage.c_str());
 
-  CloneGeometricStructures(inputs, outputs);
+  vtkDIYGhostUtilities::CloneGeometricStructures(inputs, outputs);
 
   vtkLogStartScope(TRACE, "Instantiating diy communicator");
   diy::mpi::communicator comm = vtkDIYUtilities::GetCommunicator(controller);
@@ -354,15 +579,21 @@ int vtkDIYGhostUtilities::GenerateGhostCells(std::vector<DataSetT*>& inputs,
   decomposer.decompose(comm.rank(), assigner, master);
   vtkLogEndScope("Decomposing master");
 
+  vtkLog(INFO, "initializing blocks");
+
   // At this step, we gather data from the inputs and store it inside the local blocks
   // so we don't have to carry extra parameters later.
   vtkLogStartScope(TRACE, "Setup block self information.");
   vtkDIYGhostUtilities::InitializeBlocks(master, inputs);
   vtkLogEndScope("Setup block self information.");
 
+  vtkLog(INFO, "Exchanging bounding boxes");
+
   vtkLogStartScope(TRACE, "Exchanging bounding boxes");
   vtkDIYGhostUtilities::ExchangeBoundingBoxes(master, assigner, inputs);
   vtkLogEndScope("Exchanging bounding boxes");
+
+  vtkLog(INFO, "Computing temporary link map");
 
   // We compute a temporary link map that weeds out data sets that do not have
   // overlapping bounding boxes.
@@ -376,11 +607,15 @@ int vtkDIYGhostUtilities::GenerateGhostCells(std::vector<DataSetT*>& inputs,
   vtkDIYUtilities::Link(master, assigner, temporaryLinkMap);
   vtkLogEndScope("Relinking blocks using temporary link map");
 
+  vtkLog(INFO, "exchanging block structures");
+
   // Here, we exchange structural information between blocks that will be used to
   // determine if blocks are actually adjacent or not.
   vtkLogStartScope(TRACE, "Exchanging block structures");
   vtkDIYGhostUtilities::ExchangeBlockStructures(master, inputs);
   vtkLogEndScope("Exchanging block structures");
+
+  vtkLog(INFO, "computing link map");
 
   // The structural information that has been exchanged is used to compute
   // the final link map, mapping blocks that will actually exchange ghosts.
@@ -392,27 +627,41 @@ int vtkDIYGhostUtilities::GenerateGhostCells(std::vector<DataSetT*>& inputs,
   vtkDIYUtilities::Link(master, assigner, linkMap);
   vtkLogEndScope("Relinking blocks using link map");
 
+  vtkLog(INFO, "exchanging ghosts");
+
   vtkLogStartScope(TRACE, "Exchanging ghost data between blocks");
   vtkDIYGhostUtilities::ExchangeGhosts(master, inputs);
   vtkLogEndScope("Exchanging ghost data between blocks");
 
+  vtkLog(INFO, "copying inputs");
+
   vtkLogStartScope(TRACE, "Allocating ghosts in outputs");
-  vtkDIYGhostUtilities::DeepCopyInputsAndAllocateGhosts(master, inputs, outputs);
+  vtkDIYGhostUtilities::CopyInputsAndAllocateGhosts(master, inputs, outputs, outputGhostLevels);
   vtkLogEndScope("Allocating ghosts in outputs");
 
+  vtkLog(INFO, "initializing ghost arrays");
+
   vtkLogStartScope(TRACE, "Initializing ghost arrays in outputs");
-  vtkDIYGhostUtilities::InitializeGhostArrays(master, outputs);
+  vtkDIYGhostUtilities::InitializeGhostArrays(master, outputs, outputGhostLevels);
   vtkLogEndScope("Initializing ghost arrays in outputs");
 
+  vtkLog(INFO, "filling ghosts");
+
   vtkLogStartScope(TRACE, "Filling local ghosts with received data from other blocks");
-  vtkDIYGhostUtilities::FillGhostArrays(master, outputs);
+  vtkDIYGhostUtilities::FillGhostArrays(master, outputs, outputGhostLevels);
   vtkLogEndScope("Filling local ghosts with received data from other blocks");
+
+  vtkLog(INFO, "adding ghost arrays");
 
   vtkLogStartScope(TRACE, "Adding ghost arrays to point and / or cell data");
   vtkDIYGhostUtilities::AddGhostArrays(master, outputs);
   vtkLogEndScope("Adding ghost arrays to point and / or cell data");
 
+  vtkLog(INFO, "end");
+
   vtkLogEndScope(logMessage.c_str());
+
+  vtkLog(INFO, "returning");
 
   return 1;
 }
