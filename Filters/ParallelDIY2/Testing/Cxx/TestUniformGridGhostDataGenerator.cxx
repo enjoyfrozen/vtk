@@ -70,6 +70,9 @@ bool CheckNodeFieldsForGrid(vtkUniformGrid* grid)
     {
       if (!vtkMathUtilities::FuzzyCompare(xyz[i], array->GetComponent(idx, i)))
       {
+        vtkLog(ERROR, << "Array " << array->GetName() << "id: " << idx << " comp: " <<
+          i << " -- FuzzyCompare failed: " <<
+          xyz[i] << " != " << array->GetComponent(idx, i));
         return false;
       } // END if fuzzy-compare
     }   // END for all components
@@ -116,9 +119,9 @@ bool CheckCellFieldsForGrid(vtkUniformGrid* grid)
     {
       if (!vtkMathUtilities::FuzzyCompare(centroid[i], array->GetComponent(cellIdx, i)))
       {
-        vtkLog(ERROR, << "Array " << array->GetName() << "id: " << idx << " comp: " <<
+        vtkLog(ERROR, << "Array " << array->GetName() << "id: " << cellIdx << " comp: " <<
           i << " -- FuzzyCompare failed: " <<
-          centroid[i] << " != " << array->GetComponent(idx, i));
+          centroid[i] << " != " << array->GetComponent(cellIdx, i));
         return false;
       } // END if fuzz-compare
     }   // END for all components
@@ -175,6 +178,7 @@ void WriteMultiBlock(vtkMultiBlockDataSet* mbds, const std::string& prefix)
   std::ostringstream oss;
   oss.str("");
   oss << prefix << mbds->GetNumberOfBlocks() << "." << writer->GetDefaultFileExtension();
+  std::cout << "FILE " << oss.str() << std::endl;
   writer->SetFileName(oss.str().c_str());
   writer->SetInputData(mbds);
   writer->Write();
@@ -328,6 +332,7 @@ int Test2D(
 
   ghostDataGenerator->SetInputData(mbds);
   ghostDataGenerator->SetNumberOfGhostLayers(1);
+  ghostDataGenerator->BuildIdRequiredOff();
   ghostDataGenerator->Update();
 
   vtkMultiBlockDataSet* ghostedDataSet =
@@ -359,6 +364,7 @@ int Test3D(
 
   ghostDataGenerator->SetInputData(mbds);
   ghostDataGenerator->SetNumberOfGhostLayers(1);
+  ghostDataGenerator->BuildIdRequiredOff();
   ghostDataGenerator->Update();
 
   vtkMultiBlockDataSet* ghostedDataSet =
@@ -378,8 +384,12 @@ int TestUniformGridGhostDataGenerator(int, char*[])
 {
   int rc = 0;
 
-  rc += Test2D(true, false, 4, 0);
-  rc += Test2D(true, true, 16, 0);
-  rc += Test3D(false, true, 8, 0);
+  vtkLog(INFO, "Running Test2D(true, false, 4, 1)");
+  rc += Test2D(true, false, 4, 1);
+  vtkLog(INFO, "Running Test2D(true, true, 4, 1)");
+  rc += Test2D(true, true, 16, 1);
+  vtkLog(INFO, "Running Test3D(true, false, 4, 1)");
+  rc += Test3D(false, true, 8, 1);
+  vtkLog(INFO, "test end " << rc);
   return (rc);
 }
