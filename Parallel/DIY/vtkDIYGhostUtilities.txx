@@ -568,15 +568,21 @@ int vtkDIYGhostUtilities::GenerateGhostCells(std::vector<DataSetT*>& inputs,
   decomposer.decompose(comm.rank(), assigner, master);
   vtkLogEndScope("Decomposing master");
 
+  vtkLog(INFO, "initializing blocks");
+
   // At this step, we gather data from the inputs and store it inside the local blocks
   // so we don't have to carry extra parameters later.
   vtkLogStartScope(TRACE, "Setup block self information.");
   vtkDIYGhostUtilities::InitializeBlocks(master, inputs);
   vtkLogEndScope("Setup block self information.");
 
+  vtkLog(INFO, "Exchanging bounding boxes");
+
   vtkLogStartScope(TRACE, "Exchanging bounding boxes");
   vtkDIYGhostUtilities::ExchangeBoundingBoxes(master, assigner, inputs);
   vtkLogEndScope("Exchanging bounding boxes");
+
+  vtkLog(INFO, "Computing temporary link map");
 
   // We compute a temporary link map that weeds out data sets that do not have
   // overlapping bounding boxes.
@@ -590,11 +596,15 @@ int vtkDIYGhostUtilities::GenerateGhostCells(std::vector<DataSetT*>& inputs,
   vtkDIYUtilities::Link(master, assigner, temporaryLinkMap);
   vtkLogEndScope("Relinking blocks using temporary link map");
 
+  vtkLog(INFO, "exchanging block structures");
+
   // Here, we exchange structural information between blocks that will be used to
   // determine if blocks are actually adjacent or not.
   vtkLogStartScope(TRACE, "Exchanging block structures");
   vtkDIYGhostUtilities::ExchangeBlockStructures(master, inputs);
   vtkLogEndScope("Exchanging block structures");
+
+  vtkLog(INFO, "computing link map");
 
   // The structural information that has been exchanged is used to compute
   // the final link map, mapping blocks that will actually exchange ghosts.
@@ -606,25 +616,37 @@ int vtkDIYGhostUtilities::GenerateGhostCells(std::vector<DataSetT*>& inputs,
   vtkDIYUtilities::Link(master, assigner, linkMap);
   vtkLogEndScope("Relinking blocks using link map");
 
+  vtkLog(INFO, "exchanging ghosts");
+
   vtkLogStartScope(TRACE, "Exchanging ghost data between blocks");
   vtkDIYGhostUtilities::ExchangeGhosts(master, inputs);
   vtkLogEndScope("Exchanging ghost data between blocks");
+
+  vtkLog(INFO, "copying inputs");
 
   vtkLogStartScope(TRACE, "Allocating ghosts in outputs");
   vtkDIYGhostUtilities::CopyInputsAndAllocateGhosts(master, inputs, outputs, outputGhostLevels);
   vtkLogEndScope("Allocating ghosts in outputs");
 
+  vtkLog(INFO, "initializing ghost arrays");
+
   vtkLogStartScope(TRACE, "Initializing ghost arrays in outputs");
   vtkDIYGhostUtilities::InitializeGhostArrays(master, outputs, outputGhostLevels);
   vtkLogEndScope("Initializing ghost arrays in outputs");
+
+  vtkLog(INFO, "filling ghosts");
 
   vtkLogStartScope(TRACE, "Filling local ghosts with received data from other blocks");
   vtkDIYGhostUtilities::FillGhostArrays(master, outputs, outputGhostLevels);
   vtkLogEndScope("Filling local ghosts with received data from other blocks");
 
+  vtkLog(INFO, "adding ghost arrays");
+
   vtkLogStartScope(TRACE, "Adding ghost arrays to point and / or cell data");
   vtkDIYGhostUtilities::AddGhostArrays(master, outputs);
   vtkLogEndScope("Adding ghost arrays to point and / or cell data");
+
+  vtkLog(INFO, "end");
 
   vtkLogEndScope(logMessage.c_str());
 
