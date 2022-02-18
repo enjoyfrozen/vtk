@@ -648,6 +648,8 @@ int vtkDIYGhostUtilities::GenerateGhostCells(std::vector<DataSetT*>& inputs,
 
   vtkLogEndScope(logMessage.c_str());
 
+  vtkLog(INFO, "returning");
+
   return 1;
 }
 
