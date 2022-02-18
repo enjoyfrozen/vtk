@@ -70,6 +70,9 @@ bool CheckNodeFieldsForGrid(vtkUniformGrid* grid)
     {
       if (!vtkMathUtilities::FuzzyCompare(xyz[i], array->GetComponent(idx, i)))
       {
+        vtkLog(ERROR, << "Array " << array->GetName() << "id: " << idx << " comp: " <<
+          comp << " -- FuzzyCompare failed: " <<
+          xyz[i] << " != " << array->GetComponent(idx, i));
         return false;
       } // END if fuzzy-compare
     }   // END for all components
@@ -375,8 +378,11 @@ int TestUniformGridGhostDataGenerator(int, char*[])
 {
   int rc = 0;
 
+  vtkLog(INFO, "Running Test2D(true, false, 4, 0)");
   rc += Test2D(true, false, 4, 0);
+  vtkLog(INFO, "Running Test2D(true, true, 4, 0)");
   rc += Test2D(true, true, 16, 0);
+  vtkLog(INFO, "Running Test3D(true, false, 4, 0)");
   rc += Test3D(false, true, 8, 0);
   return (rc);
 }
