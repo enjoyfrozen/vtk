@@ -387,5 +387,6 @@ int TestUniformGridGhostDataGenerator(int, char*[])
   rc += Test2D(true, true, 16, 0);
   vtkLog(INFO, "Running Test3D(true, false, 4, 0)");
   rc += Test3D(false, true, 8, 0);
+  vtkLog(INFO, "test end " << rc);
   return (rc);
 }
