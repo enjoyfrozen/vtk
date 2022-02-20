@@ -15,6 +15,7 @@
 
 #include "vtkDIYExplicitAssigner.h"
 #include "vtkDIYUtilities.h"
+#include "vtkDoubleArray.h"
 #include "vtkFieldData.h"
 #include "vtkIntArray.h"
 #include "vtkLogger.h"
@@ -40,13 +41,15 @@ struct FieldDataBlock
 };
 
 //------------------------------------------------------------------------------
-bool TestFieldDataExchange(vtkMultiProcessController* controller)
+bool TestFieldDataExchange(vtkMultiProcessController* controller, int nComponents)
 {
   const int rank = controller->GetLocalProcessId();
 
   if (rank == 0)
   {
-    vtkLog(INFO, "Testing exchanging an integer array and a string array inside a field data");
+    vtkLog(INFO,
+      "Testing exchanging an integer array, a "
+        << nComponents << "-component double array and a string array inside a field data");
   }
 
   int startIota = rank == 0 ? 0 : 10;
@@ -59,6 +62,19 @@ bool TestFieldDataExchange(vtkMultiProcessController* controller)
   int* intPtr = intArray->GetPointer(0);
   std::iota(intPtr, intPtr + intArray->GetNumberOfValues(), startIota);
   fd->AddArray(intArray);
+
+  vtkNew<vtkDoubleArray> dblArray;
+  dblArray->SetName("dbl");
+  dblArray->SetNumberOfTuples(30 / nComponents);
+  dblArray->SetNumberOfComponents(nComponents);
+  for (int i = 0; i < 30 / nComponents; ++i)
+  {
+    double x[3];
+    for (int j = 0; j < nComponents; ++j)
+      x[j] = (double)nComponents * i + j;
+    dblArray->SetTuple(i, x);
+  }
+  fd->AddArray(dblArray);
 
   vtkNew<vtkStringArray> stringArray;
   stringArray->SetName("string");
@@ -141,6 +157,15 @@ bool TestFieldDataExchange(vtkMultiProcessController* controller)
       return false;
     }
   }
+  vtkLog(INFO, "Int array received OK by rank " << rank);
+
+  vtkDoubleArray* receivedDblArray =
+    vtkArrayDownCast<vtkDoubleArray>(receivedFD->GetAbstractArray("dbl"));
+  if (receivedDblArray->GetNumberOfValues() != 30)
+  {
+    vtkLog(ERROR, "Wrong number of received doubles in rank " << rank);
+  }
+  vtkLog(INFO, "Dbl array received OK by rank " << rank);
 
   vtkStringArray* receivedStringArray =
     vtkArrayDownCast<vtkStringArray>(receivedFD->GetAbstractArray("string"));
@@ -167,6 +192,7 @@ bool TestFieldDataExchange(vtkMultiProcessController* controller)
       vtkLog(ERROR, "Wrong string received in rank " << rank);
     }
   }
+  vtkLog(INFO, "Str array received OK by rank " << rank);
 
   return true;
 }
@@ -182,7 +208,8 @@ int TestDIYUtilities(int argc, char* argv[])
     return EXIT_FAILURE;
   }
 
-  TestFieldDataExchange(controller);
+  // TestFieldDataExchange(controller, 1); // works
+  TestFieldDataExchange(controller, 3); // crash
 
   controller->Finalize();
   return EXIT_SUCCESS;
