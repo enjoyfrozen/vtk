@@ -21,6 +21,7 @@
 #include "vtkLogger.h"
 #include "vtkMPIController.h"
 #include "vtkNew.h"
+#include "vtkSOADataArrayTemplate.h"
 #include "vtkSmartPointer.h"
 #include "vtkStringArray.h"
 
@@ -65,8 +66,8 @@ bool TestFieldDataExchange(vtkMultiProcessController* controller, int nComponent
 
   vtkNew<vtkDoubleArray> dblArray;
   dblArray->SetName("dbl");
-  dblArray->SetNumberOfTuples(30 / nComponents);
   dblArray->SetNumberOfComponents(nComponents);
+  dblArray->SetNumberOfTuples(30 / nComponents);
   for (int i = 0; i < 30 / nComponents; ++i)
   {
     double x[3];
@@ -75,6 +76,15 @@ bool TestFieldDataExchange(vtkMultiProcessController* controller, int nComponent
     dblArray->SetTuple(i, x);
   }
   fd->AddArray(dblArray);
+
+  double soaData[20];
+  std::iota(soaData, soaData + 20, static_cast<double>(startIota));
+
+  vtkNew<vtkSOADataArrayTemplate<double>> soaArray;
+  soaArray->SetName("soa");
+  soaArray->SetNumberOfComponents(1);
+  soaArray->SetArray(0, soaData, 20, true, true);
+  fd->AddArray(soaArray);
 
   vtkNew<vtkStringArray> stringArray;
   stringArray->SetName("string");
@@ -166,6 +176,13 @@ bool TestFieldDataExchange(vtkMultiProcessController* controller, int nComponent
     vtkLog(ERROR, "Wrong number of received doubles in rank " << rank);
   }
   vtkLog(INFO, "Dbl array received OK by rank " << rank);
+
+  vtkAbstractArray* receivedSOAArray = receivedFD->GetAbstractArray("soa");
+  if (!receivedSOAArray || receivedSOAArray->GetNumberOfValues() != 20)
+  {
+    vtkLog(ERROR, "Wrong number of received soa-doubles in rank " << rank);
+  }
+  vtkLog(INFO, "SOA array received OK by rank " << rank);
 
   vtkStringArray* receivedStringArray =
     vtkArrayDownCast<vtkStringArray>(receivedFD->GetAbstractArray("string"));

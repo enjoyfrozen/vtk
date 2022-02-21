@@ -12,7 +12,9 @@
      PURPOSE.  See the above copyright notice for more information.
 
 =========================================================================*/
+#include "vtkCellData.h"
 #include "vtkDataSetTriangleFilter.h"
+#include "vtkDoubleArray.h"
 #include "vtkGhostCellsGenerator.h"
 #include "vtkIdTypeArray.h"
 #include "vtkImageData.h"
@@ -23,6 +25,7 @@
 #include "vtkObjectFactory.h"
 #include "vtkPointData.h"
 #include "vtkRTAnalyticSource.h"
+#include "vtkSOADataArrayTemplate.h"
 #include "vtkTimerLog.h"
 #include "vtkUnsignedCharArray.h"
 #include "vtkUnstructuredGrid.h"
@@ -96,6 +99,44 @@ bool CheckFieldData(vtkFieldData* fd)
   return true;
 }
 
+bool CheckCellDataArray(vtkDataArray* da)
+{
+  if (!da)
+  {
+    cerr << "Cell data not found." << endl;
+    return false;
+  }
+  if (da->GetNumberOfTuples() <= 0)
+  {
+    cerr << "Cell data has no data." << endl;
+    return false;
+  }
+
+  bool rc = true;
+  for (vtkIdType i = 0; i < da->GetNumberOfTuples(); ++i)
+  {
+    double value[1];
+    da->GetTuple(i, value);
+    if (value[0] != static_cast<double>(i))
+    {
+      cerr << "unexpected value found: " << value[0] << " != " << i << endl;
+      rc = false;
+    }
+  }
+  return rc;
+}
+
+bool CheckCellData(vtkCellData* fd)
+{
+  auto vorticity = fd->GetArray("Vorticity");
+  auto pressure = fd->GetArray("Pressure");
+
+  bool ok = CheckCellDataArray(vorticity) && CheckCellDataArray(pressure);
+  if (ok)
+    cout << "Cell data ok." << endl;
+  return ok;
+}
+
 } // anonymous namespace
 
 //------------------------------------------------------------------------------
@@ -129,6 +170,30 @@ int TestPUnstructuredGridGhostCellsGenerator(int argc, char* argv[])
   vtkNew<vtkFieldData> fd;
   fd->AddArray(fdArray);
   initialGrid->SetFieldData(fd);
+
+  // add cell data
+  vtkNew<vtkDoubleArray> dblArray;
+  dblArray->SetName("Vorticity");
+  dblArray->SetNumberOfTuples(initialGrid->GetNumberOfCells());
+  for (vtkIdType i = 0; i < initialGrid->GetNumberOfCells(); ++i)
+  {
+    dblArray->SetValue(i, static_cast<double>(i));
+  }
+  initialGrid->GetCellData()->AddArray(dblArray);
+
+  double* p = new double[initialGrid->GetNumberOfCells()];
+  for (vtkIdType i = 0; i < initialGrid->GetNumberOfCells(); ++i)
+  {
+    p[i] = static_cast<double>(i);
+    dblArray->SetValue(i, static_cast<double>(i));
+  }
+  vtkNew<vtkSOADataArrayTemplate<double>> soaArray;
+  soaArray->SetName("Pressure");
+  soaArray->SetNumberOfComponents(1);
+  soaArray->SetArray(0, p, initialGrid->GetNumberOfCells(), /*updateMaxId*/ true, /*save*/ true);
+  initialGrid->GetCellData()->AddArray(soaArray);
+
+  CheckCellData(initialGrid->GetCellData());
 
   // Prepare the ghost cells generator
   vtkNew<vtkGhostCellsGenerator> ghostGenerator;
