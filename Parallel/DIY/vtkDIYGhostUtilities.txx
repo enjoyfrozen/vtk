@@ -213,9 +213,10 @@ vtkSmartPointer<StructuredDataSetT> CleanGhostsIfPossibleForStructuredData(
     block,
   StructuredDataSetT* ds)
 {
+  vtkLog(INFO, "Cleaning");
   using ExtentType = vtkDIYGhostUtilities::ExtentType;
 
-  vtkNew<StructuredDataSetT> cleanedDS;
+  vtkSmartPointer<StructuredDataSetT> cleanedDS = vtkSmartPointer<StructuredDataSetT>::New();
   cleanedDS->ShallowCopy(ds);
   const ExtentType& extent = block->Information.Extent;
   const int* dsExtent = ds->GetExtent();
@@ -230,6 +231,7 @@ vtkSmartPointer<StructuredDataSetT> CleanGhostsIfPossibleForStructuredData(
     vtkSMPTools::For(0, numberOfCells, worker);
     if (!worker.FoundGhost)
     {
+      vtkLog(INFO, "removing ghost cells");
       cleanedDS->GetCellData()->RemoveArray(ghostCells->GetName());
     }
   }
@@ -241,6 +243,7 @@ vtkSmartPointer<StructuredDataSetT> CleanGhostsIfPossibleForStructuredData(
     vtkSMPTools::For(0, numberOfPoints, worker);
     if (!worker.FoundGhost)
     {
+      vtkLog(INFO, "removing ghost points");
       cleanedDS->GetPointData()->RemoveArray(ghostPoints->GetName());
     }
   }
@@ -288,6 +291,7 @@ struct CleanGhostsIfPossibleWorker
 
   vtkSmartPointer<DataSetT> operator()(BlockType* block, DataSetT* ds)
   {
+    vtkLog(INFO, "CleanGhostsIfPossibleWorker");
     return this->Impl(block, ds);
   }
 
