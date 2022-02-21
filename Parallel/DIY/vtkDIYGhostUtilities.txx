@@ -424,10 +424,12 @@ void vtkDIYGhostUtilities::CopyInputsAndAllocateGhosts(const diy::Master& master
     }
     else
     {
-      vtkDIYGhostUtilities_detail::CleanGhostsIfPossibleWorker<DataSetT> cleaner;
-      vtkSmartPointer<DataSetT> cleanedInput = cleaner(block, input);
+      // FIXME
+ //     vtkDIYGhostUtilities_detail::CleanGhostsIfPossibleWorker<DataSetT> cleaner;
+ //     vtkSmartPointer<DataSetT> cleanedInput = cleaner(block, input);
 
-      vtkDIYGhostUtilities::DeepCopyInputAndAllocateGhosts(block, cleanedInput, output);
+      vtkDIYGhostUtilities::DeepCopyInputAndAllocateGhosts(block, input, output);
+      //vtkDIYGhostUtilities::DeepCopyInputAndAllocateGhosts(block, cleanedInput, output);
     }
   }
 }
