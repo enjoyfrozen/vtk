@@ -49,10 +49,13 @@ public:
   vtkTypeMacro(vtkExecutive, vtkObject);
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
+  ///@{
   /**
    * Get the algorithm to which this executive has been assigned.
    */
   vtkAlgorithm* GetAlgorithm() { return this->Algorithm; }
+  const vtkAlgorithm* GetAlgorithm() const { return this->Algorithm; }
+  ///@}
 
   /**
    * Generalized interface for asking the executive to fulfill
