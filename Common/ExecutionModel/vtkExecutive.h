@@ -52,6 +52,18 @@ public:
   ///@{
   /**
    * Get the algorithm to which this executive has been assigned.
+   *
+   * \note There is no reference count on this object. However, given that
+   * executives are not intended to be used across threads, it may be used
+   * within a thread at least as long as the algorithm is still active.
+   *
+   * Callers must not:
+   *
+   *    - store the pointer for future use beyond its interaction through the
+   *      associated `vtkExecutive`;
+   *    - increase the reference count through this pointer (only owned
+   *      references may gain a new reference; or
+   *    - use the algorithm through the executive from another thread.
    */
   vtkAlgorithm* GetAlgorithm() { return this->Algorithm; }
   const vtkAlgorithm* GetAlgorithm() const { return this->Algorithm; }
@@ -262,11 +274,6 @@ protected:
   // Garbage collection support.
   void ReportReferences(vtkGarbageCollector*) override;
 
-  virtual void SetAlgorithm(vtkAlgorithm* algorithm);
-
-  // The algorithm managed by this executive.
-  vtkAlgorithm* Algorithm;
-
   // Flag set when the algorithm is processing a request.
   int InAlgorithm;
 
@@ -284,6 +291,22 @@ private:
   vtkExecutiveInternals* ExecutiveInternal;
 
   friend class vtkAlgorithmToExecutiveFriendship;
+  void SetAlgorithm(vtkAlgorithm* algorithm);
+
+  // The algorithm managed by this executive.
+  //
+  // Invariant:
+  //
+  // assert(!this->Algorithm || this->Algorithm->GetExecutive() == this);
+  //
+  // Within a thread, there should be no visibility of a `vtkExecutive`'s
+  // (non-null) `vtkAlgorithm` not pointing back to itself. This may be visible
+  // from other threads, but `vtkExecutive` is not intended to be used across
+  // threads.
+  //
+  // XXX(weakptr): Use `vtkWeakPointer` (!8686) and give callers a way to get
+  // an owned pointer back.
+  vtkAlgorithm* Algorithm;
 
 private:
   vtkExecutive(const vtkExecutive&) = delete;
