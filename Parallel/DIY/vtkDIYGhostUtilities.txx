@@ -213,9 +213,10 @@ vtkSmartPointer<StructuredDataSetT> CleanGhostsIfPossibleForStructuredData(
     block,
   StructuredDataSetT* ds)
 {
+  std::cout << "Cleaning" << std::endl;
   using ExtentType = vtkDIYGhostUtilities::ExtentType;
 
-  vtkNew<StructuredDataSetT> cleanedDS;
+  vtkSmartPointer<StructuredDataSetT> cleanedDS = vtkSmartPointer<StructuredDataSetT>::New();
   cleanedDS->ShallowCopy(ds);
   const ExtentType& extent = block->Information.Extent;
   const int* dsExtent = ds->GetExtent();
