@@ -87,7 +87,7 @@ int vtkDemandDrivenPipeline::ComputePipelineMTime(vtkInformation* request,
   // The pipeline's MTime starts with this algorithm's MTime.
   // Invoke the request on the algorithm.
   this->InAlgorithm = 1;
-  int result = this->Algorithm->ComputePipelineMTime(
+  int result = this->GetAlgorithm()->ComputePipelineMTime(
     request, inInfoVec, outInfoVec, requestFromOutputPort, &this->PipelineMTime);
   this->InAlgorithm = 0;
 
@@ -96,16 +96,17 @@ int vtkDemandDrivenPipeline::ComputePipelineMTime(vtkInformation* request,
   {
     if (request)
     {
-      vtkErrorMacro("Algorithm " << this->Algorithm->GetObjectDescription()
+      vtkErrorMacro("Algorithm " << this->GetAlgorithm()->GetObjectDescription()
                                  << " returned failure for pipeline"
                                  << " modified time request from output port "
                                  << requestFromOutputPort << ": " << *request);
     }
     else
     {
-      vtkErrorMacro(
-        "Algorithm " << this->Algorithm->GetObjectDescription() << " returned failure for pipeline"
-                     << " modified time request from output port " << requestFromOutputPort << ".");
+      vtkErrorMacro("Algorithm " << this->GetAlgorithm()->GetObjectDescription()
+                                 << " returned failure for pipeline"
+                                 << " modified time request from output port "
+                                 << requestFromOutputPort << ".");
     }
     return 0;
   }
@@ -114,7 +115,7 @@ int vtkDemandDrivenPipeline::ComputePipelineMTime(vtkInformation* request,
   if (!this->SharedInputInformation)
   {
     // We want the maximum PipelineMTime of all inputs.
-    for (int i = 0; i < this->Algorithm->GetNumberOfInputPorts(); ++i)
+    for (int i = 0; i < this->GetAlgorithm()->GetNumberOfInputPorts(); ++i)
     {
       for (int j = 0; j < inInfoVec[i]->GetNumberOfInformationObjects(); ++j)
       {
@@ -153,7 +154,7 @@ vtkTypeBool vtkDemandDrivenPipeline::ProcessRequest(
     return 0;
   }
 
-  if (this->Algorithm && request->Has(REQUEST_DATA_OBJECT()))
+  if (this->GetAlgorithm() && request->Has(REQUEST_DATA_OBJECT()))
   {
     // if we are up to date then short circuit
     if (this->PipelineMTime < this->DataObjectTime.GetMTime())
@@ -171,7 +172,7 @@ vtkTypeBool vtkDemandDrivenPipeline::ProcessRequest(
     if (this->PipelineMTime > this->DataObjectTime.GetMTime())
     {
       // Request data type from the algorithm.
-      vtkLogF(TRACE, "%s execute-data-object", vtkLogIdentifier(this->Algorithm));
+      vtkLogF(TRACE, "%s execute-data-object", vtkLogIdentifier(this->GetAlgorithm()));
       result = this->ExecuteDataObject(request, inInfoVec, outInfoVec);
 
       // Make sure the data object exists for all output ports.
@@ -194,7 +195,7 @@ vtkTypeBool vtkDemandDrivenPipeline::ProcessRequest(
     return result;
   }
 
-  if (this->Algorithm && request->Has(REQUEST_INFORMATION()))
+  if (this->GetAlgorithm() && request->Has(REQUEST_INFORMATION()))
   {
     // if we are up to date then short circuit
     if (this->PipelineMTime < this->InformationTime.GetMTime())
@@ -219,7 +220,7 @@ vtkTypeBool vtkDemandDrivenPipeline::ProcessRequest(
       }
 
       // Request information from the algorithm.
-      vtkLogF(TRACE, "%s execute-information", vtkLogIdentifier(this->Algorithm));
+      vtkLogF(TRACE, "%s execute-information", vtkLogIdentifier(this->GetAlgorithm()));
       result = this->ExecuteInformation(request, inInfoVec, outInfoVec);
 
       // Information is now up to date.
@@ -229,7 +230,7 @@ vtkTypeBool vtkDemandDrivenPipeline::ProcessRequest(
     return result;
   }
 
-  if (this->Algorithm && request->Has(REQUEST_DATA()))
+  if (this->GetAlgorithm() && request->Has(REQUEST_DATA()))
   {
     // Get the output port from which the request was made.
     int outputPort = -1;
@@ -256,7 +257,7 @@ vtkTypeBool vtkDemandDrivenPipeline::ProcessRequest(
       }
 
       // Request data from the algorithm.
-      vtkLogF(TRACE, "%s execute-data", vtkLogIdentifier(this->Algorithm));
+      vtkLogF(TRACE, "%s execute-data", vtkLogIdentifier(this->GetAlgorithm()));
       result = this->ExecuteData(request, inInfoVec, outInfoVec);
 
       // Data are now up to date.
@@ -296,7 +297,7 @@ vtkTypeBool vtkDemandDrivenPipeline::Update(int port)
   {
     return 0;
   }
-  if (port >= -1 && port < this->Algorithm->GetNumberOfOutputPorts())
+  if (port >= -1 && port < this->GetAlgorithm()->GetNumberOfOutputPorts())
   {
     return this->UpdateData(port);
   }
@@ -394,11 +395,11 @@ int vtkDemandDrivenPipeline::UpdateData(int outputPort)
   }
 
   // Range check.
-  if (outputPort < -1 || outputPort >= this->Algorithm->GetNumberOfOutputPorts())
+  if (outputPort < -1 || outputPort >= this->GetAlgorithm()->GetNumberOfOutputPorts())
   {
-    vtkErrorMacro("UpdateData given output port index " << outputPort << " on an algorithm with "
-                                                        << this->Algorithm->GetNumberOfOutputPorts()
-                                                        << " output ports.");
+    vtkErrorMacro("UpdateData given output port index "
+      << outputPort << " on an algorithm with " << this->GetAlgorithm()->GetNumberOfOutputPorts()
+      << " output ports.");
     return 0;
   }
 
@@ -427,7 +428,7 @@ int vtkDemandDrivenPipeline::ExecuteDataObject(
   int result = this->CallAlgorithm(request, vtkExecutive::RequestDownstream, inInfo, outInfo);
 
   // Make sure a valid data object exists for all output ports.
-  for (int i = 0; result && i < this->Algorithm->GetNumberOfOutputPorts(); ++i)
+  for (int i = 0; result && i < this->GetAlgorithm()->GetNumberOfOutputPorts(); ++i)
   {
     result = this->CheckDataObject(i, outInfo);
   }
@@ -457,11 +458,11 @@ int vtkDemandDrivenPipeline::ExecuteData(
 {
   this->ExecuteDataStart(request, inInfo, outInfo);
   // Invoke the request on the algorithm.
-  //   vtkMTimeType mTimeBefore = this->Algorithm->GetMTime();
+  //   vtkMTimeType mTimeBefore = this->GetAlgorithm()->GetMTime();
   int result = this->CallAlgorithm(request, vtkExecutive::RequestDownstream, inInfo, outInfo);
-  //   if (mTimeBefore != this->Algorithm->GetMTime())
+  //   if (mTimeBefore != this->GetAlgorithm()->GetMTime())
   //     {
-  //     vtkWarningMacro(<< this->Algorithm->GetClassName()
+  //     vtkWarningMacro(<< this->GetAlgorithm()->GetClassName()
   //                     << " modified it's MTime during RequestData(). "
   //                     << "This may lead to unnecessary pipeline "
   //                     << "executions");
@@ -516,11 +517,11 @@ void vtkDemandDrivenPipeline::ExecuteDataStart(
   }
 
   // Tell observers the algorithm is about to execute.
-  this->Algorithm->InvokeEvent(vtkCommand::StartEvent, nullptr);
+  this->GetAlgorithm()->InvokeEvent(vtkCommand::StartEvent, nullptr);
 
   // The algorithm has not yet made any progress.
-  this->Algorithm->SetAbortExecute(0);
-  this->Algorithm->UpdateProgress(0.0);
+  this->GetAlgorithm()->SetAbortExecute(0);
+  this->GetAlgorithm()->UpdateProgress(0.0);
 }
 
 //------------------------------------------------------------------------------
@@ -528,13 +529,13 @@ void vtkDemandDrivenPipeline::ExecuteDataEnd(
   vtkInformation* request, vtkInformationVector** inInfoVec, vtkInformationVector* outputs)
 {
   // The algorithm has either finished or aborted.
-  if (!this->Algorithm->GetAbortExecute())
+  if (!this->GetAlgorithm()->GetAbortExecute())
   {
-    this->Algorithm->UpdateProgress(1.0);
+    this->GetAlgorithm()->UpdateProgress(1.0);
   }
 
   // Tell observers the algorithm is done executing.
-  this->Algorithm->InvokeEvent(vtkCommand::EndEvent, nullptr);
+  this->GetAlgorithm()->InvokeEvent(vtkCommand::EndEvent, nullptr);
 
   // Tell outputs they have been generated.
   this->MarkOutputsGenerated(request, inInfoVec, outputs);
@@ -548,7 +549,7 @@ void vtkDemandDrivenPipeline::ExecuteDataEnd(
   }
 
   // Release input data if requested.
-  for (i = 0; i < this->Algorithm->GetNumberOfInputPorts(); ++i)
+  for (i = 0; i < this->GetAlgorithm()->GetNumberOfInputPorts(); ++i)
   {
     for (j = 0; j < inInfoVec[i]->GetNumberOfInformationObjects(); ++j)
     {
@@ -584,7 +585,7 @@ int vtkDemandDrivenPipeline::CheckDataObject(int port, vtkInformationVector* out
   // Check that the given output port has a valid data object.
   vtkInformation* outInfo = outInfoVec->GetInformationObject(port);
   vtkDataObject* data = outInfo->Get(vtkDataObject::DATA_OBJECT());
-  vtkInformation* portInfo = this->Algorithm->GetOutputPortInformation(port);
+  vtkInformation* portInfo = this->GetAlgorithm()->GetOutputPortInformation(port);
   if (const char* dt = portInfo->Get(vtkDataObject::DATA_TYPE_NAME()))
   {
     int incorrectdata = data && (!data->IsA(dt));
@@ -608,7 +609,7 @@ int vtkDemandDrivenPipeline::CheckDataObject(int port, vtkInformationVector* out
     if (!data)
     {
       // The algorithm has a bug and did not create the data object.
-      vtkErrorMacro("Algorithm " << this->Algorithm->GetObjectDescription()
+      vtkErrorMacro("Algorithm " << this->GetAlgorithm()->GetObjectDescription()
                                  << " did not create output for port " << port
                                  << " when asked by REQUEST_DATA_OBJECT and does not"
                                  << " specify a concrete DATA_TYPE_NAME.");
@@ -626,7 +627,7 @@ int vtkDemandDrivenPipeline::CheckDataObject(int port, vtkInformationVector* out
   {
     // The algorithm did not specify its output data type and no
     // object exists.
-    vtkErrorMacro("Algorithm " << this->Algorithm->GetObjectDescription()
+    vtkErrorMacro("Algorithm " << this->GetAlgorithm()->GetObjectDescription()
                                << " did not create output for port " << port
                                << " when asked by REQUEST_DATA_OBJECT and does not"
                                << " specify any DATA_TYPE_NAME.");
@@ -639,7 +640,7 @@ int vtkDemandDrivenPipeline::InputCountIsValid(vtkInformationVector** inInfoVec)
 {
   // Check the number of connections for each port.
   int result = 1;
-  for (int p = 0; p < this->Algorithm->GetNumberOfInputPorts(); ++p)
+  for (int p = 0; p < this->GetAlgorithm()->GetNumberOfInputPorts(); ++p)
   {
     if (!this->InputCountIsValid(p, inInfoVec))
     {
@@ -663,8 +664,8 @@ int vtkDemandDrivenPipeline::InputCountIsValid(int port, vtkInformationVector** 
   if (!this->InputIsOptional(port) && (connections < 1))
   {
     vtkErrorMacro("Input port " << port << " of algorithm "
-                                << this->Algorithm->GetObjectDescription() << " has " << connections
-                                << " connections but is not optional.");
+                                << this->GetAlgorithm()->GetObjectDescription() << " has "
+                                << connections << " connections but is not optional.");
     return 0;
   }
 
@@ -672,8 +673,8 @@ int vtkDemandDrivenPipeline::InputCountIsValid(int port, vtkInformationVector** 
   if (!this->InputIsRepeatable(port) && (connections > 1))
   {
     vtkErrorMacro("Input port " << port << " of algorithm "
-                                << this->Algorithm->GetObjectDescription() << " has " << connections
-                                << " connections but is not repeatable.");
+                                << this->GetAlgorithm()->GetObjectDescription() << " has "
+                                << connections << " connections but is not repeatable.");
     return 0;
   }
   return 1;
@@ -684,7 +685,7 @@ int vtkDemandDrivenPipeline::InputTypeIsValid(vtkInformationVector** inInfoVec)
 {
   // Check the connection types for each port.
   int result = 1;
-  for (int p = 0; p < this->Algorithm->GetNumberOfInputPorts(); ++p)
+  for (int p = 0; p < this->GetAlgorithm()->GetNumberOfInputPorts(); ++p)
   {
     if (!this->InputTypeIsValid(p, inInfoVec))
     {
@@ -720,7 +721,7 @@ int vtkDemandDrivenPipeline::InputTypeIsValid(int port, int index, vtkInformatio
   {
     return 0;
   }
-  vtkInformation* info = this->Algorithm->GetInputPortInformation(port);
+  vtkInformation* info = this->GetAlgorithm()->GetInputPortInformation(port);
   vtkDataObject* input = this->GetInputData(port, index, inInfoVec);
 
   // Enforce required type, if any.
@@ -732,7 +733,7 @@ int vtkDemandDrivenPipeline::InputTypeIsValid(int port, int index, vtkInformatio
     {
       vtkErrorMacro("Input for connection index "
         << index << " on input port index " << port << " for algorithm "
-        << this->Algorithm->GetObjectDescription() << " is nullptr, but a "
+        << this->GetAlgorithm()->GetObjectDescription() << " is nullptr, but a "
         << info->Get(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), 0) << " is required.");
       return 0;
     }
@@ -754,7 +755,7 @@ int vtkDemandDrivenPipeline::InputTypeIsValid(int port, int index, vtkInformatio
     {
       vtkErrorMacro("Input for connection index "
         << index << " on input port index " << port << " for algorithm "
-        << this->Algorithm->GetObjectDescription() << " is of type " << input->GetClassName()
+        << this->GetAlgorithm()->GetObjectDescription() << " is of type " << input->GetClassName()
         << ", but a " << info->Get(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), 0) << " is required.");
       return 0;
     }
@@ -767,7 +768,7 @@ int vtkDemandDrivenPipeline::InputFieldsAreValid(vtkInformationVector** inInfoVe
 {
   // Check the fields for each port.
   int result = 1;
-  for (int p = 0; p < this->Algorithm->GetNumberOfInputPorts(); ++p)
+  for (int p = 0; p < this->GetAlgorithm()->GetNumberOfInputPorts(); ++p)
   {
     if (!this->InputFieldsAreValid(p, inInfoVec))
     {
@@ -800,7 +801,7 @@ int vtkDemandDrivenPipeline::InputFieldsAreValid(int port, vtkInformationVector*
 int vtkDemandDrivenPipeline::InputFieldsAreValid(
   int port, int index, vtkInformationVector** inInfoVec)
 {
-  vtkInformation* info = this->Algorithm->GetInputPortInformation(port);
+  vtkInformation* info = this->GetAlgorithm()->GetInputPortInformation(port);
   vtkInformationVector* fields = info->Get(vtkAlgorithm::INPUT_REQUIRED_FIELDS());
 
   // If there are no required fields, there is nothing to check.
@@ -955,7 +956,7 @@ int vtkDemandDrivenPipeline::ArrayIsValid(vtkAbstractArray* array, vtkInformatio
 //------------------------------------------------------------------------------
 int vtkDemandDrivenPipeline::InputIsOptional(int port)
 {
-  if (vtkInformation* info = this->Algorithm->GetInputPortInformation(port))
+  if (vtkInformation* info = this->GetAlgorithm()->GetInputPortInformation(port))
   {
     return info->Get(vtkAlgorithm::INPUT_IS_OPTIONAL());
   }
@@ -965,7 +966,7 @@ int vtkDemandDrivenPipeline::InputIsOptional(int port)
 //------------------------------------------------------------------------------
 int vtkDemandDrivenPipeline::InputIsRepeatable(int port)
 {
-  if (vtkInformation* info = this->Algorithm->GetInputPortInformation(port))
+  if (vtkInformation* info = this->GetAlgorithm()->GetInputPortInformation(port))
   {
     return info->Get(vtkAlgorithm::INPUT_IS_REPEATABLE());
   }
@@ -1005,7 +1006,7 @@ int vtkDemandDrivenPipeline ::NeedToExecuteData(
   else
   {
     // No port is specified.  Check all ports.
-    for (int i = 0; i < this->Algorithm->GetNumberOfOutputPorts(); ++i)
+    for (int i = 0; i < this->GetAlgorithm()->GetNumberOfOutputPorts(); ++i)
     {
       if (this->NeedToExecuteData(i, inInfoVec, outInfoVec))
       {
