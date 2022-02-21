@@ -169,12 +169,6 @@ void vtkExecutive::SetAlgorithm(vtkAlgorithm* newAlgorithm)
 }
 
 //------------------------------------------------------------------------------
-vtkAlgorithm* vtkExecutive::GetAlgorithm()
-{
-  return this->Algorithm;
-}
-
-//------------------------------------------------------------------------------
 vtkInformationVector** vtkExecutive::GetInputInformation()
 {
   // Use the shared input information vector if any is set.

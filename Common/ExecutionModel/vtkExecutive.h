@@ -52,7 +52,7 @@ public:
   /**
    * Get the algorithm to which this executive has been assigned.
    */
-  vtkAlgorithm* GetAlgorithm();
+  vtkAlgorithm* GetAlgorithm() { return this->Algorithm; }
 
   /**
    * Generalized interface for asking the executive to fulfill
