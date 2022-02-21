@@ -151,8 +151,8 @@ int vtkCompositeDataPipeline::ExecuteData(
     }
     else
     {
-      vtkErrorMacro("Can not execute simple algorithm " << this->Algorithm->GetObjectDescription()
-                                                        << " without output ports");
+      vtkErrorMacro("Can not execute simple algorithm "
+        << this->GetAlgorithm()->GetObjectDescription() << " without output ports");
       return 0;
     }
   }
@@ -203,14 +203,14 @@ bool vtkCompositeDataPipeline::ShouldIterateOverInput(
   // the required input type. We assume that that port input has to
   // be iterated over. We also require that this port has only one
   // connection.
-  int numInputPorts = this->Algorithm->GetNumberOfInputPorts();
+  int numInputPorts = this->GetAlgorithm()->GetNumberOfInputPorts();
   for (int i = 0; i < numInputPorts; ++i)
   {
-    int numInConnections = this->Algorithm->GetNumberOfInputConnections(i);
+    int numInConnections = this->GetAlgorithm()->GetNumberOfInputConnections(i);
     // If there is 1 connection
     if (numInConnections == 1)
     {
-      vtkInformation* inPortInfo = this->Algorithm->GetInputPortInformation(i);
+      vtkInformation* inPortInfo = this->GetAlgorithm()->GetInputPortInformation(i);
       if (inPortInfo->Has(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE()) &&
         inPortInfo->Length(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE()) > 0)
       {
@@ -394,7 +394,7 @@ void vtkCompositeDataPipeline::ExecuteSimpleAlgorithm(vtkInformation* request,
     // one to process the whole block)
     this->PushInformation(inInfo);
 
-    vtkDebugMacro(<< "EXECUTING " << this->Algorithm->GetClassName());
+    vtkDebugMacro(<< "EXECUTING " << this->GetAlgorithm()->GetClassName());
 
     // True when the pipeline is iterating over the current (simple)
     // filter to produce composite output. In this case,
@@ -406,7 +406,7 @@ void vtkCompositeDataPipeline::ExecuteSimpleAlgorithm(vtkInformation* request,
     if (vtkPartitionedDataSetCollection::SafeDownCast(input))
     {
       bool iteratePartitions = false;
-      vtkInformation* inPortInfo = this->Algorithm->GetInputPortInformation(compositePort);
+      vtkInformation* inPortInfo = this->GetAlgorithm()->GetInputPortInformation(compositePort);
       if (inPortInfo->Has(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE()) &&
         inPortInfo->Length(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE()) > 0)
       {
@@ -505,7 +505,7 @@ std::vector<vtkDataObject*> vtkCompositeDataPipeline::ExecuteSimpleAlgorithmForB
 
   int storedPiece = -1;
   int storedNumPieces = -1;
-  for (int m = 0; m < this->Algorithm->GetNumberOfOutputPorts(); ++m)
+  for (int m = 0; m < this->GetAlgorithm()->GetNumberOfOutputPorts(); ++m)
   {
     vtkInformation* info = outInfoVec->GetInformationObject(m);
     // Update the whole thing
@@ -531,7 +531,7 @@ std::vector<vtkDataObject*> vtkCompositeDataPipeline::ExecuteSimpleAlgorithmForB
   this->Superclass::ExecuteData(request, inInfoVec, outInfoVec);
   request->Remove(REQUEST_DATA());
 
-  for (int m = 0; m < this->Algorithm->GetNumberOfOutputPorts(); ++m)
+  for (int m = 0; m < this->GetAlgorithm()->GetNumberOfOutputPorts(); ++m)
   {
     vtkInformation* info = outInfoVec->GetInformationObject(m);
     if (storedPiece != -1)
@@ -701,7 +701,7 @@ int vtkCompositeDataPipeline::ForwardUpstream(vtkInformation* request)
     return 1;
   }
 
-  if (!this->Algorithm->ModifyRequest(request, BeforeForward))
+  if (!this->GetAlgorithm()->ModifyRequest(request, BeforeForward))
   {
     return 0;
   }
@@ -711,7 +711,7 @@ int vtkCompositeDataPipeline::ForwardUpstream(vtkInformation* request)
   int result = 1;
   for (int i = 0; i < this->GetNumberOfInputPorts(); ++i)
   {
-    int nic = this->Algorithm->GetNumberOfInputConnections(i);
+    int nic = this->GetAlgorithm()->GetNumberOfInputConnections(i);
     vtkInformationVector* inVector = this->GetInputInformation()[i];
     for (int j = 0; j < nic; ++j)
     {
@@ -733,7 +733,7 @@ int vtkCompositeDataPipeline::ForwardUpstream(vtkInformation* request)
     }
   }
 
-  if (!this->Algorithm->ModifyRequest(request, AfterForward))
+  if (!this->GetAlgorithm()->ModifyRequest(request, AfterForward))
   {
     return 0;
   }
@@ -750,7 +750,7 @@ int vtkCompositeDataPipeline::ForwardUpstream(int i, int j, vtkInformation* requ
     return 1;
   }
 
-  if (!this->Algorithm->ModifyRequest(request, BeforeForward))
+  if (!this->GetAlgorithm()->ModifyRequest(request, BeforeForward))
   {
     return 0;
   }
@@ -758,7 +758,7 @@ int vtkCompositeDataPipeline::ForwardUpstream(int i, int j, vtkInformation* requ
   int result = 1;
   if (vtkExecutive* e = this->GetInputExecutive(i, j))
   {
-    vtkAlgorithmOutput* input = this->Algorithm->GetInputConnection(i, j);
+    vtkAlgorithmOutput* input = this->GetAlgorithm()->GetInputConnection(i, j);
     int port = request->Get(FROM_OUTPUT_PORT());
     request->Set(FROM_OUTPUT_PORT(), input->GetIndex());
     if (!e->ProcessRequest(request, e->GetInputInformation(), e->GetOutputInformation()))
@@ -768,7 +768,7 @@ int vtkCompositeDataPipeline::ForwardUpstream(int i, int j, vtkInformation* requ
     request->Set(FROM_OUTPUT_PORT(), port);
   }
 
-  if (!this->Algorithm->ModifyRequest(request, AfterForward))
+  if (!this->GetAlgorithm()->ModifyRequest(request, AfterForward))
   {
     return 0;
   }
@@ -814,7 +814,7 @@ void vtkCompositeDataPipeline::CopyDefaultInformation(vtkInformation* request, i
         outInfoVec->GetInformationObject((outputPort >= 0) ? outputPort : 0);
 
       // Loop over all input ports.
-      for (int i = 0; i < this->Algorithm->GetNumberOfInputPorts(); ++i)
+      for (int i = 0; i < this->GetAlgorithm()->GetNumberOfInputPorts(); ++i)
       {
         // Loop over all connections on this input port.
         int numInConnections = inInfoVec[i]->GetNumberOfInformationObjects();
@@ -1017,7 +1017,7 @@ std::vector<vtkSmartPointer<vtkDataObject>> vtkCompositeDataPipeline::CreateOutp
     vtkSmartPointer<vtkUniformGrid> tempInput = vtkSmartPointer<vtkUniformGrid>::New();
 
     // Check if the algorithm can accept UniformGrid on the input port.
-    vtkInformation* inPortInfo = this->Algorithm->GetInputPortInformation(compositePort);
+    vtkInformation* inPortInfo = this->GetAlgorithm()->GetInputPortInformation(compositePort);
     const char* inputType = inPortInfo->Get(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE());
     if (!tempInput->IsA(inputType))
     {

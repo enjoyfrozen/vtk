@@ -36,10 +36,10 @@ void vtkImageImportExecutive::PrintSelf(ostream& os, vtkIndent indent)
 vtkTypeBool vtkImageImportExecutive::ProcessRequest(
   vtkInformation* request, vtkInformationVector** inInfoVec, vtkInformationVector* outInfoVec)
 {
-  if (this->Algorithm && request->Has(REQUEST_INFORMATION()))
+  if (this->GetAlgorithm() && request->Has(REQUEST_INFORMATION()))
   {
     // Invoke the callback
-    vtkImageImport* ii = vtkImageImport::SafeDownCast(this->Algorithm);
+    vtkImageImport* ii = vtkImageImport::SafeDownCast(this->GetAlgorithm());
     ii->InvokeUpdateInformationCallbacks();
   }
 

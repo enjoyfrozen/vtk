@@ -243,11 +243,11 @@ void vtkThreadedCompositeDataPipeline::ExecuteEach(vtkCompositeDataIterator* ite
   ProcessBlock processBlock(
     this, inInfoVec, outInfoVec, compositePort, connection, request, inObjs, outObjs);
 
-  vtkSmartPointer<vtkProgressObserver> origPo(this->Algorithm->GetProgressObserver());
+  vtkSmartPointer<vtkProgressObserver> origPo(this->GetAlgorithm()->GetProgressObserver());
   vtkNew<vtkSMPProgressObserver> po;
-  this->Algorithm->SetProgressObserver(po);
+  this->GetAlgorithm()->SetProgressObserver(po);
   vtkSMPTools::For(0, static_cast<vtkIdType>(inObjs.size()), processBlock);
-  this->Algorithm->SetProgressObserver(origPo);
+  this->GetAlgorithm()->SetProgressObserver(origPo);
 
   int i = 0;
   for (iter->InitTraversal(); !iter->IsDoneWithTraversal(); iter->GoToNextItem(), i++)
@@ -276,12 +276,12 @@ int vtkThreadedCompositeDataPipeline::CallAlgorithm(vtkInformation* request, int
   this->CopyDefaultInformation(request, direction, inInfo, outInfo);
 
   // Invoke the request on the algorithm.
-  int result = this->Algorithm->ProcessRequest(request, inInfo, outInfo);
+  int result = this->GetAlgorithm()->ProcessRequest(request, inInfo, outInfo);
 
   // If the algorithm failed report it now.
   if (!result)
   {
-    vtkErrorMacro("Algorithm " << this->Algorithm->GetObjectDescription()
+    vtkErrorMacro("Algorithm " << this->GetAlgorithm()->GetObjectDescription()
                                << " returned failure for request: " << *request);
   }
 
