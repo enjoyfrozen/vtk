@@ -213,9 +213,10 @@ vtkSmartPointer<StructuredDataSetT> CleanGhostsIfPossibleForStructuredData(
     block,
   StructuredDataSetT* ds)
 {
+  vtkLog(INFO, "Cleaning");
   using ExtentType = vtkDIYGhostUtilities::ExtentType;
 
-  vtkNew<StructuredDataSetT> cleanedDS;
+  vtkSmartPointer<StructuredDataSetT> cleanedDS = vtkSmartPointer<StructuredDataSetT>::New();
   cleanedDS->ShallowCopy(ds);
   const ExtentType& extent = block->Information.Extent;
   const int* dsExtent = ds->GetExtent();
@@ -230,6 +231,7 @@ vtkSmartPointer<StructuredDataSetT> CleanGhostsIfPossibleForStructuredData(
     vtkSMPTools::For(0, numberOfCells, worker);
     if (!worker.FoundGhost)
     {
+      vtkLog(INFO, "removing ghost cells");
       cleanedDS->GetCellData()->RemoveArray(ghostCells->GetName());
     }
   }
@@ -241,6 +243,7 @@ vtkSmartPointer<StructuredDataSetT> CleanGhostsIfPossibleForStructuredData(
     vtkSMPTools::For(0, numberOfPoints, worker);
     if (!worker.FoundGhost)
     {
+      vtkLog(INFO, "removing ghost points");
       cleanedDS->GetPointData()->RemoveArray(ghostPoints->GetName());
     }
   }
@@ -261,6 +264,7 @@ struct CleanGhostsIfPossibleWorkerImpl<true>
     typename vtkDIYGhostUtilities::DataSetTypeToBlockTypeConverter<DataSetT>::BlockType*,
     DataSetT* ds)
   {
+    vtkLog(INFO, "clean impl regular");
     return ds;
   }
 };
@@ -274,6 +278,7 @@ struct CleanGhostsIfPossibleWorkerImpl<false>
     typename vtkDIYGhostUtilities::DataSetTypeToBlockTypeConverter<DataSetT>::BlockType* block,
     DataSetT* ds)
   {
+    vtkLog(INFO, "clean impl for sturctured data ");
     return vtkDIYGhostUtilities_detail::CleanGhostsIfPossibleForStructuredData(block, ds);
   }
 };
@@ -288,6 +293,7 @@ struct CleanGhostsIfPossibleWorker
 
   vtkSmartPointer<DataSetT> operator()(BlockType* block, DataSetT* ds)
   {
+    vtkLog(INFO, "CleanGhostsIfPossibleWorker");
     return this->Impl(block, ds);
   }
 
@@ -426,6 +432,7 @@ void vtkDIYGhostUtilities::CopyInputsAndAllocateGhosts(const diy::Master& master
     {
       vtkDIYGhostUtilities_detail::CleanGhostsIfPossibleWorker<DataSetT> cleaner;
       vtkSmartPointer<DataSetT> cleanedInput = cleaner(block, input);
+      vtkLog(INFO, "cleanedInput " << cleanedInput);
 
       vtkDIYGhostUtilities::DeepCopyInputAndAllocateGhosts(block, cleanedInput, output);
     }
