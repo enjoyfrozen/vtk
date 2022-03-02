@@ -399,6 +399,34 @@ vtk_module_build(
   TARGET_SPECIFIC_COMPONENTS  "${VTK_TARGET_SPECIFIC_COMPONENTS}"
   TEST_INPUT_DATA_DIRECTORY   "${CMAKE_CURRENT_SOURCE_DIR}/Testing"
   TEST_OUTPUT_DATA_DIRECTORY  "${CMAKE_CURRENT_BINARY_DIR}/ExternalData/Testing")
+
+# Catalyst sanity check. Ensure every module is using the same Catalyst dependency.
+if (TARGET catalyst::catalyst)
+  get_property(catalyst_dir_primary GLOBAL PROPERTY vtk_catalyst_dir_primary)
+  set(catalyst_using_modules)
+  if (TARGET VTK::IOCatalystConduit)
+    list(APPEND catalyst_using_modules
+      IOCatalystConduit)
+    if (VTK_BUILD_CATALYST)
+      list(APPEND catalyst_using_modules
+        VTKCatalyst)
+    endif()
+  endif()
+
+  foreach (catalyst_using_module IN LISTS catalyst_using_modules)
+    get_property(catalyst_dir_module GLOBAL PROPERTY "vtk_catalyst_dir_${catalyst_using_module}")
+
+    if (NOT catalyst_dir_primary STREQUAL catalyst_dir_module)
+      message(FATAL_ERROR
+        "`catalyst` dependency is used from "
+        "`${catalyst_dir_primary}` but the `${catalyst_using_module}` found "
+        "its copy at `${catalyst_dir_module}`. Due to the way `libcatalyst` "
+        "works, all modules which use it must agree on a single installation "
+        "of it.")
+    endif ()
+  endforeach ()
+endif ()
+
 include(vtkModuleJson)
 vtk_module_json(
   MODULES ${vtk_modules}
@@ -471,6 +499,8 @@ if (VTK_WRAP_JAVA)
 
   add_subdirectory(Wrapping/Java)
 endif ()
+
+option(VTK_BUILD_CATALYST "Build VTK catalyst implementation." OFF)
 
 if (VTK_BUILD_TESTING)
   # Create target to download data from the VTKData group.  This must come after
