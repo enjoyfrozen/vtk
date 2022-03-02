@@ -215,7 +215,7 @@ void vtkOpenGLFluidMapper::SetDepthThicknessColorShaderParameters(
     {
       vtkMatrix4x4* mcwc;
       vtkMatrix3x3* anorms;
-      ((vtkOpenGLActor*)actor)->GetKeyMatrices(mcwc, anorms);
+      ((vtkOpenGLActor*)actor)->GetKeyMatrices(mcwc, anorms, ren);
       vtkMatrix4x4::Multiply4x4(mcwc, this->CamWCVC, this->TempMatrix4);
       program->SetUniformMatrix("MCVCMatrix", this->TempMatrix4);
     }
@@ -828,7 +828,7 @@ void vtkOpenGLFluidMapper::Render(vtkRenderer* renderer, vtkVolume* vol)
       {
         vtkMatrix4x4* mcwc;
         vtkMatrix3x3* anorms;
-        ((vtkOpenGLActor*)vol)->GetKeyMatrices(mcwc, anorms);
+        ((vtkOpenGLActor*)vol)->GetKeyMatrices(mcwc, anorms, renderer);
         vtkMatrix4x4::Multiply4x4(mcwc, this->CamWCVC, this->TempMatrix4);
         this->QuadFinalBlend->Program->SetUniformMatrix("MCVCMatrix", this->TempMatrix4);
       }

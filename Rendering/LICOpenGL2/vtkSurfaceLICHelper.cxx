@@ -435,7 +435,7 @@ int vtkSurfaceLICHelper::ProjectBounds(vtkRenderer* ren, vtkActor* actor, vtkDat
   {
     vtkMatrix4x4* mcwc;
     vtkMatrix3x3* anorms;
-    ((vtkOpenGLActor*)actor)->GetKeyMatrices(mcwc, anorms);
+    ((vtkOpenGLActor*)actor)->GetKeyMatrices(mcwc, anorms, ren);
     vtkMatrix4x4::Multiply4x4(mcwc, wcdc, tmpMatrix);
   }
   else

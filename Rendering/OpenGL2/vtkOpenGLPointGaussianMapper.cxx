@@ -269,7 +269,7 @@ void vtkOpenGLPointGaussianMapperHelper::SetCameraShaderParameters(
     {
       vtkMatrix4x4* mcwc;
       vtkMatrix3x3* anorms;
-      ((vtkOpenGLActor*)actor)->GetKeyMatrices(mcwc, anorms);
+      ((vtkOpenGLActor*)actor)->GetKeyMatrices(mcwc, anorms, ren);
       vtkMatrix4x4::Multiply4x4(mcwc, wcvc, this->TempMatrix4);
       program->SetUniformMatrix("MCVCMatrix", this->TempMatrix4);
     }

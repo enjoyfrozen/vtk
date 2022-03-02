@@ -117,13 +117,20 @@ void vtkOpenGLActor::PrintSelf(ostream& os, vtkIndent indent)
   this->Superclass::PrintSelf(os, indent);
 }
 
-void vtkOpenGLActor::GetKeyMatrices(vtkMatrix4x4*& mcwc, vtkMatrix3x3*& normMat)
+void vtkOpenGLActor::GetKeyMatrices(vtkMatrix4x4*& mcwc, vtkMatrix3x3*& normMat, vtkRenderer* ren)
 {
-  // has the actor changed?
-  if (this->GetMTime() > this->KeyMatrixTime)
+  vtkMTimeType rwTime = 0;
+  if (ren)
   {
-    this->ComputeMatrix();
-    this->MCWCMatrix->DeepCopy(this->Matrix);
+    rwTime = ren->GetVTKWindow()->GetMTime();
+  }
+
+  // has the actor changed or is in device coords?
+  if (this->GetMTime() > this->KeyMatrixTime || rwTime > this->KeyMatrixTime ||
+    this->CoordinateSystem == DEVICE)
+  {
+    this->GetModelToWorldMatrix(this->MCWCMatrix);
+
     this->MCWCMatrix->Transpose();
 
     if (this->GetIsIdentity())

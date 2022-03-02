@@ -243,7 +243,7 @@ void vtkOpenGLStickMapper::SetCameraShaderParameters(
   {
     vtkMatrix4x4* mcwc;
     vtkMatrix3x3* anorms;
-    ((vtkOpenGLActor*)actor)->GetKeyMatrices(mcwc, anorms);
+    ((vtkOpenGLActor*)actor)->GetKeyMatrices(mcwc, anorms, ren);
     if (program->IsUniformUsed("MCVCMatrix"))
     {
       vtkMatrix4x4::Multiply4x4(mcwc, wcvc, this->TempMatrix4);

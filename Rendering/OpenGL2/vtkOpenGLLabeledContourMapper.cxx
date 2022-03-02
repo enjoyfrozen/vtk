@@ -140,7 +140,7 @@ bool vtkOpenGLLabeledContourMapper::ApplyStencil(vtkRenderer* ren, vtkActor* act
     {
       vtkMatrix4x4* mcwc;
       vtkMatrix3x3* anorms;
-      ((vtkOpenGLActor*)act)->GetKeyMatrices(mcwc, anorms);
+      ((vtkOpenGLActor*)act)->GetKeyMatrices(mcwc, anorms, ren);
       vtkMatrix4x4::Multiply4x4(mcwc, wcdc, this->TempMatrix4);
       this->StencilBO->Program->SetUniformMatrix("MCDCMatrix", this->TempMatrix4);
     }

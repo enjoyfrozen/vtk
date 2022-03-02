@@ -2764,7 +2764,8 @@ void vtkOpenGLPolyDataMapper::SetMapperShaderParameters(
     for (int i = 0; i < numClipPlanes; i++)
     {
       double planeEquation[4];
-      this->GetClippingPlaneInDataCoords(actor->GetMatrix(), i, planeEquation);
+      actor->GetModelToWorldMatrix(this->TempMatrix4);
+      this->GetClippingPlaneInDataCoords(this->TempMatrix4, i, planeEquation);
 
       // multiply by shift scale if set
       planeEquations[i][0] = planeEquation[0] / scale[0];
@@ -2918,7 +2919,7 @@ void vtkOpenGLPolyDataMapper::SetCameraShaderParameters(
     {
       vtkMatrix4x4* mcwc;
       vtkMatrix3x3* anorms;
-      static_cast<vtkOpenGLActor*>(actor)->GetKeyMatrices(mcwc, anorms);
+      static_cast<vtkOpenGLActor*>(actor)->GetKeyMatrices(mcwc, anorms, ren);
       vtkMatrix4x4::Multiply4x4(this->VBOShiftScale, mcwc, this->TempMatrix4);
       if (program->IsUniformUsed("MCWCMatrix"))
       {
@@ -2963,7 +2964,7 @@ void vtkOpenGLPolyDataMapper::SetCameraShaderParameters(
     {
       vtkMatrix4x4* mcwc;
       vtkMatrix3x3* anorms;
-      ((vtkOpenGLActor*)actor)->GetKeyMatrices(mcwc, anorms);
+      ((vtkOpenGLActor*)actor)->GetKeyMatrices(mcwc, anorms, ren);
       if (program->IsUniformUsed("MCWCMatrix"))
       {
         program->SetUniformMatrix("MCWCMatrix", mcwc);
