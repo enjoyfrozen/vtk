@@ -37,6 +37,7 @@ The following variables are provided by this module:
   * `VTK_ENABLE_VR_COLLABORATION`: Is VR collaboration enabled when VR is enabled.
   * `VTK_SMP_BACKENDS`: The list of available SMP backends.
 
+
 For more information about the Python in use by VTK, the `VTK_PYTHON_VERSION`
 variable may be used to query the `find_package(Python)` that VTK performs
 internally (note that the `Python` component must be found to guarantee that
@@ -167,6 +168,11 @@ endif ()
 
 if (@vtk_has_qml@) # vtk_has_qml
   set("${CMAKE_FIND_PACKAGE_NAME}_QML_DIR" "${${CMAKE_FIND_PACKAGE_NAME}_PREFIX_PATH}/@CMAKE_INSTALL_QMLDIR@")
+endif ()
+
+if (@vtk_has_catalyst@) # vtk_has_catalyst
+  set("${CMAKE_FIND_PACKAGE_NAME}_CATALYST_DIR"
+    "${${CMAKE_FIND_PACKAGE_NAME}_PREFIX_PATH}/@vtk_catalyst_directory@")
 endif ()
 
 include("${CMAKE_CURRENT_LIST_DIR}/vtkModule.cmake")
