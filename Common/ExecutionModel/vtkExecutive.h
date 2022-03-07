@@ -173,9 +173,10 @@ public:
 
   ///@{
   /**
-   * Participate in garbage collection.
+   * Do not participate in garbage collection.
+   * Note: In the final MR, remove this function and the report references functions entirely.
    */
-  bool UsesGarbageCollector() const override { return true; }
+  bool UsesGarbageCollector() const override { return false; }
   ///@}
 
   /**
