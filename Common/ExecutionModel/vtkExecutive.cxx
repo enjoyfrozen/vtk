@@ -116,7 +116,6 @@ vtkExecutive::vtkExecutive()
 {
   this->ExecutiveInternal = new vtkExecutiveInternals;
   this->OutputInformation = vtkInformationVector::New();
-  this->Algorithm = nullptr;
   this->InAlgorithm = 0;
   this->SharedInputInformation = nullptr;
   this->SharedOutputInformation = nullptr;
@@ -125,7 +124,6 @@ vtkExecutive::vtkExecutive()
 //------------------------------------------------------------------------------
 vtkExecutive::~vtkExecutive()
 {
-  this->SetAlgorithm(nullptr);
   if (this->OutputInformation)
   {
     this->OutputInformation->Delete();
@@ -152,20 +150,12 @@ void vtkExecutive::SetAlgorithm(vtkAlgorithm* newAlgorithm)
 {
   vtkDebugMacro(<< this->GetClassName() << " (" << this << "): setting Algorithm to "
                 << newAlgorithm);
-  vtkAlgorithm* oldAlgorithm = this->Algorithm;
-  if (oldAlgorithm != newAlgorithm)
+  if (this->Algorithm == newAlgorithm)
   {
-    if (newAlgorithm)
-    {
-      newAlgorithm->Register(this);
-    }
-    this->Algorithm = newAlgorithm;
-    if (oldAlgorithm)
-    {
-      oldAlgorithm->UnRegister(this);
-    }
-    this->Modified();
+    return;
   }
+  this->Algorithm = newAlgorithm;
+  this->Modified();
 }
 
 //------------------------------------------------------------------------------
@@ -270,10 +260,10 @@ vtkExecutive* vtkExecutive::GetInputExecutive(int port, int index)
   }
   return nullptr;
 }
-
 //------------------------------------------------------------------------------
 void vtkExecutive::ReportReferences(vtkGarbageCollector* collector)
 {
+#if 0
   // Report reference to our algorithm.
   vtkGarbageCollectorReport(collector, this->Algorithm, "Algorithm");
 
@@ -284,13 +274,14 @@ void vtkExecutive::ReportReferences(vtkGarbageCollector* collector)
   }
 
   vtkGarbageCollectorReport(collector, this->OutputInformation, "Output Information Vector");
+#endif
   this->Superclass::ReportReferences(collector);
 }
 
 //------------------------------------------------------------------------------
 vtkTypeBool vtkExecutive::Update()
 {
-  if (this->Algorithm->GetNumberOfOutputPorts())
+  if (this->GetNumberOfInputPorts())
   {
     return this->Update(0);
   }

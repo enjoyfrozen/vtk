@@ -29,6 +29,7 @@
 
 #include "vtkCommonExecutionModelModule.h" // For export macro
 #include "vtkObject.h"
+#include "vtkWeakPointer.h" // needed for vtkWeakPointer
 
 class vtkAlgorithm;
 class vtkAlgorithmOutput;
@@ -263,7 +264,7 @@ protected:
   virtual void SetAlgorithm(vtkAlgorithm* algorithm);
 
   // The algorithm managed by this executive.
-  vtkAlgorithm* Algorithm;
+  vtkWeakPointer<vtkAlgorithm> Algorithm;
 
   // Flag set when the algorithm is processing a request.
   int InAlgorithm;
