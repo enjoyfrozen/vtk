@@ -48,7 +48,14 @@ vtkTrivialProducer::vtkTrivialProducer()
 //------------------------------------------------------------------------------
 vtkTrivialProducer::~vtkTrivialProducer()
 {
-  this->SetOutput(nullptr);
+  // If we're here, then the weak pointer to us in our executive are nulled, so delete output
+  // manually. As it is, calling virtual `SetOutput` in destructor override is a bad idea.
+  // [clang-analyzer-optin.cplusplus.VirtualCall]
+  if (this->Output)
+  {
+    this->Output->UnRegister(this);
+    this->Output = nullptr;
+  }
 }
 
 //------------------------------------------------------------------------------
