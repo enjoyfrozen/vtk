@@ -768,7 +768,7 @@ void vtkAlgorithm::SetNumberOfOutputPorts(int n)
     vtkErrorMacro("Attempt to set number of output ports to " << n);
     n = 0;
   }
-
+#if 0
   // We must remove all connections from ports that are removed.
   for (int i = n; i < this->GetNumberOfOutputPorts(); ++i)
   {
@@ -789,7 +789,7 @@ void vtkAlgorithm::SetNumberOfOutputPorts(int n)
     // Remove this producer's references to all consumers on this port.
     vtkExecutive::CONSUMERS()->Remove(info);
   }
-
+#endif
   // Set the number of output port information objects.
   this->OutputPortInformation->SetNumberOfInformationObjects(n);
 
@@ -999,7 +999,7 @@ void vtkAlgorithm::SetInputConnection(int port, vtkAlgorithmOutput* input)
   vtkDebugMacro("Setting connection to input port index "
     << consumerPort << " from output port index " << producerPort << " on algorithm "
     << (producer ? producer->GetObjectDescription() : nullptr) << ".");
-
+#if 0
   // Add this consumer to the new input's list of consumers.
   if (newInfo)
   {
@@ -1014,7 +1014,7 @@ void vtkAlgorithm::SetInputConnection(int port, vtkAlgorithmOutput* input)
       vtkExecutive::CONSUMERS()->Remove(oldInfo, consumer, consumerPort);
     }
   }
-
+#endif
   // Make the new input the only connection.
   if (newInfo)
   {
@@ -1066,10 +1066,10 @@ void vtkAlgorithm::AddInputConnection(int port, vtkAlgorithmOutput* input)
 
   // Get the information object from the producer of the new input.
   vtkInformation* newInfo = producer->GetOutputInformation(producerPort);
-
+#if 0
   // Add this consumer to the input's list of consumers.
   vtkExecutive::CONSUMERS()->Append(newInfo, consumer, consumerPort);
-
+#endif
   // Add the information object to the list of inputs.
   inputs->Append(newInfo);
 
@@ -1105,7 +1105,7 @@ void vtkAlgorithm::RemoveInputConnection(int port, int idx)
 
     // Get the vector of connected input information objects.
     vtkInformationVector* inputs = consumer->GetInputInformation(consumerPort);
-
+#if 0
     // Get the producer/consumer pair for the connection.
     vtkExecutive* producer = input->GetProducer()->GetExecutive();
     int producerPort = input->GetIndex();
@@ -1119,7 +1119,7 @@ void vtkAlgorithm::RemoveInputConnection(int port, int idx)
       // Remove this consumer from the old input's list of consumers.
       vtkExecutive::CONSUMERS()->Remove(oldInfo, consumer, consumerPort);
     }
-
+#endif
     // Remove the information object from the list of inputs.
     inputs->Remove(idx);
 
@@ -1158,10 +1158,10 @@ void vtkAlgorithm::RemoveInputConnection(int port, vtkAlgorithmOutput* input)
 
   // Get the information object from the producer of the old input.
   vtkInformation* oldInfo = producer->GetOutputInformation(producerPort);
-
+#if 0
   // Remove this consumer from the old input's list of consumers.
   vtkExecutive::CONSUMERS()->Remove(oldInfo, consumer, consumerPort);
-
+#endif
   // Remove the information object from the list of inputs.
   inputs->Remove(oldInfo);
 
@@ -1204,7 +1204,7 @@ void vtkAlgorithm::SetNthInputConnection(int port, int index, vtkAlgorithmOutput
     << index << " to input port index " << consumerPort << " from output port index "
     << producerPort << " on algorithm "
     << (producer ? producer->GetAlgorithm()->GetObjectDescription() : "nullptr") << ".");
-
+#if 0
   // Add the consumer to the new input's list of consumers.
   if (newInfo)
   {
@@ -1216,7 +1216,7 @@ void vtkAlgorithm::SetNthInputConnection(int port, int index, vtkAlgorithmOutput
   {
     vtkExecutive::CONSUMERS()->Remove(oldInfo, consumer, consumerPort);
   }
-
+#endif
   // Store the information object in the vector of input connections.
   inputs->SetInformationObject(index, newInfo);
 
@@ -1239,7 +1239,7 @@ void vtkAlgorithm::SetNumberOfInputConnections(int port, int n)
   {
     return;
   }
-
+#if 0
   // Remove connections beyond the new number.
   for (int i = n; i < inputs->GetNumberOfInformationObjects(); ++i)
   {
@@ -1249,7 +1249,7 @@ void vtkAlgorithm::SetNumberOfInputConnections(int port, int n)
       vtkExecutive::CONSUMERS()->Remove(oldInfo, consumer, consumerPort);
     }
   }
-
+#endif
   // Set the number of connected inputs.  Non-existing inputs will be
   // empty information objects.
   inputs->SetNumberOfInformationObjects(n);
