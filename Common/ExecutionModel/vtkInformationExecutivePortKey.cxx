@@ -14,9 +14,11 @@
 =========================================================================*/
 #include "vtkInformationExecutivePortKey.h"
 
+#include "vtkAlgorithm.h"
 #include "vtkExecutive.h"
 #include "vtkInformation.h"
 #include "vtkSmartPointer.h"
+#include "vtkWeakPointer.h"
 
 //------------------------------------------------------------------------------
 vtkInformationExecutivePortKey::vtkInformationExecutivePortKey(
@@ -40,7 +42,7 @@ class vtkInformationExecutivePortValue : public vtkObjectBase
 {
 public:
   vtkBaseTypeMacro(vtkInformationExecutivePortValue, vtkObjectBase);
-  vtkSmartPointer<vtkExecutive> Executive;
+  vtkWeakPointer<vtkExecutive> Executive;
   int Port;
 };
 
@@ -82,7 +84,7 @@ void vtkInformationExecutivePortKey::Get(vtkInformation* info, vtkExecutive*& ex
   if (vtkInformationExecutivePortValue* v =
         static_cast<vtkInformationExecutivePortValue*>(this->GetAsObjectBase(info)))
   {
-    executive = v->Executive;
+    executive = v->Executive.GetPointer();
     port = v->Port;
     return;
   }
@@ -141,6 +143,8 @@ void vtkInformationExecutivePortKey::Report(vtkInformation* info, vtkGarbageColl
   if (vtkInformationExecutivePortValue* v =
         static_cast<vtkInformationExecutivePortValue*>(this->GetAsObjectBase(info)))
   {
+#if 0
     v->Executive.Report(collector, this->GetName());
+#endif
   }
 }

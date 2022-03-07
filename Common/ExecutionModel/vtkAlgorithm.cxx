@@ -73,6 +73,7 @@ public:
   // Proxy object instances for use in establishing connections from
   // the output ports to other algorithms.
   std::vector<vtkSmartPointer<vtkAlgorithmOutput>> Outputs;
+  std::vector<vtkSmartPointer<vtkTrivialProducer>> TrivialProducers;
 };
 
 //------------------------------------------------------------------------------
@@ -1764,10 +1765,10 @@ void vtkAlgorithm::SetInputDataObject(int port, vtkDataObject* input)
     }
   }
 
-  vtkTrivialProducer* tp = vtkTrivialProducer::New();
+  vtkNew<vtkTrivialProducer> tp;
   tp->SetOutput(input);
   this->SetInputConnection(port, tp->GetOutputPort());
-  tp->Delete();
+  this->AlgorithmInternal->TrivialProducers.emplace_back(tp);
 }
 
 //------------------------------------------------------------------------------
@@ -1775,9 +1776,9 @@ void vtkAlgorithm::AddInputDataObject(int port, vtkDataObject* input)
 {
   if (input)
   {
-    vtkTrivialProducer* tp = vtkTrivialProducer::New();
+    vtkNew<vtkTrivialProducer> tp;
     tp->SetOutput(input);
     this->AddInputConnection(port, tp->GetOutputPort());
-    tp->Delete();
+    this->AlgorithmInternal->TrivialProducers.emplace_back(tp);
   }
 }
