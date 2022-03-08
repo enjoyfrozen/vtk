@@ -189,13 +189,6 @@ public:
 
   ///@{
   /**
-   * Participate in garbage collection.
-   */
-  bool UsesGarbageCollector() const override { return true; }
-  ///@}
-
-  ///@{
-  /**
    * Set/Get the AbortExecute flag for the process object. Process objects
    * may handle premature termination of execution in different ways.
    */
@@ -700,6 +693,12 @@ protected:
   vtkAlgorithm();
   ~vtkAlgorithm() override;
 
+  /**
+   * This Method detects loops of Algorithm<->Executive,
+   * so objects are freed properly.
+   */
+  virtual void UnRegisterInternal(vtkObjectBase* o, vtkTypeBool check) override;
+
   // Keys used to indicate that input/output port information has been
   // filled.
   static vtkInformationIntegerKey* PORT_REQUIREMENTS_FILLED();
@@ -836,9 +835,6 @@ protected:
   // Progress/Update handling
   double Progress;
   char* ProgressText;
-
-  // Garbage collection support.
-  void ReportReferences(vtkGarbageCollector*) override;
 
   // executive methods below
 
