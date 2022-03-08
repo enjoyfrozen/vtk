@@ -189,13 +189,6 @@ public:
 
   ///@{
   /**
-   * Participate in garbage collection.
-   */
-  bool UsesGarbageCollector() const override { return true; }
-  ///@}
-
-  ///@{
-  /**
    * Set/Get the AbortExecute flag for the process object. Process objects
    * may handle premature termination of execution in different ways.
    */
@@ -836,9 +829,6 @@ protected:
   // Progress/Update handling
   double Progress;
   char* ProgressText;
-
-  // Garbage collection support.
-  void ReportReferences(vtkGarbageCollector*) override;
 
   // executive methods below
 
