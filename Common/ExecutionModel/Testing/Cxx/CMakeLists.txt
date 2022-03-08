@@ -3,6 +3,8 @@ vtk_add_test_cxx(vtkCommonExecutionModelCxxTests tests
   TestAbortExecute.cxx
   TestAbortExecuteFromOtherThread.cxx
   TestAbortSMPFilter.cxx
+  TestAlgorithmExecutiveOwnership.cxx
+  TestAlgorithmExecutiveOwnership1.cxx
   TestCopyAttributeData.cxx
   TestForEach.cxx
   TestImageDataToStructuredGrid.cxx

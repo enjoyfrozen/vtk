@@ -176,13 +176,6 @@ public:
    */
   int GetNumberOfOutputPorts();
 
-  ///@{
-  /**
-   * Participate in garbage collection.
-   */
-  bool UsesGarbageCollector() const override { return true; }
-  ///@}
-
   /**
    *  Set AbortExecute Flag and update LastAbortTime.
    */
@@ -758,6 +751,12 @@ protected:
   // abort.
   vtkTimeStamp LastAbortCheckTime;
 
+  /**
+   * This Method detects loops of Algorithm<->Executive,
+   * so objects are freed properly.
+   */
+  void UnRegisterInternal(vtkObjectBase* o, vtkTypeBool check) override;
+
   // Keys used to indicate that input/output port information has been
   // filled.
   static vtkInformationIntegerKey* PORT_REQUIREMENTS_FILLED();
@@ -900,9 +899,6 @@ protected:
   // Progress/Update handling
   double Progress;
   char* ProgressText;
-
-  // Garbage collection support.
-  void ReportReferences(vtkGarbageCollector*) override;
 
   // executive methods below
 

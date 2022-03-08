@@ -13,12 +13,9 @@
 #include "vtkDataSet.h"
 #include "vtkErrorCode.h"
 #include "vtkFieldData.h"
-#include "vtkGarbageCollector.h"
 #include "vtkGraph.h"
 #include "vtkHyperTreeGrid.h"
 #include "vtkInformation.h"
-#include "vtkInformationExecutivePortKey.h"
-#include "vtkInformationExecutivePortVectorKey.h"
 #include "vtkInformationInformationVectorKey.h"
 #include "vtkInformationIntegerKey.h"
 #include "vtkInformationStringKey.h"
@@ -60,10 +57,109 @@ vtkTimeStamp vtkAlgorithm::LastAbortTime;
 //------------------------------------------------------------------------------
 class vtkAlgorithmInternals
 {
+  std::vector<std::vector<std::pair<int, vtkSmartPointer<vtkAlgorithm>>>> InputAlgorithms;
+  std::pair<int, vtkSmartPointer<vtkAlgorithm>> GetPortAlgorithm(vtkAlgorithmOutput* output)
+  {
+    if (output == nullptr)
+    {
+      return { 0, nullptr };
+    }
+    else
+    {
+      return { output->GetIndex(), vtk::MakeSmartPointer(output->GetProducer()) };
+    }
+  }
+
 public:
   // Proxy object instances for use in establishing connections from
   // the output ports to other algorithms.
   std::vector<vtkSmartPointer<vtkAlgorithmOutput>> Outputs;
+
+  vtkAlgorithm* GetInputAlgorithm(int port, int connection, int& algPort)
+  {
+    if (static_cast<std::size_t>(port) < this->InputAlgorithms.size())
+    {
+      if (static_cast<std::size_t>(connection) < this->InputAlgorithms[port].size())
+      {
+        algPort = this->InputAlgorithms[port][connection].first;
+        return this->InputAlgorithms[port][connection].second;
+      }
+    }
+    algPort = -1;
+    return nullptr;
+  }
+
+  // Set the number of input ports.
+  void SetNumberOfInputs(int n)
+  {
+    this->InputAlgorithms.clear();
+    this->InputAlgorithms.resize(n);
+  }
+
+  // Set the number of input connections for a give port.
+  void SetNumberOfInputConnections(int port, int n)
+  {
+    this->InputAlgorithms[port].clear();
+    this->InputAlgorithms[port].resize(n);
+  }
+
+  void SetInputAlgorithm(int port, vtkAlgorithmOutput* input)
+  {
+    this->InputAlgorithms[port].clear();
+    if (input != nullptr)
+    {
+      this->InputAlgorithms[port].resize(1);
+      this->InputAlgorithms[port][0] = this->GetPortAlgorithm(input);
+    }
+  }
+
+  void AddInputAlgorithm(int port, vtkAlgorithmOutput* input)
+  {
+    if (input == nullptr)
+    {
+      return;
+    }
+    this->InputAlgorithms[port].emplace_back(this->GetPortAlgorithm(input));
+  }
+
+  void SetInputAlgorithm(int port, int connection, vtkAlgorithmOutput* input)
+  {
+    if (static_cast<std::size_t>(connection) >= this->InputAlgorithms[port].size())
+    {
+      this->InputAlgorithms[port].resize(connection + 1);
+    }
+    this->InputAlgorithms[port][connection] = this->GetPortAlgorithm(input);
+  }
+
+  void RemoveInputAlgorithm(int port, int connection)
+  {
+    this->InputAlgorithms[port].erase(this->InputAlgorithms[port].begin() + connection);
+  }
+
+  void RemoveInputAlgorithm(int port, vtkAlgorithmOutput* input)
+  {
+    for (std::size_t c = 0; c < this->InputAlgorithms[port].size(); ++c)
+    {
+      if (input->GetProducer() == this->InputAlgorithms[port][c].second)
+      {
+        this->InputAlgorithms[port].erase(this->InputAlgorithms[port].begin() + c);
+      }
+    }
+  }
+
+  void RemoveInputAlgorithm(vtkAlgorithmOutput* input)
+  {
+    for (std::size_t p = 0; p < this->InputAlgorithms.size(); ++p)
+    {
+      for (std::size_t c = 0; c < this->InputAlgorithms[p].size(); ++c)
+      {
+        if (input->GetProducer() == this->InputAlgorithms[p][c].second)
+        {
+          this->InputAlgorithms[p].erase(this->InputAlgorithms[p].begin() + c);
+        }
+      }
+    }
+  }
 };
 
 //------------------------------------------------------------------------------
@@ -100,6 +196,7 @@ vtkAlgorithm::vtkAlgorithm()
 //------------------------------------------------------------------------------
 vtkAlgorithm::~vtkAlgorithm()
 {
+  this->SetExecutive(nullptr);
   this->SetInformation(nullptr);
   if (this->Executive)
   {
@@ -778,21 +875,42 @@ vtkExecutive* vtkAlgorithm::GetExecutive()
 //------------------------------------------------------------------------------
 void vtkAlgorithm::SetExecutive(vtkExecutive* newExecutive)
 {
-  vtkExecutive* oldExecutive = this->Executive;
-  if (newExecutive != oldExecutive)
+  if (this->Executive == newExecutive)
   {
-    if (newExecutive)
+    return;
+  }
+  vtkExecutive* oldExecutive = this->Executive;
+  if (oldExecutive != nullptr)
+  {
+    oldExecutive->UnRegister(this);
+  }
+  this->Executive = newExecutive;
+  if (this->Executive != nullptr)
+  {
+    this->Executive->Register(this);
+    if (this->Executive->GetAlgorithm() != this)
     {
-      newExecutive->Register(this);
-      vtkAlgorithmToExecutiveFriendship::SetAlgorithm(newExecutive, this);
-    }
-    this->Executive = newExecutive;
-    if (oldExecutive)
-    {
-      vtkAlgorithmToExecutiveFriendship::SetAlgorithm(oldExecutive, nullptr);
-      oldExecutive->UnRegister(this);
+      vtkAlgorithmToExecutiveFriendship::SetAlgorithm(this->Executive, this);
     }
   }
+}
+
+//------------------------------------------------------------------------------
+void vtkAlgorithm::UnRegisterInternal(vtkObjectBase* o, vtkTypeBool vtkNotUsed(check))
+{
+  if (this->Executive && this->Executive->GetAlgorithm() == this && this->Executive != o)
+  {
+    if (this->GetReferenceCount() + this->Executive->GetReferenceCount() == 3)
+    {
+      this->vtkObjectBase::UnRegisterInternal(o, false);
+      vtkExecutive* exec = this->Executive;
+      exec->Register(nullptr);
+      vtkAlgorithmToExecutiveFriendship::SetAlgorithm(this->Executive, nullptr);
+      exec->UnRegister(nullptr);
+      return;
+    }
+  }
+  this->vtkObjectBase::UnRegisterInternal(o, false);
 }
 
 //------------------------------------------------------------------------------
@@ -866,6 +984,9 @@ void vtkAlgorithm::SetNumberOfInputPorts(int n)
     this->SetNumberOfInputConnections(i, 0);
   }
 
+  // Set the number of input algorithms.
+  this->AlgorithmInternal->SetNumberOfInputs(n);
+
   // Set the number of input port information objects.
   this->InputPortInformation->SetNumberOfInformationObjects(n);
 }
@@ -884,27 +1005,6 @@ void vtkAlgorithm::SetNumberOfOutputPorts(int n)
   {
     vtkErrorMacro("Attempt to set number of output ports to " << n);
     n = 0;
-  }
-
-  // We must remove all connections from ports that are removed.
-  for (int i = n; i < this->GetNumberOfOutputPorts(); ++i)
-  {
-    // Get the producer and its output information for this port.
-    vtkExecutive* producer = this->GetExecutive();
-    vtkInformation* info = producer->GetOutputInformation(i);
-
-    // Remove all consumers' references to this producer on this port.
-    vtkExecutive** consumers = vtkExecutive::CONSUMERS()->GetExecutives(info);
-    int* consumerPorts = vtkExecutive::CONSUMERS()->GetPorts(info);
-    int consumerCount = vtkExecutive::CONSUMERS()->Length(info);
-    for (int j = 0; j < consumerCount; ++j)
-    {
-      vtkInformationVector* inputs = consumers[j]->GetInputInformation(consumerPorts[j]);
-      inputs->Remove(info);
-    }
-
-    // Remove this producer's references to all consumers on this port.
-    vtkExecutive::CONSUMERS()->Remove(info);
   }
 
   // Set the number of output port information objects.
@@ -1041,13 +1141,6 @@ vtkExecutive* vtkAlgorithm::CreateDefaultExecutive()
   return vtkCompositeDataPipeline::New();
 }
 
-//------------------------------------------------------------------------------
-void vtkAlgorithm::ReportReferences(vtkGarbageCollector* collector)
-{
-  this->Superclass::ReportReferences(collector);
-  vtkGarbageCollectorReport(collector, this->Executive, "Executive");
-}
-
 /// These are convenience methods to forward to the executive
 
 //------------------------------------------------------------------------------
@@ -1117,20 +1210,8 @@ void vtkAlgorithm::SetInputConnection(int port, vtkAlgorithmOutput* input)
     << consumerPort << " from output port index " << producerPort << " on algorithm "
     << (producer ? producer->GetObjectDescription() : nullptr) << ".");
 
-  // Add this consumer to the new input's list of consumers.
-  if (newInfo)
-  {
-    vtkExecutive::CONSUMERS()->Append(newInfo, consumer, consumerPort);
-  }
-
-  // Remove this consumer from all old inputs' lists of consumers.
-  for (int i = 0; i < inputs->GetNumberOfInformationObjects(); ++i)
-  {
-    if (vtkInformation* oldInfo = inputs->GetInformationObject(i))
-    {
-      vtkExecutive::CONSUMERS()->Remove(oldInfo, consumer, consumerPort);
-    }
-  }
+  // Add this producer to input algorithms.
+  this->AlgorithmInternal->SetInputAlgorithm(port, input);
 
   // Make the new input the only connection.
   if (newInfo)
@@ -1184,8 +1265,8 @@ void vtkAlgorithm::AddInputConnection(int port, vtkAlgorithmOutput* input)
   // Get the information object from the producer of the new input.
   vtkInformation* newInfo = producer->GetOutputInformation(producerPort);
 
-  // Add this consumer to the input's list of consumers.
-  vtkExecutive::CONSUMERS()->Append(newInfo, consumer, consumerPort);
+  // Add this producer to the list of input algorithms.
+  this->AlgorithmInternal->AddInputAlgorithm(port, input);
 
   // Add the information object to the list of inputs.
   inputs->Append(newInfo);
@@ -1205,37 +1286,14 @@ void vtkAlgorithm::RemoveInputConnection(int port, int idx)
   vtkAlgorithmOutput* input = this->GetInputConnection(port, idx);
   if (input)
   {
-    // We need to check if this connection exists multiple times.
-    // If it does, we can't remove this from the consumers list.
-    int numConnections = 0;
-    int numInputConnections = this->GetNumberOfInputConnections(0);
-    for (int i = 0; i < numInputConnections; i++)
-    {
-      if (input == this->GetInputConnection(port, i))
-      {
-        numConnections++;
-      }
-    }
-
     vtkExecutive* consumer = this->GetExecutive();
     int consumerPort = port;
 
     // Get the vector of connected input information objects.
     vtkInformationVector* inputs = consumer->GetInputInformation(consumerPort);
 
-    // Get the producer/consumer pair for the connection.
-    vtkExecutive* producer = input->GetProducer()->GetExecutive();
-    int producerPort = input->GetIndex();
-
-    // Get the information object from the producer of the old input.
-    vtkInformation* oldInfo = producer->GetOutputInformation(producerPort);
-
-    // Only connected once, remove this from inputs consumer list.
-    if (numConnections == 1)
-    {
-      // Remove this consumer from the old input's list of consumers.
-      vtkExecutive::CONSUMERS()->Remove(oldInfo, consumer, consumerPort);
-    }
+    // Remove this producer from the list of input algorithms.
+    this->AlgorithmInternal->RemoveInputAlgorithm(port, idx);
 
     // Remove the information object from the list of inputs.
     inputs->Remove(idx);
@@ -1276,8 +1334,8 @@ void vtkAlgorithm::RemoveInputConnection(int port, vtkAlgorithmOutput* input)
   // Get the information object from the producer of the old input.
   vtkInformation* oldInfo = producer->GetOutputInformation(producerPort);
 
-  // Remove this consumer from the old input's list of consumers.
-  vtkExecutive::CONSUMERS()->Remove(oldInfo, consumer, consumerPort);
+  // Remove this producer from the list of input algorithms.
+  this->AlgorithmInternal->RemoveInputAlgorithm(port, input);
 
   // Remove the information object from the list of inputs.
   inputs->Remove(oldInfo);
@@ -1322,17 +1380,8 @@ void vtkAlgorithm::SetNthInputConnection(int port, int index, vtkAlgorithmOutput
     << producerPort << " on algorithm "
     << (producer ? producer->GetAlgorithm()->GetObjectDescription() : "nullptr") << ".");
 
-  // Add the consumer to the new input's list of consumers.
-  if (newInfo)
-  {
-    vtkExecutive::CONSUMERS()->Append(newInfo, consumer, consumerPort);
-  }
-
-  // Remove the consumer from the old input's list of consumers.
-  if (oldInfo)
-  {
-    vtkExecutive::CONSUMERS()->Remove(oldInfo, consumer, consumerPort);
-  }
+  // Add this producer to the list of input algorithms.
+  this->AlgorithmInternal->SetInputAlgorithm(port, index, input);
 
   // Store the information object in the vector of input connections.
   inputs->SetInformationObject(index, newInfo);
@@ -1357,18 +1406,9 @@ void vtkAlgorithm::SetNumberOfInputConnections(int port, int n)
     return;
   }
 
-  // Remove connections beyond the new number.
-  for (int i = n; i < inputs->GetNumberOfInformationObjects(); ++i)
-  {
-    // Remove each input's reference to this consumer.
-    if (vtkInformation* oldInfo = inputs->GetInformationObject(i))
-    {
-      vtkExecutive::CONSUMERS()->Remove(oldInfo, consumer, consumerPort);
-    }
-  }
-
   // Set the number of connected inputs.  Non-existing inputs will be
   // empty information objects.
+  this->AlgorithmInternal->SetNumberOfInputConnections(port, n);
   inputs->SetNumberOfInformationObjects(n);
 
   // This algorithm has been modified.
@@ -1446,13 +1486,7 @@ vtkAlgorithm* vtkAlgorithm::GetInputAlgorithm(int port, int index)
 //------------------------------------------------------------------------------
 vtkAlgorithm* vtkAlgorithm::GetInputAlgorithm(int port, int index, int& algPort)
 {
-  vtkAlgorithmOutput* aoutput = this->GetInputConnection(port, index);
-  if (!aoutput)
-  {
-    return nullptr;
-  }
-  algPort = aoutput->GetIndex();
-  return aoutput->GetProducer();
+  return this->AlgorithmInternal->GetInputAlgorithm(port, index, algPort);
 }
 
 //------------------------------------------------------------------------------
@@ -1465,14 +1499,11 @@ vtkExecutive* vtkAlgorithm::GetInputExecutive(int port, int index)
       << this->GetNumberOfInputConnections(port) << " connections.");
     return nullptr;
   }
-  if (vtkInformation* info = this->GetExecutive()->GetInputInformation(port, index))
+  // Get the executive producing this input.  If there is none, then
+  // it is a nullptr input.
+  if (vtkAlgorithm* alg = this->GetInputAlgorithm(port, index))
   {
-    // Get the executive producing this input.  If there is none, then
-    // it is a nullptr input.
-    vtkExecutive* producer;
-    int producerPort;
-    vtkExecutive::PRODUCER()->Get(info, producer, producerPort);
-    return producer;
+    return alg->GetExecutive();
   }
   return nullptr;
 }
@@ -1491,17 +1522,12 @@ vtkAlgorithmOutput* vtkAlgorithm::GetInputConnection(int port, int index)
   {
     return nullptr;
   }
-  if (vtkInformation* info = this->GetExecutive()->GetInputInformation(port, index))
+  // Get the executive producing this input.  If there is none, then
+  // it is a nullptr input.
+  int producerPort;
+  if (vtkAlgorithm* alg = this->GetInputAlgorithm(port, index, producerPort))
   {
-    // Get the executive producing this input.  If there is none, then
-    // it is a nullptr input.
-    vtkExecutive* producer;
-    int producerPort;
-    vtkExecutive::PRODUCER()->Get(info, producer, producerPort);
-    if (producer)
-    {
-      return producer->GetAlgorithm()->GetOutputPort(producerPort);
-    }
+    return alg->GetOutputPort(producerPort);
   }
   return nullptr;
 }

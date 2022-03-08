@@ -85,7 +85,7 @@ int vtkImageMarchingCubes::RequestData(vtkInformation* vtkNotUsed(request),
   vtkPolyData* output = vtkPolyData::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
 
   vtkDemandDrivenPipeline* inputExec =
-    vtkDemandDrivenPipeline::SafeDownCast(vtkExecutive::PRODUCER()->GetExecutive(inInfo));
+    vtkDemandDrivenPipeline::SafeDownCast(this->GetInputExecutive(0, 0));
 
   vtkIdType numContours = this->ContourValues->GetNumberOfContours();
   double* values = this->ContourValues->GetValues();

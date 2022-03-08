@@ -16,6 +16,7 @@
 #define vtkExecutive_h
 
 #include "vtkCommonExecutionModelModule.h" // For export macro
+#include "vtkDeprecation.h"                // needed for deprecation
 #include "vtkObject.h"
 
 VTK_ABI_NAMESPACE_BEGIN
@@ -160,23 +161,18 @@ public:
   void SetSharedOutputInformation(vtkInformationVector* outInfoVec);
   ///@}
 
-  ///@{
-  /**
-   * Participate in garbage collection.
-   */
-  bool UsesGarbageCollector() const override { return true; }
-  ///@}
-
   /**
    * Information key to store the executive/port number producing an
    * information object.
    */
+  VTK_DEPRECATED_IN_9_3_0("The VTK pipeline no longer populates this key in information objects.")
   static vtkInformationExecutivePortKey* PRODUCER();
 
   /**
    * Information key to store the executive/port number pairs
    * consuming an information object.
    */
+  VTK_DEPRECATED_IN_9_3_0("The VTK pipeline no longer populates this key in information objects.")
   static vtkInformationExecutivePortVectorKey* CONSUMERS();
 
   /**
@@ -251,10 +247,13 @@ protected:
   // Bring the existence of output data objects up to date.
   virtual int UpdateDataObject() = 0;
 
-  // Garbage collection support.
-  void ReportReferences(vtkGarbageCollector*) override;
-
   virtual void SetAlgorithm(vtkAlgorithm* algorithm);
+
+  /**
+   * This Method detects loops of Algorithm<->Executive,
+   * so objects are freed properly.
+   */
+  void UnRegisterInternal(vtkObjectBase* o, vtkTypeBool check) override;
 
   // The algorithm managed by this executive.
   vtkAlgorithm* Algorithm;
