@@ -21,6 +21,11 @@
 #include "vtk_ioss_fmt.h" // xxx(kitware)
 #include VTK_FMT(fmt/ostream.h)
 
+// xxx(kitware)
+#if defined(_WIN32) || !defined(__CYGWIN__)
+#define strcasecmp stricmp
+#endif
+
 // clang-format on
 // #######################   End Clang Header Tool Managed Headers  ########################
 namespace Iotm {
