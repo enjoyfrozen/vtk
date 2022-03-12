@@ -1010,7 +1010,7 @@ static void ${_vtk_python_TARGET_NAME}_load() {\n")
       add_custom_command(
         OUTPUT    ${_vtk_python_pyi_files}
         COMMAND   $<TARGET_FILE:VTK::vtkpython>
-                  -m vtkmodules.util.pyi
+                  -m vtkmodules.generate_pyi
                   -p "${_vtk_python_PYTHON_PACKAGE}"
                   ${_vtk_python_modules}
         WORKING_DIRECTORY
