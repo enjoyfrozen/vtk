@@ -1385,6 +1385,9 @@ Ioss::Region* vtkIOSSReader::vtkInternals::GetRegion(const std::string& dbasenam
     // For ex: this resolves a misunderstanding b/w T (temperature) vs t (time)
     properties.add(Ioss::Property("LOWER_CASE_VARIABLE_NAMES", "off"));
 
+    // Do not treat numeric suffixes for a variable as vector components.
+    properties.add(Ioss::Property("IGNORE_REALN_FIELDS", "on"));
+
     // Fillup with user-specified properties.
     Ioss::NameList names;
     this->DatabaseProperties.describe(&names);
