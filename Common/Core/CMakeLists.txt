@@ -3,6 +3,27 @@ cmake_dependent_option(VTK_USE_64BIT_TIMESTAMPS "Build VTK with 64 bit timestamp
   "NOT CMAKE_SIZEOF_VOID_P GREATER 4" ON)
 mark_as_advanced(VTK_USE_64BIT_TIMESTAMPS)
 
+# Mangle VTK symbols
+set(VTK_ABI_NAMESPACE_NAME
+  "<DEFAULT>"
+  CACHE STRING "Inline namespace name for mangling VTK symbols.")
+# The default is to guard VTK using only the major version
+if (VTK_ABI_NAMESPACE_NAME STREQUAL "<DEFAULT>")
+  set(VTK_ABI_NAMESPACE_NAME "vtk${VTK_MAJOR_VERSION}")
+endif ()
+mark_as_advanced(VTK_ABI_NAMESPACE_NAME)
+if (VTK_ABI_NAMESPACE_NAME)
+  set(VTK_ABI_NAMESPACE_BEGIN "inline namespace ${VTK_ABI_NAMESPACE_NAME} {")
+  set(VTK_ABI_NAMESPACE_END "}")
+else ()
+  set(VTK_ABI_NAMESPACE_BEGIN "")
+  set(VTK_ABI_NAMESPACE_END "")
+endif ()
+configure_file(
+  "${vtk_cmake_dir}/vtkABINamespace.h.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/vtkABINamespace.h"
+  @ONLY)
+
 if (CMAKE_SIZEOF_VOID_P GREATER 4)
  set(vtk_use_64bit_ids_default ON)
 else ()
@@ -319,6 +340,7 @@ set(headers
   vtkWin32Header.h
   vtkWindows.h
   vtkWrappingHints.h
+  "${CMAKE_CURRENT_BINARY_DIR}/vtkABINamespace.h"
   "${CMAKE_CURRENT_BINARY_DIR}/vtkArrayDispatchArrayList.h"
   "${CMAKE_CURRENT_BINARY_DIR}/vtkMathConfigure.h"
   "${CMAKE_CURRENT_BINARY_DIR}/vtkTypeListMacros.h"
