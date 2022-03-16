@@ -46,6 +46,7 @@
 #include <vector>
 
 //=============================================================================
+VTK_ABI_NAMESPACE_BEGIN
 namespace impl
 {
 struct Motion;
@@ -1510,3 +1511,4 @@ void vtkMotionFXCFGReader::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "FileName: " << this->FileName << endl;
   os << indent << "TimeResolution: " << this->TimeResolution << endl;
 }
+VTK_ABI_NAMESPACE_END

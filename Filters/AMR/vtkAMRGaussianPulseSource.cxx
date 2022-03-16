@@ -30,6 +30,7 @@
 #include <cassert>
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkAMRGaussianPulseSource);
 
 //------------------------------------------------------------------------------
@@ -347,3 +348,4 @@ int vtkAMRGaussianPulseSource::RequestData(vtkInformation* vtkNotUsed(request),
   vtkAMRUtilities::BlankCells(output);
   return 1;
 }
+VTK_ABI_NAMESPACE_END

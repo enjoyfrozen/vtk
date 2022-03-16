@@ -31,6 +31,7 @@
 
 #include <adios2.h>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtx
 {
 namespace types
@@ -91,4 +92,5 @@ public:
 } // end namespace types
 } // end namespace vtx
 
+VTK_ABI_NAMESPACE_END
 #endif /* VTK_IO_ADIOS2_VTX_COMMON_VTXDataArray_h */

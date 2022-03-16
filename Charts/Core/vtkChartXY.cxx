@@ -66,6 +66,7 @@
 #include <vector>
 
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_BEGIN
 class vtkChartXYPrivate
 {
 public:
@@ -2915,3 +2916,4 @@ int vtkChartXY::GetMouseSelectionMode(const vtkContextMouseEvent& mouse, int sel
   }
   return selectionMode;
 }
+VTK_ABI_NAMESPACE_END

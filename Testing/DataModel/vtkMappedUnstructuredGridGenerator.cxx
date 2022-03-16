@@ -33,6 +33,7 @@
 #include <fstream>
 #include <string>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace
 { // this namespace contains the supporting mapped grid definition used in the test
 
@@ -454,3 +455,4 @@ void vtkMappedUnstructuredGridGenerator::PrintSelf(ostream& os, vtkIndent indent
   this->Superclass::PrintSelf(os, indent);
   os << indent << "vtkMappedUnstructuredGridGenerator object";
 }
+VTK_ABI_NAMESPACE_END

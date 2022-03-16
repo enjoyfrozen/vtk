@@ -30,6 +30,7 @@
 #include "vtkBorderRepresentation.h"
 #include "vtkInteractionWidgetsModule.h" // For export macro
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkRenderer;
 class vtkTextActor;
 class vtkTextProperty;
@@ -202,4 +203,5 @@ private:
   void operator=(const vtkTextRepresentation&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

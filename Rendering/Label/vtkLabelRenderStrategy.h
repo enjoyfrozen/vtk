@@ -29,6 +29,7 @@
 #include "vtkStdString.h"     // For string support
 #include "vtkUnicodeString.h" // For unicode string support
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkRenderer;
 class vtkWindow;
 class vtkTextProperty;
@@ -128,4 +129,5 @@ private:
   void operator=(const vtkLabelRenderStrategy&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

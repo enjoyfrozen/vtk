@@ -31,6 +31,7 @@ PURPOSE.  See the above copyright notice for more information.
 
 #include "vtk_glew.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkIOSRenderWindow);
 
 //----------------------------------------------------------------------------
@@ -570,3 +571,4 @@ void vtkIOSRenderWindow::SetCurrentCursor(int shape)
   }
   this->Superclass::SetCurrentCursor(shape);
 }
+VTK_ABI_NAMESPACE_END

@@ -35,6 +35,7 @@
 #include <list>   // STL Header
 #include <vector> // STL Header
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkAbstractInterpolatedVelocityField;
 class vtkAbstractParticleWriter;
 class vtkCellArray;
@@ -574,4 +575,5 @@ private:
   static const double Epsilon;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

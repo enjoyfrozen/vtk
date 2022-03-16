@@ -26,6 +26,7 @@
 #include VTK_PEGTL(pegtl/contrib/tracer.hpp)
 // clang-format on
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace MotionFX
 {
 using namespace tao::pegtl;
@@ -175,5 +176,6 @@ struct Grammar : star<Lines>
 
 } // namespace MotionFX
 
+VTK_ABI_NAMESPACE_END
 #endif
 // VTK-HeaderTest-Exclude: vtkMotionFXCFGGrammar.h

@@ -35,6 +35,7 @@
 
 #include <string> // for std::string
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkDataArraySelection;
 class vtkInformationStringKey;
 
@@ -338,4 +339,5 @@ private:
   friend class vtkPrivate;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkCGNSReader_h

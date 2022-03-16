@@ -45,6 +45,7 @@
 #include "vtkPolyDataAlgorithm.h"
 #include "vtkRenderingLabelModule.h" // For export macro
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkRenderer;
 class vtkCoordinate;
 class vtkSelectVisiblePoints;
@@ -231,4 +232,5 @@ private:
   void operator=(const vtkLabelPlacer&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkLabelPlacer_h

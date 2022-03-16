@@ -69,6 +69,7 @@ POSSIBILITY OF SUCH DAMAGES.
 #include "vtkPolyDataAlgorithm.h"
 #include "vtkStdString.h" // needed for std::string
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkPolyData;
 class vtkPoints;
 class vtkStringArray;
@@ -187,4 +188,5 @@ private:
   void operator=(const vtkMNITagPointReader&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

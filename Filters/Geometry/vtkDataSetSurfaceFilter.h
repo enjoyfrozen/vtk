@@ -92,6 +92,7 @@
 #include "vtkGeometryFilter.h"        // To facilitate delegation
 #include "vtkPolyDataAlgorithm.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 template <typename ArrayType>
 class vtkSmartPointer;
 
@@ -392,4 +393,5 @@ private:
   void operator=(const vtkDataSetSurfaceFilter&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

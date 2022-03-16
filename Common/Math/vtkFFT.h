@@ -42,6 +42,7 @@
 #include <vector> // For std::vector
 #include <cmath>  // for std::sin, std::cos, std::sqrt
 
+VTK_ABI_NAMESPACE_BEGIN
 class VTKCOMMONMATH_EXPORT vtkFFT : public vtkObject
 {
 public:
@@ -234,4 +235,5 @@ void vtkFFT::GenerateKernel2D(
   }
 }
 
+VTK_ABI_NAMESPACE_END
 #endif

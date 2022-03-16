@@ -74,6 +74,7 @@
 #include <cstdio>
 #include <sstream>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkDataWriter);
 
 //------------------------------------------------------------------------------
@@ -2524,3 +2525,4 @@ int vtkDataWriter::WriteDataSetData(ostream* fp, vtkDataSet* ds)
   }
   return 1;
 }
+VTK_ABI_NAMESPACE_END

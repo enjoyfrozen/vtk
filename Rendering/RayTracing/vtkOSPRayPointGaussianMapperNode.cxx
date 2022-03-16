@@ -48,6 +48,7 @@
 
 //============================================================================
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtkosp
 {
 //----------------------------------------------------------------------------
@@ -600,3 +601,4 @@ bool vtkOSPRayPointGaussianMapperNode::GetNeedToRebuild(vtkOSPRayActorNode* aNod
   }
   return false;
 }
+VTK_ABI_NAMESPACE_END

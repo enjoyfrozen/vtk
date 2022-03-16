@@ -25,6 +25,7 @@
 #include "vtkStructuredGridConnectivity.h"
 #include "vtkUniformGrid.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkUniformGridGhostDataGenerator);
 
 //------------------------------------------------------------------------------
@@ -185,3 +186,4 @@ void vtkUniformGridGhostDataGenerator::GenerateGhostLayers(
   // STEP 3: Get output data-set
   this->CreateGhostedDataSet(in, out);
 }
+VTK_ABI_NAMESPACE_END

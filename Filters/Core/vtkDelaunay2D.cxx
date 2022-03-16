@@ -32,6 +32,7 @@
 #include <set>
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkDelaunay2D);
 vtkCxxSetObjectMacro(vtkDelaunay2D, Transform, vtkAbstractTransform);
 
@@ -1619,3 +1620,4 @@ void vtkDelaunay2D::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "Offset: " << this->Offset << "\n";
   os << indent << "Bounding Triangulation: " << (this->BoundingTriangulation ? "On\n" : "Off\n");
 }
+VTK_ABI_NAMESPACE_END

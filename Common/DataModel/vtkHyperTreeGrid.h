@@ -69,6 +69,7 @@
 #include <map>     // std::map
 #include <memory>  // std::shared_ptr
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkBitArray;
 class vtkBoundingBox;
 class vtkCellLinks;
@@ -813,4 +814,5 @@ private:
   void operator=(const vtkHyperTreeGrid&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

@@ -29,6 +29,7 @@
 // Define this to include support for a "complete" (21- vs 18-point) wedge.
 #define VTK_21_POINT_WEDGE true
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkPoints;
 class vtkVector2i;
 class vtkVector3d;
@@ -101,4 +102,5 @@ private:
   void operator=(const vtkBezierInterpolation&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkBezierInterpolation_h

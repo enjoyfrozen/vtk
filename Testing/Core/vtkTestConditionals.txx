@@ -15,6 +15,7 @@
 #ifndef vtkTestConditionals_txx
 #define vtkTestConditionals_txx
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtk
 {
 
@@ -198,4 +199,5 @@ inline bool testNearlyEqual(
 
 } // namespace vtk
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkTestConditionals_txx

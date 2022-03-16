@@ -24,6 +24,7 @@
 #include <exception>
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkMultiProcessController;
 
 #ifdef _WIN64
@@ -197,5 +198,6 @@ public:
   }
 };
 
+VTK_ABI_NAMESPACE_END
 #endif
 // VTK-HeaderTest-Exclude: vtkMultiBlockPLOT3DReaderInternals.h

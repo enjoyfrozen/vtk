@@ -27,6 +27,7 @@
 #define VTK_SMP_BACKEND_TBB 2
 #define VTK_SMP_BACKEND_OPENMP 3
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtk
 {
 namespace detail
@@ -107,4 +108,5 @@ using ExecuteFunctorPtrType = void (*)(void*, vtkIdType, vtkIdType, vtkIdType);
 } // namespace detail
 } // namespace vtk
 
+VTK_ABI_NAMESPACE_END
 #endif

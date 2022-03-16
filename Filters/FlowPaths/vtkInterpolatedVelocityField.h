@@ -61,6 +61,7 @@
 #include "vtkCompositeInterpolatedVelocityField.h"
 #include "vtkFiltersFlowPathsModule.h" // For export macro
 
+VTK_ABI_NAMESPACE_BEGIN
 class VTKFILTERSFLOWPATHS_EXPORT vtkInterpolatedVelocityField
   : public vtkCompositeInterpolatedVelocityField
 {
@@ -130,4 +131,5 @@ private:
   void operator=(const vtkInterpolatedVelocityField&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

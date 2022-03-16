@@ -29,6 +29,7 @@
 #include "vtkAcceleratorsVTKmFiltersModule.h" //required for correct implementation
 #include "vtkUnstructuredGridAlgorithm.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkDataSet;
 class vtkUnstructuredGrid;
 
@@ -65,4 +66,5 @@ private:
   void operator=(const vtkmCleanGrid&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkmCleanGrid_h

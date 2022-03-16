@@ -59,6 +59,7 @@
 #include "vtkInterpolationKernel.h"
 #include "vtkStdString.h" // For vtkStdString ivars
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkIdList;
 class vtkDoubleArray;
 class vtkDataArray;
@@ -208,4 +209,5 @@ private:
   void operator=(const vtkSPHKernel&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

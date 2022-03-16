@@ -29,6 +29,7 @@
 #include <cassert>
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkAbstractObjectFactoryNewMacro(vtkContextDevice2D);
 
 vtkContextDevice2D::vtkContextDevice2D()
@@ -192,3 +193,4 @@ void vtkContextDevice2D::DrawColoredPolygon(float*, int, unsigned char*, int)
 {
   vtkErrorMacro("DrawColoredPolygon not implemented on this device.");
 }
+VTK_ABI_NAMESPACE_END

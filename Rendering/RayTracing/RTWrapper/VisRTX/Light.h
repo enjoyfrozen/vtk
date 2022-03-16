@@ -9,6 +9,7 @@
 #include <cassert>
 #include <string>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace RTW
 {
     class Light : public Object
@@ -175,3 +176,4 @@ namespace RTW
         VisRTX::Light* light = nullptr;
     };
 }
+VTK_ABI_NAMESPACE_END

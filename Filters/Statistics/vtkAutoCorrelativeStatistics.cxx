@@ -34,6 +34,7 @@
 #include <set>
 #include <sstream>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkAutoCorrelativeStatistics);
 
 //------------------------------------------------------------------------------
@@ -639,3 +640,4 @@ void vtkAutoCorrelativeStatistics::SelectAssessFunctor(
 
   // If arrived here it means that the variable of interest was not found in the parameter table
 }
+VTK_ABI_NAMESPACE_END

@@ -33,6 +33,7 @@
 #include <iterator>
 #include <utility> // For std::move
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtk
 {
 namespace detail
@@ -114,4 +115,5 @@ private:
 } // namespace detail
 } // namespace vtk
 
+VTK_ABI_NAMESPACE_END
 #endif

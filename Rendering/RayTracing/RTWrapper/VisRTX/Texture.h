@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cassert>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace RTW
 {
     class Texture : public Object
@@ -80,3 +81,4 @@ namespace RTW
         VisRTX::Texture* texture = nullptr;
     };
 }
+VTK_ABI_NAMESPACE_END

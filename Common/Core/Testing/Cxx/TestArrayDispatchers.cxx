@@ -26,6 +26,7 @@
 #include <type_traits> // for std::is_[lr]value_reference
 #include <utility>     // for std::move
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtkArrayDispatch
 {
 typedef vtkTypeList::Unique<                //
@@ -42,6 +43,7 @@ typedef vtkTypeList::Unique<                //
     vtkSOADataArrayTemplate<vtkIdType>      //
     >>::Result Arrays;
 } // end namespace vtkArrayDispatch
+VTK_ABI_NAMESPACE_END
 
 #include "vtkArrayDispatch.h"
 #include "vtkNew.h"

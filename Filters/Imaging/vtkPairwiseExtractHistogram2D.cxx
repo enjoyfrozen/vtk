@@ -45,6 +45,7 @@ PURPOSE.  See the above copyright notice for more information.
 #include <string>
 #include <vector>
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkPairwiseExtractHistogram2D);
 //------------------------------------------------------------------------------
 class vtkPairwiseExtractHistogram2D::Internals
@@ -431,3 +432,4 @@ int vtkPairwiseExtractHistogram2D::FillOutputPortInformation(int port, vtkInform
     return this->Superclass::FillOutputPortInformation(port, info);
   }
 }
+VTK_ABI_NAMESPACE_END

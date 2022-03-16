@@ -36,6 +36,7 @@
 #include "vtkAcceleratorsVTKmFiltersModule.h" //required for correct implementation
 #include "vtkContourFilter.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class VTKACCELERATORSVTKMFILTERS_EXPORT vtkmContour : public vtkContourFilter
 {
 public:
@@ -56,4 +57,5 @@ private:
   void operator=(const vtkmContour&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkmContour_h

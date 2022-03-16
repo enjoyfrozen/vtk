@@ -29,6 +29,7 @@
 #include "vtkDebugLeaksManager.h" // Must be included before singletons
 #include "vtkObject.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class VTKCOMMONCORE_EXPORT vtkOutputWindowCleanup
 {
 public:
@@ -188,4 +189,5 @@ private:
 // Uses schwartz counter idiom for singleton management
 static vtkOutputWindowCleanup vtkOutputWindowCleanupInstance;
 
+VTK_ABI_NAMESPACE_END
 #endif

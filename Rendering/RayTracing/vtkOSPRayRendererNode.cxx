@@ -56,6 +56,7 @@
 #include <cmath>
 #include <map>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace ospray
 {
 namespace opengl
@@ -1799,3 +1800,4 @@ RTW::Backend* vtkOSPRayRendererNode::GetBackend()
 {
   return this->Internal->Backend;
 }
+VTK_ABI_NAMESPACE_END

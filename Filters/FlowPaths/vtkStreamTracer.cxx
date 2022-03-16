@@ -51,6 +51,7 @@ PURPOSE.  See the above copyright notice for more information.
 
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkObjectFactoryNewMacro(vtkStreamTracer);
 vtkCxxSetObjectMacro(vtkStreamTracer, Integrator, vtkInitialValueProblemSolver);
 vtkCxxSetObjectMacro(vtkStreamTracer, InterpolatorPrototype, vtkAbstractInterpolatedVelocityField);
@@ -1873,3 +1874,4 @@ vtkExecutive* vtkStreamTracer::CreateDefaultExecutive()
 {
   return vtkCompositeDataPipeline::New();
 }
+VTK_ABI_NAMESPACE_END

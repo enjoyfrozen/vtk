@@ -29,6 +29,7 @@
 #include "vtkAcceleratorsVTKmFiltersModule.h" //required for correct export
 #include "vtkTableAlgorithm.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkDoubleArray;
 
 class VTKACCELERATORSVTKMFILTERS_EXPORT vtkmHistogram : public vtkTableAlgorithm
@@ -111,4 +112,5 @@ private:
   double ComputedRange[2];
 };
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkmHistogram_h

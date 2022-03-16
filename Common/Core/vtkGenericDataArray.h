@@ -75,6 +75,7 @@
 
 #include <cassert>
 
+VTK_ABI_NAMESPACE_BEGIN
 template <class DerivedT, class ValueTypeT>
 class vtkGenericDataArray : public vtkDataArray
 {
@@ -421,6 +422,7 @@ template <typename A, typename R>
 bool DoComputeVectorRange(A*, R[2], FiniteValues);
 } // namespace vtkDataArrayPrivate
 
+VTK_ABI_NAMESPACE_END
 #include "vtkGenericDataArray.txx"
 
 // Adds an implementation of NewInstanceInternal() that returns an AoS
@@ -456,6 +458,7 @@ public:
 #ifdef VTK_GDA_VALUERANGE_INSTANTIATING
 
 // Forward declare necessary stuffs:
+VTK_ABI_NAMESPACE_BEGIN
 template <typename ValueType>
 class vtkAOSDataArrayTemplate;
 template <typename ValueType>
@@ -491,7 +494,10 @@ class vtkScaledSOADataArrayTemplate;
 
 #endif
 
+VTK_ABI_NAMESPACE_END
 #elif defined(VTK_USE_EXTERN_TEMPLATE) // VTK_GDA_VALUERANGE_INSTANTIATING
+
+VTK_ABI_NAMESPACE_BEGIN
 
 #ifndef VTK_GDA_TEMPLATE_EXTERN
 #define VTK_GDA_TEMPLATE_EXTERN
@@ -616,6 +622,7 @@ VTK_DECLARE_VALUERANGE_ARRAYTYPE(vtkScaledSOADataArrayTemplate<unsigned long lon
 #endif
 #endif // VTK_SOA_DATA_ARRAY_TEMPLATE_EXTERN
 
+VTK_ABI_NAMESPACE_END
 #endif // VTK_GDA_VALUERANGE_INSTANTIATING
 
 // VTK-HeaderTest-Exclude: vtkGenericDataArray.h

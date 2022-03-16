@@ -31,6 +31,7 @@
 #include "vtkSMPThreadLocalObject.h"
 #include "vtkSMPTools.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkCellCenters);
 
 namespace
@@ -229,3 +230,4 @@ void vtkCellCenters::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "Vertex Cells: " << (this->VertexCells ? "On\n" : "Off\n");
   os << indent << "CopyArrays: " << (this->CopyArrays ? "On" : "Off") << endl;
 }
+VTK_ABI_NAMESPACE_END

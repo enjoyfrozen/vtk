@@ -37,6 +37,7 @@
 
 // VTK_21_POINT_WEDGE is defined (or not) in vtkHigherOrderInterpolation.h
 #ifdef VTK_21_POINT_WEDGE
+VTK_ABI_NAMESPACE_BEGIN
 static double vtkHigherOrderWedge21ParametricCoords[21 * 3] = { 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
   1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.5, 0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.5,
   0.0, 0.5, 0.0, 1.0, 0.5, 0.5, 1.0, 0.0, 0.5, 1.0, 0.0, 0.0, 0.5, 1.0, 0.0, 0.5, 0.0, 1.0, 0.5,
@@ -71,6 +72,7 @@ static constexpr vtkIdType vtkHigherOrderWedge21QuadFace[3][9] = {
 };
 static constexpr vtkIdType vtkHigherOrderWedge21Edge[9][3] = { { 0, 1, 6 }, { 1, 2, 7 },
   { 2, 0, 8 }, { 3, 4, 9 }, { 4, 5, 10 }, { 5, 3, 11 }, { 0, 3, 12 }, { 1, 4, 13 }, { 2, 5, 14 } };
+VTK_ABI_NAMESPACE_END
 #endif
 
 // Return the offset into the array of face-DOFs of triangle barycentric integer coordinates (i,j)
@@ -106,6 +108,7 @@ static constexpr vtkIdType vtkHigherOrderWedge21Edge[9][3] = { { 0, 1, 6 }, { 1,
 // return offset = 2 since the face-DOF for this triangle
 // are ordered { +, @, o }.
 //
+VTK_ABI_NAMESPACE_BEGIN
 static int triangleDOFOffset(int order, int i, int j)
 {
   int off = i + order * (j - 1) - (j * (j + 1)) / 2;
@@ -1308,3 +1311,4 @@ const int* vtkHigherOrderWedge::GetOrder()
   }
   return this->Order;
 }
+VTK_ABI_NAMESPACE_END

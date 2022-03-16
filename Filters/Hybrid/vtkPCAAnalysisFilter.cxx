@@ -23,6 +23,7 @@
 #include "vtkPolyData.h"
 #include "vtkTransformPolyDataFilter.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkPCAAnalysisFilter);
 
 //------------------------------------------------------------------------------
@@ -536,3 +537,4 @@ int vtkPCAAnalysisFilter::GetModesRequiredFor(double proportion)
 
   return Evals->GetNumberOfTuples();
 }
+VTK_ABI_NAMESPACE_END

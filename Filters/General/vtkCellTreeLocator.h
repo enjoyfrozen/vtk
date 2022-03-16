@@ -41,6 +41,7 @@
 #include "vtkFiltersGeneralModule.h" // For export macro
 #include <vector>                    // Needed for internal class
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkCellPointTraversal;
 class vtkIdTypeArray;
 class vtkCellArray;
@@ -230,4 +231,5 @@ private:
   void operator=(const vtkCellTreeLocator&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

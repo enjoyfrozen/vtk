@@ -159,6 +159,7 @@
 #include "vtkFiltersCoreModule.h" // For export macro
 #include "vtkPolyDataAlgorithm.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class VTKFILTERSCORE_EXPORT vtkWindowedSincPolyDataFilter : public vtkPolyDataAlgorithm
 {
 public:
@@ -297,4 +298,5 @@ private:
   void operator=(const vtkWindowedSincPolyDataFilter&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

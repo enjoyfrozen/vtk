@@ -46,6 +46,7 @@
 
 //============================================================================
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtkosp
 {
 void VToOPointNormals(
@@ -1409,3 +1410,4 @@ void vtkOSPRayPolyDataMapperNode::ClearGeometricModels()
   }
   this->Instances.clear();
 }
+VTK_ABI_NAMESPACE_END

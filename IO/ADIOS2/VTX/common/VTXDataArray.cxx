@@ -26,6 +26,7 @@
 
 #include "vtkDoubleArray.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtx
 {
 namespace types
@@ -113,3 +114,4 @@ void DataArray::ConvertTo3DVTK(const std::vector<double>& fillValues)
 
 } // end namespace types
 } // end namespace vtx
+VTK_ABI_NAMESPACE_END

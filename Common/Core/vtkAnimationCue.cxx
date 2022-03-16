@@ -17,6 +17,7 @@
 #include "vtkCommand.h"
 #include "vtkObjectFactory.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkAnimationCue);
 
 //------------------------------------------------------------------------------
@@ -138,3 +139,4 @@ void vtkAnimationCue::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "DeltaTime: " << this->DeltaTime << endl;
   os << indent << "ClockTime: " << this->ClockTime << endl;
 }
+VTK_ABI_NAMESPACE_END

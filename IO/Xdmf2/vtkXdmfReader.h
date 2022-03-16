@@ -39,6 +39,7 @@
 #include <map>                // for caching
 #include <string>             // needed for string API
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkXdmfArraySelection;
 class vtkXdmfDocument;
 class vtkGraph;
@@ -313,4 +314,5 @@ private:
   void operator=(const vtkXdmfReader&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

@@ -41,6 +41,7 @@
 #include "vtkCommonDataModelModule.h" // For export macro
 #include "vtkHyperTreeGridNonOrientedSuperCursor.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkIdList;
 class vtkHyperTree;
 class vtkHyperTreeGrid;
@@ -84,4 +85,5 @@ private:
   void operator=(const vtkHyperTreeGridNonOrientedMooreSuperCursor&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

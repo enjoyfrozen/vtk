@@ -88,6 +88,7 @@
 #include <algorithm>
 #include <set>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkUnstructuredGrid);
 vtkStandardExtendedNewMacro(vtkUnstructuredGrid);
 
@@ -2388,3 +2389,4 @@ vtkUnstructuredGrid* vtkUnstructuredGrid::GetData(vtkInformationVector* v, int i
 {
   return vtkUnstructuredGrid::GetData(v->GetInformationObject(i));
 }
+VTK_ABI_NAMESPACE_END

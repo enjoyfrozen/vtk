@@ -24,6 +24,7 @@
 
 #include <cassert>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkCxxSetObjectMacro(vtkPDataSetGhostGenerator, Controller, vtkMultiProcessController);
 
 vtkPDataSetGhostGenerator::vtkPDataSetGhostGenerator()
@@ -61,3 +62,4 @@ void vtkPDataSetGhostGenerator::Barrier()
   assert("pre: Instance has not been initialized!" && this->Initialized);
   this->Controller->Barrier();
 }
+VTK_ABI_NAMESPACE_END

@@ -33,6 +33,7 @@
 #include "vtkStdString.h"            // for std string
 #include "vtkUnicodeString.h"        // for unicode string
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkIdTypeArray;
 class vtkLabelHierarchy;
 class vtkPolyData;
@@ -171,4 +172,5 @@ private:
   void operator=(const vtkLabelHierarchyIterator&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkLabelHierarchyIterator_h

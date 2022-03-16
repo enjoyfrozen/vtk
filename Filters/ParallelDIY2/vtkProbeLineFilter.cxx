@@ -63,6 +63,7 @@
 #include VTK_DIY2(diy/mpi.hpp)
 // clang-format off
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkProbeLineFilter);
 
 vtkCxxSetObjectMacro(vtkProbeLineFilter, Controller, vtkMultiProcessController);
@@ -845,3 +846,4 @@ void vtkProbeLineFilter::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "ComputeTolerance: " << this->ComputeTolerance << endl;
   os << indent << "Tolerance: " << this->Tolerance << endl;
 }
+VTK_ABI_NAMESPACE_END

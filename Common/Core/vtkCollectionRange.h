@@ -23,6 +23,7 @@
 
 #include <cassert>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtk
 {
 namespace detail
@@ -235,6 +236,7 @@ private:
 }
 } // end namespace vtk::detail
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkCollectionRange_h
 
 // VTK-HeaderTest-Exclude: vtkCollectionRange.h

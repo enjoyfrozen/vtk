@@ -51,6 +51,7 @@
 #include <type_traits> // for is_base_of
 #include <utility>     // for std::move
 
+VTK_ABI_NAMESPACE_BEGIN
 template <class T>
 class vtkWeakPointer : public vtkWeakPointerBase
 {
@@ -313,6 +314,7 @@ inline ostream& operator<<(ostream& os, const vtkWeakPointer<T>& p)
   return os << static_cast<const vtkWeakPointerBase&>(p);
 }
 
+VTK_ABI_NAMESPACE_END
 #endif
 
 // VTK-HeaderTest-Exclude: vtkWeakPointer.h

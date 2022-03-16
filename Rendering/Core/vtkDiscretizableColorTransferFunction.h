@@ -50,6 +50,7 @@
 #include "vtkRenderingCoreModule.h" // For export macro
 #include "vtkSmartPointer.h"        // for vtkSmartPointer
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkColorTransferFunction;
 class vtkLookupTable;
 class vtkPiecewiseFunction;
@@ -281,4 +282,5 @@ private:
   vtkInternals* Internals;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

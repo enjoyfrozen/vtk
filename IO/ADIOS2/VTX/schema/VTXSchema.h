@@ -34,6 +34,7 @@
 #include "VTX/common/VTXDataArray.h"
 #include "VTX/common/VTXTypes.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtx
 {
 /**
@@ -128,4 +129,5 @@ private:
 
 } // end namespace vtx
 
+VTK_ABI_NAMESPACE_END
 #endif /* VTK_IO_ADIOS2_VTX_SCHEMA_VTXSchema_h */

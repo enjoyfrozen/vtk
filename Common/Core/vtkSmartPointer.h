@@ -31,6 +31,7 @@
 #include <type_traits> // for is_base_of
 #include <utility>     // for std::move
 
+VTK_ABI_NAMESPACE_BEGIN
 template <class T>
 class vtkSmartPointer : public vtkSmartPointerBase
 {
@@ -361,5 +362,6 @@ inline ostream& operator<<(ostream& os, const vtkSmartPointer<T>& p)
   return os << static_cast<const vtkSmartPointerBase&>(p);
 }
 
+VTK_ABI_NAMESPACE_END
 #endif
 // VTK-HeaderTest-Exclude: vtkSmartPointer.h

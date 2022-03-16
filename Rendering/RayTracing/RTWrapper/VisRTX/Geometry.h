@@ -6,6 +6,7 @@
 #include <VisRTX.h>
 #include <cassert>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace RTW
 {
     class Geometry : public Object
@@ -390,3 +391,4 @@ namespace RTW
         Material* material = nullptr;
     };
 }
+VTK_ABI_NAMESPACE_END

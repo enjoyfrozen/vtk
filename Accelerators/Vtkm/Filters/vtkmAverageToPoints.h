@@ -30,6 +30,7 @@
 #include "vtkAcceleratorsVTKmFiltersModule.h" //required for correct implementation
 #include "vtkDataSetAlgorithm.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class VTKACCELERATORSVTKMFILTERS_EXPORT vtkmAverageToPoints : public vtkDataSetAlgorithm
 {
 public:
@@ -48,4 +49,5 @@ private:
   void operator=(const vtkmAverageToPoints&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkmAverageToPoints_h

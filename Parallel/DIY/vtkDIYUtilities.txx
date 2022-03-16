@@ -35,6 +35,7 @@
 // clang-format on
 
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_BEGIN
 template <class DataSetT>
 std::vector<DataSetT*> vtkDIYUtilities::GetDataSets(vtkDataObject* dobj)
 {
@@ -61,4 +62,5 @@ void vtkDIYUtilities::Link(diy::Master& master, const diy::Assigner& assigner,
   }
 }
 
+VTK_ABI_NAMESPACE_END
 #endif

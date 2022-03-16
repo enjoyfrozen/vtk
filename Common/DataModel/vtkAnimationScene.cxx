@@ -20,6 +20,7 @@
 #include "vtkObjectFactory.h"
 #include "vtkTimerLog.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkAnimationScene);
 
 //------------------------------------------------------------------------------
@@ -291,3 +292,4 @@ void vtkAnimationScene::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "InPlay: " << this->InPlay << endl;
   os << indent << "StopPlay: " << this->StopPlay << endl;
 }
+VTK_ABI_NAMESPACE_END

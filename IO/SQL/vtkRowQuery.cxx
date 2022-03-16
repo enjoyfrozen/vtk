@@ -26,6 +26,7 @@
 
 #include <cctype>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkRowQuery::vtkRowQuery()
 {
   this->CaseSensitiveFieldNames = false;
@@ -88,3 +89,4 @@ bool vtkRowQuery::NextRow(vtkVariantArray* rowArray)
   }
   return true;
 }
+VTK_ABI_NAMESPACE_END

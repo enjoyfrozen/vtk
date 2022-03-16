@@ -7,6 +7,7 @@
 #include <VisRTX.h>
 #include <cassert>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace RTW
 {
     class FrameBuffer : public Object
@@ -97,3 +98,4 @@ namespace RTW
         uint32_t channels;
     };
 }
+VTK_ABI_NAMESPACE_END

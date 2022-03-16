@@ -27,6 +27,7 @@
 
 #include "VTX/common/VTXHelper.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtx
 {
 namespace schema
@@ -52,4 +53,5 @@ void VTXvtkVTI::SetDimensionsCommon(
 } // end namespace schema
 } // end namespace vtx
 
+VTK_ABI_NAMESPACE_END
 #endif /* VTK_IO_ADIOS2_VTX_SCHEMA_VTK_VTXvtkVTI_txx */

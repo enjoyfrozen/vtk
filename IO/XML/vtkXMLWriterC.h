@@ -19,6 +19,7 @@
 #include "vtkType.h"        /* For scalar and vtkDataObject type enumerations.  */
 
 #ifdef __cplusplus
+VTK_ABI_NAMESPACE_BEGIN
 extern "C"
 {
 #endif /*cplusplus*/
@@ -258,5 +259,6 @@ extern "C"
 } /* extern "C" */
 #endif /*cplusplus*/
 
+VTK_ABI_NAMESPACE_END
 #endif
 // VTK-HeaderTest-Exclude: vtkXMLWriterC.h

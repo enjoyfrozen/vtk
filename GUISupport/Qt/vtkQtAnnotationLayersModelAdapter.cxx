@@ -38,6 +38,7 @@
 #include <QPixmap>
 
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_BEGIN
 vtkQtAnnotationLayersModelAdapter::vtkQtAnnotationLayersModelAdapter(QObject* p)
   : vtkQtAbstractModelAdapter(p)
 {
@@ -473,3 +474,4 @@ QMimeData *vtkQtAnnotationLayersModelAdapter::mimeData(const QModelIndexList &in
   return mimeData;
 }
 */
+VTK_ABI_NAMESPACE_END

@@ -31,6 +31,7 @@
 #include "vtkAcceleratorsVTKmFiltersModule.h" // required for correct export
 #include "vtkElevationFilter.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class VTKACCELERATORSVTKMFILTERS_EXPORT vtkmPointElevation : public vtkElevationFilter
 {
 public:
@@ -64,4 +65,5 @@ private:
   void operator=(const vtkmPointElevation&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkmPointElevation_h

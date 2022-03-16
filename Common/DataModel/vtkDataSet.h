@@ -43,6 +43,7 @@
 #include "vtkCommonDataModelModule.h" // For export macro
 #include "vtkDataObject.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkCell;
 class vtkCellData;
 class vtkCellIterator;
@@ -550,4 +551,5 @@ inline void vtkDataSet::GetPoint(vtkIdType id, double x[3])
   x[2] = pt[2];
 }
 
+VTK_ABI_NAMESPACE_END
 #endif

@@ -27,6 +27,7 @@
 #include "vtkLabelRenderStrategy.h"
 #include "vtkRenderingLabelModule.h" // For export macro
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkActor2D;
 class vtkTextRenderer;
 class vtkTextMapper;
@@ -92,4 +93,5 @@ private:
   void operator=(const vtkFreeTypeLabelRenderStrategy&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

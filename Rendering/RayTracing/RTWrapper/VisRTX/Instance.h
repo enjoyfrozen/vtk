@@ -7,6 +7,7 @@
 
 #include <set>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace RTW
 {
     class Instance : public Object
@@ -34,3 +35,4 @@ namespace RTW
         Group *group;
     };
 }
+VTK_ABI_NAMESPACE_END

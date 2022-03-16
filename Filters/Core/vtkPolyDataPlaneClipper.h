@@ -50,6 +50,7 @@
 #include "vtkPolyDataAlgorithm.h"
 #include "vtkSmartPointer.h" // For SmartPointer
 
+VTK_ABI_NAMESPACE_BEGIN
 class VTKFILTERSCORE_EXPORT vtkPolyDataPlaneClipper : public vtkPolyDataAlgorithm
 {
 public:
@@ -167,4 +168,5 @@ private:
   void operator=(const vtkPolyDataPlaneClipper&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

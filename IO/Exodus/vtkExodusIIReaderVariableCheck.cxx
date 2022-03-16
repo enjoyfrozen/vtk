@@ -14,6 +14,7 @@
 
 #include <cctype>
 
+VTK_ABI_NAMESPACE_BEGIN
 bool vtkExodusIIReaderVariableCheck::Start(std::string name, const int* truth, int numTruth)
 {
   this->SeqTruth.clear();
@@ -462,3 +463,4 @@ bool vtkExodusIIReaderIntPointCheck::AddIntegrationPoint(std::string iptName)
   }
   return true;
 }
+VTK_ABI_NAMESPACE_END

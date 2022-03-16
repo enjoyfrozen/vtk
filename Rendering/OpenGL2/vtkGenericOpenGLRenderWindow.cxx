@@ -27,6 +27,7 @@
 #include "vtkOpenGLState.h"
 #include "vtkRendererCollection.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkGenericOpenGLRenderWindow);
 
 vtkGenericOpenGLRenderWindow::vtkGenericOpenGLRenderWindow()
@@ -317,3 +318,4 @@ bool vtkGenericOpenGLRenderWindow::IsDrawable()
 
   return this->ReadyForRendering;
 }
+VTK_ABI_NAMESPACE_END

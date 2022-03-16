@@ -36,6 +36,7 @@
 #include <string>
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkFacetReader);
 
 //------------------------------------------------------------------------------
@@ -402,3 +403,4 @@ void vtkFacetReader::PrintSelf(ostream& os, vtkIndent indent)
 
   os << indent << "File Name: " << (this->FileName ? this->FileName : "(none)") << "\n";
 }
+VTK_ABI_NAMESPACE_END

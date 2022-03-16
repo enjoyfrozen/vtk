@@ -40,6 +40,7 @@
 
 #include <set> // For tracking visited cells
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkIdList;
 class vtkAbstractPointLocator;
 
@@ -135,4 +136,5 @@ inline vtkCell* vtkClosestPointStrategy::SelectCell(
   return cell;
 }
 
+VTK_ABI_NAMESPACE_END
 #endif

@@ -40,6 +40,7 @@
 #include <vector>
 
 //============================================================================
+VTK_ABI_NAMESPACE_BEGIN
 namespace parser
 {
 class Node
@@ -793,3 +794,4 @@ void vtkSelection::Dump(ostream& os)
     }
   }
 }
+VTK_ABI_NAMESPACE_END

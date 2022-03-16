@@ -20,6 +20,7 @@
 #include "vtkStreamingDemandDrivenPipeline.h"
 #include "vtkUnstructuredGrid.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkPCellDataToPointData);
 
 //------------------------------------------------------------------------------
@@ -90,3 +91,4 @@ void vtkPCellDataToPointData::PrintSelf(ostream& os, vtkIndent indent)
 
   os << indent << "PieceInvariant: " << this->PieceInvariant << "\n";
 }
+VTK_ABI_NAMESPACE_END

@@ -23,6 +23,7 @@
 #include "vtkPointData.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkImageContinuousErode3D);
 
 //------------------------------------------------------------------------------
@@ -320,3 +321,4 @@ int vtkImageContinuousErode3D::RequestData(
   this->Ellipse->Update();
   return this->Superclass::RequestData(request, inputVector, outputVector);
 }
+VTK_ABI_NAMESPACE_END

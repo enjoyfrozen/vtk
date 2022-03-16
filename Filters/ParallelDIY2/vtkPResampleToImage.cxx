@@ -52,6 +52,7 @@
 #include <algorithm>
 #include <iterator>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkPResampleToImage);
 
 vtkCxxSetObjectMacro(vtkPResampleToImage, Controller, vtkMultiProcessController);
@@ -535,6 +536,7 @@ int vtkPResampleToImage::RequestData(
 
   return 1;
 }
+VTK_ABI_NAMESPACE_END
 
 //------------------------------------------------------------------------------
 namespace diy

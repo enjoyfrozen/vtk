@@ -72,6 +72,7 @@
 #endif // DBL_EPSILON
 #endif // VTK_DBL_EPSILON
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkDataArray;
 class vtkPoints;
 class vtkMathInternal;
@@ -2153,4 +2154,5 @@ inline bool vtkMath::IsFinite(double x)
 }
 #endif
 
+VTK_ABI_NAMESPACE_END
 #endif

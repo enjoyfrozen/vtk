@@ -30,6 +30,7 @@
 #include <array>
 #include <iterator>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace
 {
 
@@ -1212,3 +1213,4 @@ vtkIdType vtkCellArray::IsHomogeneous()
 {
   return this->Visit(IsHomogeneousImpl{});
 }
+VTK_ABI_NAMESPACE_END

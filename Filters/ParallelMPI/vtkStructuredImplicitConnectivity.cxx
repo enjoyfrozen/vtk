@@ -52,6 +52,7 @@
 #define J(ijk) ijk[1]
 #define K(ijk) ijk[2]
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtk
 {
 namespace detail
@@ -1521,3 +1522,4 @@ void vtkStructuredImplicitConnectivity::ExchangeData()
   // Barrier synchronization
   this->Controller->Barrier();
 }
+VTK_ABI_NAMESPACE_END

@@ -47,6 +47,7 @@
 
 namespace tovtkm
 {
+VTK_ABI_NAMESPACE_BEGIN
 
 namespace
 {
@@ -167,10 +168,12 @@ vtkm::cont::DataSet Convert(vtkDataSet* input, FieldsFlag fields)
   }
 }
 
+VTK_ABI_NAMESPACE_END
 } // namespace tovtkm
 
 namespace fromvtkm
 {
+VTK_ABI_NAMESPACE_BEGIN
 
 namespace
 {
@@ -306,4 +309,5 @@ bool Convert(const vtkm::cont::DataSet& vtkmOut, vtkStructuredGrid* output, vtkD
   return true;
 }
 
+VTK_ABI_NAMESPACE_END
 } // namespace fromvtkm

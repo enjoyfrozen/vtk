@@ -26,6 +26,7 @@
 
 #include <sstream>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace
 {
 // helps in set and restore value when an instance goes in
@@ -364,3 +365,4 @@ void vtkOutputWindow::SetInstance(vtkOutputWindow* instance)
   // user will call ->Delete() after setting instance
   instance->Register(nullptr);
 }
+VTK_ABI_NAMESPACE_END

@@ -24,6 +24,7 @@
 #include <cmath>
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkTemporalShiftScale);
 
 //------------------------------------------------------------------------------
@@ -344,3 +345,4 @@ int vtkTemporalShiftScale::RequestUpdateExtent(vtkInformation* vtkNotUsed(reques
 
   return 1;
 }
+VTK_ABI_NAMESPACE_END

@@ -30,6 +30,7 @@
 #include <sstream>
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkPWindBladeReader);
 
 // This macro can be wrapped around MPI function calls to easily report errors.
@@ -602,3 +603,4 @@ void vtkPWindBladeReader::LoadBladeData(int timeStep)
 
   this->ReadBladeData(inStr);
 }
+VTK_ABI_NAMESPACE_END

@@ -24,6 +24,7 @@
 #include "vtkObjectFactory.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkMultiBlockFromTimeSeriesFilter);
 
 vtkMultiBlockFromTimeSeriesFilter::vtkMultiBlockFromTimeSeriesFilter()
@@ -100,3 +101,4 @@ void vtkMultiBlockFromTimeSeriesFilter::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 }
+VTK_ABI_NAMESPACE_END

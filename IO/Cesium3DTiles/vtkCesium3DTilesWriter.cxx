@@ -48,6 +48,7 @@
 
 using namespace vtksys;
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkCesium3DTilesWriter);
 
 namespace
@@ -194,3 +195,4 @@ void vtkCesium3DTilesWriter::WriteData()
   }
   vtkLog(INFO, "Done.");
 }
+VTK_ABI_NAMESPACE_END

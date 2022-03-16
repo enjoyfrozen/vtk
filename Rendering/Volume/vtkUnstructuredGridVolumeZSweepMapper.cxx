@@ -51,6 +51,7 @@
 //#define BACK_TO_FRONT
 
 // Put the internal classes in a namespace to avoid potential naming conflicts.
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtkUnstructuredGridVolumeZSweepMapperNamespace
 {
 
@@ -4325,3 +4326,4 @@ double vtkUnstructuredGridVolumeZSweepMapper::GetMinimumBoundsDepth(
 
   return minZ;
 }
+VTK_ABI_NAMESPACE_END

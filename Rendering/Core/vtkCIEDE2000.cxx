@@ -46,6 +46,7 @@ SOFTWARE.
 #include <utility> // std::pair, std::make_pair
 #include <vtkMath.h>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace CIEDE2000
 {
 
@@ -399,3 +400,4 @@ double GetColorPath(
 //------------------------------------------------------------------------------
 
 } // namespace CIEDE2000
+VTK_ABI_NAMESPACE_END

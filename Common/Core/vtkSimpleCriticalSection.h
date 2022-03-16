@@ -58,6 +58,7 @@ typedef int vtkCritSecType;
 #endif
 
 // Critical Section object that is not a vtkObject.
+VTK_ABI_NAMESPACE_BEGIN
 class VTK_DEPRECATED_IN_9_1_0(
   "Use std::mutex instead.") VTKCOMMONCORE_EXPORT vtkSimpleCriticalSection
 {
@@ -96,5 +97,6 @@ private:
   vtkSimpleCriticalSection& operator=(const vtkSimpleCriticalSection& rhs) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif
 // VTK-HeaderTest-Exclude: vtkSimpleCriticalSection.h

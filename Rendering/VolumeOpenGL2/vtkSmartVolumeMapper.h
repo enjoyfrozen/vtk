@@ -77,6 +77,7 @@
 #include "vtkRenderingVolumeOpenGL2Module.h" // For export macro
 #include "vtkVolumeMapper.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkFixedPointVolumeRayCastMapper;
 class vtkGPUVolumeRayCastMapper;
 class vtkImageResample;
@@ -529,4 +530,5 @@ private:
   vtkOSPRayVolumeInterface* OSPRayMapper;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

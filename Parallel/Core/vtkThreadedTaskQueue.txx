@@ -21,6 +21,7 @@
 #include <utility>
 
 //=============================================================================
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtkThreadedTaskQueueInternals
 {
 
@@ -343,3 +344,4 @@ void vtkThreadedTaskQueue<void, Args...>::Flush()
   std::unique_lock<std::mutex> lk(this->NextResultIdMutex);
   this->ResultsCV.wait(lk, [this] { return this->IsEmpty(); });
 }
+VTK_ABI_NAMESPACE_END

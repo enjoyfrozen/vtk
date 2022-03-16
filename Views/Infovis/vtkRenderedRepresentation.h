@@ -31,6 +31,7 @@
 #include "vtkUnicodeString.h"      // for string
 #include "vtkViewsInfovisModule.h" // For export macro
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkApplyColors;
 class vtkProp;
 class vtkRenderView;
@@ -107,4 +108,5 @@ private:
   Internals* Implementation;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

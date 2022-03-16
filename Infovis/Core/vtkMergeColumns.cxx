@@ -30,6 +30,7 @@
 #include "vtkTable.h"
 #include "vtkUnicodeStringArray.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkMergeColumns);
 
 vtkMergeColumns::vtkMergeColumns()
@@ -143,3 +144,4 @@ void vtkMergeColumns::PrintSelf(ostream& os, vtkIndent indent)
      << "MergedColumnName: " << (this->MergedColumnName ? this->MergedColumnName : "(null)")
      << endl;
 }
+VTK_ABI_NAMESPACE_END

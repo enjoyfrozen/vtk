@@ -53,6 +53,7 @@
 #include <cassert>
 #include <set>
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkCellArray;
 namespace vtkIOSSUtilities
 {
@@ -257,5 +258,6 @@ std::vector<Ioss::StructuredBlock*> GetMatchingStructuredBlocks(
   Ioss::Region* region, const std::string& blockname);
 };
 
+VTK_ABI_NAMESPACE_END
 #endif
 // VTK-HeaderTest-Exclude: vtkIOSSUtilities.h

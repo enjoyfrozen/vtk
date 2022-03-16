@@ -60,6 +60,7 @@
 #include <functional>
 #include <set>
 
+VTK_ABI_NAMESPACE_BEGIN
 template <typename T, int Size>
 bool operator<(const vtkVector<T, Size>& lhs, const vtkVector<T, Size>& rhs)
 {
@@ -788,3 +789,4 @@ int vtkExtractSubsetWithSeed::RequestInformation(
   info->Remove(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT());
   return 1;
 }
+VTK_ABI_NAMESPACE_END

@@ -34,7 +34,9 @@ PURPOSE.  See the above copyright notice for more information.
 
 #import <sstream>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkCocoaRenderWindow);
+VTK_ABI_NAMESPACE_END
 
 //----------------------------------------------------------------------------
 // This is a private class and an implementation detail, do not use it.
@@ -202,6 +204,7 @@ vtkStandardNewMacro(vtkCocoaRenderWindow);
 
 @end
 
+VTK_ABI_NAMESPACE_BEGIN
 //----------------------------------------------------------------------------
 vtkCocoaRenderWindow::vtkCocoaRenderWindow()
 {
@@ -1653,3 +1656,4 @@ void vtkCocoaRenderWindow::SetConnectContextToNSView(bool connect)
 {
   this->ConnectContextToNSView = connect;
 }
+VTK_ABI_NAMESPACE_END

@@ -30,6 +30,7 @@
 
 #include "common/VTXHelper.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtx
 {
 
@@ -161,3 +162,4 @@ bool VTXSchemaManager::InitReaderXMLVTK()
 }
 
 } // end var namespace
+VTK_ABI_NAMESPACE_END

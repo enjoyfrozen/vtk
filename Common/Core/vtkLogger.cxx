@@ -29,6 +29,7 @@
 #include <vector>
 
 //=============================================================================
+VTK_ABI_NAMESPACE_BEGIN
 class vtkLogger::LogScopeRAII::LSInternals
 {
 public:
@@ -445,3 +446,4 @@ vtkLogger::Verbosity vtkLogger::ConvertToVerbosity(const char* text)
   }
   return vtkLogger::VERBOSITY_INVALID;
 }
+VTK_ABI_NAMESPACE_END

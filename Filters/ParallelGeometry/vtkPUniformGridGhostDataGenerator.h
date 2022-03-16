@@ -55,6 +55,7 @@
 #include "vtkFiltersParallelGeometryModule.h" // For export macro
 #include "vtkPDataSetGhostGenerator.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkMultiBlockDataSet;
 class vtkIndent;
 class vtkPStructuredGridConnectivity;
@@ -106,6 +107,7 @@ private:
   void operator=(const vtkPUniformGridGhostDataGenerator&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif /* vtkPUniformGridGhostDataGenerator_h */
 
 // VTK-HeaderTest-Exclude: vtkPUniformGridGhostDataGenerator.h

@@ -29,6 +29,7 @@
 #include <vector>
 
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_BEGIN
 struct vtkSelectionSource::NodeInformation
 {
   using IDSetType = std::set<vtkIdType>;
@@ -1051,3 +1052,4 @@ int vtkSelectionSource::RequestData(vtkInformation* vtkNotUsed(request),
   }
   return 1;
 }
+VTK_ABI_NAMESPACE_END

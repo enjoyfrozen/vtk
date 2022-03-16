@@ -22,6 +22,7 @@
 #include "vtkPointData.h"
 
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_BEGIN
 vtkCompositeInterpolatedVelocityField::vtkCompositeInterpolatedVelocityField()
 {
   this->LastDataSetIndex = 0;
@@ -65,3 +66,4 @@ void vtkCompositeInterpolatedVelocityField::PrintSelf(ostream& os, vtkIndent ind
   os << indent << "DataSets: " << this->DataSets << endl;
   os << indent << "Last Dataset Index: " << this->LastDataSetIndex << endl;
 }
+VTK_ABI_NAMESPACE_END

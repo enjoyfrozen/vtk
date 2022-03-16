@@ -28,6 +28,7 @@
 #include "vtkPointData.h"
 #include "vtkSmartPointer.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkCompositeDataProbeFilter);
 //------------------------------------------------------------------------------
 vtkCompositeDataProbeFilter::vtkCompositeDataProbeFilter()
@@ -265,3 +266,4 @@ void vtkCompositeDataProbeFilter::PrintSelf(ostream& os, vtkIndent indent)
   this->Superclass::PrintSelf(os, indent);
   os << "PassPartialArrays: " << this->PassPartialArrays << endl;
 }
+VTK_ABI_NAMESPACE_END

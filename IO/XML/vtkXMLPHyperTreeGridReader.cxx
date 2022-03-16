@@ -31,6 +31,7 @@
 #include <cassert>
 #include <sstream>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkXMLPHyperTreeGridReader);
 
 //------------------------------------------------------------------------------
@@ -614,3 +615,4 @@ void vtkXMLPHyperTreeGridReader::RecursivelyProcessTree(
     }
   }
 }
+VTK_ABI_NAMESPACE_END

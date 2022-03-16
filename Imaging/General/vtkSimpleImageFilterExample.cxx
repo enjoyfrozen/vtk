@@ -21,6 +21,7 @@
 #include "vtkImageData.h"
 #include "vtkObjectFactory.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkSimpleImageFilterExample);
 
 void vtkSimpleImageFilterExample::PrintSelf(ostream& os, vtkIndent indent)
@@ -70,3 +71,4 @@ void vtkSimpleImageFilterExample::SimpleExecute(vtkImageData* input, vtkImageDat
       return;
   }
 }
+VTK_ABI_NAMESPACE_END

@@ -44,6 +44,7 @@ PURPOSE.  See the above copyright notice for more information.
 #include "vtksys/SystemTools.hxx"
 #include <sstream>
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkOSOpenGLRenderWindow;
 class vtkRenderWindow;
 
@@ -470,3 +471,4 @@ void* vtkOSOpenGLRenderWindow::GetGenericWindowId()
 {
   return (void*)this->Internal->OffScreenWindow;
 }
+VTK_ABI_NAMESPACE_END

@@ -36,6 +36,7 @@
 #include <cassert>
 
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkContext2D);
 
 //------------------------------------------------------------------------------
@@ -1104,3 +1105,4 @@ void vtkContext2D::PrintSelf(ostream& os, vtkIndent indent)
     os << "(none)" << endl;
   }
 }
+VTK_ABI_NAMESPACE_END

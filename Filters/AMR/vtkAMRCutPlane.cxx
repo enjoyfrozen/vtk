@@ -37,6 +37,7 @@
 #include <algorithm>
 #include <cassert>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkAMRCutPlane);
 
 vtkCxxSetObjectMacro(vtkAMRCutPlane, Controller, vtkMultiProcessController);
@@ -534,3 +535,4 @@ bool vtkAMRCutPlane::IsAMRData2D(vtkOverlappingAMR* input)
 
   return input->GetGridDescription() != VTK_XYZ_GRID;
 }
+VTK_ABI_NAMESPACE_END

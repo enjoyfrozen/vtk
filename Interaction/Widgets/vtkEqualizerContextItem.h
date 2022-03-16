@@ -21,6 +21,7 @@
 
 #include <string> // for std::string
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkBrush;
 class vtkPen;
 class vtkContextTransform;
@@ -148,4 +149,5 @@ private:
   vtkInternal* Internal;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

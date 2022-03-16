@@ -38,6 +38,7 @@
 #include "vtkRenderingCoreModule.h" // For export macro
 
 // The superclass that all commands should be subclasses of
+VTK_ABI_NAMESPACE_BEGIN
 class VTKRENDERINGCORE_EXPORT vtkInteractorEventRecorder : public vtkInteractorObserver
 {
 public:
@@ -152,4 +153,5 @@ private:
   void operator=(const vtkInteractorEventRecorder&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif /* vtkInteractorEventRecorder_h */

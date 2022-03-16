@@ -38,6 +38,7 @@
 #include <utility> // for std::swap
 
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_BEGIN
 vtkObjectFactoryNewMacro(vtkRenderWindow);
 
 // Construct an instance of  vtkRenderWindow with its screen size
@@ -693,3 +694,4 @@ bool vtkRenderWindow::IsDrawable()
 
   return true;
 }
+VTK_ABI_NAMESPACE_END

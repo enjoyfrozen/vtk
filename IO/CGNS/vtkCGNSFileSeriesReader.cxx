@@ -38,6 +38,7 @@
 #include <sstream>
 #include <string>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace
 {
 template <class T>
@@ -496,3 +497,4 @@ int vtkCGNSFileSeriesReader::RequestData(
   output->ShallowCopy(hierarchy.Get());
   return 1;
 }
+VTK_ABI_NAMESPACE_END

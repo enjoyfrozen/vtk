@@ -28,6 +28,7 @@
 #include <array>  // for std::array
 #include <string> // for std::string
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace details
 {
 enum class EndiannessType : std::uint8_t
@@ -163,4 +164,5 @@ private:
   void operator=(const vtkSEPReader&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkSEPReader_h

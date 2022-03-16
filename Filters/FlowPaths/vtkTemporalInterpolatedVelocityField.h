@@ -59,6 +59,7 @@
 #define ID_OUTSIDE_T0 02
 #define ID_OUTSIDE_T1 03
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkDataSet;
 class vtkDataArray;
 class vtkPointData;
@@ -188,4 +189,5 @@ private:
   void operator=(const vtkTemporalInterpolatedVelocityField&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

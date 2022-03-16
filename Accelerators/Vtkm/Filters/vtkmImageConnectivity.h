@@ -40,6 +40,7 @@
 #include "vtkAcceleratorsVTKmFiltersModule.h" //required for correct implementation
 #include "vtkImageAlgorithm.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class VTKACCELERATORSVTKMFILTERS_EXPORT vtkmImageConnectivity : public vtkImageAlgorithm
 {
 public:
@@ -58,4 +59,5 @@ private:
   void operator=(const vtkmImageConnectivity&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkmImageConnectivity_h

@@ -41,6 +41,7 @@
 
 #include <map>
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkLabeledDataMapper::Internals
 {
 public:
@@ -839,3 +840,4 @@ void vtkLabeledDataMapper::SetFieldDataName(const char* arrayName)
   }
   this->Modified();
 }
+VTK_ABI_NAMESPACE_END

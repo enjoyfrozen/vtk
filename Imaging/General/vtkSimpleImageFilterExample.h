@@ -30,6 +30,7 @@
 #include "vtkImagingGeneralModule.h" // For export macro
 #include "vtkSimpleImageToImageFilter.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 VTK_DEPRECATED_IN_9_1_0("This class is an example and should not have been public")
 class VTKIMAGINGGENERAL_EXPORT vtkSimpleImageFilterExample : public vtkSimpleImageToImageFilter
 {
@@ -49,4 +50,5 @@ private:
   void operator=(const vtkSimpleImageFilterExample&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

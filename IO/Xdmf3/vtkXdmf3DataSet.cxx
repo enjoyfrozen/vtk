@@ -64,6 +64,7 @@
 #include <array>
 
 //==============================================================================
+VTK_ABI_NAMESPACE_BEGIN
 bool vtkXdmf3DataSet_ReadIfNeeded(XdmfArray* array, bool dbg = false)
 {
   if (!array->isInitialized())
@@ -2804,3 +2805,4 @@ void vtkXdmf3DataSet::ParseFiniteElementFunction(vtkDataObject* dObject,
   new_array->Delete();
   array->Delete();
 }
+VTK_ABI_NAMESPACE_END

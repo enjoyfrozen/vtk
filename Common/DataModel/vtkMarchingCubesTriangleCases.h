@@ -21,11 +21,13 @@
 #include "vtkSystemIncludes.h"
 
 typedef int EDGE_LIST;
+VTK_ABI_NAMESPACE_BEGIN
 struct VTKCOMMONDATAMODEL_EXPORT vtkMarchingCubesTriangleCases
 {
   EDGE_LIST edges[16];
   static vtkMarchingCubesTriangleCases* GetCases();
 };
 
+VTK_ABI_NAMESPACE_END
 #endif
 // VTK-HeaderTest-Exclude: vtkMarchingCubesTriangleCases.h

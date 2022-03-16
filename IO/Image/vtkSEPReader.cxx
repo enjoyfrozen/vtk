@@ -35,6 +35,7 @@
 
 #include <algorithm>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace details
 {
 static constexpr std::size_t DataFormatSize[] = { 4, 4, 8 };
@@ -572,3 +573,4 @@ bool vtkSEPReader::CanReadFile(const char* filename)
   std::string extension = vtksys::SystemTools::GetFilenameLastExtension(filename);
   return extension == ".H";
 }
+VTK_ABI_NAMESPACE_END

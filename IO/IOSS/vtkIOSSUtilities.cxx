@@ -39,6 +39,7 @@
 
 #include <memory>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtkIOSSUtilities
 {
 
@@ -914,3 +915,4 @@ void GetEntityAndFieldNames<Ioss::SideSet>(const Ioss::Region* region,
 }
 
 } // end of namespace.
+VTK_ABI_NAMESPACE_END

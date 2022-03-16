@@ -37,6 +37,7 @@
 #include "vtkPolyDataMapper.h"
 #include "vtkProperty.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtkBlockSortHelper
 {
 template <>
@@ -577,3 +578,4 @@ void vtkMultiBlockVolumeMapper::SetTransfer2DYAxisArray(const char* a)
   }
   this->Modified();
 }
+VTK_ABI_NAMESPACE_END

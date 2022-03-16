@@ -29,6 +29,7 @@
 #include "vtkRenderer.h"
 #include "vtkVolumeMapper.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkImageCroppingRegionsWidget);
 
 //------------------------------------------------------------------------------
@@ -1295,3 +1296,4 @@ void vtkImageCroppingRegionsWidget::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "SliceOrientation: " << this->SliceOrientation << endl;
   os << indent << "VolumeMapper: " << this->VolumeMapper << endl;
 }
+VTK_ABI_NAMESPACE_END

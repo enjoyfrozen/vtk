@@ -24,6 +24,7 @@
 
 #include <cmath>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkOpenGLCamera);
 
 vtkOpenGLCamera::vtkOpenGLCamera()
@@ -147,3 +148,4 @@ void vtkOpenGLCamera::GetKeyMatrices(vtkRenderer* ren, vtkMatrix4x4*& wcvc, vtkM
   vcdc = this->VCDCMatrix;
   wcdc = this->WCDCMatrix;
 }
+VTK_ABI_NAMESPACE_END

@@ -52,6 +52,7 @@
 #include "vtkTextureObjectVS.h"
 #include "vtk_glew.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkCompositeZPass);
 vtkCxxSetObjectMacro(vtkCompositeZPass, Controller, vtkMultiProcessController);
 
@@ -695,3 +696,4 @@ void vtkCompositeZPass::ReleaseGraphicsResources(vtkWindow* w)
     this->Program->ReleaseGraphicsResources(w);
   }
 }
+VTK_ABI_NAMESPACE_END

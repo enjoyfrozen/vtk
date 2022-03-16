@@ -42,6 +42,7 @@
 #include "vtkHyperTreeGridEntry.h"    // Used internally
 #include "vtkObject.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkHyperTree;
 class vtkHyperTreeGrid;
 
@@ -201,4 +202,5 @@ private:
   vtkHyperTreeGridOrientedCursor(const vtkHyperTreeGridOrientedCursor&) = delete;
   void operator=(const vtkHyperTreeGridOrientedCursor&) = delete;
 };
+VTK_ABI_NAMESPACE_END
 #endif

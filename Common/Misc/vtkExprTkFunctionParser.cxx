@@ -32,6 +32,7 @@ using ExprTkResultType = exprtk::results_context<double>::type_store_t::store_ty
 /**
  * Implementation of vtkExprTkTools
  */
+VTK_ABI_NAMESPACE_BEGIN
 struct vtkExprTkTools
 {
   exprtk::symbol_table<double> SymbolTable;
@@ -1349,3 +1350,4 @@ bool vtkExprTkFunctionParser::GetVectorVariableNeeded(const std::string& inVaria
     return false;
   }
 }
+VTK_ABI_NAMESPACE_END

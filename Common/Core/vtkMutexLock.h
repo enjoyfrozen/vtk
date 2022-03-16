@@ -46,6 +46,7 @@ typedef int vtkMutexType;
 
 // Mutex lock that is not a vtkObject.
 
+VTK_ABI_NAMESPACE_BEGIN
 class VTK_DEPRECATED_IN_9_1_0("Use std::mutex instead.") VTKCOMMONCORE_EXPORT vtkSimpleMutexLock
 {
 public:
@@ -116,6 +117,7 @@ inline void vtkMutexLock::Unlock(void)
   this->SimpleMutexLock.Unlock();
 }
 
+VTK_ABI_NAMESPACE_END
 #endif
 
 // VTK-HeaderTest-Exclude: vtkMutexLock.h

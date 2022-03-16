@@ -32,6 +32,7 @@
 #include <memory>
 #include <unordered_map>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace omf
 {
 
@@ -284,3 +285,4 @@ bool OMFProject::ProcessJSON(vtkPartitionedDataSetCollection* output,
 }
 
 } // end namespace omf
+VTK_ABI_NAMESPACE_END

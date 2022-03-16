@@ -18,6 +18,7 @@ PURPOSE.  See the above copyright notice for more information.
 
 #include "vtkObjectFactory.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkReaderExecutive);
 //------------------------------------------------------------------------------
 vtkReaderExecutive::vtkReaderExecutive() = default;
@@ -30,3 +31,4 @@ void vtkReaderExecutive::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 }
+VTK_ABI_NAMESPACE_END

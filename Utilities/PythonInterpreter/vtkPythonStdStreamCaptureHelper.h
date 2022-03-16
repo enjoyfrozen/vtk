@@ -24,6 +24,7 @@
 #include "vtkPythonCompatibility.h"
 #include "vtkPythonInterpreter.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 struct vtkPythonStdStreamCaptureHelper
 {
   PyObject_HEAD
@@ -261,5 +262,6 @@ static vtkPythonStdStreamCaptureHelper* NewPythonStdStreamCaptureHelper(bool for
   return wrapper;
 }
 
+VTK_ABI_NAMESPACE_END
 #endif
 // VTK-HeaderTest-Exclude: vtkPythonStdStreamCaptureHelper.h

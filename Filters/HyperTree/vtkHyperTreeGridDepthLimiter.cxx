@@ -22,6 +22,7 @@
 #include "vtkInformation.h"
 #include "vtkObjectFactory.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkHyperTreeGridDepthLimiter);
 
 //------------------------------------------------------------------------------
@@ -192,3 +193,4 @@ void vtkHyperTreeGridDepthLimiter::RecursivelyProcessTree(
     }
   }
 }
+VTK_ABI_NAMESPACE_END

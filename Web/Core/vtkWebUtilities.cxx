@@ -26,6 +26,7 @@
 
 #include <sstream>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkWebUtilities);
 //------------------------------------------------------------------------------
 vtkWebUtilities::vtkWebUtilities() = default;
@@ -123,3 +124,4 @@ void vtkWebUtilities::ProcessRMIs(int reportError, int dont_loop)
   vtkMultiProcessController::GetGlobalController()->ProcessRMIs(reportError, dont_loop);
   Py_END_ALLOW_THREADS;
 }
+VTK_ABI_NAMESPACE_END

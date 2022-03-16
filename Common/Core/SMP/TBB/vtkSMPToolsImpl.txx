@@ -33,6 +33,7 @@
 #pragma pop_macro("__TBB_NO_IMPLICIT_LINKAGE")
 #endif
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtk
 {
 namespace detail
@@ -192,4 +193,5 @@ int vtkSMPToolsImpl<BackendType::TBB>::GetEstimatedNumberOfThreads();
 } // namespace detail
 } // namespace vtk
 
+VTK_ABI_NAMESPACE_END
 #endif

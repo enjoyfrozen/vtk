@@ -20,6 +20,7 @@
 #include "vtkPointsProjectedHull.h"
 #include "vtkObjectFactory.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkPointsProjectedHull);
 
 static const int xdim = 0, ydim = 1, zdim = 2;
@@ -801,3 +802,4 @@ void vtkPointsProjectedHull::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "HullSize Z: " << this->HullSize[2] << endl;
   os << indent << "HullTime Z: " << this->HullTime[2] << endl;
 }
+VTK_ABI_NAMESPACE_END

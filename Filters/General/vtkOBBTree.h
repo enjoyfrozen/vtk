@@ -56,6 +56,7 @@
 #include "vtkAbstractCellLocator.h"
 #include "vtkFiltersGeneralModule.h" // For export macro
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkMatrix4x4;
 
 // Special class defines node for the OBB tree
@@ -213,4 +214,5 @@ private:
   void operator=(const vtkOBBTree&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

@@ -39,6 +39,7 @@
 #include <algorithm>
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkProbeFilter);
 vtkCxxSetObjectMacro(vtkProbeFilter, CellLocatorPrototype, vtkAbstractCellLocator);
 vtkCxxSetObjectMacro(vtkProbeFilter, FindCellStrategy, vtkFindCellStrategy);
@@ -1051,3 +1052,4 @@ void vtkProbeFilter::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "CellLocatorPrototype: "
      << (this->CellLocatorPrototype ? this->CellLocatorPrototype->GetClassName() : "NULL") << "\n";
 }
+VTK_ABI_NAMESPACE_END

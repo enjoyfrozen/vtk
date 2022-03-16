@@ -25,6 +25,7 @@
 
 #include <vector>
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkTemporalInterpolatedVelocityField);
 //------------------------------------------------------------------------------
 vtkTemporalInterpolatedVelocityField::vtkTemporalInterpolatedVelocityField()
@@ -357,3 +358,4 @@ void vtkTemporalInterpolatedVelocityField::PrintSelf(ostream& os, vtkIndent inde
   os << indent << "CurrentWeight: " << this->CurrentWeight << endl;
 }
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_END

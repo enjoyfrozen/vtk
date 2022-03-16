@@ -43,6 +43,7 @@
 #include <cmath>
 #include <sstream>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkAMRResampleFilter);
 vtkCxxSetObjectMacro(vtkAMRResampleFilter, Controller, vtkMultiProcessController);
 
@@ -1230,3 +1231,4 @@ vtkUniformGrid* vtkAMRResampleFilter::GetReferenceGrid(vtkOverlappingAMR* amrds)
   // This process has no grids
   return nullptr;
 }
+VTK_ABI_NAMESPACE_END

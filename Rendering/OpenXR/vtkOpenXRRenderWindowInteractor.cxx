@@ -24,6 +24,7 @@
 #include <vtksys/FStream.hxx>
 #include <vtksys/SystemTools.hxx>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkOpenXRRenderWindowInteractor);
 
 //------------------------------------------------------------------------------
@@ -798,3 +799,4 @@ void vtkOpenXRRenderWindowInteractor::PrintSelf(ostream& os, vtkIndent indent)
      << "\n";
   this->Superclass::PrintSelf(os, indent);
 }
+VTK_ABI_NAMESPACE_END

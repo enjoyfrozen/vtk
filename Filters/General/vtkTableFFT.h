@@ -36,6 +36,7 @@
 #include "vtkSmartPointer.h"         // For internal method.
 #include "vtkTableAlgorithm.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class VTKFILTERSGENERAL_EXPORT vtkTableFFT : public vtkTableAlgorithm
 {
 public:
@@ -178,4 +179,5 @@ private:
   vtkInternal* Internals;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkTableFFT_h

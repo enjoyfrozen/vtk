@@ -54,6 +54,7 @@
 // We support up to 6th order hexahedra.
 #define VTK_MAXIMUM_NUMBER_OF_POINTS 216
 
+VTK_ABI_NAMESPACE_BEGIN
 const double vtkParticleTracerBase::Epsilon = 1.0E-12;
 
 using namespace vtkParticleTracerBaseNamespace;
@@ -1732,3 +1733,4 @@ void vtkParticleTracerBase::PrintParticleHistories()
   }
   cout << endl;
 }
+VTK_ABI_NAMESPACE_END

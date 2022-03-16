@@ -23,6 +23,7 @@
 
 #include <utility> // For std::forward
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkDataArray;
 
 namespace vtkArrayDispatch
@@ -766,4 +767,5 @@ public:
 
 } // end namespace vtkArrayDispatch
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkArrayDispatch_txx

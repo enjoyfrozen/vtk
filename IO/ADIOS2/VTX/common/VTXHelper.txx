@@ -34,6 +34,7 @@
 #include "vtkUnsignedLongArray.h"
 #include "vtkUnsignedLongLongArray.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtx
 {
 namespace helper
@@ -91,4 +92,5 @@ vtkSmartPointer<vtkDataArray> NewDataArray<double>()
 } // end namespace helper
 } // end namespace vtx
 
+VTK_ABI_NAMESPACE_END
 #endif /* VTK_IO_ADIOS2_VTX_COMMON_VTXHelper_txx */

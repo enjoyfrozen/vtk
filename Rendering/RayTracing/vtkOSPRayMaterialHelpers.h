@@ -36,6 +36,7 @@
 
 #include "RTWrapper/RTWrapper.h" // for handle types
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkImageData;
 class vtkOSPRayRendererNode;
 
@@ -75,5 +76,6 @@ OSPMaterial MakeMaterial(vtkOSPRayRendererNode* orn, OSPRenderer oRenderer, std:
 OSPMaterial NewMaterial(vtkOSPRayRendererNode* orn, OSPRenderer oRenderer, std::string ospMatName);
 
 }
+VTK_ABI_NAMESPACE_END
 #endif
 // VTK-HeaderTest-Exclude: vtkOSPRayMaterialHelpers.h

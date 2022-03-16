@@ -32,6 +32,7 @@
 #include <sstream>
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace equalizer
 {
 struct EqualizerPoint
@@ -480,3 +481,4 @@ void vtkEqualizerContextItem::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "Pen = " << this->Pen << endl;
   os << indent << "Brush = " << this->Brush << endl;
 }
+VTK_ABI_NAMESPACE_END

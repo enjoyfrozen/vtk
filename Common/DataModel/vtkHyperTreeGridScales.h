@@ -29,8 +29,11 @@
 #ifndef vtkHyperTreeGridScales_h
 #define vtkHyperTreeGridScales_h
 
+#include "vtkABINamespace.h"
+
 #include <vector> // For std::vector
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkHyperTreeGridScales
 {
 public:
@@ -140,5 +143,6 @@ private:
   mutable std::vector<double> CellScales;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif
 // VTK-HeaderTest-Exclude: vtkHyperTreeGridScales.h

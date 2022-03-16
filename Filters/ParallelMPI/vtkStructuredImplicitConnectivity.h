@@ -43,6 +43,7 @@
 #include "vtkObject.h"
 
 // Forward declarations
+VTK_ABI_NAMESPACE_BEGIN
 class vtkDataArray;
 class vtkImageData;
 class vtkMPIController;
@@ -217,4 +218,5 @@ private:
   vtkStructuredImplicitConnectivity(const vtkStructuredImplicitConnectivity&) = delete;
   void operator=(const vtkStructuredImplicitConnectivity&) = delete;
 };
+VTK_ABI_NAMESPACE_END
 #endif

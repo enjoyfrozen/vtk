@@ -33,6 +33,7 @@
 #include "schema/VTXSchema.h"
 #include <adios2.h>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtx
 {
 
@@ -94,4 +95,5 @@ private:
 
 } // end namespace adios2vtk
 
+VTK_ABI_NAMESPACE_END
 #endif /* VTK_IO_ADIOS2_VTX_VTXSchemaManager_h */

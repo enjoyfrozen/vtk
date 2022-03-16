@@ -30,6 +30,7 @@
 #include "vtksys/FStream.hxx"
 #include "vtksys/SystemTools.hxx"
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace omf
 {
 
@@ -391,3 +392,4 @@ std::vector<std::string> OMFFile::ReadStringArrayFromStream(const std::string& u
 }
 
 } // end namespace omf
+VTK_ABI_NAMESPACE_END

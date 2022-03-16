@@ -15,13 +15,16 @@
 // Instantiate superclass first to give the template a DLL interface.
 #define VTK_AOS_DATA_ARRAY_TEMPLATE_INSTANTIATING
 #include "vtkAOSDataArrayTemplate.txx"
+VTK_ABI_NAMESPACE_BEGIN
 VTK_AOS_DATA_ARRAY_TEMPLATE_INSTANTIATE(unsigned int);
 
+VTK_ABI_NAMESPACE_END
 #include "vtkUnsignedIntArray.h"
 
 #include "vtkObjectFactory.h"
 
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkUnsignedIntArray);
 vtkStandardExtendedNewMacro(vtkUnsignedIntArray);
 
@@ -36,3 +39,4 @@ void vtkUnsignedIntArray::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->RealSuperclass::PrintSelf(os, indent);
 }
+VTK_ABI_NAMESPACE_END

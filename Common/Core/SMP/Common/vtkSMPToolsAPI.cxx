@@ -22,6 +22,7 @@
 #include <iostream>  // For std::cerr
 #include <string>    // For std::string
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtk
 {
 namespace detail
@@ -220,3 +221,4 @@ bool vtkSMPToolsAPI::IsParallelScope()
 } // namespace smp
 } // namespace detail
 } // namespace vtk
+VTK_ABI_NAMESPACE_END

@@ -49,6 +49,7 @@
 
 #include <algorithm> // for min(), max()
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace
 {
 template <typename ValueType>
@@ -2004,3 +2005,4 @@ void vtkDataArray::PrintSelf(ostream& os, vtkIndent indent)
     os << indent << "LookupTable: (none)\n";
   }
 }
+VTK_ABI_NAMESPACE_END

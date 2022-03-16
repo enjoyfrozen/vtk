@@ -22,6 +22,7 @@
 #include "vtkObjectFactory.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkTransformToGrid);
 
 vtkCxxSetObjectMacro(vtkTransformToGrid, Input, vtkAbstractTransform);
@@ -460,3 +461,4 @@ int vtkTransformToGrid::FillOutputPortInformation(int vtkNotUsed(port), vtkInfor
   info->Set(vtkDataObject::DATA_TYPE_NAME(), "vtkImageData");
   return 1;
 }
+VTK_ABI_NAMESPACE_END

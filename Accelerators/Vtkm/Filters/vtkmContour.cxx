@@ -37,6 +37,7 @@
 #include <vtkm/cont/ErrorFilterExecution.h>
 #include <vtkm/filter/Contour.h>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkmContour);
 
 //------------------------------------------------------------------------------
@@ -179,3 +180,4 @@ int vtkmContour::RequestData(
   // we got this far, everything is good
   return 1;
 }
+VTK_ABI_NAMESPACE_END

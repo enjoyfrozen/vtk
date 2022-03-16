@@ -35,6 +35,7 @@
 
 using namespace vtkParticleTracerBaseNamespace;
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkPParticleTracerBase::vtkPParticleTracerBase()
 {
   this->Controller = nullptr;
@@ -528,3 +529,4 @@ bool vtkPParticleTracerBase::IsPointDataValid(vtkDataObject* input)
 //------------------------------------------------------------------------------
 vtkCxxSetObjectMacro(vtkPParticleTracerBase, Controller, vtkMultiProcessController);
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_END

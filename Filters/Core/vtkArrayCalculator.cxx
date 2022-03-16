@@ -34,6 +34,7 @@
 #include "vtkTable.h"
 #include "vtkUnstructuredGrid.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkArrayCalculator);
 
 vtkArrayCalculator::vtkArrayCalculator()
@@ -1103,3 +1104,4 @@ void vtkArrayCalculator::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "Replace Invalid Values: " << (this->ReplaceInvalidValues ? "On" : "Off") << endl;
   os << indent << "Replacement Value: " << this->ReplacementValue << endl;
 }
+VTK_ABI_NAMESPACE_END

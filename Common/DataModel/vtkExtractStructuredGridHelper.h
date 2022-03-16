@@ -34,6 +34,7 @@
 #include "vtkObject.h"
 
 // Forward declarations
+VTK_ABI_NAMESPACE_BEGIN
 class vtkCellData;
 class vtkPointData;
 class vtkPoints;
@@ -227,4 +228,5 @@ private:
   void operator=(const vtkExtractStructuredGridHelper&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif /* VTKEXTRACTSTRUCTUREDGRIDHELPER_H_ */

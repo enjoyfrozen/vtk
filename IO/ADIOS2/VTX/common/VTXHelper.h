@@ -41,6 +41,7 @@
 
 #include <adios2.h>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtx
 {
 namespace helper
@@ -221,6 +222,7 @@ bool EndsWith(const std::string& input, const std::string& ends) noexcept;
 } // end namespace helper
 } // end namespace vtx
 
+VTK_ABI_NAMESPACE_END
 #include "VTXHelper.inl"
 
 #endif /* VTK_IO_ADIOS2_VTX_COMMON_VTXHelper_h */

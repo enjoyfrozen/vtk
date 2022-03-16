@@ -36,6 +36,7 @@
 #include <iostream>
 #include <set>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkPIOReader);
 vtkCxxSetObjectMacro(vtkPIOReader, Controller, vtkMultiProcessController);
 
@@ -394,3 +395,4 @@ void vtkPIOReader::PrintSelf(ostream& os, vtkIndent indent)
 
   this->Superclass::PrintSelf(os, indent);
 }
+VTK_ABI_NAMESPACE_END

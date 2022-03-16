@@ -32,6 +32,7 @@
 #define KMIN(ext) ext[4]
 #define KMAX(ext) ext[5]
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace AMRBlockFace
 {
 enum
@@ -2128,3 +2129,4 @@ void vtkStructuredAMRGridConnectivity::ComputeWholeExtent()
   this->DataDescription = vtkStructuredData::GetDataDescriptionFromExtent(this->WholeExtent);
   this->DataDimension = vtkStructuredData::GetDataDimension(this->DataDescription);
 }
+VTK_ABI_NAMESPACE_END

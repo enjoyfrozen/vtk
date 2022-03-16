@@ -37,6 +37,7 @@
 #include "vtkScalarsToColors.h"    // For VTK_COLOR_MODE_DEFAULT and _MAP_SCALARS
 #include "vtkStdString.h"          // For color array name
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkCharArray;
 class vtkContext2D;
 class vtkTable;
@@ -290,4 +291,5 @@ private:
   void operator=(const vtkPlotPoints&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkPlotPoints_h

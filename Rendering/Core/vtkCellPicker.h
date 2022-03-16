@@ -44,6 +44,7 @@
 #include "vtkPicker.h"
 #include "vtkRenderingCoreModule.h" // For export macro
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkMapper;
 class vtkTexture;
 class vtkAbstractHyperTreeGridMapper;
@@ -350,4 +351,5 @@ private:
   void operator=(const vtkCellPicker&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

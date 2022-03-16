@@ -29,6 +29,7 @@
 #include "vtkDataSetAttributes.h"
 #include "vtkDeprecation.h" // for VTK_DEPRECATED_IN_9_1_0
 
+VTK_ABI_NAMESPACE_BEGIN
 class VTKCOMMONDATAMODEL_EXPORT vtkPointData : public vtkDataSetAttributes
 {
 public:
@@ -49,4 +50,5 @@ private:
   void operator=(const vtkPointData&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

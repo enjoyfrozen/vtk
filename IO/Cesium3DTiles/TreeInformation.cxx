@@ -38,6 +38,7 @@
 
 using namespace nlohmann;
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace
 {
 //------------------------------------------------------------------------------
@@ -529,3 +530,4 @@ std::array<double, 6> TreeInformation::ExpandBounds(double* first, double* secon
     std::min(first[2], second[2]), std::max(first[3], second[3]), std::min(first[4], second[4]),
     std::max(first[5], second[5]) };
 }
+VTK_ABI_NAMESPACE_END

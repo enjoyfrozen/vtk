@@ -38,6 +38,7 @@ PURPOSE.  See the above copyright notice for more information.
 #include <set>
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkOrderStatistics);
 
 //------------------------------------------------------------------------------
@@ -976,3 +977,4 @@ void vtkOrderStatistics::SelectAssessFunctor(
       << quantiles->GetClassName() << ". Ignoring it.");
   }
 }
+VTK_ABI_NAMESPACE_END

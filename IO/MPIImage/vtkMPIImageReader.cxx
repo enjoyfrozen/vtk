@@ -74,6 +74,7 @@
 #endif // VTK_USE_MPI_IO
 
 //=============================================================================
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkMPIImageReader);
 
 vtkCxxSetObjectMacro(vtkMPIImageReader, Controller, vtkMultiProcessController);
@@ -518,3 +519,4 @@ void vtkMPIImageReader::ExecuteDataWithInformation(vtkDataObject* output, vtkInf
   this->Superclass::ExecuteDataWithInformation(output, outInfo);
 #endif // VTK_USE_MPI_IO
 }
+VTK_ABI_NAMESPACE_END

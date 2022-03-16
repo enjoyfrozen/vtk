@@ -55,6 +55,7 @@
 #include VTK_DIY2(diy/mpi.hpp)
 // clang-format off
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace
 {
 //@{
@@ -6112,3 +6113,4 @@ int vtkDIYGhostUtilities::GenerateGhostCellsUnstructuredGrid(
 {
   return vtkDIYGhostUtilities::GenerateGhostCells(inputs, outputs, outputGhostLevels, controller);
 }
+VTK_ABI_NAMESPACE_END

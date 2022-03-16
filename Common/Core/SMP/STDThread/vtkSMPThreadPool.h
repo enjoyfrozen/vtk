@@ -33,6 +33,7 @@
 #include <queue>              // For std::queue
 #include <thread>             // For std::thread
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtk
 {
 namespace detail
@@ -63,4 +64,5 @@ private:
 } // namespace detail
 } // namespace vtk
 
+VTK_ABI_NAMESPACE_END
 #endif

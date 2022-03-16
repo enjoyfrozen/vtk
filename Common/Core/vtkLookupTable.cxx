@@ -24,6 +24,7 @@
 
 #include <cassert>
 
+VTK_ABI_NAMESPACE_BEGIN
 const vtkIdType vtkLookupTable::REPEATED_LAST_COLOR_INDEX = 0;
 const vtkIdType vtkLookupTable::BELOW_RANGE_COLOR_INDEX = 1;
 const vtkIdType vtkLookupTable::ABOVE_RANGE_COLOR_INDEX = 2;
@@ -1457,3 +1458,4 @@ void vtkLookupTable::ResizeTableForSpecialColors()
     this->Table->Resize(neededColors);
   }
 }
+VTK_ABI_NAMESPACE_END

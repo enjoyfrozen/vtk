@@ -22,6 +22,7 @@
 
 #include <algorithm>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace CGNSRead
 {
 //------------------------------------------------------------------------------
@@ -1274,3 +1275,4 @@ bool ReadPatch(vtkCGNSReader* reader, const BaseInformation&, const ZoneInformat
 }
 
 } // end of namespace
+VTK_ABI_NAMESPACE_END

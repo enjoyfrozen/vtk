@@ -24,6 +24,7 @@
 
 #include <algorithm> //std::sort
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkPointLocator);
 
 static const int VTK_INITIAL_SIZE = 1000;
@@ -1714,3 +1715,4 @@ void vtkPointLocator::PrintSelf(ostream& os, vtkIndent indent)
     os << indent << "Points: (none)\n";
   }
 }
+VTK_ABI_NAMESPACE_END

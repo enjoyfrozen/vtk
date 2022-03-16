@@ -2,6 +2,7 @@
 // Super cursor traversal table to retrieve the child index for each cursor
 // of the parent node. There are (3*f)^d entries in the table.
 // d = 1 f = 2
+VTK_ABI_NAMESPACE_BEGIN
 static const unsigned int MooreChildCursorToChildTable12[6] = {
   1, 0, 1,
   0, 1, 0,
@@ -220,3 +221,4 @@ static const unsigned int* CornerNeighborCursorsTable3D[8] = {
   CornerNeighborCursorsTable3D7,
 };
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_END

@@ -38,6 +38,7 @@
 #include "vtkAcceleratorsVTKmFiltersModule.h" // for export macro
 #include "vtkExtractVOI.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class VTKACCELERATORSVTKMFILTERS_EXPORT vtkmExtractVOI : public vtkExtractVOI
 {
 public:
@@ -70,4 +71,5 @@ private:
   void operator=(const vtkmExtractVOI&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkmExtractVOI_h

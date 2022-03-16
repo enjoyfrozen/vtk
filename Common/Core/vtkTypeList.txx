@@ -18,6 +18,7 @@
 
 #include "vtkTypeList.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtkTypeList
 {
 
@@ -379,4 +380,5 @@ struct Append<vtkTypeList::TypeList<Head, Tail>, T>
 
 }
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkTypeList_txx

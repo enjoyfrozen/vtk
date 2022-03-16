@@ -23,6 +23,7 @@
 #include <type_traits>
 #include <utility>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtk
 {
 
@@ -92,6 +93,7 @@ auto Range(IterablePtr iterable, Options&&... opts) ->
 
 } // end namespace vtk
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkRange_h
 
 // VTK-HeaderTest-Exclude: vtkRange.h

@@ -25,6 +25,7 @@
 #include "vtkDomainsChemistryModule.h" // For export macro
 #include "vtkNew.h"                    // for vtkNew
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace OpenQube
 {
 class BasisSet;
@@ -143,4 +144,5 @@ private:
   void operator=(const vtkOpenQubeElectronicData&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

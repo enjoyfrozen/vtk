@@ -32,6 +32,7 @@
 // Disable this specialization when iterator debugging is requested:
 #ifndef VTK_DEBUG_RANGE_ITERATORS
 
+VTK_ABI_NAMESPACE_BEGIN
 VTK_ITER_OPTIMIZE_START
 
 namespace vtk
@@ -993,6 +994,7 @@ TupleRange<AOSArrayType, TupleSize> DeclareTupleRangeSpecialization(ArrayType*);
 
 VTK_ITER_OPTIMIZE_END
 
+VTK_ABI_NAMESPACE_END
 #endif // VTK_DEBUG_RANGE_ITERATORS
 #endif // vtkDataArrayTupleRange_AOS_h
 

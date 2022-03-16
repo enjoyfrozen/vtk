@@ -50,6 +50,7 @@ typedef Py_intptr_t Py_ssize_t;
 #endif
 
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_BEGIN
 vtkMatplotlibMathTextUtilities::Availability vtkMatplotlibMathTextUtilities::MPLMathTextAvailable =
   vtkMatplotlibMathTextUtilities::NOT_TESTED;
 
@@ -1610,3 +1611,4 @@ void vtkMatplotlibMathTextUtilities::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "PathParser: " << this->PathParser << endl;
   os << indent << "FontPropertiesClass: " << this->FontPropertiesClass << endl;
 }
+VTK_ABI_NAMESPACE_END

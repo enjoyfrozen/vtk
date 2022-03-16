@@ -30,6 +30,7 @@
 
 #include <adios2.h>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtx
 {
 namespace types
@@ -64,4 +65,5 @@ using Piece = std::map<DataSetType, DataSet>;
 } // end namespace types
 } // end namespace vtx
 
+VTK_ABI_NAMESPACE_END
 #endif /* VTK_IO_ADIOS2_VTX_COMMON_VTXTypes_h */

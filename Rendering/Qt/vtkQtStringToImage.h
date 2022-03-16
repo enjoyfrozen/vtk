@@ -28,6 +28,7 @@
 #include "vtkSmartPointer.h"      // For SP ivars
 #include "vtkStringToImage.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkQImageToImageSource;
 
 class VTKRENDERINGQT_EXPORT vtkQtStringToImage : public vtkStringToImage
@@ -88,4 +89,5 @@ private:
   void operator=(const vtkQtStringToImage&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkQtStringToImage_h

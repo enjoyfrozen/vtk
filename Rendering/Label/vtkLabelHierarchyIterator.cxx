@@ -38,6 +38,7 @@
 #include "vtkPoints.h"
 #include "vtkPolyData.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkCxxSetObjectMacro(vtkLabelHierarchyIterator, Hierarchy, vtkLabelHierarchy);
 vtkCxxSetObjectMacro(vtkLabelHierarchyIterator, TraversedBounds, vtkPolyData);
 
@@ -305,3 +306,4 @@ void vtkLabelHierarchyIterator::BoxNodeInternal2(const double* ctr, double sz)
     this->TraversedBounds->InsertNextCell(VTK_LINE, 2, econn);
   }
 }
+VTK_ABI_NAMESPACE_END

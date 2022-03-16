@@ -29,6 +29,7 @@
 #include <cmath>
 #include <limits>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkHyperTreeGridThreshold);
 
 //------------------------------------------------------------------------------
@@ -316,3 +317,4 @@ bool vtkHyperTreeGridThreshold::RecursivelyProcessTreeWithCreateNewMask(
   // Return whether current node is within range
   return discard;
 }
+VTK_ABI_NAMESPACE_END

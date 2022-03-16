@@ -23,6 +23,7 @@
 #include "vtkPointData.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkImageContinuousDilate3D);
 
 //------------------------------------------------------------------------------
@@ -322,3 +323,4 @@ int vtkImageContinuousDilate3D::RequestData(
   this->Ellipse->Update();
   return this->Superclass::RequestData(request, inputVector, outputVector);
 }
+VTK_ABI_NAMESPACE_END

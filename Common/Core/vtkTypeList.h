@@ -50,8 +50,10 @@
 #ifndef vtkTypeList_h
 #define vtkTypeList_h
 
+#include "vtkABINamespace.h"
 #include "vtkTypeListMacros.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtkTypeList
 {
 
@@ -165,8 +167,10 @@ struct Append;
 
 } // end namespace vtkTypeList
 
+VTK_ABI_NAMESPACE_END
 #include "vtkTypeList.txx"
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtkTypeList
 {
 
@@ -175,5 +179,6 @@ using Create = typename vtkTypeList::detail::CreateImpl<Ts...>::type;
 
 } // end namespace vtkTypeList
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkTypeList_h
 // VTK-HeaderTest-Exclude: vtkTypeList.h

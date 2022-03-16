@@ -33,6 +33,7 @@
 #include <set>
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace
 {
 class vtkScopedFieldDataCopier
@@ -370,3 +371,4 @@ void vtkExtractBlockUsingDataAssembly::PrintSelf(ostream& os, vtkIndent indent)
     os << indent.GetNextIndent() << selector.c_str() << endl;
   }
 }
+VTK_ABI_NAMESPACE_END

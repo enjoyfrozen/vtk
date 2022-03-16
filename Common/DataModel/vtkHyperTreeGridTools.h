@@ -16,6 +16,9 @@
 #ifndef vtkHyperTreeGridTools_h
 #define vtkHyperTreeGridTools_h
 
+#include "vtkABINamespace.h"
+
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtk
 {
 namespace hypertreegrid
@@ -30,5 +33,6 @@ bool HasTree(const T& e)
 } // namespace hypertreegrid
 } // namespace vtk
 
+VTK_ABI_NAMESPACE_END
 #endif // vtHyperTreeGridTools_h
 // VTK-HeaderTest-Exclude: vtkHyperTreeGridTools.h

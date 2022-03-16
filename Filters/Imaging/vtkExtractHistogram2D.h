@@ -51,6 +51,7 @@
 #include "vtkFiltersImagingModule.h" // For export macro
 #include "vtkStatisticsAlgorithm.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkImageData;
 class vtkIdTypeArray;
 class vtkMultiBlockDataSet;
@@ -237,4 +238,5 @@ private:
   void operator=(const vtkExtractHistogram2D&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

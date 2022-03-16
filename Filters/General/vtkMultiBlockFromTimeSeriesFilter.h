@@ -30,6 +30,7 @@
 
 #include <vector> // Vector to hold timesteps
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkMultiBlockDataSet;
 
 class VTK_DEPRECATED_IN_9_1_0(
@@ -60,6 +61,7 @@ private:
   vtkSmartPointer<vtkMultiBlockDataSet> TempDataset;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif
 
 // VTK-HeaderTest-Exclude: vtkMultiBlockFromTimeSeriesFilter.h

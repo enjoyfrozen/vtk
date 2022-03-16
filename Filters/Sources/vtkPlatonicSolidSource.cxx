@@ -22,6 +22,7 @@
 #include "vtkPoints.h"
 #include "vtkPolyData.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkPlatonicSolidSource);
 
 // Wrapping this in namespaces because the short names (a, b, c, etc) are
@@ -314,3 +315,4 @@ void vtkPlatonicSolidSource::PrintSelf(ostream& os, vtkIndent indent)
 
   os << indent << "Output Points Precision: " << this->OutputPointsPrecision << "\n";
 }
+VTK_ABI_NAMESPACE_END

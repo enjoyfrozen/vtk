@@ -24,6 +24,7 @@
 
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtkQuadraturePointsUtilities
 {
 
@@ -121,4 +122,5 @@ void ApplyShapeFunction(double* r, double N_j, T* A, int nComps)
 
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

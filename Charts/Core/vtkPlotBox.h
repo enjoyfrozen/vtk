@@ -29,6 +29,7 @@
 #include "vtkPlot.h"
 #include "vtkStdString.h" // For vtkStdString ivars
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkBrush;
 class vtkTextProperty;
 class vtkTable;
@@ -161,4 +162,5 @@ private:
   void operator=(const vtkPlotBox&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkPlotBox_h

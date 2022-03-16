@@ -72,6 +72,7 @@
 // Helper functions
 //------------------------------------------------------------------------------
 
+VTK_ABI_NAMESPACE_BEGIN
 bool StringEndsWith(const std::string& a, const std::string& b)
 {
   return a.size() >= b.size() && a.compare(a.size() - b.size(), b.size(), b) == 0;
@@ -1041,3 +1042,4 @@ void vtkADIOS2CoreImageReader::GatherTimeStepsFromADIOSTimeArray()
     vtkErrorMacro("Fail to gather time steps from time array " << this->TimeStepArray << ex.what());
   }
 }
+VTK_ABI_NAMESPACE_END

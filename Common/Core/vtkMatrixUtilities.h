@@ -27,8 +27,11 @@
 #ifndef vtkMatrixUtilities_h
 #define vtkMatrixUtilities_h
 
+#include "vtkABINamespace.h"
+
 #include <type_traits> // for type traits
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtkMatrixUtilities
 {
 //=============================================================================
@@ -354,6 +357,7 @@ public:
   }
 };
 } // namespace vtkMatrixUtilities
+VTK_ABI_NAMESPACE_END
 #endif
 
 // VTK-HeaderTest-Exclude: vtkMatrixUtilities.h

@@ -33,6 +33,7 @@
 
 #include "VTX/schema/vtk/VTXvtkBase.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtx
 {
 namespace schema
@@ -69,4 +70,5 @@ private:
 } // end namespace schema
 } // end namespace vtx
 
+VTK_ABI_NAMESPACE_END
 #endif /* VTK_IO_ADIOS2_VTX_SCHEMA_VTK_VTXxmlVTU_h */

@@ -43,6 +43,7 @@
 #include "vtkAcceleratorsVTKmFiltersModule.h" // required for correct export
 #include "vtkWarpScalar.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class VTKACCELERATORSVTKMFILTERS_EXPORT vtkmWarpScalar : public vtkWarpScalar
 {
 public:
@@ -62,4 +63,5 @@ private:
   void operator=(const vtkmWarpScalar&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkmWarpScalar_h

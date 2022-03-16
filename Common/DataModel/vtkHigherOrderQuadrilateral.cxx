@@ -32,6 +32,7 @@
 #include "vtkVector.h"
 #include "vtkVectorOperators.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkHigherOrderCurve* vtkHigherOrderQuadrilateral::getEdgeCell()
 {
   VTK_LEGACY_REPLACED_BODY(
@@ -624,3 +625,4 @@ const int* vtkHigherOrderQuadrilateral::GetOrder()
   }
   return this->Order;
 }
+VTK_ABI_NAMESPACE_END

@@ -38,6 +38,7 @@
 
 #define MAX_NUMBER_OF_THREADS_IN_POOL 32
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace detail
 {
 
@@ -338,3 +339,4 @@ void vtkDataEncoder::Finalize()
 {
   this->Internals.reset(new vtkDataEncoder::vtkInternals(0));
 }
+VTK_ABI_NAMESPACE_END

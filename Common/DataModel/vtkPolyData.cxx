@@ -41,6 +41,7 @@
 #include <stdexcept>
 
 // vtkPolyDataInternals.h methods:
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtkPolyData_detail
 {
 
@@ -2180,3 +2181,4 @@ vtkMTimeType vtkPolyData::GetMTime()
   }
   return time;
 }
+VTK_ABI_NAMESPACE_END

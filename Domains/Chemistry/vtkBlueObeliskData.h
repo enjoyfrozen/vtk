@@ -45,6 +45,7 @@
 
 #include <mutex> // for std::mutex
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkAbstractArray;
 class vtkFloatArray;
 class vtkStringArray;
@@ -215,4 +216,5 @@ private:
   void operator=(const vtkBlueObeliskData&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

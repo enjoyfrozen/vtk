@@ -124,6 +124,7 @@
     instance, #name, reinterpret_cast<PFN_xrVoidFunction*>(const_cast<PFN_##name*>(&name)));
 #define DEFINE_PROC_MEMBER(name) PFN_##name name{ nullptr };
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace xr
 {
 struct ExtensionDispatchTable
@@ -141,3 +142,4 @@ struct ExtensionDispatchTable
 #undef DEFINE_PROC_MEMBER
 #undef GET_INSTANCE_PROC_ADDRESS
 #undef FOR_EACH_EXTENSION_FUNCTION
+VTK_ABI_NAMESPACE_END

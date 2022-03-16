@@ -33,6 +33,7 @@
 
 #define CALL_MEMBER_FN(object, ptrToMember) ((object).*(ptrToMember))
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkPlot3DMetaReader);
 
 typedef void (vtkPlot3DMetaReader::*Plot3DFunction)(Json::Value* val);
@@ -486,3 +487,4 @@ void vtkPlot3DMetaReader::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 }
+VTK_ABI_NAMESPACE_END

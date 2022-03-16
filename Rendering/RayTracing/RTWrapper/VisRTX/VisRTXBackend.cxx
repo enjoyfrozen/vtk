@@ -22,6 +22,7 @@
 #include "Renderer.h"
 #include "Texture.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace RTW
 {
     RTWError VisRTXBackend::Init()
@@ -347,3 +348,4 @@ namespace RTW
         return reinterpret_cast<FrameBuffer*>(frameBuffer)->GetDepthTextureGL();
     }
 }
+VTK_ABI_NAMESPACE_END

@@ -30,6 +30,8 @@
 
 #include <algorithm> // for std::min and std::copy
 
+inline namespace vtk9
+{
 template <class ScalarTypeT>
 class vtkBuffer : public vtkObject
 {
@@ -262,5 +264,6 @@ bool vtkBuffer<ScalarT>::Reallocate(vtkIdType newsize)
   return true;
 }
 
+}
 #endif
 // VTK-HeaderTest-Exclude: vtkBuffer.h

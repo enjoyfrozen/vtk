@@ -29,9 +29,11 @@
 // structs working. We do not want to include XUtil.h in the header as
 // it populates the global namespace.
 #include <X11/Xutil.h>
+VTK_ABI_NAMESPACE_BEGIN
 struct vtkXVisualInfo : public XVisualInfo
 {
 };
+VTK_ABI_NAMESPACE_END
 #endif // VTK_USE_X
 
 #define VTK_CHECK_NULL_XRHANDLE(handle, msg)                                                       \
@@ -41,6 +43,7 @@ struct vtkXVisualInfo : public XVisualInfo
     return false;                                                                                  \
   }
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkOpenXRManager);
 
 vtkOpenXRManager* vtkOpenXRManager::UniqueInstance = nullptr;
@@ -1421,3 +1424,4 @@ bool vtkOpenXRManager::ApplyVibration(
   }
   return true;
 }
+VTK_ABI_NAMESPACE_END

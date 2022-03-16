@@ -28,6 +28,7 @@
 
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkOBBTree);
 
 #define vtkCELLTRIANGLES(CELLPTIDS, TYPE, IDX, PTID0, PTID1, PTID2)                                \
@@ -1915,3 +1916,4 @@ void vtkOBBTree::PrintSelf(ostream& os, vtkIndent indent)
 
   os << indent << "OBBCount " << this->OBBCount << "\n";
 }
+VTK_ABI_NAMESPACE_END

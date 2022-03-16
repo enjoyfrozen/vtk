@@ -37,6 +37,7 @@
 #define VTK_IMAGE_BORDER_REPEAT 1
 #define VTK_IMAGE_BORDER_MIRROR 2
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkDataObject;
 class vtkImageData;
 class vtkDataArray;
@@ -366,4 +367,5 @@ inline void vtkAbstractImageInterpolator::InterpolateRow(
   this->RowInterpolationFuncFloat(weights, xIdx, yIdx, zIdx, value, n);
 }
 
+VTK_ABI_NAMESPACE_END
 #endif

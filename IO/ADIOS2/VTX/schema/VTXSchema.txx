@@ -29,6 +29,7 @@
 
 #include "VTX/common/VTXHelper.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtx
 {
 
@@ -169,4 +170,5 @@ void VTXSchema::GetTimesCommon(const std::string& variableName)
 
 } // end namespace vtx
 
+VTK_ABI_NAMESPACE_END
 #endif /* VTK_IO_ADIOS2_SCHEMA_VTXSchema_tcc */

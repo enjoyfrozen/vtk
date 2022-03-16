@@ -347,6 +347,28 @@ if (VTK_VERSIONED_INSTALL)
   set(vtk_version_suffix "-${VTK_MAJOR_VERSION}.${VTK_MINOR_VERSION}")
 endif ()
 
+# Mangle VTK symbols
+set(VTK_ABI_NAMESPACE_NAME
+  "<DEFAULT>"
+  CACHE STRING "Inline namespace name for mangling VTK symbols.")
+if (VTK_ABI_NAMESPACE_NAME STREQUAL "<DEFAULT>")
+  set(VTK_ABI_NAMESPACE_NAME "vtk${VTK_MAJOR_VERSION}")
+endif ()
+mark_as_advanced(VTK_ABI_NAMESPACE_NAME)
+if (VTK_ABI_NAMESPACE_NAME)
+  set(VTK_ABI_NAMESPACE_BEGIN "inline namespace ${VTK_ABI_NAMESPACE_NAME} {")
+  set(VTK_ABI_NAMESPACE_END "}")
+else ()
+  set(VTK_ABI_NAMESPACE_BEGIN "")
+  set(VTK_ABI_NAMESPACE_END "")
+endif ()
+configure_file(
+  "${vtk_cmake_dir}/vtkABINamespace.h.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/vtkABINamespace.h")
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/vtkABINamespace.h"
+  DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/vtk${vtk_version_suffix}")
+
 set(vtk_install_export VTK)
 if (NOT DEFINED vtk_cmake_destination)
   set(vtk_cmake_destination

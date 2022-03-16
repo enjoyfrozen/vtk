@@ -32,6 +32,7 @@
 
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkStaticPointLocator);
 
 // There are stack-allocated bucket neighbor lists. This is the initial
@@ -2379,3 +2380,4 @@ void vtkStaticPointLocator::PrintSelf(ostream& os, vtkIndent indent)
 
   os << indent << "Traversal Order: " << (this->TraversalOrder ? "On\n" : "Off\n");
 }
+VTK_ABI_NAMESPACE_END

@@ -12,6 +12,7 @@
 #include <sstream>
 #include <string>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace RTW
 {
     class Material : public Object
@@ -427,3 +428,4 @@ namespace RTW
         VisRTX::Material* material = nullptr;
         };
     }
+VTK_ABI_NAMESPACE_END

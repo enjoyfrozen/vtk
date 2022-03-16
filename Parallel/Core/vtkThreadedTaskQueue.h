@@ -61,6 +61,7 @@
 #include <thread>
 
 #if !defined(__WRAP__)
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtkThreadedTaskQueueInternals
 {
 template <typename R>
@@ -159,6 +160,7 @@ private:
   std::unique_ptr<std::thread[]> Threads;
 };
 
+VTK_ABI_NAMESPACE_END
 #include "vtkThreadedTaskQueue.txx"
 
 #endif // !defined(__WRAP__)

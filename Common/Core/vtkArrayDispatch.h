@@ -199,6 +199,7 @@
 #include "vtkType.h"
 #include "vtkTypeList.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtkArrayDispatch
 {
 
@@ -417,6 +418,7 @@ struct FilterArraysByValueType;
 
 } // end namespace vtkArrayDispatch
 
+VTK_ABI_NAMESPACE_END
 #include "vtkArrayDispatch.txx"
 
 #endif // vtkArrayDispatch_h

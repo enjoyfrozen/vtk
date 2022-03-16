@@ -49,6 +49,7 @@
 
 //------------------------------------------------------------------------------
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkGradientFilter);
 
 namespace
@@ -1488,3 +1489,4 @@ void ComputeGradientsSG(GridT* output, DataT* array, DataT* gradients, int numCo
 }
 
 } // end anonymous namespace
+VTK_ABI_NAMESPACE_END

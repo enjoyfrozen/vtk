@@ -63,6 +63,7 @@
 #include <numeric>
 #include <unordered_map>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace
 {
 inline int sizeofFastQuad(int numPts)
@@ -2812,3 +2813,4 @@ void vtkDataSetSurfaceFilter::UseStripsOff()
 {
   VTK_LEGACY_BODY(vtkDataSetSurfaceFilter::UseStripsOff, "VTK 9.1");
 }
+VTK_ABI_NAMESPACE_END

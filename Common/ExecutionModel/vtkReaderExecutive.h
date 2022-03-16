@@ -37,6 +37,7 @@
 #include "vtkDeprecation.h"                // for deprecation macros
 #include "vtkStreamingDemandDrivenPipeline.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 VTK_DEPRECATED_IN_9_1_0("no longer needed")
 class VTKCOMMONEXECUTIONMODEL_EXPORT vtkReaderExecutive : public vtkStreamingDemandDrivenPipeline
 {
@@ -54,4 +55,5 @@ private:
   void operator=(const vtkReaderExecutive&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

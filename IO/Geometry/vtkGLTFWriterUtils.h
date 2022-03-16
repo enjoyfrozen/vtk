@@ -32,6 +32,7 @@
 #include "vtk_jsoncpp_fwd.h" // For Json forward declaration
 #include <ostream>
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkBase64OutputStream;
 class vtkCellArray;
 class vtkDataArray;
@@ -66,6 +67,7 @@ public:
 #define GL_NEAREST 0x2600
 #define GL_LINEAR 0x2601
 
+VTK_ABI_NAMESPACE_END
 #endif
 
 // VTK-HeaderTest-Exclude: vtkGLTFWriterUtils.h

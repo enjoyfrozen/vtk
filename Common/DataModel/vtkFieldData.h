@@ -49,6 +49,7 @@
 
 #include "vtkAbstractArray.h" // Needed for inline methods.
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkIdList;
 
 class VTKCOMMONDATAMODEL_EXPORT vtkFieldData : public vtkObject
@@ -468,4 +469,5 @@ public:
   };
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

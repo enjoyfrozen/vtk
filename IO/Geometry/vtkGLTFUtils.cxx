@@ -26,6 +26,7 @@
 
 #define MIN_GLTF_VERSION "2.0"
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_BEGIN
 bool vtkGLTFUtils::GetBoolValue(const Json::Value& root, bool& value)
 {
   if (root.empty() || !root.isBool())
@@ -355,3 +356,4 @@ bool vtkGLTFUtils::ValidateGLBFile(const std::string& magic, uint32_t version, u
   // Check for inconsistent chunk sizes
   return fileLength == lengthSum;
 }
+VTK_ABI_NAMESPACE_END

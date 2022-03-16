@@ -45,6 +45,7 @@
 #include <sstream>
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkVASPTessellationReader);
 
 typedef vtksys::RegularExpression RegEx;
@@ -622,3 +623,4 @@ bool vtkVASPTessellationReader::ReadTimeStep(
 
   return true;
 }
+VTK_ABI_NAMESPACE_END

@@ -63,6 +63,7 @@
 #include "vtkCommonDataModelModule.h" // For export macro
 #include "vtkObject.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkDataSet;
 class vtkPolyData;
 
@@ -187,4 +188,5 @@ private:
   void operator=(const vtkLocator&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

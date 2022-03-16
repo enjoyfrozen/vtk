@@ -26,6 +26,7 @@
 #include "vtkNew.h"          // For member variable.
 #include "vtkSmartPointer.h" // For member variable.
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkCellData;
 class vtkDoubleArray;
 class vtkIdList;
@@ -67,4 +68,5 @@ private:
   void operator=(const vtkBezierCurve&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkBezierCurve_h

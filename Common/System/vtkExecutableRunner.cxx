@@ -21,6 +21,7 @@
 #include <string>
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace details
 {
 // trim strings. This should go in vtksys at some point
@@ -194,3 +195,4 @@ void vtkExecutableRunner::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "Timeout: " << this->GetTimeout() << std::endl;
   os << indent << "RightTrimResult: " << this->GetRightTrimResult() << std::endl;
 }
+VTK_ABI_NAMESPACE_END

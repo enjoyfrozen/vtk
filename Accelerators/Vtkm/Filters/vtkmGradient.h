@@ -36,6 +36,7 @@
 #include "vtkAcceleratorsVTKmFiltersModule.h" //required for correct implementation
 #include "vtkGradientFilter.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class VTKACCELERATORSVTKMFILTERS_EXPORT vtkmGradient : public vtkGradientFilter
 {
 public:
@@ -68,4 +69,5 @@ private:
   void operator=(const vtkmGradient&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkmGradient_h

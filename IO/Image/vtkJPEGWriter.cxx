@@ -27,6 +27,7 @@ extern "C"
 #include "vtk_jpeg.h"
 #include <csetjmp>
 }
+VTK_ABI_NAMESPACE_BEGIN
 
 vtkStandardNewMacro(vtkJPEGWriter);
 
@@ -124,6 +125,7 @@ void vtkJPEGWriter::Write()
   delete[] this->InternalFileName;
   this->InternalFileName = nullptr;
 }
+VTK_ABI_NAMESPACE_END
 
 // these three routines are for writing into memory
 extern "C"
@@ -191,6 +193,8 @@ extern "C"
 #endif
 #endif
 
+VTK_ABI_NAMESPACE_BEGIN
+
 struct VTK_JPEG_ERROR_MANAGER
 {
   struct jpeg_error_mgr pub;
@@ -198,6 +202,7 @@ struct VTK_JPEG_ERROR_MANAGER
 };
 
 typedef struct VTK_JPEG_ERROR_MANAGER* VTK_JPEG_ERROR_PTR;
+VTK_ABI_NAMESPACE_END
 
 extern "C"
 {
@@ -210,6 +215,7 @@ extern "C"
   }
 }
 
+VTK_ABI_NAMESPACE_BEGIN
 // we disable this warning because even though this is a C++ file, between
 // the setjmp and resulting longjmp there should not be any C++ constructors
 // or destructors.
@@ -360,3 +366,4 @@ void vtkJPEGWriter::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "Progressive: " << (this->Progressive ? "On" : "Off") << "\n";
   os << indent << "Result: " << this->Result << "\n";
 }
+VTK_ABI_NAMESPACE_END

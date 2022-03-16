@@ -67,6 +67,7 @@
 #include VTK_DIY2(diy/assigner.hpp)
 // clang-format on
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace
 {
 constexpr char SPHERE_RADIUS_ARRAY_NAME[21] = "SphereRadius";
@@ -838,3 +839,4 @@ void vtkOverlappingCellsDetector::PrintSelf(ostream& os, vtkIndent indent)
      << std::endl;
   os << indent << "Tolerance: " << this->Tolerance << std::endl;
 }
+VTK_ABI_NAMESPACE_END

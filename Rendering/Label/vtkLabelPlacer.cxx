@@ -48,6 +48,7 @@
 
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkLabelPlacer);
 vtkCxxSetObjectMacro(vtkLabelPlacer, AnchorTransform, vtkCoordinate);
 
@@ -846,3 +847,4 @@ int vtkLabelPlacer::RequestData(vtkInformation* vtkNotUsed(request),
 
   return 1;
 }
+VTK_ABI_NAMESPACE_END

@@ -35,6 +35,7 @@
 #include "vtkDeprecation.h"           // For VTK_DEPRECATED_IN_9_1_0
 #include "vtkHigherOrderTetra.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkTetra;
 class vtkBezierCurve;
 class vtkBezierTriangle;
@@ -76,4 +77,5 @@ private:
   void operator=(const vtkBezierTetra&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

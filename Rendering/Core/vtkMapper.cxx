@@ -32,6 +32,7 @@
 #include "vtkVariantArray.h"
 
 // Initialize static member that controls global coincidence resolution
+VTK_ABI_NAMESPACE_BEGIN
 static int vtkMapperGlobalResolveCoincidentTopology = VTK_RESOLVE_OFF;
 static double vtkMapperGlobalResolveCoincidentTopologyZShift = 0.01;
 static int vtkMapperGlobalResolveCoincidentTopologyPolygonOffsetFaces = 1;
@@ -1045,3 +1046,4 @@ vtkImageData* vtkMapper::GetColorTextureMap()
 {
   return this->ColorTextureMap;
 }
+VTK_ABI_NAMESPACE_END

@@ -41,6 +41,7 @@
 
 #include "vtkSmartPointer.h" // For vtkSmartPointer
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkAbstractArray;
 class vtkBlueObeliskData;
 class vtkFloatArray;
@@ -176,4 +177,5 @@ private:
   ///@}
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

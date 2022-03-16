@@ -29,6 +29,7 @@
 #include "vtkWidgetEvent.h"
 #include "vtkWidgetEventTranslator.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkImplicitPlaneWidget2);
 
 // The implicit plane widget observes its representation. The representation
@@ -584,3 +585,4 @@ void vtkImplicitPlaneWidget2::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 }
+VTK_ABI_NAMESPACE_END

@@ -42,6 +42,7 @@
 
 #include <vector> // For Weights
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkCellArray;
 class vtkGenericCell;
 class vtkIdList;
@@ -307,4 +308,5 @@ private:
   void operator=(const vtkAbstractCellLocator&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

@@ -23,6 +23,7 @@
 #include <cstdarg>
 #include <cstdio>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtkMPIUtilities
 {
 
@@ -111,3 +112,4 @@ void SynchronizedPrintf(vtkMPIController* comm, const char* format, ...)
 }
 
 } // END namespace vtkMPIUtilities
+VTK_ABI_NAMESPACE_END

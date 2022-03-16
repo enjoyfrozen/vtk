@@ -33,6 +33,7 @@
 
 #include <map>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkFeatureEdges);
 
 namespace
@@ -67,10 +68,12 @@ vtkFeatureEdges::~vtkFeatureEdges()
   }
 }
 
+VTK_ABI_NAMESPACE_END
 #include "vtkLogger.h"
 
 //------------------------------------------------------------------------------
 // Generate feature edges for mesh
+VTK_ABI_NAMESPACE_BEGIN
 int vtkFeatureEdges::RequestData(vtkInformation* vtkNotUsed(request),
   vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
@@ -624,3 +627,4 @@ void vtkFeatureEdges::PrintSelf(ostream& os, vtkIndent indent)
 
   os << indent << "Output Points Precision: " << this->OutputPointsPrecision << "\n";
 }
+VTK_ABI_NAMESPACE_END

@@ -54,8 +54,11 @@ SOFTWARE.
 #ifndef vtkCIEDE2000_h
 #define vtkCIEDE2000_h
 
+#include "vtkABINamespace.h"
+
 #include <vector> // needed for std::vector
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace CIEDE2000
 {
 /**
@@ -86,5 +89,6 @@ double GetColorPath(const double rgb1[3], const double rgb2[3], std::vector<Node
   bool forceExactSupportColors);
 }
 
+VTK_ABI_NAMESPACE_END
 #endif
 // VTK-HeaderTest-Exclude: vtkCIEDE2000.h

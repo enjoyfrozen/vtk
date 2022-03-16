@@ -58,6 +58,7 @@
 // clang-format on
 
 //============================================================================
+VTK_ABI_NAMESPACE_BEGIN
 template <>
 struct vtkDIYGhostUtilities::DataSetTypeToBlockTypeConverter<vtkImageData>
 {
@@ -628,4 +629,5 @@ int vtkDIYGhostUtilities::GenerateGhostCells(std::vector<DataSetT*>& inputs,
   return 1;
 }
 
+VTK_ABI_NAMESPACE_END
 #endif

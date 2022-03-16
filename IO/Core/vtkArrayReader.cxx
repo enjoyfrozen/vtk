@@ -36,6 +36,7 @@
 #include <stdexcept>
 #include <string>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkArrayReader);
 
 namespace
@@ -658,3 +659,4 @@ vtkArray* vtkArrayReader::Read(istream& stream)
 
   return nullptr;
 }
+VTK_ABI_NAMESPACE_END

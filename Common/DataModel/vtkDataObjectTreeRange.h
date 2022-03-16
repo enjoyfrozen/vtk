@@ -25,6 +25,7 @@
 
 #include <cassert>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtk
 {
 
@@ -268,6 +269,7 @@ private:
 }
 } // end namespace vtk::detail
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkDataObjectTreeRange_h
 
 // VTK-HeaderTest-Exclude: vtkDataObjectTreeRange.h

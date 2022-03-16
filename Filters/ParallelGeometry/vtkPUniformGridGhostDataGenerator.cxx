@@ -28,6 +28,7 @@
 
 #include <cassert>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkPUniformGridGhostDataGenerator);
 
 vtkPUniformGridGhostDataGenerator::vtkPUniformGridGhostDataGenerator()
@@ -213,3 +214,4 @@ void vtkPUniformGridGhostDataGenerator::ComputeOrigin(vtkMultiBlockDataSet* in)
   this->Controller->AllReduce(&localOrigin[1], &this->GlobalOrigin[1], 1, vtkCommunicator::MIN_OP);
   this->Controller->AllReduce(&localOrigin[2], &this->GlobalOrigin[2], 1, vtkCommunicator::MIN_OP);
 }
+VTK_ABI_NAMESPACE_END

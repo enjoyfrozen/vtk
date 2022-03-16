@@ -34,6 +34,7 @@
 #include "vtkVector.h"
 #include "vtkVectorOperators.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkHigherOrderCurve* vtkHigherOrderHexahedron::getEdgeCell()
 {
   VTK_LEGACY_REPLACED_BODY(
@@ -807,3 +808,4 @@ const int* vtkHigherOrderHexahedron::GetOrder()
   }
   return this->Order;
 }
+VTK_ABI_NAMESPACE_END

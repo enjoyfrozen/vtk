@@ -56,6 +56,7 @@
 
 #include <memory>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkGeometryFilter);
 vtkCxxSetObjectMacro(vtkGeometryFilter, Locator, vtkIncrementalPointLocator);
 
@@ -2726,3 +2727,4 @@ int vtkGeometryFilter::RequestUpdateExtent(vtkInformation* vtkNotUsed(request),
 
   return 1;
 }
+VTK_ABI_NAMESPACE_END

@@ -31,6 +31,7 @@
 #include "vtkCommonDataModelModule.h" // For export macro
 #include "vtkFindCellStrategy.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkAbstractCellLocator;
 
 class VTKCOMMONDATAMODEL_EXPORT vtkCellLocatorStrategy : public vtkFindCellStrategy
@@ -83,4 +84,5 @@ private:
   void operator=(const vtkCellLocatorStrategy&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

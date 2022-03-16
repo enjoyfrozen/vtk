@@ -44,6 +44,7 @@
 #include "vtkCommonDataModelModule.h" // For export macro
 
 // Forward declarations for PIMPL
+VTK_ABI_NAMESPACE_BEGIN
 struct vtkCellBinner;
 struct vtkCellProcessor;
 
@@ -257,4 +258,5 @@ private:
   void operator=(const vtkStaticCellLocator&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

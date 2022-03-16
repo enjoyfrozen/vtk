@@ -73,6 +73,7 @@
 
 #include "cgio_helpers.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkInformationKeyMacro(vtkCGNSReader, FAMILY, String);
 vtkStandardNewMacro(vtkCGNSReader);
 
@@ -5118,3 +5119,4 @@ void vtkCGNSReader::SetCacheConnectivity(bool enable)
 #ifdef _WINDOWS
 #pragma warning(pop)
 #endif
+VTK_ABI_NAMESPACE_END

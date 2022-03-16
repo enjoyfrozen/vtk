@@ -54,6 +54,7 @@
 #include "vtkCompositeInterpolatedVelocityField.h"
 #include "vtkFiltersFlowPathsModule.h" // For export macro
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkAbstractCellLocator;
 class vtkCellLocatorInterpolatedVelocityFieldCellLocatorsType;
 
@@ -128,4 +129,5 @@ private:
   void operator=(const vtkCellLocatorInterpolatedVelocityField&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

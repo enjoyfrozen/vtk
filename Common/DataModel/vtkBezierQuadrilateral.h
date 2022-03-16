@@ -26,6 +26,7 @@
 #include "vtkNew.h"          // For member variable.
 #include "vtkSmartPointer.h" // For member variable.
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkCellData;
 class vtkDoubleArray;
 class vtkIdList;
@@ -75,4 +76,5 @@ private:
   void operator=(const vtkBezierQuadrilateral&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkBezierQuadrilateral_h

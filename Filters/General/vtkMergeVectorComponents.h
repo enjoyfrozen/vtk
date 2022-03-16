@@ -30,6 +30,7 @@
 #include "vtkFiltersGeneralModule.h" // For export macro
 #include "vtkPassInputTypeAlgorithm.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class VTKFILTERSGENERAL_EXPORT vtkMergeVectorComponents : public vtkPassInputTypeAlgorithm
 {
 public:
@@ -101,4 +102,5 @@ private:
   void operator=(const vtkMergeVectorComponents&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

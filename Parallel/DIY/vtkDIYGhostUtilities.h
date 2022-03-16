@@ -85,6 +85,7 @@
 #include VTK_DIY2(diy/master.hpp)
 // clang-format on
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkAbstractPointLocator;
 class vtkAlgorithm;
 class vtkCellArray;
@@ -963,6 +964,7 @@ private:
   ///@}
 };
 
+VTK_ABI_NAMESPACE_END
 #include "vtkDIYGhostUtilities.txx" // for template implementations
 
 #endif

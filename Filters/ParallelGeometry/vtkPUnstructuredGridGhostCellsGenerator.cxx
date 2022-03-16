@@ -49,6 +49,7 @@
 
 //------------------------------------------------------------------------------
 // Helpers
+VTK_ABI_NAMESPACE_BEGIN
 namespace
 {
 // Class to hold asynchronous communication information
@@ -1274,3 +1275,4 @@ void vtkPUnstructuredGridGhostCellsGenerator::RemoveGlobalCellIds()
     celldata->RemoveArray(this->GlobalCellIdsArrayName);
   }
 }
+VTK_ABI_NAMESPACE_END

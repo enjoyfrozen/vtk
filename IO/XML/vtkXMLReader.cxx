@@ -59,6 +59,7 @@
 #include <sstream>
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkCxxSetObjectMacro(vtkXMLReader, ReaderErrorObserver, vtkCommand);
 vtkCxxSetObjectMacro(vtkXMLReader, ParserErrorObserver, vtkCommand);
 
@@ -2052,3 +2053,4 @@ vtkInformation* vtkXMLReader::GetCurrentOutputInformation()
 {
   return this->CurrentOutputInformation;
 }
+VTK_ABI_NAMESPACE_END

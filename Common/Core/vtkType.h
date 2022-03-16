@@ -15,6 +15,7 @@
 #ifndef vtkType_h
 #define vtkType_h
 
+#include "vtkABINamespace.h"
 #include "vtkCompiler.h" // for VTK_USE_EXTERN_TEMPLATE
 #include "vtkLegacy.h"   // For VTK_LEGACY_REMOVE
 #include "vtkOptions.h"  // for VTK_USE_64BIT_IDS and VTK_USE_64BIT_TIMESTAMPS
@@ -366,11 +367,13 @@ typedef bool vtkTypeUBool;
  * is intended to handle vtkIdType, which does not have the same tag as its
  * underlying data type.
  * @note This method is only available when included from a C++ source file. */
+VTK_ABI_NAMESPACE_BEGIN
 inline vtkTypeBool vtkDataTypesCompare(int a, int b)
 {
   return (a == b ||
     ((a == VTK_ID_TYPE || a == VTK_ID_TYPE_IMPL) && (b == VTK_ID_TYPE || b == VTK_ID_TYPE_IMPL)));
 }
+VTK_ABI_NAMESPACE_END
 #endif
 
 /*--------------------------------------------------------------------------*/

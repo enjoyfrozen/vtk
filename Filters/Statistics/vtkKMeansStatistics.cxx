@@ -18,6 +18,7 @@
 #include <sstream>
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkKMeansStatistics);
 vtkCxxSetObjectMacro(vtkKMeansStatistics, DistanceFunctor, vtkKMeansDistanceFunctor);
 
@@ -801,3 +802,4 @@ void vtkKMeansAssessFunctor::operator()(vtkDoubleArray* result, vtkIdType row)
     result->SetValue(resIndex++, this->ClusterMemberIDs->GetValue(row * this->NumRuns + runID));
   }
 }
+VTK_ABI_NAMESPACE_END

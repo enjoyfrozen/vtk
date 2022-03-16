@@ -67,6 +67,7 @@
 #include "vtkglProjectedTetrahedraFS.h"
 #include "vtkglProjectedTetrahedraVS.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace
 {
 void annotate(const std::string& message)
@@ -1112,3 +1113,4 @@ void vtkOpenGLProjectedTetrahedraMapper::GLSafeUpdateProgress(double, vtkOpenGLR
   vtkOpenGLCheckErrorMacro("failed after GLSafeUpdateProgress");
 #endif
 }
+VTK_ABI_NAMESPACE_END

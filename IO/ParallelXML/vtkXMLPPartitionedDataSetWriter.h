@@ -27,6 +27,7 @@
 #include "vtkIOParallelXMLModule.h" // For export macro
 #include "vtkXMLPartitionedDataSetWriter.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkCompositeDataSet;
 class vtkMultiProcessController;
 
@@ -67,4 +68,5 @@ private:
   void operator=(const vtkXMLPPartitionedDataSetWriter&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

@@ -31,6 +31,7 @@
 #include "vtkVector.h"
 #include "vtkVectorOperators.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkBezierHexahedron);
 
 vtkBezierHexahedron::vtkBezierHexahedron() = default;
@@ -241,3 +242,4 @@ vtkHigherOrderInterpolation* vtkBezierHexahedron::GetInterpolation()
 {
   return Interp;
 };
+VTK_ABI_NAMESPACE_END

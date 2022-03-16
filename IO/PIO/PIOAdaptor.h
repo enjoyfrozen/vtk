@@ -23,6 +23,7 @@
 
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkMultiProcessController;
 
 class PIOAdaptor
@@ -153,4 +154,5 @@ protected:
   AdaptorImpl* Impl;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

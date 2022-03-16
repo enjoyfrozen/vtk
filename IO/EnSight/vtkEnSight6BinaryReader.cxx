@@ -50,6 +50,7 @@
 #define VTK_STAT_FUNC stat64
 #endif
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkEnSight6BinaryReader);
 
 //------------------------------------------------------------------------------
@@ -2844,3 +2845,4 @@ void vtkEnSight6BinaryReader::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 }
+VTK_ABI_NAMESPACE_END

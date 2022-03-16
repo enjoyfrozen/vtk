@@ -33,6 +33,7 @@
 #include "vtkRenderer.h"
 #include "vtkTDxInteractorStyleCamera.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkInteractorStyle);
 vtkCxxSetObjectMacro(vtkInteractorStyle, TDxStyle, vtkTDxInteractorStyle);
 
@@ -1503,3 +1504,4 @@ void vtkInteractorStyle::ProcessEvents(
       break;
   }
 }
+VTK_ABI_NAMESPACE_END

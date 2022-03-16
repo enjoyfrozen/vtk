@@ -20,6 +20,7 @@
 
 #include "SMP/Common/vtkSMPToolsImpl.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtk
 {
 namespace detail
@@ -75,4 +76,5 @@ class vtkSMPThreadLocalImpl : public vtkSMPThreadLocalImplAbstract<T>
 } // namespace detail
 } // namespace vtk
 
+VTK_ABI_NAMESPACE_END
 #endif

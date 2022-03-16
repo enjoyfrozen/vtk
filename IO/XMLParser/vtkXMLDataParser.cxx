@@ -35,6 +35,7 @@
 
 #include "vtkXMLUtilities.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkXMLDataParser);
 vtkCxxSetObjectMacro(vtkXMLDataParser, Compressor, vtkDataCompressor);
 
@@ -1343,3 +1344,4 @@ void vtkXMLDataParser::UpdateProgress(float progress)
   double dProgress = progress;
   this->InvokeEvent(vtkCommand::ProgressEvent, &dProgress);
 }
+VTK_ABI_NAMESPACE_END

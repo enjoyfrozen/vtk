@@ -174,6 +174,7 @@
  */
 #define VTK_CELL_ARRAY_V2
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkCellArrayIterator;
 class vtkIdTypeArray;
 
@@ -1595,4 +1596,5 @@ inline void vtkCellArray::Reset()
   this->Visit(vtkCellArray_detail::ResetImpl{});
 }
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkCellArray.h

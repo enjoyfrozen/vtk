@@ -53,6 +53,7 @@ typedef pthread_cond_t vtkConditionType;
 
 #ifdef VTK_USE_WIN32_THREADS
 #if 1
+VTK_ABI_NAMESPACE_BEGIN
 struct pthread_cond_t_t
 {
   // Number of threads waiting on condition.
@@ -74,7 +75,9 @@ struct pthread_cond_t_t
 using pthread_cond_t = struct pthread_cond_t_t;
 
 typedef pthread_cond_t vtkConditionType;
+VTK_ABI_NAMESPACE_END
 #else  // 0
+VTK_ABI_NAMESPACE_BEGIN
 struct pthread_cond_t_t
 {
   // Number of threads waiting on condition.
@@ -97,6 +100,7 @@ struct pthread_cond_t_t
 using pthread_cond_t = struct pthread_cond_t_t;
 
 typedef pthread_cond_t vtkConditionType;
+VTK_ABI_NAMESPACE_END
 #endif // 0
 #endif // VTK_USE_WIN32_THREADS
 
@@ -107,6 +111,7 @@ typedef int vtkConditionType;
 #endif
 
 // Condition variable that is not a vtkObject.
+VTK_ABI_NAMESPACE_BEGIN
 VTK_DEPRECATED_IN_9_1_0("Use std::condition_variable_any instead.")
 class VTKCOMMONCORE_EXPORT vtkSimpleConditionVariable
 {
@@ -205,4 +210,5 @@ inline int vtkConditionVariable::Wait(vtkMutexLock* lock)
   return this->SimpleConditionVariable.Wait(lock->SimpleMutexLock);
 }
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkConditionVariable_h

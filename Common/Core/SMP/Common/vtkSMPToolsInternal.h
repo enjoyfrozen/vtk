@@ -19,6 +19,7 @@
 #include <iterator> // For std::advance
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtk
 {
 namespace detail
@@ -104,6 +105,7 @@ public:
 } // namespace smp
 } // namespace detail
 } // namespace vtk
+VTK_ABI_NAMESPACE_END
 #endif // DOXYGEN_SHOULD_SKIP_THIS
 
 #endif

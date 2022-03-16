@@ -36,6 +36,7 @@ PURPOSE.  See the above copyright notice for more information.
 #include <set>
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkPOrderStatistics);
 vtkCxxSetObjectMacro(vtkPOrderStatistics, Controller, vtkMultiProcessController);
 //------------------------------------------------------------------------------
@@ -497,3 +498,4 @@ bool vtkPOrderStatistics::Broadcast(std::map<vtkStdString, vtkIdType>& histogram
 
   return false;
 }
+VTK_ABI_NAMESPACE_END

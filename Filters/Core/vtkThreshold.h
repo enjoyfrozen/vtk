@@ -50,6 +50,7 @@
 #define VTK_COMPONENT_MODE_USE_ALL 1
 #define VTK_COMPONENT_MODE_USE_ANY 2
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkDataArray;
 class vtkIdList;
 
@@ -267,4 +268,5 @@ private:
   void operator=(const vtkThreshold&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

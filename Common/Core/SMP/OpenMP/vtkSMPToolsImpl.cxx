@@ -19,6 +19,7 @@
 #include <cstdlib> // For std::getenv()
 #include <omp.h>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtk
 {
 namespace detail
@@ -89,3 +90,4 @@ void vtkSMPToolsImplForOpenMP(vtkIdType first, vtkIdType last, vtkIdType grain,
 } // namespace smp
 } // namespace detail
 } // namespace vtk
+VTK_ABI_NAMESPACE_END

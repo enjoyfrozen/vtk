@@ -27,6 +27,7 @@
 #include <sstream>
 
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_BEGIN
 bool vtkGLTFDocumentLoaderInternals::LoadBuffer(
   const Json::Value& root, std::vector<char>& buffer, const std::string& glTFFileName)
 {
@@ -1693,3 +1694,4 @@ vtkGLTFDocumentLoaderInternals::MaterialAlphaModeStringToEnum(std::string alphaM
   }
   return vtkGLTFDocumentLoader::Material::AlphaModeType::OPAQUE;
 }
+VTK_ABI_NAMESPACE_END

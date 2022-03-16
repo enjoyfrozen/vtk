@@ -33,6 +33,7 @@
 #include <pthread.h> // Needed for pthread types
 #endif
 
+VTK_ABI_NAMESPACE_BEGIN
 class VTK_DEPRECATED_IN_9_1_0(
   "Use C++ STL threading classes") VTKCOMMONSYSTEM_EXPORT vtkThreadMessager : public vtkObject
 {
@@ -93,6 +94,7 @@ private:
   void operator=(const vtkThreadMessager&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif
 
 // VTK-HeaderTest-Exclude: vtkThreadMessager.h

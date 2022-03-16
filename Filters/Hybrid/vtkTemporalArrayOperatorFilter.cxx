@@ -33,6 +33,7 @@
 #include <algorithm>
 #include <functional>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkTemporalArrayOperatorFilter);
 
 //------------------------------------------------------------------------------
@@ -443,3 +444,4 @@ vtkDataArray* vtkTemporalArrayOperatorFilter::ProcessDataArray(
 
   return outputDataArray;
 }
+VTK_ABI_NAMESPACE_END

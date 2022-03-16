@@ -28,6 +28,7 @@
 #include "vtkAcceleratorsVTKmFiltersModule.h" // required for correct export
 #include "vtkPointSetAlgorithm.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class VTKACCELERATORSVTKMFILTERS_EXPORT vtkmCoordinateSystemTransform : public vtkPointSetAlgorithm
 {
   enum struct TransformTypes
@@ -68,4 +69,5 @@ private:
   TransformTypes TransformType;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkmCoordinateSystemTransform_h

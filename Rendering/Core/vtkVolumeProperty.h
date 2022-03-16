@@ -65,6 +65,7 @@
 #include <set>           // For labelmap labels set
 #include <unordered_map> // For labelmap transfer function maps
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkColorTransferFunction;
 class vtkContourValues;
 class vtkImageData;
@@ -595,4 +596,5 @@ inline const char* vtkVolumeProperty::GetInterpolationTypeAsString()
   return "Unknown";
 }
 
+VTK_ABI_NAMESPACE_END
 #endif

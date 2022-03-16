@@ -41,6 +41,7 @@
 #include <type_traits> // For std:::enable_if
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtk
 {
 namespace detail
@@ -222,8 +223,10 @@ using resolvedNotInt = typename std::enable_if<!std::is_integral<T>::value, void
 } // namespace smp
 } // namespace detail
 } // namespace vtk
+VTK_ABI_NAMESPACE_END
 #endif // DOXYGEN_SHOULD_SKIP_THIS
 
+VTK_ABI_NAMESPACE_BEGIN
 class VTKCOMMONCORE_EXPORT vtkSMPTools
 {
 public:
@@ -596,5 +599,6 @@ public:
   }
 };
 
+VTK_ABI_NAMESPACE_END
 #endif
 // VTK-HeaderTest-Exclude: vtkSMPTools.h

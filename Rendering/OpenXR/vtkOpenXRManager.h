@@ -33,6 +33,7 @@
 #include <string>
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkOpenGLRenderWindow;
 
 class VTKRENDERINGOPENXR_EXPORT vtkOpenXRManager : public vtkObject
@@ -597,5 +598,6 @@ private:
   static vtkOpenXRManager* UniqueInstance;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif
 // VTK-HeaderTest-Exclude: vtkOpenXRManager.h

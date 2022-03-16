@@ -26,6 +26,7 @@
 #include "vtkSmartPointer.h"
 #include "vtkXMLDataElement.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkXMLMultiBlockDataReader);
 //------------------------------------------------------------------------------
 vtkXMLMultiBlockDataReader::vtkXMLMultiBlockDataReader() = default;
@@ -392,3 +393,4 @@ int vtkXMLMultiBlockDataReader::RequestInformation(
 
   return 1;
 }
+VTK_ABI_NAMESPACE_END

@@ -66,6 +66,7 @@
 #include <cstdlib> // for std::size_t
 #include <vector>  // for CellMap implementation.
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtkPolyData_detail
 {
 
@@ -284,6 +285,7 @@ private:
 
 } // end namespace vtkPolyData_detail
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkPolyDataInternals.h
 
 // VTK-HeaderTest-Exclude: vtkPolyDataInternals.h

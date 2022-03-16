@@ -50,6 +50,7 @@
 
 #include "vtk_glew.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkCompositeRGBAPass);
 vtkCxxSetObjectMacro(vtkCompositeRGBAPass, Controller, vtkMultiProcessController);
 vtkCxxSetObjectMacro(vtkCompositeRGBAPass, Kdtree, vtkPKdTree);
@@ -549,3 +550,4 @@ void vtkCompositeRGBAPass::ReleaseGraphicsResources(vtkWindow* w)
     this->RootTexture = nullptr;
   }
 }
+VTK_ABI_NAMESPACE_END

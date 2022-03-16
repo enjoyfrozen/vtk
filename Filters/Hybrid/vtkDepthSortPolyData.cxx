@@ -44,6 +44,7 @@
 #include <cstdlib>
 #include <limits>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace
 {
 
@@ -584,3 +585,4 @@ void vtkDepthSortPolyData::PrintSelf(ostream& os, vtkIndent indent)
 
   os << indent << "Sort Scalars: " << (this->SortScalars ? "On\n" : "Off\n");
 }
+VTK_ABI_NAMESPACE_END

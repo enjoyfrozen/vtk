@@ -27,6 +27,7 @@
 #include "vtkPointData.h"
 #include "vtkPolyData.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkExtractEdges);
 
 //------------------------------------------------------------------------------
@@ -417,3 +418,4 @@ vtkMTimeType vtkExtractEdges::GetMTime()
   }
   return mTime;
 }
+VTK_ABI_NAMESPACE_END

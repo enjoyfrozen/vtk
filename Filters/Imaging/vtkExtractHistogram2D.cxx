@@ -35,6 +35,7 @@ PURPOSE.  See the above copyright notice for more information.
 #include "vtkTimerLog.h"
 #include "vtkUnsignedIntArray.h"
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkExtractHistogram2D);
 vtkCxxSetObjectMacro(vtkExtractHistogram2D, RowMask, vtkDataArray);
 //------------------------------------------------------------------------------
@@ -368,3 +369,4 @@ int vtkExtractHistogram2D::ComputeBinExtents(vtkDataArray* col1, vtkDataArray* c
 
   return 1;
 }
+VTK_ABI_NAMESPACE_END

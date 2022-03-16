@@ -33,6 +33,7 @@
 #include <cmath>
 
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkOpenGLTexture);
 
 //------------------------------------------------------------------------------
@@ -580,3 +581,4 @@ int vtkOpenGLTexture::IsTranslucent()
 
   return this->Superclass::IsTranslucent();
 }
+VTK_ABI_NAMESPACE_END

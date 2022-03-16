@@ -30,6 +30,7 @@
 #include "vtkUnstructuredGrid.h"
 
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_BEGIN
 vtkAbstractCellLocator::vtkAbstractCellLocator()
 {
   this->CacheCellBounds = 0;
@@ -219,3 +220,4 @@ void vtkAbstractCellLocator::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "LazyEvaluation: " << this->LazyEvaluation << "\n";
 }
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_END

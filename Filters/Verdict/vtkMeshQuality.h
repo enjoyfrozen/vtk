@@ -75,6 +75,7 @@
 #include "vtkDeprecation.h"          // For deprecation
 #include "vtkFiltersVerdictModule.h" // For export macro
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkCell;
 class vtkDataArray;
 class vtkDoubleArray;
@@ -1455,4 +1456,5 @@ private:
   void operator=(const vtkMeshQuality&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkMeshQuality_h

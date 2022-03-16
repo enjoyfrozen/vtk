@@ -37,6 +37,7 @@
 #include "vtkDataSetAlgorithm.h"
 #include "vtkFiltersExtractionModule.h" // For export macro
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkDataSet;
 
 class VTKFILTERSEXTRACTION_EXPORT vtkExtractVectorComponents : public vtkDataSetAlgorithm
@@ -100,4 +101,5 @@ private:
   void operator=(const vtkExtractVectorComponents&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

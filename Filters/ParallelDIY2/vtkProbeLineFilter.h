@@ -52,6 +52,7 @@
 
 #include <vector> // For sampling line
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkDataSet;
 class vtkIdList;
 class vtkMultiProcessController;
@@ -238,4 +239,5 @@ private:
   vtkInternals* Internal;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

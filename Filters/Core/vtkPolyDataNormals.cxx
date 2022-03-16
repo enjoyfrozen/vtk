@@ -31,6 +31,7 @@
 
 #include "vtkNew.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkPolyDataNormals);
 
 // Construct with feature angle=30, splitting and consistency turned on,
@@ -788,3 +789,4 @@ void vtkPolyDataNormals::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "Non-manifold Traversal: " << (this->NonManifoldTraversal ? "On\n" : "Off\n");
   os << indent << "Precision of the output points: " << this->OutputPointsPrecision << "\n";
 }
+VTK_ABI_NAMESPACE_END

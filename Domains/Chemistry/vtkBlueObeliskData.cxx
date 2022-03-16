@@ -33,6 +33,7 @@
 #include <vector>
 
 // Hidden STL reference: std::vector<vtkAbstractArray*>
+VTK_ABI_NAMESPACE_BEGIN
 class MyStdVectorOfVtkAbstractArrays : public std::vector<vtkAbstractArray*>
 {
 };
@@ -423,3 +424,4 @@ void vtkBlueObeliskData::Reset()
     (*it)->Reset();
   }
 }
+VTK_ABI_NAMESPACE_END

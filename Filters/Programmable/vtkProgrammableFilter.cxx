@@ -28,6 +28,7 @@
 #include "vtkTable.h"
 #include "vtkUnstructuredGrid.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkProgrammableFilter);
 
 // Construct programmable filter with empty execute method.
@@ -274,3 +275,4 @@ void vtkProgrammableFilter::PrintSelf(ostream& os, vtkIndent indent)
 
   os << indent << "CopyArrays: " << this->CopyArrays << endl;
 }
+VTK_ABI_NAMESPACE_END

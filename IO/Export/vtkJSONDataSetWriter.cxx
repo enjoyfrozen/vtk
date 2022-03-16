@@ -41,6 +41,7 @@
 #include <string>
 
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkJSONDataSetWriter);
 vtkCxxSetObjectMacro(vtkJSONDataSetWriter, Archiver, vtkArchiver);
 
@@ -511,3 +512,4 @@ std::string vtkJSONDataSetWriter::GetValidString(const char* name)
 
   return ss.str();
 }
+VTK_ABI_NAMESPACE_END

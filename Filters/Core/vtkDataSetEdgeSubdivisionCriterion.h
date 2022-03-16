@@ -39,6 +39,7 @@
 #include "vtkEdgeSubdivisionCriterion.h"
 #include "vtkFiltersCoreModule.h" // For export macro
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkCell;
 class vtkDataSet;
 
@@ -197,4 +198,5 @@ inline const vtkCell* vtkDataSetEdgeSubdivisionCriterion::GetCell() const
   return this->CurrentCellData;
 }
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkDataSetEdgeSubdivisionCriterion_h

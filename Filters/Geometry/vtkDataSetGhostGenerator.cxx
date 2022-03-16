@@ -21,6 +21,7 @@
 
 #include <cassert>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkDataSetGhostGenerator::vtkDataSetGhostGenerator()
 {
   this->NumberOfGhostLayers = 0;
@@ -87,3 +88,4 @@ int vtkDataSetGhostGenerator::RequestData(vtkInformation* vtkNotUsed(rqst),
   }
   return 1;
 }
+VTK_ABI_NAMESPACE_END

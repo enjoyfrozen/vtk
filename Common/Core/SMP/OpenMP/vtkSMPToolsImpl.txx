@@ -22,6 +22,7 @@
 #include "SMP/Common/vtkSMPToolsInternal.h" // For common vtk smp class
 #include "vtkCommonCoreModule.h"            // For export macro
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtk
 {
 namespace detail
@@ -142,4 +143,5 @@ int vtkSMPToolsImpl<BackendType::OpenMP>::GetEstimatedNumberOfThreads();
 } // namespace detail
 } // namespace vtk
 
+VTK_ABI_NAMESPACE_END
 #endif

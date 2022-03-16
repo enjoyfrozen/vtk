@@ -94,6 +94,7 @@
 #include "vtkFiltersGeneralModule.h" // For export macro
 #include "vtkUnstructuredGridAlgorithm.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkCallbackCommand;
 class vtkImplicitFunction;
 class vtkIncrementalPointLocator;
@@ -310,4 +311,5 @@ private:
   void operator=(const vtkTableBasedClipDataSet&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

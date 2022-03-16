@@ -26,6 +26,7 @@
 
 #include "vtkStreamingDemandDrivenPipeline.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkStructuredGridGhostDataGenerator);
 
 //------------------------------------------------------------------------------
@@ -131,3 +132,4 @@ void vtkStructuredGridGhostDataGenerator::GenerateGhostLayers(
   // STEP 3: Get the output dataset
   this->CreateGhostedDataSet(in, out);
 }
+VTK_ABI_NAMESPACE_END

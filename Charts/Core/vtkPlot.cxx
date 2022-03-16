@@ -30,6 +30,7 @@
 #include "vtkTransform2D.h"
 #include <sstream>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkCxxSetObjectMacro(vtkPlot, XAxis, vtkAxis);
 vtkCxxSetObjectMacro(vtkPlot, YAxis, vtkAxis);
 
@@ -712,3 +713,4 @@ bool vtkPlot::Hit(const vtkContextMouseEvent& mouse)
   vtkIdType segmentId;
   return this->GetNearestPoint(mouse.GetPos(), tol, &loc, &segmentId) >= 0;
 }
+VTK_ABI_NAMESPACE_END

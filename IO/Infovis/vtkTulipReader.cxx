@@ -53,6 +53,7 @@
 // myself.
 // This function is also defined in Infovis/vtkDelimitedTextReader.cxx,
 // so it would be nice to put this in a common file.
+VTK_ABI_NAMESPACE_BEGIN
 static int my_getline(std::istream& stream, vtkStdString& output, char delim = '\n');
 
 vtkStandardNewMacro(vtkTulipReader);
@@ -631,3 +632,4 @@ static int my_getline(std::istream& in, vtkStdString& out, char delimiter)
 
   return numCharactersRead;
 }
+VTK_ABI_NAMESPACE_END

@@ -69,6 +69,7 @@
 #include "vtkDataSetAttributes.h" // needed for vtkDataSetAttributes::FieldList
 #include "vtkFiltersCoreModule.h" // For export macro
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkAbstractCellLocator;
 class vtkCell;
 class vtkCharArray;
@@ -311,4 +312,5 @@ private:
   vtkVectorOfArrays* CellArrays;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

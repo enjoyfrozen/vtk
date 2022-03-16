@@ -30,6 +30,7 @@
 
 //------------------------------------------------------------------------------
 // The singleton, and the singleton cleanup
+VTK_ABI_NAMESPACE_BEGIN
 vtkTextRenderer* vtkTextRenderer::Instance = nullptr;
 vtkTextRendererCleanup vtkTextRenderer::Cleanup;
 
@@ -250,3 +251,4 @@ bool vtkTextRenderer::StringToPath(
 {
   return this->StringToPathInternal(tprop, str, path, dpi, backend);
 }
+VTK_ABI_NAMESPACE_END

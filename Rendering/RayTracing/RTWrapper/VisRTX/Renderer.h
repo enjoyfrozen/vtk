@@ -14,6 +14,7 @@
 #include <VisRTX.h>
 #include <limits>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace RTW
 {
     class Renderer : public Object
@@ -145,3 +146,4 @@ namespace RTW
         std::vector<VisRTX::Light*> lastLights;
     };
 }
+VTK_ABI_NAMESPACE_END

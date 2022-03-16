@@ -34,6 +34,7 @@
 
 #include "vtkNew.h" // ivars
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkCamera;
 class vtkMatrix4x4;
 enum class vtkEventDataDevice;
@@ -290,4 +291,5 @@ private:
   void operator=(const vtkRenderWindowInteractor3D&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

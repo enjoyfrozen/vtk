@@ -46,6 +46,7 @@
 
 #include <vector> // For std::vector
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkHyperTree;
 class vtkHyperTreeGrid;
 class vtkHyperTreeGridNonOrientedGeometryCursor;
@@ -306,4 +307,5 @@ private:
   void operator=(const vtkHyperTreeGridNonOrientedSuperCursor&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

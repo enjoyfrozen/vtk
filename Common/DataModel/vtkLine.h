@@ -25,6 +25,7 @@
 #include "vtkCell.h"
 #include "vtkCommonDataModelModule.h" // For export macro
 #include "vtkDeprecation.h"           // For VTK_DEPRECATED_IN_9_1_0
+VTK_ABI_NAMESPACE_BEGIN
 class vtkIncrementalPointLocator;
 
 class VTKCOMMONDATAMODEL_EXPORT vtkLine : public vtkCell
@@ -215,4 +216,5 @@ inline int vtkLine::GetParametricCenter(double pcoords[3])
   return 0;
 }
 
+VTK_ABI_NAMESPACE_END
 #endif

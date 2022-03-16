@@ -16,6 +16,9 @@
 #ifndef vtkRangeIterableTraits_h
 #define vtkRangeIterableTraits_h
 
+#include "vtkABINamespace.h"
+
+VTK_ABI_NAMESPACE_BEGIN
 class vtkCollection;
 class vtkCompositeDataSet;
 class vtkDataObjectTree;
@@ -66,6 +69,7 @@ public:
 }
 }
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkRangeIterableTraits_h
 
 // VTK-HeaderTest-Exclude: vtkRangeIterableTraits.h

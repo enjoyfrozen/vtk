@@ -28,6 +28,7 @@ PURPOSE.  See the above copyright notice for more information.
 #include <vector>
 
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkSQLDatabaseSchema);
 
 //------------------------------------------------------------------------------
@@ -836,3 +837,4 @@ int vtkSQLDatabaseSchema::GetNumberOfOptionsInTable(int tblHandle)
 
   return static_cast<int>(this->Internals->Tables[tblHandle].Options.size());
 }
+VTK_ABI_NAMESPACE_END

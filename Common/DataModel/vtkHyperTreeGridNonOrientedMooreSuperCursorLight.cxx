@@ -26,12 +26,15 @@ PURPOSE.  See the above copyright Nonice for more information.
 
 #include <cassert>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkHyperTreeGridNonOrientedMooreSuperCursorLight);
 
 // NOLINTNEXTLINE(bugprone-suspicious-include)
+VTK_ABI_NAMESPACE_END
 #include "vtkHyperTreeGridNonOrientedMooreSuperCursorData.cxx"
 
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_BEGIN
 void vtkHyperTreeGridNonOrientedMooreSuperCursorLight::Initialize(
   vtkHyperTreeGrid* grid, vtkIdType treeIndex, bool create)
 {
@@ -374,3 +377,4 @@ vtkHyperTreeGridNonOrientedMooreSuperCursorLight::
   ~vtkHyperTreeGridNonOrientedMooreSuperCursorLight() = default;
 
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_END

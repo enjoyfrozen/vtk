@@ -17,6 +17,7 @@
 
 #include <iostream>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtk::detail::smp::vtkSMPThreadPool::vtkSMPThreadPool(int threadNumber)
 {
   this->Threads.reserve(threadNumber);
@@ -72,3 +73,4 @@ void vtk::detail::smp::vtkSMPThreadPool::ThreadJob()
     job();
   }
 }
+VTK_ABI_NAMESPACE_END

@@ -40,6 +40,7 @@
 #include <string>
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkOMETIFFReader::vtkOMEInternals
 {
 public:
@@ -447,3 +448,4 @@ void vtkOMETIFFReader::ExecuteDataWithInformation(vtkDataObject* dobj, vtkInform
   omeinternals.ExtractFromCache(output, time_step);
   output->SetSpacing(this->DataSpacing);
 }
+VTK_ABI_NAMESPACE_END

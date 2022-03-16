@@ -26,6 +26,7 @@
 #include <algorithm>
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkUnicodeStringArray::Implementation
 {
 public:
@@ -454,3 +455,4 @@ const char* vtkUnicodeStringArray::GetUTF8Value(vtkIdType i)
 {
   return this->Internal->Storage[i].utf8_str();
 }
+VTK_ABI_NAMESPACE_END

@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <cctype>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace
 {
 void rtrim(std::string& s)
@@ -262,3 +263,4 @@ void vtkIOSSFilesScanner::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 }
+VTK_ABI_NAMESPACE_END

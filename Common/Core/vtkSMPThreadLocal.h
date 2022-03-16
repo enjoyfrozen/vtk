@@ -83,6 +83,7 @@
 
 #include "SMP/Common/vtkSMPThreadLocalAPI.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 template <typename T>
 class vtkSMPThreadLocal
 {
@@ -151,5 +152,6 @@ private:
   void operator=(const vtkSMPThreadLocal&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif
 // VTK-HeaderTest-Exclude: vtkSMPThreadLocal.h

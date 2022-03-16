@@ -57,6 +57,7 @@
 #include "vtkCompositeMapperHelper2.h"
 
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkCompositeMapperHelper2);
 
 //------------------------------------------------------------------------------
@@ -2126,3 +2127,4 @@ vtkMTimeType vtkCompositePolyDataMapper2::GetMTime()
   }
   return this->Superclass::GetMTime();
 }
+VTK_ABI_NAMESPACE_END

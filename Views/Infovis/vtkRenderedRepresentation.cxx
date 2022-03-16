@@ -35,6 +35,7 @@
 
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkRenderedRepresentation);
 
 class vtkRenderedRepresentation::Internals
@@ -120,3 +121,4 @@ vtkUnicodeString vtkRenderedRepresentation::GetHoverTextInternal(vtkSelection* s
 {
   return vtkUnicodeString::from_utf8(GetHoverStringInternal(selection));
 }
+VTK_ABI_NAMESPACE_END

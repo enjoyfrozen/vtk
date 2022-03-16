@@ -48,6 +48,7 @@
 
 #include <sstream>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkResliceCursorLineRepresentation);
 
 //------------------------------------------------------------------------------
@@ -589,3 +590,4 @@ void vtkResliceCursorLineRepresentation::PrintSelf(ostream& os, vtkIndent indent
   // this->StartPickPosition;
   // this->StartCenterPosition;
 }
+VTK_ABI_NAMESPACE_END

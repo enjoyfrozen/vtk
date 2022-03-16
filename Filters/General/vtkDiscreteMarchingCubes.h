@@ -70,6 +70,7 @@
 #include "vtkFiltersGeneralModule.h" // For export macro
 #include "vtkMarchingCubes.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class VTKFILTERSGENERAL_EXPORT vtkDiscreteMarchingCubes : public vtkMarchingCubes
 {
 public:
@@ -98,4 +99,5 @@ private:
   void operator=(const vtkDiscreteMarchingCubes&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

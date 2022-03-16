@@ -31,6 +31,7 @@
 #include "vtkAcceleratorsVTKmFiltersModule.h" //required for correct implementation
 #include "vtkAlgorithm.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkUnstructuredGrid;
 
 class VTKACCELERATORSVTKMFILTERS_EXPORT vtkmExternalFaces : public vtkAlgorithm
@@ -79,4 +80,5 @@ private:
   void operator=(const vtkmExternalFaces&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkmExternalFaces_h

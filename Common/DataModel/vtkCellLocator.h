@@ -45,6 +45,7 @@
 #include "vtkAbstractCellLocator.h"
 #include "vtkCommonDataModelModule.h" // For export macro
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkNeighborCells;
 
 class VTKCOMMONDATAMODEL_EXPORT vtkCellLocator : public vtkAbstractCellLocator
@@ -218,4 +219,5 @@ private:
   void operator=(const vtkCellLocator&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

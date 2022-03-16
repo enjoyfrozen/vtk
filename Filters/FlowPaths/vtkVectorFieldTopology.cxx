@@ -68,6 +68,7 @@
 #define epsilon (1e-10)
 
 //----------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkVectorFieldTopology);
 
 //----------------------------------------------------------------------------
@@ -1958,3 +1959,4 @@ int vtkVectorFieldTopology::RequestData(vtkInformation* vtkNotUsed(request),
 
   return success;
 }
+VTK_ABI_NAMESPACE_END

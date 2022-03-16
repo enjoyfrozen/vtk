@@ -70,12 +70,14 @@ using std::vector;
 #include <sstream>
 using std::ostringstream;
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_BEGIN
 static string mpifn(int rank, const char* fn)
 {
   ostringstream oss;
   oss << rank << "_" << fn;
   return oss.str();
 }
+VTK_ABI_NAMESPACE_END
 #endif
 #if vtkLineIntegralConvolution2DDEBUG >= 3
 #define vtkLICCheckFrameBufferStatusMacro(mode) vtkCheckFrameBufferStatusMacro(mode)
@@ -106,6 +108,7 @@ employed during LIC integration. This class encapsulates all
 of the knowledge of our use of the FBO and texture units. Care
 is taken to avoid feedback loops.
 */
+VTK_ABI_NAMESPACE_BEGIN
 class vtkLICPingPongBufferManager
 {
 public:
@@ -1909,3 +1912,4 @@ void vtkLineIntegralConvolution2D::PrintSelf(ostream& os, vtkIndent indent)
     << indent << "NormalizeVectors=" << this->NormalizeVectors << endl
     << indent << "ComponentIds=" << this->ComponentIds[0] << ", " << this->ComponentIds[1] << endl;
 }
+VTK_ABI_NAMESPACE_END

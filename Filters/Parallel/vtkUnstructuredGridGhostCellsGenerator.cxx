@@ -33,6 +33,7 @@
 #include "vtkUnsignedCharArray.h"
 #include "vtkUnstructuredGrid.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace
 {
 const char* UGGCG_GLOBAL_POINT_IDS = "GlobalNodeIds";
@@ -116,3 +117,4 @@ int vtkUnstructuredGridGhostCellsGenerator::RequestData(vtkInformation* vtkNotUs
   output->ShallowCopy(input);
   return 1;
 }
+VTK_ABI_NAMESPACE_END

@@ -27,6 +27,7 @@
 
 #include "VTX/common/VTXHelper.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtx
 {
 namespace schema
@@ -62,4 +63,5 @@ void VTXvtkVTU::SetBlocksCommon(
 } // end namespace schema
 } // end namespace vtx
 
+VTK_ABI_NAMESPACE_END
 #endif /* VTK_IO_ADIOS2_VTX_SCHEMA_VTK_VTXxmlVTU_txx */

@@ -82,6 +82,7 @@
 
 #include "vtkFunctionSet.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkCompositeDataSet;
 class vtkDataObject;
 class vtkDataSet;
@@ -92,8 +93,10 @@ class vtkAbstractInterpolatedVelocityFieldDataSetsType;
 class vtkFindCellStrategy;
 struct vtkFunctionCacheMap;
 
+VTK_ABI_NAMESPACE_END
 #include "vtkFiltersFlowPathsModule.h" // For export macro
 
+VTK_ABI_NAMESPACE_BEGIN
 class VTKFILTERSFLOWPATHS_EXPORT vtkAbstractInterpolatedVelocityField : public vtkFunctionSet
 {
 public:
@@ -368,4 +371,5 @@ private:
   void operator=(const vtkAbstractInterpolatedVelocityField&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

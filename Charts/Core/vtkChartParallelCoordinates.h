@@ -28,6 +28,7 @@
 #include "vtkChartsCoreModule.h" // For export macro
 #include "vtkNew.h"              // For vtkNew
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkIdTypeArray;
 class vtkStdString;
 class vtkStringArray;
@@ -190,4 +191,5 @@ private:
   void operator=(const vtkChartParallelCoordinates&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkChartParallelCoordinates_h

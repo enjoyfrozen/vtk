@@ -52,6 +52,7 @@
 #include "vtkFiltersGeometryModule.h" // For export macro
 
 // Forward declarations
+VTK_ABI_NAMESPACE_BEGIN
 class vtkMultiBlockDataSet;
 class vtkIndent;
 class vtkStructuredGridConnectivity;
@@ -90,6 +91,7 @@ private:
   void operator=(const vtkStructuredGridGhostDataGenerator&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif /* vtkStructuredGridGhostDataGenerator_h */
 
 // VTK-HeaderTest-Exclude: vtkStructuredGridGhostDataGenerator.h

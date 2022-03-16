@@ -38,6 +38,7 @@
 #include <vtkm/cont/DataSetBuilderUniform.h>
 #include <vtkm/cont/Field.h>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace
 {
 struct build_type_array
@@ -67,8 +68,10 @@ struct build_type_array
   }
 };
 }
+VTK_ABI_NAMESPACE_END
 namespace tovtkm
 {
+VTK_ABI_NAMESPACE_BEGIN
 
 //------------------------------------------------------------------------------
 // convert an polydata type
@@ -179,10 +182,12 @@ vtkm::cont::DataSet Convert(vtkPolyData* input, FieldsFlag fields)
   return dataset;
 }
 
+VTK_ABI_NAMESPACE_END
 } // namespace tovtkm
 
 namespace fromvtkm
 {
+VTK_ABI_NAMESPACE_BEGIN
 
 //------------------------------------------------------------------------------
 bool Convert(const vtkm::cont::DataSet& voutput, vtkPolyData* output, vtkDataSet* input)
@@ -214,4 +219,5 @@ bool Convert(const vtkm::cont::DataSet& voutput, vtkPolyData* output, vtkDataSet
   return arraysConverted;
 }
 
+VTK_ABI_NAMESPACE_END
 } // namespace fromvtkm

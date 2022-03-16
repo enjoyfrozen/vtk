@@ -60,6 +60,7 @@ PURPOSE.  See the above copyright notice for more information.
 
 #include <vector> // ivars
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkCamera;
 class vtkMatrix4x4;
 class vtkVRModel;
@@ -447,4 +448,5 @@ private:
   void operator=(const vtkVRRenderWindow&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

@@ -81,6 +81,7 @@ POSSIBILITY OF SUCH DAMAGES.
 #define VTK_MINC_MAX_DIMS 8
 
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkMINCImageReader);
 
 //------------------------------------------------------------------------------
@@ -1359,3 +1360,4 @@ void vtkMINCImageReader::ExecuteDataWithInformation(vtkDataObject* output, vtkIn
 
   this->CloseNetCDFFile(ncid);
 }
+VTK_ABI_NAMESPACE_END

@@ -55,6 +55,7 @@
 #define VTK_ITER_OPTIMIZE_END
 #endif
 
+VTK_ABI_NAMESPACE_BEGIN
 VTK_ITER_OPTIMIZE_START
 
 // For IsAOSDataArray:
@@ -209,6 +210,7 @@ using IsAOSDataArray = std::integral_constant<bool, detail::IsAOSDataArrayImpl<A
 
 VTK_ITER_OPTIMIZE_END
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkDataArrayMeta_h
 
 // VTK-HeaderTest-Exclude: vtkDataArrayMeta.h

@@ -33,6 +33,7 @@
 ///////////////////////////////////////////////////////////////////////////
 // vtkUnicodeString::const_iterator
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkUnicodeString::const_iterator::const_iterator() = default;
 
 vtkUnicodeString::const_iterator::const_iterator(std::string::const_iterator position)
@@ -440,3 +441,4 @@ bool operator>(const vtkUnicodeString& lhs, const vtkUnicodeString& rhs)
 {
   return lhs.compare(rhs) > 0;
 }
+VTK_ABI_NAMESPACE_END

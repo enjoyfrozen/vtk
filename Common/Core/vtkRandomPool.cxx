@@ -27,6 +27,7 @@
 #include <algorithm>
 #include <cassert>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkRandomPool);
 vtkCxxSetObjectMacro(vtkRandomPool, Sequence, vtkRandomSequence);
 
@@ -362,3 +363,4 @@ void vtkRandomPool::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "Number Of Components: " << this->NumberOfComponents << "\n";
   os << indent << "Chunk Size: " << this->ChunkSize << "\n";
 }
+VTK_ABI_NAMESPACE_END

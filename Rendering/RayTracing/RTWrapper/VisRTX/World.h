@@ -7,6 +7,7 @@
 
 #include <set>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace RTW
 {
     class World : public Object
@@ -117,3 +118,4 @@ namespace RTW
         std::set<Geometry*> geometries;
     };
 }
+VTK_ABI_NAMESPACE_END

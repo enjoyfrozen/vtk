@@ -41,6 +41,7 @@
 
 #include <vector> // For caching
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkDoubleArray;
 class vtkHigherOrderCurve;
 class vtkTriangle;
@@ -135,4 +136,5 @@ private:
   void operator=(const vtkHigherOrderTriangle&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

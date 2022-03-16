@@ -190,6 +190,7 @@ endforeach()
 
 list(APPEND temp
   "\n"
+  "VTK_ABI_NAMESPACE_BEGIN\n"
   "namespace vtkArrayDispatch {\n"
   "\n"
   "typedef vtkTypeList::Unique<\n"
@@ -210,6 +211,7 @@ list(APPEND temp
   "\n"
   "} // end namespace vtkArrayDispatch\n"
   "\n"
+  "VTK_ABI_NAMESPACE_END\n"
   "#endif // vtkArrayDispatchArrayList_h\n"
 )
 

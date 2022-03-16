@@ -4,6 +4,7 @@
 
 #include <cstring>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace RTW
 {
     class Data : public Object
@@ -169,3 +170,4 @@ namespace RTW
         bool dirty = true;
     };
 }
+VTK_ABI_NAMESPACE_END

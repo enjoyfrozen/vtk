@@ -25,6 +25,7 @@
 
 #include <cassert>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtk
 {
 
@@ -270,6 +271,7 @@ private:
 }
 } // end namespace vtk::detail
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkCompositeDataSetRange_h
 
 // VTK-HeaderTest-Exclude: vtkCompositeDataSetRange.h

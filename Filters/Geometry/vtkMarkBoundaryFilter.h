@@ -64,6 +64,7 @@
 #include "vtkDataSetAlgorithm.h"
 #include "vtkFiltersGeometryModule.h" // For export macro
 
+VTK_ABI_NAMESPACE_BEGIN
 class VTKFILTERSGEOMETRY_EXPORT vtkMarkBoundaryFilter : public vtkDataSetAlgorithm
 {
 public:
@@ -121,4 +122,5 @@ private:
   void operator=(const vtkMarkBoundaryFilter&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

@@ -63,6 +63,7 @@
 #include "vtkDeprecation.h"           // For VTK_DEPRECATED_IN_9_1_0
 #include "vtkObject.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkPoints;
 class vtkIdList;
 
@@ -473,4 +474,5 @@ inline int vtkIncrementalOctreeNode::UpdateCounterAndDataBoundsRecursively(
       ? updated
       : this->Parent->UpdateCounterAndDataBoundsRecursively(point, nHits, updated, endNode));
 }
+VTK_ABI_NAMESPACE_END
 #endif

@@ -54,6 +54,7 @@
 #include <cmath>
 #include <unordered_map>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkObjectFactoryNewMacro(vtkPlaneCutter);
 vtkCxxSetObjectMacro(vtkPlaneCutter, Plane, vtkPlane);
 
@@ -1983,3 +1984,4 @@ void vtkPlaneCutter::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "Build Tree: " << (this->BuildTree ? "On\n" : "Off\n");
   os << indent << "Build Hierarchy: " << (this->BuildHierarchy ? "On\n" : "Off\n");
 }
+VTK_ABI_NAMESPACE_END

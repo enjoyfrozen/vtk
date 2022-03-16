@@ -29,6 +29,7 @@
 #include <vtkm/cont/ArrayHandleTransform.h>
 #include <vtkm/cont/ArrayRangeCompute.h>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace internal
 {
 //=============================================================================
@@ -504,4 +505,5 @@ bool vtkmDataArray<T>::ReallocateTuples(vtkIdType numTuples)
   return true;
 }
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkmDataArray_hxx

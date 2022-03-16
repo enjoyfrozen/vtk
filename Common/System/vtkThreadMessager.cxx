@@ -24,6 +24,7 @@
 #include "vtkWindows.h"
 #endif
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkThreadMessager);
 
 vtkThreadMessager::vtkThreadMessager()
@@ -92,3 +93,4 @@ void vtkThreadMessager::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 }
+VTK_ABI_NAMESPACE_END

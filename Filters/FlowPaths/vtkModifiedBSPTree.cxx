@@ -28,6 +28,7 @@
 #include "vtkCubeSource.h"
 //
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkModifiedBSPTree);
 //------------------------------------------------------------------------------
 //
@@ -1458,3 +1459,4 @@ bool vtkModifiedBSPTree_Inside(double bounds[6], double point[3])
   return bounds[0] <= point[0] && point[0] <= bounds[1] && bounds[2] <= point[1] &&
     point[1] <= bounds[3] && bounds[4] <= point[2] && point[2] <= bounds[5];
 }
+VTK_ABI_NAMESPACE_END

@@ -43,6 +43,7 @@
 
 // Implementation of vtkVariant's
 // fast-but-potentially-counterintuitive < operation
+VTK_ABI_NAMESPACE_BEGIN
 bool vtkVariantStrictWeakOrder::operator()(const vtkVariant& s1, const vtkVariant& s2) const
 {
   // First sort on type if they are different
@@ -914,6 +915,7 @@ T vtkVariantStringToNumeric(vtkStdString str, bool* valid, T* vtkNotUsed(ignored
 // Definition of ToNumeric
 
 // NOLINTNEXTLINE(bugprone-suspicious-include)
+VTK_ABI_NAMESPACE_END
 #include "vtkVariantToNumeric.cxx"
 
 //------------------------------------------------------------------------------
@@ -925,6 +927,7 @@ T vtkVariantStringToNumeric(vtkStdString str, bool* valid, T* vtkNotUsed(ignored
 
 #define vtkVariantToNumericInstantiateMacro(x) template x vtkVariant::ToNumeric<x>(bool*, x*) const
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkVariantToNumericInstantiateMacro(char);
 vtkVariantToNumericInstantiateMacro(float);
 vtkVariantToNumericInstantiateMacro(double);
@@ -939,11 +942,13 @@ vtkVariantToNumericInstantiateMacro(unsigned long);
 vtkVariantToNumericInstantiateMacro(long long);
 vtkVariantToNumericInstantiateMacro(unsigned long long);
 
+VTK_ABI_NAMESPACE_END
 #endif
 
 //------------------------------------------------------------------------------
 // Callers causing implicit instantiations of ToNumeric
 
+VTK_ABI_NAMESPACE_BEGIN
 float vtkVariant::ToFloat(bool* valid) const
 {
   return this->ToNumeric(valid, static_cast<float*>(nullptr));
@@ -1115,3 +1120,4 @@ bool vtkVariant::CheckUnicodeStringLessThan(const vtkVariant& other) const
 {
   return this->ToUnicodeString() < other.ToUnicodeString();
 }
+VTK_ABI_NAMESPACE_END

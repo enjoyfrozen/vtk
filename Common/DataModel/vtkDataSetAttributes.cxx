@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkDataSetAttributes);
 vtkStandardExtendedNewMacro(vtkDataSetAttributes);
 //------------------------------------------------------------------------------
@@ -1900,3 +1901,4 @@ const char* vtkDataSetAttributes::GetLongAttributeTypeAsString(int attributeType
   }
   return vtkDataSetAttributes::LongAttributeNames[attributeType];
 }
+VTK_ABI_NAMESPACE_END

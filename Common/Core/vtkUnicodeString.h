@@ -53,6 +53,7 @@
 #include <string>
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkUnicodeString;
 
 typedef vtkTypeUInt32 vtkUnicodeStringValueType;
@@ -293,6 +294,7 @@ private:
   class back_insert_iterator;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif
 
 // VTK-HeaderTest-Exclude: vtkUnicodeString.h

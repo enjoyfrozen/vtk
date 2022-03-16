@@ -40,6 +40,7 @@
 // Helper function that reads the particle coordinates
 // NOTE: it is assumed that H5DOpen has been called on the
 // internal file index this->FileIndex.
+VTK_ABI_NAMESPACE_BEGIN
 static void GetParticleCoordinates(hid_t& dataIdx, std::vector<double>& xcoords,
   std::vector<double>& ycoords, std::vector<double>& zcoords, vtkFlashReaderInternal* iReader,
   int NumParticles)
@@ -340,3 +341,4 @@ void vtkAMRFlashParticlesReader::SetupParticleDataSelections()
 
   this->InitializeParticleDataSelections();
 }
+VTK_ABI_NAMESPACE_END

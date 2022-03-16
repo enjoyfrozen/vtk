@@ -41,6 +41,7 @@
 
 #define VTK_MAX_CELLS_PER_POINT 4096
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkCellDataToPointData);
 
 namespace
@@ -767,3 +768,4 @@ int vtkCellDataToPointData::InterpolatePointData(vtkDataSet* input, vtkDataSet* 
 
   return 1;
 }
+VTK_ABI_NAMESPACE_END

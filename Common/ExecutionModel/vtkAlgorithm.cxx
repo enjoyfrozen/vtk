@@ -49,6 +49,7 @@
 #include <vector>
 #include <vtksys/SystemTools.hxx>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkAlgorithm);
 
 vtkCxxSetObjectMacro(vtkAlgorithm, Information, vtkInformation);
@@ -1781,3 +1782,4 @@ void vtkAlgorithm::AddInputDataObject(int port, vtkDataObject* input)
     tp->Delete();
   }
 }
+VTK_ABI_NAMESPACE_END

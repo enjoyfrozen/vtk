@@ -125,6 +125,7 @@
 #define AssertNe(a, b)
 #endif
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace
 {
 inline int CNext(int i, int n)
@@ -1899,3 +1900,4 @@ void vtkPStreamTracer::Prepend(vtkPolyData* pathPoly, vtkPolyData* headPoly)
   AssertEq(newNumPoints, nPoints + 1);
   AssertEq(newNumPoints, pathPoly->GetNumberOfPoints());
 }
+VTK_ABI_NAMESPACE_END

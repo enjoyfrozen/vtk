@@ -41,6 +41,7 @@
 #include "vtkVariant.h"
 #include "vtkWorldPointPicker.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkInteractorStyleTreeMapHover);
 
 //------------------------------------------------------------------------------
@@ -407,3 +408,4 @@ void vtkInteractorStyleTreeMapHover::HighLightCurrentSelectedItem()
     this->GetInteractor()->Render();
   }
 }
+VTK_ABI_NAMESPACE_END

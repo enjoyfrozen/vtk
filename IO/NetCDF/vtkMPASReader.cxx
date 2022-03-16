@@ -117,6 +117,7 @@ PURPOSE.  See the above copyright notice for more information.
       abort();                                                                                     \
   }
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace
 {
 
@@ -3039,3 +3040,4 @@ int vtkMPASReader::GetNumberOfPointVars()
 {
   return static_cast<int>(this->Internals->pointVars.size());
 }
+VTK_ABI_NAMESPACE_END

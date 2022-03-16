@@ -35,6 +35,7 @@
 #include "vtkUndirectedGraph.h"
 
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_BEGIN
 class vtkSQLDatabaseGraphSource::implementation
 {
 public:
@@ -401,3 +402,4 @@ int vtkSQLDatabaseGraphSource::RequestData(
 
   return 1;
 }
+VTK_ABI_NAMESPACE_END

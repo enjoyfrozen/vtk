@@ -51,6 +51,7 @@
 #include <set>
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkCxxSetObjectMacro(vtkConvertSelection, ArrayNames, vtkStringArray);
 vtkCxxSetObjectMacro(vtkConvertSelection, SelectionExtractor, vtkExtractSelection);
 
@@ -1203,3 +1204,4 @@ void vtkConvertSelection::PrintSelf(ostream& os, vtkIndent indent)
     this->ArrayNames->PrintSelf(os, indent.GetNextIndent());
   }
 }
+VTK_ABI_NAMESPACE_END

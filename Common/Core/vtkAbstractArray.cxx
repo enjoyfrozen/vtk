@@ -63,6 +63,7 @@
 #include <iterator>
 #include <set>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkInformationKeyMacro(vtkAbstractArray, GUI_HIDE, Integer);
 vtkInformationKeyMacro(vtkAbstractArray, PER_COMPONENT, InformationVector);
 vtkInformationKeyMacro(vtkAbstractArray, PER_FINITE_COMPONENT, InformationVector);
@@ -878,3 +879,4 @@ void vtkAbstractArray::UpdateDiscreteValueSet(double uncertainty, double minimum
   params[1] = minimumProminence;
   this->GetInformation()->Set(DISCRETE_VALUE_SAMPLE_PARAMETERS(), params, 2);
 }
+VTK_ABI_NAMESPACE_END

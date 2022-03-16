@@ -59,6 +59,7 @@
 #include "vtkAbstractPointLocator.h"
 #include "vtkCommonDataModelModule.h" // For export macro
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkIdList;
 struct vtkBucketList2D;
 
@@ -291,4 +292,5 @@ private:
   void operator=(const vtkStaticPointLocator2D&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

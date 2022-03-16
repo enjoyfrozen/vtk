@@ -45,6 +45,7 @@
 #define J(ijk) (ijk[1])
 #define K(ijk) (ijk[2])
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtk
 {
 namespace detail
@@ -657,3 +658,4 @@ void vtkExtractStructuredGridHelper::GetPartitionedOutputExtent(const int global
     }
   }
 }
+VTK_ABI_NAMESPACE_END

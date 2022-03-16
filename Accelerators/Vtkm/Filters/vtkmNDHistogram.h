@@ -40,6 +40,7 @@
 #include <utility> // for std::pair
 #include <vector>  // for std::vector
 
+VTK_ABI_NAMESPACE_BEGIN
 class VTKACCELERATORSVTKMFILTERS_EXPORT vtkmNDHistogram : public vtkArrayDataAlgorithm
 {
 public:
@@ -77,4 +78,5 @@ private:
   std::vector<std::pair<double, double>> DataRanges;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkmNDHistogram_h

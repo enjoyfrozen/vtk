@@ -45,6 +45,7 @@
 #include VTK_CGNS(cgns_io.h)
 // .clang-format on
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace CGNSRead
 {
 
@@ -543,5 +544,6 @@ int get_XYZ_mesh(const int cgioNum, const std::vector<double>& gridChildId,
 }
 }
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkCGNSReaderInternal_h
 // VTK-HeaderTest-Exclude: vtkCGNSReaderInternal.h

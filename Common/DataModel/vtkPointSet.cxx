@@ -32,6 +32,7 @@
 
 #define VTK_CREATE(type, name) vtkSmartPointer<type> name = vtkSmartPointer<type>::New()
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkPointSet);
 vtkStandardExtendedNewMacro(vtkPointSet);
 
@@ -361,3 +362,4 @@ void vtkPointSet::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "PointLocator: " << this->PointLocator << "\n";
   os << indent << "CellLocator: " << this->CellLocator << "\n";
 }
+VTK_ABI_NAMESPACE_END

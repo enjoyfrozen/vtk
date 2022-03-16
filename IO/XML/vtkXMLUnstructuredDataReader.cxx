@@ -32,6 +32,7 @@
 #include <tuple>
 #include <utility>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace
 {
 // Ensures that array1 and array2 are of the same type. Returns a pair with
@@ -1182,3 +1183,4 @@ int vtkXMLUnstructuredDataReader::CellsNeedToReadTimeStep(
   // all other cases we don't need to read:
   return 0;
 }
+VTK_ABI_NAMESPACE_END

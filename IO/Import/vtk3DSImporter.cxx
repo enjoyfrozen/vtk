@@ -30,6 +30,7 @@
 
 #include <sstream>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtk3DSImporter);
 
 // Silence warning like
@@ -1327,3 +1328,4 @@ void vtk3DSImporter::PrintSelf(ostream& os, vtkIndent indent)
 
   os << indent << "Compute Normals: " << (this->ComputeNormals ? "On\n" : "Off\n");
 }
+VTK_ABI_NAMESPACE_END

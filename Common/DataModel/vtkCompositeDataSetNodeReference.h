@@ -23,6 +23,7 @@
 #include <cassert>
 #include <type_traits>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtk
 {
 
@@ -267,6 +268,7 @@ public:
 
 } // end namespace vtk
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkCompositeDataSetNodeReference_h
 
 // VTK-HeaderTest-Exclude: vtkCompositeDataSetNodeReference.h

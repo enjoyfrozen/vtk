@@ -25,6 +25,7 @@
 
 #include <stdexcept>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtx
 {
 // PUBLIC
@@ -108,3 +109,4 @@ VTK_IO_ADIOS2_VTX_ARRAY_TYPE(declare_type)
 #undef declare_type
 
 } // end namespace vtx
+VTK_ABI_NAMESPACE_END

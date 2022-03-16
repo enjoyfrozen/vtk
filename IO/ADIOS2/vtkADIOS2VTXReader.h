@@ -32,6 +32,7 @@
 #include "vtkMultiBlockDataSetAlgorithm.h"
 
 // forward declaring to keep it private
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtx
 {
 class VTXSchemaManager;
@@ -70,4 +71,5 @@ private:
   std::unique_ptr<vtx::VTXSchemaManager> SchemaManager;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif /* vtkADIOS2VTXReader_h */

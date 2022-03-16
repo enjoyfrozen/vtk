@@ -50,6 +50,7 @@
 #include "vtkAcceleratorsVTKmFiltersModule.h" // for export macro
 #include "vtkTriangleMeshPointNormals.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class VTKACCELERATORSVTKMFILTERS_EXPORT vtkmTriangleMeshPointNormals
   : public vtkTriangleMeshPointNormals
 {
@@ -83,4 +84,5 @@ private:
   void operator=(const vtkmTriangleMeshPointNormals&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkmTriangleMeshPointNormals_h

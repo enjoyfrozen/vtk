@@ -25,10 +25,14 @@
 extern "C"
 {
 #include "vtk_jpeg.h"
-#include <csetjmp>
+#include <setjmp.h>
 }
 
+VTK_ABI_NAMESPACE_BEGIN
+
 vtkStandardNewMacro(vtkJPEGReader);
+
+VTK_ABI_NAMESPACE_END
 
 #if defined(_MSC_VER)
 #if defined(_WIN64)
@@ -111,6 +115,8 @@ extern "C" void jpeg_mem_src(j_decompress_ptr cinfo, const void* buffer, long nb
 // destruction is non-portable
 #pragma warning(disable : 4611)
 #endif
+
+VTK_ABI_NAMESPACE_BEGIN
 
 void vtkJPEGReader::ExecuteInformation()
 {
@@ -466,3 +472,4 @@ void vtkJPEGReader::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 }
+VTK_ABI_NAMESPACE_END

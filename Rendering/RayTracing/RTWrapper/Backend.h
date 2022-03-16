@@ -2,6 +2,7 @@
 
 #include "Types.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace RTW
 {
     class Backend
@@ -69,3 +70,4 @@ namespace RTW
         virtual int GetDepthTextureGL(RTWFrameBuffer frameBuffer) = 0;
     };
 }
+VTK_ABI_NAMESPACE_END

@@ -41,6 +41,7 @@
 #include "vtkRenderingVolumeOpenGL2Module.h" // For export macro
 #include "vtkVolumeMapper.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkDataObjectTree;
 class vtkDataSet;
 class vtkImageData;
@@ -210,4 +211,5 @@ private:
 
   char* Transfer2DYAxisArray;
 };
+VTK_ABI_NAMESPACE_END
 #endif

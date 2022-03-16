@@ -47,6 +47,7 @@
 #include <cmath>
 
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_BEGIN
 vtkCxxSetObjectMacro(vtkProjectedTetrahedraMapper, VisibilitySort, vtkVisibilitySort);
 
 //------------------------------------------------------------------------------
@@ -390,3 +391,4 @@ void Map4DependentComponents(ColorArrayT* colors, ScalarArrayT* scalars)
 }
 
 }
+VTK_ABI_NAMESPACE_END

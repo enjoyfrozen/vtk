@@ -38,6 +38,7 @@
 #include <atomic>
 #include <omp.h>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtk
 {
 namespace detail
@@ -182,4 +183,5 @@ private:
 } // namespace detail
 } // namespace vtk
 
+VTK_ABI_NAMESPACE_END
 #endif

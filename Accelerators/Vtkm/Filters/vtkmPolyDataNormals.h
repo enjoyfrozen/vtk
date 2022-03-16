@@ -45,6 +45,7 @@
 #include "vtkAcceleratorsVTKmFiltersModule.h" // for export macro
 #include "vtkPolyDataNormals.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class VTKACCELERATORSVTKMFILTERS_EXPORT vtkmPolyDataNormals : public vtkPolyDataNormals
 {
 public:
@@ -77,4 +78,5 @@ private:
   void operator=(const vtkmPolyDataNormals&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkmPolyDataNormals_h

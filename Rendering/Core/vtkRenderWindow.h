@@ -48,6 +48,7 @@
 #include "vtkSmartPointer.h"        // For vtkSmartPointer
 #include "vtkWindow.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkFloatArray;
 class vtkProp;
 class vtkCollection;
@@ -801,4 +802,5 @@ private:
   vtkNew<vtkStereoCompositor> StereoCompositor;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

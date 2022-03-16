@@ -31,6 +31,7 @@
 #include "vtkAcceleratorsVTKmFiltersModule.h" //required for correct implementation
 #include "vtkDataSetAlgorithm.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class VTKACCELERATORSVTKMFILTERS_EXPORT vtkmAverageToCells : public vtkDataSetAlgorithm
 {
 public:
@@ -49,4 +50,5 @@ private:
   void operator=(const vtkmAverageToCells&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkmAverageToCells_h

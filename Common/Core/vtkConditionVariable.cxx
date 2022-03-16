@@ -7,6 +7,7 @@
 
 #include <cerrno>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkConditionVariable);
 
 #ifndef EPERM
@@ -373,3 +374,4 @@ void vtkConditionVariable::PrintSelf(ostream& os, vtkIndent indent)
 #endif
      << "\n";
 }
+VTK_ABI_NAMESPACE_END

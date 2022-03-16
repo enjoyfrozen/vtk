@@ -38,6 +38,7 @@
 #include "vtkMapper2D.h"
 #include "vtkRenderingLabelModule.h" // For export macro
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkCoordinate;
 class vtkLabelRenderStrategy;
 class vtkSelectVisiblePoints;
@@ -256,4 +257,5 @@ private:
   void operator=(const vtkLabelPlacementMapper&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

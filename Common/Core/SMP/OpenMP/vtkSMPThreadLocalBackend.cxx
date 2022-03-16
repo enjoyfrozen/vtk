@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <cmath> // For std::floor & std::log2
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtk
 {
 namespace detail
@@ -266,3 +267,4 @@ StoragePointerType& ThreadSpecific::GetStorage()
 } // namespace smp
 } // namespace detail
 } // namespace vtk
+VTK_ABI_NAMESPACE_END

@@ -32,6 +32,7 @@
 #include "vtkAOSDataArrayTemplate.h" // Template
 #include "vtkGenericDataArray.h"     // Parent
 
+VTK_ABI_NAMESPACE_BEGIN
 template <class Scalar>
 class vtkPeriodicDataArray : public vtkGenericDataArray<vtkPeriodicDataArray<Scalar>, Scalar>
 {
@@ -378,6 +379,7 @@ private:
   double PeriodicFiniteRange[6]; // Transformed periodic finite range
 };
 
+VTK_ABI_NAMESPACE_END
 #include "vtkPeriodicDataArray.txx"
 
 #endif // vtkPeriodicDataArray_h

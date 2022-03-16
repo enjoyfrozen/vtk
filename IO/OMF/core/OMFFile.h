@@ -24,6 +24,7 @@
 #include <string>
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkDataArray;
 class vtkImageData;
 
@@ -57,4 +58,5 @@ private:
 };
 
 } // end namespace omf
+VTK_ABI_NAMESPACE_END
 #endif

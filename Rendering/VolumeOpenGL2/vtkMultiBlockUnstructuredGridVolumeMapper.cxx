@@ -33,6 +33,7 @@
 
 #include "vtkProperty.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtkBlockSortHelper
 {
 template <>
@@ -345,3 +346,4 @@ void vtkMultiBlockUnstructuredGridVolumeMapper::SetBlendMode(int mode)
   }
   this->Superclass::SetBlendMode(mode);
 }
+VTK_ABI_NAMESPACE_END

@@ -34,6 +34,7 @@
 #include "vtkVertex.h"
 #include "vtkVoxel.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkImageData);
 vtkStandardExtendedNewMacro(vtkImageData);
 
@@ -2630,3 +2631,4 @@ bool vtkImageData::HasAnyBlankCells()
   int cellBlanking = this->IsAnyBitSet(this->GetCellGhostArray(), vtkDataSetAttributes::HIDDENCELL);
   return cellBlanking || this->HasAnyBlankPoints();
 }
+VTK_ABI_NAMESPACE_END

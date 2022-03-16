@@ -33,6 +33,7 @@
 #include <map>
 #include <set>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace
 {
 const int FIRST_TRACE_START_POS = 3600; // this->Traces start after 3200 + 400 file header
@@ -377,3 +378,4 @@ void vtkSegYReaderInternal::ExportData(
   grid->SetPoints(points);
   grid->GetPointData()->SetScalars(scalars);
 }
+VTK_ABI_NAMESPACE_END

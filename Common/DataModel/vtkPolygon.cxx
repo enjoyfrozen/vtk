@@ -35,6 +35,7 @@
 
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkPolygon);
 
 //------------------------------------------------------------------------------
@@ -2259,3 +2260,4 @@ int vtkPolygon::IntersectConvex2DCells(
     return 0;
   }
 }
+VTK_ABI_NAMESPACE_END

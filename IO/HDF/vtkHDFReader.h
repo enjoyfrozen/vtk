@@ -25,6 +25,7 @@
 #include "vtkIOHDFModule.h" // For export macro
 #include <vector>           // For storing list of values
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkAbstractArray;
 class vtkCallbackCommand;
 class vtkDataArraySelection;
@@ -196,4 +197,5 @@ protected:
   Implementation* Impl;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

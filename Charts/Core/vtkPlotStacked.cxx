@@ -39,6 +39,7 @@
 #include <vector>
 
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_BEGIN
 namespace
 {
 
@@ -799,3 +800,4 @@ vtkColorSeries* vtkPlotStacked::GetColorSeries()
 {
   return this->ColorSeries;
 }
+VTK_ABI_NAMESPACE_END

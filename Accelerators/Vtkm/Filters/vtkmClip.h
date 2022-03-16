@@ -30,6 +30,7 @@
 
 #include <memory> // For std::unique_ptr
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkImplicitFunction;
 
 class VTKACCELERATORSVTKMFILTERS_EXPORT vtkmClip : public vtkUnstructuredGridAlgorithm
@@ -92,4 +93,5 @@ private:
   void operator=(const vtkmClip&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkmClip_h

@@ -29,6 +29,7 @@ PURPOSE.  See the above copyright notice for more information.
 #include "vtkPointData.h"
 #include "vtkTable.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkPExtractHistogram2D);
 vtkCxxSetObjectMacro(vtkPExtractHistogram2D, Controller, vtkMultiProcessController);
 //------------------------------------------------------------------------------
@@ -155,3 +156,4 @@ int vtkPExtractHistogram2D::ComputeBinExtents(vtkDataArray* col1, vtkDataArray* 
   r[3] = allRange[3];
   return 1;
 }
+VTK_ABI_NAMESPACE_END

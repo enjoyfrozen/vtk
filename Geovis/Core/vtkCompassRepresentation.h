@@ -36,6 +36,7 @@
 #include "vtkGeovisCoreModule.h" // For export macro
 #include "vtkSmartPointer.h"     // used for SmartPointers
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkActor2D;
 class vtkPoints;
 class vtkCellArray;
@@ -222,4 +223,5 @@ private:
   void operator=(const vtkCompassRepresentation&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

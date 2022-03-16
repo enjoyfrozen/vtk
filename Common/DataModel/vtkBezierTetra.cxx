@@ -27,6 +27,7 @@
 #include "vtkPoints.h"
 #include "vtkTetra.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkBezierTetra);
 //------------------------------------------------------------------------------
 vtkBezierTetra::vtkBezierTetra() = default;
@@ -201,3 +202,4 @@ vtkHigherOrderTriangle* vtkBezierTetra::GetFaceCell()
 {
   return FaceCell;
 }
+VTK_ABI_NAMESPACE_END

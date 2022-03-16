@@ -36,6 +36,7 @@
 #include "vtkLabelHierarchyAlgorithm.h"
 #include "vtkRenderingLabelModule.h" // For export macro
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkTextProperty;
 
 class VTKRENDERINGLABEL_EXPORT vtkPointSetToLabelHierarchy : public vtkLabelHierarchyAlgorithm
@@ -145,4 +146,5 @@ private:
   void operator=(const vtkPointSetToLabelHierarchy&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkPointSetToLabelHierarchy_h

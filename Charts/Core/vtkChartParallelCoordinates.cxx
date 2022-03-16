@@ -40,6 +40,7 @@
 #include <vector>
 
 // Minimal storage class for STL containers etc.
+VTK_ABI_NAMESPACE_BEGIN
 class vtkChartParallelCoordinates::Private
 {
 public:
@@ -789,3 +790,4 @@ void vtkChartParallelCoordinates::SwapAxes(int a1, int a2)
 
   this->Storage->Plot->Update();
 }
+VTK_ABI_NAMESPACE_END

@@ -43,6 +43,7 @@
 #include <set>
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 static constexpr unsigned int VonNeumannCursors3D[] = { 0, 1, 2, 4, 5, 6 };
 static constexpr unsigned int VonNeumannOrientations3D[] = { 2, 1, 0, 0, 1, 2 };
 static constexpr unsigned int VonNeumannOffsets3D[] = { 0, 0, 0, 1, 1, 1 };
@@ -1261,3 +1262,4 @@ void vtkHyperTreeGridGeometry::AddFace2(vtkIdType inId, vtkIdType useId, const d
     this->OutData->CopyData(this->InData, useId, outId);
   } // if ( create )
 }
+VTK_ABI_NAMESPACE_END

@@ -41,6 +41,7 @@
 
 // The export macro below makes no sense, but is necessary for older compilers
 // when we export instantiations of this class from vtkCommonCore.
+VTK_ABI_NAMESPACE_BEGIN
 template <class ValueTypeT>
 class VTKCOMMONCORE_EXPORT vtkScaledSOADataArrayTemplate
   : public vtkGenericDataArray<vtkScaledSOADataArrayTemplate<ValueTypeT>, ValueTypeT>
@@ -292,6 +293,7 @@ private:
 // Declare vtkArrayDownCast implementations for scale SoA containers:
 vtkArrayDownCast_TemplateFastCastMacro(vtkScaledSOADataArrayTemplate);
 
+VTK_ABI_NAMESPACE_END
 #endif // header guard
 
 // This portion must be OUTSIDE the include blockers. This is used to tell
@@ -315,10 +317,12 @@ vtkArrayDownCast_TemplateFastCastMacro(vtkScaledSOADataArrayTemplate);
 // dllexport and is used from another class in vtkCommonCore
 #pragma warning(disable : 4910) // extern and dllexport incompatible
 #endif
+VTK_ABI_NAMESPACE_BEGIN
 vtkExternTemplateMacro(extern template class VTKCOMMONCORE_EXPORT vtkScaledSOADataArrayTemplate);
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
+VTK_ABI_NAMESPACE_END
 #endif // VTK_SCALED_SOA_DATA_ARRAY_TEMPLATE_EXTERN
 
 // The following clause is only for MSVC 2008 and 2010
@@ -346,11 +350,13 @@ vtkExternTemplateMacro(extern template class VTKCOMMONCORE_EXPORT vtkScaledSOADa
 
 // Use an "extern explicit instantiation" to give the class a DLL
 // interface.  This is a compiler-specific extension.
+VTK_ABI_NAMESPACE_BEGIN
 vtkInstantiateTemplateMacro(
   extern template class VTKCOMMONCORE_EXPORT vtkScaledSOADataArrayTemplate);
 
 #pragma warning(pop)
 
+VTK_ABI_NAMESPACE_END
 #endif
 
 // VTK-HeaderTest-Exclude: vtkScaledSOADataArrayTemplate.h

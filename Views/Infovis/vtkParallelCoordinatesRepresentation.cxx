@@ -85,6 +85,7 @@ PURPOSE.  See the above copyright notice for more information.
 #include <sstream>
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkParallelCoordinatesRepresentation);
 
 //------------------------------------------------------------------------------
@@ -1999,3 +2000,4 @@ int vtkParallelCoordinatesRepresentation::GetNumberOfSelections()
 {
   return (int)this->I->SelectionActors.size();
 }
+VTK_ABI_NAMESPACE_END

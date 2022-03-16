@@ -22,6 +22,7 @@
 #include "vtkObjectFactory.h"
 #include "vtkPoints.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkIncrementalOctreeNode);
 
 vtkCxxSetObjectMacro(vtkIncrementalOctreeNode, PointIdSet, vtkIdList);
@@ -848,3 +849,4 @@ int vtkIncrementalOctreeNode::GetNumberOfLevels() const
     return 1;
   }
 }
+VTK_ABI_NAMESPACE_END

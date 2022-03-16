@@ -22,6 +22,7 @@
 #include "vtkStructuredNeighbor.h"
 #include "vtkUnsignedCharArray.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkStructuredGridConnectivity);
 
 // Description:
@@ -1532,3 +1533,4 @@ void vtkStructuredGridConnectivity::CreateGhostLayers(const int N)
     this->TransferGhostDataFromNeighbors(i);
   } // END for all grids
 }
+VTK_ABI_NAMESPACE_END

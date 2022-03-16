@@ -49,6 +49,7 @@
 #include "vtkAcceleratorsVTKmFiltersModule.h" //required for export
 #include "vtkDataSetAlgorithm.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class VTKACCELERATORSVTKMFILTERS_EXPORT vtkmProbe : public vtkDataSetAlgorithm
 {
 public:
@@ -153,4 +154,5 @@ private:
   void operator=(const vtkmProbe&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkmProbe_h

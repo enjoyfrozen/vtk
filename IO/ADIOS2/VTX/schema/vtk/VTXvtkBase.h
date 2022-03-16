@@ -34,6 +34,7 @@
 #include <string>
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtx
 {
 namespace schema
@@ -69,4 +70,5 @@ protected:
 } // end namespace schema
 } // end namespace vtx
 
+VTK_ABI_NAMESPACE_END
 #endif /* VTK_IO_ADIOS2_VTX_SCHEMA_VTK_VTXvtkBase_h */

@@ -19,6 +19,7 @@
 #include <cstdlib> // For std::getenv()
 #include <thread>  // For std::thread::hardware_concurrency()
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtk
 {
 namespace detail
@@ -67,3 +68,4 @@ int vtkSMPToolsImpl<BackendType::STDThread>::GetEstimatedNumberOfThreads()
 } // namespace smp
 } // namespace detail
 } // namespace vtk
+VTK_ABI_NAMESPACE_END

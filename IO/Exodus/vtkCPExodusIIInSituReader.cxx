@@ -30,6 +30,7 @@
 
 #include "vtk_exodusII.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkCPExodusIIInSituReader);
 
 //------------------------------------------------------------------------------
@@ -418,3 +419,4 @@ void vtkCPExodusIIInSituReader::ExClose()
   ex_close(this->FileId);
   this->FileId = -1;
 }
+VTK_ABI_NAMESPACE_END

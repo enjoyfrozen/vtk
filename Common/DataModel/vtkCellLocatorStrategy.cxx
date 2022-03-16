@@ -21,6 +21,7 @@
 #include "vtkPointSet.h"
 
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkCellLocatorStrategy);
 
 //------------------------------------------------------------------------------
@@ -140,3 +141,4 @@ void vtkCellLocatorStrategy::PrintSelf(ostream& os, vtkIndent indent)
 
   os << indent << "CellLocator: " << this->CellLocator << "\n";
 }
+VTK_ABI_NAMESPACE_END

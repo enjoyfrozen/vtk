@@ -29,6 +29,7 @@
 
 #include <vtkm/filter/PointAverage.h>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkmAverageToPoints);
 
 //------------------------------------------------------------------------------
@@ -99,3 +100,4 @@ void vtkmAverageToPoints::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 }
+VTK_ABI_NAMESPACE_END

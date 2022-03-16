@@ -3871,9 +3871,7 @@ function (vtk_module_add_module name)
 #endif
 #ifdef ${_vtk_add_module_library_name}_AUTOINIT
 ${_vtk_add_module_autoinit_include_header}
-inline namespace VTK_ABI_NAMESPACE {
 VTK_MODULE_AUTOINIT(${_vtk_add_module_library_name})
-}
 #endif
 ")
 

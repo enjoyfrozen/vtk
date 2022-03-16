@@ -39,6 +39,7 @@
 #include "vtkCommonCoreModule.h"          // For export macro
 #include "vtkVTK_USE_SCALED_SOA_ARRAYS.h" // For #define of VTK_USE_SCALED_SOA_ARRAYS
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkDoubleArray;
 class vtkIdList;
 class vtkInformationStringKey;
@@ -609,4 +610,5 @@ struct FiniteValues
 };
 }
 
+VTK_ABI_NAMESPACE_END
 #endif

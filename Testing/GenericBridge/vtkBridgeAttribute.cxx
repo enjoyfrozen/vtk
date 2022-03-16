@@ -34,6 +34,7 @@
 
 #include <cassert>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkBridgeAttribute);
 
 void vtkBridgeAttribute::PrintSelf(ostream& os, vtkIndent indent)
@@ -499,3 +500,4 @@ void vtkBridgeAttribute::AllocateInternalTuple(int size)
     }
   }
 }
+VTK_ABI_NAMESPACE_END

@@ -37,6 +37,7 @@
 
 #include <map>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkGraphHierarchicalBundleEdges);
 
 vtkGraphHierarchicalBundleEdges::vtkGraphHierarchicalBundleEdges()
@@ -307,3 +308,4 @@ void vtkGraphHierarchicalBundleEdges::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "BundlingStrength: " << this->BundlingStrength << endl;
   os << indent << "DirectMapping: " << this->DirectMapping << endl;
 }
+VTK_ABI_NAMESPACE_END

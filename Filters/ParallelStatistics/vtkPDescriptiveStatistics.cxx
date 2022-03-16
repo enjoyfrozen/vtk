@@ -30,6 +30,7 @@
 #include "vtkTable.h"
 #include "vtkVariant.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkPDescriptiveStatistics);
 vtkCxxSetObjectMacro(vtkPDescriptiveStatistics, Controller, vtkMultiProcessController);
 //------------------------------------------------------------------------------
@@ -206,3 +207,4 @@ int vtkPDescriptiveStatistics::RequestData(
 
   return retVal;
 }
+VTK_ABI_NAMESPACE_END

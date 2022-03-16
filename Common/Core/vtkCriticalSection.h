@@ -40,6 +40,7 @@
 #include "vtkObject.h"
 #include <mutex> // for std::mutex
 
+VTK_ABI_NAMESPACE_BEGIN
 class VTKCOMMONCORE_EXPORT vtkCriticalSection : public vtkObject
 {
 public:
@@ -78,4 +79,5 @@ inline void vtkCriticalSection::Unlock()
   this->mtx.unlock();
 }
 
+VTK_ABI_NAMESPACE_END
 #endif

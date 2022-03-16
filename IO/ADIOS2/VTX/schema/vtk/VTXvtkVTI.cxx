@@ -37,6 +37,7 @@
 
 #include <adios2.h>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtx
 {
 namespace schema
@@ -259,3 +260,4 @@ VTK_IO_ADIOS2_VTX_ARRAY_TYPE(declare_type)
 
 } // end namespace schema
 } // end namespace vtx
+VTK_ABI_NAMESPACE_END

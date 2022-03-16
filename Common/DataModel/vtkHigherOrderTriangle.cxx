@@ -33,6 +33,7 @@
 #define ENABLE_CACHING
 #define SEVEN_POINT_TRIANGLE
 
+VTK_ABI_NAMESPACE_BEGIN
 double vtkHigherOrderTriangle::eta(vtkIdType n, vtkIdType chi, double sigma)
 {
   VTK_LEGACY_REPLACED_BODY(vtkHigherOrderTriangle::eta, "VTK 9.1", vtkHigherOrderTriangle::Eta);
@@ -929,3 +930,4 @@ void vtkHigherOrderTriangle::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 }
+VTK_ABI_NAMESPACE_END

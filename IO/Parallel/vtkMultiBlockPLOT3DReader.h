@@ -91,6 +91,7 @@
 #include "vtkParallelReader.h"
 #include <vector> // For holding function-names
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkDataArray;
 class vtkDataSetAttributes;
 class vtkIntArray;
@@ -525,4 +526,5 @@ private:
   void RemoveIntermediateFunctions(vtkDataSetAttributes* dsa);
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

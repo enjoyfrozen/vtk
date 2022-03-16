@@ -50,6 +50,7 @@
 #include "vtkAcceleratorsVTKmFiltersModule.h" //required for correct implementation
 #include "vtkPolyDataAlgorithm.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class VTKACCELERATORSVTKMFILTERS_EXPORT vtkmLevelOfDetail : public vtkPolyDataAlgorithm
 {
 public:
@@ -92,4 +93,5 @@ private:
   void operator=(const vtkmLevelOfDetail&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkmLevelOfDetail_h

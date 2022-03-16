@@ -55,6 +55,8 @@ public:
   vtkStdString Value;
 };
 
+VTK_ABI_NAMESPACE_BEGIN
+
 template <>
 inline UserType vtkVariantCast<UserType>(const vtkVariant& value, bool* valid)
 {
@@ -68,6 +70,7 @@ inline vtkVariant vtkVariantCreate<UserType>(const UserType& value)
 {
   return vtkVariant(value.Value);
 }
+VTK_ABI_NAMESPACE_END
 
 int TestArrayUserTypes(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 {

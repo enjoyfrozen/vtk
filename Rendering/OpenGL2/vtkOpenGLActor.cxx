@@ -33,6 +33,7 @@
 
 #include <cmath>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkOpenGLActor);
 
 vtkInformationKeyMacro(vtkOpenGLActor, GLDepthMaskOverride, Integer);
@@ -155,3 +156,4 @@ void vtkOpenGLActor::GetKeyMatrices(vtkMatrix4x4*& mcwc, vtkMatrix3x3*& normMat)
   mcwc = this->MCWCMatrix;
   normMat = this->NormalMatrix;
 }
+VTK_ABI_NAMESPACE_END

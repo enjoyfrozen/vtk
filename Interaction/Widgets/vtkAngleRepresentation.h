@@ -33,6 +33,7 @@
 #include "vtkInteractionWidgetsModule.h" // For export macro
 #include "vtkWidgetRepresentation.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkHandleRepresentation;
 
 class VTKINTERACTIONWIDGETS_EXPORT vtkAngleRepresentation : public vtkWidgetRepresentation
@@ -175,4 +176,5 @@ private:
   void operator=(const vtkAngleRepresentation&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

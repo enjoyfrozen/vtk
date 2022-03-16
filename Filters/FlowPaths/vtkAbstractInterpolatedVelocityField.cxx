@@ -33,6 +33,7 @@
 #include <utility> //make_pair
 
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_BEGIN
 vtkCxxSetObjectMacro(vtkAbstractInterpolatedVelocityField, FindCellStrategy, vtkFindCellStrategy);
 
 //------------------------------------------------------------------------------
@@ -697,3 +698,4 @@ void vtkAbstractInterpolatedVelocityField::PrintSelf(ostream& os, vtkIndent inde
 
   os << indent << "FindCell Strategy: " << this->FindCellStrategy << endl;
 }
+VTK_ABI_NAMESPACE_END

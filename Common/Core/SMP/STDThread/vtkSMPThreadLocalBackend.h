@@ -43,6 +43,7 @@
 #include <mutex>   // std::mutex, std::lock_guard
 #include <thread>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtk
 {
 namespace detail
@@ -183,4 +184,5 @@ private:
 } // namespace detail
 } // namespace vtk
 
+VTK_ABI_NAMESPACE_END
 #endif

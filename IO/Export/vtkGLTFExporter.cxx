@@ -48,6 +48,7 @@
 #include "vtksys/FStream.hxx"
 #include "vtksys/SystemTools.hxx"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkGLTFExporter);
 
 vtkGLTFExporter::vtkGLTFExporter()
@@ -683,3 +684,4 @@ void vtkGLTFExporter::PrintSelf(ostream& os, vtkIndent indent)
     os << indent << "FileName: (null)\n";
   }
 }
+VTK_ABI_NAMESPACE_END

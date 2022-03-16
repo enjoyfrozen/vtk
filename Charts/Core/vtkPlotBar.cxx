@@ -43,6 +43,7 @@
 #include <vector>
 
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_BEGIN
 namespace
 {
 
@@ -1091,3 +1092,4 @@ void vtkPlotBar::GetDataBounds(double bounds[2])
     x->GetRange(bounds);
   }
 }
+VTK_ABI_NAMESPACE_END

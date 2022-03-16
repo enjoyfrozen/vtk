@@ -20,6 +20,7 @@
 
 #include "vtk_jsoncpp.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace omf
 {
 namespace helper
@@ -213,3 +214,4 @@ bool GetDoubleArray(const Json::Value& root, std::vector<double>& value)
 
 } // end namespace helper
 } // end namespace omf
+VTK_ABI_NAMESPACE_END

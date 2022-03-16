@@ -25,6 +25,7 @@
 
 #include "vtkHyperTreeGridNonOrientedGeometryCursor.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkHyperTreeGridToUnstructuredGrid);
 
 //------------------------------------------------------------------------------
@@ -266,3 +267,4 @@ void vtkHyperTreeGridToUnstructuredGrid::AddCell(vtkIdType inId, double* origin,
   // Copy output data from input
   this->OutData->CopyData(this->InData, inId, outId);
 }
+VTK_ABI_NAMESPACE_END

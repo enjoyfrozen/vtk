@@ -43,6 +43,7 @@ typedef std::map<vtkStdString, vtkIdType> StringCounts;
 typedef std::map<vtkIdType, double> Entropies;
 
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_BEGIN
 template <typename TypeSpec, typename vtkType>
 class BivariateContingenciesAndInformationFunctor : public vtkStatisticsAlgorithm::AssessFunctor
 {
@@ -1726,3 +1727,4 @@ void vtkContingencyStatistics::SelectAssessFunctor(vtkTable* outData, vtkMultiBl
       "Incorrect CDF for column pair:" << varNameX << "," << varNameY << "). Ignoring it.");
   }
 }
+VTK_ABI_NAMESPACE_END

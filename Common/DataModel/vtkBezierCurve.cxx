@@ -27,6 +27,7 @@
 #include "vtkVector.h"
 #include "vtkVectorOperators.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkBezierCurve);
 
 vtkBezierCurve::vtkBezierCurve() = default;
@@ -152,3 +153,4 @@ vtkDoubleArray* vtkBezierCurve::GetRationalWeights()
 {
   return RationalWeights.Get();
 }
+VTK_ABI_NAMESPACE_END

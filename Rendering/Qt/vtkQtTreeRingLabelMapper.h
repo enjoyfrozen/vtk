@@ -50,6 +50,8 @@
 
 class QImage;
 
+VTK_ABI_NAMESPACE_BEGIN
+
 class vtkQImageToImageSource;
 class vtkCoordinate;
 class vtkDoubleArray;
@@ -171,4 +173,5 @@ private:
   void operator=(const vtkQtTreeRingLabelMapper&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

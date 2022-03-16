@@ -30,6 +30,7 @@
 
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtkBlockSortHelper
 {
 
@@ -406,5 +407,6 @@ inline void Sort(RandomIt bitr, RandomIt eitr, BackToFront<T>& me)
 };
 }
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkBlockSortHelper_h
 // VTK-HeaderTest-Exclude: vtkBlockSortHelper.h

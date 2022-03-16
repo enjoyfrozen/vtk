@@ -8,6 +8,7 @@
 #include <cassert>
 #include <string>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace RTW
 {
     class Camera : public Object
@@ -114,3 +115,4 @@ namespace RTW
         VisRTX::Camera* camera = nullptr;
     };
 }
+VTK_ABI_NAMESPACE_END

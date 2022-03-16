@@ -36,6 +36,7 @@
 
 // Function to allocate a vtkDataArray and point it at the given data.
 // The data are not copied.
+VTK_ABI_NAMESPACE_BEGIN
 static vtkSmartPointer<vtkDataArray> vtkXMLWriterC_NewDataArray(const char* method,
   const char* name, int dataType, void* data, vtkIdType numTuples, int numComponents);
 
@@ -704,3 +705,4 @@ static void vtkXMLWriterC_SetDataInternal(vtkXMLWriterC* self, const char* name,
       "vtkXMLWriterC_" << method << " called before vtkXMLWriterC_SetDataObjectType.");
   }
 }
+VTK_ABI_NAMESPACE_END

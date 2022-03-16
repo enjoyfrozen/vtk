@@ -26,6 +26,7 @@
 #include "vtkDataReader.h"
 #include "vtkDomainsChemistryModule.h" // For export macro
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkMolecule;
 
 namespace OpenQube
@@ -105,4 +106,5 @@ private:
   void operator=(const vtkOpenQubeMoleculeSource&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

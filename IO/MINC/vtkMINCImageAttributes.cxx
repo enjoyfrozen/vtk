@@ -73,6 +73,7 @@ POSSIBILITY OF SUCH DAMAGES.
 
 //------------------------------------------------------------------------------
 // A container for mapping attribute names to arrays
+VTK_ABI_NAMESPACE_BEGIN
 class vtkMINCImageAttributeMap
 {
 public:
@@ -1472,3 +1473,4 @@ void vtkMINCImageAttributes::ShallowCopy(vtkMINCImageAttributes* source)
     this->StringStore->Reset();
   }
 }
+VTK_ABI_NAMESPACE_END

@@ -48,6 +48,7 @@ PURPOSE.  See the above copyright notice for more information.
 #include <cassert>
 #include <deque>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkInformationKeyMacro(vtkHyperTreeGrid, LEVELS, Integer);
 vtkInformationKeyMacro(vtkHyperTreeGrid, DIMENSION, Integer);
 vtkInformationKeyMacro(vtkHyperTreeGrid, ORIENTATION, Integer);
@@ -1731,3 +1732,4 @@ bool vtkHyperTreeGrid::HasAnyGhostCells() const
 {
   return this->CellData->GetArray(vtkDataSetAttributes::GhostArrayName()) != nullptr;
 }
+VTK_ABI_NAMESPACE_END

@@ -20,6 +20,7 @@
 #include "vtkObjectFactory.h"
 
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkXMLPPartitionedDataSetWriter);
 
 //------------------------------------------------------------------------------
@@ -37,3 +38,4 @@ void vtkXMLPPartitionedDataSetWriter::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 }
+VTK_ABI_NAMESPACE_END

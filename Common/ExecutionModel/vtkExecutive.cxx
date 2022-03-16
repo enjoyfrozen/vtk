@@ -33,6 +33,7 @@
 
 #include "vtkCompositeDataPipeline.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkInformationKeyMacro(vtkExecutive, ALGORITHM_AFTER_FORWARD, Integer);
 vtkInformationKeyMacro(vtkExecutive, ALGORITHM_BEFORE_FORWARD, Integer);
 vtkInformationKeyMacro(vtkExecutive, ALGORITHM_DIRECTION, Integer);
@@ -777,3 +778,4 @@ int vtkExecutive::CheckAlgorithm(const char* method, vtkInformation* request)
   }
   return 1;
 }
+VTK_ABI_NAMESPACE_END

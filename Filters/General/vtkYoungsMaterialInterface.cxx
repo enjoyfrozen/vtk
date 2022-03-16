@@ -57,6 +57,7 @@ PURPOSE.  See the above copyright notice for more information.
 #include <cassert>
 #include <cmath>
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkYoungsMaterialInterfaceCellCut
 {
 public:
@@ -1718,6 +1719,7 @@ namespace vtkYoungsMaterialInterfaceCellCutInternals
  */
 
 // define base vector types and operators or use those provided by CUDA
+
 #ifndef __CUDACC__
 struct float2
 {
@@ -3105,7 +3107,6 @@ struct CWVertex
   int eid[2];
   inline bool operator<(const CWVertex& v) const { return angle < v.angle; }
 };
-
 } /* namespace vtkYoungsMaterialInterfaceCellCutInternals */
 
 // ------------------------------------
@@ -3480,3 +3481,4 @@ double vtkYoungsMaterialInterfaceCellCut::findTriangleSetCuttingPlane(const doub
 
   return -d;
 }
+VTK_ABI_NAMESPACE_END

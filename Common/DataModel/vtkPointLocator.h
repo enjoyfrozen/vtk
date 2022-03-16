@@ -49,6 +49,7 @@
 #include "vtkCommonDataModelModule.h" // For export macro
 #include "vtkIncrementalPointLocator.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkCellArray;
 class vtkIdList;
 class vtkNeighborPoints;
@@ -299,4 +300,5 @@ private:
   void operator=(const vtkPointLocator&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

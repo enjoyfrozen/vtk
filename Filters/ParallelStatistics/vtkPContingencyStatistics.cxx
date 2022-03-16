@@ -42,6 +42,7 @@
 #include "vtkTimerLog.h"
 #endif // DEBUG_PARALLEL_CONTINGENCY_STATISTICS
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkPContingencyStatistics);
 vtkCxxSetObjectMacro(vtkPContingencyStatistics, Controller, vtkMultiProcessController);
 //------------------------------------------------------------------------------
@@ -510,3 +511,4 @@ bool vtkPContingencyStatistics::Broadcast(vtkIdType xySizeTotal, vtkStdString& x
 
   return false;
 }
+VTK_ABI_NAMESPACE_END

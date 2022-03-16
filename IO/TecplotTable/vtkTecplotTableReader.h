@@ -38,6 +38,7 @@
 #include "vtkTableAlgorithm.h"
 #include "vtkUnicodeString.h" // Needed for vtkUnicodeString
 
+VTK_ABI_NAMESPACE_BEGIN
 class VTKIOTECPLOTTABLE_EXPORT vtkTecplotTableReader : public vtkTableAlgorithm
 {
 public:
@@ -142,4 +143,5 @@ private:
   void operator=(const vtkTecplotTableReader&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

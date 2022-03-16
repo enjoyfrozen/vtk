@@ -29,6 +29,7 @@
 #include <string>                // For the superclass.
 #include <utility>               // For std::move
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkStdString;
 VTKCOMMONCORE_EXPORT ostream& operator<<(ostream&, const vtkStdString&);
 
@@ -75,5 +76,6 @@ public:
   operator const char*() { return this->c_str(); }
 };
 
+VTK_ABI_NAMESPACE_END
 #endif
 // VTK-HeaderTest-Exclude: vtkStdString.h

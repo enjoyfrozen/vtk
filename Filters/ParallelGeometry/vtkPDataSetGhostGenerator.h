@@ -31,6 +31,7 @@
 #include "vtkDeprecation.h"                   // For VTK_DEPRECATED_IN_9_1_0
 #include "vtkFiltersParallelGeometryModule.h" // For export macro
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkMultiProcessController;
 class vtkMultiBlockDataSet;
 
@@ -80,6 +81,7 @@ private:
   void operator=(const vtkPDataSetGhostGenerator&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif /* vtkPDataSetGhostGenerator_h */
 
 // VTK-HeaderTest-Exclude: vtkPDataSetGhostGenerator.h

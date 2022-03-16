@@ -43,6 +43,7 @@
 // since we last build the vtkVariantArrayLookup.
 typedef std::multimap<vtkVariant, vtkIdType, vtkVariantLessThan> vtkVariantCachedUpdates;
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace
 {
 auto DefaultDeleteFunction = [](void* ptr) { delete[] reinterpret_cast<vtkVariant*>(ptr); };
@@ -1040,3 +1041,4 @@ void vtkVariantArray::ClearLookup()
   delete this->Lookup;
   this->Lookup = nullptr;
 }
+VTK_ABI_NAMESPACE_END

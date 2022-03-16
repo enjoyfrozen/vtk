@@ -22,6 +22,7 @@
 #include "vtkVariantCast.h"
 
 //-----------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_BEGIN
 template <class DerivedT, class ValueTypeT>
 double* vtkGenericDataArray<DerivedT, ValueTypeT>::GetTuple(vtkIdType tupleIdx)
 {
@@ -1292,4 +1293,5 @@ bool vtkGenericDataArray<DerivedT, ValueTypeT>::ComputeFiniteVectorValueRange(Va
 
 #undef vtkGenericDataArrayT
 
+VTK_ABI_NAMESPACE_END
 #endif // header guard

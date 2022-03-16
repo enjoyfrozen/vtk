@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <sys/types.h>
 
+VTK_ABI_NAMESPACE_BEGIN
 typedef enum : uint32_t
 {
     RTW_NO_ERROR = 0,
@@ -246,3 +247,4 @@ typedef enum : uint32_t
     RTW_DENOISER = 4,
     RTW_DEPTH_COMPOSITING = 5,
 } RTWFeature;
+VTK_ABI_NAMESPACE_END

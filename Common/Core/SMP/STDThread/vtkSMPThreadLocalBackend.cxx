@@ -20,6 +20,7 @@
 #include <functional> // For std::hash
 #include <thread>     // For std::thread
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtk
 {
 namespace detail
@@ -220,3 +221,4 @@ size_t ThreadSpecific::GetSize() const
 } // namespace smp
 } // namespace detail
 } // namespace vtk
+VTK_ABI_NAMESPACE_END

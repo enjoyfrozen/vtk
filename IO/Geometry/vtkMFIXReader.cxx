@@ -39,6 +39,7 @@
 #include "vtksys/FStream.hxx"
 #include <string>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkMFIXReader);
 
 //------------------------------------------------------------------------------
@@ -2367,3 +2368,4 @@ void vtkMFIXReader::GetAllTimes(vtkInformationVector* outputVector)
   tfile.close();
   delete[] steps;
 }
+VTK_ABI_NAMESPACE_END

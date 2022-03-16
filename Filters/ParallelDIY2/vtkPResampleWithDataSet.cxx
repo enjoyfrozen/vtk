@@ -72,6 +72,7 @@
 //    Remove arrays from a block that are not valid for all its points.
 //------------------------------------------------------------------------------
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkPResampleWithDataSet);
 
 vtkCxxSetObjectMacro(vtkPResampleWithDataSet, Controller, vtkMultiProcessController);
@@ -1173,6 +1174,8 @@ int vtkPResampleWithDataSet::RequestData(
 
   return 1;
 }
+
+VTK_ABI_NAMESPACE_END
 
 //------------------------------------------------------------------------------
 namespace diy

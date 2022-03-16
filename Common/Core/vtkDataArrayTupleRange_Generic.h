@@ -29,6 +29,7 @@
 #include <iterator>
 #include <type_traits>
 
+VTK_ABI_NAMESPACE_BEGIN
 VTK_ITER_OPTIMIZE_START
 
 namespace vtk
@@ -1748,6 +1749,7 @@ TupleRange<ArrayType, TupleSize> DeclareTupleRangeSpecialization(vtkDataArray*);
 
 VTK_ITER_OPTIMIZE_END
 
+VTK_ABI_NAMESPACE_END
 #endif // __VTK_WRAP__
 
 // VTK-HeaderTest-Exclude: vtkDataArrayTupleRange_Generic.h

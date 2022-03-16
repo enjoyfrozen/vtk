@@ -26,6 +26,7 @@
 #include "vtkUnicodeString.h"
 #include "vtkVariantCreate.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 template <>
 vtkVariant vtkVariantCreate<vtkUnicodeString>(const vtkUnicodeString& value)
 {
@@ -40,3 +41,4 @@ vtkUnicodeString vtkVariantCast<vtkUnicodeString>(const vtkVariant& value, bool*
 
   return value.ToUnicodeString();
 }
+VTK_ABI_NAMESPACE_END

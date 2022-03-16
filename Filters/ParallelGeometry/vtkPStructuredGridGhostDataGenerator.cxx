@@ -28,6 +28,7 @@
 
 #include <cassert>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkPStructuredGridGhostDataGenerator);
 
 //------------------------------------------------------------------------------
@@ -144,3 +145,4 @@ void vtkPStructuredGridGhostDataGenerator::GenerateGhostLayers(
   this->CreateGhostedDataSet(in, out);
   this->Barrier();
 }
+VTK_ABI_NAMESPACE_END

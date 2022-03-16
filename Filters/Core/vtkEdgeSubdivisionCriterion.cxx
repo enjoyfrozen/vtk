@@ -14,6 +14,7 @@
 
 #include <cmath>
 
+VTK_ABI_NAMESPACE_BEGIN
 void vtkEdgeSubdivisionCriterion::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
@@ -180,3 +181,4 @@ bool vtkEdgeSubdivisionCriterion::FixedFieldErrorEval(
 
   return false;
 }
+VTK_ABI_NAMESPACE_END

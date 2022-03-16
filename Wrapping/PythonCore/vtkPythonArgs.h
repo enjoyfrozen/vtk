@@ -31,6 +31,7 @@ resulting in wrapper code that is faster and more compact.
 #include "PyVTKEnum.h"
 #include "PyVTKObject.h"
 #include "PyVTKTemplate.h"
+#include "vtkABINamespace.h"
 #include "vtkObjectBase.h"
 #include "vtkPythonUtil.h"
 #include "vtkWrappingPythonCoreModule.h" // For export macro
@@ -43,6 +44,7 @@ resulting in wrapper code that is faster and more compact.
 #include <cstring>
 #include <string>
 
+VTK_ABI_NAMESPACE_BEGIN
 class VTKWRAPPINGPYTHONCORE_EXPORT vtkPythonArgs
 {
 public:
@@ -1007,6 +1009,7 @@ inline void vtkPythonArgs::DeleteVTKObject(void* v)
 {
   return static_cast<vtkObjectBase*>(v)->Delete();
 }
+VTK_ABI_NAMESPACE_END
 
 #endif
 // VTK-HeaderTest-Exclude: vtkPythonArgs.h

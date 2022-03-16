@@ -39,6 +39,7 @@
 
 #include <vector> // STL Header; Required for vector
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkDataSet;
 class vtkDataArray;
 class vtkPointData;
@@ -94,4 +95,5 @@ class vtkCompositeInterpolatedVelocityFieldDataSetsType : public DataSetsTypeBas
 {
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

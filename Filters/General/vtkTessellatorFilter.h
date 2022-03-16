@@ -56,6 +56,7 @@ statement of authorship are reproduced on all copies.
 #include "vtkFiltersGeneralModule.h" // For export macro
 #include "vtkUnstructuredGridAlgorithm.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkDataArray;
 class vtkDataSet;
 class vtkDataSetEdgeSubdivisionCriterion;
@@ -196,4 +197,5 @@ inline int vtkTessellatorFilter::GetOutputDimension() const
   return this->OutputDimension;
 }
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkTessellatorFilter_h

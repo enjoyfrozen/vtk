@@ -32,6 +32,7 @@
 #include "vtkCommonDataModelModule.h" // For export macro
 #include "vtkObject.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkIdList;
 class vtkUnsignedCharArray;
 
@@ -444,4 +445,5 @@ inline void vtkStructuredData::ComputePointStructuredCoordsForExtent(
   vtkStructuredData::GetGlobalStructuredCoordinates(lijk, ext, ijk);
 }
 
+VTK_ABI_NAMESPACE_END
 #endif

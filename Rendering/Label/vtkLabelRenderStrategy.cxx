@@ -21,6 +21,7 @@
 #include "vtkRenderer.h"
 #include "vtkTextProperty.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkCxxSetObjectMacro(vtkLabelRenderStrategy, Renderer, vtkRenderer);
 vtkCxxSetObjectMacro(vtkLabelRenderStrategy, DefaultTextProperty, vtkTextProperty);
 
@@ -72,3 +73,4 @@ void vtkLabelRenderStrategy::RenderLabel(
 {
   this->RenderLabel(x, tprop, label);
 }
+VTK_ABI_NAMESPACE_END

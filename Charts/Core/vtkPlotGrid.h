@@ -30,6 +30,7 @@
 #include "vtkChartsCoreModule.h" // For export macro
 #include "vtkContextItem.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkStdString;
 class vtkContext2D;
 class vtkPoints2D;
@@ -79,4 +80,5 @@ private:
   void operator=(const vtkPlotGrid&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkPlotGrid_h

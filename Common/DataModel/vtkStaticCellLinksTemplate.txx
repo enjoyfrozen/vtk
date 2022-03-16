@@ -35,6 +35,7 @@
 
 //----------------------------------------------------------------------------
 // Default constructor. BuildLinks() does most of the work.
+VTK_ABI_NAMESPACE_BEGIN
 template <typename TIds>
 vtkStaticCellLinksTemplate<TIds>::vtkStaticCellLinksTemplate()
   : LinksSize(0)
@@ -666,4 +667,5 @@ void vtkStaticCellLinksTemplate<TIds>::SelectCells(
     }); // end lambda
 }
 
+VTK_ABI_NAMESPACE_END
 #endif

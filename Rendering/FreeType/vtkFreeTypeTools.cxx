@@ -46,6 +46,7 @@
 #define VTK_FTFC_DEBUG 0
 #define VTK_FTFC_DEBUG_CD 0
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace
 {
 // Some helper functions:
@@ -2546,3 +2547,4 @@ void vtkFreeTypeTools::GetLineMetrics(T begin, T end, MetaData& metaData, int& w
     width += (delta.x + 0x8000) >> 16;
   }
 }
+VTK_ABI_NAMESPACE_END

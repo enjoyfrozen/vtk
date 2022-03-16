@@ -29,6 +29,7 @@
 #include "vtkObject.h"
 #include "vtkRenderingCoreModule.h" // For export macro
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkStdString;
 class vtkUnicodeString;
 class vtkTextProperty;
@@ -97,4 +98,5 @@ private:
   void operator=(const vtkStringToImage&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkStringToImage_h

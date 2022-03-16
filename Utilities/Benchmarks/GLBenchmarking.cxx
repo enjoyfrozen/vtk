@@ -41,6 +41,7 @@
 
 #include <vtksys/CommandLineArguments.hxx>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtk
 {
 class BenchmarkTest
@@ -97,6 +98,7 @@ vtkVector2i GenerateSequenceNumbers(int sequenceCount)
 }
 
 } // End namespace
+VTK_ABI_NAMESPACE_END
 
 bool runTest(vtkRenderer* renderer, vtkTable* results, int seq, int row, double timeout = 0.5)
 {

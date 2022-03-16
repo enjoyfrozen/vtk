@@ -43,6 +43,7 @@
 #define H5_USE_16_API
 #include "vtk_hdf5.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkCONVERGECFDReader);
 
 namespace
@@ -1444,3 +1445,4 @@ int vtkCONVERGECFDReader::CanReadFile(const char* fname)
   // Everything succeeded
   return 1;
 }
+VTK_ABI_NAMESPACE_END

@@ -35,6 +35,7 @@
 
 #include "vtkCGNSReaderInternal.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace CGNSRead
 {
 
@@ -172,4 +173,5 @@ int readZoneInfo(int cgioNum, double zoneId, CGNSRead::ZoneInformation& zoneInfo
  */
 void releaseIds(int cgioNum, const std::vector<double>& ids);
 }
+VTK_ABI_NAMESPACE_END
 #endif // cgio_helpers_h

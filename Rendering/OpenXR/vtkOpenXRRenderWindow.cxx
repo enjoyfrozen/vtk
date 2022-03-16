@@ -39,6 +39,7 @@ https://github.com/ValveSoftware/openvr/blob/master/LICENSE
 #define stricmp strcasecmp
 #endif
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkOpenXRRenderWindow);
 
 //------------------------------------------------------------------------------
@@ -401,3 +402,4 @@ vtkEventDataDevice vtkOpenXRRenderWindow::GetDeviceForOpenXRHandle(uint32_t ohan
 
   return vtkEventDataDevice::Unknown;
 }
+VTK_ABI_NAMESPACE_END

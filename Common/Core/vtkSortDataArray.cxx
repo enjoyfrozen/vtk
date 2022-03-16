@@ -37,6 +37,7 @@
 
 //------------------------------------------------------------------------------
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkSortDataArray);
 
 //------------------------------------------------------------------------------
@@ -463,3 +464,4 @@ void vtkSortDataArray::PrintSelf(ostream& os, vtkIndent indent)
 }
 
 // vtkSortDataArray methods -------------------------------------------------------
+VTK_ABI_NAMESPACE_END

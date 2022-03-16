@@ -63,6 +63,7 @@
 #include <vector>
 
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_BEGIN
 struct PDILabelMetric
 {
   bool Valid;
@@ -1297,3 +1298,4 @@ bool vtkLabeledContourPolyDataItem::Private::TestOverlap(
     testAxis(a, b.TRd, b.TLd) || testAxis(b, a.TLd, a.BLd) || testAxis(b, a.BLd, a.BRd) ||
     testAxis(b, a.BRd, a.TRd) || testAxis(b, a.TRd, a.TLd));
 }
+VTK_ABI_NAMESPACE_END

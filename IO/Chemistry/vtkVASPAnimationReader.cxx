@@ -37,6 +37,7 @@
 
 typedef vtksys::RegularExpression RegEx;
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace
 {
 
@@ -366,3 +367,4 @@ bool vtkVASPAnimationReader::ReadMolecule(std::istream& in, vtkMolecule* molecul
 
   return true;
 }
+VTK_ABI_NAMESPACE_END

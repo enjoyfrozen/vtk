@@ -34,6 +34,7 @@
 
 #include <cassert>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkPointHandleRepresentation3D);
 
 vtkCxxSetObjectMacro(vtkPointHandleRepresentation3D, Property, vtkProperty);
@@ -901,3 +902,4 @@ void vtkPointHandleRepresentation3D::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "Translation Mode: " << (this->TranslationMode ? "On\n" : "Off\n");
   os << indent << "SmoothMotion: " << this->SmoothMotion << endl;
 }
+VTK_ABI_NAMESPACE_END

@@ -34,6 +34,7 @@
 #include <vtksys/FStream.hxx>
 #include <vtksys/SystemTools.hxx>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtx
 {
 namespace helper
@@ -359,3 +360,4 @@ bool EndsWith(const std::string& input, const std::string& ends) noexcept
 
 } // end helper namespace
 } // end adios2vtk namespace
+VTK_ABI_NAMESPACE_END

@@ -33,6 +33,7 @@
 #include <string>
 #include <unordered_map>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace CGNSRead
 {
 // No priority and no size limit right now
@@ -116,5 +117,6 @@ void vtkCGNSCache<CacheDataType>::ClearCache()
   this->CacheData.clear();
 }
 }
+VTK_ABI_NAMESPACE_END
 #endif // vtkCGNSCache_h
 // VTK-HeaderTest-Exclude: vtkCGNSCache.h

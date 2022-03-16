@@ -95,6 +95,8 @@
 
 VTK_ITER_OPTIMIZE_START
 
+VTK_ABI_NAMESPACE_BEGIN
+
 namespace vtk
 {
 
@@ -376,6 +378,8 @@ VTK_ITER_INLINE auto DataArrayValueRange(const ArrayTypePtr& array, ValueIdType 
 }
 
 } // end namespace vtk
+
+VTK_ABI_NAMESPACE_END
 
 VTK_ITER_OPTIMIZE_END
 

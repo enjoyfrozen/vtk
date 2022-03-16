@@ -31,6 +31,7 @@
 #include "vtkVectorOperators.h"
 #include <numeric> // std::accumulate
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkBezierInterpolation);
 
 vtkBezierInterpolation::vtkBezierInterpolation() = default;
@@ -414,3 +415,4 @@ void vtkBezierInterpolation::WedgeEvaluateDerivative(const int order[3], const d
   this->vtkHigherOrderInterpolation::WedgeEvaluateDerivative(order, pcoords, points, fieldVals,
     fieldDim, fieldDerivs, *tri, vtkBezierInterpolation::EvaluateShapeAndGradient);
 }
+VTK_ABI_NAMESPACE_END

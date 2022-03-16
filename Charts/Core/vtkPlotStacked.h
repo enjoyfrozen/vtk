@@ -28,6 +28,7 @@
 #include "vtkChartsCoreModule.h" // For export macro
 #include "vtkPlot.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkChartXY;
 class vtkContext2D;
 class vtkTable;
@@ -170,4 +171,5 @@ private:
   vtkPlotStackedPrivate* Private;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkPlotStacked_h

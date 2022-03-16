@@ -57,6 +57,7 @@
 //#define VTK_SHADOW_MAP_PASS_DEBUG
 //#define DONT_DUPLICATE_LIGHTS
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkShadowMapPass);
 vtkCxxSetObjectMacro(vtkShadowMapPass, ShadowMapBakerPass, vtkShadowMapBakerPass);
 vtkCxxSetObjectMacro(vtkShadowMapPass, OpaqueSequence, vtkRenderPass);
@@ -476,3 +477,4 @@ void vtkShadowMapPass::ReleaseGraphicsResources(vtkWindow* w)
     this->ShadowMapBakerPass->ReleaseGraphicsResources(w);
   }
 }
+VTK_ABI_NAMESPACE_END

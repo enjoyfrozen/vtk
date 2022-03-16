@@ -29,6 +29,7 @@
 
 #include <cmath>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkFlyingEdges2D);
 
 // This templated class is the heart of the algorithm. Templated across
@@ -986,3 +987,4 @@ void vtkFlyingEdges2D::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "Compute Scalars: " << (this->ComputeScalars ? "On\n" : "Off\n");
   os << indent << "ArrayComponent: " << this->ArrayComponent << endl;
 }
+VTK_ABI_NAMESPACE_END

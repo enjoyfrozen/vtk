@@ -41,6 +41,7 @@
 
 #include <vtksys/SystemTools.hxx>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace details
 {
 // Compute the window energy of a given kernel for ponderation.
@@ -377,3 +378,4 @@ void vtkTableFFT::PrintSelf(std::ostream& os, vtkIndent indent)
   os << indent << "BlockSize: " << this->BlockSize << std::endl;
   os << indent << "WindowingFunction: " << this->WindowingFunction << std::endl;
 }
+VTK_ABI_NAMESPACE_END

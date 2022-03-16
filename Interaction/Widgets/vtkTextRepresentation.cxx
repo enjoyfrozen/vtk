@@ -24,6 +24,7 @@
 #include "vtkTextRenderer.h"
 #include "vtkWindow.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkTextRepresentationObserver : public vtkCommand
 {
 public:
@@ -384,3 +385,4 @@ void vtkTextRepresentation::PrintSelf(ostream& os, vtkIndent indent)
 
   os << indent << "Text Actor: " << this->TextActor << "\n";
 }
+VTK_ABI_NAMESPACE_END

@@ -42,6 +42,7 @@
 
 #include <cmath>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkRectilinearSynchronizedTemplates);
 
 //------------------------------------------------------------------------------
@@ -858,3 +859,4 @@ void vtkRectilinearSynchronizedTemplates::PrintSelf(ostream& os, vtkIndent inden
   os << indent << "Compute Scalars: " << (this->ComputeScalars ? "On\n" : "Off\n");
   os << indent << "ArrayComponent: " << this->ArrayComponent << endl;
 }
+VTK_ABI_NAMESPACE_END

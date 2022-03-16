@@ -29,6 +29,7 @@
 #include <limits>
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtkDataArrayPrivate
 {
 #if (defined(_MSC_VER) && (_MSC_VER < 2000)) ||                                                    \
@@ -576,6 +577,7 @@ bool DoComputeVectorRange(ArrayT* array, RangeValueType range[2], FiniteValues)
 }
 
 } // end namespace vtkDataArrayPrivate
+VTK_ABI_NAMESPACE_END
 #endif // VTK_GDA_TEMPLATE_EXTERN
 #endif
 // VTK-HeaderTest-Exclude: vtkDataArrayPrivate.txx

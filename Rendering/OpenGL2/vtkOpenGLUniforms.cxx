@@ -7,10 +7,13 @@
 #include <cstring>
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkOpenGLUniforms);
 
 // temporary patch: Some Android builds don't have std::to_string
+VTK_ABI_NAMESPACE_END
 #include <sstream>
+VTK_ABI_NAMESPACE_BEGIN
 namespace patch
 {
 template <typename T>
@@ -1088,3 +1091,4 @@ void vtkOpenGLUniforms::PrintSelf(ostream& os, vtkIndent indent)
   this->Superclass::PrintSelf(os, indent);
   this->Internals->PrintSelf(os, indent);
 }
+VTK_ABI_NAMESPACE_END

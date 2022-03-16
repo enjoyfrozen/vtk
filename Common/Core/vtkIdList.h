@@ -27,6 +27,7 @@
 #include "vtkCommonCoreModule.h" // For export macro
 #include "vtkObject.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class VTKCOMMONCORE_EXPORT vtkIdList : public vtkObject
 {
 public:
@@ -256,4 +257,5 @@ inline vtkIdType vtkIdList::IsId(vtkIdType vtkid)
   return (-1);
 }
 
+VTK_ABI_NAMESPACE_END
 #endif

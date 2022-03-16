@@ -17,6 +17,7 @@
 #include "vtkDataSet.h"
 #include "vtkGarbageCollector.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkCxxSetObjectMacro(vtkLocator, DataSet, vtkDataSet);
 
 vtkLocator::vtkLocator()
@@ -80,3 +81,4 @@ void vtkLocator::ReportReferences(vtkGarbageCollector* collector)
   this->Superclass::ReportReferences(collector);
   vtkGarbageCollectorReport(collector, this->DataSet, "DataSet");
 }
+VTK_ABI_NAMESPACE_END

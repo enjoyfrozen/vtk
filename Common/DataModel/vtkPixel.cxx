@@ -32,6 +32,7 @@
 #include <algorithm>
 #include <array>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkPixel);
 
 //------------------------------------------------------------------------------
@@ -296,8 +297,10 @@ int vtkPixel::CellBoundary(int vtkNotUsed(subId), const double pcoords[3], vtkId
 //
 // Marching squares
 //
+VTK_ABI_NAMESPACE_END
 #include "vtkMarchingSquaresLineCases.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 static int edges[4][2] = { { 0, 1 }, { 1, 3 }, { 2, 3 }, { 0, 2 } };
 
 void vtkPixel::Contour(double value, vtkDataArray* cellScalars, vtkIncrementalPointLocator* locator,
@@ -771,3 +774,4 @@ void vtkPixel::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "Line:\n";
   this->Line->PrintSelf(os, indent.GetNextIndent());
 }
+VTK_ABI_NAMESPACE_END

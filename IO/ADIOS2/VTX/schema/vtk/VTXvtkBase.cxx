@@ -24,6 +24,7 @@
 
 #include <adios2.h>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtx
 {
 namespace schema
@@ -98,3 +99,4 @@ std::string VTXvtkBase::DataSetType(const types::DataSetType type) const noexcep
 
 } // end namespace schema
 } // end namespace adios2vtk
+VTK_ABI_NAMESPACE_END

@@ -61,6 +61,7 @@
 
 #include <sstream>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkRenderView);
 vtkCxxSetObjectMacro(vtkRenderView, Transform, vtkAbstractTransform);
 vtkCxxSetObjectMacro(vtkRenderView, IconTexture, vtkTexture);
@@ -740,3 +741,4 @@ void vtkRenderView::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "InteractionMode: " << this->InteractionMode << endl;
   os << indent << "RenderOnMouseMove: " << this->RenderOnMouseMove << endl;
 }
+VTK_ABI_NAMESPACE_END

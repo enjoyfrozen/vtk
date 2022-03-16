@@ -34,6 +34,7 @@
 #include <utility>
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkHyperTreeGridGhostCellsGenerator);
 
 struct vtkHyperTreeGridGhostCellsGenerator::vtkInternals
@@ -647,3 +648,4 @@ void vtkHyperTreeGridGhostCellsGenerator::CopyInputTreeToOutput(
     }
   }
 }
+VTK_ABI_NAMESPACE_END

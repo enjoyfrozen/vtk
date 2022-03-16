@@ -36,6 +36,7 @@
 #include "vtkCommonCoreModule.h" // For export macro
 #include "vtkUnicodeString.h"    // For value type
 
+VTK_ABI_NAMESPACE_BEGIN
 class VTK_DEPRECATED_IN_9_1_0(
   "Use vtkStringArray instead.") VTKCOMMONCORE_EXPORT vtkUnicodeStringArray
   : public vtkAbstractArray
@@ -104,6 +105,7 @@ private:
   Implementation* Internal;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif
 
 // VTK-HeaderTest-Exclude: vtkUnicodeStringArray.h

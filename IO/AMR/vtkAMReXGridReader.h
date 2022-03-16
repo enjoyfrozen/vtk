@@ -29,6 +29,7 @@
 #include <string> // for std::string.
 #include <vector> // for std::vector.
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkOverlappingAMR;
 class vtkAMReXGridReaderInternal;
 
@@ -118,4 +119,5 @@ private:
   vtkAMReXGridReaderInternal* Internal;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

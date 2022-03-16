@@ -17,6 +17,7 @@
 #include "vtkObjectFactory.h"
 #include <cstddef>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkHeap);
 
 static size_t vtkGetLongAlignment()
@@ -183,3 +184,4 @@ void vtkHeap::PrintSelf(ostream& os, vtkIndent indent)
           static_cast<int>(this->Position))
      << "\n";
 }
+VTK_ABI_NAMESPACE_END

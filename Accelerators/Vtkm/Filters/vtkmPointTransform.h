@@ -27,6 +27,7 @@
 #include "vtkAcceleratorsVTKmFiltersModule.h" // For export macro
 #include "vtkPointSetAlgorithm.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkHomogeneousTransform;
 
 class VTKACCELERATORSVTKMFILTERS_EXPORT vtkmPointTransform : public vtkPointSetAlgorithm
@@ -60,4 +61,5 @@ private:
   void operator=(const vtkmPointTransform&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

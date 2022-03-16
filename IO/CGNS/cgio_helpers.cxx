@@ -16,6 +16,7 @@
 
 #include "cgio_helpers.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace CGNSRead
 {
 //----------------------------------------------------------------------------
@@ -792,3 +793,4 @@ void releaseIds(int cgioNum, const std::vector<double>& ids)
   }
 }
 }
+VTK_ABI_NAMESPACE_END

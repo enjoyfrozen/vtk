@@ -31,6 +31,7 @@
 
 #include <type_traits>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace vtkMathPrivate
 {
 static constexpr int VTK_MATH_PRIVATE_PACK_SIZE = 4;
@@ -954,4 +955,5 @@ public:
   }
 };
 } // namespace vtkMathPrivate
+VTK_ABI_NAMESPACE_END
 #endif

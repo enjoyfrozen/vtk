@@ -128,6 +128,7 @@
 #include "vtkFiltersCoreModule.h" // For export macro
 #include "vtkPolyDataAlgorithm.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkAbstractTransform;
 class vtkCellArray;
 class vtkIdList;
@@ -308,4 +309,5 @@ private:
   void operator=(const vtkDelaunay2D&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

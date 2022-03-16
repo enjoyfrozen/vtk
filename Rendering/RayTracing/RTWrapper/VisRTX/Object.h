@@ -11,6 +11,7 @@
 #include <string>
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace RTW
 {
     class Data;
@@ -363,3 +364,4 @@ namespace RTW
         RTWDataType dataType;
     };
 }
+VTK_ABI_NAMESPACE_END

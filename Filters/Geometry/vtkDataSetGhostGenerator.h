@@ -36,6 +36,7 @@
 #include "vtkMultiBlockDataSetAlgorithm.h"
 
 // Forward Declarations
+VTK_ABI_NAMESPACE_BEGIN
 class vtkInformation;
 class vtkInformationVector;
 class vtkMultiBlockDataSet;
@@ -79,6 +80,7 @@ private:
   void operator=(const vtkDataSetGhostGenerator&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif /* vtkDataSetGhostGenerator_h */
 
 // VTK-HeaderTest-Exclude: vtkDataSetGhostGenerator.h

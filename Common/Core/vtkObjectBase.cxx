@@ -24,11 +24,14 @@
 
 #ifdef VTK_USE_MEMKIND
 #include <memkind.h>
+VTK_ABI_NAMESPACE_BEGIN
 struct memkind* MemkindHandle = nullptr;
+VTK_ABI_NAMESPACE_END
 #endif
 
 #define vtkBaseDebugMacro(x)
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkObjectBaseToGarbageCollectorFriendship
 {
 public:
@@ -536,3 +539,4 @@ void vtkObjectBase::vtkMemkindRAII::Restore()
   vtkObjectBase::SetUsingMemkind(this->OriginalValue);
 #endif
 }
+VTK_ABI_NAMESPACE_END

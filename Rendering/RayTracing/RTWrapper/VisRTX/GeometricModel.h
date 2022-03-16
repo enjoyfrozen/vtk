@@ -7,6 +7,7 @@
 
 #include <set>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace RTW
 {
     class GeometricModel : public Object
@@ -61,3 +62,4 @@ namespace RTW
         Geometry *geometry;
     };
 }
+VTK_ABI_NAMESPACE_END

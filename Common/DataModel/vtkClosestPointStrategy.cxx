@@ -24,6 +24,7 @@
 #include <set>
 
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkClosestPointStrategy);
 
 //------------------------------------------------------------------------------
@@ -294,3 +295,4 @@ void vtkClosestPointStrategy::PrintSelf(ostream& os, vtkIndent indent)
 
   os << indent << "PointLocator: " << this->PointLocator << "\n";
 }
+VTK_ABI_NAMESPACE_END

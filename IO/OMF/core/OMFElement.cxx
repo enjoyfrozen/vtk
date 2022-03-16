@@ -47,6 +47,7 @@
 #include <string>
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace omf
 {
 namespace
@@ -617,3 +618,4 @@ void VolumeElement::ProcessGeometry(
 }
 
 } // end namespace omf
+VTK_ABI_NAMESPACE_END

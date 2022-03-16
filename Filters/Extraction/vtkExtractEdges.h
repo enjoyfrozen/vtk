@@ -29,6 +29,7 @@
 #include "vtkFiltersExtractionModule.h" // For export macro
 #include "vtkPolyDataAlgorithm.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkIncrementalPointLocator;
 
 class VTKFILTERSEXTRACTION_EXPORT vtkExtractEdges : public vtkPolyDataAlgorithm
@@ -86,4 +87,5 @@ private:
   void operator=(const vtkExtractEdges&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

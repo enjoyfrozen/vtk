@@ -31,6 +31,7 @@
 #include <vtksys/FStream.hxx>
 #include <vtksys/SystemTools.hxx>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkPVWebGLExporter);
 //------------------------------------------------------------------------------
 vtkPVWebGLExporter::vtkPVWebGLExporter()
@@ -134,3 +135,4 @@ void vtkPVWebGLExporter::PrintSelf(ostream& os, vtkIndent indent)
     os << indent << "FileName: (null)\n";
   }
 }
+VTK_ABI_NAMESPACE_END

@@ -57,6 +57,7 @@
 #include VTK_DIY2(diy/assigner.hpp)
 // clang-format on
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace
 {
 const char* CELL_OWNERSHIP_ARRAYNAME = "__RDSF_CELL_OWNERSHIP__";
@@ -1121,3 +1122,4 @@ void vtkRedistributeDataSetFilter::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "EnableDebugging: " << this->EnableDebugging << endl;
   os << indent << "LoadBalanceAcrossAllBlocks: " << this->LoadBalanceAcrossAllBlocks << endl;
 }
+VTK_ABI_NAMESPACE_END

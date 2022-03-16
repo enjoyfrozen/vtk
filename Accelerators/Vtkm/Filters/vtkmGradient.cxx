@@ -32,6 +32,7 @@
 #include <vtkm/filter/Gradient.h>
 #include <vtkm/filter/PointAverage.h>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkmGradient);
 
 namespace
@@ -243,3 +244,4 @@ int vtkmGradient::RequestData(
 
   return 1;
 }
+VTK_ABI_NAMESPACE_END

@@ -55,6 +55,7 @@
 
 #define VTK_CREATE(type, name) vtkSmartPointer<type> name = vtkSmartPointer<type>::New()
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkTableToGraph);
 vtkCxxSetObjectMacro(vtkTableToGraph, LinkGraph, vtkMutableDirectedGraph);
 //------------------------------------------------------------------------------
@@ -937,3 +938,4 @@ void vtkTableToGraph::PrintSelf(ostream& os, vtkIndent indent)
     this->LinkGraph->PrintSelf(os, indent.GetNextIndent());
   }
 }
+VTK_ABI_NAMESPACE_END

@@ -34,6 +34,7 @@
 #include <algorithm>
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkTemporalInterpolator);
 
 //------------------------------------------------------------------------------
@@ -614,3 +615,4 @@ vtkDataArray* vtkTemporalInterpolator ::InterpolateDataArray(
 
   return output;
 }
+VTK_ABI_NAMESPACE_END

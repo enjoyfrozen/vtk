@@ -33,6 +33,7 @@
 #include <sstream>
 #include <string>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkComputeQuantiles);
 //------------------------------------------------------------------------------
 vtkComputeQuantiles::vtkComputeQuantiles()
@@ -228,3 +229,4 @@ void vtkComputeQuantiles::ComputeTable(
     }
   }
 }
+VTK_ABI_NAMESPACE_END

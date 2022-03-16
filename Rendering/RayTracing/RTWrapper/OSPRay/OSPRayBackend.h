@@ -11,6 +11,7 @@
 #include <vector>
 #include <iostream>
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace RTW
 {
 
@@ -361,3 +362,4 @@ namespace RTW
     }
   };
 }
+VTK_ABI_NAMESPACE_END

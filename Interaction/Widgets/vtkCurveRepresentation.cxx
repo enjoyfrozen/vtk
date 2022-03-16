@@ -42,6 +42,7 @@
 #include <iterator>
 
 //------------------------------------------------------------------------------
+VTK_ABI_NAMESPACE_BEGIN
 vtkCurveRepresentation::vtkCurveRepresentation()
 {
   this->LastEventPosition[0] = VTK_DOUBLE_MAX;
@@ -1052,3 +1053,4 @@ void vtkCurveRepresentation::DirectionalLineOff()
   this->DirectionalOff();
 }
 //=============================================================================
+VTK_ABI_NAMESPACE_END

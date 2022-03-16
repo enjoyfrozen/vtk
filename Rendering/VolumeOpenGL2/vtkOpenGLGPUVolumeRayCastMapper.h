@@ -67,6 +67,7 @@
 #include "vtkShader.h"                       // For methods
 #include "vtkSmartPointer.h"                 // For smartptr
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkGenericOpenGLResourceFreeCallback;
 class vtkImplicitFunction;
 class vtkOpenGLCamera;
@@ -296,4 +297,5 @@ private:
   void operator=(const vtkOpenGLGPUVolumeRayCastMapper&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif // vtkOpenGLGPUVolumeRayCastMapper_h

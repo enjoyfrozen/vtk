@@ -33,12 +33,15 @@
 #include "vtkStringArray.h"
 #include <ctime>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkModelMetadata);
 
+VTK_ABI_NAMESPACE_END
 #include <algorithm>
 #include <map>
 #include <set>
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkModelMetadataSTLCloak
 {
 public:
@@ -1299,3 +1302,4 @@ void vtkModelMetadata::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "AllVariablesDefinedInAllBlocks: " << this->AllVariablesDefinedInAllBlocks
      << endl;
 }
+VTK_ABI_NAMESPACE_END

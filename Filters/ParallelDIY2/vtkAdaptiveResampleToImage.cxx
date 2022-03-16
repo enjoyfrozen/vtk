@@ -47,6 +47,7 @@
 #include VTK_DIY2(diy/algorithms.hpp)
 // clang-format on
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace impl
 {
 vtkUnsignedCharArray* get_mask_array(vtkDataSetAttributes* dsa)
@@ -318,3 +319,4 @@ void vtkAdaptiveResampleToImage::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "SamplingDimensions: " << this->SamplingDimensions[0] << ", "
      << this->SamplingDimensions[1] << ", " << this->SamplingDimensions[2] << endl;
 }
+VTK_ABI_NAMESPACE_END

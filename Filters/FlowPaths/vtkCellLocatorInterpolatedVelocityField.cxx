@@ -25,6 +25,7 @@
 #include "vtkSmartPointer.h"
 #include "vtkStaticCellLocator.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkCellLocatorInterpolatedVelocityField);
 
 //------------------------------------------------------------------------------
@@ -154,3 +155,4 @@ void vtkCellLocatorInterpolatedVelocityField::PrintSelf(ostream& os, vtkIndent i
 {
   this->Superclass::PrintSelf(os, indent);
 }
+VTK_ABI_NAMESPACE_END

@@ -29,6 +29,7 @@
 #include "vtkUnsignedCharArray.h"
 #include "vtkVertex.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkStructuredGrid);
 vtkStandardExtendedNewMacro(vtkStructuredGrid);
 
@@ -1322,3 +1323,4 @@ bool vtkStructuredGrid::HasAnyBlankCells()
   int cellBlanking = this->IsAnyBitSet(this->GetCellGhostArray(), vtkDataSetAttributes::HIDDENCELL);
   return cellBlanking || this->HasAnyBlankPoints();
 }
+VTK_ABI_NAMESPACE_END

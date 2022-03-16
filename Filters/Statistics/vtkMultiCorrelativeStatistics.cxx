@@ -26,6 +26,7 @@
 #define VTK_MULTICORRELATIVE_AVERAGECOL "Mean"
 #define VTK_MULTICORRELATIVE_COLUMNAMES "Column"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkMultiCorrelativeStatistics);
 
 //------------------------------------------------------------------------------
@@ -890,3 +891,4 @@ void vtkMultiCorrelativeStatistics::SelectAssessFunctor(vtkTable* inData, vtkDat
   }
   dfunc = mcfunc;
 }
+VTK_ABI_NAMESPACE_END

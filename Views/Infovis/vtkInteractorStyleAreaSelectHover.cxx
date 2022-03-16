@@ -46,6 +46,7 @@
 #include "vtkSmartPointer.h"
 #define VTK_CREATE(type, name) vtkSmartPointer<type> name = vtkSmartPointer<type>::New()
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkInteractorStyleAreaSelectHover);
 
 vtkCxxSetObjectMacro(vtkInteractorStyleAreaSelectHover, Layout, vtkAreaLayout);
@@ -340,3 +341,4 @@ double vtkInteractorStyleAreaSelectHover::GetHighLightWidth()
 {
   return this->HighlightActor->GetProperty()->GetLineWidth();
 }
+VTK_ABI_NAMESPACE_END

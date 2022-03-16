@@ -21,6 +21,7 @@
 #include "vtkObjectFactory.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkImageRange3D);
 
 //------------------------------------------------------------------------------
@@ -317,3 +318,4 @@ int vtkImageRange3D::RequestData(
   this->Ellipse->Update();
   return this->Superclass::RequestData(request, inputVector, outputVector);
 }
+VTK_ABI_NAMESPACE_END

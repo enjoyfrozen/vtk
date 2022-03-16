@@ -35,6 +35,7 @@
 // receive is successful.
 //#define ENABLE_SYNCHRONIZED_COMMUNICATION
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkSocketCommunicator::vtkMessageBuffer
 {
 public:
@@ -87,8 +88,10 @@ public:
 // represent the CVS revision number of this file, so the value must
 // be larger than the last revision which used that strategy.
 #define vtkSocketCommunicatorHashId 100 /* MD5 */
+VTK_ABI_NAMESPACE_END
 #include "vtkSocketCommunicatorHash.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkSocketCommunicator);
 vtkCxxSetObjectMacro(vtkSocketCommunicator, Socket, vtkClientSocket);
 //------------------------------------------------------------------------------
@@ -1134,3 +1137,4 @@ int vtkSocketCommunicator::GetVersion()
 {
   return vtkSocketCommunicatorHashId;
 }
+VTK_ABI_NAMESPACE_END

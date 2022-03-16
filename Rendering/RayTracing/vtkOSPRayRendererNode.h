@@ -33,6 +33,7 @@
 #include <OpenImageDenoise/oidn.hpp> // for denoiser structures
 #endif
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkInformationDoubleKey;
 class vtkInformationDoubleVectorKey;
 class vtkInformationIntegerKey;
@@ -420,4 +421,5 @@ private:
   void operator=(const vtkOSPRayRendererNode&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

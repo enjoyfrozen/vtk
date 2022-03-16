@@ -34,6 +34,7 @@
     delete file;                                                                                   \
   }
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkPImageWriter);
 
 //------------------------------------------------------------------------------
@@ -205,3 +206,4 @@ void vtkPImageWriter::RecursiveWrite(
   // if we opened the file here, then we need to close it up
   vtkPIWCloseFile;
 }
+VTK_ABI_NAMESPACE_END

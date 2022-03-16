@@ -17,6 +17,7 @@
 
 #include "vtkSimpleCriticalSection.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 void vtkSimpleCriticalSection::Init()
 {
 #ifdef VTK_USE_WIN32_THREADS
@@ -66,3 +67,4 @@ void vtkSimpleCriticalSection::Unlock()
   pthread_mutex_unlock(&this->CritSec);
 #endif
 }
+VTK_ABI_NAMESPACE_END

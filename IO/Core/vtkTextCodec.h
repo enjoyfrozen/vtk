@@ -41,6 +41,7 @@ PURPOSE.  See the above copyright notice for more information.
 #include "vtkObject.h"
 #include "vtkUnicodeString.h" // for the value type and for function return.
 
+VTK_ABI_NAMESPACE_BEGIN
 class VTKIOCORE_EXPORT vtkTextCodec : public vtkObject
 {
 public:
@@ -121,4 +122,5 @@ private:
   void operator=(const vtkTextCodec&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif

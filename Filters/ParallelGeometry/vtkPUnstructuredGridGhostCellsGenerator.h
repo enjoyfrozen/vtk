@@ -83,6 +83,7 @@
 #include "vtkUnstructuredGridGhostCellsGenerator.h"
 #include <vector> // For passing data between methods
 
+VTK_ABI_NAMESPACE_BEGIN
 class vtkMultiProcessController;
 
 class VTK_DEPRECATED_IN_9_1_0("Use vtkGhostCellsGenerator instead")
@@ -138,6 +139,7 @@ private:
   void operator=(const vtkPUnstructuredGridGhostCellsGenerator&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 #endif
 
 // VTK-HeaderTest-Exclude: vtkPUnstructuredGridGhostCellsGenerator.h

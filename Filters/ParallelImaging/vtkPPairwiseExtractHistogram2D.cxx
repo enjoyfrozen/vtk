@@ -41,6 +41,7 @@ PURPOSE.  See the above copyright notice for more information.
 #include <string>
 #include <vector>
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkPPairwiseExtractHistogram2D);
 vtkCxxSetObjectMacro(vtkPPairwiseExtractHistogram2D, Controller, vtkMultiProcessController);
 
@@ -67,3 +68,4 @@ vtkExtractHistogram2D* vtkPPairwiseExtractHistogram2D::NewHistogramFilter()
   ph->SetController(this->Controller);
   return ph;
 }
+VTK_ABI_NAMESPACE_END

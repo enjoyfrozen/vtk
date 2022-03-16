@@ -57,6 +57,7 @@
 #include "vtksys/FStream.hxx"
 #include "vtksys/SystemTools.hxx"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkGLTFWriter);
 
 vtkGLTFWriter::vtkGLTFWriter()
@@ -790,3 +791,4 @@ int vtkGLTFWriter::FillInputPortInformation(int, vtkInformation* info)
   info->Set(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "vtkMultiBlockDataSet");
   return 1;
 }
+VTK_ABI_NAMESPACE_END

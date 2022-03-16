@@ -59,6 +59,7 @@
 #include VTK_DIY2(diy/algorithms.hpp)
 // clang-format on
 
+VTK_ABI_NAMESPACE_BEGIN
 namespace impl
 {
 
@@ -666,6 +667,8 @@ public:
 };
 }
 
+VTK_ABI_NAMESPACE_END
+
 namespace diy
 {
 template <>
@@ -689,6 +692,8 @@ struct Serialization<::CellTT>
   }
 };
 }
+
+VTK_ABI_NAMESPACE_BEGIN
 
 vtkStandardNewMacro(vtkGenerateGlobalIds);
 vtkCxxSetObjectMacro(vtkGenerateGlobalIds, Controller, vtkMultiProcessController);
@@ -749,3 +754,4 @@ void vtkGenerateGlobalIds::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "Controller: " << this->Controller << endl;
   os << indent << "Tolerance: " << this->Tolerance << endl;
 }
+VTK_ABI_NAMESPACE_END

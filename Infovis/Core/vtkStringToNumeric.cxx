@@ -39,6 +39,7 @@
 #include "vtkUnicodeStringArray.h"
 #include "vtkVariant.h"
 
+VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkStringToNumeric);
 
 vtkStringToNumeric::vtkStringToNumeric()
@@ -338,3 +339,4 @@ void vtkStringToNumeric::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "TrimWhitespacePriorToNumericConversion: "
      << (this->TrimWhitespacePriorToNumericConversion ? "on" : "off") << endl;
 }
+VTK_ABI_NAMESPACE_END
