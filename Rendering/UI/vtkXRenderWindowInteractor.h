@@ -34,10 +34,10 @@
 
 #include "vtkRenderWindowInteractor.h"
 #include "vtkRenderingUIModule.h" // For export macro
+
 #include <X11/Xlib.h>             // Needed for X types in the public interface
 
 class vtkCallbackCommand;
-class vtkXRenderWindowInteractorInternals;
 
 class VTKRENDERINGUI_EXPORT vtkXRenderWindowInteractor : public vtkRenderWindowInteractor
 {
@@ -52,6 +52,12 @@ public:
    * want to have mouse interaction.
    */
   void Initialize() override;
+
+  /**
+   * Deallocate Xt related struct that the interactor may have created
+   * and also call Finalize on the render window if available
+   */
+  void Finalize();
 
   /**
    * Break the event loop on 'q','e' keypress. Want more ???
@@ -105,25 +111,28 @@ protected:
   // Using static here to avoid destroying context when many apps are open:
   static int NumAppInitialized;
 
-  Display* DisplayId;
+
+  class vtkInternals;
+  std::unique_ptr<vtkInternals> Internals;
+
+  Display* DisplayId = nullptr;
   bool OwnDisplay = false;
-  Window WindowId;
-  Atom KillAtom;
+  Window WindowId = 0;
+  Atom KillAtom = 0;
   int PositionBeforeStereo[2];
-  vtkXRenderWindowInteractorInternals* Internal;
 
   // Drag and drop related
   int XdndSourceVersion;
-  Window XdndSource;
-  Atom XdndFormatAtom;
-  Atom XdndURIListAtom;
-  Atom XdndTypeListAtom;
-  Atom XdndEnterAtom;
-  Atom XdndPositionAtom;
-  Atom XdndDropAtom;
-  Atom XdndActionCopyAtom;
-  Atom XdndStatusAtom;
-  Atom XdndFinishedAtom;
+  Window XdndSource = 0;
+  Atom XdndFormatAtom = 0;
+  Atom XdndURIListAtom = 0;
+  Atom XdndTypeListAtom = 0;
+  Atom XdndEnterAtom = 0;
+  Atom XdndPositionAtom = 0;
+  Atom XdndDropAtom = 0;
+  Atom XdndActionCopyAtom = 0;
+  Atom XdndStatusAtom = 0;
+  Atom XdndFinishedAtom = 0;
 
   ///@{
   /**
@@ -142,8 +151,6 @@ protected:
    * application is exited.
    */
   void StartEventLoop() override;
-
-  void Finalize();
 
 private:
   vtkXRenderWindowInteractor(const vtkXRenderWindowInteractor&) = delete;
