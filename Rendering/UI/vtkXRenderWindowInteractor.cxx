@@ -58,16 +58,17 @@ struct vtkXRenderWindowInteractorTimer
 };
 
 constexpr unsigned char XDND_VERSION = 5;
+constexpr uint64_t INITIAL_LOWEST_DELTA = 1000000;
 
 // Map between the X native id to our own integer count id.  Note this
 // is separate from the TimerMap in the vtkRenderWindowInteractor
 // superclass.  This is used to avoid passing 64-bit values back
 // through the "int" return type of InternalCreateTimer.
-class vtkXRenderWindowInteractorInternals
+class vtkXRenderWindowInteractor::vtkInternals
 {
 public:
-  vtkXRenderWindowInteractorInternals() { this->TimerIdCount = 1; }
-  ~vtkXRenderWindowInteractorInternals() = default;
+  vtkInternals() { this->TimerIdCount = 1; }
+  ~vtkInternals() = default;
 
   // duration is in milliseconds
   int CreateLocalTimer(unsigned long duration)
@@ -82,14 +83,14 @@ public:
 
   void GetTimeToNextTimer(timeval& tv)
   {
-    uint64_t lowestDelta = 1000000;
+    uint64_t lowestDelta = INITIAL_LOWEST_DELTA;
     if (!this->LocalToTimer.empty())
     {
       timeval ctv;
       gettimeofday(&ctv, nullptr);
       for (auto& timer : this->LocalToTimer)
       {
-        uint64_t delta = (ctv.tv_sec - timer.second.lastFire.tv_sec) * 1000000 + ctv.tv_usec -
+        uint64_t delta = (ctv.tv_sec - timer.second.lastFire.tv_sec) * INITIAL_LOWEST_DELTA + ctv.tv_usec -
           timer.second.lastFire.tv_usec;
         if (delta < lowestDelta)
         {
@@ -97,8 +98,8 @@ public:
         }
       }
     }
-    tv.tv_sec = lowestDelta / 1000000;
-    tv.tv_usec = lowestDelta % 1000000;
+    tv.tv_sec = lowestDelta / INITIAL_LOWEST_DELTA;
+    tv.tv_usec = lowestDelta % INITIAL_LOWEST_DELTA;
   }
 
   void FireTimers(vtkXRenderWindowInteractor* rwi)
@@ -110,7 +111,7 @@ public:
       std::vector<unsigned long> expired;
       for (auto& timer : this->LocalToTimer)
       {
-        int64_t delta = (ctv.tv_sec - timer.second.lastFire.tv_sec) * 1000000 + ctv.tv_usec -
+        int64_t delta = (ctv.tv_sec - timer.second.lastFire.tv_sec) * INITIAL_LOWEST_DELTA + ctv.tv_usec -
           timer.second.lastFire.tv_usec;
         if (delta / 1000 >= static_cast<int64_t>(timer.second.duration))
         {
@@ -141,36 +142,19 @@ private:
   std::map<int, vtkXRenderWindowInteractorTimer> LocalToTimer;
 };
 
-std::set<vtkXRenderWindowInteractor*> vtkXRenderWindowInteractorInternals::Instances;
+std::set<vtkXRenderWindowInteractor*> vtkXRenderWindowInteractor::vtkInternals::Instances;
 
 // for some reason the X11 def of KeySym is getting messed up
 typedef XID vtkKeySym;
 
 //------------------------------------------------------------------------------
 vtkXRenderWindowInteractor::vtkXRenderWindowInteractor()
-{
-  this->Internal = new vtkXRenderWindowInteractorInternals;
-  this->DisplayId = nullptr;
-  this->WindowId = 0;
-  this->KillAtom = 0;
-  this->XdndSource = 0;
-  this->XdndFormatAtom = 0;
-  this->XdndURIListAtom = 0;
-  this->XdndTypeListAtom = 0;
-  this->XdndEnterAtom = 0;
-  this->XdndPositionAtom = 0;
-  this->XdndDropAtom = 0;
-  this->XdndActionCopyAtom = 0;
-  this->XdndStatusAtom = 0;
-  this->XdndFinishedAtom = 0;
-}
+  : Internals(new vtkXRenderWindowInteractor::vtkInternals()){}
 
 //------------------------------------------------------------------------------
 vtkXRenderWindowInteractor::~vtkXRenderWindowInteractor()
 {
   this->Disable();
-
-  delete this->Internal;
 }
 
 //------------------------------------------------------------------------------
@@ -203,7 +187,6 @@ void vtkXRenderWindowInteractor::TerminateApp()
 
   XSendEvent(client.display, client.window, True, NoEventMask, reinterpret_cast<XEvent*>(&client));
   XFlush(client.display);
-  this->RenderWindow->Finalize();
 }
 
 void vtkXRenderWindowInteractor::ProcessEvents()
@@ -219,20 +202,20 @@ void vtkXRenderWindowInteractor::ProcessEvents()
   minTv.tv_usec = 1000;
   XEvent event;
 
-  rwiFileDescriptors.reserve(vtkXRenderWindowInteractorInternals::Instances.size());
-  for (auto rwi : vtkXRenderWindowInteractorInternals::Instances)
+  rwiFileDescriptors.reserve(vtkInternals::Instances.size());
+  for (auto rwi : vtkInternals::Instances)
   {
     rwiFileDescriptors.push_back(ConnectionNumber(rwi->DisplayId));
   }
 
-  for (auto rwi = vtkXRenderWindowInteractorInternals::Instances.begin();
-       rwi != vtkXRenderWindowInteractorInternals::Instances.end();)
+  for (auto rwi = vtkInternals::Instances.begin();
+       rwi != vtkInternals::Instances.end();)
   {
 
     if (XPending((*rwi)->DisplayId) == 0)
     {
       // get how long to wait for the next timer
-      (*rwi)->Internal->GetTimeToNextTimer(tv);
+      (*rwi)->Internals->GetTimeToNextTimer(tv);
       minTv.tv_sec = std::min(tv.tv_sec, minTv.tv_sec);
       minTv.tv_usec = std::min(tv.tv_usec, minTv.tv_usec);
     }
@@ -258,9 +241,13 @@ void vtkXRenderWindowInteractor::ProcessEvents()
         XNextEvent((*rwi)->DisplayId, &event);
         (*rwi)->DispatchEvent(&event);
       }
+
+      // Finalize the rwi
+      (*rwi)->Finalize();
+
       // Adjust the file descriptors vector
-      int rwiPosition = std::distance(vtkXRenderWindowInteractorInternals::Instances.begin(), rwi);
-      rwi = vtkXRenderWindowInteractorInternals::Instances.erase(rwi);
+      int rwiPosition = std::distance(vtkInternals::Instances.begin(), rwi);
+      rwi = vtkInternals::Instances.erase(rwi);
       rwiFileDescriptors.erase(rwiFileDescriptors.begin() + rwiPosition);
     }
     else
@@ -290,7 +277,7 @@ void vtkXRenderWindowInteractor::ProcessEvents()
 // loop is exited.
 void vtkXRenderWindowInteractor::StartEventLoop()
 {
-  for (auto rwi : vtkXRenderWindowInteractorInternals::Instances)
+  for (auto rwi : vtkInternals::Instances)
   {
     rwi->Done = false;
   }
@@ -317,7 +304,7 @@ void vtkXRenderWindowInteractor::Initialize()
   // make sure we have a RenderWindow and camera
   if (!this->RenderWindow)
   {
-    vtkErrorMacro(<< "No renderer defined!");
+    vtkErrorMacro(<< "No render window defined!");
     return;
   }
 
@@ -329,11 +316,12 @@ void vtkXRenderWindowInteractor::Initialize()
   {
     vtkDebugMacro("opening display");
     this->DisplayId = XOpenDisplay(nullptr);
+    this->OwnDisplay = true;
     vtkDebugMacro("opened display");
     ren->SetDisplayId(this->DisplayId);
   }
 
-  vtkXRenderWindowInteractorInternals::Instances.insert(this);
+  vtkInternals::Instances.insert(this);
 
   size = ren->GetActualSize();
   size[0] = ((size[0] > 0) ? size[0] : 300);
@@ -356,6 +344,23 @@ void vtkXRenderWindowInteractor::Initialize()
   this->Enable();
   this->Size[0] = size[0];
   this->Size[1] = size[1];
+}
+
+void vtkXRenderWindowInteractor::Finalize()
+{
+  // if we create the display, we'll delete it
+  if (this->OwnDisplay && this->DisplayId)
+  {
+    XCloseDisplay(this->DisplayId);
+    this->DisplayId = nullptr;
+    this->OwnDisplay = 0;
+  }
+
+  if (this->RenderWindow)
+  {
+    // Finalize the window too
+    this->RenderWindow->Finalize();
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -434,14 +439,9 @@ void vtkXRenderWindowInteractor::UpdateSize(int x, int y)
 //------------------------------------------------------------------------------
 void vtkXRenderWindowInteractor::UpdateSizeNoXResize(int x, int y)
 {
-  // if the size changed send this on to the RenderWindow
-  if ((x != this->Size[0]) || (y != this->Size[1]))
-  {
-    this->Size[0] = x;
-    this->Size[1] = y;
-    // static_cast<vtkXOpenGLRenderWindow*>(this->RenderWindow)->SetSizeNoXResize(x, y);
-    this->RenderWindow->SetSize(x, y);
-  }
+  // Previous implementation relied on vtkXOpenGLRenderWindow::SetSizeeNoXResize
+  // Not sure about this.
+  this->UpdateSize(x,y);
 }
 
 //------------------------------------------------------------------------------
@@ -449,7 +449,7 @@ void vtkXRenderWindowInteractor::FireTimers()
 {
   if (this->GetEnabled())
   {
-    this->Internal->FireTimers(this);
+    this->Internals->FireTimers(this);
   }
 }
 
@@ -459,22 +459,20 @@ int vtkXRenderWindowInteractor::InternalCreateTimer(
   int vtkNotUsed(timerId), int vtkNotUsed(timerType), unsigned long duration)
 {
   duration = (duration > 0 ? duration : this->TimerDuration);
-  int platformTimerId = this->Internal->CreateLocalTimer(duration);
+  int platformTimerId = this->Internals->CreateLocalTimer(duration);
   return platformTimerId;
 }
 
 //------------------------------------------------------------------------------
 int vtkXRenderWindowInteractor::InternalDestroyTimer(int platformTimerId)
 {
-  this->Internal->DestroyLocalTimer(platformTimerId);
+  this->Internals->DestroyLocalTimer(platformTimerId);
   return 1;
 }
 
 //------------------------------------------------------------------------------
 void vtkXRenderWindowInteractor::DispatchEvent(XEvent* event)
 {
-  int xp, yp;
-
   switch (event->type)
   {
     case Expose:
@@ -491,8 +489,8 @@ void vtkXRenderWindowInteractor::DispatchEvent(XEvent* event)
       }
       XExposeEvent* exposeEvent = reinterpret_cast<XExposeEvent*>(event);
       this->SetEventSize(exposeEvent->width, exposeEvent->height);
-      xp = exposeEvent->x;
-      yp = exposeEvent->y;
+      int xp = exposeEvent->x;
+      int yp = exposeEvent->y;
       yp = this->Size[1] - yp - 1;
       this->SetEventPosition(xp, yp);
 
@@ -529,8 +527,8 @@ void vtkXRenderWindowInteractor::DispatchEvent(XEvent* event)
       {
         bool resizeSmaller = width <= this->Size[0] && height <= this->Size[1];
         this->UpdateSizeNoXResize(width, height);
-        xp = (reinterpret_cast<XButtonEvent*>(event))->x;
-        yp = (reinterpret_cast<XButtonEvent*>(event))->y;
+        int xp = (reinterpret_cast<XButtonEvent*>(event))->x;
+        int yp = (reinterpret_cast<XButtonEvent*>(event))->y;
         this->SetEventPosition(xp, this->Size[1] - yp - 1);
         // only render if we are currently accepting events
         if (this->Enabled)
@@ -563,8 +561,8 @@ void vtkXRenderWindowInteractor::DispatchEvent(XEvent* event)
       int ctrl = ((reinterpret_cast<XButtonEvent*>(event))->state & ControlMask) ? 1 : 0;
       int shift = ((reinterpret_cast<XButtonEvent*>(event))->state & ShiftMask) ? 1 : 0;
       int alt = ((reinterpret_cast<XButtonEvent*>(event))->state & Mod1Mask) ? 1 : 0;
-      xp = (reinterpret_cast<XButtonEvent*>(event))->x;
-      yp = (reinterpret_cast<XButtonEvent*>(event))->y;
+      int xp = (reinterpret_cast<XButtonEvent*>(event))->x;
+      int yp = (reinterpret_cast<XButtonEvent*>(event))->y;
 
       // check for double click
       static int MousePressTime = 0;
@@ -613,8 +611,8 @@ void vtkXRenderWindowInteractor::DispatchEvent(XEvent* event)
       int ctrl = ((reinterpret_cast<XButtonEvent*>(event))->state & ControlMask) ? 1 : 0;
       int shift = ((reinterpret_cast<XButtonEvent*>(event))->state & ShiftMask) ? 1 : 0;
       int alt = ((reinterpret_cast<XButtonEvent*>(event))->state & Mod1Mask) ? 1 : 0;
-      xp = (reinterpret_cast<XButtonEvent*>(event))->x;
-      yp = (reinterpret_cast<XButtonEvent*>(event))->y;
+      int xp = (reinterpret_cast<XButtonEvent*>(event))->x;
+      int yp = (reinterpret_cast<XButtonEvent*>(event))->y;
       this->SetEventInformationFlipY(xp, yp, ctrl, shift);
       this->SetAltKey(alt);
       switch ((reinterpret_cast<XButtonEvent*>(event))->button)
@@ -671,8 +669,8 @@ void vtkXRenderWindowInteractor::DispatchEvent(XEvent* event)
       int alt = ((reinterpret_cast<XButtonEvent*>(event))->state & Mod1Mask) ? 1 : 0;
       vtkKeySym keySym = XLookupKeysym(reinterpret_cast<XKeyEvent*>(event), 0);
       char keyCode = keySym < 128 ? static_cast<char>(keySym) : 0;
-      xp = (reinterpret_cast<XKeyEvent*>(event))->x;
-      yp = (reinterpret_cast<XKeyEvent*>(event))->y;
+      int xp = (reinterpret_cast<XKeyEvent*>(event))->x;
+      int yp = (reinterpret_cast<XKeyEvent*>(event))->y;
       this->SetEventInformationFlipY(xp, yp, ctrl, shift, keyCode, 1, XKeysymToString(keySym));
       this->SetAltKey(alt);
       this->InvokeEvent(vtkCommand::KeyPressEvent, nullptr);
@@ -691,8 +689,8 @@ void vtkXRenderWindowInteractor::DispatchEvent(XEvent* event)
       int alt = ((reinterpret_cast<XButtonEvent*>(event))->state & Mod1Mask) ? 1 : 0;
       vtkKeySym keySym = XLookupKeysym(reinterpret_cast<XKeyEvent*>(event), 0);
       char keyCode = keySym < 128 ? static_cast<char>(keySym) : 0;
-      xp = (reinterpret_cast<XKeyEvent*>(event))->x;
-      yp = (reinterpret_cast<XKeyEvent*>(event))->y;
+      int xp = (reinterpret_cast<XKeyEvent*>(event))->x;
+      int yp = (reinterpret_cast<XKeyEvent*>(event))->y;
       this->SetEventInformationFlipY(xp, yp, ctrl, shift, keyCode, 1, XKeysymToString(keySym));
       this->SetAltKey(alt);
       this->InvokeEvent(vtkCommand::KeyReleaseEvent, nullptr);
@@ -708,6 +706,7 @@ void vtkXRenderWindowInteractor::DispatchEvent(XEvent* event)
       int ctrl = ((reinterpret_cast<XButtonEvent*>(event))->state & ControlMask) ? 1 : 0;
       int shift = ((reinterpret_cast<XButtonEvent*>(event))->state & ShiftMask) ? 1 : 0;
       int alt = ((reinterpret_cast<XButtonEvent*>(event))->state & Mod1Mask) ? 1 : 0;
+      int xp, yp;
 
       // Note that even though the (x,y) location of the pointer is event structure,
       // we must call XQueryPointer for the hints (motion event compression) to
@@ -939,16 +938,3 @@ void vtkXRenderWindowInteractor::GetMousePosition(int* x, int* y)
 
   *y = this->Size[1] - *y - 1;
 }
-
-//------------------------------------------------------------------------------
-// void vtkXRenderWindowInteractor::Timer(XtPointer client_data, XtIntervalId* id)
-// {
-//   vtkXRenderWindowInteractorTimer(client_data, id);
-// }
-
-//------------------------------------------------------------------------------
-// void vtkXRenderWindowInteractor::Callback(
-//   Widget w, XtPointer client_data, XEvent* event, Boolean* ctd)
-// {
-//   vtkXRenderWindowInteractorCallback(w, client_data, event, ctd);
-// }
