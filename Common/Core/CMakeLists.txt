@@ -7,12 +7,14 @@ mark_as_advanced(VTK_USE_64BIT_TIMESTAMPS)
 set(VTK_ABI_NAMESPACE_NAME
   "<DEFAULT>"
   CACHE STRING "Inline namespace name for mangling VTK symbols.")
-# The default is to guard VTK using only the major version
 if (VTK_ABI_NAMESPACE_NAME STREQUAL "<DEFAULT>")
-  set(VTK_ABI_NAMESPACE_NAME "vtk${VTK_MAJOR_VERSION}")
+  # The default is to not have an ABI namespace.
+  # This is consistent with the existing practice.
+  set(VTK_ABI_NAMESPACE_NAME "")
 endif ()
 mark_as_advanced(VTK_ABI_NAMESPACE_NAME)
 if (VTK_ABI_NAMESPACE_NAME)
+  message(STATUS "VTK ABI namespace: ${VTK_ABI_NAMESPACE_NAME}")
   set(VTK_ABI_NAMESPACE_BEGIN "inline namespace ${VTK_ABI_NAMESPACE_NAME} {")
   set(VTK_ABI_NAMESPACE_END "}")
 else ()

@@ -36,4 +36,10 @@ else ()
   set(CMAKE_BUILD_TYPE "$ENV{CMAKE_BUILD_TYPE}" CACHE STRING "")
 endif ()
 
+if (NOT "$ENV{CI_PIPELINE_SOURCE}" STREQUAL "schedule")
+  # Scheduled pipelines use the default (currently none) ABI namespace.
+  # All other CI pipelines build with a standin namespace.
+  set(VTK_ABI_NAMESPACE_NAME "__vtkabi" CACHE STRING "")
+endif ()
+
 include("${CMAKE_CURRENT_LIST_DIR}/configure_sccache.cmake")
