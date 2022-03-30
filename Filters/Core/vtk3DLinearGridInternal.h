@@ -48,7 +48,6 @@
 #include "vtkWedge.h"
 #include <cmath>
 
-VTK_ABI_NAMESPACE_BEGIN
 namespace
 { // anonymous namespace
 
@@ -561,6 +560,5 @@ struct CellIter
 
 } // anonymous namespace
 
-VTK_ABI_NAMESPACE_END
 #endif // vtk3DLinearGridInternal_h
 // VTK-HeaderTest-Exclude: vtk3DLinearGridInternal.h

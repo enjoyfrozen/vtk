@@ -1934,7 +1934,6 @@ VTK_ABI_NAMESPACE_END
 
 namespace
 {
-VTK_ABI_NAMESPACE_BEGIN
 template <class QuaternionT, class MatrixT>
 inline void vtkQuaternionToMatrix3x3(const QuaternionT& quat, MatrixT& A)
 {
@@ -1973,7 +1972,6 @@ inline void vtkQuaternionToMatrix3x3(const QuaternionT& quat, MatrixT& A)
   Wrapper::template Get<1, 2>(A) = (yz - wx) * f;
   Wrapper::template Get<2, 2>(A) = zz * f + s;
 }
-VTK_ABI_NAMESPACE_END
 } // anonymous namespace
 
 VTK_ABI_NAMESPACE_BEGIN
@@ -1999,7 +1997,6 @@ VTK_ABI_NAMESPACE_END
 
 namespace
 {
-VTK_ABI_NAMESPACE_BEGIN
 //------------------------------------------------------------------------------
 //  The solution is based on
 //  Berthold K. P. Horn (1987),
@@ -2051,7 +2048,6 @@ inline void vtkMatrix3x3ToQuaternion(const MatrixT& A, QuaternionT& quat)
   quat[2] = eigenvectors[2][0];
   quat[3] = eigenvectors[3][0];
 }
-VTK_ABI_NAMESPACE_END
 } // anonymous namespace
 
 VTK_ABI_NAMESPACE_BEGIN

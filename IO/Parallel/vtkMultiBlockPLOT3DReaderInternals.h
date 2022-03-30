@@ -101,6 +101,7 @@ struct vtkMultiBlockPLOT3DReaderInternals
     postskip = nPtsInPlane * (wextent[5] - extent[5]);
   }
 };
+VTK_ABI_NAMESPACE_END
 
 namespace
 {
@@ -109,6 +110,7 @@ class Plot3DException : public std::exception
 };
 }
 
+VTK_ABI_NAMESPACE_BEGIN
 // Description:
 // vtkMultiBlockPLOT3DReaderRecord represents a data record in the file. For
 // binary Plot3D files with record separators (i.e. leading and trailing length
