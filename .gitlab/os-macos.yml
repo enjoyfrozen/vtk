@@ -160,6 +160,7 @@
     # Download Catalyst
     - cmake -P .gitlab/ci/download_catalyst.cmake
     - export CMAKE_PREFIX_PATH=$PWD/.gitlab/qt:$PWD/.gitlab/catalyst
+    - export PATH=$PWD/.gitlab/catalyst/lib:$PATH
     - "git submodule update --init --recursive || :"
     - git submodule foreach --recursive cmake -P "$PWD/.gitlab/ci/fetch_submodule.cmake"
     - git submodule sync --recursive
