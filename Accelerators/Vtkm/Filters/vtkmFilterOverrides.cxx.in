@@ -22,7 +22,7 @@
 namespace
 {
 
-bool vtkmFilterOverridesEnabled = false;
+bool vtkmFilterOverridesEnabled = true;
 
 struct FilterOverrides
 {
