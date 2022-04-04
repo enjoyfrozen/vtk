@@ -255,7 +255,7 @@ int TestUnstructuredGrid(const std::string& dataRoot)
 
 int TestOverlappingAMR(const std::string& dataRoot)
 {
-  std::string fileName = dataRoot + "/Data/overlapping-amr.hdf";
+  std::string fileName = dataRoot + "/Data/amr_gaussian_pulse.hdf";
   std::cout << "Testing: " << fileName << std::endl;
   vtkNew<vtkHDFReader> reader;
   if (!reader->CanReadFile(fileName.c_str()))
@@ -267,8 +267,10 @@ int TestOverlappingAMR(const std::string& dataRoot)
   auto data = vtkOverlappingAMR::SafeDownCast(reader->GetOutput());
 
   vtkNew<vtkXMLUniformGridAMRReader> outputReader;
-  std::string expectedFileName = dataRoot + "/Data/overlapping-amr.vthb";
+  std::string expectedFileName = dataRoot + "/Data/amr_gaussian_pulse.vthb";
   outputReader->SetFileName(expectedFileName.c_str());
+  outputReader->SetMaximumLevelsToReadByDefault(0);
+  outputReader->Update();
   auto expectedData = vtkOverlappingAMR::SafeDownCast(outputReader->GetOutput());
 
   if (data->GetNumberOfLevels() != expectedData->GetNumberOfLevels())

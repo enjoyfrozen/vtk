@@ -106,6 +106,10 @@ public:
    */
   std::vector<hsize_t> GetDimensions(const char* dataset);
 
+  bool ComputeAMRBlocksPerLevels(std::vector<int>& levels);
+  bool FillAMR(
+    vtkOverlappingAMR* data, unsigned int maximumLevelsToReadByDefault, double origin[3]);
+
 protected:
   /**
    * Used to store HDF native types in a map
@@ -194,6 +198,10 @@ private:
   using ArrayReader = vtkDataArray* (vtkHDFReader::Implementation::*)(hid_t dataset,
     const std::vector<hsize_t>& fileExtent, hsize_t numberOfComponents);
   std::map<TypeDescription, ArrayReader> TypeReaderMap;
+
+  bool ReadLevelSpacing(hid_t levelGroupID, double* spacing);
+  bool ReadAMRBoxRawValues(hid_t levelGroupID, std::vector<int>& amrBoxRawData);
+  bool ReadAMRAttributeGroupIDs(hid_t levelGroupID);
 };
 
 //------------------------------------------------------------------------------
