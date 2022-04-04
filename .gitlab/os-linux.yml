@@ -190,6 +190,23 @@
     variables:
         CMAKE_CONFIGURATION: fedora34_mpi_python_qt_stdthread
 
+.fedora34_mpi_python_qt_vtkmoverride:
+    extends:
+        - .fedora34
+        - .fedora_mpich_addon
+
+    variables:
+        CMAKE_CONFIGURATION: fedora34_mpi_python_qt_vtkmoverride
+        VTK_INSTALL: 1
+
+.fedora34_mpi_python_qt_vtkmoverride_ext_vtk:
+    extends:
+        - .fedora34
+        - .fedora_mpich_addon
+
+    variables:
+        CMAKE_CONFIGURATION: fedora34_mpi_python_qt_vtkmoverride_ext_vtk
+
 .fedora34_tidy:
     extends:
         - .fedora34
