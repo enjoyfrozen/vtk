@@ -24,7 +24,7 @@ set(VTK_MODULE_ENABLE_VTK_fides NO CACHE STRING "") # adios
 set(VTK_MODULE_ENABLE_VTK_xdmf3 NO CACHE STRING "") # boost
 
 # Add rpath entries for Xcode frameworks.
-set(CMAKE_BUILD_RPATH "$ENV{DEVELOPER_DIR}/Library/Frameworks" CACHE STRING "")
-set(CMAKE_INSTALL_RPATH "$ENV{DEVELOPER_DIR}/Library/Frameworks" CACHE STRING "")
+set(CMAKE_BUILD_RPATH "$ENV{DEVELOPER_DIR}/Library/Frameworks;@rpath/.gitlab/catalyst" CACHE STRING "")
+set(CMAKE_INSTALL_RPATH "$ENV{DEVELOPER_DIR}/Library/Frameworks;@rpath/.gitlab/catalyst" CACHE STRING "")
 
 include("${CMAKE_CURRENT_LIST_DIR}/configure_common.cmake")
