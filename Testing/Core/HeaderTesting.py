@@ -148,6 +148,54 @@ class TestVTKFiles:
             self.Error("Multiple VTK-HeaderTest-Exclude lines")
         return exclude > 0
 
+    def CheckExcludeABINamespace(self):
+        prefix = '// VTK-HeaderTest-ExcludeABINamespace:'
+        prefix_c = '/* VTK-HeaderTest-ExcludeABINamespace:'
+        suffix_c = ' */'
+        exclude = 0
+        for l in self.FileLines:
+            if l.startswith(prefix):
+                e = l[len(prefix):].strip()
+                if e == os.path.basename(self.FileName):
+                    exclude += 1
+                else:
+                    self.Error("Wrong exclusion: "+l.rstrip())
+            elif l.startswith(prefix_c) and l.rstrip().endswith(suffix_c):
+                e = l[len(prefix_c):-len(suffix_c)].strip()
+                if e == os.path.basename(self.FileName):
+                    exclude += 1
+                else:
+                    self.Error("Wrong exclusion: "+l.rstrip())
+        if exclude > 1:
+            self.Error("Multiple VTK-HeaderTest-Exclude lines")
+        return exclude > 0
+
+    def CheckABINamespace(self):
+        if self.CheckExcludeABINamespace():
+            return
+        # Note: This check does not ensure the ABI namespace is not nested
+        #       in/around anonymous namespaces or that it is inside of named
+        #       namespaces. These checks may be good to add later.
+        open_namespace = 'VTK_ABI_NAMESPACE_BEGIN'
+        close_namespace = 'VTK_ABI_NAMESPACE_END'
+        is_open = False
+        has_abi_namespace = False
+        for l in self.FileLines:
+            if l.startswith(open_namespace):
+                if is_open:
+                    self.Error('Nested ABI namespace is not allowed.')
+                is_open = True
+                has_abi_namespace = True
+            if l.startswith(close_namespace):
+                if not is_open:
+                    self.Error('Mismatched ABI namespace macros.')
+                is_open = False
+        if not has_abi_namespace:
+            self.Error('Missing VTK ABI namespace macros')
+        if is_open:
+            self.Error('Missing VTK_ABI_NAMESPACE_END.')
+        pass
+
     def CheckIncludes(self):
         count = 0
         lines = []
@@ -507,6 +555,7 @@ for a in os.listdir(dirname):
         test.CheckWeirdConstructors()
         test.CheckPrintSelf()
         test.CheckWindowsMangling()
+        test.CheckABINamespace()
 
 ## Summarize errors
 test.PrintWarnings()
