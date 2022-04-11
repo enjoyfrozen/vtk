@@ -8,6 +8,7 @@ set(classes
   vtkCompositeDataPipeline
   vtkCompositeDataSetAlgorithm
   vtkDataObjectAlgorithm
+  vtkDataObjectCache
   vtkDataSetAlgorithm
   vtkDemandDrivenPipeline
   vtkDirectedGraphAlgorithm

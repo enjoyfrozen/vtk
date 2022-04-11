@@ -52,6 +52,7 @@
 
 class vtkCompositeDataSet;
 class vtkCompositeDataIterator;
+class vtkDataObjectCache;
 class vtkInformationDoubleKey;
 class vtkInformationIntegerVectorKey;
 class vtkInformationObjectBaseKey;
@@ -114,6 +115,29 @@ public:
    * *** THIS IS AN EXPERIMENTAL FEATURE. IT MAY CHANGE WITHOUT NOTICE ***
    */
   static vtkInformationDoubleKey* BLOCK_AMOUNT_OF_DETAIL();
+
+  /**
+   * The global data caching flag may be used to disable all data caching in
+   * the vtkCompositeDataPipeline executives.
+   * Returns whether data caching is enabled.
+   * *** THIS IS AN EXPERIMENTAL FEATURE. IT MAY CHANGE WITHOUT NOTICE ***
+   */
+  static bool GetGlobalDataCachingEnabled();
+
+  /**
+   * The global data caching flag may be used to disable all data caching in
+   * the vtkCompositeDataPipeline executives.
+   * *** THIS IS AN EXPERIMENTAL FEATURE. IT MAY CHANGE WITHOUT NOTICE ***
+   */
+  static void SetGlobalDataCachingEnabled(bool enabled);
+
+  /**
+   * Determines whether data caching is enabled.
+   * Returns true if the global data caching flag is true and the global
+   * release data flag is false.
+   * *** THIS IS AN EXPERIMENTAL FEATURE. IT MAY CHANGE WITHOUT NOTICE ***
+   */
+  virtual bool IsDataCachingEnabled() const;
 
 protected:
   vtkCompositeDataPipeline();
@@ -205,6 +229,47 @@ protected:
    * *** THIS IS AN EXPERIMENTAL FEATURE. IT MAY CHANGE WITHOUT NOTICE ***
    */
   static vtkInformationIntegerVectorKey* DATA_COMPOSITE_INDICES();
+
+  /**
+   * If the data object cache can be enabled it is set up.
+   * Returns true iff the cache is enabled.
+   * *** THIS IS AN EXPERIMENTAL FEATURE. IT MAY CHANGE WITHOUT NOTICE ***
+   */
+  virtual bool ConfigureDataObjectCache(
+    vtkInformationVector** inInfo, int compositePort, int connection);
+
+  /**
+   * Update the cache with the non-composite objects from the input composite.
+   * *** THIS IS AN EXPERIMENTAL FEATURE. IT MAY CHANGE WITHOUT NOTICE ***
+   */
+  virtual void UpdateDataObjectCacheInputComposite(vtkCompositeDataSet* inComposite);
+
+  /**
+   * Copy cached non-composite objects, if any, to the composite outputs.
+   * Returns the number of cached objects found.
+   * *** THIS IS AN EXPERIMENTAL FEATURE. IT MAY CHANGE WITHOUT NOTICE ***
+   */
+  virtual int FillCompositeOutputsFromCache(vtkCompositeDataIterator* iter,
+    std::vector<vtkSmartPointer<vtkCompositeDataSet>>& compositeOutputs);
+
+  /**
+   * Write composite outputs to the cache.
+   * *** THIS IS AN EXPERIMENTAL FEATURE. IT MAY CHANGE WITHOUT NOTICE ***
+   */
+  virtual void UpdateDataObjectCacheOutputComposites(vtkCompositeDataSet* inComposite,
+    const std::vector<vtkSmartPointer<vtkCompositeDataSet>>& outComposite);
+
+  /**
+   * Returns if caching data objects is enabled.
+   * *** THIS IS AN EXPERIMENTAL FEATURE. IT MAY CHANGE WITHOUT NOTICE ***
+   */
+  virtual bool IsDataObjectCacheActive() const;
+
+private:
+  /**
+   * *** THIS IS AN EXPERIMENTAL FEATURE. IT MAY CHANGE WITHOUT NOTICE ***
+   */
+  std::vector<vtkSmartPointer<vtkDataObjectCache>> DataObjectCache;
 
 private:
   vtkCompositeDataPipeline(const vtkCompositeDataPipeline&) = delete;
