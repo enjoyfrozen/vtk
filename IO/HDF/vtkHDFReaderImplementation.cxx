@@ -23,6 +23,7 @@
 #include "vtkAMRBox.h"
 #include "vtkCharArray.h"
 #include "vtkDataArrayRange.h"
+#include "vtkDataArraySelection.h"
 #include "vtkDataObject.h"
 #include "vtkDoubleArray.h"
 #include "vtkFieldData.h"
@@ -169,8 +170,23 @@ bool vtkHDFReader::Implementation::Open(const char* fileName)
       // we try to read a non-VTKHDF file
       return false;
     }
+
+    H5Eset_auto(H5E_DEFAULT, f, client_data);
+    if (!this->ReadDataSetType())
+    {
+      return false;
+    }
+    H5Eset_auto(H5E_DEFAULT, nullptr, nullptr);
+
     std::array<const char*, 3> groupNames = { "/VTKHDF/PointData", "/VTKHDF/CellData",
       "/VTKHDF/FieldData" };
+
+    if (this->DataSetType == VTK_OVERLAPPING_AMR)
+    {
+      groupNames = { "/VTKHDF/Level0/PointData", "/VTKHDF/Level0/CellData",
+        "/VTKHDF/Level0/FieldData" };
+    }
+
     // try to open cell or point group. Its OK if they don't exist.
     for (size_t i = 0; i < this->AttributeDataGroup.size(); ++i)
     {
@@ -182,55 +198,27 @@ bool vtkHDFReader::Implementation::Open(const char* fileName)
     {
       return false;
     }
+
     hid_t attr = -1;
     try
     {
-      H5Eset_auto(H5E_DEFAULT, nullptr, nullptr); // errors off
-
-      if (H5Aexists(this->VTKGroup, "Type"))
+      if (this->DataSetType == VTK_UNSTRUCTURED_GRID)
       {
-        H5Eset_auto(H5E_DEFAULT, f, client_data); // errors on
-        hid_t typeAttributeHID = H5Aopen_name(this->VTKGroup, "Type");
-        if (typeAttributeHID < 0)
+        const char* datasetName = "/VTKHDF/NumberOfPoints";
+        std::vector<hsize_t> dims = this->GetDimensions(datasetName);
+        if (dims.size() != 1)
         {
-          return false;
+          throw std::runtime_error(std::string(datasetName) + " dataset should have 1 dimension");
         }
-
-        // TODO: read type.
-        /*hid_t hdfType = H5Aget_type(typeAttributeHID);
-        std::cout << "hdfType: " << hdfType << std::endl;
-
-        std::array<char, 32> type;
-        type.fill(0);
-        if (!H5Aread(typeAttributeHID, H5T_STRING, type.data()))
-        {
-          return false;
-        }
-        std::cout << "type: " << std::string(type.data()) << std::endl;*/
-        this->DataSetType = VTK_OVERLAPPING_AMR;
+        this->NumberOfPieces = dims[0];
       }
-      else
+      else if (this->DataSetType == VTK_IMAGE_DATA)
       {
-        // Legacy vtkhdf: we need to check the presence of WholeExtent attribute to get the correct
-        // data set type.
-        if ((attr = H5Aopen_name(this->VTKGroup, "WholeExtent")) < 0)
-        {
-          H5Eset_auto(H5E_DEFAULT, f, client_data); // errors on
-          this->DataSetType = VTK_UNSTRUCTURED_GRID;
-          const char* datasetName = "/VTKHDF/NumberOfPoints";
-          std::vector<hsize_t> dims = this->GetDimensions(datasetName);
-          if (dims.size() != 1)
-          {
-            throw std::runtime_error(std::string(datasetName) + " dataset should have 1 dimension");
-          }
-          this->NumberOfPieces = dims[0];
-        }
-        else
-        {
-          H5Eset_auto(H5E_DEFAULT, f, client_data); // errors on
-          this->DataSetType = VTK_IMAGE_DATA;
-          this->NumberOfPieces = 1;
-        }
+        this->NumberOfPieces = 1;
+      }
+      else if (this->DataSetType == VTK_OVERLAPPING_AMR)
+      {
+        this->NumberOfPieces = 1;
       }
     }
     catch (const std::exception& e)
@@ -238,6 +226,7 @@ bool vtkHDFReader::Implementation::Open(const char* fileName)
       vtkErrorWithObjectMacro(this->Reader, << e.what());
       error = true;
     }
+
     if (attr >= 0)
     {
       error = H5Aclose(attr) < 0 || error;
@@ -245,6 +234,93 @@ bool vtkHDFReader::Implementation::Open(const char* fileName)
   }
   this->BuildTypeReaderMap();
   return !error;
+}
+
+//------------------------------------------------------------------------------
+bool vtkHDFReader::Implementation::ReadDataSetType()
+{
+  if (H5Aexists(this->VTKGroup, "Type"))
+  {
+    hid_t typeAttributeHID = H5Aopen_name(this->VTKGroup, "Type");
+    if (typeAttributeHID < 0)
+    {
+      vtkErrorWithObjectMacro(this->Reader, "Can't open 'Type' attribute.");
+      return false;
+    }
+
+    hid_t hdfType = H5Aget_type(typeAttributeHID);
+    if (hdfType == H5I_INVALID_HID)
+    {
+      vtkErrorWithObjectMacro(this->Reader, "Invalid type when reading type attribute.");
+      H5Aclose(typeAttributeHID);
+      return false;
+    }
+
+    H5T_class_t attributeClass = H5Tget_class(hdfType);
+    if (attributeClass != H5T_STRING)
+    {
+      vtkErrorWithObjectMacro(this->Reader, "Can't get class type of attribute.");
+      H5Tclose(hdfType);
+      H5Aclose(typeAttributeHID);
+      return false;
+    }
+
+    H5T_cset_t characterType = H5Tget_cset(hdfType);
+    if (characterType != H5T_CSET_ASCII)
+    {
+      vtkErrorWithObjectMacro(
+        this->Reader, "Not an ASCII string character type: " << characterType);
+      H5Tclose(hdfType);
+      H5Aclose(typeAttributeHID);
+      return false;
+    }
+
+    std::vector<char> stringArray(32);
+    if (H5Aread(typeAttributeHID, hdfType, stringArray.data()) < 0)
+    {
+      vtkErrorWithObjectMacro(
+        this->Reader, "Not an ASCII string character type: " << characterType);
+      H5Tclose(hdfType);
+      H5Aclose(typeAttributeHID);
+      return false;
+    }
+    std::string typeName(stringArray.data());
+
+    H5Tclose(hdfType);
+    H5Aclose(typeAttributeHID);
+
+    if (typeName == "OverlappingAMR")
+    {
+      this->DataSetType = VTK_OVERLAPPING_AMR;
+    }
+    else if (typeName == "ImageData")
+    {
+      this->DataSetType = VTK_IMAGE_DATA;
+    }
+    else if (typeName == "UnstructuredGrid")
+    {
+      this->DataSetType = VTK_UNSTRUCTURED_GRID;
+    }
+    else
+    {
+      vtkErrorWithObjectMacro(this->Reader, "Unknown data set type: " << typeName);
+      return false;
+    }
+  }
+  else
+  {
+    // Legacy vtkhdf: we need to check the presence of WholeExtent attribute to get the correct
+    // data set type.
+    if (H5Aexists(this->VTKGroup, "WholeExtent"))
+    {
+      this->DataSetType = VTK_IMAGE_DATA;
+    }
+    else
+    {
+      this->DataSetType = VTK_UNSTRUCTURED_GRID;
+    }
+  }
+  return true;
 }
 
 //------------------------------------------------------------------------------
@@ -985,14 +1061,21 @@ bool vtkHDFReader::Implementation::ComputeAMRBlocksPerLevels(std::vector<int>& l
   return true;
 }
 
-bool vtkHDFReader::Implementation::FillAMR(
-  vtkOverlappingAMR* data, unsigned int maximumLevelsToReadByDefault, double origin[3])
+bool vtkHDFReader::Implementation::FillAMR(vtkOverlappingAMR* data,
+  unsigned int maximumLevelsToReadByDefault, double origin[3],
+  vtkDataArraySelection* dataArraySelection[3])
 {
   if (this->DataSetType != VTK_OVERLAPPING_AMR)
   {
     vtkErrorWithObjectMacro(this->Reader,
       "Wrong data set type, expected " << VTK_OVERLAPPING_AMR
                                        << ", but got: " << this->DataSetType);
+    return false;
+  }
+
+  if (!dataArraySelection)
+  {
+    vtkErrorWithObjectMacro(this->Reader, "NULL dataArraySelection ");
     return false;
   }
 
@@ -1008,6 +1091,8 @@ bool vtkHDFReader::Implementation::FillAMR(
   }
 
   data->Initialize(blocksPerLevels.size(), blocksPerLevels.data());
+  data->SetOrigin(origin);
+  data->SetGridDescription(VTK_XYZ_GRID);
 
   unsigned int level = 0;
   unsigned int maxLevel = maximumLevelsToReadByDefault > 0
@@ -1040,6 +1125,7 @@ bool vtkHDFReader::Implementation::FillAMR(
         H5Gclose(levelGroupID);
         return false;
       }
+      data->SetSpacing(level, spacing.data());
 
       std::vector<int> amrBoxRawData;
       if (!this->ReadAMRBoxRawValues(levelGroupID, amrBoxRawData))
@@ -1077,13 +1163,15 @@ bool vtkHDFReader::Implementation::FillAMR(
         amrBox.GetNumberOfNodes(numberOfNodes);
         dataSet->SetDimensions(numberOfNodes);
 
-        // TODO: add Cell, Point and Field Data.
         for (size_t attributeType = 0; attributeType < 3; ++attributeType)
         {
           auto arrayNames = this->GetArrayNames(attributeType);
           for (const std::string& name : arrayNames)
           {
-            // TODO: check that array is enabled with DataArraySelection
+            if (!dataArraySelection[attributeType]->ArrayIsEnabled(name.c_str()))
+            {
+              continue;
+            }
             hid_t nativeType = -1;
             std::vector<hsize_t> dims;
             hid_t datasetID = -1;
@@ -1095,7 +1183,6 @@ bool vtkHDFReader::Implementation::FillAMR(
               return 0;
             }
             H5Dclose(datasetID);
-            datasetID = -1;
 
             vtkSmartPointer<vtkDataArray> array;
             hsize_t dataSize = 0;

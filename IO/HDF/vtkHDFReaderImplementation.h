@@ -107,8 +107,8 @@ public:
   std::vector<hsize_t> GetDimensions(const char* dataset);
 
   bool ComputeAMRBlocksPerLevels(std::vector<int>& levels);
-  bool FillAMR(
-    vtkOverlappingAMR* data, unsigned int maximumLevelsToReadByDefault, double origin[3]);
+  bool FillAMR(vtkOverlappingAMR* data, unsigned int maximumLevelsToReadByDefault, double origin[3],
+    vtkDataArraySelection* dataArraySelection[3]);
 
 protected:
   /**
@@ -199,6 +199,7 @@ private:
     const std::vector<hsize_t>& fileExtent, hsize_t numberOfComponents);
   std::map<TypeDescription, ArrayReader> TypeReaderMap;
 
+  bool ReadDataSetType();
   bool ReadLevelSpacing(hid_t levelGroupID, double* spacing);
   bool ReadAMRBoxRawValues(hid_t levelGroupID, std::vector<int>& amrBoxRawData);
   bool ReadAMRAttributeGroupIDs(hid_t levelGroupID);

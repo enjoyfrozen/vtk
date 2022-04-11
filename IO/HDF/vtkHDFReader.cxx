@@ -541,17 +541,9 @@ int vtkHDFReader::Read(vtkInformation* outInfo, vtkUnstructuredGrid* data)
 int vtkHDFReader::Read(vtkInformation* outInfo, vtkOverlappingAMR* data)
 {
   data->SetOrigin(this->Origin);
-  /*std::vector<int> blocksPerLevels;
-  if (this->Impl->ComputeAMRBlocksPerLevels(blocksPerLevels) && !blocksPerLevels.empty())
-  {
-    data->Initialize(blocksPerLevels.size(), blocksPerLevels.data());
-  }
 
-  for (size_t levelIndex = 0; levelIndex < blocksPerLevels.size(); ++levelIndex)
-  {
-  }*/
-
-  this->Impl->FillAMR(data, this->MaximumLevelsToReadByDefaultForAMR, this->Origin);
+  this->Impl->FillAMR(
+    data, this->MaximumLevelsToReadByDefaultForAMR, this->Origin, this->DataArraySelection);
 
   return 1;
 }
