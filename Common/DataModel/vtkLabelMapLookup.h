@@ -17,9 +17,12 @@
  * @brief   provide an efficient numeric label lookup
  *
  *
- * vtkLabelMapLookup is a helper object that enables faster lookup of
- * a segmentation label from a set of labels. It uses caching, and
+ * vtkLabelMapLookup is a light weight helper object that enables faster
+ * lookup of a segmentation label from a set of labels. It uses caching, and
  * different strategies depending on the size of the set of labels.
+ *
+ * Note that, due to speed concerns, vtkLabelMapLookup does not inherit from
+ * vtkObject hence does not support the usual VTK reference counting.
  *
  * @sa
  * vtkSurfaceNets2D vtkSurfaceNets3D vtkDiscreteFlyingEdgesClipper2D
