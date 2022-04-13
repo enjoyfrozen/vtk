@@ -554,6 +554,8 @@ vtk_module_wrap_python(
   [SOABI <soabi>]
   [USE_DEBUG_SUFFIX <ON|OFF>]
 
+  [INTERPRETER <interpreter>]
+
   [INSTALL_EXPORT <export>]
   [COMPONENT <component>])
   [TARGET_SPECIFIC_COMPONENTS <ON|OFF>]
@@ -605,6 +607,12 @@ vtk_module_wrap_python(
   * `USE_DEBUG_SUFFIX` (Defaults to `OFF`): If `ON`, Windows modules will have
     a `_d` suffix appended to the module name. This is intended for use with
     debug Python builds.
+  * `INTERPRETER` (Defaults to `VTK::Python` or `Python3::Interpreter`): If
+    provided, this interpreter will be used to run supplemental processes which
+    involve Python scripts including `.pyi` file generation. If a target name
+    is provided, its path will be used, otherwise a string which expands to the
+    path to an interpreter executable may be provided. If the string `DISABLE`
+    is given, any support using interpreters will be disabled.
   * `INSTALL_EXPORT`: If provided, static installs will add the installed
     libraries to the provided export set.
   * `COMPONENT`: Defaults to `python`. All install rules created by this
@@ -613,7 +621,7 @@ vtk_module_wrap_python(
 function (vtk_module_wrap_python)
   cmake_parse_arguments(PARSE_ARGV 0 _vtk_python
     ""
-    "MODULE_DESTINATION;STATIC_MODULE_DESTINATION;LIBRARY_DESTINATION;PYTHON_PACKAGE;BUILD_STATIC;INSTALL_HEADERS;INSTALL_EXPORT;TARGET_SPECIFIC_COMPONENTS;TARGET;COMPONENT;WRAPPED_MODULES;CMAKE_DESTINATION;SOABI;USE_DEBUG_SUFFIX;UTILITY_TARGET"
+    "MODULE_DESTINATION;STATIC_MODULE_DESTINATION;LIBRARY_DESTINATION;PYTHON_PACKAGE;BUILD_STATIC;INSTALL_HEADERS;INSTALL_EXPORT;TARGET_SPECIFIC_COMPONENTS;TARGET;COMPONENT;WRAPPED_MODULES;CMAKE_DESTINATION;SOABI;USE_DEBUG_SUFFIX;UTILITY_TARGET;INTERPRETER"
     "DEPENDS;MODULES")
 
   if (_vtk_python_UNPARSED_ARGUMENTS)
@@ -651,6 +659,29 @@ function (vtk_module_wrap_python)
 
   if (NOT DEFINED _vtk_python_USE_DEBUG_SUFFIX)
     set(_vtk_python_USE_DEBUG_SUFFIX OFF)
+  endif ()
+
+  set(_vtk_python_exe)
+  if (NOT DEFINED _vtk_python_INTERPRETER)
+    if (TARGET VTK::vtkpython)
+      set(_vtk_python_exe "$<TARGET_FILE:VTK::vtkpython>")
+    elseif (TARGET Python3::Interpreter)
+      set(_vtk_python_exe "$<TARGET_FILE:Python3::Interpreter>")
+    elseif (Python3_EXECUTABLE)
+      set(_vtk_python_exe "${Python3_EXECUTABLE}")
+    else ()
+      message(WARNING
+        "No Python interpreter found; `.pyi` support will be disabled.")
+    endif ()
+  elseif (TARGET "${_vtk_python_INTERPRETER}")
+    set(_vtk_python_exe "$<TARGET_FILE:${_vtk_python_INTERPRETER}>")
+  elseif (_vtk_python_INTERPRETER STREQUAL "DISABLE")
+    set(_vtk_python_exe "${_vtk_python_INTERPRETER}")
+  elseif (_vtk_python_INTERPRETER)
+    set(_vtk_python_exe "${_vtk_python_INTERPRETER}")
+  else ()
+    message(WARNING
+      "No Python interpreter found; `.pyi` support will be disabled.")
   endif ()
 
   if (_vtk_python_SOABI)
@@ -1006,36 +1037,31 @@ static void ${_vtk_python_TARGET_NAME}_load() {\n")
       endif ()
     endforeach ()
 
-    if (TARGET VTK::vtkpython)
-      set(_vtk_python_exe $<TARGET_FILE:VTK::vtkpython>)
-    else ()
-      set(_vtk_python_exe "${Python3_EXECUTABLE}")
-    endif ()
-
     # XXX(python2): Remove this conditional
     if (NOT VTK_PYTHON_VERSION STREQUAL "2")
-      add_custom_command(
-        OUTPUT    ${_vtk_python_pyi_files}
-        COMMAND   "${_vtk_python_exe}"
-                  -m vtkmodules.generate_pyi
-                  -p "${_vtk_python_PYTHON_PACKAGE}"
-                  ${_vtk_python_modules}
-        WORKING_DIRECTORY
-                  "${CMAKE_BINARY_DIR}/${_vtk_python_MODULE_DESTINATION}"
-        DEPENDS   ${_vtk_python_module_targets}
-                  ${_vtk_python_static_importer_name}
-                  "${_vtk_pyi_script}"
-        COMMENT   "Creating .pyi files for ${_vtk_python_TARGET_NAME}")
+      if (_vtk_python_exe)
+        add_custom_command(
+          OUTPUT    ${_vtk_python_pyi_files}
+          COMMAND   ${_vtk_python_exe} # Do not quote; may contain arguments.
+                    -m vtkmodules.generate_pyi
+                    -p "${_vtk_python_PYTHON_PACKAGE}"
+                    ${_vtk_python_modules}
+          WORKING_DIRECTORY
+                    "${CMAKE_BINARY_DIR}/${_vtk_python_MODULE_DESTINATION}"
+          DEPENDS   ${_vtk_python_module_targets}
+                    "${_vtk_python_static_importer_name}"
+                    "${_vtk_pyi_script}"
+          COMMENT   "Creating .pyi files for ${_vtk_python_TARGET_NAME}")
 
-      install(
-        FILES       ${_vtk_python_pyi_files}
-        DESTINATION "${_vtk_python_MODULE_DESTINATION}/${_vtk_python_PYTHON_PACKAGE}"
-        COMPONENT   "${_vtk_python_component}")
+        install(
+          FILES       ${_vtk_python_pyi_files}
+          DESTINATION "${_vtk_python_MODULE_DESTINATION}/${_vtk_python_PYTHON_PACKAGE}"
+          COMPONENT   "${_vtk_python_component}")
 
-      add_custom_target("${_vtk_python_TARGET_NAME}_pyi" ALL
-        DEPENDS ${_vtk_python_pyi_files})
+        add_custom_target("${_vtk_python_TARGET_NAME}_pyi" ALL
+          DEPENDS ${_vtk_python_pyi_files})
+      endif ()
     endif ()
-
   endif ()
 endfunction ()
 
