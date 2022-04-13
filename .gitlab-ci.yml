@@ -886,7 +886,7 @@ wheel-windows-python36-x86_64:build:
         - .cmake_build_wheel_windows
         - .windows_wheel_builder_tags
         - .cmake_wheel_artifacts
-        - .merged_only
+        - .run_manually
 
 # XXX(rust): This build ends up needing a Rust compiler to compile the
 # `cryptography` package.
@@ -907,14 +907,14 @@ wheel-windows-python37-x86_64:build:
         - .cmake_build_wheel_windows
         - .windows_wheel_builder_tags
         - .cmake_wheel_artifacts
-        - .merged_only
+        - .run_manually
 
 wheel-windows-python37-x86_64:test:
     extends:
         - .wheel_windows37_x86_64
         - .cmake_test_wheel_windows
         - .windows_wheel_builder_tags
-        - .merged_only
+        - .run_manually
     dependencies:
         - wheel-windows-python37-x86_64:build
     needs:
