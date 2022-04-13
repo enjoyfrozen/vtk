@@ -248,6 +248,8 @@
         - Invoke-Expression -Command "sccache --start-server"
         - sccache --show-stats
         - 'if ("$env:EXTRA_PYTHON_PATH" -ne "") { Set-Item -Force -Path "env:PATH" -Value "$env:PATH;$pwdpath\$env:EXTRA_PYTHON_PATH\vtkmodules" }'
+        - echo "$env:EXTRA_PYTHON_PATH"
+        - echo "$env:PATH"
         - ctest -VV -S .gitlab/ci/ctest_configure.cmake
         - ctest -VV -S .gitlab/ci/ctest_build.cmake | Out-File -FilePath compile_output.log
         - sccache --show-stats
