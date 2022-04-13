@@ -16,6 +16,7 @@
 
 #include "vtkObjectFactory.h"
 #include "vtkOpenGLRenderWindow.h"
+#include "vtkOpenXRManagerOpenGLGraphics.h"
 #include "vtkOpenXRUtilities.h"
 #include "vtkWindows.h" // Does nothing if we are not on windows
 
@@ -57,9 +58,24 @@ vtkOpenXRManager* vtkOpenXRManager::GetInstance()
 }
 
 //------------------------------------------------------------------------------
+vtkOpenXRManager::~vtkOpenXRManager()
+{
+  if (this->GraphicsStrategy)
+  {
+    this->GraphicsStrategy->Delete();
+  }
+}
+
+//------------------------------------------------------------------------------
 bool vtkOpenXRManager::Initialize(vtkOpenGLRenderWindow* helperWindow)
 {
   this->DebugOn();
+
+  // Use OpenGL graphics if nothing was specified
+  if (!this->GraphicsStrategy)
+  {
+    this->GraphicsStrategy = vtkOpenXRManagerOpenGLGraphics::New();
+  }
 
   if (!this->CreateInstance())
   {
@@ -80,13 +96,14 @@ bool vtkOpenXRManager::Initialize(vtkOpenGLRenderWindow* helperWindow)
     return false;
   }
 
-  if (!this->CheckGraphicsRequirements())
+  if (!this->GraphicsStrategy->CheckGraphicsRequirements(
+        this->Instance, this->SystemId, this->Extensions))
   {
     vtkWarningMacro("Initialize failed in CheckGraphicsRequirements");
     return false;
   }
 
-  if (!this->CreateGraphicsBinding(helperWindow))
+  if (!this->GraphicsStrategy->CreateGraphicsBinding(helperWindow))
   {
     vtkWarningMacro("Initialize failed to CreateGraphicsBinding");
     return false;
@@ -279,12 +296,10 @@ bool vtkOpenXRManager::LoadControllerModels()
 
 //------------------------------------------------------------------------------
 bool vtkOpenXRManager::PrepareRendering(
-  const uint32_t eye, GLuint& colorTextureId, GLuint& depthTextureId)
+  const uint32_t eye, void* colorTextureId, void* depthTextureId)
 {
-  const vtkOpenXRManager::SwapchainOpenGL_t& colorSwapchain =
-    this->RenderResources->ColorSwapchains[eye];
-  const vtkOpenXRManager::SwapchainOpenGL_t& depthSwapchain =
-    this->RenderResources->DepthSwapchains[eye];
+  const vtkOpenXRManager::Swapchain_t& colorSwapchain = this->RenderResources->ColorSwapchains[eye];
+  const vtkOpenXRManager::Swapchain_t& depthSwapchain = this->RenderResources->DepthSwapchains[eye];
 
   // Use the full size of the allocated swapchain image (could render smaller some frames to hit
   // framerate)
@@ -310,7 +325,8 @@ bool vtkOpenXRManager::PrepareRendering(
   // Store the texture to render into it during the render method
   const uint32_t colorSwapchainImageIndex =
     this->WaitAndAcquireSwapchainImage(colorSwapchain.Swapchain);
-  colorTextureId = colorSwapchain.Images[colorSwapchainImageIndex].image;
+
+  this->GraphicsStrategy->GetColorSwapchainImage(eye, colorSwapchainImageIndex, colorTextureId);
 
   this->RenderResources->ProjectionLayerViews[eye] = { XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW };
   this->RenderResources->ProjectionLayerViews[eye].pose = this->RenderResources->Views[eye].pose;
@@ -323,7 +339,8 @@ bool vtkOpenXRManager::PrepareRendering(
   {
     const uint32_t depthSwapchainImageIndex =
       this->WaitAndAcquireSwapchainImage(depthSwapchain.Swapchain);
-    depthTextureId = depthSwapchain.Images[depthSwapchainImageIndex].image;
+
+    this->GraphicsStrategy->GetDepthSwapchainImage(eye, depthSwapchainImageIndex, depthTextureId);
 
     this->RenderResources->DepthInfoViews[eye] = { XR_TYPE_COMPOSITION_LAYER_DEPTH_INFO_KHR };
     this->RenderResources->DepthInfoViews[eye].minDepth = 0;
@@ -615,7 +632,8 @@ std::vector<const char*> vtkOpenXRManager::SelectExtensions()
   };
 
   // Don't forget here to use the name of the extension (uppercase with suffix EXTENSION_NAME)
-  this->HasOpenGLExtension = EnableExtensionIfSupported(XR_KHR_OPENGL_ENABLE_EXTENSION_NAME);
+  this->RenderingBackendExtensionSupported =
+    EnableExtensionIfSupported(this->GraphicsStrategy->GetBackendExtensionName());
 
   this->OptionalExtensions.ControllerModelExtensionSupported =
     EnableExtensionIfSupported(XR_MSFT_CONTROLLER_MODEL_EXTENSION_NAME);
@@ -658,10 +676,10 @@ bool vtkOpenXRManager::CreateInstance()
   // Start by selection available extensions
   const std::vector<const char*> enabledExtensions = this->SelectExtensions();
 
-  // For instance, only OpenGL extension is supported so is mandatory
-  if (!this->HasOpenGLExtension)
+  // Check that the requested rendering backend is supported
+  if (!this->RenderingBackendExtensionSupported)
   {
-    vtkErrorMacro(<< "OpenGL extension is not supported. Aborting.");
+    vtkErrorMacro(<< "Rendering backend extension is not supported. Aborting.");
     return false;
   }
 
@@ -798,77 +816,6 @@ bool vtkOpenXRManager::CreateSystem()
 }
 
 //------------------------------------------------------------------------------
-bool vtkOpenXRManager::CheckGraphicsRequirements()
-{
-  XrGraphicsRequirementsOpenGLKHR openGLReqs = {
-    XR_TYPE_GRAPHICS_REQUIREMENTS_OPENGL_KHR, // .type
-    nullptr,                                  // .next
-    { 0 },                                    // .minApiVersionSupported
-    { 0 }                                     // .maxApiVersionSupported
-  };
-
-  // this function pointer was loaded with xrGetInstanceProcAddr (see XrExtensions.h)
-  if (!this->XrCheckError(this->Extensions.xrGetOpenGLGraphicsRequirementsKHR(
-                            this->Instance, this->SystemId, &openGLReqs),
-        "Failed to get OpenGL graphics requirements!"))
-  {
-    return false;
-  }
-
-  return true;
-}
-
-//------------------------------------------------------------------------------
-bool vtkOpenXRManager::CreateGraphicsBinding(vtkOpenGLRenderWindow* helperWindow)
-{
-#ifdef VTK_USE_X
-  // Create the XrGraphicsBindingOpenGLXlibKHR structure
-  // That will be in the next chain of the XrSessionCreateInfo
-  // We need to fill xDisplay, visualId, glxFBConfig, glxDrawable and glxContext
-
-  auto graphicsBindingGLX =
-    std::shared_ptr<XrGraphicsBindingOpenGLXlibKHR>(new XrGraphicsBindingOpenGLXlibKHR{
-      XR_TYPE_GRAPHICS_BINDING_OPENGL_XLIB_KHR, // .type
-      nullptr,                                  // .next
-      nullptr,                                  // .xDisplay. a valid X11 display
-      0,                                        // .visualid. a valid X11 visual id
-      { 0 },                                    // .glxFBConfig. a valid X11 OpenGL GLX GLXFBConfig
-      { 0 },                                    // .glxDrawable. a valid X11 OpenGL GLX GLXDrawable
-      { 0 }                                     // .glxContext. a valid X11 OpenGL GLX GLXContext
-    });
-  this->GraphicsBinding = graphicsBindingGLX;
-
-  graphicsBindingGLX->xDisplay = reinterpret_cast<Display*>(helperWindow->GetGenericDisplayId());
-  graphicsBindingGLX->glxDrawable =
-    reinterpret_cast<GLXDrawable>(helperWindow->GetGenericDrawable());
-  graphicsBindingGLX->glxContext = reinterpret_cast<GLXContext>(helperWindow->GetGenericContext());
-
-  auto glxHelperWindow = vtkXOpenGLRenderWindow::SafeDownCast(helperWindow);
-  vtkXVisualInfo* visualInfo = glxHelperWindow->GetDesiredVisualInfo();
-  graphicsBindingGLX->visualid = visualInfo->visualid;
-
-#elif _WIN32
-  auto graphicsBindingGLWin32 =
-    std::shared_ptr<XrGraphicsBindingOpenGLWin32KHR>(new XrGraphicsBindingOpenGLWin32KHR{
-      XR_TYPE_GRAPHICS_BINDING_OPENGL_WIN32_KHR, // .type
-      nullptr,                                   // .next
-      { 0 },                                     // .hdC : a valid Windows HW device context handle.
-      { 0 } // . hGLRChandle : a valid Windows OpenGL rendering context
-    });
-  this->GraphicsBinding = graphicsBindingGLWin32;
-
-  graphicsBindingGLWin32->hDC = wglGetCurrentDC();
-  graphicsBindingGLWin32->hGLRC = wglGetCurrentContext();
-
-#else
-  vtkErrorMacro(<< "Only X11 and Win32 are supported at the moment.");
-  return false;
-#endif
-
-  return true;
-}
-
-//------------------------------------------------------------------------------
 bool vtkOpenXRManager::CreateSession()
 {
   VTK_CHECK_NULL_XRHANDLE(this->Instance, "vtkOpenXRManager::CreateSession, Instance");
@@ -877,10 +824,10 @@ bool vtkOpenXRManager::CreateSession()
   this->SessionState = XR_SESSION_STATE_UNKNOWN;
 
   XrSessionCreateInfo sessionCreateInfo = {
-    XR_TYPE_SESSION_CREATE_INFO, // .type
-    this->GraphicsBinding.get(), // .next
-    { 0 },                       // .createFlags
-    this->SystemId               // .systemId
+    XR_TYPE_SESSION_CREATE_INFO,                  // .type
+    this->GraphicsStrategy->GetGraphicsBinding(), // .next
+    { 0 },                                        // .createFlags
+    this->SystemId                                // .systemId
   };
 
   if (!this->XrCheckError(xrCreateSession(this->Instance, &sessionCreateInfo, &this->Session),
@@ -926,24 +873,6 @@ bool vtkOpenXRManager::CreateReferenceSpace()
 }
 
 //------------------------------------------------------------------------------
-const std::vector<int64_t>& vtkOpenXRManager::GetSupportedColorFormats()
-{
-  const static std::vector<int64_t> supportedColorFormats = { GL_RGBA32F, GL_RGBA16F, GL_RGBA16,
-    GL_SRGB8_ALPHA8_EXT };
-
-  return supportedColorFormats;
-}
-
-//------------------------------------------------------------------------------
-const std::vector<int64_t>& vtkOpenXRManager::GetSupportedDepthFormats()
-{
-  const static std::vector<int64_t> supportedDepthFormats = { GL_DEPTH_COMPONENT16,
-    GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT32, GL_DEPTH_COMPONENT32F };
-
-  return supportedDepthFormats;
-}
-
-//------------------------------------------------------------------------------
 std::tuple<int64_t, int64_t> vtkOpenXRManager::SelectSwapchainPixelFormats()
 {
   // Query the runtime's preferred swapchain formats.
@@ -974,13 +903,13 @@ std::tuple<int64_t, int64_t> vtkOpenXRManager::SelectSwapchainPixelFormats()
     return *found;
   };
 
-  int64_t colorSwapchainFormat =
-    selectPixelFormat(swapchainFormats, this->GetSupportedColorFormats(), "color");
+  int64_t colorSwapchainFormat = selectPixelFormat(
+    swapchainFormats, this->GraphicsStrategy->GetSupportedColorFormats(), "color");
   int64_t depthSwapchainFormat = -1;
   if (this->OptionalExtensions.DepthExtensionSupported)
   {
-    depthSwapchainFormat =
-      selectPixelFormat(swapchainFormats, this->GetSupportedDepthFormats(), "depth");
+    depthSwapchainFormat = selectPixelFormat(
+      swapchainFormats, this->GraphicsStrategy->GetSupportedDepthFormats(), "depth");
     if (depthSwapchainFormat == -1)
     {
       vtkDebugMacro(<< "Disabling depth extension as no depth format are supported");
@@ -1020,17 +949,24 @@ bool vtkOpenXRManager::CreateSwapchains()
   // will be more complex
   this->RenderResources->ColorSwapchains.resize(viewCount);
   this->RenderResources->DepthSwapchains.resize(viewCount);
+
+  this->GraphicsStrategy->SetNumberOfSwapchains(viewCount);
+
   for (uint32_t i = 0; i < viewCount; ++i)
   {
-    this->RenderResources->ColorSwapchains[i] = this->CreateSwapchainOpenGL(colorSwapchainFormat,
+    this->RenderResources->ColorSwapchains[i] = this->CreateSwapchain(colorSwapchainFormat,
       imageRectWidth, imageRectHeight, swapchainSampleCount, 0 /*createFlags*/,
       XR_SWAPCHAIN_USAGE_TRANSFER_DST_BIT | XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT);
+    this->GraphicsStrategy->EnumerateColorSwapchainImages(
+      this->RenderResources->ColorSwapchains[i].Swapchain, i);
 
     if (this->OptionalExtensions.DepthExtensionSupported)
     {
-      this->RenderResources->DepthSwapchains[i] = this->CreateSwapchainOpenGL(depthSwapchainFormat,
+      this->RenderResources->DepthSwapchains[i] = this->CreateSwapchain(depthSwapchainFormat,
         imageRectWidth, imageRectHeight, swapchainSampleCount, 0 /*createFlags*/,
         XR_SWAPCHAIN_USAGE_TRANSFER_DST_BIT | XR_SWAPCHAIN_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+      this->GraphicsStrategy->EnumerateDepthSwapchainImages(
+        this->RenderResources->DepthSwapchains[i].Swapchain, i);
     }
   }
 
@@ -1048,11 +984,11 @@ bool vtkOpenXRManager::CreateSwapchains()
 }
 
 //------------------------------------------------------------------------------
-vtkOpenXRManager::SwapchainOpenGL_t vtkOpenXRManager::CreateSwapchainOpenGL(int64_t format,
-  uint32_t width, uint32_t height, uint32_t sampleCount, XrSwapchainCreateFlags createFlags,
+vtkOpenXRManager::Swapchain_t vtkOpenXRManager::CreateSwapchain(int64_t format, uint32_t width,
+  uint32_t height, uint32_t sampleCount, XrSwapchainCreateFlags createFlags,
   XrSwapchainUsageFlags usageFlags)
 {
-  SwapchainOpenGL_t swapchain;
+  Swapchain_t swapchain;
   swapchain.Format = format;
   swapchain.Width = width;
   swapchain.Height = height;
@@ -1070,16 +1006,6 @@ vtkOpenXRManager::SwapchainOpenGL_t vtkOpenXRManager::CreateSwapchainOpenGL(int6
 
   this->XrCheckError(xrCreateSwapchain(this->Session, &swapchainCreateInfo, &swapchain.Swapchain),
     "Failed to create swapchain!");
-
-  uint32_t chainLength;
-  this->XrCheckError(xrEnumerateSwapchainImages(swapchain.Swapchain, 0, &chainLength, nullptr),
-    "Failed to get swapchain images count");
-
-  swapchain.Images.resize(chainLength, { XR_TYPE_SWAPCHAIN_IMAGE_OPENGL_KHR });
-  this->XrCheckError(
-    xrEnumerateSwapchainImages(swapchain.Swapchain, (uint32_t)swapchain.Images.size(), &chainLength,
-      reinterpret_cast<XrSwapchainImageBaseHeader*>(swapchain.Images.data())),
-    "Failed to enumerate swapchain images");
 
   return swapchain;
 }

@@ -26,7 +26,9 @@
 #include "vtkObject.h"
 #include "vtkRenderingOpenXRModule.h" // needed for exports
 
+#include "vtkNew.h"
 #include "vtkOpenXR.h"
+#include "vtkOpenXRManagerGraphics.h"
 
 #include <array>
 #include <memory>
@@ -205,11 +207,11 @@ public:
   //@{
   /**
    * Prepare the rendering resources for the specified eye and store in \p colorTextureId and
-   * in \p depthTextureId (if the depth extension is supported) the OpenGL texture in which
-   * we need to draw pixels.
+   * in \p depthTextureId (if the depth extension is supported) the texture in which we need
+   * to draw pixels.
    * Return true if no error occured.
    */
-  bool PrepareRendering(uint32_t eye, GLuint& colorTextureId, GLuint& depthTextureId);
+  bool PrepareRendering(uint32_t eye, void* colorTextureId, void* depthTextureId);
   //@}
 
   //@{
@@ -347,9 +349,17 @@ public:
     XrSpaceVelocity PoseVelocities[ControllerIndex::NumberOfControllers];
   };
 
+  //@{
+  /**
+   * Set/Get the rendering backend strategy.
+   */
+  vtkSetObjectMacro(GraphicsStrategy, vtkOpenXRManagerGraphics);
+  vtkGetObjectMacro(GraphicsStrategy, vtkOpenXRManagerGraphics);
+  //@}
+
 protected:
   vtkOpenXRManager() = default;
-  ~vtkOpenXRManager() override = default;
+  ~vtkOpenXRManager();
 
   //@{
   /**
@@ -373,24 +383,6 @@ protected:
    * OpenXR System creation
    */
   bool CreateSystem();
-  //@}
-
-  //@{
-  /**
-   * OpenXR requires checking graphics requirements before creating a session.
-   * This uses a function pointer loaded with the selected graphics API extension.
-   */
-  bool CheckGraphicsRequirements();
-  //@}
-
-  //@{
-  /**
-   * Create the graphics binding and store it in GraphicsBindings ptr.
-   * It points to a XrGraphicsBindingXXX structure, depending on the
-   * desired rendering backend.
-   * \pre \p helperWindow must be initialized
-   */
-  bool CreateGraphicsBinding(vtkOpenGLRenderWindow* helperWindow);
   //@}
 
   //@{
@@ -420,26 +412,23 @@ protected:
 
   //@{
   /**
-   * During the creation of the swapchains, we need to
-   * check the runtime available pixels formats, and we pick
-   * the first one from the list of our supported color and
-   * depth formats returned by GetSupportedColorFormats and
-   * GetSupportedDepthFormats
+   * During the creation of the swapchains, we need to check the runtime available
+   * pixels formats, and we pick the first one from the list of our supported color
+   * and depth formats returned by vtkOpenXRManagerGraphics::GetSupportedColorFormats
+   * and vtkOpenXRManagerGraphics::GetSupportedDepthFormats
    */
   std::tuple<int64_t, int64_t> SelectSwapchainPixelFormats();
-  const std::vector<int64_t>& GetSupportedColorFormats();
-  const std::vector<int64_t>& GetSupportedDepthFormats();
   //@}
 
-  struct SwapchainOpenGL_t;
+  struct Swapchain_t;
 
   //@{
   /**
    * Create an XrSwapchain handle used to present rendered image
    * to the user with the given parameters for the XrSwapchainCreateInfo structure
    */
-  SwapchainOpenGL_t CreateSwapchainOpenGL(int64_t format, uint32_t width, uint32_t height,
-    uint32_t sampleCount, XrSwapchainCreateFlags createFlags, XrSwapchainUsageFlags usageFlags);
+  Swapchain_t CreateSwapchain(int64_t format, uint32_t width, uint32_t height, uint32_t sampleCount,
+    XrSwapchainCreateFlags createFlags, XrSwapchainUsageFlags usageFlags);
   //@}
 
   //@{
@@ -509,7 +498,7 @@ protected:
   xr::ExtensionDispatchTable Extensions;
 
   // Non optional extension
-  bool HasOpenGLExtension = false;
+  bool RenderingBackendExtensionSupported = false;
 
   //@{
   /**
@@ -526,18 +515,16 @@ protected:
   } OptionalExtensions;
   //@}
 
-  std::shared_ptr<void> GraphicsBinding;
-
   /**
-   * Swapchain structure for OpenGL backend.
+   * Swapchain structure storing information common to all rendering backend.
+   * Backend specific images are stored in vtkOpenXRManagerGraphics implementations.
    */
-  struct SwapchainOpenGL_t
+  struct Swapchain_t
   {
     XrSwapchain Swapchain;
-    int64_t Format{ GL_NONE };
+    int64_t Format{ 0 };
     uint32_t Width{ 0 };
     uint32_t Height{ 0 };
-    std::vector<XrSwapchainImageOpenGLKHR> Images;
   };
 
   //@{
@@ -555,8 +542,8 @@ protected:
     // One configuration view per view : this store
     std::vector<XrViewConfigurationView> ConfigViews;
 
-    std::vector<SwapchainOpenGL_t> ColorSwapchains;
-    std::vector<SwapchainOpenGL_t> DepthSwapchains;
+    std::vector<Swapchain_t> ColorSwapchains;
+    std::vector<Swapchain_t> DepthSwapchains;
 
     std::vector<XrCompositionLayerProjectionView> ProjectionLayerViews;
     std::vector<XrCompositionLayerDepthInfoKHR> DepthInfoViews;
@@ -589,6 +576,8 @@ protected:
   // If true, the function UpdateActionData will store
   // pose velocities for pose actions
   bool StorePoseVelocities = false;
+
+  vtkOpenXRManagerGraphics* GraphicsStrategy;
 
 private:
   vtkOpenXRManager(const vtkOpenXRManager&) = delete;
