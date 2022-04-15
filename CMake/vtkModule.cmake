@@ -3954,7 +3954,12 @@ function (_vtk_module_add_header_tests)
             # TODO: What to do when using this from a VTK install?
             "${VTK_SOURCE_DIR}/Testing/Core/HeaderTesting.py"
             "${CMAKE_CURRENT_SOURCE_DIR}"
-            "${_vtk_add_module_EXPORT_MACRO}")
+            "--export-macro"
+            "${_vtk_add_module_EXPORT_MACRO}"
+            "--headers"
+            "${_vtk_add_module_HEADERS}"
+            "${_vtk_add_module_NOWRAP_HEADERS}"
+            "${_vtk_add_module_TEMPLATES}")
 endfunction ()
 
 #[==[

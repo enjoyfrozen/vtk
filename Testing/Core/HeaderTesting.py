@@ -32,6 +32,7 @@ import sys
 import re
 import os
 import stat
+import argparse as cli
 
 # Get the path to the directory containing this script.
 if __name__ == '__main__':
@@ -113,6 +114,10 @@ class TestVTKFiles:
         self.FileLines = []
         self.ClassName = ""
         self.ParentName = ""
+        self.HasIncludes = False
+        self.HasTypedef = False
+        self.HasClass = False
+        self.HasFunction = False
         try:
             if sys.hexversion >= 0x03000000:
                 file = open(filename, encoding='ascii', errors='ignore')
@@ -120,6 +125,18 @@ class TestVTKFiles:
                 file = open(filename)
             self.FileLines = file.readlines()
             file.close()
+            funcre = "[a-zA-Z0-9_]*\s+[a-zA-Z0-9_]*\s*\(.*\)[^ ;\n]*"
+            funcregex = re.compile(funcre)
+
+            for l in self.FileLines:
+                if "#include" in l:
+                    self.HasIncludes = True
+                if "class" in l:
+                    self.HasClass = True
+                if "typedef" in l or "using" in l:
+                    self.HasTypedef = True
+                if funcregex.match(l):
+                    self.HasFunction = True
         except:
             self.Print("Problem reading file %s:\n%s" %
                        (filename, str(sys.exc_info()[1])))
@@ -510,42 +527,105 @@ class TestVTKFiles:
         pass
 
 ##
-test = TestVTKFiles()
+parser = cli.ArgumentParser()
+parser.add_argument(
+    "root",
+    metavar="<root>",
+    help="Root directory to glob headers from.")
+parser.add_argument(
+    "--headers",
+    metavar="<header>.h",
+    nargs='*',
+    help="List of headers to test. Relative from \
+         <root> if not absolute paths.")
+parser.add_argument(
+    "--extra-headers",
+    metavar="<header>.h",
+    nargs='*',
+    help="List of headers to test. Relative from "
+         "--root or PWD if not absolute paths.")
+parser.add_argument(
+    "--exceptions",
+    nargs='*',
+    metavar="<header>.h",
+    help="List of headers not to check "
+         "(used when --headers is not specified).")
+parser.add_argument(
+    "--export-macro",
+    metavar="VTK_<ModuleName>_EXPORT",
+    help="Export macro.")
 
-## Check command line arguments
-if len(sys.argv) < 2:
+args = parser.parse_args()
+
+# Check command line arguments
+if not args.root:
     print("Testing directory not specified...")
-    print("Usage: %s <directory> [ exception(s) ]" % sys.argv[0])
+    parser.print_usage()
     sys.exit(1)
 
-dirname = sys.argv[1]
-exceptions = sys.argv[2:]
-if len(sys.argv) > 2:
-  export = sys.argv[2]
-  if export[:3] == "VTK" and export[len(export)-len("EXPORT"):] == "EXPORT":
+# Make sure the root exsits
+if not os.path.exists(args.root):
+    print("Root path does not exists: %s" % (args.root))
+    sys.exit(1)
+
+test = TestVTKFiles()
+
+print(args)
+
+dirname = os.path.abspath(args.root)
+exceptions = []
+if args.exceptions:
+    exceptions.extend(args.exceptions)
+export = args.export_macro
+
+# Extract the headers to check
+headers = []
+if args.headers:
+    for header in args.headers:
+        headers.extend(header.split(';'))
+if args.extra_headers:
+    for header in args.extra_headers:
+        headers.extend(header.split(';'))
+
+if export and export[:3] == "VTK" and export[len(export)-len("EXPORT"):] == "EXPORT":
     print("Use export macro: %s" % export)
-    exceptions = sys.argv[3:]
     test.SetExport(export)
 
-## Traverse through the list of files
-for a in os.listdir(dirname):
-    ## Skip non-header files
-    if not StringEndsWith(a, ".h"):
+if args.headers is None:
+    ## Traverse through the list of files
+    for a in os.listdir(dirname):
+        ## Skip non-header files
+        if not StringEndsWith(a, ".h"):
+            continue
+        ## Skip non-vtk files
+        if not a.startswith('vtk'):
+            continue
+        ## Skip exceptions
+        if a in exceptions:
+            continue
+        pathname = '%s/%s' % (dirname, a)
+        if pathname in exceptions:
+            continue
+        mode = os.stat(pathname)[stat.ST_MODE]
+        ## Skip directories
+        if stat.S_ISDIR(mode):
+            continue
+        headers.append(pathname)
+
+for header in headers:
+    pathname = header
+    # If the path is not absolute, it is relative to the test directory
+    if not os.path.isabs(pathname):
+        pathname = '%s/%s' % (dirname, header)
+
+    ## Skip non-existing
+    if not os.path.exists(pathname):
+        test.Warning("Header not found: %s" % (pathname))
         continue
-    ## Skip non-vtk files
-    if not a.startswith('vtk'):
+    ## Skip .txx/.hxx/.cxx/etc. files that may be listed.
+    elif not StringEndsWith(pathname, ".h"):
         continue
-    ## Skip exceptions
-    if a in exceptions:
-        continue
-    pathname = '%s/%s' % (dirname, a)
-    if pathname in exceptions:
-        continue
-    mode = os.stat(pathname)[stat.ST_MODE]
-    ## Skip directories
-    if stat.S_ISDIR(mode):
-        continue
-    elif stat.S_ISREG(mode) and test.TestFile(pathname):
+    elif test.TestFile(pathname):
         ## Do all the tests
         test.CheckGuard()
         test.CheckParent()
