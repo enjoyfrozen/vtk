@@ -247,6 +247,7 @@ elseif (WIN32)
     set(has_vtkRenderWindow_override 1)
   endif ()
   list(APPEND classes vtkWin32OpenGLRenderWindow)
+  list(APPEND classes vtkWin32OpenGLDXRenderWindow)
 elseif (VTK_USE_COCOA)
   # Add some custom overrides
   if (NOT VTK_DEFAULT_RENDER_WINDOW_HEADLESS)
@@ -367,6 +368,9 @@ if (VTK_USE_X)
   )
 elseif (VTK_USE_COCOA)
   vtk_module_link(VTK::RenderingOpenGL2 PUBLIC "-framework Cocoa")
+elseif (WIN32)
+  # vtkWin32OpenGLDXRenderWindow requires D3D.
+  vtk_module_link(VTK::RenderingOpenGL2 PUBLIC d3d11.lib dxgi.lib)
 endif ()
 
 if (ANDROID)
