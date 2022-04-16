@@ -349,6 +349,27 @@ public:
     XrSpaceVelocity PoseVelocities[ControllerIndex::NumberOfControllers];
   };
 
+#ifdef OpenXR_USE_REMOTING
+
+  //@{
+  /**
+   * Get/set whether OpenXR remoting is used.
+   */
+  vtkGetMacro(Remoting, bool);
+  vtkSetMacro(Remoting, bool);
+  vtkBooleanMacro(Remoting, bool);
+  //@}
+
+  //@{
+  /**
+   * Specify the address to connect to when using remoting.
+   */
+  vtkSetStringMacro(RemotingIPAddress);
+  vtkGetStringMacro(RemotingIPAddress);
+  //@}
+
+#endif // OpenXR_USE_REMOTING
+
   //@{
   /**
    * Set/Get the rendering backend strategy.
@@ -383,6 +404,14 @@ protected:
    * OpenXR System creation
    */
   bool CreateSystem();
+  //@}
+
+  //@{
+  /**
+   * Enable system properties such as hand tracking,
+   * and choose environment blend modes.
+   */
+  bool CreateSystemProperties();
   //@}
 
   //@{
@@ -475,7 +504,7 @@ protected:
   // Three available types: VIEW, LOCAL and STAGE.  We use LOCAL space which
   // establishes a world-locked origin, rather than VIEW space, which tracks the
   // view origin.
-  constexpr static XrReferenceSpaceType ReferenceSpaceType = XR_REFERENCE_SPACE_TYPE_STAGE;
+  XrReferenceSpaceType ReferenceSpaceType = XR_REFERENCE_SPACE_TYPE_STAGE;
 
   // Communication with the runtime happens through this instance
   XrInstance Instance;
@@ -512,6 +541,7 @@ protected:
     bool UnboundedRefSpaceSupported{ false };
     bool SpatialAnchorSupported{ false };
     bool HandTrackingSupported{ false };
+    bool RemotingSupported{ false };
   } OptionalExtensions;
   //@}
 
@@ -578,6 +608,26 @@ protected:
   bool StorePoseVelocities = false;
 
   vtkOpenXRManagerGraphics* GraphicsStrategy;
+
+#ifdef OpenXR_USE_REMOTING
+
+  /**
+   * Look for the runtime RemotingXR.json file and set the
+   * corresponding XR_RUNTIME_JSON environment variable to enable remoting.
+   */
+  bool EnableRemoting();
+
+  /**
+   * Initialize holographic remoting connection
+   */
+  bool Connect();
+
+  // Enable OpenXR remoting
+  bool Remoting = false;
+
+  // IP Address to connect to when using remoting
+  char* RemotingIPAddress = nullptr;
+#endif
 
 private:
   vtkOpenXRManager(const vtkOpenXRManager&) = delete;

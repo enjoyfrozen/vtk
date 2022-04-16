@@ -60,6 +60,10 @@ vtkOpenXRManager* vtkOpenXRManager::GetInstance()
 //------------------------------------------------------------------------------
 vtkOpenXRManager::~vtkOpenXRManager()
 {
+#ifdef OpenXR_USE_REMOTING
+  delete[] this->RemotingIPAddress;
+#endif
+
   if (this->GraphicsStrategy)
   {
     this->GraphicsStrategy->Delete();
@@ -70,6 +74,14 @@ vtkOpenXRManager::~vtkOpenXRManager()
 bool vtkOpenXRManager::Initialize(vtkOpenGLRenderWindow* helperWindow)
 {
   this->DebugOn();
+
+#ifdef OpenXR_USE_REMOTING
+  if (this->Remoting && !this->EnableRemoting())
+  {
+    vtkWarningMacro("Failed to enable remoting, disabling.");
+    this->Remoting = false;
+  }
+#endif
 
   // Use OpenGL graphics if nothing was specified
   if (!this->GraphicsStrategy)
@@ -109,9 +121,28 @@ bool vtkOpenXRManager::Initialize(vtkOpenGLRenderWindow* helperWindow)
     return false;
   }
 
+#ifdef OpenXR_USE_REMOTING
+  // When using remoting, the connection must be established before creating the session
+  if (this->Remoting && !this->Connect())
+  {
+    vtkWarningMacro("Failed to connect.");
+    return false;
+  }
+#endif
+
   if (!this->CreateSession())
   {
     vtkWarningMacro("Initialize failed to CreateSession");
+    return false;
+  }
+
+  // System properties use the following functions that must be called after
+  // the connection has succeeded when using remoting:
+  // xrEnumerateViewConfigurations, xrGetViewConfigurationProperties,
+  // xrEnumerateEnvironmentBlendModes, xrGetSystemProperties.
+  if (!this->CreateSystemProperties())
+  {
+    vtkWarningMacro("Initialize failed to CreateSystemProperties");
     return false;
   }
 
@@ -144,6 +175,83 @@ void vtkOpenXRManager::Finalize()
   xrDestroySession(this->Session);
   xrDestroyInstance(this->Instance);
 }
+
+#ifdef OpenXR_USE_REMOTING
+
+#include <thread> // used to sleep after connection
+
+//------------------------------------------------------------------------------
+bool vtkOpenXRManager::EnableRemoting()
+{
+  std::wstring filename;
+  filename.resize(MAX_PATH);
+  if (!SearchPathW(nullptr, L"RemotingXR", L".json", MAX_PATH, &filename[0], nullptr))
+  {
+    vtkErrorMacro(<< "Could not find RemotingXR.json.");
+    return false;
+  }
+
+  if (GetFileAttributesW(filename.data()) != INVALID_FILE_ATTRIBUTES)
+  {
+    SetEnvironmentVariableW(L"XR_RUNTIME_JSON", filename.data());
+    return true;
+  }
+
+  return false;
+}
+
+//------------------------------------------------------------------------------
+bool vtkOpenXRManager::Connect()
+{
+  if (!this->RemotingIPAddress)
+  {
+    vtkErrorMacro(<< "Remoting IP address unspecified.");
+    return false;
+  }
+
+  XrRemotingConnectionStateMSFT connectionState;
+  this->Extensions.xrRemotingGetConnectionStateMSFT(
+    this->Instance, this->SystemId, &connectionState, nullptr);
+  if (connectionState != XR_REMOTING_CONNECTION_STATE_DISCONNECTED_MSFT)
+  {
+    vtkErrorMacro(<< "Error connecting to " << this->RemotingIPAddress << ": " << connectionState);
+    return false;
+  }
+
+  // Apply remote context properties while disconnected.
+  {
+    XrRemotingRemoteContextPropertiesMSFT contextProperties;
+    contextProperties = XrRemotingRemoteContextPropertiesMSFT{ static_cast<XrStructureType>(
+      XR_TYPE_REMOTING_REMOTE_CONTEXT_PROPERTIES_MSFT) };
+    contextProperties.enableAudio = false;
+    contextProperties.maxBitrateKbps = 20000;
+    contextProperties.videoCodec = XR_REMOTING_VIDEO_CODEC_ANY_MSFT;
+    contextProperties.depthBufferStreamResolution =
+      XR_REMOTING_DEPTH_BUFFER_STREAM_RESOLUTION_HALF_MSFT;
+
+    this->Extensions.xrRemotingSetContextPropertiesMSFT(
+      this->Instance, this->SystemId, &contextProperties);
+  }
+
+  XrRemotingConnectInfoMSFT connectInfo{ static_cast<XrStructureType>(
+    XR_TYPE_REMOTING_CONNECT_INFO_MSFT) };
+  connectInfo.remoteHostName = this->RemotingIPAddress;
+  connectInfo.remotePort = 8265;
+  connectInfo.secureConnection = false;
+
+  if (!this->XrCheckError(
+        this->Extensions.xrRemotingConnectMSFT(this->Instance, this->SystemId, &connectInfo),
+        "Failed to connect"))
+  {
+    return false;
+  }
+
+  // Make sure the connection is established before the event loop gets started
+  using namespace std::chrono_literals;
+  std::this_thread::sleep_for(2500ms);
+}
+
+#endif // OpenXR_USE_REMOTING
 
 //------------------------------------------------------------------------------
 std::tuple<uint32_t, uint32_t> vtkOpenXRManager::GetRecommandedImageRectSize()
@@ -265,7 +373,8 @@ bool vtkOpenXRManager::WaitAndBeginFrame()
 // to start from.
 bool vtkOpenXRManager::LoadControllerModels()
 {
-  if (!this->OptionalExtensions.ControllerModelExtensionSupported)
+  if (!this->OptionalExtensions.ControllerModelExtensionSupported ||
+    this->Remoting) // Controllers are not missing when remoting to the hololens
   {
     return true;
   }
@@ -387,9 +496,8 @@ bool vtkOpenXRManager::EndFrame()
     // Inform the runtime that the app's submitted alpha channel has valid data for use during
     // composition. The primary display on HoloLens has an additive environment blend mode. It will
     // ignore the alpha channel. However, mixed reality capture uses the alpha channel if this bit
-    // is set to blend content with the environment. layer.layerFlags =
-    // XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT;
-    layer.layerFlags = 0;
+    // is set to blend content with the environment.
+    layer.layerFlags = this->Remoting ? XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT : 0;
     layer.space = this->ReferenceSpace;
     layer.viewCount = (uint32_t)this->RenderResources->ProjectionLayerViews.size();
     layer.views = this->RenderResources->ProjectionLayerViews.data();
@@ -638,6 +746,32 @@ std::vector<const char*> vtkOpenXRManager::SelectExtensions()
   this->OptionalExtensions.ControllerModelExtensionSupported =
     EnableExtensionIfSupported(XR_MSFT_CONTROLLER_MODEL_EXTENSION_NAME);
 
+  this->OptionalExtensions.UnboundedRefSpaceSupported =
+    EnableExtensionIfSupported(XR_MSFT_UNBOUNDED_REFERENCE_SPACE_EXTENSION_NAME);
+
+  this->OptionalExtensions.SpatialAnchorSupported =
+    EnableExtensionIfSupported(XR_MSFT_SPATIAL_ANCHOR_EXTENSION_NAME);
+
+#ifdef OpenXR_USE_REMOTING
+  if (this->Remoting)
+  {
+    // Choose an unbounded reference space to improve holographic remoting stability
+    if (this->OptionalExtensions.UnboundedRefSpaceSupported)
+    {
+      this->ReferenceSpaceType = XR_REFERENCE_SPACE_TYPE_UNBOUNDED_MSFT;
+    }
+
+    this->OptionalExtensions.RemotingSupported =
+      EnableExtensionIfSupported(XR_MSFT_HOLOGRAPHIC_REMOTING_EXTENSION_NAME);
+
+    if (!this->OptionalExtensions.RemotingSupported)
+    {
+      vtkWarningMacro("Remoting extension unsupported, disabling.");
+      this->Remoting = false;
+    }
+  }
+#endif
+
   this->PrintOptionalExtensions();
 
   return enabledExtensions;
@@ -750,8 +884,13 @@ bool vtkOpenXRManager::CreateSystem()
 
   vtkDebugMacro(<< "Successfully got XrSystem with id " << this->SystemId
                 << " for HMD form factor.");
+  return true;
+}
 
-  // checking system properties is generally  optional, but we are interested in hand tracking
+//------------------------------------------------------------------------------
+bool vtkOpenXRManager::CreateSystemProperties()
+{
+  // checking system properties is generally optional, but we are interested in hand tracking
   // support
   {
     XrSystemProperties systemProperties = {
