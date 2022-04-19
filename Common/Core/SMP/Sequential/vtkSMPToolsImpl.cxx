@@ -16,13 +16,13 @@
 #include "SMP/Common/vtkSMPToolsImpl.h"
 #include "SMP/Sequential/vtkSMPToolsImpl.txx"
 
-VTK_ABI_NAMESPACE_BEGIN
 namespace vtk
 {
 namespace detail
 {
 namespace smp
 {
+VTK_ABI_NAMESPACE_BEGIN
 
 //------------------------------------------------------------------------------
 template <>
@@ -37,7 +37,7 @@ int vtkSMPToolsImpl<BackendType::Sequential>::GetEstimatedNumberOfThreads()
   return 1;
 }
 
+VTK_ABI_NAMESPACE_END
 } // namespace smp
 } // namespace detail
 } // namespace vtk
-VTK_ABI_NAMESPACE_END

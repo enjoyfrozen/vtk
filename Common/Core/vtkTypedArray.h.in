@@ -63,3 +63,4 @@ VTK_ABI_NAMESPACE_END
 #undef vtkTypeArrayBase
 
 #endif
+/* VTK-HeaderTest-Exclude: INCLUDES */

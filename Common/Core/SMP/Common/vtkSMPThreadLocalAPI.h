@@ -38,13 +38,13 @@
 #include "SMP/OpenMP/vtkSMPThreadLocalImpl.h"
 #endif
 
-VTK_ABI_NAMESPACE_BEGIN
 namespace vtk
 {
 namespace detail
 {
 namespace smp
 {
+VTK_ABI_NAMESPACE_BEGIN
 
 template <typename T>
 class vtkSMPThreadLocalAPI
@@ -209,9 +209,10 @@ private:
   }
 };
 
+VTK_ABI_NAMESPACE_END
 } // namespace smp
 } // namespace detail
 } // namespace vtk
 
-VTK_ABI_NAMESPACE_END
 #endif
+/* VTK-HeaderTest-Exclude: vtkSMPThreadLocalAPI.h */

@@ -3790,7 +3790,10 @@ function (vtk_module_add_module name)
     _vtk_module_write_wrap_hierarchy()
   endif ()
 
-  set(_vtk_add_module_module_content)
+  # Make sure this file is excluded from the header tests
+  set(_vtk_add_module_module_content "
+/* VTK-HeaderTest-Exclude: ${_vtk_add_module_library_name}Module.h */
+")
 
   if (NOT _vtk_add_module_AUTOINIT_INCLUDE)
     get_property(_vtk_add_module_AUTOINIT_INCLUDE GLOBAL

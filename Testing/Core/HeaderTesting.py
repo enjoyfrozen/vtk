@@ -125,17 +125,18 @@ class TestVTKFiles:
                 file = open(filename)
             self.FileLines = file.readlines()
             file.close()
-            funcre = "[a-zA-Z0-9_]*\s+[a-zA-Z0-9_]*\s*\(.*\)[^ ;\n]*"
+            funcre = "[a-zA-Z0-9_]*\s+[a-zA-Z0-9_]*\s*\([^\n\{]*\);"
             funcregex = re.compile(funcre)
 
             for l in self.FileLines:
-                if "#include" in l:
+                line = l.strip()
+                if "#include" == line[:8]:
                     self.HasIncludes = True
-                if "class" in l:
+                if "class" == line[:5]:
                     self.HasClass = True
-                if "typedef" in l or "using" in l:
+                if "typedef" == line[:7] or "using" == line[:5]:
                     self.HasTypedef = True
-                if funcregex.match(l):
+                if funcregex.match(line):
                     self.HasFunction = True
         except:
             self.Print("Problem reading file %s:\n%s" %
@@ -144,52 +145,45 @@ class TestVTKFiles:
         return not self.CheckExclude()
 
     def CheckExclude(self):
+        self.ExcludeNamespaceCheck = False
         prefix = '// VTK-HeaderTest-Exclude:'
         prefix_c = '/* VTK-HeaderTest-Exclude:'
         suffix_c = ' */'
         exclude = 0
         for l in self.FileLines:
+            e = None
             if l.startswith(prefix):
                 e = l[len(prefix):].strip()
-                if e == os.path.basename(self.FileName):
-                    exclude += 1
-                else:
-                    self.Error("Wrong exclusion: "+l.rstrip())
             elif l.startswith(prefix_c) and l.rstrip().endswith(suffix_c):
                 e = l[len(prefix_c):-len(suffix_c)].strip()
-                if e == os.path.basename(self.FileName):
-                    exclude += 1
-                else:
-                    self.Error("Wrong exclusion: "+l.rstrip())
-        if exclude > 1:
-            self.Error("Multiple VTK-HeaderTest-Exclude lines")
-        return exclude > 0
 
-    def CheckExcludeABINamespace(self):
-        prefix = '// VTK-HeaderTest-ExcludeABINamespace:'
-        prefix_c = '/* VTK-HeaderTest-ExcludeABINamespace:'
-        suffix_c = ' */'
-        exclude = 0
-        for l in self.FileLines:
-            if l.startswith(prefix):
-                e = l[len(prefix):].strip()
+            if not e == None:
                 if e == os.path.basename(self.FileName):
                     exclude += 1
                 else:
-                    self.Error("Wrong exclusion: "+l.rstrip())
-            elif l.startswith(prefix_c) and l.rstrip().endswith(suffix_c):
-                e = l[len(prefix_c):-len(suffix_c)].strip()
-                if e == os.path.basename(self.FileName):
-                    exclude += 1
-                else:
-                    self.Error("Wrong exclusion: "+l.rstrip())
+                    hasExclusions = False
+                    if "INCLUDES" in e:
+                        hasExclusions = True
+                        self.HasIncludes = False
+                    if "ABINAMESPACE" in e:
+                        hasExclusions = True
+                        self.ExcludeNamespaceCheck = True
+                    if "CLASSES" in e:
+                        hasExclusions = True
+                        self.HasClass = False
+                    if not hasExclusions:
+                        self.Error("Wrong exclusion: "+l.rstrip())
         if exclude > 1:
             self.Error("Multiple VTK-HeaderTest-Exclude lines")
         return exclude > 0
 
     def CheckABINamespace(self):
-        if self.CheckExcludeABINamespace():
+        if self.ExcludeNamespaceCheck:
             return
+
+        if not self.HasClass and not self.HasFunction:
+            return
+
         # Note: This check does not ensure the ABI namespace is not nested
         #       in/around anonymous namespaces or that it is inside of named
         #       namespaces. These checks may be good to add later.
@@ -208,12 +202,17 @@ class TestVTKFiles:
                     self.Error('Mismatched ABI namespace macros.')
                 is_open = False
         if not has_abi_namespace:
+            self.Print( "File: %s has no ABI namespace: " % self.FileName )
             self.Error('Missing VTK ABI namespace macros')
         if is_open:
+            self.Print( "File: %s does not close an ABI namespace: " % self.FileName )
             self.Error('Missing VTK_ABI_NAMESPACE_END.')
         pass
 
     def CheckIncludes(self):
+        if not self.HasIncludes or not self.HasClass:
+            return
+
         count = 0
         lines = []
         nplines = []
@@ -290,12 +289,15 @@ class TestVTKFiles:
         elif not guard == guard_set:
             self.Print("File: %s is not guarded properly." % self.FileName)
             self.Error("Guard does is not set properly")
-        elif not ('%s.h' % guard) == os.path.basename(self.FileName):
+        elif not os.path.basename(self.FileName) in ('%s.h' % guard):
             self.Print("File: %s has a guard (%s) which does not match its filename." % (self.FileName, guard))
             self.Error("Guard does not match the filename")
 
     def CheckParent(self):
-        classre = "^class(\s+VTK_DEPRECATED)?(\s+[^\s]*_EXPORT)?\s+(vtkm?[A-Z0-9_][^ :\n]*)\s*:\s*public\s+(vtk[^ \n\{]*)"
+        if not self.HasClass:
+            return
+
+        classre = "^class(\s+VTK_DEPRECATED)?(\s+[^\s]*_EXPORT)?\s+(vtkm?[A-Z0-9_][^ :\n<>]*)\s*<?[^\n\{]*>?\s*:\s*public\s+(vtk[^ \n\{<>]*)<?[^\n\{]*>?"
         cname = ""
         pname = ""
         classlines = []
@@ -341,7 +343,11 @@ class TestVTKFiles:
         self.ClassName = cname
         self.ParentName = pname
         pass
+
     def CheckTypeMacro(self):
+        if not self.HasClass:
+            return
+
         count = 0
         lines = []
         oldlines = []
@@ -399,6 +405,7 @@ class TestVTKFiles:
                             (self.ClassName, self.ParentName))
             self.Error("No type macro")
         pass
+
     def CheckForCopyAndAssignment(self):
         if not self.ClassName:
             return
@@ -454,7 +461,11 @@ class TestVTKFiles:
                         self.FileName )
             self.Error("Multiple assignment operators")
         pass
+
     def CheckWeirdConstructors(self):
+        if not self.HasClass:
+            return
+
         count = 0
         lines = []
         oldlines = []

@@ -33,13 +33,13 @@
 #include <iterator>
 #include <utility> // For std::move
 
-VTK_ABI_NAMESPACE_BEGIN
 namespace vtk
 {
 namespace detail
 {
 namespace smp
 {
+VTK_ABI_NAMESPACE_BEGIN
 
 template <typename T>
 class vtkSMPThreadLocalImpl<BackendType::TBB, T> : public vtkSMPThreadLocalImplAbstract<T>
@@ -111,9 +111,9 @@ private:
   void operator=(const vtkSMPThreadLocalImpl&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 } // namespace smp
 } // namespace detail
 } // namespace vtk
 
-VTK_ABI_NAMESPACE_END
 #endif

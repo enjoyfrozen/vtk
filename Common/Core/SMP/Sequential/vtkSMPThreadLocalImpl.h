@@ -171,9 +171,10 @@ private:
   void operator=(const vtkSMPThreadLocalImpl&) = delete;
 };
 
+VTK_ABI_NAMESPACE_END
 } // namespace smp
 } // namespace detail
 } // namespace vtk
 
-VTK_ABI_NAMESPACE_END
 #endif
+/* VTK-HeaderTest-Exclude: vtkSMPThreadLocalImpl.h */

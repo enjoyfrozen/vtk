@@ -19,13 +19,13 @@
 #include <iterator> // For std::advance
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-VTK_ABI_NAMESPACE_BEGIN
 namespace vtk
 {
 namespace detail
 {
 namespace smp
 {
+VTK_ABI_NAMESPACE_BEGIN
 
 template <typename InputIt, typename OutputIt, typename Functor>
 class UnaryTransformCall
@@ -102,10 +102,11 @@ public:
   T operator()(T vtkNotUsed(inValue)) { return Value; }
 };
 
+VTK_ABI_NAMESPACE_END
 } // namespace smp
 } // namespace detail
 } // namespace vtk
-VTK_ABI_NAMESPACE_END
 #endif // DOXYGEN_SHOULD_SKIP_THIS
 
 #endif
+/* VTK-HeaderTest-Exclude: vtkSMPToolsInternal.h */

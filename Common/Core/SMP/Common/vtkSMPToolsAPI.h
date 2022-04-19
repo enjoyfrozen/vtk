@@ -37,13 +37,13 @@
 #include "SMP/OpenMP/vtkSMPToolsImpl.txx"
 #endif
 
-VTK_ABI_NAMESPACE_BEGIN
 namespace vtk
 {
 namespace detail
 {
 namespace smp
 {
+VTK_ABI_NAMESPACE_BEGIN
 
 using vtkSMPToolsDefaultImpl = vtkSMPToolsImpl<DefaultBackend>;
 
@@ -295,9 +295,10 @@ private:
 #endif
 };
 
+VTK_ABI_NAMESPACE_END
 } // namespace smp
 } // namespace detail
 } // namespace vtk
 
-VTK_ABI_NAMESPACE_END
 #endif
+/* VTK-HeaderTest-Exclude: vtkSMPToolsAPI.h */

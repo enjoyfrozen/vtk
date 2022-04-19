@@ -24,13 +24,13 @@
 #include "SMP/STDThread/vtkSMPThreadPool.h" // For vtkSMPThreadPool
 #include "vtkCommonCoreModule.h"            // For export macro
 
-VTK_ABI_NAMESPACE_BEGIN
 namespace vtk
 {
 namespace detail
 {
 namespace smp
 {
+VTK_ABI_NAMESPACE_BEGIN
 
 int VTKCOMMONCORE_EXPORT GetNumberOfThreadsSTDThread();
 
@@ -152,9 +152,9 @@ void vtkSMPToolsImpl<BackendType::STDThread>::Initialize(int);
 template <>
 int vtkSMPToolsImpl<BackendType::STDThread>::GetEstimatedNumberOfThreads();
 
+VTK_ABI_NAMESPACE_END
 } // namespace smp
 } // namespace detail
 } // namespace vtk
 
-VTK_ABI_NAMESPACE_END
 #endif

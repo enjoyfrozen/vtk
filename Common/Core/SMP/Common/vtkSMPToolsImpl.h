@@ -27,13 +27,13 @@
 #define VTK_SMP_BACKEND_TBB 2
 #define VTK_SMP_BACKEND_OPENMP 3
 
-VTK_ABI_NAMESPACE_BEGIN
 namespace vtk
 {
 namespace detail
 {
 namespace smp
 {
+VTK_ABI_NAMESPACE_BEGIN
 
 enum class BackendType
 {
@@ -104,9 +104,10 @@ private:
 
 using ExecuteFunctorPtrType = void (*)(void*, vtkIdType, vtkIdType, vtkIdType);
 
+VTK_ABI_NAMESPACE_END
 } // namespace smp
 } // namespace detail
 } // namespace vtk
 
-VTK_ABI_NAMESPACE_END
 #endif
+/* VTK-HeaderTest-Exclude: vtkSMPToolsImpl.h */
