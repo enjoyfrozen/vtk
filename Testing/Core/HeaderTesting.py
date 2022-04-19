@@ -223,12 +223,26 @@ class TestVTKFiles:
         regx1 = re.compile(ignincludere)
         cc = 0
         includeparent = 0
+        stdIncludes = {'any', 'bitset', 'chrono', 'csetjmp', 'csignal',
+         'cstddef', 'ctime', 'functional', 'initializer_list',
+         'tuple', 'type_traits', 'typeindex', 'typeinfo', 'utility', 'memory',
+         'new', 'scoped_allocator', 'cfloat', 'cinttypes', 'climits', 'limits',
+         'cstdint', 'cassert', 'cerrno', 'exception', 'stdexcept',
+         'system_error', 'cctype', 'cuchar', 'cwchar', 'cwctyp',
+         'string', 'array', 'deque', 'forward_list', 'list', 'map', 'queue',
+         'set', 'stack', 'unordered_map', 'unordered_set', 'vector',
+         'iterator', 'algorithm', 'cfenv', 'cmath', 'complex', 'numeric',
+         'random', 'ratio', 'valarray', 'clocale', 'codecvt', 'locale',
+         'ostream', 'istream', 'thread', 'mutex', 'future',
+         'condition_variable'}
         for a in self.FileLines:
             line = a.strip()
             rm = regx.match(line)
             if rm and not regx1.match(line):
-                lines.append(" %4d: %s" % (cc, line))
                 file = rm.group(1)
+                if file in stdIncludes:
+                    continue
+                lines.append(" %4d: %s" % (cc, line))
                 if file == (self.ParentName + ".h"):
                     includeparent = 1
                 if not StringEndsWith(file, ".h"):
