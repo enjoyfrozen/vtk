@@ -142,3 +142,4 @@ inline tovtkm::FieldsFlag operator|(const tovtkm::FieldsFlag& a, const tovtkm::F
 VTK_ABI_NAMESPACE_END
 
 #endif // vtkmlib_ArrayConverters_h
+/* VTK-HeaderTest-Exclude: DataArrayConverters.h */

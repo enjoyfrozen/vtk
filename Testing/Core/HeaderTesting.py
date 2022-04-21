@@ -118,6 +118,9 @@ class TestVTKFiles:
         self.HasTypedef = False
         self.HasClass = False
         self.HasFunction = False
+
+        classre = "^class(\s+VTK_DEPRECATED)?(\s+[^\s]*_EXPORT)?\s+(vtkm?[A-Z0-9_][^ :\n]*)\s*:\s*public\s+(vtk[^ \n\{]*)"
+        regx = re.compile(classre)
         try:
             if sys.hexversion >= 0x03000000:
                 file = open(filename, encoding='ascii', errors='ignore')
@@ -132,7 +135,7 @@ class TestVTKFiles:
                 line = l.strip()
                 if "#include" == line[:8]:
                     self.HasIncludes = True
-                if "class" == line[:5]:
+                if regx.match(line):
                     self.HasClass = True
                 if "typedef" == line[:7] or "using" == line[:5]:
                     self.HasTypedef = True
@@ -311,7 +314,7 @@ class TestVTKFiles:
         if not self.HasClass:
             return
 
-        classre = "^class(\s+VTK_DEPRECATED)?(\s+[^\s]*_EXPORT)?\s+(vtkm?[A-Z0-9_][^ :\n<>]*)\s*<?[^\n\{]*>?\s*:\s*public\s+(vtk[^ \n\{<>]*)<?[^\n\{]*>?"
+        classre = "^class(\s+VTK_DEPRECATED)?(\s+[^\s]*_EXPORT)?\s+(vtkm?[A-Z0-9_][^ :\n]*)\s*<?[^\n\{]*>?\s*:\s*public\s+(vtk[^ \n\{<>]*)<?[^\n\{]*>?"
         cname = ""
         pname = ""
         classlines = []

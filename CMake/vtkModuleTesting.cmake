@@ -744,3 +744,12 @@ function (vtk_add_test_python_mpi)
   endif ()
   vtk_add_test_python(${ARGN})
 endfunction ()
+
+function (vtk_add_test_mangling module)
+  add_test(
+    COMMAND "${Python${VTK_PYTHON_VERSION}_EXECUTABLE}"
+            # TODO: What to do when using this from a VTK install?
+            "${VTK_SOURCE_DIR}/Testing/Core/CheckSymbolMangling.py"
+            "$<TARGET_FILE:${module}>"
+            "${VTK_ABI_NAMESPACE_NAME}")
+endfunction ()

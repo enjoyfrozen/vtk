@@ -61,3 +61,4 @@ private:
 
 VTK_ABI_NAMESPACE_END
 #endif //__ExternalVTKWidget_h
+/* VTK-HeaderTest-Exclude: INCLUDES */

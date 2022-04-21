@@ -143,3 +143,4 @@ VTK_ABI_NAMESPACE_END
 
 #include "Portals.hxx"
 #endif // vtkmlib_Portals_h
+/* VTK-HeaderTest-Exclude: Portals.h */
