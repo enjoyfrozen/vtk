@@ -69,10 +69,17 @@ public:
   // returns whether the event was recognized and processed
   bool ProcessEvent(QEvent* e, vtkRenderWindowInteractor* iren);
 
+  // Description:
+  // Enable/disable conversion of touch events to mouse events.
+  // Disabled by default.
+  void SetConvertTouchEventsToMouseEvents(bool convertTouchEventsToMouseEvents);
+  bool GetConvertTouchEventsToMouseEvents();
+
 protected:
   int AccumulatedDelta;
   float DevicePixelRatio;
   static const double DevicePixelRatioTolerance;
+  bool ConvertTouchEventsToMouseEvents;
 };
 
 #endif
