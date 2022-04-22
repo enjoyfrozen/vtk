@@ -149,6 +149,7 @@ set(classes
   vtkCollectionIterator
   vtkCommand
   vtkCommonInformationKeyManager
+  vtkDataCache
   vtkDataArray
   vtkDataArrayCollection
   vtkDataArrayCollectionIterator
@@ -305,6 +306,7 @@ set(headers
   vtkSystemIncludes.h
   vtkTemplateAliasMacro.h
   vtkTestDataArray.h
+  vtkTuple.h
   vtkType.h
   vtkTypeTraits.h
   vtkTypedDataArrayIterator.h
@@ -326,6 +328,7 @@ set(private_headers
 
 set(templates
   vtkArrayIteratorTemplateImplicit.txx
+  vtkDataCache.txx
   ${vtk_smp_templates})
 
 set(private_templates
