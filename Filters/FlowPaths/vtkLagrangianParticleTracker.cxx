@@ -236,8 +236,7 @@ vtkLagrangianParticleTracker::vtkLagrangianParticleTracker()
   , ParticleCounter(0)
   , IntegratedParticleCounter(0)
   , IntegratedParticleCounterIncrement(1)
-  , MinimumVelocityMagnitude(0.001)
-  , MinimumReductionFactor(1.1)
+  , MinimumVelocityMagnitude(1.0)
   , FlowCache(nullptr)
   , FlowTime(0)
   , SurfacesCache(nullptr)
@@ -286,7 +285,6 @@ void vtkLagrangianParticleTracker::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "AdaptiveStepReintegration: " << this->AdaptiveStepReintegration << endl;
   os << indent << "GenerateParticlePathsOutput: " << this->GenerateParticlePathsOutput << endl;
   os << indent << "MinimumVelocityMagnitude: " << this->MinimumVelocityMagnitude << endl;
-  os << indent << "MinimumReductionFactor: " << this->MinimumReductionFactor << endl;
   os << indent << "ParticleCounter: " << this->ParticleCounter << endl;
   os << indent << "IntegratedParticleCounter: " << this->IntegratedParticleCounter << endl;
 }

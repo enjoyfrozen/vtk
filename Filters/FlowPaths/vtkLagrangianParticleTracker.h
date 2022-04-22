@@ -391,7 +391,6 @@ protected:
 
   // internal parameters use for step computation
   double MinimumVelocityMagnitude;
-  double MinimumReductionFactor;
 
   // Cache related parameters
   vtkDataObject* FlowCache;
