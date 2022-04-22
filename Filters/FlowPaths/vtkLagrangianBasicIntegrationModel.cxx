@@ -72,7 +72,6 @@ vtkLagrangianBasicIntegrationModel::vtkLagrangianBasicIntegrationModel()
   : Locator(nullptr)
   , Tolerance(1.0e-8)
   , NonPlanarQuadSupport(false)
-  , UseInitialIntegrationTime(false)
   , Tracker(nullptr)
 {
   SurfaceArrayDescription surfaceTypeDescription;
@@ -822,17 +821,14 @@ vtkAbstractArray* vtkLagrangianBasicIntegrationModel::GetSeedArray(int idx, vtkP
   // Check the provided index
   if (this->InputArrays.count(idx) == 0)
   {
-    vtkErrorMacro(<< "No arrays at index:" << idx);
     return nullptr;
   }
 
   ArrayMapVal arrayIndexes = this->InputArrays[idx];
 
-  // Check port, should be 1 for Source
+  // Check port, should be 1 for a valid Source array
   if (arrayIndexes.first.val[0] != 1)
   {
-    vtkErrorMacro(<< "This input array at idx " << idx << " named " << arrayIndexes.second
-                  << " is not a particle data array");
     return nullptr;
   }
 
@@ -850,11 +846,6 @@ vtkAbstractArray* vtkLagrangianBasicIntegrationModel::GetSeedArray(int idx, vtkP
     {
       // Recover array
       vtkAbstractArray* array = pointData->GetAbstractArray(arrayIndexes.second.c_str());
-      if (!array)
-      {
-        vtkErrorMacro(<< "This input array at idx " << idx << " named " << arrayIndexes.second
-                      << " cannot be found, please check arrays.");
-      }
       return array;
     }
     default:
@@ -870,17 +861,14 @@ int vtkLagrangianBasicIntegrationModel::GetFlowOrSurfaceDataNumberOfComponents(
   // Check index
   if (this->InputArrays.count(idx) == 0)
   {
-    vtkErrorMacro(<< "No arrays at index:" << idx);
     return -1;
   }
 
   ArrayMapVal arrayIndexes = this->InputArrays[idx];
 
-  // Check port, should be 0 for Input or 2 for Surface
+  // Check port, should be 0 for valid Input or 2 for valid Surface
   if (arrayIndexes.first.val[0] != 0 && arrayIndexes.first.val[0] != 2)
   {
-    vtkErrorMacro(<< "This input array at idx " << idx << " named " << arrayIndexes.second
-                  << " is not a flow or surface data array");
     return -1;
   }
 
@@ -908,8 +896,6 @@ int vtkLagrangianBasicIntegrationModel::GetFlowOrSurfaceDataNumberOfComponents(
       vtkDataArray* array = dataSet->GetPointData()->GetArray(arrayIndexes.second.c_str());
       if (!array)
       {
-        vtkErrorMacro(<< "This input array at idx " << idx << " named " << arrayIndexes.second
-                      << " cannot be found, please check arrays.");
         return -1;
       }
       return array->GetNumberOfComponents();
@@ -919,8 +905,6 @@ int vtkLagrangianBasicIntegrationModel::GetFlowOrSurfaceDataNumberOfComponents(
       vtkDataArray* array = dataSet->GetCellData()->GetArray(arrayIndexes.second.c_str());
       if (!array)
       {
-        vtkErrorMacro(<< "This input array at idx " << idx << " named " << arrayIndexes.second
-                      << " cannot be found, please check arrays.");
         return -1;
       }
       return array->GetNumberOfComponents();
@@ -930,9 +914,7 @@ int vtkLagrangianBasicIntegrationModel::GetFlowOrSurfaceDataNumberOfComponents(
       vtkDataArray* array = dataSet->GetFieldData()->GetArray(arrayIndexes.second.c_str());
       if (!array)
       {
-        vtkErrorMacro(<< "This input array at idx " << idx << " named " << arrayIndexes.second
-                      << " cannot be found, please check arrays.");
-        return false;
+        return -1;
       }
       return array->GetNumberOfComponents();
     }
@@ -994,14 +976,10 @@ bool vtkLagrangianBasicIntegrationModel::GetFlowOrSurfaceData(vtkLagrangianParti
       vtkDataArray* array = dataSet->GetPointData()->GetArray(arrayIndexes.second.c_str());
       if (!array)
       {
-        vtkErrorMacro(<< "This input array at idx " << idx << " named " << arrayIndexes.second
-                      << " cannot be found, please check arrays.");
         return false;
       }
       if (tupleId >= dataSet->GetNumberOfCells())
       {
-        vtkErrorMacro(<< "This input array at idx " << idx << " named " << arrayIndexes.second
-                      << " does not contain cellId :" << tupleId << " . Please check arrays.");
         return false;
       }
 
@@ -1022,15 +1000,11 @@ bool vtkLagrangianBasicIntegrationModel::GetFlowOrSurfaceData(vtkLagrangianParti
     {
       if (tupleId >= dataSet->GetNumberOfCells())
       {
-        vtkErrorMacro(<< "This input array at idx " << idx << " named " << arrayIndexes.second
-                      << " does not contain cellId :" << tupleId << " . Please check arrays.");
         return false;
       }
       vtkDataArray* array = dataSet->GetCellData()->GetArray(arrayIndexes.second.c_str());
       if (!array)
       {
-        vtkErrorMacro(<< "This input array at idx " << idx << " named " << arrayIndexes.second
-                      << " cannot be found, please check arrays.");
         return false;
       }
       array->GetTuple(tupleId, data);
@@ -1041,10 +1015,6 @@ bool vtkLagrangianBasicIntegrationModel::GetFlowOrSurfaceData(vtkLagrangianParti
       vtkDataArray* array = dataSet->GetFieldData()->GetArray(arrayIndexes.second.c_str());
       if (!array || tupleId >= array->GetNumberOfTuples())
       {
-        vtkErrorMacro(<< "This input array at idx " << idx << " named " << arrayIndexes.second
-                      << " cannot be found in FieldData or does not contain"
-                         "tuple index: "
-                      << tupleId << " , please check arrays.");
         return false;
       }
       array->GetTuple(tupleId, data);

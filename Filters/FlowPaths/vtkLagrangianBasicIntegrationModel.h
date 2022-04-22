@@ -160,15 +160,6 @@ public:
 
   ///@{
   /**
-   * Set/Get the Use of initial integration input array to process
-   */
-  vtkSetMacro(UseInitialIntegrationTime, bool);
-  vtkGetMacro(UseInitialIntegrationTime, bool);
-  vtkBooleanMacro(UseInitialIntegrationTime, bool);
-  ///@}
-
-  ///@{
-  /**
    * Get the tolerance to use with this model.
    */
   vtkGetMacro(Tolerance, double);
@@ -568,6 +559,7 @@ protected:
    * from the provided particle seed data
    * Access then the first tuple to access the data
    * This method is thread-safe.
+   * Can return nullptr if the array does not exist
    */
   virtual vtkAbstractArray* GetSeedArray(int idx, vtkLagrangianParticle* particle);
 
@@ -577,6 +569,7 @@ protected:
    * Make sure that data pointer is large enough using
    * GetFlowOrSurfaceDataNumberOfComponents if needed.
    * This method is thread-safe.
+   * Return true if data was found or false otherwise
    */
   virtual bool GetFlowOrSurfaceData(vtkLagrangianParticle* particle, int idx,
     vtkDataSet* flowDataSet, vtkIdType tupleId, double* weights, double* data);
@@ -593,6 +586,7 @@ protected:
   /**
    * Recover a field association for a specified array index
    * if it has been set using SetInputArrayToProcess
+   * Returns -1 in case of error.
    * This method is thread-safe.
    */
   virtual int GetFlowOrSurfaceDataFieldAssociation(int idx);
@@ -635,7 +629,6 @@ protected:
   double Tolerance;
   double LocatorTolerance = 0.001;
   bool NonPlanarQuadSupport;
-  bool UseInitialIntegrationTime;
   int NumberOfTrackedUserData = 0;
 
   vtkNew<vtkStringArray> SeedArrayNames;
