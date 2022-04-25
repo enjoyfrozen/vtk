@@ -51,6 +51,7 @@
 #ifndef vtkLagrangianBasicIntegrationModel_h
 #define vtkLagrangianBasicIntegrationModel_h
 
+#include "vtkBoundingBox.h" // For bounding box
 #include "vtkFiltersFlowPathsModule.h" // For export macro
 #include "vtkFunctionSet.h"
 #include "vtkNew.h"         // For arrays
@@ -96,7 +97,8 @@ public:
     SURFACE_TYPE_TERM = 1,
     SURFACE_TYPE_BOUNCE = 2,
     SURFACE_TYPE_BREAK = 3,
-    SURFACE_TYPE_PASS = 4
+    SURFACE_TYPE_PASS = 4,
+    SURFACE_TYPE_PERIODIC = 5,
   } SurfaceType;
 
   typedef enum VariableStep
@@ -187,6 +189,7 @@ public:
    * BREAK_UP :
    * vtkLagrangianBasicIntegrationModel::BreakUp method will be used
    * PASS : The interaction will be recorded
+   * PERIODIC : ComputePeriodicParticle method will be used
    * with no effect on the particle
    */
   virtual vtkLagrangianParticle* ComputeSurfaceInteraction(vtkLagrangianParticle* particle,
@@ -519,6 +522,11 @@ protected:
     std::queue<vtkLagrangianParticle*>& particles);
 
   /**
+   * This method is thread-safe.
+   */
+  virtual bool ComputePeriodicParticle(vtkLagrangianParticle* particle, std::queue<vtkLagrangianParticle*>& particles);
+
+  /**
    * Call vtkLagrangianBasicIntegrationModel::Terminate
    * This method is to be reimplemented in inherited classes willing
    * to implement specific particle surface interactions
@@ -607,6 +615,7 @@ protected:
   vtkLocatorsType* Locators;
   vtkDataSetsType* DataSets;
   int WeightsSize = 0;
+  vtkBoundingBox DataSetsBB;
 
   struct ArrayVal
   {
