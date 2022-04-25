@@ -63,6 +63,11 @@ public:
    *   maximum integration time was reached
    * PARTICLE_TERMINATION_TRANSFERRED = 7, means the particle was terminated because
    *   it was transferred to another process to continue the integration
+   * PARTICLE_TERMINATION_ABORTED = 8, means the particle was terminated because
+   *   during computation, an error occured.
+   * PARTICLE_TERMINATION_SURF_PERIODIC = 9, means the particle have been terminated during a
+   *   surface interaction by a periodic interaction, meaning that a new particle have been
+   *   created from it.
    */
   typedef enum ParticleTermination
   {
@@ -74,7 +79,8 @@ public:
     PARTICLE_TERMINATION_OUT_OF_STEPS,
     PARTICLE_TERMINATION_OUT_OF_TIME,
     PARTICLE_TERMINATION_TRANSFERRED,
-    PARTICLE_TERMINATION_ABORTED
+    PARTICLE_TERMINATION_ABORTED,
+    PARTICLE_TERMINATION_SURF_PERIODIC
   } ParticleTermination;
 
   /**
@@ -87,6 +93,8 @@ public:
    * SURFACE_INTERACTION_PASS = 4, a particle passed through the surface, hence having
    * no effect on the particle but actually recording it going through
    * SURFACE_INTERACTION_OTHER = 5, another type of undefined interaction happened.
+   * SURFACE_INTERACTION_PERIODIC = 6, a particle was terminated and a new one was created
+   * by periodic computation.
    */
   typedef enum SurfaceInteraction
   {
@@ -95,7 +103,8 @@ public:
     SURFACE_INTERACTION_BREAK,
     SURFACE_INTERACTION_BOUNCE,
     SURFACE_INTERACTION_PASS,
-    SURFACE_INTERACTION_OTHER
+    SURFACE_INTERACTION_OTHER,
+    SURFACE_INTERACTION_PERIODIC
   } SurfaceInteraction;
 
   /**

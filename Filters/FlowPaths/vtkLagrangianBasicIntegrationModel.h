@@ -522,7 +522,10 @@ protected:
     std::queue<vtkLagrangianParticle*>& particles);
 
   /**
-   * This method is thread-safe.
+   * Terminate a particle and create a new particle using a periodic computation using the bounding box
+   * of all the volumic datasets.
+   * This method is thread-safe and uses vtkLagrangianBasicIntegrationModel::ParticleQueueMutex
+   * to access the particles queue, its reimplementation should also be.
    */
   virtual bool ComputePeriodicParticle(vtkLagrangianParticle* particle, std::queue<vtkLagrangianParticle*>& particles);
 

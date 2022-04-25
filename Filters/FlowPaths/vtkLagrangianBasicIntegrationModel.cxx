@@ -541,17 +541,11 @@ bool vtkLagrangianBasicIntegrationModel::ComputePeriodicParticle(vtkLagrangianPa
   std::queue<vtkLagrangianParticle*>& particles)
 {
   // Terminate particle
-  particle->SetTermination(vtkLagrangianParticle::PARTICLE_TERMINATION_SURF_BREAK);
-  particle->SetInteraction(vtkLagrangianParticle::SURFACE_INTERACTION_BREAK);
+  particle->SetTermination(vtkLagrangianParticle::PARTICLE_TERMINATION_SURF_PERIODIC);
+  particle->SetInteraction(vtkLagrangianParticle::SURFACE_INTERACTION_PERIODIC);
   
-  if (particle->GetNumberOfSteps() > 12)
-  {
-    return true;
-  }
-
   // Create new particles
   vtkLagrangianParticle* particle1 = particle->NewParticle(this->Tracker->GetNewParticleId());
-
 
   // Set velocity for the new particle
   double* nextVel = particle->GetNextVelocity();
