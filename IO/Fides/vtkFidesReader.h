@@ -122,6 +122,8 @@ public:
    */
   int GetNextStepStatus();
 
+  double GetCurrentTime();
+
   ///@{
   /**
    * Methods to determine whether to output a set of vtkmDataSets
