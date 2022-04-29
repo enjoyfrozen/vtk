@@ -293,6 +293,16 @@ public:
   vtkGetMacro(SampleDistance, float);
   ///@}
 
+  ///@{
+  /**
+   * @copydoc vtkGPUVolumeRayCastMapper::SetGlobalIlluminationReach()
+   * This parameter is only used when the underlying mapper
+   * is a vtkGPUVolumeRayCastMapper.
+   */
+  vtkSetClampMacro(GlobalIlluminationReach, float, 0.0f, 1.0f);
+  vtkGetMacro(GlobalIlluminationReach, float);
+  ///@}
+
   /**
    * WARNING: INTERNAL METHOD - NOT INTENDED FOR GENERAL USE
    * Initialize rendering for this volume.
@@ -455,6 +465,11 @@ protected:
    * The distance between sample points along the ray
    */
   float SampleDistance;
+
+  /**
+   * Secondary rays ambient/global adjustement coefficient
+   */
+  float GlobalIlluminationReach = 0.0;
 
   /**
    * Set whether or not the sample distance should be automatically calculated

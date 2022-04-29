@@ -1,5 +1,8 @@
 //VTK::System::Dec
 
+// used only for floatBitsToUInt
+#extension GL_ARB_shader_bit_encoding : enable
+
 /*=========================================================================
 
   Program:   Visualization Toolkit
@@ -39,6 +42,7 @@ vec4 g_fragColor = vec4(0.0);
 ///
 //////////////////////////////////////////////////////////////////////////////
 vec3 g_dirStep;
+float g_lengthStep = 0.0;
 vec4 g_srcColor;
 vec4 g_eyePosObj;
 bool g_exit;
@@ -56,6 +60,8 @@ vec3 g_rayTermination; // Termination point (depth, clip, etc)
 vec3 g_dataPos;
 vec3 g_terminatePos;
 
+float g_jitterValue = 0.0;
+
 //VTK::CustomUniforms::Dec
 
 //VTK::Output::Dec
@@ -67,6 +73,33 @@ vec3 g_terminatePos;
 //VTK::Cropping::Dec
 
 //VTK::Clipping::Dec
+
+// Computes the intersection between a ray and a box
+// The box should be axis aligned so we only give two arguments
+struct Hit { float tmin; float tmax; };
+struct Ray { vec3 origin; vec3 dir; vec3 invDir; };
+bool BBoxIntersect(const vec3 boxMin, const vec3 boxMax, const Ray r, out Hit hit) {
+  vec3 tbot = r.invDir * (boxMin - r.origin);
+  vec3 ttop = r.invDir * (boxMax - r.origin);
+  vec3 tmin = min(ttop, tbot);
+  vec3 tmax = max(ttop, tbot);
+  vec2 t = max(tmin.xx, tmin.yz);
+  float t0 = max(t.x, t.y);
+  t = min(tmax.xx, tmax.yz);
+  float t1 = min(t.x, t.y);
+  hit.tmin = t0;
+  hit.tmax = t1;
+  return t1 > max(t0, 0.0);
+}
+
+// As BBoxIntersect requires the inverse of the ray coords,
+// this function is used to avoid numerical issues
+void safe_0_vector(inout Ray ray)
+{
+  if(abs(ray.dir.x) < 0.001) ray.dir.x = sign(ray.dir.x) * 0.001;
+  if(abs(ray.dir.y) < 0.001) ray.dir.y = sign(ray.dir.y) * 0.001;
+  if(abs(ray.dir.z) < 0.001) ray.dir.z = sign(ray.dir.z) * 0.001;
+}
 
 //VTK::Shading::Dec
 
@@ -87,6 +120,8 @@ vec3 g_terminatePos;
 //VTK::ComputeGradient::Dec
 
 //VTK::ComputeDensityGradient::Dec
+
+//VTK::ComputeVolumetricShadow::Dec
 
 //VTK::ComputeLighting::Dec
 
@@ -217,6 +252,8 @@ void initializeRayCast()
   //VTK::RenderToImage::Init
 
   //VTK::DepthPass::Init
+
+  g_jitterValue = jitterValue;
 }
 
 /**

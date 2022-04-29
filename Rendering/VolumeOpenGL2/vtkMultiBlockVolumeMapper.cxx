@@ -343,6 +343,8 @@ vtkSmartVolumeMapper* vtkMultiBlockVolumeMapper::CreateMapper()
   {
     glMapper->UseJitteringOn();
     glMapper->SetComputeNormalFromOpacity(this->ComputeNormalFromOpacity);
+    glMapper->SetVolumetricShadow(this->VolumetricShadow);
+    glMapper->SetGlobalIlluminationReach(this->GlobalIlluminationReach);
   }
   return mapper;
 }
@@ -554,6 +556,34 @@ void vtkMultiBlockVolumeMapper::SetComputeNormalFromOpacity(bool val)
       mapper->SetComputeNormalFromOpacity(val);
     }
     this->ComputeNormalFromOpacity = val;
+    this->Modified();
+  }
+}
+
+//------------------------------------------------------------------------------
+void vtkMultiBlockVolumeMapper::SetVolumetricShadow(bool val)
+{
+  if (this->VolumetricShadow != val)
+  {
+    for (auto& mapper : this->Mappers)
+    {
+      mapper->SetVolumetricShadow(val);
+    }
+    this->VolumetricShadow = val;
+    this->Modified();
+  }
+}
+
+//------------------------------------------------------------------------------
+void vtkMultiBlockVolumeMapper::SetGlobalIlluminationReach(float val)
+{
+  if (this->GlobalIlluminationReach != val)
+  {
+    for (auto& mapper : this->Mappers)
+    {
+      mapper->SetGlobalIlluminationReach(val);
+    }
+    this->GlobalIlluminationReach = val;
     this->Modified();
   }
 }
