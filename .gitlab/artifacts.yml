@@ -108,6 +108,7 @@
             - wheel_output.log
 
             - build/dist/*.whl
+            - install.tar.xz
 
 .cmake_release_artifacts:
     artifacts:
