@@ -1,6 +1,6 @@
 # Stock CI builds test everything possible (platforms will disable modules as
 # needed).
-set(VTK_BUILD_ALL_MODULES ON CACHE BOOL "")
+set(VTK_BUILD_ALL_MODULES OFF CACHE BOOL "")
 
 set(VTK_BUILD_LEGACY_REMOVE ON CACHE BOOL "")
 set(VTK_BUILD_TESTING WANT CACHE STRING "")
