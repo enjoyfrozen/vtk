@@ -395,6 +395,7 @@
         - auditwheel repair dist/*.whl >> $GIT_CLONE_PATH/wheel_output.log
         - mv -v dist/ dist-orig/
         - mv -v wheelhouse/ dist/
+        - tar czf install.tar.xz install
     interruptible: true
 
 .cmake_test_wheel_linux:
@@ -442,18 +443,5 @@
         - tar czf "$CI_PROJECT_DIR/release/vtkDocHtml-$version.tar.gz" html
     variables:
         GIT_STRATEGY: none
-
-    interruptible: true
-
-.install_tarball_linux:
-    stage: build
-    image: "fedora:34"
-    tags:
-        - linux
-        - docker
-        - build
-
-    script:
-        - tar czf install.tar.xz build/install
 
     interruptible: true

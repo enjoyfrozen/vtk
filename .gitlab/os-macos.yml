@@ -34,6 +34,9 @@
 .wheel_macos_x86_64:
     extends: .macos
 
+    variables:
+        VTK_INSTALL: 1
+
 .wheel_macos36_x86_64:
     extends: .wheel_macos_x86_64
 
@@ -216,6 +219,7 @@
         - "$PYTHON_PREFIX/bin/python$PYTHON_VERSION_SUFFIX -m venv venv"
         - venv/bin/pip install wheel
         - venv/bin/python3 setup.py bdist_wheel
+        - tar czf install.tar.xz install
         # XXX: `delocate` can't handle `@loader_path` or do recursive
         # dependency scanning. Ignore it and just do it manually because
         # apparently VTK is the most complicated wheel in the world.
