@@ -260,6 +260,7 @@ wheel-linux-python37-x86_64:build:
     extends:
         - .wheel_linux37_x86_64
         - .cmake_build_wheel_linux
+        - .install_tarball_linux
         - .linux_builder_tags
         - .cmake_wheel_artifacts
         - .merged_only
@@ -279,6 +280,7 @@ wheel-linux-python38-x86_64:build:
     extends:
         - .wheel_linux38_x86_64
         - .cmake_build_wheel_linux
+        - .install_tarball_linux
         - .linux_builder_tags
         - .cmake_wheel_artifacts
         - .merged_only
@@ -298,6 +300,7 @@ wheel-linux-python39-x86_64:build:
     extends:
         - .wheel_linux39_x86_64
         - .cmake_build_wheel_linux
+        - .install_tarball_linux
         - .linux_builder_tags
         - .cmake_wheel_artifacts
         - .merged_only
@@ -317,6 +320,7 @@ wheel-linux-python310-x86_64:build:
     extends:
         - .wheel_linux310_x86_64
         - .cmake_build_wheel_linux
+        - .install_tarball_linux
         - .linux_builder_tags
         - .cmake_wheel_artifacts
         - .run_manually

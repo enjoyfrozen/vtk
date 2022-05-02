@@ -444,3 +444,16 @@
         GIT_STRATEGY: none
 
     interruptible: true
+
+.install_tarball_linux:
+    stage: build
+    image: "fedora:34"
+    tags:
+        - linux
+        - docker
+        - build
+
+    script:
+        - touch install.tar.xv
+
+    interruptible: true
