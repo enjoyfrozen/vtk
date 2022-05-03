@@ -17,7 +17,7 @@ endif ()
 if (CTEST_CMAKE_GENERATOR STREQUAL "Unix Makefiles")
   set(CTEST_BUILD_FLAGS "-j${nproc} -l${nproc}")
 elseif (CTEST_CMAKE_GENERATOR MATCHES "Ninja")
-  set(CTEST_BUILD_FLAGS "-l${nproc}")
+  set(CTEST_BUILD_FLAGS "-l${nproc} -k1000")
 endif ()
 
 set(targets_to_build "all")
