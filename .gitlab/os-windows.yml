@@ -256,7 +256,11 @@
         - . .\venv\Scripts\Activate.ps1
         - pip install wheel
         - python setup.py bdist_wheel
-        - tar czf install.tar.xz install
+        - pushd .
+        - cd dist
+        - $install_tarball_name = (ls *.whl).Name.replace('.whl', '-sdk.tar.xz')
+        - popd
+        - tar czf $install_tarball_name install
         # XXX(delvewheel): It is finding 32bit Visual Studio libraries and
         # bailing instead of continuing to search for 64bit versions of the
         # DLL.
