@@ -747,12 +747,13 @@ endfunction ()
 
 function (vtk_add_test_mangling module)
   if (VTK_ABI_NAMESPACE_NAME)
+    _vtk_module_real_target(_vtk_test_target "${module}")
     add_test(
       NAME    "${module}-ManglingTest"
       COMMAND "${Python${VTK_PYTHON_VERSION}_EXECUTABLE}"
               # TODO: What to do when using this from a VTK install?
               "${VTK_SOURCE_DIR}/Testing/Core/CheckSymbolMangling.py"
-              "$<TARGET_FILE:${module}>"
+              "$<TARGET_FILE:${_vtk_test_target}>"
               "--prefix"
               "${VTK_ABI_NAMESPACE_NAME}")
   endif ()
