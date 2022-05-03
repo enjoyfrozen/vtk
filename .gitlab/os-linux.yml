@@ -395,7 +395,12 @@
         - auditwheel repair dist/*.whl >> $GIT_CLONE_PATH/wheel_output.log
         - mv -v dist/ dist-orig/
         - mv -v wheelhouse/ dist/
-        - tar czf install.tar.xz install
+        - pushd .
+        - cd dist
+        - 'install_tarball_name="$( ls *.whl  | sed -e "s/\.whl/-sdk\.tar.xz/" )"'
+        - popd
+        - tar czf $install_tarball_name install
+
     interruptible: true
 
 .cmake_test_wheel_linux:
