@@ -397,9 +397,11 @@
         - mv -v wheelhouse/ dist/
         - pushd .
         - cd dist
-        - 'install_tarball_name="$( ls *.whl  | sed -e "s/\.whl/-sdk\.tar.xz/" )"'
+        - 'sdk_name="$( ls *.whl  | sed -e "s/\.whl/-sdk/" )"'
         - popd
-        - tar czf $install_tarball_name install
+        - mv install $sdk_name
+        - tar czf $sdk_name.tar.xz $sdk_name
+        - mv $sdk_name install
 
     interruptible: true
 
