@@ -17,8 +17,15 @@
 
 #include <iostream>
 
+namespace vtk
+{
+namespace detail
+{
+namespace smp
+{
 VTK_ABI_NAMESPACE_BEGIN
-vtk::detail::smp::vtkSMPThreadPool::vtkSMPThreadPool(int threadNumber)
+
+vtkSMPThreadPool::vtkSMPThreadPool(int threadNumber)
 {
   this->Threads.reserve(threadNumber);
   for (int i = 0; i < threadNumber; ++i)
@@ -27,7 +34,7 @@ vtk::detail::smp::vtkSMPThreadPool::vtkSMPThreadPool(int threadNumber)
   }
 }
 
-void vtk::detail::smp::vtkSMPThreadPool::Join()
+void vtkSMPThreadPool::Join()
 {
   {
     std::unique_lock<std::mutex> lock(this->Mutex);
@@ -42,7 +49,7 @@ void vtk::detail::smp::vtkSMPThreadPool::Join()
   }
 }
 
-void vtk::detail::smp::vtkSMPThreadPool::DoJob(std::function<void(void)> job)
+void vtkSMPThreadPool::DoJob(std::function<void(void)> job)
 {
   std::unique_lock<std::mutex> lock(this->Mutex);
 
@@ -50,7 +57,7 @@ void vtk::detail::smp::vtkSMPThreadPool::DoJob(std::function<void(void)> job)
   this->ConditionVariable.notify_one();
 }
 
-void vtk::detail::smp::vtkSMPThreadPool::ThreadJob()
+void vtkSMPThreadPool::ThreadJob()
 {
   std::function<void(void)> job;
 
@@ -73,4 +80,8 @@ void vtk::detail::smp::vtkSMPThreadPool::ThreadJob()
     job();
   }
 }
+
 VTK_ABI_NAMESPACE_END
+}
+}
+}
