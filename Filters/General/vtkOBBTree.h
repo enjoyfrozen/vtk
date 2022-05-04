@@ -45,6 +45,7 @@
  * vtkOBBTree does NOT utilize the following parameters:
  * - Automatic
  * - CacheCellBounds
+ * - SupportLinearTransformation (default false)
  *
  * @warning
  * Since this algorithms works from a list of cells, the OBB tree will only
