@@ -30,6 +30,7 @@
  * - Automatic                   (default true)
  * - NumberOfCellsPerNode        (default 10)
  * - UseExistingSearchStructure  (default false)
+ * - SupportLinearTransformation (default false)
  *
  * vtkStaticCellLocator does NOT utilize the following parameters:
  * - CacheCellBounds             (always cached)
@@ -205,6 +206,8 @@ public:
   /**
    * Return a list of unique cell ids inside of a given bounding box. The
    * user must provide the vtkIdList to populate.
+   *
+   * This function does NOT work when SupportLinearTransformation is on.
    */
   void FindCellsWithinBounds(double* bbox, vtkIdList* cells) override;
 
