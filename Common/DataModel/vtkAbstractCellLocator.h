@@ -317,6 +317,11 @@ public:
    */
   virtual bool InsideCellBounds(double x[3], vtkIdType cell_ID);
 
+  /**
+   * Shallow copy of a vtkAbstractCellLocator. Useful when SupportLinearTransformation is on.
+   */
+  virtual void ShallowCopy(vtkAbstractCellLocator* locator) {}
+
 protected:
   vtkAbstractCellLocator();
   ~vtkAbstractCellLocator() override;

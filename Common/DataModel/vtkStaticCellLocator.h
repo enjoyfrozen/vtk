@@ -30,6 +30,7 @@
  * - Automatic                   (default true)
  * - NumberOfCellsPerNode        (default 10)
  * - UseExistingSearchStructure  (default false)
+ * - SupportLinearTransformation (default false)
  *
  * vtkStaticCellLocator does NOT utilize the following parameters:
  * - CacheCellBounds             (always cached)
@@ -52,6 +53,8 @@
 #include "vtkAbstractCellLocator.h"
 #include "vtkCommonDataModelModule.h" // For export macro
 #include "vtkDeprecation.h"           // For VTK_DEPRECATED_IN_9_2_0
+
+#include <memory> // For shared_ptr
 
 // Forward declarations for PIMPL
 struct vtkCellBinner;
@@ -205,6 +208,8 @@ public:
   /**
    * Return a list of unique cell ids inside of a given bounding box. The
    * user must provide the vtkIdList to populate.
+   *
+   * This function does NOT work when SupportLinearTransformation is on.
    */
   void FindCellsWithinBounds(double* bbox, vtkIdList* cells) override;
 
@@ -256,6 +261,11 @@ public:
   void BuildLocator() override;
   void ForceBuildLocator() override;
   ///@}
+
+  /**
+   * Shallow copy of a vtkAbstractCellLocator. Useful when SupportLinearTransformation is on.
+   */
+  void ShallowCopy(vtkAbstractCellLocator* locator) override;
 
 protected:
   vtkStaticCellLocator();
