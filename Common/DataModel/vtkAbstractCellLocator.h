@@ -40,7 +40,6 @@
 #include "vtkCommonDataModelModule.h" // For export macro
 #include "vtkDeprecation.h"           // For VTK_DEPRECATED_IN_9_2_0
 #include "vtkLocator.h"
-#include "vtkNew.h" // For vtkNew
 
 #include <vector> // For Weights
 
@@ -256,6 +255,8 @@ public:
   /**
    * Return a list of unique cell ids inside of a given bounding box. The
    * user must provide the vtkIdList to populate.
+   *
+   * This function does NOT work when SupportLinearTransformation is on.
    *
    * THIS FUNCTION IS THREAD SAFE.
    */
