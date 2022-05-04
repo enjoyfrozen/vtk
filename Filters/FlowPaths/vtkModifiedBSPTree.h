@@ -100,8 +100,9 @@
  * - Level                       (default 8)
  * - MaxLevel                    (default 8)
  * - NumberOfCellsPerNode        (default 32)
- * - UseExistingSearchStructure  (default false)
  * - CacheCellBounds             (default true)
+ * - UseExistingSearchStructure  (default false)
+ * - SupportLinearTransformation (default false)
  *
  * vtkModifiedBSPTree does NOT utilize the following parameters:
  * - Automatic
