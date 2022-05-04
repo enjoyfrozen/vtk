@@ -29,6 +29,7 @@
  * - NumberOfCellsPerNode        (default 8)
  * - CacheCellBounds             (default true)
  * - UseExistingSearchStructure  (default false)
+ * - SupportLinearTransformation (default false)
  *
  * vtkCellTreeLocator does NOT utilize the following parameters:
  * - Automatic
@@ -107,8 +108,9 @@ public:
 
   /**
    * Return a list of unique cell ids inside of a given bounding box. The
-   * user must provide the vtkIdList to populate. This method returns data
-   * only after the locator has been built.
+   * user must provide the vtkIdList to populate.
+   *
+   * This function does NOT work when SupportLinearTransformation is on.
    */
   void FindCellsWithinBounds(double* bbox, vtkIdList* cells) override;
 
