@@ -33,6 +33,7 @@
  * - NumberOfCellsPerNode        (default 25)
  * - CacheCellBounds             (default true)
  * - UseExistingSearchStructure  (default false)
+ * - SupportLinearTransformation (default false)
  *
  * vtkCellLocator does NOT utilize the following parameters:
  * - Tolerance
@@ -49,6 +50,8 @@
 #include "vtkCommonDataModelModule.h" // For export macro
 #include "vtkDeprecation.h"           // For VTK_DEPRECATED_IN_9_2_0
 #include "vtkNew.h"                   // For vtkNew
+
+#include <memory> // For shared_ptr
 
 class vtkIntArray;
 
@@ -145,6 +148,8 @@ public:
   /**
    * Return a list of unique cell ids inside of a given bounding box. The
    * user must provide the vtkIdList to populate.
+   *
+   * This function does NOT work when SupportLinearTransformation is on.
    */
   void FindCellsWithinBounds(double* bbox, vtkIdList* cells) override;
 
@@ -186,6 +191,11 @@ public:
    */
   virtual int GetNumberOfBuckets(void);
 
+  /**
+   * Shallow copy of a vtkAbstractCellLocator. Useful when SupportLinearTransformation is on.
+   */
+  void ShallowCopy(vtkAbstractCellLocator* locator) override;
+
 protected:
   vtkCellLocator();
   ~vtkCellLocator() override;
@@ -222,9 +232,10 @@ protected:
   double Bounds[6];      // bounding box root octant
   double H[3];           // width of leaf octant in x-y-z directions
   int NumberOfDivisions; // number of "leaf" octant sub-divisions
-  vtkIdList** Tree;      // octree
+  std::shared_ptr<std::vector<vtkSmartPointer<vtkIdList>>> TreeSharedPtr;
+  vtkSmartPointer<vtkIdList>* Tree; // octree
 
-  void MarkParents(void*, int, int, int, int, int);
+  void MarkParents(const vtkSmartPointer<vtkIdList>&, int, int, int, int, int);
   int GenerateIndex(int offset, int numDivs, int i, int j, int k, vtkIdType& idx);
   void GenerateFace(
     int face, int numDivs, int i, int j, int k, vtkPoints* pts, vtkCellArray* polys);

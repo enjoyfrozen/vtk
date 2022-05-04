@@ -41,6 +41,7 @@
 #include "vtkDeprecation.h"           // For VTK_DEPRECATED_IN_9_2_0
 #include "vtkLocator.h"
 
+#include <memory> // For shared_ptr
 #include <vector> // For Weights
 
 class vtkCellArray;
@@ -339,6 +340,11 @@ protected:
   ///@}
 
   /**
+   * This function is needed to simplify the code when SupportLinearInterpolation is on.
+   */
+  bool InsideCellBoundsInternal(double x[3], vtkIdType cell_ID);
+
+  /**
    * To be called in `FindCell(double[3])`. If need be, the internal `Weights` array size is
    * updated to be able to host all points of the largest cell of the input data set.
    */
@@ -348,7 +354,8 @@ protected:
   vtkTypeBool RetainCellLists;
   vtkTypeBool CacheCellBounds;
   vtkNew<vtkGenericCell> GenericCell;
-  double (*CellBounds)[6];
+  std::shared_ptr<std::vector<double>> CellBoundsSharedPtr;
+  double* CellBounds; // The is just used for simplicity in the internal code
 
   /**
    * This time stamp helps us decide if we want to update internal `Weights` array size.
