@@ -28,13 +28,13 @@
 #include <utility> // For std::move
 #include <vector>
 
-VTK_ABI_NAMESPACE_BEGIN
 namespace vtk
 {
 namespace detail
 {
 namespace smp
 {
+VTK_ABI_NAMESPACE_BEGIN
 
 template <typename T>
 class vtkSMPThreadLocalImpl<BackendType::Sequential, T> : public vtkSMPThreadLocalImplAbstract<T>
