@@ -61,10 +61,13 @@
 #define vtkLocator_h
 
 #include "vtkCommonDataModelModule.h" // For export macro
+#include "vtkNew.h"                   // For vtkNew
 #include "vtkObject.h"
 
 class vtkDataSet;
 class vtkPolyData;
+class vtkTransform;
+class vtkPoints;
 
 class VTKCOMMONDATAMODEL_EXPORT vtkLocator : public vtkObject
 {
@@ -142,6 +145,27 @@ public:
   vtkBooleanMacro(UseExistingSearchStructure, vtkTypeBool);
   ///@}
 
+  ///@{
+  /**
+   * When this flag is on, after you initially built the locator with UseExistingSearchStructure
+   * (and CacheCellBounds) on, you can provide a new dataset and DON'T rebuild the locator. The
+   * requirement is that the new dataset is a LINEAR TRANSFORMATION of the initial dataset. If
+   * that's not true, then the locator will be built again.
+   *
+   * The locator accomplishes such functionality by shallow-copying the initial input points and
+   * and calculating the transformation matrix for the new input points using
+   * https://en.wikipedia.org/wiki/Kabsch_algorithm.
+   *
+   * This flag is ONLY utilized when UseExistingSearchStructure is on (and for cell locators
+   * CacheCellBounds is ALSO on).
+   *
+   * Default off.
+   */
+  vtkSetMacro(SupportLinearTransformation, bool);
+  vtkGetMacro(SupportLinearTransformation, bool);
+  vtkBooleanMacro(SupportLinearTransformation, bool);
+  ///@}
+
   /**
    * Cause the locator to rebuild itself if it or its input dataset has
    * changed.
@@ -202,6 +226,19 @@ protected:
   double Tolerance;      // for performing merging
   int MaxLevel;
   int Level;
+  bool SupportLinearTransformation = false;
+
+  struct InitialPointsInformation
+  {
+    vtkNew<vtkPoints> Points;
+    vtkNew<vtkTransform> InverseTransform;
+    vtkNew<vtkTransform> Transform;
+    bool UseTransform = false;
+  };
+  InitialPointsInformation InitialPointsInfo;
+
+  void CopyInitialPoints();
+  bool ComputeTransformation();
 
   vtkTimeStamp BuildTime; // time at which locator was built
 
