@@ -262,14 +262,14 @@ wheel-linux-python37-x86_64:build:
         - .cmake_build_wheel_linux
         - .linux_builder_tags
         - .cmake_wheel_artifacts
-        - .merged_only
+        - .run_manually
 
 wheel-linux-python37-x86_64:test:
     extends:
         - .wheel_linux37_x86_64
         - .cmake_test_wheel_linux
         - .linux_builder_tags
-        - .merged_only
+        - .run_manually
     dependencies:
         - wheel-linux-python37-x86_64:build
     needs:
@@ -453,58 +453,12 @@ wheel-sdk:upload:
         - .rsync_upload_wheel_sdk
         - .run_manually
     dependencies:
-        - wheel-linux-python36-x86_64:build
-        - wheel-linux-python37-x86_64:build
-        - wheel-linux-python38-x86_64:build
-        - wheel-linux-python39-x86_64:build
-        - wheel-linux-python310-x86_64:build
-        - wheel-macos-python36-x86_64:build
-        - wheel-macos-python37-x86_64:build
-        - wheel-macos-python38-x86_64:build
-        - wheel-macos-python39-arm64:build
-        - wheel-macos-python39-x86_64:build
-        - wheel-macos-python310-arm64:build
-        - wheel-macos-python310-x86_64:build
-        - wheel-windows-python36-x86_64:build
-        - wheel-windows-python37-x86_64:build
-        - wheel-windows-python38-x86_64:build
-        - wheel-windows-python39-x86_64:build
-        - wheel-windows-python310-x86_64:build
-    needs:
-        - wheel-linux-python36-x86_64:build
-        # - wheel-linux-python36-x86_64:test
         - wheel-linux-python37-x86_64:build
         - wheel-linux-python37-x86_64:test
-        - wheel-linux-python38-x86_64:build
-        - wheel-linux-python38-x86_64:test
-        - wheel-linux-python39-x86_64:build
-        - wheel-linux-python39-x86_64:test
-        - wheel-linux-python310-x86_64:build
-        - wheel-linux-python310-x86_64:test
-        - wheel-macos-python36-x86_64:build
-        - wheel-macos-python36-x86_64:test
-        - wheel-macos-python37-x86_64:build
-        - wheel-macos-python37-x86_64:test
-        - wheel-macos-python38-x86_64:build
-        - wheel-macos-python38-x86_64:test
-        - wheel-macos-python39-arm64:build
-        - wheel-macos-python39-arm64:test
-        - wheel-macos-python39-x86_64:build
-        - wheel-macos-python39-x86_64:test
-        - wheel-macos-python310-arm64:build
-        - wheel-macos-python310-arm64:test
-        - wheel-macos-python310-x86_64:build
-        - wheel-macos-python310-x86_64:test
-        - wheel-windows-python36-x86_64:build
-        # - wheel-windows-python36-x86_64:test
-        - wheel-windows-python37-x86_64:build
-        - wheel-windows-python37-x86_64:test
-        - wheel-windows-python38-x86_64:build
-        - wheel-windows-python38-x86_64:test
-        - wheel-windows-python39-x86_64:build
-        - wheel-windows-python39-x86_64:test
-        - wheel-windows-python310-x86_64:build
-        - wheel-windows-python310-x86_64:test
+
+    needs:
+        - wheel-linux-python37-x86_64:build
+        - wheel-linux-python37-x86_64:test
     variables:
         RSYNC_SOURCE: vtk*-sdk.tar.xz
         RSYNC_DESTINATION: files/wheel-sdks/
