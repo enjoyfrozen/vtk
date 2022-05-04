@@ -334,6 +334,11 @@ protected:
   ///@}
 
   /**
+   * This function is needed to simplify the code when SupportLinearInterpolation is on.
+   */
+  bool InsideCellBoundsInternal(double x[3], vtkIdType cell_ID);
+
+  /**
    * To be called in `FindCell(double[3])`. If need be, the internal `Weights` array size is
    * updated to be able to host all points of the largest cell of the input data set.
    */
