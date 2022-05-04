@@ -61,10 +61,13 @@
 #define vtkLocator_h
 
 #include "vtkCommonDataModelModule.h" // For export macro
+#include "vtkNew.h"                   // For vtkNew
 #include "vtkObject.h"
 
 class vtkDataSet;
 class vtkPolyData;
+class vtkTransform;
+class vtkPoints;
 
 class VTKCOMMONDATAMODEL_EXPORT vtkLocator : public vtkObject
 {
@@ -142,6 +145,34 @@ public:
   vtkBooleanMacro(UseExistingSearchStructure, vtkTypeBool);
   ///@}
 
+  ///@{
+  /**
+   * When this flag is on, after you initially built the locator with UseExistingSearchStructure
+   * (and CacheCellBounds) on, you can provide a new dataset WITHOUT the locator rebuilding. The
+   * requirement is that the new dataset is a LINEAR TRANSFORMATION of the initial dataset. If
+   * that's not true, then the locator will be built again.
+   *
+   * The locator accomplishes such functionality by shallow-copying the initial input points and
+   * and calculating the transformation matrix for the new input points using
+   * https://en.wikipedia.org/wiki/Kabsch_algorithm.
+   *
+   * This flag is ONLY utilized when UseExistingSearchStructure is on (and for cell locators
+   * CacheCellBounds is ALSO on).
+   *
+   * Currently this is ONLY supported for Cell locators.
+   *
+   * Default off.
+   */
+  vtkSetMacro(SupportLinearTransformation, bool);
+  vtkGetMacro(SupportLinearTransformation, bool);
+  vtkBooleanMacro(SupportLinearTransformation, bool);
+  ///@}
+
+  /**
+   * This function validates if LinearTransform can actually be used.
+   */
+  bool GetUseLinearTransform() { return this->LinearTransformationInfo.UseTransform; }
+
   /**
    * Cause the locator to rebuild itself if it or its input dataset has
    * changed.
@@ -186,6 +217,13 @@ public:
   vtkGetMacro(BuildTime, vtkMTimeType);
   ///@}
 
+  /**
+   * Shallow copy of a vtkLocator. Useful when SupportLinearTransformation is on.
+   *
+   * Currently this is ONLY supported for Cell locators.
+   */
+  virtual void ShallowCopy(vtkLocator* locator) {}
+
   ///@{
   /**
    * Handle the PointSet <-> Locator loop.
@@ -208,6 +246,25 @@ protected:
   double Tolerance;      // for performing merging
   int MaxLevel;
   int Level;
+  bool SupportLinearTransformation = false;
+
+  struct LinearTransformationInformation
+  {
+    vtkNew<vtkPoints> InitialPoints;
+    vtkNew<vtkTransform> InverseTransform;
+    vtkNew<vtkTransform> Transform;
+    bool UseTransform = false;
+
+    LinearTransformationInformation();
+    void InverseTransformPointIfNeeded(const double x[3], double xtransform[3]);
+    void TransformPointIfNeeded(const double x[3], double xtransform[3]);
+    void InverseTransformNormalIfNeeded(const double n[3], double ntransform[3]);
+    void TransformNormalIfNeeded(const double n[3], double ntransform[3]);
+  };
+  LinearTransformationInformation LinearTransformationInfo;
+
+  void CopyInitialPoints();
+  bool ComputeTransformation();
 
   vtkTimeStamp BuildTime; // time at which locator was built
 
