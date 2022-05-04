@@ -30,6 +30,7 @@
 #include "vtkPoints.h"
 #include "vtkPolyData.h"
 #include "vtkSMPTools.h"
+#include "vtkTransform.h"
 
 #include <array>
 #include <queue>
@@ -72,7 +73,7 @@ vtkStandardNewMacro(vtkStaticCellLocator);
 // PIMPLd class which wraps binning functionality.
 struct vtkCellBinner
 {
-  vtkStaticCellLocator* Locator; // locater
+  vtkStaticCellLocator* Locator; // locator
   vtkIdType NumCells;            // the number of cells to bin
   vtkIdType NumBins;
   vtkIdType NumFragments; // total number of (cellId,binId) tuples
@@ -81,12 +82,16 @@ struct vtkCellBinner
   vtkDataSet* DataSet;
   int Divisions[3];
   double Bounds[6];
+  std::shared_ptr<std::vector<double>> CellBoundsSharedPtr;
   double* CellBounds;
+  std::shared_ptr<std::vector<vtkIdType>> CountsSharedPtr;
   vtkIdType* Counts;
   double H[3];
   double hX, hY, hZ;
   double fX, fY, fZ, bX, bY, bZ;
   vtkIdType xD, yD, zD, xyD;
+
+  vtkCellBinner() = default;
 
   // Construction
   vtkCellBinner(vtkStaticCellLocator* loc, vtkIdType numCells, vtkIdType numBins)
@@ -99,8 +104,11 @@ struct vtkCellBinner
     loc->GetDivisions(this->Divisions);
 
     // Allocate data. Note that these arrays are deleted elsewhere
-    this->CellBounds = new double[numCells * 6];
-    this->Counts = new vtkIdType[numCells + 1]; // one extra holds total count
+    this->CellBoundsSharedPtr = std::make_shared<std::vector<double>>(numCells * 6);
+    this->CellBounds = this->CellBoundsSharedPtr->data();
+    this->CountsSharedPtr =
+      std::make_shared<std::vector<vtkIdType>>(numCells + 1); // one extra holds total count
+    this->Counts = this->CountsSharedPtr->data();
 
     // This is done to cause non-thread safe initialization to occur due to
     // side effects from GetCellBounds().
@@ -127,8 +135,10 @@ struct vtkCellBinner
 
   ~vtkCellBinner()
   {
-    delete[] this->CellBounds;
-    delete[] this->Counts;
+    this->CellBoundsSharedPtr.reset();
+    this->CellBounds = nullptr;
+    this->CountsSharedPtr.reset();
+    this->Counts = nullptr;
   }
 
   void GetBinIndices(const double* x, int ijk[3]) const
@@ -248,9 +258,13 @@ struct vtkCellProcessor
   int NumBatches;
   vtkIdType xD, xyD;
   size_t MaxCellSize;
+  vtkStaticCellLocator::LinearTransformationInformation* LinearTransformationInfo;
+
+  vtkCellProcessor() = default;
 
   vtkCellProcessor(vtkCellBinner* cb)
     : Binner(cb)
+    , LinearTransformationInfo(&cb->Locator->LinearTransformationInfo)
   {
     this->DataSet = cb->DataSet;
     this->Bounds = cb->Bounds;
@@ -297,24 +311,32 @@ template <typename T>
 struct CellProcessor : public vtkCellProcessor
 {
   // Type dependent members
-  CellFragments<T>* Map; // the map to be sorted
-  T* Offsets;            // offsets for each bin into the map
+  std::shared_ptr<std::vector<CellFragments<T>>> MapSharedPtr; // SharedPtr of map
+  CellFragments<T>* Map;                                       // the map to be sorted
+  std::shared_ptr<std::vector<T>> OffsetsShardPtr;             // SharedPtr of offsets
+  T* Offsets;                                                  // offsets for each bin into the map
+
+  CellProcessor() = default;
 
   CellProcessor(vtkCellBinner* cb)
     : vtkCellProcessor(cb)
   {
     // Prepare to sort
     // one extra to simplify traversal
-    this->Map = new CellFragments<T>[this->NumFragments + 1];
+    this->MapSharedPtr = std::make_shared<std::vector<CellFragments<T>>>(this->NumFragments + 1);
+    this->Map = this->MapSharedPtr->data();
     this->Map[this->NumFragments].BinId = this->NumBins;
-    this->Offsets = new T[this->NumBins + 1];
+    this->OffsetsShardPtr = std::make_shared<std::vector<T>>(this->NumBins + 1);
+    this->Offsets = this->OffsetsShardPtr->data();
     this->Offsets[this->NumBins] = this->NumFragments;
   }
 
   ~CellProcessor() override
   {
-    delete[] this->Map;
-    delete[] this->Offsets;
+    this->MapSharedPtr.reset();
+    this->Map = nullptr;
+    this->OffsetsShardPtr.reset();
+    this->Offsets = nullptr;
   }
 
   // The number of cell ids in a bin is determined by computing the
@@ -475,14 +497,16 @@ struct MapOffsets
 //------------------------------------------------------------------------------
 template <typename T>
 vtkIdType CellProcessor<T>::FindCell(
-  const double pos[3], vtkGenericCell* cell, int& subId, double pcoords[3], double* weights)
+  const double x[3], vtkGenericCell* cell, int& subId, double pcoords[3], double* weights)
 {
+  double xTrans[3];
+  this->LinearTransformationInfo->InverseTransformPointIfNeeded(x, xTrans);
   // check if pos outside of bounds
-  if (!CellProcessor::IsInBounds(this->Bounds, pos))
+  if (!CellProcessor::IsInBounds(this->Bounds, xTrans))
   {
     return -1;
   }
-  vtkIdType binId = this->Binner->GetBinIndex(pos);
+  vtkIdType binId = this->Binner->GetBinIndex(xTrans);
   T numIds = this->GetNumberOfIds(binId);
 
   // Only thread the evaluation if enough cells need to be processed
@@ -496,16 +520,16 @@ vtkIdType CellProcessor<T>::FindCell(
   {
     const CellFragments<T>* cellIds = this->GetIds(binId);
     double dist2;
-    vtkIdType cellId;
+    T cellId;
 
     for (T j = 0; j < numIds; j++)
     {
       cellId = cellIds[j].CellId;
 
-      if (this->InsideCellBounds(pos, cellId))
+      if (this->InsideCellBounds(xTrans, cellId))
       {
         this->DataSet->GetCell(cellId, cell);
-        if (cell->EvaluatePosition(pos, nullptr, subId, pcoords, dist2, weights) == 1)
+        if (cell->EvaluatePosition(x, nullptr, subId, pcoords, dist2, weights) == 1)
         {
           return cellId;
         }
@@ -520,11 +544,21 @@ vtkIdType CellProcessor<T>::FindCell(
 template <typename T>
 void CellProcessor<T>::FindCellsWithinBounds(double* bbox, vtkIdList* cells)
 {
+  if (this->LinearTransformationInfo->UseTransform)
+  {
+    vtkGenericWarningMacro("FindCellsWithinBounds can't work with SupportLinearTransformation on");
+    return;
+  }
   vtkIdType binNum, numIds, jOffset, kOffset;
   int i, j, k, ii, ijkMin[3], ijkMax[3];
   double pMin[3], pMax[3];
   const CellFragments<T>* ids;
 
+  // Initialize the list of cells
+  if (!cells)
+  {
+    return;
+  }
   cells->Reset();
 
   // Get the locator locations for the two extreme corners of the bounding box
@@ -586,6 +620,9 @@ template <typename T>
 int CellProcessor<T>::IntersectWithLine(const double p1[3], const double p2[3], const double tol,
   vtkPoints* points, vtkIdList* cellIds, vtkGenericCell* cell)
 {
+  double p1Trans[3], p2Trans[3], xTrans[3], hitCellBoundsPositionTrans[3];
+  this->LinearTransformationInfo->InverseTransformPointIfNeeded(p1, p1Trans);
+  this->LinearTransformationInfo->InverseTransformPointIfNeeded(p2, p2Trans);
   // Initialize the list of points/cells
   if (points)
   {
@@ -602,9 +639,9 @@ int CellProcessor<T>::IntersectWithLine(const double p1[3], const double p2[3], 
   double* bounds = this->Binner->Bounds;
   double t0, t1, x0[3], x1[3], rayDir[3], t, x[3], pcoords[3];
   int plane0, plane1, subId;
-  vtkMath::Subtract(p2, p1, rayDir);
+  vtkMath::Subtract(p2Trans, p1Trans, rayDir);
 
-  if (vtkBox::IntersectWithLine(bounds, p1, p2, t0, t1, x0, x1, plane0, plane1) == 0)
+  if (vtkBox::IntersectWithLine(bounds, p1Trans, p2Trans, t0, t1, x0, x1, plane0, plane1) == 0)
   {
     return 0; // No intersections possible, line is outside the locator
   }
@@ -670,7 +707,7 @@ int CellProcessor<T>::IntersectWithLine(const double p1[3], const double p2[3], 
 
           // check whether we intersect the cell bounds
           int hitCellBounds = vtkBox::IntersectBox(
-            this->CellBounds + (6 * cId), p1, rayDir, hitCellBoundsPosition, tHitCell, tol);
+            this->CellBounds + (6 * cId), p1Trans, rayDir, hitCellBoundsPosition, tHitCell, tol);
 
           if (hitCellBounds)
           {
@@ -680,9 +717,10 @@ int CellProcessor<T>::IntersectWithLine(const double p1[3], const double p2[3], 
               this->DataSet->GetCell(cId, cell);
               if (cell->IntersectWithLine(p1, p2, tol, t, x, pcoords, subId))
               {
+                this->LinearTransformationInfo->InverseTransformPointIfNeeded(x, xTrans);
                 // Make sure that intersection occurs within this bin or else spurious cell
                 // intersections can occur behind this bin which are not the correct answer.
-                if (!CellProcessor::IsInBounds(binBounds, x, tol))
+                if (!CellProcessor::IsInBounds(binBounds, xTrans, tol))
                 {
                   cellHasBeenVisited[cId] = false; // mark the cell non-visited
                 }
@@ -694,7 +732,9 @@ int CellProcessor<T>::IntersectWithLine(const double p1[3], const double p2[3], 
             }
             else
             {
-              cellIntersections.emplace_back(cId, hitCellBoundsPosition, tHitCell);
+              this->LinearTransformationInfo->TransformPointIfNeeded(
+                hitCellBoundsPosition, hitCellBoundsPositionTrans);
+              cellIntersections.emplace_back(cId, hitCellBoundsPositionTrans, tHitCell);
             }
           } // if (hitCellBounds)
         }   // if (!cellHasBeenVisited[cId])
@@ -927,33 +967,33 @@ template <typename T>
 void CellProcessor<T>::FindCellsAlongPlane(
   const double o[3], const double n[3], double vtkNotUsed(tol), vtkIdList* cells)
 {
+  double oTrans[3], nTrans[3];
+  this->LinearTransformationInfo->InverseTransformPointIfNeeded(o, oTrans);
+  this->LinearTransformationInfo->InverseTransformNormalIfNeeded(n, nTrans);
   // Initialize the list of cells
+  if (!cells)
+  {
+    return;
+  }
   cells->Reset();
 
   // Make sure that the bounding box of the locator is intersected.
   double* bounds = this->Binner->Bounds;
-  double origin[3];
-  origin[0] = o[0];
-  origin[1] = o[1];
-  origin[2] = o[2];
-  double normal[3];
-  normal[0] = n[0];
-  normal[1] = n[1];
-  normal[2] = n[2];
-  if (vtkBox::IntersectWithPlane(bounds, origin, normal) == 0)
+  if (vtkBox::IntersectWithPlane(bounds, oTrans, nTrans) == 0)
   {
     return;
   }
 
   // Okay now evaluate which bins intersect the plane, and then the cells in
   // the bins. We do this in parallel and mark the cells. Later the marked
-  // cells will be added (in serial) to the output list. cellHasBeenVisited
+  // cells will be added (serially) to the output list. cellHasBeenVisited
   // has three states: 0(not visited), 1(visited but not intersecting),
   // 2(visited and potential intersection candidate).
   std::vector<unsigned char> cellHasBeenVisited(this->NumCells, 0);
 
   // For now we will parallelize over z-slabs of bins.
-  CellPlaneCandidates<T> cellCandidates(this, this->Binner, o, n, cellHasBeenVisited.data());
+  CellPlaneCandidates<T> cellCandidates(
+    this, this->Binner, oTrans, nTrans, cellHasBeenVisited.data());
   vtkSMPTools::For(0, this->Binner->Divisions[2], cellCandidates);
 
   // Populate the output list.
@@ -995,6 +1035,8 @@ vtkIdType CellProcessor<T>::FindClosestPointWithinRadius(const double x[3], doub
   double closestPoint[3], vtkGenericCell* cell, vtkIdType& closestCellId, int& closestSubId,
   double& minDist2, int& inside)
 {
+  double xTrans[3];
+  this->LinearTransformationInfo->InverseTransformPointIfNeeded(x, xTrans);
   std::vector<bool> binHasBeenQueued(this->NumBins, false);
   std::vector<double> weights(this->MaxCellSize);
   double pcoords[3], point[3], bds[6], *bounds;
@@ -1007,7 +1049,7 @@ vtkIdType CellProcessor<T>::FindClosestPointWithinRadius(const double x[3], doub
   std::priority_queue<node, std::vector<node>, std::greater<node>> queue;
 
   // first get ijk containing point
-  vtkIdType binId = this->Binner->GetBinIndex(x);
+  vtkIdType binId = this->Binner->GetBinIndex(xTrans);
   queue.push(std::make_pair(0.0, binId));
   binHasBeenQueued[binId] = true;
 
@@ -1042,7 +1084,7 @@ vtkIdType CellProcessor<T>::FindClosestPointWithinRadius(const double x[3], doub
 
         // compute distance to cell bounding box
         bounds = this->CellBounds + 6 * cellId;
-        distance2ToCellBounds = Distance2ToBounds(x, bounds);
+        distance2ToCellBounds = Distance2ToBounds(xTrans, bounds);
 
         // compute distance to cell only if distance to bounding box smaller than minDist2
         if (distance2ToCellBounds < minDist2)
@@ -1099,7 +1141,7 @@ vtkIdType CellProcessor<T>::FindClosestPointWithinRadius(const double x[3], doub
             bds[5] = bds[4] + this->Binner->hZ;
 
             // compute distance to box
-            distance2ToCellBounds = Distance2ToBounds(x, bds);
+            distance2ToCellBounds = Distance2ToBounds(xTrans, bds);
 
             // add to queue
             queue.push(std::make_pair(distance2ToCellBounds, binId));
@@ -1124,13 +1166,16 @@ template <typename T>
 int CellProcessor<T>::IntersectWithLine(const double p1[3], const double p2[3], double tol,
   double& t, double x[3], double pcoords[3], int& subId, vtkIdType& cellId, vtkGenericCell* cell)
 {
+  double p1Trans[3], p2Trans[3], xTrans[3];
+  this->LinearTransformationInfo->InverseTransformPointIfNeeded(p1, p1Trans);
+  this->LinearTransformationInfo->InverseTransformPointIfNeeded(p2, p2Trans);
   double* bounds = this->Binner->Bounds;
   int* ndivs = this->Binner->Divisions;
   vtkIdType prod = ndivs[0] * ndivs[1];
   double* h = this->Binner->H;
   T i, numCellsInBin;
   double rayDir[3];
-  vtkMath::Subtract(p2, p1, rayDir);
+  vtkMath::Subtract(p2Trans, p1Trans, rayDir);
   double t0, t1, x0[3], x1[3], tBest = VTK_FLOAT_MAX, xBest[3], pCoordsBest[3];
   int ijk[3], ijkEnd[3], plane0, plane1, subIdBest = -1;
   vtkIdType idx, cId, cellIdBest = -1;
@@ -1143,7 +1188,7 @@ int CellProcessor<T>::IntersectWithLine(const double p1[3], const double p2[3], 
   // determine the bins where the ray starts and ends.
   cellId = -1;
   subId = 0;
-  if (vtkBox::IntersectWithLine(bounds, p1, p2, t0, t1, x0, x1, plane0, plane1) == 0)
+  if (vtkBox::IntersectWithLine(bounds, p1Trans, p2Trans, t0, t1, x0, x1, plane0, plane1) == 0)
   {
     return 0; // No intersections possible, line is outside the locator
   }
@@ -1195,7 +1240,7 @@ int CellProcessor<T>::IntersectWithLine(const double p1[3], const double p2[3], 
 
           // check whether we intersect the cell bounds
           int hitCellBounds = vtkBox::IntersectBox(
-            this->CellBounds + (6 * cId), p1, rayDir, hitCellBoundsPosition, tHitCell, tol);
+            this->CellBounds + (6 * cId), p1Trans, rayDir, hitCellBoundsPosition, tHitCell, tol);
 
           if (hitCellBounds)
           {
@@ -1204,9 +1249,10 @@ int CellProcessor<T>::IntersectWithLine(const double p1[3], const double p2[3], 
             this->DataSet->GetCell(cId, cell);
             if (cell->IntersectWithLine(p1, p2, tol, t, x, pcoords, subId) && t < tBest)
             {
+              this->LinearTransformationInfo->InverseTransformPointIfNeeded(x, xTrans);
               // Make sure that intersection occurs within this bin or else spurious cell
               // intersections can occur behind this bin which are not the correct answer.
-              if (!CellProcessor::IsInBounds(binBounds, x, tol))
+              if (!CellProcessor::IsInBounds(binBounds, xTrans, tol))
               {
                 cellHasBeenVisited[cId] = false; // mark the cell non-visited
               }
@@ -1426,7 +1472,16 @@ int vtkStaticCellLocator::IntersectWithLine(const double p1[3], const double p2[
 //------------------------------------------------------------------------------
 bool vtkStaticCellLocator::InsideCellBounds(double x[3], vtkIdType cellId)
 {
-  return this->Processor->InsideCellBounds(x, cellId);
+  if (!this->LinearTransformationInfo.UseTransform)
+  {
+    return this->Processor->InsideCellBounds(x, cellId);
+  }
+  else
+  {
+    double cellBounds[6];
+    this->DataSet->GetCellBounds(cellId, cellBounds);
+    return vtkAbstractCellLocator::IsInBounds(cellBounds, x);
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -1440,7 +1495,26 @@ void vtkStaticCellLocator::BuildLocator()
   // don't rebuild if UseExistingSearchStructure is ON and a search structure already exists
   if (this->Binner && this->UseExistingSearchStructure)
   {
-    this->BuildTime.Modified();
+    this->Processor->DataSet = this->DataSet;
+    // calculate linear transform from old initial dataset to new dataset
+    if (/*CacheCellBounds is on*/ this->SupportLinearTransformation)
+    {
+      bool validTransformation = this->ComputeTransformation();
+      if (validTransformation)
+      {
+        this->LinearTransformationInfo.UseTransform = true;
+        this->BuildTime.Modified();
+        vtkDebugMacro(<< "BuildLocator exited - SupportLinearTransformation");
+        return;
+      }
+      else
+      {
+        this->LinearTransformationInfo.UseTransform = false;
+        vtkDebugMacro(<< "BuildLocator again because it's not a linear transformation");
+        this->BuildLocatorInternal();
+        return;
+      }
+    }
     vtkDebugMacro(<< "BuildLocator exited - UseExistingSearchStructure");
     return;
   }
@@ -1529,6 +1603,14 @@ void vtkStaticCellLocator::BuildLocatorInternal()
     MapOffsets<int> mapOffsets(processor);
     vtkSMPTools::For(0, processor->NumBatches, mapOffsets);
     this->Processor = processor;
+  }
+
+  // Copy Initial Points
+  this->LinearTransformationInfo.UseTransform = false;
+  if (/*CacheCellBounds is on*/ this->UseExistingSearchStructure &&
+    this->SupportLinearTransformation)
+  {
+    this->CopyInitialPoints();
   }
 
   this->BuildTime.Modified();
@@ -1684,6 +1766,120 @@ void vtkStaticCellLocator::GenerateRepresentation(int vtkNotUsed(level), vtkPoly
       }   // x
     }     // y
   }       // z
+}
+
+//------------------------------------------------------------------------------
+void vtkStaticCellLocator::ShallowCopy(vtkLocator* locator)
+{
+  vtkStaticCellLocator* cellLocator = vtkStaticCellLocator::SafeDownCast(locator);
+  if (!cellLocator)
+  {
+    vtkErrorMacro("Cannot cast " << locator->GetClassName() << " to vtkStaticCellLocator.");
+    return;
+  }
+  // we only copy what's actually used by vtkStaticCellLocator
+
+  // vtkLocator parameters
+  this->SetDataSet(cellLocator->GetDataSet());
+  this->SetUseExistingSearchStructure(cellLocator->GetUseExistingSearchStructure());
+  this->SetAutomatic(cellLocator->GetAutomatic());
+  this->SetSupportLinearTransformation(cellLocator->GetSupportLinearTransformation());
+  this->LinearTransformationInfo.InitialPoints->ShallowCopy(
+    cellLocator->LinearTransformationInfo.InitialPoints);
+  // transforms can only be deep copied
+  this->LinearTransformationInfo.Transform->DeepCopy(
+    cellLocator->LinearTransformationInfo.Transform);
+  this->LinearTransformationInfo.InverseTransform->DeepCopy(
+    cellLocator->LinearTransformationInfo.InverseTransform);
+  this->LinearTransformationInfo.UseTransform = cellLocator->LinearTransformationInfo.UseTransform;
+
+  // vtkAbstractCellLocator parameters
+  this->SetNumberOfCellsPerNode(cellLocator->GetNumberOfCellsPerNode());
+
+  // vtkStaticCellLocator parameters
+  std::copy_n(cellLocator->Bounds, 6, this->Bounds);
+  std::copy_n(cellLocator->Divisions, 3, this->Divisions);
+  std::copy_n(cellLocator->H, 3, this->H);
+  this->SetMaxNumberOfBuckets(cellLocator->GetMaxNumberOfBuckets());
+  this->LargeIds = cellLocator->LargeIds;
+  // copy binner
+  this->Binner = new vtkCellBinner();
+  this->Binner->Locator = this; // this should be different
+  this->Binner->NumCells = cellLocator->Binner->NumCells;
+  this->Binner->NumBins = cellLocator->Binner->NumBins;
+  this->Binner->NumFragments = cellLocator->Binner->NumFragments;
+  this->Binner->DataSet = this->DataSet; // this should be different
+  std::copy_n(cellLocator->Binner->Divisions, 3, this->Binner->Divisions);
+  std::copy_n(cellLocator->Binner->Bounds, 6, this->Binner->Bounds);
+  this->Binner->CellBoundsSharedPtr = cellLocator->Binner->CellBoundsSharedPtr; // this is important
+  this->Binner->CellBounds =
+    this->Binner->CellBoundsSharedPtr.get() ? this->Binner->CellBoundsSharedPtr->data() : nullptr;
+  this->Binner->CountsSharedPtr = cellLocator->Binner->CountsSharedPtr; // this is important
+  this->Binner->Counts =
+    this->Binner->CountsSharedPtr.get() ? this->Binner->CountsSharedPtr->data() : nullptr;
+  std::copy_n(cellLocator->Binner->H, 3, this->Binner->H);
+  this->Binner->hX = cellLocator->Binner->hX;
+  this->Binner->hY = cellLocator->Binner->hY;
+  this->Binner->hZ = cellLocator->Binner->hZ;
+  this->Binner->fX = cellLocator->Binner->fX;
+  this->Binner->fY = cellLocator->Binner->fY;
+  this->Binner->fZ = cellLocator->Binner->fZ;
+  this->Binner->bX = cellLocator->Binner->bX;
+  this->Binner->bY = cellLocator->Binner->bY;
+  this->Binner->bZ = cellLocator->Binner->bZ;
+  this->Binner->xD = cellLocator->Binner->xD;
+  this->Binner->yD = cellLocator->Binner->yD;
+  this->Binner->zD = cellLocator->Binner->zD;
+  this->Binner->xyD = cellLocator->Binner->xyD;
+  // copy processor
+  if (this->LargeIds)
+  {
+    auto cellLocatorProcessor = static_cast<CellProcessor<vtkIdType>*>(cellLocator->Processor);
+    CellProcessor<vtkIdType>* processor = new CellProcessor<vtkIdType>();
+    processor->Binner = this->Binner;
+    processor->LinearTransformationInfo = &this->LinearTransformationInfo;
+    processor->DataSet = this->DataSet;
+    processor->Bounds = this->Binner->Bounds;
+    processor->CellBounds = this->Binner->CellBounds;
+    processor->Counts = this->Binner->Counts;
+    processor->NumCells = this->Binner->NumCells;
+    processor->NumBins = this->Binner->NumBins;
+    processor->BatchSize = cellLocatorProcessor->BatchSize;
+    processor->NumBatches = cellLocatorProcessor->NumBatches;
+    processor->xD = this->Binner->xD;
+    processor->xyD = this->Binner->xyD;
+    processor->MaxCellSize = cellLocatorProcessor->MaxCellSize;
+    processor->MapSharedPtr = cellLocatorProcessor->MapSharedPtr; // this is important
+    processor->Map = processor->MapSharedPtr.get() ? processor->MapSharedPtr->data() : nullptr;
+    processor->OffsetsShardPtr = cellLocatorProcessor->OffsetsShardPtr; // this is important
+    processor->Offsets =
+      processor->OffsetsShardPtr.get() ? processor->OffsetsShardPtr->data() : nullptr;
+    this->Processor = processor;
+  }
+  else
+  {
+    auto cellLocatorProcessor = static_cast<CellProcessor<int>*>();
+    CellProcessor<int>* processor = new CellProcessor<int>(this->Binner);
+    processor->Binner = this->Binner;
+    processor->LinearTransformationInfo = &this->LinearTransformationInfo;
+    processor->DataSet = this->DataSet;
+    processor->Bounds = this->Binner->Bounds;
+    processor->CellBounds = this->Binner->CellBounds;
+    processor->Counts = this->Binner->Counts;
+    processor->NumCells = this->Binner->NumCells;
+    processor->NumBins = this->Binner->NumBins;
+    processor->BatchSize = cellLocatorProcessor->BatchSize;
+    processor->NumBatches = cellLocatorProcessor->NumBatches;
+    processor->xD = this->Binner->xD;
+    processor->xyD = this->Binner->xyD;
+    processor->MaxCellSize = cellLocatorProcessor->MaxCellSize;
+    processor->MapSharedPtr = cellLocatorProcessor->MapSharedPtr; // this is important
+    processor->Map = processor->MapSharedPtr.get() ? processor->MapSharedPtr->data() : nullptr;
+    processor->OffsetsShardPtr = cellLocatorProcessor->OffsetsShardPtr; // this is important
+    processor->Offsets =
+      processor->OffsetsShardPtr.get() ? processor->OffsetsShardPtr->data() : nullptr;
+    this->Processor = processor;
+  }
 }
 
 //------------------------------------------------------------------------------
