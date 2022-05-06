@@ -74,6 +74,8 @@ protected:
   vtkPOrderStatistics();
   ~vtkPOrderStatistics() override;
 
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+
   /**
    * Reduce the collection of local histograms to the global one for data inputs
    */

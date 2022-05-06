@@ -60,6 +60,8 @@ protected:
 
   vtkMultiProcessController* Controller;
 
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+
   // Execute the parallel calculations required by the Learn option.
   void Learn(vtkTable* inData, vtkTable* inParameters, vtkMultiBlockDataSet* outMeta) override;
 
