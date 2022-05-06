@@ -271,108 +271,106 @@ void RandomOrderStatistics(vtkMultiProcessController* controller, void* arg)
   // Now perform verifications
   vtkTable* outputCard = vtkTable::SafeDownCast(outputModelDS->GetBlock(nVariables));
 
-  // Verify that all processes have the same grand total and histograms size
-  if (myRank == args->ioRank)
+  if (myRank == 0)
   {
-    cout << "\n## Verifying that all processes have the same grand total and histograms size.\n";
-  }
-
-  // Gather all cardinalities
-  int numProcs = controller->GetNumberOfProcesses();
-  int card_l = outputCard->GetValueByName(0, "Cardinality").ToInt();
-  int* card_g = new int[numProcs];
-  com->AllGather(&card_l, card_g, 1);
-
-  // Known global cardinality
-  int testIntValue = args->nVals * numProcs;
-
-  // Verify histogram cardinalities for each variable
-  for (int i = 0; i < nVariables; ++i)
-  {
+    // Verify that all processes have the same grand total and histograms size
     if (myRank == args->ioRank)
     {
-      cout << "   " << columnNames[i] << ":\n";
-    } // if ( myRank == args->ioRank )
+      cout << "\n## Verifying that all processes have the same grand total and histograms size.\n";
+    }
 
-    vtkTable* outputHistogram = vtkTable::SafeDownCast(outputModelDS->GetBlock(i));
-    // Print out and verify all cardinalities
-    if (myRank == args->ioRank)
-    {
-      for (int p = 0; p < numProcs; ++p)
-      {
-        cout << "     On process " << p << ", cardinality = " << card_g[p]
-             << ", histogram size = " << outputHistogram->GetNumberOfRows() << "\n";
+    // Gather all cardinalities
+    int numProcs = controller->GetNumberOfProcesses();
+    int card_l = outputCard->GetValueByName(0, "Cardinality").ToInt();
+    int N = args->nVals * numProcs;
 
-        if (card_g[p] != testIntValue)
-        {
-          vtkGenericWarningMacro(
-            "Incorrect cardinality:" << card_g[p] << " <> " << testIntValue << ")");
-          *(args->retVal) = 1;
-        }
-      } // p
-    }   // if ( myRank == args->ioRank )
-  }     // i
-
-  // Print out and verify global extrema
-  vtkTable* outputQuantiles = vtkTable::SafeDownCast(outputModelDS->GetBlock(nVariables + 1));
-  if (myRank == args->ioRank)
-  {
-    cout << "\n## Verifying that calculated global ranges are correct:\n";
+    // Verify histogram cardinalities for each variable
     for (int i = 0; i < nVariables; ++i)
     {
-      vtkVariant min_c = outputQuantiles->GetValue(0, i + 1);
-
-      vtkVariant max_c = outputQuantiles->GetValue(outputQuantiles->GetNumberOfRows() - 1, i + 1);
-
-      // Print out computed range
-      cout << "   " << columnNames[i] << ": " << min_c << " to " << max_c << "\n";
-
-      // Check minimum
-      if (min_c.IsString())
+      if (myRank == args->ioRank)
       {
-        char c = static_cast<char>(min_g[i]);
-        if (min_c.ToString() != vtkStdString(&c, 1))
-        {
-          vtkGenericWarningMacro("Incorrect calculated minimum for variable "
-            << columnNames[i] << ": " << min_c.ToString() << " <> " << vtkStdString(&c, 1));
-          *(args->retVal) = 1;
-        }
-      } // if ( min_c.IsString() )
-      else
-      {
-        if (min_c != min_g[i])
-        {
-          vtkGenericWarningMacro("Incorrect calculated minimum for variable "
-            << columnNames[i] << ": " << min_c << " <> " << min_g[i]);
-          *(args->retVal) = 1;
-        }
-      } // else
+        cout << "   " << columnNames[i] << ":\n";
+      } // if ( myRank == args->ioRank )
 
-      // Check maximum
-      if (max_c.IsString())
+      vtkTable* outputHistogram = vtkTable::SafeDownCast(outputModelDS->GetBlock(i));
+      // Print out and verify all cardinalities
+      if (myRank == args->ioRank)
       {
-        char c = static_cast<char>(max_g[i]);
-        if (max_c.ToString() != vtkStdString(&c, 1))
+        for (int p = 0; p < numProcs; ++p)
         {
-          vtkGenericWarningMacro("Incorrect calculated maximum for variable "
-            << columnNames[i] << ": " << max_c.ToString() << " <> " << vtkStdString(&c, 1));
-          *(args->retVal) = 1;
-        }
-      }
-      else
-      {
-        if (max_c != max_g[i])
-        {
-          vtkGenericWarningMacro("Incorrect calculated maximum for variable "
-            << columnNames[i] << ": " << max_c << " <> " << max_g[i]);
-          *(args->retVal) = 1;
-        } //  ( max_c.IsString() )
-      }   // else
+          cout << "     On process " << p << ", cardinality = " << card_l
+               << ", histogram size = " << outputHistogram->GetNumberOfRows() << "\n";
+
+          if (card_l != N)
+          {
+            vtkGenericWarningMacro(
+              "Incorrect cardinality:" << card_l << " <> " << N << ")");
+            *(args->retVal) = 1;
+          }
+        } // p
+      }   // if ( myRank == args->ioRank )
     }     // i
+
+    // Print out and verify global extrema
+    vtkTable* outputQuantiles = vtkTable::SafeDownCast(outputModelDS->GetBlock(nVariables + 1));
+    if (myRank == args->ioRank)
+    {
+      cout << "\n## Verifying that calculated global ranges are correct:\n";
+      for (int i = 0; i < nVariables; ++i)
+      {
+        vtkVariant min_c = outputQuantiles->GetValue(0, i + 1);
+
+        vtkVariant max_c = outputQuantiles->GetValue(outputQuantiles->GetNumberOfRows() - 1, i + 1);
+
+        // Print out computed range
+        cout << "   " << columnNames[i] << ": " << min_c << " to " << max_c << "\n";
+
+        // Check minimum
+        if (min_c.IsString())
+        {
+          char c = static_cast<char>(min_g[i]);
+          if (min_c.ToString() != vtkStdString(&c, 1))
+          {
+            vtkGenericWarningMacro("Incorrect calculated minimum for variable "
+              << columnNames[i] << ": " << min_c.ToString() << " <> " << vtkStdString(&c, 1));
+            *(args->retVal) = 1;
+          }
+        } // if ( min_c.IsString() )
+        else
+        {
+          if (min_c != min_g[i])
+          {
+            vtkGenericWarningMacro("Incorrect calculated minimum for variable "
+              << columnNames[i] << ": " << min_c << " <> " << min_g[i]);
+            *(args->retVal) = 1;
+          }
+        } // else
+
+        // Check maximum
+        if (max_c.IsString())
+        {
+          char c = static_cast<char>(max_g[i]);
+          if (max_c.ToString() != vtkStdString(&c, 1))
+          {
+            vtkGenericWarningMacro("Incorrect calculated maximum for variable "
+              << columnNames[i] << ": " << max_c.ToString() << " <> " << vtkStdString(&c, 1));
+            *(args->retVal) = 1;
+          }
+        }
+        else
+        {
+          if (max_c != max_g[i])
+          {
+            vtkGenericWarningMacro("Incorrect calculated maximum for variable "
+              << columnNames[i] << ": " << max_c << " <> " << max_g[i]);
+            *(args->retVal) = 1;
+          } //  ( max_c.IsString() )
+        }   // else
+      }     // i
+    }
   }       // if ( myRank == args->ioRank )
 
   // Clean up
-  delete[] card_g;
   delete[] min_g;
   delete[] max_g;
   pos->Delete();

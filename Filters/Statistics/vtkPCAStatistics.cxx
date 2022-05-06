@@ -615,6 +615,12 @@ void vtkPCAStatistics::Derive(vtkMultiBlockDataSet* inMeta)
   // Use the parent class to compute a covariance matrix for each request.
   this->Superclass::Derive(inMeta);
 
+  // This happens in an MPI environment: the output model is empty.
+  if (!vtkTable::SafeDownCast(inMeta->GetBlock(1))->GetNumberOfRows())
+  {
+    return;
+  }
+
   // Now that we have the covariance matrices, compute the SVD of each.
   vtkIdType nb = static_cast<vtkIdType>(inMeta->GetNumberOfBlocks());
   for (vtkIdType b = 1; b < nb; ++b)
