@@ -100,3 +100,7 @@ if (NOT "$ENV{VTK_INSTALL}" STREQUAL "")
       "Failed to install")
   endif ()
 endif ()
+
+if (NOT "$ENV{VTK_INSTALL_SDK}" STREQUAL "")
+  set(VTK_INSTALL_SDK ON CACHE BOOL "ON")
+endif ()

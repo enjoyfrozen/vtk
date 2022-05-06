@@ -14,6 +14,7 @@
 
     variables:
         VTK_INSTALL: 1
+        VTK_INSTALL_SDK: 1
 
 .wheel_macos39_arm64:
     extends: .wheel_macos_arm64
