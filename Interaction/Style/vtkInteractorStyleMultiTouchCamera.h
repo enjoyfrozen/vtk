@@ -44,6 +44,7 @@ public:
   /**
    * Event bindings for gestures
    */
+  void StartGesture() override;
   void OnStartRotate() override;
   void OnRotate() override;
   void OnEndRotate() override;
@@ -53,12 +54,21 @@ public:
   void OnStartPan() override;
   void OnPan() override;
   void OnEndPan() override;
+  ///@}
 
+  ///@{
+  /// Flag that enables/disables the recognition of touch gestures during rotation.
+  /// Off by default.
+  vtkSetMacro(AllowGesturesDuringRotate, bool);
+  vtkGetMacro(AllowGesturesDuringRotate, bool);
+  vtkBooleanMacro(AllowGesturesDuringRotate, bool);
   ///@}
 
 protected:
   vtkInteractorStyleMultiTouchCamera();
   ~vtkInteractorStyleMultiTouchCamera() override;
+
+  bool AllowGesturesDuringRotate;
 
 private:
   vtkInteractorStyleMultiTouchCamera(const vtkInteractorStyleMultiTouchCamera&) = delete;
