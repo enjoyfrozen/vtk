@@ -44,6 +44,7 @@ set(classes
   vtkExtractGhostCells
   vtkExtractSelectedFrustum
   vtkExtractSelectionBase
+  vtkFiniteElementFieldDistributor
   vtkGradientFilter
   vtkGraphLayoutFilter
   vtkGraphToPoints
@@ -131,6 +132,10 @@ set(classes
 set(templates
   vtkJoinTables.txx)
 
+set(private_headers
+  vtkFEMBasisLagrangeProducts.h)
+
 vtk_module_add_module(VTK::FiltersGeneral
   CLASSES ${classes}
-  TEMPLATES ${templates})
+  TEMPLATES ${templates}
+  PRIVATE_HEADERS ${private_headers})
