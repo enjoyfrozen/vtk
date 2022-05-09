@@ -183,7 +183,7 @@ bool vtkPlotParallelCoordinates::PaintLegend(vtkContext2D* painter, const vtkRec
 void vtkPlotParallelCoordinates::GetBounds(double*) {}
 
 //------------------------------------------------------------------------------
-bool vtkPlotParallelCoordinates::SetSelectionRange(int axis, float low, float high)
+bool vtkPlotParallelCoordinates::SetSelectionRange(int axis, std::vector<float> axeSelection)
 {
   if (!this->Selection)
   {
@@ -200,10 +200,17 @@ bool vtkPlotParallelCoordinates::SetSelectionRange(int axis, float low, float hi
     {
       vtkIdType id = 0;
       this->Selection->GetTypedTuple(i, &id);
-      if (col[id] >= low && col[id] <= high)
+
+      for (int j = 0; j < axeSelection.size(); ++j)
       {
-        // Remove this point - no longer selected
-        array->InsertNextValue(id);
+        float low = axeSelection[j];
+        float high = axeSelection[++j];
+        if (col[id] >= low && col[id] <= high)
+        {
+          // Remove this point - no longer selected
+          array->InsertNextValue(id);
+          break;
+        }
       }
     }
     this->Selection->DeepCopy(array);
@@ -215,10 +222,16 @@ bool vtkPlotParallelCoordinates::SetSelectionRange(int axis, float low, float hi
     std::vector<float>& col = this->Storage->at(axis);
     for (size_t i = 0; i < col.size(); ++i)
     {
-      if (col[i] >= low && col[i] <= high)
+      for (int j = 0; j < axeSelection.size(); ++j)
       {
-        // Remove this point - no longer selected
-        this->Selection->InsertNextValue(static_cast<vtkIdType>(i));
+        float low = axeSelection[j];
+        float high = axeSelection[++j];
+        if (col[i] >= low && col[i] <= high)
+        {
+          // Remove this point - no longer selected
+          this->Selection->InsertNextValue(static_cast<vtkIdType>(i));
+          break;
+        }
       }
     }
     this->Storage->SelectionInitialized = true;
