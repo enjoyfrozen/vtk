@@ -1006,6 +1006,21 @@ int vtkLagrangianParticleTracker::Integrate(vtkInitialValueProblemSolver* integr
       break;
     }
 
+    // Abort integration if there is too many steps or too old already
+    if (this->MaximumNumberOfSteps > -1 &&
+        particle->GetNumberOfSteps() >= this->MaximumNumberOfSteps &&
+      particle->GetTermination() == vtkLagrangianParticle::PARTICLE_TERMINATION_NOT_TERMINATED)
+    {
+      particle->SetTermination(vtkLagrangianParticle::PARTICLE_TERMINATION_OUT_OF_STEPS);
+      break;
+    }
+    if (this->MaximumIntegrationTime >= 0.0 &&
+      particle->GetIntegrationTime() >= this->MaximumIntegrationTime &&
+      particle->GetTermination() == vtkLagrangianParticle::PARTICLE_TERMINATION_NOT_TERMINATED)
+    {
+      particle->SetTermination(vtkLagrangianParticle::PARTICLE_TERMINATION_OUT_OF_TIME);
+    }
+
     double stepLength = stepFactor * cellLength;
     double stepLengthMin = this->StepFactorMin * cellLength;
     double stepLengthMax = this->StepFactorMax * cellLength;
@@ -1131,19 +1146,6 @@ int vtkLagrangianParticleTracker::Integrate(vtkInitialValueProblemSolver* integr
     if (integrator->IsAdaptive() || this->AdaptiveStepReintegration)
     {
       stepFactor = stepTime * reintegrationFactor * velocityMagnitude / cellLength;
-    }
-
-    if (this->MaximumNumberOfSteps > -1 &&
-      particle->GetNumberOfSteps() >= this->MaximumNumberOfSteps &&
-      particle->GetTermination() == vtkLagrangianParticle::PARTICLE_TERMINATION_NOT_TERMINATED)
-    {
-      particle->SetTermination(vtkLagrangianParticle::PARTICLE_TERMINATION_OUT_OF_STEPS);
-    }
-    if (this->MaximumIntegrationTime >= 0.0 &&
-      particle->GetIntegrationTime() >= this->MaximumIntegrationTime &&
-      particle->GetTermination() == vtkLagrangianParticle::PARTICLE_TERMINATION_NOT_TERMINATED)
-    {
-      particle->SetTermination(vtkLagrangianParticle::PARTICLE_TERMINATION_OUT_OF_TIME);
     }
   }
 
