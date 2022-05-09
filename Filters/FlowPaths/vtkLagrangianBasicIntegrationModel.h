@@ -608,7 +608,8 @@ protected:
    * nComponents could be retrieved with arrayName but is
    * given for simplication purposes.
    * it is your responsibility to initialize all components of
-   * defaultValues[nComponent]
+   * defaultValues[nComponent].
+   * Provided dataset can be nullptr.
    */
   virtual void ComputeSurfaceDefaultValues(
     const char* arrayName, vtkDataSet* dataset, int nComponent, double* defaultValues);

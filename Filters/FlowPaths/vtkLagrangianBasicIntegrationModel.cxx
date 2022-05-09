@@ -181,7 +181,7 @@ void vtkLagrangianBasicIntegrationModel::AddDataSet(
   {
     if (surface)
     {
-      locator.TakeReference(vtkStaticCellLocator::New());
+      locator.TakeReference(this->Locator->NewInstance());
     }
     else
     {
@@ -1181,11 +1181,21 @@ vtkDoubleArray* vtkLagrangianBasicIntegrationModel::GetSurfaceArrayDefaultValues
        ++it)
   {
     std::vector<double> defaultValues(it->second.nComp);
-    for (size_t iDs = 0; iDs < this->Surfaces->size(); iDs++)
+    if (this->Surfaces->size() == 0)
     {
+      // Surface have not been provided, just use the model to compute a single value
       this->ComputeSurfaceDefaultValues(
-        it->first.c_str(), (*this->Surfaces)[iDs].second, it->second.nComp, defaultValues.data());
+        it->first.c_str(), nullptr, it->second.nComp, defaultValues.data());
       this->SurfaceArrayDefaultValues->InsertNextTuple(defaultValues.data());
+    }
+    else
+    {
+      for (size_t iDs = 0; iDs < this->Surfaces->size(); iDs++)
+      {
+        this->ComputeSurfaceDefaultValues(
+          it->first.c_str(), (*this->Surfaces)[iDs].second, it->second.nComp, defaultValues.data());
+        this->SurfaceArrayDefaultValues->InsertNextTuple(defaultValues.data());
+      }
     }
   }
   return this->SurfaceArrayDefaultValues;
