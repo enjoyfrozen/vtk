@@ -99,6 +99,7 @@ public:
     SURFACE_TYPE_BREAK = 3,
     SURFACE_TYPE_PASS = 4,
     SURFACE_TYPE_PERIODIC = 5,
+    SURFACE_TYPE_PERIODIC_KEEP_LINE = 6,
   } SurfaceType;
 
   typedef enum VariableStep
@@ -189,8 +190,9 @@ public:
    * BREAK_UP :
    * vtkLagrangianBasicIntegrationModel::BreakUp method will be used
    * PASS : The interaction will be recorded
-   * PERIODIC : ComputePeriodicParticle method will be used
    * with no effect on the particle
+   * PERIODIC : ComputePeriodicParticle method will be used
+   * PERIODIC_KEEP_LINE : ComputePeriodicParticle method will be used and keeping the particle line
    */
   virtual vtkLagrangianParticle* ComputeSurfaceInteraction(vtkLagrangianParticle* particle,
     std::queue<vtkLagrangianParticle*>& particles, unsigned int& interactedSurfaceFlatIndex,
@@ -527,7 +529,7 @@ protected:
    * This method is thread-safe and uses vtkLagrangianBasicIntegrationModel::ParticleQueueMutex
    * to access the particles queue, its reimplementation should also be.
    */
-  virtual bool ComputePeriodicParticle(vtkLagrangianParticle* particle, std::queue<vtkLagrangianParticle*>& particles);
+  virtual bool ComputePeriodicParticle(vtkLagrangianParticle* particle, std::queue<vtkLagrangianParticle*>& particles, bool cutParticleLine = true);
 
   /**
    * Call vtkLagrangianBasicIntegrationModel::Terminate

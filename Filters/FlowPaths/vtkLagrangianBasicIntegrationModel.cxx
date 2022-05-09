@@ -83,6 +83,7 @@ vtkLagrangianBasicIntegrationModel::vtkLagrangianBasicIntegrationModel()
   surfaceTypeDescription.enumValues.emplace_back(SURFACE_TYPE_BREAK, "BreakUp");
   surfaceTypeDescription.enumValues.emplace_back(SURFACE_TYPE_PASS, "PassThrough");
   surfaceTypeDescription.enumValues.emplace_back(SURFACE_TYPE_PERIODIC, "Periodic");
+  surfaceTypeDescription.enumValues.emplace_back(SURFACE_TYPE_PERIODIC_KEEP_LINE, "PeriodicKeepLine");
   this->SurfaceArrayDescriptions["SurfaceType"] = surfaceTypeDescription;
 
   this->SeedArrayNames->InsertNextValue("ParticleInitialVelocity");
@@ -429,7 +430,10 @@ vtkLagrangianParticle* vtkLagrangianBasicIntegrationModel::ComputeSurfaceInterac
                          "next results will be invalid.");
         return nullptr;
       case vtkLagrangianBasicIntegrationModel::SURFACE_TYPE_PERIODIC:
-        recordInteraction = this->ComputePeriodicParticle(particle, particles);
+        recordInteraction = this->ComputePeriodicParticle(particle, particles, true);
+        break;
+      case vtkLagrangianBasicIntegrationModel::SURFACE_TYPE_PERIODIC_KEEP_LINE:
+        recordInteraction = this->ComputePeriodicParticle(particle, particles, false);
         break;
       default:
         if (surfaceType != SURFACE_TYPE_MODEL && surfaceType < USER_SURFACE_TYPE)
@@ -538,26 +542,39 @@ bool vtkLagrangianBasicIntegrationModel::BreakParticle(vtkLagrangianParticle* pa
 
 //------------------------------------------------------------------------------
 bool vtkLagrangianBasicIntegrationModel::ComputePeriodicParticle(vtkLagrangianParticle* particle,
-  std::queue<vtkLagrangianParticle*>& particles)
+  std::queue<vtkLagrangianParticle*>& particles, bool cutParticleLine)
 {
-  // Terminate particle
-  particle->SetTermination(vtkLagrangianParticle::PARTICLE_TERMINATION_SURF_PERIODIC);
-  particle->SetInteraction(vtkLagrangianParticle::SURFACE_INTERACTION_PERIODIC);
-  
-  // Create new particles
-  vtkLagrangianParticle* particle1 = particle->NewParticle(this->Tracker->GetNewParticleId());
-
-  // Set velocity for the new particle
-  double* nextVel = particle->GetNextVelocity();
-  double* part1Vel = particle1->GetVelocity();
-  for (int i = 0; i < 3; i++)
+  vtkLagrangianParticle* particle1;
+  double* nextPos = particle->GetNextPosition();
+  double* part1Pos;
+  if (cutParticleLine)
   {
-    part1Vel[i] = nextVel[i];
+    // Terminate particle
+    particle->SetTermination(vtkLagrangianParticle::PARTICLE_TERMINATION_SURF_PERIODIC);
+    particle->SetInteraction(vtkLagrangianParticle::SURFACE_INTERACTION_PERIODIC);
+
+    // Create new particle
+    particle1 = particle->NewParticle(this->Tracker->GetNewParticleId());
+
+    // Set velocity for the new particle
+    double* nextVel = particle->GetNextVelocity();
+    double* part1Vel = particle1->GetVelocity();
+    for (int i = 0; i < 3; i++)
+    {
+      part1Vel[i] = nextVel[i];
+    }
+
+    part1Pos = particle1->GetPosition();
+  }
+  else
+  {
+    // Keeping the same particle
+    particle->SetInteraction(vtkLagrangianParticle::SURFACE_INTERACTION_PERIODIC);
+    particle1 = particle;
+    part1Pos = particle->GetNextPosition();
   }
 
   // Compute periodical position for the new particle
-  double* nextPos = particle->GetNextPosition();
-  double* part1Pos = particle1->GetPosition();
   for (int i = 0; i < 3; i++)
   {
     double tol = this->Tolerance / this->DataSetsBB.GetLength(i);
@@ -571,10 +588,13 @@ bool vtkLagrangianBasicIntegrationModel::ComputePeriodicParticle(vtkLagrangianPa
     }
   }
 
-  // push new particle in queue
-  // Mutex Locked Area
-  std::lock_guard<std::mutex> guard(this->ParticleQueueMutex);
-  particles.push(particle1);
+  if (cutParticleLine)
+  {
+    // push new particle in queue
+    // Mutex Locked Area
+    std::lock_guard<std::mutex> guard(this->ParticleQueueMutex);
+    particles.push(particle1);
+  }
   return true;
 }
 
