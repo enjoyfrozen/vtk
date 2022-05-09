@@ -182,7 +182,7 @@ public:
     {
       std::string curr_char;
       utf8::append(value, std::back_inserter(curr_char));
-      else if (curr_char == "a") { this->CurrentField += "\a"; }
+      if (curr_char == "a") { this->CurrentField += "\a"; }
       else if (curr_char == "b") { this->CurrentField += "\b"; }
       else if (curr_char == "t") { this->CurrentField += "\t"; }
       else if (curr_char == "n") { this->CurrentField += "\n"; }
