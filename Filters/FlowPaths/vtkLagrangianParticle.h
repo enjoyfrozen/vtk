@@ -93,7 +93,8 @@ public:
    * SURFACE_INTERACTION_PASS = 4, a particle passed through the surface, hence having
    * no effect on the particle but actually recording it going through
    * SURFACE_INTERACTION_OTHER = 5, another type of undefined interaction happened.
-   * SURFACE_INTERACTION_PERIODIC = 6, a periodic computation was performed.
+   * SURFACE_INTERACTION_PERIODIC = 6, a particle was terminated and a new one was created
+   * by periodic computation.
    */
   typedef enum SurfaceInteraction
   {
