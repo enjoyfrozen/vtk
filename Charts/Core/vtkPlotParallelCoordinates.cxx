@@ -185,6 +185,16 @@ void vtkPlotParallelCoordinates::GetBounds(double*) {}
 //------------------------------------------------------------------------------
 bool vtkPlotParallelCoordinates::SetSelectionRange(int axis, float low, float high)
 {
+  std::vector<float> range;
+  range.push_back(low);
+  range.push_back(high);
+
+  return this->SetSelectionRange(axis, range);
+}
+
+//------------------------------------------------------------------------------
+bool vtkPlotParallelCoordinates::SetSelectionRange(int axis, std::vector<float> axisSelection)
+{
   if (!this->Selection)
   {
     this->Storage->SelectionInitialized = false;
@@ -200,10 +210,17 @@ bool vtkPlotParallelCoordinates::SetSelectionRange(int axis, float low, float hi
     {
       vtkIdType id = 0;
       this->Selection->GetTypedTuple(i, &id);
-      if (col[id] >= low && col[id] <= high)
+
+      for (int j = 0; j < axisSelection.size(); j += 2)
       {
-        // Remove this point - no longer selected
-        array->InsertNextValue(id);
+        float low = axisSelection[j];
+        float high = axisSelection[j + 1];
+        if (col[id] >= low && col[id] <= high)
+        {
+          // Remove this point - no longer selected
+          array->InsertNextValue(id);
+          break;
+        }
       }
     }
     this->Selection->DeepCopy(array);
@@ -215,10 +232,16 @@ bool vtkPlotParallelCoordinates::SetSelectionRange(int axis, float low, float hi
     std::vector<float>& col = this->Storage->at(axis);
     for (size_t i = 0; i < col.size(); ++i)
     {
-      if (col[i] >= low && col[i] <= high)
+      for (int j = 0; j < axisSelection.size(); j += 2)
       {
-        // Remove this point - no longer selected
-        this->Selection->InsertNextValue(static_cast<vtkIdType>(i));
+        float low = axisSelection[j];
+        float high = axisSelection[j + 1];
+        if (col[i] >= low && col[i] <= high)
+        {
+          // Remove this point - no longer selected
+          this->Selection->InsertNextValue(static_cast<vtkIdType>(i));
+          break;
+        }
       }
     }
     this->Storage->SelectionInitialized = true;

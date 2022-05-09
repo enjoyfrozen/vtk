@@ -31,9 +31,9 @@
 #include "vtkStdString.h"       // For vtkStdString ivars
 
 class vtkChartParallelCoordinates;
-class vtkTable;
-class vtkStdString;
 class vtkScalarsToColors;
+class vtkStdString;
+class vtkTable;
 class vtkUnsignedCharArray;
 
 class VTKCHARTSCORE_EXPORT vtkPlotParallelCoordinates : public vtkPlot
@@ -68,7 +68,8 @@ public:
   /**
    * Set the selection criteria on the given axis in normalized space (0.0 - 1.0).
    */
-  bool SetSelectionRange(int Axis, float low, float high);
+  bool SetSelectionRange(int axis, float low, float high);
+  bool SetSelectionRange(int axis, std::vector<float> axisSelection);
 
   /**
    * Reset the selection criteria for the chart.
