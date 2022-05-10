@@ -134,6 +134,7 @@ public:
     this->CurrentSelectionPass = vtkHardwareSelector::MIN_KNOWN_PASS - 1;
 
     this->NumberOfLights = 0;
+    this->NumberPositionalLights = 0;
     this->LightComplexity = 0;
 
     this->NeedToInitializeResources = false;
@@ -359,7 +360,10 @@ public:
 
   void FinishRendering(int numComponents);
 
-  inline bool ShaderRebuildNeeded(vtkCamera* cam, vtkVolume* vol, vtkMTimeType renderPassTime);
+  vtkMTimeType LastModifiedLightTime(vtkLightCollection* lights);
+
+  inline bool ShaderRebuildNeeded(
+    vtkCamera* cam, vtkVolume* vol, vtkMTimeType renderPassTime, vtkRenderer* ren);
   bool VolumePropertyChanged = true;
 
   //@{
@@ -447,6 +451,7 @@ public:
 
   int NumberOfLights;
   int LightComplexity;
+  int NumberPositionalLights;
 
   std::ostringstream ExtensionsStringStream;
 
@@ -861,49 +866,37 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::SetLightingShaderParameters(
   vtkTransform* viewTF = cam->GetModelViewTransformObject();
 
   // Bind some light settings
-  int numberOfLights = 0;
   vtkLightCollection* lc = ren->GetLights();
   vtkLight* light;
 
-  /*
-  XXX: This limit of lights is not a "real" limit in VTK. It is inherent to the way
-  the mapper was designed : there's also a trailing '6' in vtkShaderComposer, written
-  directly inside the built shader code
-  */
-  constexpr int maxLights = 6;
-
   vtkCollectionSimpleIterator sit;
-  float lightAmbientColor[maxLights][3];
-  float lightDiffuseColor[maxLights][3];
-  float lightSpecularColor[maxLights][3];
-  float lightDirection[maxLights][3];
+  std::vector<std::array<float, 3>> lightAmbientColor(this->NumberOfLights);
+  std::vector<std::array<float, 3>> lightDiffuseColor(this->NumberOfLights);
+  std::vector<std::array<float, 3>> lightSpecularColor(this->NumberOfLights);
+  std::vector<std::array<float, 3>> lightDirection(this->NumberOfLights);
+  // we want to sort the objects : first, the positional lights, then the directional lights
+  int idxPositional = 0;
+  int idxDirectional = this->NumberPositionalLights;
+  int idxLight = 0;
   for (lc->InitTraversal(sit); (light = lc->GetNextLight(sit));)
   {
     float status = light->GetSwitch();
     if (status > 0.0)
     {
-
-      if (numberOfLights >= maxLights)
-      {
-        vtkGenericWarningMacro(
-          "Currently, vtkOpenGLGPUVolumeRayCastMapper only supports 6 active lights or less. "
-          "Only the 6 first lights will be considered, the others will be ignored.");
-        break;
-      }
-
+      idxLight = light->GetPositional() ? idxPositional : idxDirectional;
       double* aColor = light->GetAmbientColor();
       double* dColor = light->GetDiffuseColor();
       double* sColor = light->GetSpecularColor();
       double intensity = light->GetIntensity();
-      lightAmbientColor[numberOfLights][0] = aColor[0] * intensity;
-      lightAmbientColor[numberOfLights][1] = aColor[1] * intensity;
-      lightAmbientColor[numberOfLights][2] = aColor[2] * intensity;
-      lightDiffuseColor[numberOfLights][0] = dColor[0] * intensity;
-      lightDiffuseColor[numberOfLights][1] = dColor[1] * intensity;
-      lightDiffuseColor[numberOfLights][2] = dColor[2] * intensity;
-      lightSpecularColor[numberOfLights][0] = sColor[0] * intensity;
-      lightSpecularColor[numberOfLights][1] = sColor[1] * intensity;
-      lightSpecularColor[numberOfLights][2] = sColor[2] * intensity;
+      lightAmbientColor[idxLight][0] = aColor[0] * intensity;
+      lightAmbientColor[idxLight][1] = aColor[1] * intensity;
+      lightAmbientColor[idxLight][2] = aColor[2] * intensity;
+      lightDiffuseColor[idxLight][0] = dColor[0] * intensity;
+      lightDiffuseColor[idxLight][1] = dColor[1] * intensity;
+      lightDiffuseColor[idxLight][2] = dColor[2] * intensity;
+      lightSpecularColor[idxLight][0] = sColor[0] * intensity;
+      lightSpecularColor[idxLight][1] = sColor[1] * intensity;
+      lightSpecularColor[idxLight][2] = sColor[2] * intensity;
       // Get required info from light
       double* lfp = light->GetTransformedFocalPoint();
       double* lp = light->GetTransformedPosition();
@@ -911,66 +904,62 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::SetLightingShaderParameters(
       vtkMath::Subtract(lfp, lp, lightDir);
       vtkMath::Normalize(lightDir);
       double* tDir = viewTF->TransformNormal(lightDir);
-      lightDirection[numberOfLights][0] = tDir[0];
-      lightDirection[numberOfLights][1] = tDir[1];
-      lightDirection[numberOfLights][2] = tDir[2];
-      numberOfLights++;
+      lightDirection[idxLight][0] = tDir[0];
+      lightDirection[idxLight][1] = tDir[1];
+      lightDirection[idxLight][2] = tDir[2];
+
+      light->GetPositional() ? idxPositional++ : idxDirectional++;
     }
   }
 
-  prog->SetUniform3fv("in_lightAmbientColor", numberOfLights, lightAmbientColor);
-  prog->SetUniform3fv("in_lightDiffuseColor", numberOfLights, lightDiffuseColor);
-  prog->SetUniform3fv("in_lightSpecularColor", numberOfLights, lightSpecularColor);
-  prog->SetUniform3fv("in_lightDirection", numberOfLights, lightDirection);
-  prog->SetUniformi("in_numberOfLights", numberOfLights);
+  prog->SetUniform3fv(
+    "in_lightAmbientColor", this->NumberOfLights, lightAmbientColor.data()->data());
+  prog->SetUniform3fv(
+    "in_lightDiffuseColor", this->NumberOfLights, lightDiffuseColor.data()->data());
+  prog->SetUniform3fv(
+    "in_lightSpecularColor", this->NumberOfLights, lightSpecularColor.data()->data());
+  prog->SetUniform3fv("in_lightDirection", this->NumberOfLights, lightDirection.data()->data());
 
-  // we are done unless we have positional lights
-  if (this->LightComplexity < 3)
+  // we are done if we only had default lighting
+  if (this->LightComplexity < 2)
   {
     return;
   }
 
   // if positional lights pass down more parameters
-  float lightAttenuation[maxLights][3];
-  float lightPosition[maxLights][3];
-  float lightConeAngle[maxLights];
-  float lightExponent[maxLights];
-  int lightPositional[maxLights];
-  numberOfLights = 0;
-  for (lc->InitTraversal(sit); (light = lc->GetNextLight(sit));)
+  if (this->NumberPositionalLights > 0)
   {
-    float status = light->GetSwitch();
-    if (status > 0.0)
+    std::vector<std::array<float, 3>> lightAttenuation(this->NumberPositionalLights);
+    std::vector<std::array<float, 3>> lightPosition(this->NumberPositionalLights);
+    std::vector<float> lightConeAngle(this->NumberPositionalLights);
+    std::vector<float> lightExponent(this->NumberPositionalLights);
+    idxPositional = 0;
+    for (lc->InitTraversal(sit); (light = lc->GetNextLight(sit));)
     {
-
-      if (numberOfLights >= maxLights)
+      float status = light->GetSwitch();
+      if (status > 0.0 && light->GetPositional())
       {
-        vtkGenericWarningMacro(
-          "Currently, vtkOpenGLGPUVolumeRayCastMapper only supports 6 active lights or less. "
-          "Only the 6 first lights will be considered, the others will be ignored.");
-        break;
+        double* attn = light->GetAttenuationValues();
+        lightAttenuation[idxPositional][0] = attn[0];
+        lightAttenuation[idxPositional][1] = attn[1];
+        lightAttenuation[idxPositional][2] = attn[2];
+        lightExponent[idxPositional] = light->GetExponent();
+        lightConeAngle[idxPositional] = light->GetConeAngle();
+        double* lp = light->GetTransformedPosition();
+        double* tlp = viewTF->TransformPoint(lp);
+        lightPosition[idxPositional][0] = tlp[0];
+        lightPosition[idxPositional][1] = tlp[1];
+        lightPosition[idxPositional][2] = tlp[2];
+        idxPositional++;
       }
-
-      double* attn = light->GetAttenuationValues();
-      lightAttenuation[numberOfLights][0] = attn[0];
-      lightAttenuation[numberOfLights][1] = attn[1];
-      lightAttenuation[numberOfLights][2] = attn[2];
-      lightExponent[numberOfLights] = light->GetExponent();
-      lightConeAngle[numberOfLights] = light->GetConeAngle();
-      double* lp = light->GetTransformedPosition();
-      double* tlp = viewTF->TransformPoint(lp);
-      lightPosition[numberOfLights][0] = tlp[0];
-      lightPosition[numberOfLights][1] = tlp[1];
-      lightPosition[numberOfLights][2] = tlp[2];
-      lightPositional[numberOfLights] = light->GetPositional();
-      numberOfLights++;
     }
+    prog->SetUniform3fv(
+      "in_lightAttenuation", this->NumberPositionalLights, lightAttenuation.data()->data());
+    prog->SetUniform3fv(
+      "in_lightPosition", this->NumberPositionalLights, lightPosition.data()->data());
+    prog->SetUniform1fv("in_lightExponent", this->NumberPositionalLights, lightExponent.data());
+    prog->SetUniform1fv("in_lightConeAngle", this->NumberPositionalLights, lightConeAngle.data());
   }
-  prog->SetUniform3fv("in_lightAttenuation", numberOfLights, lightAttenuation);
-  prog->SetUniform1iv("in_lightPositional", numberOfLights, lightPositional);
-  prog->SetUniform3fv("in_lightPosition", numberOfLights, lightPosition);
-  prog->SetUniform1fv("in_lightExponent", numberOfLights, lightExponent);
-  prog->SetUniform1fv("in_lightConeAngle", numberOfLights, lightConeAngle);
 }
 
 //------------------------------------------------------------------------------
@@ -2340,7 +2329,8 @@ void vtkOpenGLGPUVolumeRayCastMapper::ReplaceShaderBase(
 
   vtkShaderProgram::Substitute(fragmentShader, "//VTK::Base::Dec",
     vtkvolume::BaseDeclarationFragment(ren, this, this->AssembledInputs, this->Impl->NumberOfLights,
-      this->Impl->LightComplexity, numComps, independentComponents));
+      this->Impl->NumberPositionalLights, this->Impl->LightComplexity, numComps,
+      independentComponents));
 
   vtkShaderProgram::Substitute(fragmentShader, "//VTK::Base::Init",
     vtkvolume::BaseInit(ren, this, this->AssembledInputs, this->Impl->LightComplexity));
@@ -2503,7 +2493,8 @@ void vtkOpenGLGPUVolumeRayCastMapper::ReplaceShaderCompute(
 
     vtkShaderProgram::Substitute(fragmentShader, "//VTK::ComputeLighting::Dec",
       vtkvolume::ComputeLightingDeclaration(ren, this, vol, numComps, independentComponents,
-        this->Impl->NumberOfLights, this->Impl->LightComplexity));
+        this->Impl->NumberOfLights, this->Impl->NumberPositionalLights,
+        this->Impl->LightComplexity));
   }
 
   vtkShaderProgram::Substitute(fragmentShader, "//VTK::ComputeRayDirection::Dec",
@@ -2644,11 +2635,14 @@ void vtkOpenGLGPUVolumeRayCastMapper::ReplaceShaderValues(
   vtkVolumeProperty* volumeProperty = vol->GetProperty();
   auto shaderProperty = vtkOpenGLShaderProperty::SafeDownCast(vol->GetShaderProperty());
 
+  this->Impl->NumberOfLights = 0;
+  this->Impl->NumberPositionalLights = 0;
+  this->Impl->LightComplexity = 0;
+
   if (volumeProperty->GetShade())
   {
     vtkLightCollection* lc = ren->GetLights();
     vtkLight* light;
-    this->Impl->NumberOfLights = 0;
 
     // Compute light complexity.
     vtkCollectionSimpleIterator sit;
@@ -2658,6 +2652,10 @@ void vtkOpenGLGPUVolumeRayCastMapper::ReplaceShaderValues(
       if (status > 0.0)
       {
         this->Impl->NumberOfLights++;
+        if (light->GetPositional())
+        {
+          this->Impl->NumberPositionalLights++;
+        }
         if (this->Impl->LightComplexity == 0)
         {
           this->Impl->LightComplexity = 1;
@@ -2669,12 +2667,6 @@ void vtkOpenGLGPUVolumeRayCastMapper::ReplaceShaderValues(
           light->GetLightType() != VTK_LIGHT_TYPE_HEADLIGHT))
       {
         this->Impl->LightComplexity = 2;
-      }
-
-      if (this->Impl->LightComplexity < 3 && (light->GetPositional()))
-      {
-        this->Impl->LightComplexity = 3;
-        break;
       }
     }
   }
@@ -3194,7 +3186,7 @@ void vtkOpenGLGPUVolumeRayCastMapper::GPURender(vtkRenderer* ren, vtkVolume* vol
     }
     vtkVolumeStateRAII glState(renWin->GetState(), this->Impl->PreserveGLState);
 
-    if (this->Impl->ShaderRebuildNeeded(cam, vol, renderPassTime))
+    if (this->Impl->ShaderRebuildNeeded(cam, vol, renderPassTime, ren))
     {
       this->Impl->LastProjectionParallel = cam->GetParallelProjection();
       this->BuildShader(ren);
@@ -3232,15 +3224,31 @@ void vtkOpenGLGPUVolumeRayCastMapper::GPURender(vtkRenderer* ren, vtkVolume* vol
 }
 
 //------------------------------------------------------------------------------
+vtkMTimeType vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::LastModifiedLightTime(
+  vtkLightCollection* lights)
+{
+  vtkMTimeType lastModified = lights->GetMTime();
+  vtkLight* light;
+  vtkCollectionSimpleIterator sit;
+  for (lights->InitTraversal(sit); (light = lights->GetNextLight(sit));)
+  {
+    lastModified = std::max(lastModified, light->GetMTime());
+  }
+  return lastModified;
+}
+
+//------------------------------------------------------------------------------
 bool vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::ShaderRebuildNeeded(
-  vtkCamera* cam, vtkVolume* vol, vtkMTimeType renderPassTime)
+  vtkCamera* cam, vtkVolume* vol, vtkMTimeType renderPassTime, vtkRenderer* ren)
 {
   return (this->NeedToInitializeResources || this->VolumePropertyChanged ||
     vol->GetShaderProperty()->GetShaderMTime() > this->ShaderBuildTime.GetMTime() ||
     this->Parent->GetMTime() > this->ShaderBuildTime.GetMTime() ||
     cam->GetParallelProjection() != this->LastProjectionParallel ||
     this->SelectionStateTime.GetMTime() > this->ShaderBuildTime.GetMTime() ||
-    renderPassTime > this->ShaderBuildTime);
+    renderPassTime > this->ShaderBuildTime ||
+    ren->GetLights()->GetMTime() > this->ShaderBuildTime.GetMTime() ||
+    this->LastModifiedLightTime(ren->GetLights()) > this->ShaderBuildTime.GetMTime());
 }
 
 //------------------------------------------------------------------------------
@@ -3259,7 +3267,9 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::RenderWithDepthPass(
     cam->GetParallelProjection() != this->LastProjectionParallel ||
     this->SelectionStateTime.GetMTime() > this->ShaderBuildTime.GetMTime() ||
     renderPassTime > this->ShaderBuildTime ||
-    shaderProperty->GetShaderMTime() > this->ShaderBuildTime)
+    shaderProperty->GetShaderMTime() > this->ShaderBuildTime ||
+    ren->GetLights()->GetMTime() > this->ShaderBuildTime.GetMTime() ||
+    this->LastModifiedLightTime(ren->GetLights()) > this->ShaderBuildTime.GetMTime())
   {
     this->LastProjectionParallel = cam->GetParallelProjection();
 
