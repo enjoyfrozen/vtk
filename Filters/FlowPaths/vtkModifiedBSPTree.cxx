@@ -25,6 +25,7 @@
 #include "vtkObjectFactory.h"
 #include "vtkPolyData.h"
 #include "vtkSMPTools.h"
+#include "vtkTransform.h"
 
 #include <algorithm>
 #include <array>
@@ -66,13 +67,9 @@ vtkModifiedBSPTree::~vtkModifiedBSPTree()
 //------------------------------------------------------------------------------
 void vtkModifiedBSPTree::FreeSearchStructure()
 {
-  if (this->mRoot)
-  {
-    delete this->mRoot;
-    this->mRoot = nullptr;
-    this->Level = 0;
-    this->npn = this->nln = this->tot_depth = 0;
-  }
+  this->mRoot.reset();
+  this->Level = 0;
+  this->npn = this->nln = this->tot_depth = 0;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -116,46 +113,37 @@ public:
   }
 };
 
-extern "C" int CompareMin(const void* pA, const void* B)
-{
-  const cell_extents* tA = static_cast<const cell_extents*>(pA);
-  const cell_extents* tB = static_cast<const cell_extents*>(B);
-  if (tA->min == tB->min)
-  {
-    return 0;
-  }
-  else
-  {
-    return tA->min < tB->min ? -1 : 1;
-  }
-}
-
-extern "C" int CompareMax(const void* pA, const void* B)
-{
-  const cell_extents* tA = static_cast<const cell_extents*>(pA);
-  const cell_extents* tB = static_cast<const cell_extents*>(B);
-  if (tA->max == tB->max)
-  {
-    return 0;
-  }
-  else
-  {
-    return tA->max > tB->max ? -1 : 1;
-  }
-}
-
 //------------------------------------------------------------------------------
 void vtkModifiedBSPTree::BuildLocator()
 {
   // don't rebuild if build time is newer than modified and dataset modified time
-  if (this->mRoot && this->BuildTime > this->MTime && this->BuildTime > this->DataSet->GetMTime())
+  if (this->mRoot.get() && this->BuildTime > this->MTime &&
+    this->BuildTime > this->DataSet->GetMTime())
   {
     return;
   }
   // don't rebuild if UseExistingSearchStructure is ON and a search structure already exists
-  if (this->mRoot && this->UseExistingSearchStructure)
+  if (this->mRoot.get() && this->UseExistingSearchStructure)
   {
-    this->BuildTime.Modified();
+    // calculate linear transform from old initial dataset to new dataset
+    if (this->CacheCellBounds && this->SupportLinearTransformation)
+    {
+      bool validTransformation = this->ComputeTransformation();
+      if (validTransformation)
+      {
+        this->LinearTransformationInfo.UseTransform = true;
+        this->BuildTime.Modified();
+        vtkDebugMacro(<< "BuildLocator exited - SupportLinearTransformation");
+        return;
+      }
+      else
+      {
+        this->LinearTransformationInfo.UseTransform = false;
+        vtkDebugMacro(<< "BuildLocator again because it's not a linear transformation");
+        this->BuildLocatorInternal();
+        return;
+      }
+    }
     vtkDebugMacro(<< "BuildLocator exited - UseExistingSearchStructure");
     return;
   }
@@ -183,7 +171,7 @@ void vtkModifiedBSPTree::BuildLocatorInternal()
   this->FreeSearchStructure();
 
   // create the root node
-  this->mRoot = new BSPNode();
+  this->mRoot = std::make_shared<BSPNode>();
   this->mRoot->mAxis = rand() % 3;
   this->mRoot->depth = 0;
 
@@ -223,10 +211,17 @@ void vtkModifiedBSPTree::BuildLocatorInternal()
   // call the recursive subdivision routine
   vtkDebugMacro(<< "Beginning Subdivision");
 
-  Subdivide(this->mRoot, lists, this->DataSet, numCells, 0, this->MaxLevel,
+  Subdivide(this->mRoot.get(), lists, this->DataSet, numCells, 0, this->MaxLevel,
     this->NumberOfCellsPerNode, this->Level);
   delete lists;
 
+  // Copy Initial Points
+  this->LinearTransformationInfo.UseTransform = false;
+  if (this->UseExistingSearchStructure && this->CacheCellBounds &&
+    this->SupportLinearTransformation)
+  {
+    this->CopyInitialPoints();
+  }
   // Child nodes are responsible for freeing the temporary sorted lists
   this->BuildTime.Modified();
   vtkDebugMacro(<< "BSP Tree Statistics \n"
@@ -538,7 +533,7 @@ void vtkModifiedBSPTree::GenerateRepresentation(int level, vtkPolyData* pd)
   nodestack ns;
   boxlist bl;
   BSPNode* node;
-  ns.push(this->mRoot);
+  ns.push(this->mRoot.get());
   // lets walk the tree and get all the level n node boxes
   while (!ns.empty())
   {
@@ -648,18 +643,21 @@ int vtkModifiedBSPTree::IntersectWithLine(const double p1[3], const double p2[3]
   {
     return 0;
   }
+  double p1Trans[3], p2Trans[3], xTrans[3];
+  this->LinearTransformationInfo.InverseTransformPointIfNeeded(p1, p1Trans);
+  this->LinearTransformationInfo.InverseTransformPointIfNeeded(p2, p2Trans);
   BSPNode *node, *Near, *Mid, *Far;
   double tmin, tmax, tDist, tHitCell, tBest = VTK_DOUBLE_MAX, xBest[3], pCoordsBest[3];
   double rayDir[3], x0[3], x1[3], hitCellBoundsPosition[3], cellBounds[6], *cellBoundsPtr;
   cellBoundsPtr = cellBounds;
   int plane1, plane2, subIdBest = -1;
-  vtkMath::Subtract(p2, p1, rayDir);
+  vtkMath::Subtract(p2Trans, p1Trans, rayDir);
   vtkIdType cId, cellIdBest = -1;
   double* bounds = this->mRoot->Bounds;
   cellId = -1;
 
   // Does ray pass through root BBox
-  if (vtkBox::IntersectWithLine(bounds, p1, p2, tmin, tmax, x0, x1, plane1, plane2) == 0)
+  if (vtkBox::IntersectWithLine(bounds, p1Trans, p2Trans, tmin, tmax, x0, x1, plane1, plane2) == 0)
   {
     return false;
   }
@@ -691,7 +689,7 @@ int vtkModifiedBSPTree::IntersectWithLine(const double p1[3], const double p2[3]
       break;
   }
   // OK, lets walk the tree and find intersections
-  ns.push(this->mRoot);
+  ns.push(this->mRoot.get());
   while (!ns.empty())
   {
     node = ns.top();
@@ -706,7 +704,7 @@ int vtkModifiedBSPTree::IntersectWithLine(const double p1[3], const double p2[3]
     while (node->mChild[0]) // this must be a parent node
     {
       // Which child node is closest to ray origin - given direction
-      node->Classify(p1, rayDir, tDist, Near, Mid, Far);
+      node->Classify(p1Trans, rayDir, tDist, Near, Mid, Far);
       // if the distance to the far edge of the near box is > tmax, no need to test far box
       // (we still need to test Mid because it may overlap slightly)
       if ((tDist > tmax) || (tDist <= 0)) // <=0 for ray on edge
@@ -750,13 +748,13 @@ int vtkModifiedBSPTree::IntersectWithLine(const double p1[3], const double p2[3]
       {
         cellHasBeenVisited[cId] = true;
         this->GetCellBounds(cId, cellBoundsPtr);
-        if (_getMinDist(p1, rayDir, cellBoundsPtr) > tBest)
+        if (_getMinDist(p1Trans, rayDir, cellBoundsPtr) > tBest)
         {
           break;
         }
         // check whether we intersect the cell bounds
-        int hitCellBounds =
-          vtkBox::IntersectBox(cellBoundsPtr, p1, rayDir, hitCellBoundsPosition, tHitCell, tol);
+        int hitCellBounds = vtkBox::IntersectBox(
+          cellBoundsPtr, p1Trans, rayDir, hitCellBoundsPosition, tHitCell, tol);
         if (hitCellBounds)
         {
           this->DataSet->GetCell(cId, cell);
@@ -821,6 +819,9 @@ int vtkModifiedBSPTree::IntersectWithLine(const double p1[3], const double p2[3]
   {
     return 0;
   }
+  double p1Trans[3], p2Trans[3], xTrans[3], hitCellBoundsPositionTrans[3];
+  this->LinearTransformationInfo.InverseTransformPointIfNeeded(p1, p1Trans);
+  this->LinearTransformationInfo.InverseTransformPointIfNeeded(p2, p2Trans);
   // Initialize the list of points/cells
   if (points)
   {
@@ -834,14 +835,14 @@ int vtkModifiedBSPTree::IntersectWithLine(const double p1[3], const double p2[3]
   double tmin, tmax, tDist, tHitCell;
   double rayDir[3], x0[3], x1[3], hitCellBoundsPosition[3], cellBounds[6], *cellBoundsPtr;
   cellBoundsPtr = cellBounds;
-  vtkMath::Subtract(p2, p1, rayDir);
+  vtkMath::Subtract(p2Trans, p1Trans, rayDir);
   double* bounds = this->mRoot->Bounds;
   vtkIdType cId;
   int plane0, plane1, subId;
   double t, x[3], pcoords[3];
 
   // Does ray pass through root BBox
-  if (vtkBox::IntersectWithLine(bounds, p1, p2, tmin, tmax, x0, x1, plane0, plane1) == 0)
+  if (vtkBox::IntersectWithLine(bounds, p1Trans, p2Trans, tmin, tmax, x0, x1, plane0, plane1) == 0)
   {
     return 0; // No intersections possible, line is outside the locator
   }
@@ -857,7 +858,7 @@ int vtkModifiedBSPTree::IntersectWithLine(const double p1[3], const double p2[3]
   // we will sort intersections by t, so keep track using these lists
   std::vector<IntersectionInfo> cellIntersections;
   // OK, lets walk the tree and find intersections
-  ns.push(this->mRoot);
+  ns.push(this->mRoot.get());
   while (!ns.empty())
   {
     node = ns.top();
@@ -872,7 +873,7 @@ int vtkModifiedBSPTree::IntersectWithLine(const double p1[3], const double p2[3]
     while (node->mChild[0])
     { // this must be a parent node
       // Which child node is closest to ray origin - given direction
-      node->Classify(p1, rayDir, tDist, Near, Mid, Far);
+      node->Classify(p1Trans, rayDir, tDist, Near, Mid, Far);
       // if the distance to the far edge of the near box is > tmax, no need to test far box
       // (we still need to test Mid because it may overlap slightly)
       if ((tDist > tmax) || (tDist <= 0))
@@ -917,8 +918,8 @@ int vtkModifiedBSPTree::IntersectWithLine(const double p1[3], const double p2[3]
         cellHasBeenVisited[cId] = true;
         this->GetCellBounds(cId, cellBoundsPtr);
         // check whether we intersect the cell bounds
-        int hitCellBounds =
-          vtkBox::IntersectBox(cellBoundsPtr, p1, rayDir, hitCellBoundsPosition, tHitCell, tol);
+        int hitCellBounds = vtkBox::IntersectBox(
+          cellBoundsPtr, p1Trans, rayDir, hitCellBoundsPosition, tHitCell, tol);
 
         if (hitCellBounds)
         {
@@ -933,7 +934,9 @@ int vtkModifiedBSPTree::IntersectWithLine(const double p1[3], const double p2[3]
           }
           else
           {
-            cellIntersections.emplace_back(cId, hitCellBoundsPosition, tHitCell);
+            this->LinearTransformationInfo.TransformPointIfNeeded(
+              hitCellBoundsPosition, hitCellBoundsPositionTrans);
+            cellIntersections.emplace_back(cId, hitCellBoundsPositionTrans, tHitCell);
           }
         }
       }
@@ -975,15 +978,17 @@ vtkIdType vtkModifiedBSPTree::FindCell(
   {
     return -1;
   }
+  double xTrans[3];
+  this->LinearTransformationInfo.InverseTransformPointIfNeeded(x, xTrans);
   // check if x outside of bounds
-  if (!vtkAbstractCellLocator::IsInBounds(this->mRoot->Bounds, x))
+  if (!vtkAbstractCellLocator::IsInBounds(this->mRoot->Bounds, xTrans))
   {
     return -1;
   }
   vtkIdType cellId;
   nodestack ns;
   BSPNode* node;
-  ns.push(this->mRoot);
+  ns.push(this->mRoot.get());
   double closestPoint[3], dist2;
   //
   while (!ns.empty())
@@ -992,15 +997,15 @@ vtkIdType vtkModifiedBSPTree::FindCell(
     ns.pop();
     if (node->mChild[0])
     { // this must be a parent node
-      if (node->mChild[0]->Inside(x))
+      if (node->mChild[0]->Inside(xTrans))
       {
         ns.push(node->mChild[0]);
       }
-      if (node->mChild[1] && node->mChild[1]->Inside(x))
+      if (node->mChild[1] && node->mChild[1]->Inside(xTrans))
       {
         ns.push(node->mChild[1]);
       }
-      if (node->mChild[2]->Inside(x))
+      if (node->mChild[2]->Inside(xTrans))
       {
         ns.push(node->mChild[2]);
       }
@@ -1010,7 +1015,7 @@ vtkIdType vtkModifiedBSPTree::FindCell(
       for (int i = 0; i < node->num_cells; i++)
       {
         cellId = node->sorted_cell_lists[0][i];
-        if (vtkAbstractCellLocator::InsideCellBounds(x, cellId))
+        if (this->InsideCellBoundsInternal(xTrans, cellId))
         {
           this->DataSet->GetCell(cellId, cell);
           if (cell->EvaluatePosition(x, closestPoint, subId, pcoords, dist2, weights) == 1)
@@ -1035,7 +1040,7 @@ vtkIdListCollection* vtkModifiedBSPTree::GetLeafNodeCellInformation()
   vtkIdListCollection* LeafCellsList = vtkIdListCollection::New();
   nodestack ns;
   BSPNode* node = nullptr;
-  ns.push(this->mRoot);
+  ns.push(this->mRoot.get());
   //
   while (!ns.empty())
   {
@@ -1068,9 +1073,50 @@ vtkIdListCollection* vtkModifiedBSPTree::GetLeafNodeCellInformation()
 }
 
 //------------------------------------------------------------------------------
+void vtkModifiedBSPTree::ShallowCopy(vtkAbstractCellLocator* locator)
+{
+  vtkModifiedBSPTree* cellLocator = vtkModifiedBSPTree::SafeDownCast(locator);
+  if (!cellLocator)
+  {
+    vtkErrorMacro("Cannot cast " << locator->GetClassName() << " to vtkModifiedBSPTree.");
+    return;
+  }
+  // we only copy what's actually used by vtkModifiedBSPTree
+
+  // vtkLocator parameters
+  this->SetDataSet(cellLocator->GetDataSet());
+  this->SetUseExistingSearchStructure(cellLocator->GetUseExistingSearchStructure());
+  this->SetMaxLevel(cellLocator->GetMaxLevel());
+  this->Level = cellLocator->Level;
+
+  // vtkAbstractCellLocator parameters
+  this->SetNumberOfCellsPerNode(cellLocator->GetNumberOfCellsPerNode());
+  this->CellBoundsSharedPtr = cellLocator->CellBoundsSharedPtr; // This is important
+  this->CellBounds = this->CellBoundsSharedPtr.get() ? this->CellBoundsSharedPtr->data() : nullptr;
+  this->SetSupportLinearTransformation(cellLocator->GetSupportLinearTransformation());
+  this->LinearTransformationInfo.InitialPoints->ShallowCopy(
+    cellLocator->LinearTransformationInfo.InitialPoints);
+  // transforms can only be deep copied
+  this->LinearTransformationInfo.Transform->DeepCopy(
+    cellLocator->LinearTransformationInfo.Transform);
+  this->LinearTransformationInfo.InverseTransform->DeepCopy(
+    cellLocator->LinearTransformationInfo.InverseTransform);
+  this->LinearTransformationInfo.UseTransform = cellLocator->LinearTransformationInfo.UseTransform;
+
+  // vtkCellTreeLocator parameters
+  this->mRoot = cellLocator->mRoot; // This is important
+  this->npn = cellLocator->npn;
+  this->nln = cellLocator->nln;
+  this->tot_depth = cellLocator->tot_depth;
+}
+
+//------------------------------------------------------------------------------
 void vtkModifiedBSPTree::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
+  os << indent << "npn: " << this->npn << "\n";
+  os << indent << "nln: " << this->nln << "\n";
+  os << indent << "tot_depth: " << this->tot_depth << "\n";
 }
 
 //////////////////////////////////////////////////////////////////////////////

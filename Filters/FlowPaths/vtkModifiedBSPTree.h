@@ -100,8 +100,9 @@
  * - Level                       (default 8)
  * - MaxLevel                    (default 8)
  * - NumberOfCellsPerNode        (default 32)
- * - UseExistingSearchStructure  (default false)
  * - CacheCellBounds             (default true)
+ * - UseExistingSearchStructure  (default false)
+ * - SupportLinearTransformation (default false)
  *
  * vtkModifiedBSPTree does NOT utilize the following parameters:
  * - Automatic
@@ -163,6 +164,8 @@
 #include "vtkAbstractCellLocator.h"
 #include "vtkFiltersFlowPathsModule.h" // For export macro
 #include "vtkSmartPointer.h"           // required because it is nice
+
+#include <memory> // For shared_ptr
 
 class Sorted_cell_extents_Lists;
 class BSPNode;
@@ -257,12 +260,17 @@ public:
   void ForceBuildLocator() override;
   ///@}
 
+  /**
+   * Shallow copy of a vtkModifiedBSPTree. Useful when SupportLinearTransformation is on.
+   */
+  void ShallowCopy(vtkAbstractCellLocator* locator) override;
+
 protected:
   vtkModifiedBSPTree();
   ~vtkModifiedBSPTree() override;
 
   void BuildLocatorInternal() override;
-  BSPNode* mRoot; // bounding box root node
+  std::shared_ptr<BSPNode> mRoot; // bounding box root node
   int npn;
   int nln;
   int tot_depth;
