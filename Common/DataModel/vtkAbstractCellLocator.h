@@ -42,12 +42,14 @@
 #include "vtkLocator.h"
 #include "vtkNew.h" // For vtkNew
 
+#include <memory> // For shared_ptr
 #include <vector> // For Weights
 
 class vtkCellArray;
 class vtkGenericCell;
 class vtkIdList;
 class vtkPoints;
+class vtkTransform;
 
 class VTKCOMMONDATAMODEL_EXPORT vtkAbstractCellLocator : public vtkLocator
 {
@@ -89,6 +91,31 @@ public:
   vtkGetMacro(RetainCellLists, vtkTypeBool);
   vtkBooleanMacro(RetainCellLists, vtkTypeBool);
   ///@}
+
+  ///@{
+  /**
+   * When this flag is on, after you initially built the cell locator with
+   * UseExistingSearchStructure and CacheCellBounds on, you can provide a new dataset WITHOUT the
+   * locator rebuilding. The requirement is that the new dataset is a LINEAR TRANSFORMATION of the
+   * initial dataset. If that's not true, then the locator will be built again.
+   *
+   * The locator accomplishes such functionality by shallow-copying the initial input points and
+   * and calculating the transformation matrix for the new input points using
+   * https://en.wikipedia.org/wiki/Kabsch_algorithm.
+   *
+   * This flag is ONLY utilized when UseExistingSearchStructure AND CacheCellBounds are on.
+   *
+   * Default off.
+   */
+  vtkSetMacro(SupportLinearTransformation, bool);
+  vtkGetMacro(SupportLinearTransformation, bool);
+  vtkBooleanMacro(SupportLinearTransformation, bool);
+  ///@}
+
+  /**
+   * This function validates if LinearTransform can actually be used.
+   */
+  bool GetUseLinearTransform() { return this->LinearTransformationInfo.UseTransform; }
 
   ///@{
   /**
@@ -257,6 +284,8 @@ public:
    * Return a list of unique cell ids inside of a given bounding box. The
    * user must provide the vtkIdList to populate.
    *
+   * This function does NOT work when SupportLinearTransformation is on.
+   *
    * THIS FUNCTION IS THREAD SAFE.
    */
   virtual void FindCellsWithinBounds(double* bbox, vtkIdList* cells);
@@ -316,9 +345,34 @@ public:
    */
   virtual bool InsideCellBounds(double x[3], vtkIdType cell_ID);
 
+  /**
+   * Shallow copy of a vtkLocator. Useful when SupportLinearTransformation is on.
+   */
+  virtual void ShallowCopy(vtkAbstractCellLocator* locator) {}
+
 protected:
   vtkAbstractCellLocator();
   ~vtkAbstractCellLocator() override;
+
+  bool SupportLinearTransformation = false;
+
+  struct LinearTransformationInformation
+  {
+    vtkNew<vtkPoints> InitialPoints;
+    vtkNew<vtkTransform> InverseTransform;
+    vtkNew<vtkTransform> Transform;
+    bool UseTransform = false;
+
+    LinearTransformationInformation();
+    void InverseTransformPointIfNeeded(const double x[3], double xtransform[3]);
+    void TransformPointIfNeeded(const double x[3], double xtransform[3]);
+    void InverseTransformNormalIfNeeded(const double n[3], double ntransform[3]);
+    void TransformNormalIfNeeded(const double n[3], double ntransform[3]);
+  };
+  LinearTransformationInformation LinearTransformationInfo;
+
+  void CopyInitialPoints();
+  bool ComputeTransformation();
 
   ///@{
   /**
@@ -333,6 +387,11 @@ protected:
   ///@}
 
   /**
+   * This function is needed to simplify the code when SupportLinearInterpolation is on.
+   */
+  bool InsideCellBoundsInternal(double x[3], vtkIdType cell_ID);
+
+  /**
    * To be called in `FindCell(double[3])`. If need be, the internal `Weights` array size is
    * updated to be able to host all points of the largest cell of the input data set.
    */
@@ -342,7 +401,8 @@ protected:
   vtkTypeBool RetainCellLists;
   vtkTypeBool CacheCellBounds;
   vtkNew<vtkGenericCell> GenericCell;
-  double (*CellBounds)[6];
+  std::shared_ptr<std::vector<double>> CellBoundsSharedPtr;
+  double* CellBounds; // The is just used for simplicity in the internal code
 
   /**
    * This time stamp helps us decide if we want to update internal `Weights` array size.
