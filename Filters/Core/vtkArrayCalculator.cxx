@@ -145,6 +145,8 @@ private:
   vtkSmartPointer<vtkDataArray> ResultArray;
   // // thread local
   vtkSMPThreadLocal<vtkSmartPointer<TFunctionParser>> FunctionParser;
+  vtkSMPThreadLocal<std::vector<double>> Tuple;
+  int MaxTupleSize;
 
 public:
   explicit vtkArrayCalculatorFunctor(vtkDataSet* dsInput, vtkGraph* graphInput,
@@ -197,6 +199,34 @@ public:
     , VectorArrayIndices(vectorArrayIndices)
     , ResultArray(resultArray)
   {
+    // find the maximum tuple size
+    this->MaxTupleSize = 0;
+    for (int i = 0; i < this->SelectedScalarComponentsSize; ++i)
+    {
+      this->MaxTupleSize = std::max(this->MaxTupleSize, this->SelectedScalarComponents[i]);
+    }
+    for (int i = 0; i < this->SelectedVectorComponentsSize; ++i)
+    {
+      for (int j = 0; j < 3; ++j)
+      {
+        this->MaxTupleSize = std::max(this->MaxTupleSize, this->SelectedVectorComponents[i][j]);
+      }
+    }
+    for (int i = 0; i < this->SelectedCoordinateScalarComponentsSize; ++i)
+    {
+      this->MaxTupleSize =
+        std::max(this->MaxTupleSize, this->SelectedCoordinateScalarComponents[i]);
+    }
+    for (int i = 0; i < this->SelectedCoordinateVectorComponentsSize; ++i)
+    {
+      for (int j = 0; j < 3; ++j)
+      {
+        this->MaxTupleSize =
+          std::max(this->MaxTupleSize, this->SelectedCoordinateVectorComponents[i][j]);
+      }
+    }
+    // increase by one since ids start with 9
+    ++this->MaxTupleSize;
   }
 
   /**
@@ -205,6 +235,8 @@ public:
   void Initialize()
   {
     auto& functionParser = FunctionParser.Local();
+    this->Tuple.Local().resize(static_cast<size_t>(this->MaxTupleSize));
+    auto tuple = this->Tuple.Local().data();
     int i;
 
     functionParser = vtkSmartPointer<TFunctionParser>::New();
@@ -221,8 +253,9 @@ public:
       {
         if (currentArray->GetNumberOfComponents() > this->SelectedScalarComponents[i])
         {
-          functionParser->SetScalarVariableValue(this->ScalarVariableNames[i],
-            currentArray->GetComponent(0, this->SelectedScalarComponents[i]));
+          currentArray->GetTuple(0, tuple);
+          functionParser->SetScalarVariableValue(
+            this->ScalarVariableNames[i], tuple[this->SelectedScalarComponents[i]]);
         }
         else
         {
@@ -252,10 +285,11 @@ public:
           (currentArray->GetNumberOfComponents() > this->SelectedVectorComponents[i][1]) &&
           (currentArray->GetNumberOfComponents() > this->SelectedVectorComponents[i][2]))
         {
+          currentArray->GetTuple(0, tuple);
           functionParser->SetVectorVariableValue(this->VectorVariableNames[i],
-            currentArray->GetComponent(0, this->SelectedVectorComponents[i][0]),
-            currentArray->GetComponent(0, this->SelectedVectorComponents[i][1]),
-            currentArray->GetComponent(0, this->SelectedVectorComponents[i][2]));
+            tuple[this->SelectedVectorComponents[i][0]],
+            tuple[this->SelectedVectorComponents[i][1]],
+            tuple[this->SelectedVectorComponents[i][2]]);
         }
         else
         {
@@ -314,6 +348,7 @@ public:
   void operator()(vtkIdType begin, vtkIdType end)
   {
     auto& functionParser = FunctionParser.Local();
+    auto tuple = this->Tuple.Local().data();
     vtkDataArray* currentArray;
     int j = 0;
 
@@ -323,18 +358,20 @@ public:
       {
         if ((currentArray = this->ScalarArrays[j]))
         {
-          functionParser->SetScalarVariableValue(this->ScalarArrayIndices[j],
-            currentArray->GetComponent(i, this->SelectedScalarComponents[j]));
+          currentArray->GetTuple(i, tuple);
+          functionParser->SetScalarVariableValue(
+            this->ScalarArrayIndices[j], tuple[this->SelectedScalarComponents[j]]);
         }
       }
       for (j = 0; j < this->VectorArrayNamesSize; j++)
       {
         if ((currentArray = this->VectorArrays[j]))
         {
+          currentArray->GetTuple(i, tuple);
           functionParser->SetVectorVariableValue(this->VectorArrayIndices[j],
-            currentArray->GetComponent(i, this->SelectedVectorComponents[j][0]),
-            currentArray->GetComponent(i, this->SelectedVectorComponents[j][1]),
-            currentArray->GetComponent(i, this->SelectedVectorComponents[j][2]));
+            tuple[this->SelectedVectorComponents[j][0]],
+            tuple[this->SelectedVectorComponents[j][1]],
+            tuple[this->SelectedVectorComponents[j][2]]);
         }
       }
       if (this->AttributeType == vtkDataObject::POINT ||
