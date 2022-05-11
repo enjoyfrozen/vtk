@@ -14,6 +14,7 @@
 =========================================================================*/
 #include "vtkArrayCalculator.h"
 
+#include "vtkArrayDispatch.h"
 #include "vtkCellData.h"
 #include "vtkCompositeDataIterator.h"
 #include "vtkCompositeDataSet.h"
@@ -104,6 +105,7 @@ enum ResultType
 } resultType = SCALAR_RESULT;
 
 //------------------------------------------------------------------------------
+template <typename TFunctionParser, typename TResultArray>
 class vtkArrayCalculatorFunctor
 {
 private:
@@ -142,7 +144,8 @@ private:
   std::vector<int> ScalarArrayIndices;
   std::vector<int> VectorArrayIndices;
 
-  vtkSmartPointer<vtkDataArray> ResultArray;
+  TResultArray* ResultArray;
+
   // // thread local
   vtkSMPThreadLocal<vtkSmartPointer<TFunctionParser>> FunctionParser;
   vtkSMPThreadLocal<std::vector<double>> Tuple;
@@ -164,7 +167,7 @@ public:
     const std::vector<vtkTuple<int, 3>>& selectedCoordinateVectorComponents,
     const std::vector<vtkDataArray*>& scalarArrays, const std::vector<vtkDataArray*>& vectorArrays,
     const std::vector<int>& scalarArrayIndices, const std::vector<int>& vectorArrayIndices,
-    vtkSmartPointer<vtkDataArray>& resultArray)
+    TResultArray* resultArray)
     : DsInput(dsInput)
     , GraphInput(graphInput)
     , InFD(inFD)
@@ -347,12 +350,13 @@ public:
 
   void operator()(vtkIdType begin, vtkIdType end)
   {
+    auto resultArrayItr = vtk::DataArrayTupleRange(this->ResultArray, begin, end).begin();
     auto& functionParser = FunctionParser.Local();
     auto tuple = this->Tuple.Local().data();
     vtkDataArray* currentArray;
     int j = 0;
 
-    for (vtkIdType i = begin; i < end; i++)
+    for (vtkIdType i = begin; i < end; i++, resultArrayItr++)
     {
       for (j = 0; j < this->ScalarArrayNamesSize; j++)
       {
@@ -401,12 +405,14 @@ public:
       }
       if (resultType == SCALAR_RESULT)
       {
-        double scalarResult = functionParser->GetScalarResult();
-        this->ResultArray->SetTuple(i, &scalarResult);
+        (*resultArrayItr)[0] = functionParser->GetScalarResult();
       }
       else
       {
-        this->ResultArray->SetTuple(i, functionParser->GetVectorResult());
+        auto result = functionParser->GetVectorResult();
+        (*resultArrayItr)[0] = result[0];
+        (*resultArrayItr)[1] = result[1];
+        (*resultArrayItr)[2] = result[2];
       }
     }
   }
@@ -414,6 +420,42 @@ public:
   void Reduce() {}
 };
 
+//------------------------------------------------------------------------------
+template <typename TFunctionParser>
+struct vtkArrayCalculatorWorker
+{
+  template <typename TResultArray>
+  void operator()(TResultArray* resultArray, vtkDataSet* dsInput, vtkGraph* graphInput,
+    vtkDataSetAttributes* inFD, int attributeType, char* function, vtkTypeBool replaceInvalidValues,
+    double replacementValue, bool ignoreMissingArrays,
+    const std::vector<std::string>& scalarArrayNames,
+    const std::vector<std::string>& vectorArrayNames,
+    const std::vector<std::string>& scalarVariableNames,
+    const std::vector<std::string>& vectorVariableNames,
+    const std::vector<int>& selectedScalarComponents,
+    std::vector<vtkTuple<int, 3>> selectedVectorComponents,
+    const std::vector<std::string>& coordinateScalarVariableNames,
+    const std::vector<std::string>& coordinateVectorVariableNames,
+    const std::vector<int>& selectedCoordinateScalarComponents,
+    const std::vector<vtkTuple<int, 3>>& selectedCoordinateVectorComponents,
+    const std::vector<vtkDataArray*>& scalarArrays, const std::vector<vtkDataArray*>& vectorArrays,
+    const std::vector<int>& scalarArrayIndices, const std::vector<int>& vectorArrayIndices,
+    vtkIdType numTuples)
+  {
+    // Execute functor for all tuples
+    vtkArrayCalculatorFunctor<TFunctionParser, TResultArray> arrayCalculatorFunctor(dsInput,
+      graphInput, inFD, attributeType, function, replaceInvalidValues, replacementValue,
+      ignoreMissingArrays, scalarArrayNames, vectorArrayNames, scalarVariableNames,
+      vectorVariableNames, selectedScalarComponents, selectedVectorComponents,
+      coordinateScalarVariableNames, coordinateVectorVariableNames,
+      selectedCoordinateScalarComponents, selectedCoordinateVectorComponents, scalarArrays,
+      vectorArrays, scalarArrayIndices, vectorArrayIndices, resultArray);
+
+    vtkSMPTools::For(1, numTuples, arrayCalculatorFunctor);
+  }
+};
+
+//------------------------------------------------------------------------------
 template <typename TFunctionParser>
 int vtkArrayCalculator::ProcessDataObject(vtkDataObject* input, vtkDataObject* output)
 {
@@ -678,17 +720,24 @@ int vtkArrayCalculator::ProcessDataObject(vtkDataObject* input, vtkDataObject* o
     }
   }
 
-  // Execute functor for all tuples
-  vtkArrayCalculatorFunctor<TFunctionParser> arrayCalculatorFunctor(dsInput, graphInput, inFD,
-    attributeType, this->Function, this->ReplaceInvalidValues, this->ReplacementValue,
-    this->IgnoreMissingArrays, this->ScalarArrayNames, this->VectorArrayNames,
-    this->ScalarVariableNames, this->VectorVariableNames, this->SelectedScalarComponents,
-    this->SelectedVectorComponents, this->CoordinateScalarVariableNames,
-    this->CoordinateVectorVariableNames, this->SelectedCoordinateScalarComponents,
-    this->SelectedCoordinateVectorComponents, scalarArrays, vectorArrays, scalarArrayIndices,
-    vectorArrayIndices, resultArray);
-
-  vtkSMPTools::For(1, numTuples, arrayCalculatorFunctor);
+  vtkArrayCalculatorWorker<TFunctionParser> arrayCalculatorWorker;
+  if (!vtkArrayDispatch::Dispatch::Execute(resultArray.Get(), arrayCalculatorWorker, dsInput,
+        graphInput, inFD, attributeType, this->Function, this->ReplaceInvalidValues,
+        this->ReplacementValue, this->IgnoreMissingArrays, this->ScalarArrayNames,
+        this->VectorArrayNames, this->ScalarVariableNames, this->VectorVariableNames,
+        this->SelectedScalarComponents, this->SelectedVectorComponents,
+        this->CoordinateScalarVariableNames, this->CoordinateVectorVariableNames,
+        this->SelectedCoordinateScalarComponents, this->SelectedCoordinateVectorComponents,
+        scalarArrays, vectorArrays, scalarArrayIndices, vectorArrayIndices, numTuples))
+  {
+    arrayCalculatorWorker(resultArray.Get(), dsInput, graphInput, inFD, attributeType,
+      this->Function, this->ReplaceInvalidValues, this->ReplacementValue, this->IgnoreMissingArrays,
+      this->ScalarArrayNames, this->VectorArrayNames, this->ScalarVariableNames,
+      this->VectorVariableNames, this->SelectedScalarComponents, this->SelectedVectorComponents,
+      this->CoordinateScalarVariableNames, this->CoordinateVectorVariableNames,
+      this->SelectedCoordinateScalarComponents, this->SelectedCoordinateVectorComponents,
+      scalarArrays, vectorArrays, scalarArrayIndices, vectorArrayIndices, numTuples);
+  }
 
   output->ShallowCopy(input);
   if (resultPoints)
