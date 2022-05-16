@@ -2411,7 +2411,6 @@ int vtkCGNSReader::GetUnstructuredZone(
   std::vector<int> nfaceSec;
   bool hasNFace = false;
   bool hasNGon = false;
-  bool hasElemDefinition = false;
   for (int sec = 0; sec < nsections; ++sec)
   {
     if (sectionInfoList[sec].elemType == CGNS_ENUMV(NFACE_n))
@@ -2424,19 +2423,10 @@ int vtkCGNSReader::GetUnstructuredZone(
       hasNGon = true;
       ngonSec.push_back(sec);
     }
-    else
-    {
-      hasElemDefinition = true;
-    }
   }
   if (hasNFace && !hasNGon)
   {
     vtkErrorMacro("NFace_n requires NGon_n definition");
-    return 1;
-  }
-  if (hasElemDefinition && hasNGon)
-  {
-    vtkErrorMacro("Mixed definition of unstructured zone by elements and by faces is not valid.");
     return 1;
   }
 
