@@ -136,17 +136,17 @@ struct HitCellInfo
 /**
  * Return the entry point and exit point of a given cell for the segment [p1,p2].
  */
-HitCellInfo GetInOutCell3D(const vtkVector3d& p1, const vtkVector3d& p2, vtkCell* cell)
+HitCellInfo GetInOutCell(const vtkVector3d& p1, const vtkVector3d& p2, vtkCell* cell, double tolerance)
 {
   double t, x[3], dummy3[3];
   int dummy;
   HitCellInfo res{-1.0, -1.0, -1};
 
-  if (cell->IntersectWithLine(p1.GetData(), p2.GetData(), 0.0, t, x, dummy3, dummy))
+  if (cell->IntersectWithLine(p1.GetData(), p2.GetData(), tolerance, t, x, dummy3, dummy))
   {
     res.InT = t;
   }
-  if (cell->IntersectWithLine(p2.GetData(), p1.GetData(), 0.0, t, x, dummy3, dummy))
+  if (cell->IntersectWithLine(p2.GetData(), p1.GetData(), tolerance, t, x, dummy3, dummy))
   {
     res.OutT = 1.0 - t;
   }
@@ -175,7 +175,7 @@ HitCellInfo ProcessLimitPoint(vtkVector3d p1, vtkVector3d p2, int pattern, vtkDa
     result.CellId = cellId;
     if (cell->GetCellDimension() == 3)
     {
-      double outT = ::GetInOutCell3D(p1, p2, cell).OutT;
+      double outT = ::GetInOutCell(p1, p2, cell, tolerance).OutT;
       result.OutT = std::max(0.0, outT - tolerance / norm);
     }
     else
@@ -608,7 +608,7 @@ vtkSmartPointer<vtkPolyData> vtkProbeLineFilter::SampleLineAtEachCell(const vtkV
         continue;
       }
       vtkCell* cell = input->GetCell(cellId);
-      auto inOut = ::GetInOutCell3D(p1, p2, cell);
+      auto inOut = ::GetInOutCell(p1, p2, cell, tolerance);
       if (!inOut)
       {
         continue;
