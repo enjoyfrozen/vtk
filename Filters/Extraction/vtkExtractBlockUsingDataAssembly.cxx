@@ -243,6 +243,17 @@ int vtkExtractBlockUsingDataAssembly::RequestDataObject(
 int vtkExtractBlockUsingDataAssembly::RequestData(
   vtkInformation*, vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
+  auto inputCD = vtkCompositeDataSet::GetData(inputVector[0], 0);
+  assert(inputCD != nullptr);
+
+  auto outputCD = vtkCompositeDataSet::GetData(outputVector, 0);
+
+  if (!this->Enabled)
+  {
+    outputCD->ShallowCopy(inputCD);
+    return 1;
+  }
+
   const auto& internals = (*this->Internals);
 
   if (this->AssemblyName == nullptr)
@@ -250,11 +261,6 @@ int vtkExtractBlockUsingDataAssembly::RequestData(
     vtkErrorMacro("AssemblyName must be specified.");
     return 0;
   }
-
-  auto inputCD = vtkCompositeDataSet::GetData(inputVector[0], 0);
-  assert(inputCD != nullptr);
-
-  auto outputCD = vtkCompositeDataSet::GetData(outputVector, 0);
 
   // Ensure field data from input is copied to output when this method returns.
   vtkScopedFieldDataCopier copier(inputCD, outputCD);

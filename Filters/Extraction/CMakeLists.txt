@@ -33,6 +33,7 @@ set(classes
   vtkHierarchicalDataExtractLevel
   vtkLocationSelector
   vtkProbeSelectedLocations
+  vtkSelectArraysExtractBlocks
   vtkSelector
   vtkValueSelector)
 
