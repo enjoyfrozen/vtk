@@ -57,6 +57,16 @@ public:
 
   ///@{
   /**
+   * Enable/disable this filter. When disabled, this filter passes all input blocks
+   * irrespective of the block selection. Default is `true`.
+   */
+  vtkSetMacro(Enabled, bool);
+  vtkGetMacro(Enabled, bool);
+  vtkBooleanMacro(Enabled, bool);
+  ///@}
+
+  ///@{
+  /**
    * API to set selectors. Multiple selectors can be added using `AddSelector`.
    * The order in which selectors are specified is not preserved and has no
    * impact on the result.
@@ -131,6 +141,8 @@ private:
 
   class vtkInternals;
   vtkInternals* Internals;
+
+  bool Enabled = true;
 
   bool SelectSubtrees;
   bool PruneDataAssembly;
