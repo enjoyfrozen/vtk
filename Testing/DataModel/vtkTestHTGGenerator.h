@@ -42,10 +42,10 @@ public:
   /**
    * Helper methods for generating HTGs
    */
-  void generateUnbalanced(vtkHyperTreeGrid* HTG, int dim, int factor, int depth,
+  void GenerateUnbalanced(vtkHyperTreeGrid* HTG, int dim, int factor, int depth,
     const std::vector<double>& extent, const std::vector<int>& subdivisions);
 
-  void generateBalanced(vtkHyperTreeGrid* HTG, int dim, int factor, int depth,
+  void GenerateBalanced(vtkHyperTreeGrid* HTG, int dim, int factor, int depth,
     const std::vector<double>& extent, const std::vector<int>& subdivisions);
 
   enum HTGType
@@ -89,19 +89,19 @@ public:
   /**
    * Specializations
    */
-  void generateUnbalanced3DepthQuadTree2x3(vtkHyperTreeGrid* HTG);
+  void GenerateUnbalanced3DepthQuadTree2x3(vtkHyperTreeGrid* HTG);
 
-  void generateBalanced3DepthQuadTree2x3(vtkHyperTreeGrid* HTG);
+  void GenerateBalanced3DepthQuadTree2x3(vtkHyperTreeGrid* HTG);
 
-  void generateUnbalanced2Depth3BranchTree3x3(vtkHyperTreeGrid* HTG);
+  void GenerateUnbalanced2Depth3BranchTree3x3(vtkHyperTreeGrid* HTG);
 
-  void generateBalanced4Depth3BranchTree2x2(vtkHyperTreeGrid* HTG);
+  void GenerateBalanced4Depth3BranchTree2x2(vtkHyperTreeGrid* HTG);
 
-  void generateUnbalanced3DepthOctTree3x2x3(vtkHyperTreeGrid* HTG);
+  void GenerateUnbalanced3DepthOctTree3x2x3(vtkHyperTreeGrid* HTG);
 
-  void generateBalanced2Depth3BranchTree3x3x2(vtkHyperTreeGrid* HTG);
+  void GenerateBalanced2Depth3BranchTree3x3x2(vtkHyperTreeGrid* HTG);
 
-  int generateCustom(vtkHyperTreeGrid* HTG);
+  int GenerateCustom(vtkHyperTreeGrid* HTG);
 
 protected:
   /**
@@ -120,10 +120,10 @@ protected:
 
   int ProcessTrees(vtkHyperTreeGrid*, vtkDataObject*) override;
 
-  void preprocess(vtkHyperTreeGrid* HTG, int dim, int factor, const std::vector<double>& extent,
+  void Preprocess(vtkHyperTreeGrid* HTG, int dim, int factor, const std::vector<double>& extent,
     const std::vector<int>& subdivisions);
 
-  void recurseBalanced(
+  void RecurseBalanced(
     vtkHyperTreeGridNonOrientedCursor* cursor, vtkDoubleArray* levels, const int maxDepth);
 
   HTGType HTGMode;
