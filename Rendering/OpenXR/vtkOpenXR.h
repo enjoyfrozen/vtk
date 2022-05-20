@@ -33,7 +33,7 @@
 #include <openxr_platform.h>
 #include <openxr_reflection.h>
 #ifdef OpenXR_USE_REMOTING
-#include <openxr/openxr_msft_holographic_remoting.h>
+#include <openxr_msft_holographic_remoting.h>
 #endif
 
 #include "XrExtensions.h"
