@@ -53,7 +53,7 @@ public:
 
   ///@{
   /**
-   * \enum An enum type for referencing preconfigured HTGs
+   * An enum type for referencing preconfigured HTGs
    */
   enum HTGType
   {
@@ -69,7 +69,7 @@ public:
 
   ///@{
   /**
-   * \enum An enum type for configuring the type of generation for the CUSTOM HTG type
+   * An enum type for configuring the type of generation for the CUSTOM HTG type
    */
   enum HTGArchitecture
   {
