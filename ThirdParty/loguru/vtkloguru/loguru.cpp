@@ -72,13 +72,13 @@
 
 // TODO: use defined(_POSIX_VERSION) for some of these things?
 
-#if defined(_WIN32) || defined(__CYGWIN__)
+#if defined(_WIN32)
 	#define LOGURU_PTHREADS    0
 	#define LOGURU_WINTHREADS  1
 	#ifndef LOGURU_STACKTRACES
 		#define LOGURU_STACKTRACES 0
 	#endif
-#elif defined(__rtems__) || defined(__ANDROID__)
+#elif defined(__rtems__) || defined(__ANDROID__) || defined(__CYGWIN__)
 	#define LOGURU_PTHREADS    1
 	#define LOGURU_WINTHREADS  0
 	#ifndef LOGURU_STACKTRACES
@@ -576,7 +576,7 @@ namespace loguru
 			#elif LOGURU_PTHREADS
 				char old_thread_name[16] = {0};
 				auto this_thread = pthread_self();
-				#if defined(__APPLE__) || defined(__linux__)
+				#if defined(__APPLE__) || defined(__linux__) || defined(__CYGWIN__)
 					pthread_getname_np(this_thread, old_thread_name, sizeof(old_thread_name));
 				#endif
 				if (old_thread_name[0] == 0) {
@@ -584,7 +584,7 @@ namespace loguru
 						pthread_setname_np(main_thread_name);
 					#elif defined(__FreeBSD__) || defined(__OpenBSD__)
 						pthread_set_name_np(this_thread, main_thread_name);
-					#elif defined(__linux__)
+					#elif defined(__linux__) || defined(__CYGWIN__)
 						pthread_setname_np(this_thread, main_thread_name);
 					#endif
 				}
@@ -927,7 +927,7 @@ namespace loguru
 				pthread_setname_np(name);
 			#elif defined(__FreeBSD__) || defined(__OpenBSD__)
 				pthread_set_name_np(pthread_self(), name);
-			#elif defined(__linux__)
+			#elif defined(__linux__) || defined(__CYGWIN__)
 				pthread_setname_np(pthread_self(), name);
 			#endif
 		#elif LOGURU_WINTHREADS
@@ -960,7 +960,7 @@ namespace loguru
 			} else {
 				buffer[0] = 0;
 			}
-		#elif defined(__APPLE__) || defined(__linux__)
+		#elif defined(__APPLE__) || defined(__linux__) || defined(__CYGWIN__)
 			pthread_getname_np(thread, buffer, length);
 		#else
 			buffer[0] = 0;
@@ -975,6 +975,8 @@ namespace loguru
 				(void)thr_self(&thread_id);
 			#elif defined(__OpenBSD__)
 				unsigned thread_id = -1;
+            #elif defined(__CYGWIN__)
+                uint64_t thread_id = (uint64_t)pthread_self();
 			#else
 				uint64_t thread_id = thread;
 			#endif

@@ -44,7 +44,7 @@
 #ifndef vtkABI_h
 #define vtkABI_h
 
-#if defined(_WIN32)
+#if defined(_WIN32) || defined(__CYGWIN__)
 #define VTK_ABI_IMPORT __declspec(dllimport)
 #define VTK_ABI_EXPORT __declspec(dllexport)
 #define VTK_ABI_HIDDEN

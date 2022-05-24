@@ -48,9 +48,9 @@ set(CMAKE_INSTALL_DOCDIR
 set(vtk_hierarchy_destination_args
   HIERARCHY_DESTINATION "${wheel_data_dir}/headers/hierarchy")
 set(setup_py_build_dir
-  "build/lib.${python_platform}-${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}")
+  "build/lib.${python_platform}-cpython-${Python3_VERSION_MAJOR}${Python3_VERSION_MINOR}")
 # Required for Windows DLL placement.
-if (WIN32)
+if (WIN32 OR CYGWIN)
   set(CMAKE_INSTALL_BINDIR
     # Must correlate with `vtk_module_wrap_python(PYTHON_PACKAGE)` argument
     "${setup_py_build_dir}/vtkmodules")

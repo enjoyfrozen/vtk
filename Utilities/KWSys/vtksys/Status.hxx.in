@@ -9,6 +9,11 @@
 
 namespace @KWSYS_NAMESPACE@ {
 
+/** From <X11/Xlib.h>
+ */
+#undef Status
+#undef Success
+
 /** \class Status
  * \brief OS-specific status of a system operation.
  */
