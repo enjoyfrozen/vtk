@@ -371,9 +371,25 @@ int vtkParticleTracerBase::RequestUpdateExtent(vtkInformation* vtkNotUsed(reques
 }
 
 //------------------------------------------------------------------------------
+void vtkParticleTracerBase::SetMeshOverTime(int meshOverTime)
+{
+  if (this->MeshOverTime !=
+    (meshOverTime < DIFFERENT
+        ? DIFFERENT
+        : (meshOverTime > LINEAR_TRANSFORMATION ? LINEAR_TRANSFORMATION : meshOverTime)))
+  {
+    this->MeshOverTime = (meshOverTime < DIFFERENT
+        ? DIFFERENT
+        : (meshOverTime > LINEAR_TRANSFORMATION ? LINEAR_TRANSFORMATION : meshOverTime));
+    this->Modified();
+    // Needed since the value needs to be set at the same time.
+    this->Interpolator->SetMeshOverTime(this->MeshOverTime);
+  }
+}
+
+//------------------------------------------------------------------------------
 void vtkParticleTracerBase::SetInterpolatorType(int interpolatorType)
 {
-  this->Interpolator->SetMeshOverTime(this->MeshOverTime);
   if (interpolatorType == INTERPOLATOR_WITH_CELL_LOCATOR)
   {
     // create an interpolator equipped with a cell locator (by default)
@@ -386,6 +402,7 @@ void vtkParticleTracerBase::SetInterpolatorType(int interpolatorType)
     auto strategy = vtkSmartPointer<vtkClosestPointStrategy>::New();
     this->Interpolator->SetFindCellStrategy(strategy);
   }
+  this->Modified();
 }
 
 //------------------------------------------------------------------------------
@@ -431,7 +448,7 @@ int vtkParticleTracerBase::InitializeInterpolator()
     return VTK_ERROR;
   }
 
-  // create Interpolator if needed
+  // set strategy if needed
   if (this->Interpolator->GetFindCellStrategy() == nullptr)
   {
     // cell locator is the default;
