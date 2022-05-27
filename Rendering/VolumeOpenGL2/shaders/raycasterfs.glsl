@@ -112,6 +112,10 @@ void safe_0_vector(inout Ray ray)
   if(abs(ray.dir.z) < EPSILON) ray.dir.z = sign(ray.dir.z) * EPSILON;
 }
 
+//VTK::PhaseFunction::Dec
+
+//VTK::ComputeColor::Unif
+
 //VTK::Shading::Dec
 
 //VTK::BinaryMask::Dec
@@ -126,7 +130,7 @@ void safe_0_vector(inout Ray ray)
 
 //VTK::ComputeOpacity::Dec
 
-//VTK::ComputeOpacity2DWithGradient::Dec
+//VTK::ComputeRGBA2DWithGradient::Dec
 
 //VTK::ComputeGradient::Dec
 
@@ -263,6 +267,8 @@ void initializeRayCast()
   //VTK::RenderToImage::Init
 
   //VTK::DepthPass::Init
+
+  //VTK::Matrices::Init
 
   g_jitterValue = jitterValue;
 }

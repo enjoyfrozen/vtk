@@ -335,8 +335,8 @@ vtkSmartVolumeMapper* vtkMultiBlockVolumeMapper::CreateMapper()
   mapper->SetCroppingRegionFlags(this->GetCroppingRegionFlags());
   mapper->SetCroppingRegionPlanes(this->GetCroppingRegionPlanes());
   mapper->SetTransfer2DYAxisArray(this->Transfer2DYAxisArray);
-  mapper->SetVolumetricShadow(this->VolumetricShadow);
   mapper->SetGlobalIlluminationReach(this->GlobalIlluminationReach);
+  mapper->SetVolumetricScatteringBlending(this->VolumetricScatteringBlending);
   mapper->SetComputeNormalFromOpacity(this->ComputeNormalFromOpacity);
 
   vtkOpenGLGPUVolumeRayCastMapper* glMapper =
@@ -346,8 +346,8 @@ vtkSmartVolumeMapper* vtkMultiBlockVolumeMapper::CreateMapper()
   {
     glMapper->UseJitteringOn();
     glMapper->SetComputeNormalFromOpacity(this->ComputeNormalFromOpacity);
-    glMapper->SetVolumetricShadow(this->VolumetricShadow);
     glMapper->SetGlobalIlluminationReach(this->GlobalIlluminationReach);
+    glMapper->SetVolumetricScatteringBlending(this->VolumetricScatteringBlending);
   }
   return mapper;
 }
@@ -564,20 +564,6 @@ void vtkMultiBlockVolumeMapper::SetComputeNormalFromOpacity(bool val)
 }
 
 //------------------------------------------------------------------------------
-void vtkMultiBlockVolumeMapper::SetVolumetricShadow(bool val)
-{
-  if (this->VolumetricShadow != val)
-  {
-    for (auto& mapper : this->Mappers)
-    {
-      mapper->SetVolumetricShadow(val);
-    }
-    this->VolumetricShadow = val;
-    this->Modified();
-  }
-}
-
-//------------------------------------------------------------------------------
 void vtkMultiBlockVolumeMapper::SetGlobalIlluminationReach(float val)
 {
   if (this->GlobalIlluminationReach != val)
@@ -587,6 +573,20 @@ void vtkMultiBlockVolumeMapper::SetGlobalIlluminationReach(float val)
       mapper->SetGlobalIlluminationReach(val);
     }
     this->GlobalIlluminationReach = val;
+    this->Modified();
+  }
+}
+
+//------------------------------------------------------------------------------
+void vtkMultiBlockVolumeMapper::SetVolumetricScatteringBlending(float val)
+{
+  if (this->VolumetricScatteringBlending != (val < 0.0 ? 0.0 : (val > 2.0 ? 2.0 : val)))
+  {
+    for (auto& mapper : this->Mappers)
+    {
+      mapper->SetVolumetricScatteringBlending(val);
+    }
+    this->VolumetricScatteringBlending = val < 0.0 ? 0.0 : (val > 2.0 ? 2.0 : val);
     this->Modified();
   }
 }
