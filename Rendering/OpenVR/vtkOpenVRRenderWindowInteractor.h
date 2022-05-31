@@ -43,7 +43,7 @@ public:
   /**
    * Implements the event loop.
    */
-  void DoOneEvent(vtkVRRenderWindow* renWin, vtkRenderer* ren) override;
+  void DoOneEvent(vtkVRRenderWindow* renWin, vtkRenderer* ren, bool doRender = true) override;
 
   ///@{
   /**

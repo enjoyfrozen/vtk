@@ -287,7 +287,7 @@ void vtkVRRenderWindowInteractor::StartEventLoop()
 
   while (!this->Done)
   {
-    this->DoOneEvent(renWin, ren);
+    this->DoOneEvent(renWin, ren, true);
   }
 }
 

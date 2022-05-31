@@ -44,7 +44,10 @@ public:
    */
   void Initialize() override;
 
-  void DoOneEvent(vtkVRRenderWindow* renWin, vtkRenderer* ren) override;
+  /**
+   * Process all XR events and perform a render
+   */
+  void DoOneEvent(vtkVRRenderWindow* renWin, vtkRenderer* ren, bool doRender = true) override;
 
   /**
    * Return the XrPosef for the action named "handpose"

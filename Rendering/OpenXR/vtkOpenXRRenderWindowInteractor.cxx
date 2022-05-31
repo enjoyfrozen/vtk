@@ -59,7 +59,7 @@ vtkOpenXRRenderWindowInteractor::~vtkOpenXRRenderWindowInteractor()
 
 //------------------------------------------------------------------------------
 void vtkOpenXRRenderWindowInteractor::DoOneEvent(
-  vtkVRRenderWindow* renWin, vtkRenderer* vtkNotUsed(ren))
+  vtkVRRenderWindow* renWin, vtkRenderer* vtkNotUsed(ren), bool doRender)
 {
   this->ProcessXrEvents();
 
@@ -75,14 +75,17 @@ void vtkOpenXRRenderWindowInteractor::DoOneEvent(
     this->RecognizeComplexGesture(nullptr);
   }
 
-  // Start a render
-  this->InvokeEvent(vtkCommand::RenderEvent);
-  auto ostate = renWin->GetState();
-  renWin->MakeCurrent();
-  ostate->Reset();
-  ostate->Push();
-  renWin->Render();
-  ostate->Pop();
+  if (doRender)
+  {
+    // Start a render
+    this->InvokeEvent(vtkCommand::RenderEvent);
+    auto ostate = renWin->GetState();
+    renWin->MakeCurrent();
+    ostate->Reset();
+    ostate->Push();
+    renWin->Render();
+    ostate->Pop();
+  }
 }
 
 //------------------------------------------------------------------------------
