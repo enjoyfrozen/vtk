@@ -27,7 +27,6 @@
 #include "vtkmlib/ArrayConverters.h"
 #include "vtkmlib/DataSetConverters.h"
 #include "vtkmlib/UnstructuredGridConverter.h"
-#include "vtkmlib/vtkmInitializer.h"
 
 #include "vtkmFilterPolicy.h"
 
@@ -64,7 +63,6 @@ int vtkmThreshold::RequestData(
     // convert the input dataset to a vtkm::cont::DataSet
     auto in = tovtkm::Convert(input, tovtkm::FieldsFlag::PointsAndCells);
 
-    InitializeVTKm();
     vtkm::filter::Threshold filter;
     filter.SetActiveField(inputArray->GetName());
     filter.SetLowerThreshold(this->GetLowerThreshold());

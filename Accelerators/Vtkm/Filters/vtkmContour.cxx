@@ -31,7 +31,6 @@
 #include "vtkmlib/ArrayConverters.h"
 #include "vtkmlib/DataSetConverters.h"
 #include "vtkmlib/PolyDataConverter.h"
-#include "vtkmlib/vtkmInitializer.h"
 
 #include "vtkmFilterPolicy.h"
 
@@ -126,8 +125,6 @@ int vtkmContour::RequestData(
     {
       throw vtkm::cont::ErrorFilterExecution("Input dataset is not supported by vtkmContour.");
     }
-
-    InitializeVTKm();
 
     vtkm::filter::Contour filter;
     filter.SetActiveField(inputArray->GetName(), vtkm::cont::Field::Association::POINTS);

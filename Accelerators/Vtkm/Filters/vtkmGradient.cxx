@@ -26,7 +26,6 @@
 #include "vtkmlib/ArrayConverters.h"
 #include "vtkmlib/DataSetConverters.h"
 #include "vtkmlib/PolyDataConverter.h"
-#include "vtkmlib/vtkmInitializer.h"
 
 #include "vtkmFilterPolicy.h"
 
@@ -106,7 +105,6 @@ int vtkmGradient::RequestData(
     }
 
     auto passNoFields = vtkm::filter::FieldSelection(vtkm::filter::FieldSelection::MODE_NONE);
-    InitializeVTKm();
     vtkm::filter::Gradient filter;
     filter.SetFieldsToPass(passNoFields);
     filter.SetColumnMajorOrdering();

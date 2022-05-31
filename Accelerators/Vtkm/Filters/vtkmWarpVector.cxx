@@ -29,7 +29,6 @@
 
 #include "vtkmlib/ArrayConverters.h"
 #include "vtkmlib/DataSetConverters.h"
-#include "vtkmlib/vtkmInitializer.h"
 
 #include "vtkm/cont/DataSetFieldAdd.h"
 #include "vtkmFilterPolicy.h"
@@ -93,7 +92,6 @@ int vtkmWarpVector::RequestData(vtkInformation* vtkNotUsed(request),
   }
 
   output->CopyStructure(input);
-  InitializeVTKm();
 
   try
   {

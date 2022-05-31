@@ -76,10 +76,6 @@ vtk_module_set_property(VTK::AcceleratorsVTKmDataModel
   PROPERTY  JOB_POOL_COMPILE
   VALUE     vtkm_pool)
 
-if (TARGET vtkm::kokkos_hip)
-  enable_language(HIP)
-endif ()
-
 if (TARGET vtkm::cuda)
   set(cuda_impl ${nowrap_classes} vtkmDataSet.cxx)
   set_source_files_properties(${cuda_impl} PROPERTIES

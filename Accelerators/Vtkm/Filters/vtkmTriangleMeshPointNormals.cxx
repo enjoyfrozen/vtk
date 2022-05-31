@@ -24,7 +24,6 @@
 
 #include "vtkmlib/ArrayConverters.h"
 #include "vtkmlib/PolyDataConverter.h"
-#include "vtkmlib/vtkmInitializer.h"
 
 #include "vtkmFilterPolicy.h"
 
@@ -68,7 +67,6 @@ int vtkmTriangleMeshPointNormals::RequestData(
     // convert the input dataset to a vtkm::cont::DataSet
     auto in = tovtkm::Convert(input, tovtkm::FieldsFlag::None);
 
-    InitializeVTKm();
     vtkm::filter::SurfaceNormals filter;
     filter.SetGenerateCellNormals(false);
     filter.SetNormalizeCellNormals(false);

@@ -30,7 +30,6 @@
 
 #include "vtkmlib/ArrayConverters.h"
 #include "vtkmlib/DataSetConverters.h"
-#include "vtkmlib/vtkmInitializer.h"
 
 #include "vtkm/cont/Error.h"
 #include "vtkm/filter/PointTransform.h"
@@ -119,8 +118,6 @@ int vtkmPointTransform::RequestData(vtkInformation* vtkNotUsed(request),
     vtkDebugMacro(<< "Miss input points or transform matrix");
     return 0;
   }
-
-  InitializeVTKm();
 
   try
   {

@@ -27,7 +27,6 @@
 #include "vtkmlib/ArrayConverters.h"
 #include "vtkmlib/DataSetConverters.h"
 #include "vtkmlib/PolyDataConverter.h"
-#include "vtkmlib/vtkmInitializer.h"
 
 #include "vtkmFilterPolicy.h"
 
@@ -135,7 +134,6 @@ int vtkmLevelOfDetail::RequestData(vtkInformation* vtkNotUsed(request),
       return 0;
     }
 
-    InitializeVTKm();
     vtkm::filter::VertexClustering filter;
     filter.SetNumberOfDivisions(vtkm::make_Vec(
       this->NumberOfDivisions[0], this->NumberOfDivisions[1], this->NumberOfDivisions[2]));

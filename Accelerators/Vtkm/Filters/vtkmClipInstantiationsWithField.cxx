@@ -15,7 +15,6 @@
 
 #include "vtkmClipInternals.h"
 #include "vtkmlib/DataSetConverters.h"
-#include "vtkmlib/vtkmInitializer.h"
 
 #include <vtkm/filter/ClipWithField.h>
 
@@ -23,7 +22,6 @@
 vtkm::cont::DataSet vtkmClip::internals::ExecuteClipWithField(
   vtkm::cont::DataSet& in, vtkDataArray* scalars, int assoc)
 {
-  InitializeVTKm();
   vtkm::filter::ClipWithField fieldFilter;
   if (!this->ComputeScalars)
   {

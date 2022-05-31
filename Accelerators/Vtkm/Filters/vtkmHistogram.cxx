@@ -26,7 +26,6 @@
 
 #include "vtkmlib/ArrayConverters.h"
 #include "vtkmlib/DataSetConverters.h"
-#include "vtkmlib/vtkmInitializer.h"
 
 #include "vtkObjectFactory.h"
 #include "vtkPointData.h"
@@ -95,7 +94,6 @@ int vtkmHistogram::RequestData(vtkInformation* vtkNotUsed(request),
     auto field = tovtkm::Convert(fieldArray, association);
     in.AddField(field);
 
-    InitializeVTKm();
     vtkm::filter::Histogram filter;
 
     filter.SetNumberOfBins(static_cast<vtkm::Id>(this->NumberOfBins));

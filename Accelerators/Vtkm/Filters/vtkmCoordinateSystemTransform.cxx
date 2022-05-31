@@ -30,7 +30,6 @@
 
 #include "vtkmlib/ArrayConverters.h"
 #include "vtkmlib/DataSetConverters.h"
-#include "vtkmlib/vtkmInitializer.h"
 
 #include "vtkmFilterPolicy.h"
 
@@ -88,7 +87,6 @@ int vtkmCoordinateSystemTransform::RequestDataObject(
 {
   vtkImageData* inImage = vtkImageData::GetData(inputVector[0]);
   vtkRectilinearGrid* inRect = vtkRectilinearGrid::GetData(inputVector[0]);
-  InitializeVTKm();
 
   if (inImage || inRect)
   {

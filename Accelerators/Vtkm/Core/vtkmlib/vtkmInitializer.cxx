@@ -14,11 +14,9 @@
 //
 //=============================================================================
 
-#include "vtkmInitializer.h"
-
 #include <vtkm/cont/Initialize.h>
 
-void InitializeVTKm()
+int InitializeVTKm()
 {
 // Only Kokkos HIP backend needs to be initialized
 #ifdef VTKM_HIP
@@ -31,4 +29,8 @@ void InitializeVTKm()
     isInitialized = true;
   }
 #endif
+  return 0;
 }
+
+// We want to initialize vtkm before main function is invoked.
+static int __initialize_vtkm_startup_time = InitializeVTKm();

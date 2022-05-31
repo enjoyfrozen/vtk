@@ -48,14 +48,6 @@ if (TARGET vtkm::cuda)
   # We are disabling all warnings as nvlink has no known way to suppress
   # individual warning types.
   string(APPEND CMAKE_CUDA_FLAGS " -Xnvlink -w")
-
-elseif (TARGET vtkm::kokkos_hip)
-  enable_language(HIP)
-
-  foreach(src IN LISTS tests)
-    set_source_files_properties(${src} PROPERTIES LANGUAGE "HIP")
-  endforeach()
-  kokkos_compilation(SOURCE ${tests})
 endif()
 
 

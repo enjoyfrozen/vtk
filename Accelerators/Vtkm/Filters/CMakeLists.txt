@@ -125,15 +125,6 @@ vtk_module_link(VTK::AcceleratorsVTKmFilters
 vtk_module_definitions(VTK::AcceleratorsVTKmFilters
   PUBLIC "VTK_ENABLE_VTKM_OVERRIDES=$<BOOL:${VTK_ENABLE_VTKM_OVERRIDES}>")
 
-if (TARGET vtkm::kokkos_hip)
-  enable_language(HIP)
-  list(TRANSFORM classes APPEND ".cxx" OUTPUT_VARIABLE hip_impl)
-  set_source_files_properties(${hip_impl} PROPERTIES LANGUAGE HIP)
-  kokkos_compilation(SOURCE ${hip_impl})
-
-  set_property(TARGET ${vtkm_accel_target} PROPERTY INTERFACE_LINK_OPTIONS "")
-endif ()
-
 if (TARGET vtkm::cuda)
   list(TRANSFORM classes APPEND ".cxx" OUTPUT_VARIABLE cuda_impl)
   set_source_files_properties(${cuda_impl} PROPERTIES

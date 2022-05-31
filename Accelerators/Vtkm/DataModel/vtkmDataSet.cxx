@@ -22,7 +22,6 @@
 #include "vtkmDataArray.h"
 #include "vtkmFilterPolicy.h"
 #include "vtkmlib/ArrayConverters.h"
-#include "vtkmlib/vtkmInitializer.h"
 
 #include "vtkCell.h"
 #include "vtkDataSet.h"
@@ -70,7 +69,6 @@ struct vtkmDataSet::DataMembers
 vtkmDataSet::vtkmDataSet()
   : Internals(new DataMembers)
 {
-  InitializeVTKm();
 }
 
 vtkmDataSet::~vtkmDataSet() = default;

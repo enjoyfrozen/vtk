@@ -70,7 +70,6 @@ vtk_module_set_property(VTK::AcceleratorsVTKmCore
   VALUE     vtkm_pool)
 
 if (TARGET vtkm::kokkos_hip)
-  enable_language(HIP)
   list(TRANSFORM nowrap_classes APPEND ".cxx" OUTPUT_VARIABLE hip_impl)
   set(hip_impl vtkmDataArray.cxx ${hip_impl})
   set_source_files_properties(${hip_impl} PROPERTIES LANGUAGE HIP)

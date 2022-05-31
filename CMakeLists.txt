@@ -135,6 +135,21 @@ if(VTK_USE_CUDA)
 endif()
 
 #-----------------------------------------------------------------------------
+# Add an option to enable/disable HIP support.
+option(VTK_USE_HIP "Support HIP backend accelerator" OFF)
+if(VTK_USE_HIP)
+  # CMAKE support for HIP was added in CMAKE 3.21
+  if (CMAKE_VERSION VERSION_LESS 3.21)
+    message(FATAL_ERROR "CMAKE support for HIP requiries CMAKE >= 3.21")
+  endif()
+
+  # This needs to be a top level flag as enable_language needs
+  # to be called from CMake entry point for variables to have
+  # the correct scope.
+  enable_language(HIP)
+endif()
+
+#-----------------------------------------------------------------------------
 # Add an option to enable/disable logging support.
 option(VTK_ENABLE_LOGGING "Enable logging support." ON)
 mark_as_advanced(VTK_ENABLE_LOGGING)
