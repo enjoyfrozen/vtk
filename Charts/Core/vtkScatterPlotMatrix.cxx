@@ -1428,11 +1428,11 @@ void vtkScatterPlotMatrix::UpdateLayout()
         {
           int max = INT_MIN;
 
-          for (int i = 0; i < arr->GetNumberOfValues(); i++)
+          for (int id = 0; id < arr->GetNumberOfValues(); id++)
           {
-            if (arr->GetVariantValue(i) > max)
+            if (arr->GetVariantValue(id) > max)
             {
-              max = arr->GetVariantValue(i).ToInt();
+              max = arr->GetVariantValue(id).ToInt();
             }
           }
 
