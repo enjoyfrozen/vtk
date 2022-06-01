@@ -23,6 +23,7 @@
 #define vtkOSPRayRendererNode_h
 
 #include "RTWrapper/RTWrapper.h" // for handle types
+#include "vtkDeprecation.h"      // For deprecation macro
 #include "vtkOSPRayCache.h"      // For common cache infrastructure
 #include "vtkRendererNode.h"
 #include "vtkRenderingRayTracingModule.h" // For export macro
@@ -151,14 +152,17 @@ public:
    *
    * valid values are between -1.0 and 1.0. The default is 0.0.
    */
+  VTK_DEPRECATED_IN_9_2_0("This key is not used anymore, and is replaced by vtkVolumeProperty::ScatteringAnisotropy")
   static vtkInformationDoubleKey* VOLUME_ANISOTROPY();
 
   ///@{
   /**
    * Convenience method to set/get VOLUME_ANISOTROPY on a vtkRenderer.
    */
-  static void SetVolumeAnisotropy(double, vtkRenderer* renderer);
-  static double GetVolumeAnisotropy(vtkRenderer* renderer);
+  VTK_DEPRECATED_IN_9_2_0("Use vtkVolumeProperty::SetScatteringAnisotropy instead")
+  static void SetVolumeAnisotropy(double, vtkRenderer* vtkNotUsed(renderer)){};
+  VTK_DEPRECATED_IN_9_2_0("Use vtkVolumeProperty::GetScatteringAnisotropy instead")
+  static double GetVolumeAnisotropy(vtkRenderer* vtkNotUsed(renderer)) { return 0.0; };
   ///@}
 
   /**
