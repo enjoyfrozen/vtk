@@ -55,7 +55,7 @@ vtk_test_cxx_executable(vtkAcceleratorsVTKmFiltersCxxTests tests
   RENDERING_FACTORY
   )
 
-if (TARGET vtkm::cuda)
+if (TARGET vtkm::cuda OR TARGET vtkm::kokkos_hip)
   # When cuda is enabled VTK::AcceleratorsVTKmFilters is built statically but with fpic
   # enabled so the tests are also built with fpic enabled
   set_target_properties(vtkAcceleratorsVTKmFiltersCxxTests PROPERTIES

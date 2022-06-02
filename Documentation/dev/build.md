@@ -185,6 +185,8 @@ to modify include:
     built. This is usually what is wanted.
   * `VTK_USE_CUDA` (default `OFF`): Whether [CUDA][cuda] support will be available or
     not.
+  * `VTK_USE_HIP` (default `OFF`): Whether [HIP][hip] support will be
+    available or not.
   * `VTK_USE_MPI` (default `OFF`): Whether [MPI][mpi] support will be available or
     not.
   * `VTK_WRAP_PYTHON` (default `OFF`; requires `VTK_ENABLE_WRAPPING`): Whether
@@ -414,6 +416,7 @@ The following targets are used to build documentation for VTK:
 [cmake-find_package-search]: https://cmake.org/cmake/help/latest/command/find_package.html#search-procedure
 [cmake-modules-find]: https://cmake.org/cmake/help/latest/manual/cmake-modules.7.html#find-modules
 [cuda]: https://developer.nvidia.com/cuda-zone
+[hip]: https://en.wikipedia.org/wiki/ROCm
 [ffmpeg]: https://ffmpeg.org
 [git]: https://git-scm.org
 [mesa]: https://www.mesa3d.org
