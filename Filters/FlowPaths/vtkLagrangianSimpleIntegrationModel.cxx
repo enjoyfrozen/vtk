@@ -21,8 +21,8 @@ vtkObjectFactoryNewMacro(vtkLagrangianSimpleIntegrationModel);
 //------------------------------------------------------------------------------
 vtkLagrangianSimpleIntegrationModel::vtkLagrangianSimpleIntegrationModel()
 {
-  this->NumFuncs = 3;     // u, v, w
-  this->NumIndepVars = 4; // x, y, z, t
+  this->NumFuncs = 6;     // u, v, w, du/dt, dv/dt, dw/dt
+  this->NumIndepVars = 7; // x, y, z, u, v, w, t
 }
 
 //------------------------------------------------------------------------------
@@ -39,7 +39,7 @@ int vtkLagrangianSimpleIntegrationModel::FunctionValues(vtkLagrangianParticle* p
   vtkDataSet* dataSet, vtkIdType cellId, double* weights, double* x, double* f)
 {
   // Initialize output
-  std::fill(f, f + 3, 0.0);
+  std::fill(f, f + 6, 0.0);
 
   if (!particle)
   {
@@ -55,13 +55,22 @@ int vtkLagrangianSimpleIntegrationModel::FunctionValues(vtkLagrangianParticle* p
     return 0;
   }
 
-  // Fetch flowVelocity at index 3 and store it in f
+  // Fetch flowVelocity at index 3
+  double flowVelocity[3];
   if (this->GetFlowOrSurfaceDataNumberOfComponents(3, dataSet) != 3 ||
-    !this->GetFlowOrSurfaceData(particle, 3, dataSet, cellId, weights, f))
+    !this->GetFlowOrSurfaceData(particle, 3, dataSet, cellId, weights, flowVelocity))
   {
     vtkErrorMacro(<< "Flow velocity is not set in source flow dataset or "
                      "has incorrect number of components, cannot use Simple equations");
     return 0;
+  }
+
+  // Compute function values
+  for (int i = 0; i < 3; i++)
+  {
+    // Simple Equation
+    f[i +3] = flowVelocity[i];
+    f[i] = x[i + 3] + flowVelocity[i];
   }
   return 1;
 }
