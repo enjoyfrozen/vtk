@@ -69,8 +69,7 @@ int vtkLagrangianSimpleIntegrationModel::FunctionValues(vtkLagrangianParticle* p
   for (int i = 0; i < 3; i++)
   {
     // Simple Equation
-    f[i +3] = flowVelocity[i];
-    f[i] = x[i + 3] + flowVelocity[i];
+    f[i] = flowVelocity[i];
   }
   return 1;
 }
