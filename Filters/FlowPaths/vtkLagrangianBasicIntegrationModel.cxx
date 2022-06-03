@@ -563,7 +563,8 @@ bool vtkLagrangianBasicIntegrationModel::ComputePeriodicParticle(vtkLagrangianPa
   double* part1Pos = particle1->GetPosition();
   for (int i = 0; i < 3; i++)
   {
-    double tol = this->Tolerance / this->DataSetsBB.GetLength(i);
+    double bbLength = this->DataSetsBB.GetLength(i);
+    double tol = bbLength < 1 ? this->Tolerance / this->DataSetsBB.GetLength(i) : this->Tolerance;
     if (nextPos[i] + tol >= this->DataSetsBB.GetMaxPoint()[i])
     {
       part1Pos[i] = nextPos[i] + tol - this->DataSetsBB.GetLength(i);
