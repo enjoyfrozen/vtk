@@ -52,6 +52,7 @@ vtkHyperTreeGridPProbeFilter::vtkHyperTreeGridPProbeFilter()
   , PassPointArrays(false)
   , PassFieldArrays(true)
 {
+  this->Controller = nullptr;
   this->SetController(vtkMultiProcessController::GetGlobalController());
   vtkNew<vtkHyperTreeGridGeometricLocator> thisLocator;
   this->SetLocator(thisLocator); // default to GeometricLocator
@@ -59,10 +60,9 @@ vtkHyperTreeGridPProbeFilter::vtkHyperTreeGridPProbeFilter()
 } // vtkHyperTreeGridPProbeFilter
 
 //------------------------------------------------------------------------------
-vtkHyperTreeGridPProbeFilter::~vtkHyperTreeGridPProbeFilter()
+vtkHyperTreeGridPProbeFilter::~vtkHyperTreeGridPProbeFilter() 
 {
   this->SetController(nullptr);
-  this->SetLocator(nullptr);
 } //~vtkHyperTreeGridPProbeFilter
 
 //------------------------------------------------------------------------------
