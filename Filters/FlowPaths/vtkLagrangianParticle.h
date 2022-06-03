@@ -109,7 +109,7 @@ public:
 
   /**
    * Constructor to create a particle from a seed.
-   * numberOfVariable correspond to the result
+   * numberOfVariable correspond to the result. for now, this must be 7.
    * of vtkLagrangianBasicIntegrationModel::GetNumberOfIndependantVariable()
    * and defines the size of the allocated memory for equation variables.
    * seedId is the index of the seed used to generate the particle

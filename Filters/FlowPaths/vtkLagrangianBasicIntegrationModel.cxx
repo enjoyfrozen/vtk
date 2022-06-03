@@ -101,6 +101,9 @@ vtkLagrangianBasicIntegrationModel::vtkLagrangianBasicIntegrationModel()
   vtkNew<vtkStaticCellLocator> locator;
   this->SetLocator(locator);
   this->LocatorsBuilt = false;
+
+  this->NumFuncs = 6;     // u, v, w, du/dt, dv/dt, dw/dt
+  this->NumIndepVars = 7; // x, y, z, u, v, w, t
 }
 
 //------------------------------------------------------------------------------
