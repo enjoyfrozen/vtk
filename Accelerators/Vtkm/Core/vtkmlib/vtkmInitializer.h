@@ -14,20 +14,17 @@
 //
 //=============================================================================
 
-#include <vtkm/cont/Initialize.h>
+#ifndef vtkmlib_vtkmInitializer_h
+#define vtkmlib_vtkmInitializer_h
 
-bool InitializeVTKm()
+#include "vtkAcceleratorsVTKmCoreModule.h"
+#include "vtkmConfigCore.h" //required for general vtkm setup
+
+bool InitializeVTKm();
+
+VTKACCELERATORSVTKMCORE_EXPORT struct vtkmInitializer
 {
-// Only Kokkos HIP backend needs to be initialized
-#ifdef VTKM_HIP
-  static bool isInitialized{ false };
-  if (!isInitialized)
-  {
-    int argc{ 1 };
-    char const* argv[]{ "vtkm", nullptr };
-    vtkm::cont::Initialize(argc, const_cast<char**>(argv));
-    isInitialized = true;
-  }
+  bool IsInitialized = InitializeVTKm();
+};
+
 #endif
-  return true;
-}

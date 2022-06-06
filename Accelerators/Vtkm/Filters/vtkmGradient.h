@@ -35,6 +35,7 @@
 
 #include "vtkAcceleratorsVTKmFiltersModule.h" //required for correct implementation
 #include "vtkGradientFilter.h"
+#include "vtkmlib/vtkmInitializer.h"
 
 class VTKACCELERATORSVTKMFILTERS_EXPORT vtkmGradient : public vtkGradientFilter
 {
@@ -66,6 +67,7 @@ protected:
 private:
   vtkmGradient(const vtkmGradient&) = delete;
   void operator=(const vtkmGradient&) = delete;
+  vtkmInitializer Initializer;
 };
 
 #endif // vtkmGradient_h

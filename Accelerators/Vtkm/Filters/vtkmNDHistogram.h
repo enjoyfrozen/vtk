@@ -36,6 +36,7 @@
 
 #include "vtkAcceleratorsVTKmFiltersModule.h" // required for correct export
 #include "vtkArrayDataAlgorithm.h"
+#include "vtkmlib/vtkmInitializer.h"
 #include <string>  // for std::string
 #include <utility> // for std::pair
 #include <vector>  // for std::vector
@@ -75,6 +76,7 @@ private:
   std::vector<vtkIdType> NumberOfBins;
   std::vector<double> BinDeltas;
   std::vector<std::pair<double, double>> DataRanges;
+  vtkmInitializer Initializer;
 };
 
 #endif // vtkmNDHistogram_h
