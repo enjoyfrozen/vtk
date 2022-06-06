@@ -28,14 +28,11 @@ set(private_headers
 set(nowrap_classes
   vtkmDataArray
   vtkmlib/DataArrayConverters
+  vtkmlib/vtkmInitializer
   vtkmlib/Portals)
 
 set(nowrap_headers
   vtkmlib/vtkmDataArray.hxx)
-
-set(sources
-  vtkmlib/vtkmInitializer.cxx
-  )
 
 configure_file(
   "${CMAKE_CURRENT_SOURCE_DIR}/vtkmConfigCore.h.in"

@@ -41,6 +41,7 @@
 #define vtkmWarpScalar_h
 
 #include "vtkAcceleratorsVTKmFiltersModule.h" // required for correct export
+#include "vtkmlib/vtkmInitializer.h" // Need for initializing vtk-m
 #include "vtkWarpScalar.h"
 
 class VTKACCELERATORSVTKMFILTERS_EXPORT vtkmWarpScalar : public vtkWarpScalar
@@ -60,6 +61,7 @@ protected:
 private:
   vtkmWarpScalar(const vtkmWarpScalar&) = delete;
   void operator=(const vtkmWarpScalar&) = delete;
+  vtkmInitializer Initializer;
 };
 
 #endif // vtkmWarpScalar_h

@@ -32,6 +32,7 @@
 #define vtkmThreshold_h
 
 #include "vtkAcceleratorsVTKmFiltersModule.h" //required for correct implementation
+#include "vtkmlib/vtkmInitializer.h" // Need for initializing vtk-m
 #include "vtkThreshold.h"
 
 class VTKACCELERATORSVTKMFILTERS_EXPORT vtkmThreshold : public vtkThreshold
@@ -65,6 +66,7 @@ protected:
 private:
   vtkmThreshold(const vtkmThreshold&) = delete;
   void operator=(const vtkmThreshold&) = delete;
+  vtkmInitializer Initializer;
 };
 
 #endif // vtkmThreshold_h

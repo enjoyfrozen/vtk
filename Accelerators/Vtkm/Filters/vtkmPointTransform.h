@@ -25,6 +25,7 @@
 #define vtkmPointTransform_h
 
 #include "vtkAcceleratorsVTKmFiltersModule.h" // For export macro
+#include "vtkmlib/vtkmInitializer.h" // Need for initializing vtk-m
 #include "vtkPointSetAlgorithm.h"
 
 class vtkHomogeneousTransform;
@@ -58,6 +59,7 @@ protected:
 private:
   vtkmPointTransform(const vtkmPointTransform&) = delete;
   void operator=(const vtkmPointTransform&) = delete;
+  vtkmInitializer Initializer;
 };
 
 #endif

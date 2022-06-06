@@ -43,6 +43,7 @@
 #define vtkmPolyDataNormals_h
 
 #include "vtkAcceleratorsVTKmFiltersModule.h" // for export macro
+#include "vtkmlib/vtkmInitializer.h" // Need for initializing vtk-m
 #include "vtkPolyDataNormals.h"
 
 class VTKACCELERATORSVTKMFILTERS_EXPORT vtkmPolyDataNormals : public vtkPolyDataNormals
@@ -75,6 +76,7 @@ protected:
 private:
   vtkmPolyDataNormals(const vtkmPolyDataNormals&) = delete;
   void operator=(const vtkmPolyDataNormals&) = delete;
+  vtkmInitializer Initializer;
 };
 
 #endif // vtkmPolyDataNormals_h

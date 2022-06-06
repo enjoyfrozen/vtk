@@ -26,6 +26,7 @@
 #define vtkmClip_h
 
 #include "vtkAcceleratorsVTKmFiltersModule.h" // For export macro
+#include "vtkmlib/vtkmInitializer.h" // Need for initializing vtk-m
 #include "vtkUnstructuredGridAlgorithm.h"
 
 #include <memory> // For std::unique_ptr
@@ -90,6 +91,7 @@ protected:
 private:
   vtkmClip(const vtkmClip&) = delete;
   void operator=(const vtkmClip&) = delete;
+  vtkmInitializer Initializer;
 };
 
 #endif // vtkmClip_h

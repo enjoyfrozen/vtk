@@ -27,6 +27,7 @@
 #define vtkmHistogram_h
 
 #include "vtkAcceleratorsVTKmFiltersModule.h" //required for correct export
+#include "vtkmlib/vtkmInitializer.h" // Need for initializing vtk-m
 #include "vtkTableAlgorithm.h"
 
 class vtkDoubleArray;
@@ -109,6 +110,7 @@ private:
   bool UseCustomBinRanges;
   bool CenterBinsAroundMinAndMax;
   double ComputedRange[2];
+  vtkmInitializer Initializer;
 };
 
 #endif // vtkmHistogram_h

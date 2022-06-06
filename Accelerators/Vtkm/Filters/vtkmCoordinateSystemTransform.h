@@ -26,6 +26,7 @@
 #define vtkmCoordinateSystemTransform_h
 
 #include "vtkAcceleratorsVTKmFiltersModule.h" // required for correct export
+#include "vtkmlib/vtkmInitializer.h" // Need for initializing vtk-m
 #include "vtkPointSetAlgorithm.h"
 
 class VTKACCELERATORSVTKMFILTERS_EXPORT vtkmCoordinateSystemTransform : public vtkPointSetAlgorithm
@@ -66,6 +67,7 @@ private:
   void operator=(const vtkmCoordinateSystemTransform&) = delete;
 
   TransformTypes TransformType;
+  vtkmInitializer Initializer;
 };
 
 #endif // vtkmCoordinateSystemTransform_h

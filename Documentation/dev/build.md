@@ -185,8 +185,6 @@ to modify include:
     built. This is usually what is wanted.
   * `VTK_USE_CUDA` (default `OFF`): Whether [CUDA][cuda] support will be available or
     not.
-  * `VTK_USE_HIP` (default `OFF`): Whether [HIP][hip] support will be
-    available or not.
   * `VTK_USE_MPI` (default `OFF`): Whether [MPI][mpi] support will be available or
     not.
   * `VTK_WRAP_PYTHON` (default `OFF`; requires `VTK_ENABLE_WRAPPING`): Whether
@@ -260,6 +258,8 @@ More advanced options:
   * `VTK_USE_LARGE_DATA` (default `OFF`; requires `VTK_BUILD_TESTING`):
     Whether to enable tests which use "large" data or not (usually used to
     reduce the amount of data downloading required for the test suite).
+  * `VTK_USE_HIP` (default `OFF`): Whether [HIP][hip] support will be
+    available or not. Requires CMAKE >= 3.21.
   * `VTK_LEGACY_REMOVE` (default `OFF`): If set, VTK will disable legacy,
     deprecated APIs.
   * `VTK_LEGACY_SILENT` (default `OFF`; requires `VTK_LEGACY_REMOVE` to be
