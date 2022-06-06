@@ -16,6 +16,7 @@
 #define vtkmFilterOverrides_h
 
 #include "vtkAcceleratorsVTKmFiltersModule.h" //required for correct implementation
+#include "vtkmlib/vtkmInitializer.h"          // Need for initializing vtk-m
 
 /// A class with static methods to turn vtkm filter overrides on/off at runtime
 ///
@@ -34,6 +35,7 @@ public:
   static void EnabledOn() { vtkmFilterOverrides::SetEnabled(true); }
   static void EnabledOff() { vtkmFilterOverrides::SetEnabled(false); }
   ///@}
+  vtkmInitializer Initializer;
 };
 
 #endif // vtkmFilterOverrides_h

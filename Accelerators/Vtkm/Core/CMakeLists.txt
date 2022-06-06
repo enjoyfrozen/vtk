@@ -28,14 +28,11 @@ set(private_headers
 set(nowrap_classes
   vtkmDataArray
   vtkmlib/DataArrayConverters
+  vtkmlib/vtkmInitializer
   vtkmlib/Portals)
 
 set(nowrap_headers
   vtkmlib/vtkmDataArray.hxx)
-
-set(sources
-  vtkmlib/vtkmInitializer.cxx
-  )
 
 configure_file(
   "${CMAKE_CURRENT_SOURCE_DIR}/vtkmConfigCore.h.in"
@@ -74,14 +71,12 @@ vtk_module_set_property(VTK::AcceleratorsVTKmCore
 
 if (TARGET vtkm::kokkos_hip)
   list(TRANSFORM nowrap_classes APPEND ".cxx" OUTPUT_VARIABLE hip_impl)
-  set(hip_impl ${hip_impl} ${sources})
   set_source_files_properties(${hip_impl} PROPERTIES LANGUAGE HIP)
   kokkos_compilation(SOURCE ${hip_impl})
 endif ()
 
 if (TARGET vtkm::cuda)
   list(TRANSFORM nowrap_classes APPEND ".cxx" OUTPUT_VARIABLE cuda_impl)
-  set(cuda_impl ${cuda_impl} ${sources})
   set_source_files_properties(${cuda_impl} PROPERTIES
     LANGUAGE CUDA
     CUDA_SOURCE_PROPERTY_FORMAT OBJ
