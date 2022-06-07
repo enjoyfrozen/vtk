@@ -16,6 +16,8 @@
 
 #include "vtkObjectFactory.h"
 
+#include "vtkMath.h"
+
 vtkObjectFactoryNewMacro(vtkLagrangianSimpleIntegrationModel);
 
 //------------------------------------------------------------------------------
@@ -60,12 +62,14 @@ int vtkLagrangianSimpleIntegrationModel::FunctionValues(vtkLagrangianParticle* p
                      "has incorrect number of components, cannot use Simple equations");
     return 0;
   }
+  vtkMath::Normalize(flowVelocity);
 
   // Compute function values
   for (int i = 0; i < 3; i++)
   {
     // Simple Equation
     f[i] = flowVelocity[i];
+    f[i + 3] = flowVelocity[i];
   }
   return 1;
 }
