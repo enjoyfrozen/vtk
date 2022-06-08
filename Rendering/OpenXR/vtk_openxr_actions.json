@@ -21,6 +21,10 @@
       "type": "boolean"
     },
     {
+      "name": "modifier",
+      "type": "boolean"
+    },
+    {
       "name": "movement",
       "type": "vector2"
     },
@@ -90,6 +94,7 @@
       "handposegrip": "Hand Pose Grip",
       "haptic": "Haptic Vibration",
       "leftgripaction": "Left Grip Action",
+      "modifier": "Modifier",
       "movement": "Trackpad Movement",
       "nextcamerapose": "Next Camera Pose",
       "positionprop": "Position Prop",

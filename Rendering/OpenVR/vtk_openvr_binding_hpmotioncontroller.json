@@ -6,9 +6,22 @@
     "/actions/vtk": {
       "sources": [
         {
-          "inputs": {},
-          "mode": "none",
-          "path": "/user/hand/right/input/application_menu"
+          "inputs": {
+            "position": {
+              "output": "/actions/vtk/in/movement"
+            }
+          },
+          "mode": "joystick",
+          "path": "/user/hand/left/input/joystick"
+        },
+        {
+          "inputs": {
+            "position": {
+              "output": "/actions/vtk/in/elevation"
+            }
+          },
+          "mode": "joystick",
+          "path": "/user/hand/right/input/joystick"
         },
         {
           "inputs": {
@@ -18,47 +31,6 @@
           },
           "mode": "button",
           "path": "/user/hand/left/input/trigger"
-        },
-        {
-          "inputs": {
-            "position": {
-              "output": "/actions/vtk/in/movement"
-            }
-          },
-          "mode": "joystick",
-          "path": "/user/hand/right/input/joystick"
-        },
-        {
-          "inputs": {
-            "click": {
-              "output": "/actions/vtk/in/rightgripaction"
-            }
-          },
-          "mode": "button",
-          "path": "/user/hand/right/input/grip"
-        },
-        {
-          "inputs": {
-            "click": {
-              "output": "/actions/vtk/in/leftgripaction"
-            }
-          },
-          "mode": "button",
-          "path": "/user/hand/left/input/grip"
-        },
-        {
-          "inputs": {
-            "click": {
-              "output": "/actions/vtk/in/showmenu"
-            }
-          },
-          "mode": "button",
-          "path": "/user/hand/right/input/b"
-        },
-        {
-          "inputs": {},
-          "mode": "button",
-          "path": "/user/hand/right/input/a"
         },
         {
           "inputs": {
@@ -72,11 +44,38 @@
         {
           "inputs": {
             "click": {
-              "output": "/actions/vtk/in/shownavigationpanel"
+              "output": "/actions/vtk/in/leftgripaction"
             }
           },
           "mode": "button",
-          "path": "/user/hand/left/input/application_menu"
+          "path": "/user/hand/left/input/grip"
+        },
+        {
+          "inputs": {
+            "click": {
+              "output": "/actions/vtk/in/rightgripaction"
+            }
+          },
+          "mode": "button",
+          "path": "/user/hand/right/input/grip"
+        },
+        {
+          "inputs": {
+            "click": {
+              "output": "/actions/vtk/in/modifier"
+            }
+          },
+          "mode": "button",
+          "path": "/user/hand/left/input/y"
+        },
+        {
+          "inputs": {
+            "click": {
+              "output": "/actions/vtk/in/showmenu"
+            }
+          },
+          "mode": "button",
+          "path": "/user/hand/right/input/b"
         }
       ]
     }
@@ -84,7 +83,7 @@
   "category": "steamvr_input",
   "controller_type": "hpmotioncontroller",
   "description": "",
-  "name": "Bindings for VTK using a hpmotion controller",
+  "name": "Bindings for VTK for HP Motion controllers",
   "options": {},
   "simulated_actions": []
 }

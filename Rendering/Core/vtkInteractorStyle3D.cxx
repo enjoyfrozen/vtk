@@ -14,6 +14,7 @@
 =========================================================================*/
 #include "vtkInteractorStyle3D.h"
 
+#include "vtkAssembly.h"
 #include "vtkAssemblyPath.h"
 #include "vtkCallbackCommand.h"
 #include "vtkCamera.h"
@@ -25,6 +26,7 @@
 #include "vtkObjectFactory.h"
 #include "vtkPlane.h"
 #include "vtkProp3D.h"
+#include "vtkProp3DCollection.h"
 #include "vtkPropPicker.h"
 #include "vtkQuaternion.h"
 #include "vtkRenderWindowInteractor3D.h"
@@ -95,31 +97,53 @@ void vtkInteractorStyle3D::PositionProp(vtkEventData* ed, double* lwpos, double*
     lwori = rwi->GetLastWorldEventOrientation(rwi->GetPointerIndex());
   }
 
-  // the code below computes newModelToWorld and then sets the prop3D from
-  // it
+  // Apply to each part if the prop is an assembly
+  vtkAssembly* assembly = vtkAssembly::SafeDownCast(this->InteractionProp);
 
-  // we need another temp matrix for these calculations
-  vtkNew<vtkMatrix4x4> tmpMatrix;
+  if (assembly)
+  {
+    vtkProp3DCollection* propParts = assembly->GetParts();
+    vtkProp3D* prop3D;
+    vtkCollectionSimpleIterator pit;
 
-  // the basic gist is
+    for (propParts->InitTraversal(pit); (prop3D = propParts->GetNextProp3D(pit));)
+    {
+      this->ApplyModelToWorldPosition(prop3D, lwpos, lwori, wpos, wori);
+    }
+  }
+  else
+  {
+    this->ApplyModelToWorldPosition(this->InteractionProp, lwpos, lwori, wpos, wori);
+  }
+
+  if (this->AutoAdjustCameraClippingRange)
+  {
+    this->CurrentRenderer->ResetCameraClippingRange();
+  }
+}
+
+//------------------------------------------------------------------------------
+void vtkInteractorStyle3D::ApplyModelToWorldPosition(
+  vtkProp3D* prop3D, double* lwpos, double* lwori, double wpos[3], double wori[4])
+{
+  // Compute newModelToWorld and then set prop3D from it
+  // The basic gist is:
   // newModelToWorld = oldModelToWorld -> worldToLastPose -> newPoseToWorld
-
-  // first use it to store newModelToWorld
+  vtkNew<vtkMatrix4x4> tmpMatrix;
   vtkMatrix4x4* oldModelToLastPose = this->TempMatrix4;
 
-  // create a scope here so that some usages of TempMatrix4 and tmpMatrix
+  // Create a scope here so that some usages of TempMatrix4 and tmpMatrix
   // go out of scope and will not be accidentally reused.
   {
     vtkMatrix4x4* oldModelToWorld = this->TempMatrix4;
-    this->InteractionProp->GetModelToWorldMatrix(oldModelToWorld);
+    prop3D->GetModelToWorldMatrix(oldModelToWorld);
 
     vtkMatrix4x4* worldToLastPose = tmpMatrix;
     vtkMatrix4x4::PoseToMatrix(lwpos, lwori, worldToLastPose);
     worldToLastPose->Invert();
 
     vtkMatrix4x4::Multiply4x4(worldToLastPose, oldModelToWorld, oldModelToLastPose);
-  }
-  // oldModelToWorld and worldToLastPose are gone now
+  } // oldModelToWorld and worldToLastPose are gone now
 
   vtkMatrix4x4* newPoseToWorld = tmpMatrix;
   vtkMatrix4x4::PoseToMatrix(wpos, wori, newPoseToWorld);
@@ -127,12 +151,7 @@ void vtkInteractorStyle3D::PositionProp(vtkEventData* ed, double* lwpos, double*
   vtkMatrix4x4* newModelToWorld = this->TempMatrix4;
   vtkMatrix4x4::Multiply4x4(newPoseToWorld, oldModelToLastPose, newModelToWorld);
 
-  this->InteractionProp->SetPropertiesFromModelToWorldMatrix(newModelToWorld);
-
-  if (this->AutoAdjustCameraClippingRange)
-  {
-    this->CurrentRenderer->ResetCameraClippingRange();
-  }
+  prop3D->SetPropertiesFromModelToWorldMatrix(newModelToWorld);
 }
 
 //------------------------------------------------------------------------------
@@ -218,6 +237,7 @@ void vtkInteractorStyle3D::Prop3DTransform(
   }
 }
 
+//------------------------------------------------------------------------------
 void vtkInteractorStyle3D::Dolly3D(vtkEventData* ed)
 {
   if (this->CurrentRenderer == nullptr)
@@ -273,6 +293,7 @@ void vtkInteractorStyle3D::Dolly3D(vtkEventData* ed)
   }
 }
 
+//------------------------------------------------------------------------------
 void vtkInteractorStyle3D::SetScale(vtkCamera* camera, double newScale)
 {
   vtkRenderWindowInteractor3D* rwi = static_cast<vtkRenderWindowInteractor3D*>(this->Interactor);

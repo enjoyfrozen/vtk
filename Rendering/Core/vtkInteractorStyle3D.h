@@ -71,15 +71,19 @@ public:
   vtkTypeMacro(vtkInteractorStyle3D, vtkInteractorStyle);
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  // This method handles updating the prop based on changes in the devices
-  // pose. We use rotate as the state to mean adjusting-the-actor-pose
-  // if last world event position \p lwpos and orientation \p lwori are defined
-  // then this function do not use the Interactor3D to get the last world event position
-  // and orientation. This is useful when one needs to pass custom world event data.
+  /**
+   * This method handles updating the prop based on changes in the device
+   * pose. We use rotate as the state to mean adjusting-the-actor-pose.
+   * If the last world event position \p lwpos and orientation \p lwori are defined,
+   * this function does not use the Interactor3D to get them. This is useful when
+   * one needs to pass custom world event data.
+   */
   virtual void PositionProp(vtkEventData*, double* lwpos = nullptr, double* lwori = nullptr);
 
-  // This method handles updating the camera based on changes in the devices
-  // pose. We use Dolly as the state to mean moving the camera forward
+  /**
+   * This method handles updating the camera based on changes in the device
+   * pose. We use Dolly as the state to mean moving the camera forward.
+   */
   virtual void Dolly3D(vtkEventData*);
 
   ///@{
@@ -106,6 +110,7 @@ public:
    */
   vtkGetObjectMacro(InteractionPicker, vtkAbstractPropPicker);
   void SetInteractionPicker(vtkAbstractPropPicker* prop);
+  ///@}
 
 protected:
   vtkInteractorStyle3D();
@@ -115,6 +120,9 @@ protected:
 
   void Prop3DTransform(
     vtkProp3D* prop3D, double* boxCenter, int NumRotation, double** rotate, double* scale);
+
+  void ApplyModelToWorldPosition(
+    vtkProp3D* prop3D, double* lwpos, double* lwori, double wpos[3], double wori[4]);
 
   vtkAbstractPropPicker* InteractionPicker;
   vtkProp3D* InteractionProp;
