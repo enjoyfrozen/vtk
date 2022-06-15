@@ -202,6 +202,20 @@ public:
 
   ///@{
   /**
+   * Set/Get whether to snap to the cell with the closest point, if no cell has been found while
+   * FindCell is executed.
+   *
+   * Default is off.
+   *
+   * Note: This is useful only when the source is a vtkPointSet.
+   */
+  vtkSetMacro(SnapToCellWithClosestPoint, bool);
+  vtkBooleanMacro(SnapToCellWithClosestPoint, bool);
+  vtkGetMacro(SnapToCellWithClosestPoint, bool);
+  ///@}
+
+  ///@{
+  /**
    * Set / get the strategy used to perform the FindCell() operation. When
    * specified, the strategy is used in preference to a cell locator
    * prototype. When neither a strategy or cell locator prototype is defined,
@@ -271,6 +285,7 @@ protected:
 
   double Tolerance;
   bool ComputeTolerance;
+  bool SnapToCellWithClosestPoint;
 
   char* ValidPointMaskArrayName;
   vtkIdTypeArray* ValidPoints;

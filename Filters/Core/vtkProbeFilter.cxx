@@ -86,6 +86,7 @@ vtkProbeFilter::vtkProbeFilter()
   this->PassFieldArrays = 1;
   this->Tolerance = 1.0;
   this->ComputeTolerance = true;
+  this->SnapToCellWithClosestPoint = false;
 }
 
 //------------------------------------------------------------------------------
@@ -396,6 +397,8 @@ class vtkProbeFilter::ProbeEmptyPointsWorklet
   double Tol2;
   int MaxCellSize;
 
+  static constexpr double SnappingRadius = std::numeric_limits<double>::infinity();
+
   vtkSMPThreadLocalObject<vtkGenericCell> TLCell;
   vtkSMPThreadLocal<std::vector<double>> TLWeights;
 
@@ -432,9 +435,10 @@ public:
     std::vector<double>& weights = this->TLWeights.Local();
     // local data
     double x[3], pcoords[3];
-    int subId;
+    int subId, inside;
     double dist2;
     double closestPoint[3];
+    bool closestPointFound;
 
     for (vtkIdType pointId = beginPointId; pointId < endPointId; ++pointId)
     {
@@ -451,6 +455,26 @@ public:
       vtkIdType cellId = (this->Strategy != nullptr)
         ? this->Strategy->FindCell(x, nullptr, cell, -1, this->Tol2, subId, pcoords, weights.data())
         : this->Source->FindCell(x, nullptr, -1, this->Tol2, subId, pcoords, weights.data());
+
+      if (cellId < 0 && this->ProbeFilter->SnapToCellWithClosestPoint && this->Strategy != nullptr)
+      {
+        // Find the closest point
+        closestPointFound = this->Strategy->FindClosestPointWithinRadius(
+          x, this->SnappingRadius, closestPoint, cell, cellId, subId, dist2, inside);
+        // FindClosestPointWithinRadius does not return the correct CurrentCell, so in case we find
+        // something we need to extract it and calculate the weights
+        if (closestPointFound)
+        {
+          this->Source->GetCell(cellId, cell);
+          // we don't need to calculate the closest point, but we do need to calculate the weights
+          cell->EvaluatePosition(
+            x, nullptr /*closestPoint*/, subId, pcoords, dist2, weights.data());
+        }
+        else
+        {
+          cellId = -1;
+        }
+      }
 
       if (cellId >= 0 && !::IsBlankedCell(this->SourceGhostFlags, cellId))
       {
