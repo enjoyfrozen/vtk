@@ -50,7 +50,7 @@ inline vtkm::cont::DataSet CopyDataSetStructure(const vtkm::cont::DataSet& ds)
 class MaskBits
 {
 public:
-  VTKM_EXEC_CONT MaskBits() {}
+  VTKM_EXEC_CONT MaskBits() = default;
 
   explicit MaskBits(int mask)
     : Mask(mask)

@@ -36,7 +36,7 @@ class VTKRENDERINGPARALLELLIC_EXPORT vtkPPainterCommunicator : public vtkPainter
 {
 public:
   vtkPPainterCommunicator();
-  virtual ~vtkPPainterCommunicator();
+  ~vtkPPainterCommunicator() override;
 
   /**
    * Copier and assignment operators.
