@@ -12,6 +12,7 @@
      PURPOSE.  See the above copyright notice for more information.
 
 =========================================================================*/
+#include <vtkXMLUniformGridAMRWriter.h>
 
 #include "vtkCellData.h"
 #include "vtkCellIterator.h"
@@ -19,14 +20,18 @@
 #include "vtkImageData.h"
 #include "vtkLogger.h"
 #include "vtkNew.h"
+#include "vtkOverlappingAMR.h"
 #include "vtkPartitionedDataSet.h"
 #include "vtkRectilinearGrid.h"
 #include "vtkSmartPointer.h"
 #include "vtkStructuredGrid.h"
+#include "vtkTestUtilities.h"
 #include "vtkUnstructuredGrid.h"
 #include "vtkVector.h"
 
+#include <catalyst_conduit.hpp>
 #include <catalyst_conduit_blueprint.hpp>
+#include <conduit.hpp>
 
 #define VERIFY(x, ...)                                                                             \
   if ((x) == false)                                                                                \
@@ -365,6 +370,63 @@ bool ValidateMeshTypeUnstructured()
   VERIFY(ug->GetNumberOfCells() == 8, "incorrect number of cells, expected 8, got %lld",
     ug->GetNumberOfCells());
   VERIFY(ug->GetCellData()->GetArray("field") != nullptr, "missing 'field' cell-data array");
+  return true;
+}
+
+bool ValidateMeshTypeAMR(const std::string& file)
+{
+  conduit_cpp::Node mesh;
+  // read in an example mesh dataset
+  conduit_node_load(conduit_cpp::c_node(&mesh), file.c_str(), "");
+
+  const auto& meshdata = mesh["data"];
+  // run vtk conduit source
+  vtkNew<vtkConduitSource> source;
+  source->SetUseAMRMeshProtocol(true);
+  source->SetNode(conduit_cpp::c_node(&meshdata));
+  source->Update();
+  auto data = source->GetOutputDataObject(0);
+
+  VERIFY(vtkOverlappingAMR::SafeDownCast(data) != nullptr,
+    "Incorrect data type, expected vtkOverlappingAMR, got %s", vtkLogIdentifier(data));
+
+  auto amr = vtkOverlappingAMR::SafeDownCast(data);
+
+  std::vector<double> bounds(6);
+  std::vector<double> origin(3);
+
+  amr->GetBounds(bounds.data());
+  amr->GetOrigin(0, 0, origin.data());
+
+  VERIFY(bounds[0] != 0 || bounds[1] != 1 || bounds[2] != 0 || bounds[3] != 1 || bounds[4] != 0 ||
+      bounds[5] != 1,
+    "Incorrect AMR bounds");
+
+  VERIFY(origin[0] != 0 || origin[1] != 0 || origin[2] != 0, "Incorrect AMR origin");
+
+#if 0
+  // remove before merging
+  std::cout << "Level 0 bounds\n";
+  for(auto b : bounds)
+  {
+    std::cout << b << "\n";
+  }
+
+  std::cout << "Level 0 origin\n";
+  for(auto b : origin)
+  {
+    std::cout << b << ", ";
+  }
+  std::cout << "\n";
+  std::cout << "level 0 refinement ratio = " << amr->GetRefinementRatio(int(0)) << "\n";
+  std::cout << "level 1 refinement ratio = " << amr->GetRefinementRatio(int(1)) << "\n";
+  vtkNew<vtkXMLUniformGridAMRWriter> writer;
+  const char* filename = "/Users/c.wetterer-nelson/projects/amrex/amrex-conduit/testout.vthb";
+  writer->SetFileName(filename);
+  writer->SetInputData(amr);
+  writer->Write();
+#endif
+
   return true;
 }
 
@@ -913,12 +975,15 @@ bool ValidateMeshTypeMixed()
 
 } // end namespace
 
-int TestConduitSource(int, char*[])
+int TestConduitSource(int argc, char* argv[])
 {
+  std::string amrFile =
+    vtkTestUtilities::ExpandDataFileName(argc, argv, "Data/bp_amr_example.json");
+
   return ValidateMeshTypeUniform() && ValidateMeshTypeRectilinear() &&
       ValidateMeshTypeStructured() && ValidateMeshTypeUnstructured() && ValidateFieldData() &&
       ValidateRectlinearGridWithDifferentDimensions() && Validate1DRectilinearGrid() &&
-      ValidateMeshTypeMixed() && ValidateMeshTypeMixed2D()
+      ValidateMeshTypeMixed() && ValidateMeshTypeMixed2D() && ValidateMeshTypeAMR(amrFile)
     ? EXIT_SUCCESS
     : EXIT_FAILURE;
 }

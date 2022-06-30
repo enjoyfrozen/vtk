@@ -9,7 +9,10 @@ KIT
 DEPENDS
   VTK::CommonDataModel
   VTK::CommonExecutionModel
+  VTK::ParallelMPI
 PRIVATE_DEPENDS
   VTK::FiltersCore
 TEST_DEPENDS
   VTK::TestingCore
+  VTK::IOAMR
+  VTK::IOXML

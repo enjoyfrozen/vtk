@@ -1,6 +1,7 @@
-vtk_add_test_cxx(vtkConduitCxxTests tests
-  NO_DATA NO_VALID NO_OUTPUT
+ExternalData_add_test(vtkConduitCxxTests tests
+  NO_VALID NO_OUTPUT
   TestDataObjectToConduit.cxx
-  TestConduitSource.cxx)
+  TestConduitSource.cxx
+  DATA{../Data/Baseline/bp_amr_example.json,:})
 
 vtk_test_cxx_executable(vtkConduitCxxTests tests)
