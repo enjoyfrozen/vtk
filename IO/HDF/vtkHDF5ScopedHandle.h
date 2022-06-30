@@ -11,7 +11,7 @@ namespace vtkHDF
   class ScopedH5##name##Handle                                                                     \
   {                                                                                                \
   public:                                                                                          \
-    ScopedH5##name##Handle(const ScopedH5##name##Handle& other) { this->Handle = other.Handle; }   \
+    ScopedH5##name##Handle(const ScopedH5##name##Handle& other) = default;                         \
     ScopedH5##name##Handle(hid_t handle)                                                           \
       : Handle(handle)                                                                             \
     {                                                                                              \
