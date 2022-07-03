@@ -32,7 +32,9 @@
 #include "vtkOptions.h"
 #include "vtkSystemIncludes.h"
 #include "vtksys/SystemTools.hxx"
-#include <type_traits> // for std::underlying type.
+
+#include <algorithm>
+#include <type_traits> // for std::underlying_type.
 #include <typeinfo>
 
 //----------------------------------------------------------------------------
@@ -196,6 +198,35 @@
   }
 
 //
+// Set 'enum class' value constrained between min/max limits. The internal type is deduced and used
+// for comparison with operator< and operator>. Ensure your internal type works with these
+// operators accordingly.
+// Creates member Set"name"() (eg., SetType()).
+// #defines are convenience for clamping open-ended values.
+// The Get"name"MinValue() and Get"name"MaxValue() members return the
+// min and max limits with 'enum class' type, not the internal type.
+//
+#define vtkSetEnumClampMacro(name, enumType, _min, _max)                                           \
+  virtual void Set##name(enumType _arg)                                                            \
+  {                                                                                                \
+    auto nameI = static_cast<std::underlying_type<enumType>::type>(this->name);                    \
+    auto _argI = static_cast<std::underlying_type<enumType>::type>(_arg);                          \
+    auto minI = static_cast<std::underlying_type<enumType>::type>(_min);                           \
+    auto maxI = static_cast<std::underlying_type<enumType>::type>(_max);                           \
+    vtkDebugMacro(<< this->GetClassName() << " (" << reinterpret_cast<intptr_t>(this)              \
+                  << "): setting " << #name " to " << _argI);                                      \
+    auto valueI = std::min(maxI, std::max(minI, _argI));                                           \
+    if (nameI != valueI)                                                                           \
+    {                                                                                              \
+      nameI = valueI;                                                                              \
+      this->name = static_cast<enumType>(nameI);                                                   \
+      this->Modified();                                                                            \
+    }                                                                                              \
+  }                                                                                                \
+  virtual enumType Get##name##MinValue() const { return _min; }                                    \
+  virtual enumType Get##name##MaxValue() const { return _max; }
+
+//
 // Set character string.  Creates member Set"name"()
 // (e.g., SetFilename(char *));
 //
@@ -311,30 +342,37 @@
 // The Get"name"MinValue() and Get"name"MaxValue() members return the
 // min and max limits.
 //
-#define vtkSetClampMacro(name, type, min, max)                                                     \
+// NOTE: Use vtkSetEnumClampMacro which supports 'enum class' types, detecting the underlying type
+// and selecting it automatically for comparison.
+//
+#define vtkSetClampMacro(name, type, _min, _max)                                                   \
   virtual void Set##name(type _arg)                                                                \
   {                                                                                                \
-    vtkDebugMacro(<< " setting " << #name " to " << _arg);                                         \
-    if (this->name != (_arg < min ? min : (_arg > max ? max : _arg)))                              \
+    vtkDebugMacro(<< this->GetClassName() << " (" << this << "): setting " << #name " to "         \
+                  << _arg);                                                                        \
+    auto value = std::min<type>(_max, std::max<type>(_min, _arg));                                 \
+    if (this->name != value)                                                                       \
     {                                                                                              \
-      this->name = (_arg < min ? min : (_arg > max ? max : _arg));                                 \
+      this->name = value;                                                                          \
       this->Modified();                                                                            \
     }                                                                                              \
   }                                                                                                \
-  virtual type Get##name##MinValue() { return min; }                                               \
-  virtual type Get##name##MaxValue() { return max; }
-#define vtkSetClampMacroOverride(name, type, min, max)                                             \
+  virtual type Get##name##MinValue() { return _min; }                                              \
+  virtual type Get##name##MaxValue() { return _max; }
+#define vtkSetClampMacroOverride(name, type, _min, _max)                                           \
   void Set##name(type _arg) override                                                               \
   {                                                                                                \
-    vtkDebugMacro(<< " setting " << #name " to " << _arg);                                         \
-    if (this->name != (_arg < min ? min : (_arg > max ? max : _arg)))                              \
+    vtkDebugMacro(<< this->GetClassName() << " (" << this << "): setting " << #name " to "         \
+                  << _arg);                                                                        \
+    auto value = std::min<type>(_max, std::max<type>(_min, _arg));                                 \
+    if (this->name != value)                                                                       \
     {                                                                                              \
-      this->name = (_arg < min ? min : (_arg > max ? max : _arg));                                 \
+      this->name = value;                                                                          \
       this->Modified();                                                                            \
     }                                                                                              \
   }                                                                                                \
-  type Get##name##MinValue() override { return min; }                                              \
-  type Get##name##MaxValue() override { return max; }
+  type Get##name##MinValue() override { return _min; }                                             \
+  type Get##name##MaxValue() override { return _max; }
 
 //
 // This macro defines a body of set object macro. It can be used either in
