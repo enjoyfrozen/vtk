@@ -25,8 +25,6 @@
 #include "vtkCharArray.h"
 #include "vtkCompositeDataSet.h"
 #include "vtkCutter.h"
-#include "vtkDIYExplicitAssigner.h"
-#include "vtkDIYUtilities.h"
 #include "vtkDataArrayRange.h"
 #include "vtkDataObject.h"
 #include "vtkDataSet.h"
@@ -318,7 +316,7 @@ protected:
     while (true)
     {
       double distP1 = std::numeric_limits<double>::max();
-      double distP2;
+      double distP2 = 0.0;
       short dsIndex = -1;
       for (size_t ds = 0; ds < inputs.size(); ++ds)
       {
@@ -332,7 +330,7 @@ protected:
         if (currentDistP1 < distP1)
         {
           distP2 = arclength->GetTuple1(pointIndices[ds] + 1);
-          dsIndex = ds;
+          dsIndex = static_cast<short>(ds);
           distP1 = currentDistP1;
         }
       }
@@ -703,7 +701,7 @@ protected:
         double currentDist = lengthArrays[ds]->GetTuple1(inputIdx[ds]);
         if (currentDist < minDist)
         {
-          dsIndex = ds;
+          dsIndex = static_cast<short>(ds);
           minDist = currentDist;
         }
       }
