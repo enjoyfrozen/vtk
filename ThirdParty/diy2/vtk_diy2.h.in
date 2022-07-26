@@ -19,7 +19,9 @@
 #cmakedefine01 VTK_MODULE_USE_EXTERNAL_VTK_diy2
 
 /* enable/disable DIY MPI */
+#ifndef DIY_NO_MPI
 #cmakedefine DIY_NO_MPI
+#endif
 
 #if VTK_MODULE_USE_EXTERNAL_VTK_diy2
 #  define VTK_DIY2(header) <header>
