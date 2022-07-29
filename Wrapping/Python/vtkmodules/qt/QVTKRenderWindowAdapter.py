@@ -164,21 +164,23 @@ class QVTKRenderWindowAdapter(QtCore.QObject):
                 return self.__ParentWindow.screen().size()
             return QtCore.QSize()
 
-        def makeCurrent(self) -> bool:
+        def makeCurrent(self) -> int:
             assert self.Context is not None
             assert self.Surface is not None
 
             return self.Context.makeCurrent(self.Surface)
 
-        def isCurrent(self) -> bool:
+        def isCurrent(self) -> int:
             assert self.Context is not None
             assert self.Surface is not None
 
             currentContext = QtGui.QOpenGLContext.currentContext()
 
             return (
-                currentContext is self.Context
+                1
+                if currentContext is self.Context
                 and currentContext.surface() is self.Surface
+                else 0
             )
 
         def resize(
@@ -223,11 +225,11 @@ class QVTKRenderWindowAdapter(QtCore.QObject):
                     iren.Render()
                 else:
                     self.RenderWindow.Render()
-            self.InPaint = False
             self.DoVTKRenderInPaintGL = False
+            self.InPaint = False
 
         def frame(self) -> None:
-            using_double_buffer = self.RenerWindow.GetDoubleBuffer()
+            using_double_buffer = self.RenderWindow.GetDoubleBuffer()
             swap_buffers = self.RenderWindow.GetSwapBuffers()
 
             if using_double_buffer and not swap_buffers:
@@ -240,7 +242,7 @@ class QVTKRenderWindowAdapter(QtCore.QObject):
 
             if not self.InPaint:
                 if self.__ParentWidget is not None:
-                    self.__ParentWindow.update()
+                    self.__ParentWidget.update()
                 elif self.__ParentWindow is not None:
                     self.__ParentWindow.requestUpdate()
 
@@ -405,24 +407,24 @@ class QVTKRenderWindowAdapter(QtCore.QObject):
         def __renderWindowEventHandler(
             self,
             __obj: vtkObject,
-            eventid: int,
+            eventid: str,
             callData: int | None = None,
         ) -> None:
             if eventid in {
-                vtkCommand.StartEvent,
-                vtkCommand.StartPickEvent,
-                vtkCommand.EndEvent,
+                'StartEvent',
+                'StartPickEvent',
+                'EndEvent',
             }:
                 return
 
-            if eventid is vtkCommand.WindowMakeCurrentEvent:
+            if eventid == 'WindowMakeCurrentEvent':
                 self.makeCurrent()
-            elif eventid is vtkCommand.WindowIsCurrentEvent:
+            elif eventid == 'WindowIsCurrentEvent':
                 cstatus = reference(callData)  # cursor status
                 cstatus = self.isCurrent()
-            elif eventid is vtkCommand.WindowFrameEvent:
+            elif eventid == 'WindowFrameEvent':
                 self.frame()
-            elif eventid is vtkCommand.CursorChangedEvent:
+            elif eventid == 'CursorChangedEvent':
                 cShape = reference(callData)  # cursor shape
                 self.setCursor(cShape)
 
@@ -524,13 +526,13 @@ class QVTKRenderWindowAdapter(QtCore.QObject):
 
         return format
 
-    # def context(self) -> QtGui.QOpenGLContext:
-    #     """Get the ``OpenGL`` context to be used for rendering.
+    def context(self) -> QtGui.QOpenGLContext:
+        """Get the ``OpenGL`` context to be used for rendering.
 
-    #     Returns:
-    #         QtGui.QOpenGLContext: The current ``OpenGL`` context.
-    #     """
-    #     return self.Context
+        Returns:
+            QtGui.QOpenGLContext: The current ``OpenGL`` context.
+        """
+        return self.Context
 
     @QtCore.Slot()
     def contextAboutToBeDestroyed(self) -> None:

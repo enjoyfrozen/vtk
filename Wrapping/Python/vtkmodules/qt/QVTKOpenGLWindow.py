@@ -39,12 +39,11 @@ import functools
 
 from OpenGL import GL
 from qtpy import QtCore, QtGui
+from QVTKInteractor import QVTKInteractor
+from QVTKRenderWindowAdapter import QVTKRenderWindowAdapter
 from vtkmodules.vtkInteractionStyle import vtkInteractorStyleTrackballCamera
 from vtkmodules.vtkRenderingCore import VTK_STEREO_CRYSTAL_EYES, vtkRenderWindow
 from vtkmodules.vtkRenderingOpenGL2 import vtkGenericOpenGLRenderWindow
-
-from .QVTKInteractor import QVTKInteractor
-from .QVTKRenderWindowAdapter import QVTKRenderWindowAdapter
 
 
 class QVTKOpenGLWindow(QtGui.QOpenGLWindow):
@@ -53,12 +52,12 @@ class QVTKOpenGLWindow(QtGui.QOpenGLWindow):
 
     def __init__(
         self,
-        updateBehavior: QtGui.QOpenGLWindow.UpdateBehavior = QtGui.QOpenGLWindow.NoPartialUpdate,
         parent: QtGui.QWindow,
+        updateBehavior: QtGui.QOpenGLWindow.UpdateBehavior = QtGui.QOpenGLWindow.NoPartialUpdate,
         shareContext: QtGui.QOpenGLContext | None = None,
         renderWindow: vtkGenericOpenGLRenderWindow | None = None,
     ) -> None:
-        QtGui.QOpenGLWindow.__init__(self, shareContext, updateBehavior, parent)
+        QtGui.QOpenGLWindow.__init__(self, updateBehavior, parent)
         self.RenderWindow = renderWindow
         self.RenderWindowAdapter = None
         self.EnableHiDPI = True
@@ -223,7 +222,7 @@ class QVTKOpenGLWindow(QtGui.QOpenGLWindow):
             else None
         )
 
-    @QtCore.Slot
+    @QtCore.Slot()
     def cleanupContext(self) -> None:
         """Called as a response to ``QOpenGLContext.aboutToBeDestroyed``.
 
@@ -232,7 +231,7 @@ class QVTKOpenGLWindow(QtGui.QOpenGLWindow):
         """
         self.RenderWindowAdapter.reset(None)
 
-    @QtCore.Slot
+    @QtCore.Slot()
     def updateSize(self) -> None:
         if self.RenderWindowAdapter is not None:
             self.RenderWindowAdapter.resize(self.width(), self.height())
@@ -272,7 +271,9 @@ class QVTKOpenGLWindow(QtGui.QOpenGLWindow):
             self.RenderWindowAdapter.setDefaultCursor(self.defaultCursor())
             self.RenderWindowAdapter.setEnableHiDPI(self.EnableHiDPI)
             self.RenderWindowAdapter.setUnscaledDPI(self.UnscaledDPI)
-            self.RenderWindowAdapter.setCustomDevicePixelRatio(self.CustomDevicePixelRatio)
+            self.RenderWindowAdapter.setCustomDevicePixelRatio(
+                self.CustomDevicePixelRatio
+            )
 
             self.context().aboutToBeDestroyed.connect(self.cleanupContext)
 

@@ -29,19 +29,18 @@ from __future__ import annotations
 import functools
 
 from qtpy import QtCore, QtGui, QtWidgets
+from QVTKInteractor import QVTKInteractor
+from QVTKOpenGLWindow import QVTKOpenGLWindow
+from QVTKRenderWindowAdapter import QVTKRenderWindowAdapter
 from vtkmodules.vtkRenderingCore import vtkRenderWindow
 from vtkmodules.vtkRenderingOpenGL2 import vtkGenericOpenGLRenderWindow
-
-from .QVTKInteractor import QVTKInteractor
-from .QVTKOpenGLWindow import QVTKOpenGLWindow
-from .QVTKRenderWindowAdapter import QVTKRenderWindowAdapter
 
 
 class QVTKOpenGLStereoWidget(QtWidgets.QWidget):
     def __init__(
         self,
-        updateBehavior: QtGui.QOpenGLWindow.UpdateBehavior = QtGui.QOpenGLWindow.NoPartialUpdate,
         parent: QtWidgets.QWidget | None = None,
+        updateBehavior: QtGui.QOpenGLWindow.UpdateBehavior = QtGui.QOpenGLWindow.NoPartialUpdate,
         f: QtCore.Qt.WindowFlags = QtCore.Qt.WindowFlags(),
         shareContext: QtGui.QOpenGLContext | None = None,
         renderWindow: vtkGenericOpenGLRenderWindow | None = None,
@@ -49,7 +48,7 @@ class QVTKOpenGLStereoWidget(QtWidgets.QWidget):
         QtWidgets.QWidget.__init__(self, parent, f)
 
         self.vBoxLayout = QtWidgets.QVBoxLayout(self)
-        vBoxLayout.setContentsMargins(0, 0, 0, 0)
+        self.vBoxLayout.setContentsMargins(0, 0, 0, 0)
 
         self.__VTKOpenGLWindow = QVTKOpenGLWindow(renderWindow, shareContext)
 
@@ -62,7 +61,7 @@ class QVTKOpenGLStereoWidget(QtWidgets.QWidget):
         self.container.setMouseTracking(True)
         self.vBoxLayout.addWidget(self.container)
 
-        self.__VTKOpenGLWindow.data().windowEvent.connect(
+        self.__VTKOpenGLWindow.windowEvent.connect(
             functools.partial(QtWidgets.QApplication.sendEvent, receiver=self)
         )
 
@@ -91,11 +90,11 @@ class QVTKOpenGLStereoWidget(QtWidgets.QWidget):
     def renderWindow(self) -> vtkRenderWindow:
         return self.__VTKOpenGLWindow.renderWindow()
 
-    @functools.wrap(QVTKOpenGLWindow.enableHiDPI)
+    @functools.wraps(QVTKOpenGLWindow.enableHiDPI)
     def enableHiDPI(self) -> bool:
         return self.__VTKOpenGLWindow.enableHiDPI()
 
-    @functools.wrap(QVTKOpenGLWindow.setEnableHiDPI)
+    @functools.wraps(QVTKOpenGLWindow.setEnableHiDPI)
     def setEnableHiDPI(
         self,
         enable: bool,
@@ -141,7 +140,7 @@ class QVTKOpenGLStereoWidget(QtWidgets.QWidget):
     def isValid(self) -> bool:
         return self.__VTKOpenGLWindow.isValid()
 
-    def grabFramebuffer(self) -> QtGui.QImae:
+    def grabFramebuffer(self) -> QtGui.QImage:
         """Expose internal ``QVTKOpenGlWindow.grabFramebuffer()``.
 
         Renders and returns a 32-bit RGB image of the framebuffer.
@@ -149,7 +148,7 @@ class QVTKOpenGLStereoWidget(QtWidgets.QWidget):
         Returns:
             QtGui.QImae: The frame buffer.
         """
-        pass
+        return self.__VTKOpenGLWindow.grabFramebuffer()
 
     def embeddedOpenGLWindow(self) -> QVTKOpenGLWindow:
         """Return the embedded ``QVTKOpenGLWindow``.
@@ -192,7 +191,7 @@ class QVTKOpenGLStereoWidget(QtWidgets.QWidget):
     def defaultFormat(
         stereo_capable: bool = False,
     ) -> QtGui.QSurfaceFormat:
-        return self.__VTKOpenGLWindow.defaultFormat(stereo_capable)
+        return QVTKRenderWindowAdapter.defaultFormat(stereo_capable)
 
     def resizeEvent(
         self,
@@ -208,6 +207,6 @@ class QVTKOpenGLStereoWidget(QtWidgets.QWidget):
 
         # This is generally not needed. However, there are cases where after a resize the
         # embedded ``QVTKOpenGLWindow`` doesn't repaint (even though it correctly
-        # receives the esize event). Explicitly triggering update on the internal widget
+        # receives the resize event). Explicitly triggering update on the internal widget
         # overcomes this issue.
         self.__VTKOpenGLWindow.update()

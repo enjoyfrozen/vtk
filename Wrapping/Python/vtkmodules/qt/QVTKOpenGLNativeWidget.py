@@ -94,8 +94,6 @@ See Also:
 from __future__ import annotations
 
 import functools
-import typing
-from contextlib import contextmanager
 
 from OpenGL import GL
 from qtpy import QtCore, QtGui, QtOpenGLWidgets, QtWidgets
@@ -155,20 +153,8 @@ class QVTKOpenGLNativeWidget(QtOpenGLWidgets.QOpenGLWidget):
         self.grabGesture(QtCore.Qt.TapAndHoldGesture)
         self.grabGesture(QtCore.Qt.SwipeGesture)
 
-    @contextmanager
-    def renderWindowAdapter(
-        self,
-    ) -> typing.Generator[QVTKRenderWindowAdapter, None, None]:
-        if self.RenderWindowAdapter is None:
-            self.RenderWindowAdapter = QVTKRenderWindowAdapter(
-                self.context(),
-                self.RenderWindow,
-                self,
-            )
-
-        yield self.RenderWindowAdapter
-
-        self.RenderWindowAdapter = None
+    def sizeHint(self):
+        return QtCore.QSize(400, 400)
 
     def setRenderWindow(
         self,
@@ -193,7 +179,7 @@ class QVTKOpenGLNativeWidget(QtOpenGLWidgets.QOpenGLWidget):
         # if any.
         if self.RenderWindowAdapter is not None:
             self.makCurrent()
-            self.RenderWindowAdapter.reset(None)
+            self.RenderWindowAdapter = None
 
         self.RenderWindow = win
         if self.RenderWindow is not None:
@@ -215,7 +201,7 @@ class QVTKOpenGLNativeWidget(QtOpenGLWidgets.QOpenGLWidget):
                     # This typically means that the render window is being changed after
                     # the ``QVTKOpenGLWindow`` has initialized itself in a previous
                     # update pass, so we emulate the steps to ensure that the new
-                    # ``vtkRenderWindows`` is brought to the same state (minus the
+                    # ``vtkRenderWindow`` is brought to the same state (minus the
                     # actual render).
                     self.makeCurrent()
                     self.initializeGL()
@@ -389,6 +375,7 @@ class QVTKOpenGLNativeWidget(QtOpenGLWidgets.QOpenGLWidget):
             # By default, ``Qt`` sets the depth function to ``GL_LESS``, but ``VTK``
             # expects ``GL_LEQUAL``.
             ostate.vtkglDepthFunc(GL.GL_LEQUAL)
+            assert self.RenderWindowAdapter is not None
             self.RenderWindowAdapter.paint()
 
             # If rendering was triggered by the above calls, that may change the current
