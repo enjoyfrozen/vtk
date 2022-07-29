@@ -339,63 +339,67 @@ class QVTKRenderWindowAdapter(QtCore.QObject):
             self,
             targetRect: QtCore.QRect,
         ) -> None:
-            pass
-            # assert self.Context is not None
+            if qtpy.API == 'pyside6':
+                # ``glGetBooleanv`` and other ``OpenGL`` functions have not been ported in
+                # ``PySide6``. See https://bugreports.qt.io/browse/PYSIDE-2013
+                return
 
-            # f = self.Context.functions()
-            # if f is not None:
-            #     # Clear alpha now. Otherwise, we end up blending the rendering with
-            #     # background windows in certain cases.
-            #     # This happens on MacOS when ``QSurfaceFormat.alphaBufferSize() > 0`` or
-            #     # when using Mesa on Linux.
-            #     # See paraview/paraview#17159
-            #     colorMask: list[GL.GLboolean] = []
-            #     f.glGetBooleanv(GL.GL_COLOR_WRITEMASK, colorMask)
-            #     f.glColorMask(
-            #         GL.GL_FALSE,
-            #         GL.GL_FALSE,
-            #         GL.GL_FALSE,
-            #         GL.GL_TRUE,
-            #     )
+            assert self.Context is not None
 
-            #     clearColor: list[GL.GLfloat] = []
-            #     f.glGetFloatv(int(GL.GL_COLOR_CLEAR_VALUE), clearColor)
-            #     f.glClearColor(
-            #         0.0,
-            #         0.0,
-            #         0.0,
-            #         0.0,
-            #     )
+            f = self.Context.functions()
+            if f is not None:
+                # Clear alpha now. Otherwise, we end up blending the rendering with
+                # background windows in certain cases.
+                # This happens on MacOS when ``QSurfaceFormat.alphaBufferSize() > 0`` or
+                # when using Mesa on Linux.
+                # See paraview/paraview#17159
+                colorMask: list[GL.GLboolean] = []
+                f.glGetBooleanv(GL.GL_COLOR_WRITEMASK, colorMask)
+                f.glColorMask(
+                    GL.GL_FALSE,
+                    GL.GL_FALSE,
+                    GL.GL_FALSE,
+                    GL.GL_TRUE,
+                )
 
-            #     viewport: list[GL.GLint] = []
-            #     f.glGetIntegerv(GL.GL_VIEWPORT, viewport)
-            #     f.glViewport(
-            #         targetRect.x(),
-            #         targetRect.y(),
-            #         targetRect.width(),
-            #         targetRect.height(),
-            #     )
+                clearColor: list[GL.GLfloat] = []
+                f.glGetFloatv(int(GL.GL_COLOR_CLEAR_VALUE), clearColor)
+                f.glClearColor(
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                )
 
-            #     f.glClear(GL.GL_COLOR_BUFFER_BIT)
+                viewport: list[GL.GLint] = []
+                f.glGetIntegerv(GL.GL_VIEWPORT, viewport)
+                f.glViewport(
+                    targetRect.x(),
+                    targetRect.y(),
+                    targetRect.width(),
+                    targetRect.height(),
+                )
 
-            #     f.glColorMask(
-            #         colorMask[0],
-            #         colorMask[1],
-            #         colorMask[2],
-            #         colorMask[3],
-            #     )
-            #     f.gClearColor(
-            #         clearColor[0],
-            #         clearColor[1],
-            #         clearColor[2],
-            #         clearColor[3],
-            #     )
-            #     f.glViewport(
-            #         viewport[0],
-            #         viewport[1],
-            #         viewport[2],
-            #         viewport[3],
-            #     )
+                f.glClear(GL.GL_COLOR_BUFFER_BIT)
+
+                f.glColorMask(
+                    colorMask[0],
+                    colorMask[1],
+                    colorMask[2],
+                    colorMask[3],
+                )
+                f.gClearColor(
+                    clearColor[0],
+                    clearColor[1],
+                    clearColor[2],
+                    clearColor[3],
+                )
+                f.glViewport(
+                    viewport[0],
+                    viewport[1],
+                    viewport[2],
+                    viewport[3],
+                )
 
         @calldata_type(VTK_INT)
         def __renderWindowEventHandler(
