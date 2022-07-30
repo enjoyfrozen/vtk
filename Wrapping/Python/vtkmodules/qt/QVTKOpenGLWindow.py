@@ -52,18 +52,27 @@ class QVTKOpenGLWindow(QtGui.QOpenGLWindow):
 
     def __init__(
         self,
-        parent: QtGui.QWindow,
-        updateBehavior: QtGui.QOpenGLWindow.UpdateBehavior = QtGui.QOpenGLWindow.NoPartialUpdate,
-        shareContext: QtGui.QOpenGLContext | None = None,
         renderWindow: vtkGenericOpenGLRenderWindow | None = None,
+        shareContext: QtGui.QOpenGLContext | None = None,
+        parent: QtGui.QWindow | None = None,
+        updateBehavior: QtGui.QOpenGLWindow.UpdateBehavior = QtGui.QOpenGLWindow.NoPartialUpdate,
     ) -> None:
-        QtGui.QOpenGLWindow.__init__(self, updateBehavior, parent)
-        self.RenderWindow = renderWindow
+        QtGui.QOpenGLWindow.__init__(
+            self,
+            shareContext,
+            updateBehavior=updateBehavior,
+            parent=parent,
+        )
+
+        self.RenderWindow = (
+            vtkGenericOpenGLRenderWindow() if renderWindow is None else renderWindow
+        )
+
         self.RenderWindowAdapter = None
         self.EnableHiDPI = True
         self.UnscaledDPI = 72
         self.CustomDevicePixelRatio = 0.0
-        self.DefaultCursor = QtCore.Qt.QCursor.ArrowCursor
+        self.DefaultCursor = QtCore.Qt.CursorShape.ArrowCursor
 
         self.setRenderWindow(self.RenderWindow)
 
@@ -81,16 +90,15 @@ class QVTKOpenGLWindow(QtGui.QOpenGLWindow):
         Args:
             win (vtkRenderWindow | vtkGenericOpenGLRenderWindow): Render window.
         """
-        if isinstance(win, vtkRenderWindow):
-            win = vtkGenericOpenGLRenderWindow.SafeDownCast(win)
-        elif self.RenderWindow is win:
+        if win is self.RenderWindow:
             return
 
         # This will release all OpenGL resources associated with the old render window,
         # if any.
         if self.RenderWindowAdapter is not None:
             self.makCurrent()
-            self.RenderWindowAdapter.reset(None)
+            self.RenderWindowAdapter.context().aboutToBeDestroyed.emit()
+            self.RenderWindowAdapter = None
 
         self.RenderWindow = win
         if self.RenderWindow is not None:
@@ -108,15 +116,15 @@ class QVTKOpenGLWindow(QtGui.QOpenGLWindow):
                 style = vtkInteractorStyleTrackballCamera()
                 iren.SetInteractorStyle(style)
 
-                if self.isValid():
-                    # This typically means that the render window is being changed after
-                    # the ``QVTKOpenGLWindow`` has initialized itself in a previous
-                    # update pass, so we emulate the steps to ensure that the new
-                    # ``vtkRenderWindows`` is brought to the same state (minus the
-                    # actual render).
-                    self.makeCurrent()
-                    self.initializeGL()
-                    self.updateSize()
+            if self.isValid():
+                # This typically means that the render window is being changed after
+                # the ``QVTKOpenGLWindow`` has initialized itself in a previous
+                # update pass, so we emulate the steps to ensure that the new
+                # ``vtkRenderWindows`` is brought to the same state (minus the
+                # actual render).
+                self.makeCurrent()
+                self.initializeGL()
+                self.updateSize()
 
     def renderWindow(self) -> vtkRenderWindow:
         """Return the render window that is being shown in this widget.
@@ -223,15 +231,6 @@ class QVTKOpenGLWindow(QtGui.QOpenGLWindow):
         )
 
     @QtCore.Slot()
-    def cleanupContext(self) -> None:
-        """Called as a response to ``QOpenGLContext.aboutToBeDestroyed``.
-
-        This may be called anytime during the widget lifecycle. We need to release any
-        ``OpenGL`` resources allocated to ``VTK`` in this method.
-        """
-        self.RenderWindowAdapter.reset(None)
-
-    @QtCore.Slot()
     def updateSize(self) -> None:
         if self.RenderWindowAdapter is not None:
             self.RenderWindowAdapter.resize(self.width(), self.height())
@@ -257,7 +256,7 @@ class QVTKOpenGLWindow(QtGui.QOpenGLWindow):
     def initializeGL(self) -> None:
         super().initializeGL()
         if self.RenderWindow is not None:
-            assert self.RenderWindowAdapter.data() is not None
+            assert self.RenderWindowAdapter is None
 
             ostate = self.RenderWindow.GetState()
             ostate.Reset()
@@ -265,8 +264,10 @@ class QVTKOpenGLWindow(QtGui.QOpenGLWindow):
             # expects ``GL.GL_LEQUAL``
             ostate.vtkglDepthFunc(GL.GL_LEQUAL)
 
-            self.RenderWindowAdapter.reset(
-                QVTKRenderWindowAdapter(self.context(), self.RenderWindow, self)
+            self.RenderWindowAdapter = QVTKRenderWindowAdapter(
+                self.context(),
+                self.RenderWindow,
+                self,
             )
             self.RenderWindowAdapter.setDefaultCursor(self.defaultCursor())
             self.RenderWindowAdapter.setEnableHiDPI(self.EnableHiDPI)

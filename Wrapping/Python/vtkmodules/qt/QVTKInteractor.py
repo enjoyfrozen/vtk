@@ -13,6 +13,17 @@ from vtkmodules.vtkRenderingCore import vtkRenderWindowInteractor
 
 
 class _QVTKInteractorInternal(QtCore.QObject):
+    """Internal helper class for ``QVTKInteractor``.
+
+    In the ``VTK`` ``C++`` source, this is private internal helper class following the
+    ``PIMPL`` (Pointer to an IMPLementation) idiom. This is consistent with the
+    `VTK Coding Standard`_ to limit header inclusion bloat, but is less of a concern in
+    Python. It is kept here for consistency, but may be subject to change in the future.
+
+    .. _`VTK Coding Standard`:
+        https://docs.google.com/document/d/1nzinw-dR5JQRNi_gb8qwLL5PnkGMK2FETlQGLr10tZw/edit
+    """
+
     def __init__(
         self,
         p: QVTKInteractor,

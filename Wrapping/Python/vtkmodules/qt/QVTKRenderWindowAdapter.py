@@ -57,7 +57,28 @@ class QVTKRenderWindowAdapter(QtCore.QObject):
     handled by ``QVTKOpenGLWindow`` or ``QVTKOpenGLNativeWidget``.
     """
 
-    class QVTKInternals:
+    class __QVTKInternals(QtGui.QOpenGLFunctions):
+        """Internal helper class for ``QVTKRenderWindowAdapter``.
+
+        In the ``VTK`` ``C++`` source, this is private internal helper class following the
+        ``PIMPL`` (Pointer to an IMPLementation) idiom. This is consistent with the
+        `VTK Coding Standard`_ to limit header inclusion bloat.
+
+        ``QVTKRenderWindowAdapter`` maintains a ``QScopedPointer`` to this class, meaning
+        it is allocated on the heap and deallocated when it goes out of scope (like a
+        smart pointer). In Python, we can achieve the same effect using
+        `context managers`_ (i.e. the `__enter__` and `__exit__` methods), but reference
+        counting should natively handle this well. However, we do need to perform cleanup
+        when the ``OpenGL`` context is about to be destroyed. For this, we move this
+        class's destructor code into the slot ``contextAboutToBeDestroyed``.
+
+        .. _`VTK Coding Standard`:
+        https://docs.google.com/document/d/1nzinw-dR5JQRNi_gb8qwLL5PnkGMK2FETlQGLr10tZw/edit
+
+        .. _`context managers`:
+        https://docs.python.org/3.8/reference/datamodel.html#with-statement-context-managers
+        """
+
         def __init__(
             self,
             cntxt: QtGui.QOpenGLContext,
@@ -65,7 +86,7 @@ class QVTKRenderWindowAdapter(QtCore.QObject):
             widgetOrWindow: QtGui.QWindow | QtWidgets.QWidget,
             self_: QVTKRenderWindowAdapter,
         ) -> None:
-            """Initialize the ``QVTKInternals`` class instance.
+            """Private class. Do not use.
 
             Args:
                 cntxt (QtGui.QOpenGLContext): ``OpenGL`` context.
@@ -135,7 +156,7 @@ class QVTKRenderWindowAdapter(QtCore.QObject):
             # Since a new context is being setup, call `OpenGLInitContext`, which does
             # things that need to be done when a new context is being created.
             self.RenderWindow.SetForceMaximumHardwareLineWidth(1)
-            self.RenderWindow.SetReadyForRendering(True)
+            self.RenderWindow.SetReadyForRendering(1)
             self.RenderWindow.SetOwnContext(0)
             self.RenderWindow.OpenGLInitContext()
 
@@ -466,7 +487,7 @@ class QVTKRenderWindowAdapter(QtCore.QObject):
         # it goes out of scope (like a smart pointer). In Python, we can achieved the
         # same effect in a context manager or manually manage object creation and
         # deletion. We'll adopt the later approach using garbage collection.
-        self.Internals = self.QVTKInternals(cntxt, renWin, widgetOrWindow, self)
+        self.Internals = self.__QVTKInternals(cntxt, renWin, widgetOrWindow, self)
         self.DefaultCursor = QtCore.Qt.CursorShape.ArrowCursor
 
         # Need to make sure that when the context is destroyed that we release all
@@ -506,17 +527,19 @@ class QVTKRenderWindowAdapter(QtCore.QObject):
         Returns:
             QtGui.QSurfaceFormat: Surface format for ``VTK`` rendering with ``OpenGL``.
         """
+        _buffer_size = 8
+
         format = QtGui.QSurfaceFormat()
 
         format.setRenderableType(QtGui.QSurfaceFormat.OpenGL)
         format.setVersion(3, 2)
         format.setProfile(QtGui.QSurfaceFormat.CoreProfile)
         format.setSwapBehavior(QtGui.QSurfaceFormat.DoubleBuffer)
-        format.setRedBufferSize(8)
-        format.setGreenBufferSize(8)
-        format.setBlueBufferSize(8)
-        format.setDepthBufferSize(8)
-        format.setAlphaBufferSize(8)
+        format.setRedBufferSize(_buffer_size)
+        format.setGreenBufferSize(_buffer_size)
+        format.setBlueBufferSize(_buffer_size)
+        format.setDepthBufferSize(_buffer_size)
+        format.setAlphaBufferSize(_buffer_size)
         format.setStencilBufferSize(0)
         format.setStereo(stereo_capable)
 
@@ -536,7 +559,15 @@ class QVTKRenderWindowAdapter(QtCore.QObject):
 
     @QtCore.Slot()
     def contextAboutToBeDestroyed(self) -> None:
-        self.Internals = None
+        for id_ in self.Internals.RenderWindowObserverIds:
+            self.Internals.RenderWindow.RemoveObserver(id_)
+        self.Internals.RenderWindowObserverIds = []
+
+        self.Internals.RenderWindow.Finalize()
+        self.Internals.RenderWindow.SetReadyForRendering(False)
+
+        self.Internals.Context = None
+        self.Internals.Surface = None
 
     def paint(self) -> None:
         """Call this method in ``paintGL`` to request a render.

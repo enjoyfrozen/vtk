@@ -82,6 +82,25 @@ Handling Render and Paint:
     In this case, ``QVTKOpenGLNativeWidget.paintGL()`` can request a render by calling
     ``QVTKOpenGLNativeWidget.renderVTK``.
 
+Initialization and Cleanup:
+    ``QVTKOpenGLNativeWidget`` maintains a ``vtkSmartPointer`` to ``RenderWindow`` and a
+    ``QScopedPointer`` to ``RenderWindowAdapter``, meaning these member varialbes are
+    allocated on the heap and deallocated when they go out of scope.
+
+    In Python, we can achieve the same effect using `context managers`_ (i.e. the
+    `__enter__` and `__exit__` magic/dunder methods), but reference counting in Python
+    should already handle this well. However, we do need to perform cleanup
+    when the ``OpenGL`` context is about to be destroyed. In the ``VTK`` ``C++`` source
+    code,  the context's ``aboutToBeDestroyed`` signal is connected to the
+    ``cleanupContext``, which calls ``RenderWindowAdapter``'s destructor. So that the
+    appropriate cleanup is performed in Python, we instead chain the
+    ``QVTKOpenGLNativeWidget`` context's ``aboutToBeDestroyed`` signal to the
+    ``RenderWindowAdapter``'s ``aboutToBeDestroyed`` signal. For more info, see
+    the `Qt Docs`_.
+
+.. _`Qt Docs`:
+    https://doc.qt.io/qtforpython/PySide6/QtOpenGLWidgets/QOpenGLWidget.html#resource-initialization-and-cleanup
+
 Caveats:
     ``QVTKOpenGLNativeWidget`` does not support stereo. Instead, please use
     ``QVTKOpenGLStereoWidget`` if you need support for quad buffer stereo rendering.
@@ -179,6 +198,7 @@ class QVTKOpenGLNativeWidget(QtOpenGLWidgets.QOpenGLWidget):
         # if any.
         if self.RenderWindowAdapter is not None:
             self.makCurrent()
+            self.RenderWindowAdapter.context().aboutToBeDestroyed.emit()
             self.RenderWindowAdapter = None
 
         self.RenderWindow = win
@@ -197,15 +217,15 @@ class QVTKOpenGLNativeWidget(QtOpenGLWidgets.QOpenGLWidget):
                 style = vtkInteractorStyleTrackballCamera()
                 iren.SetInteractorStyle(style)
 
-                if self.isValid():
-                    # This typically means that the render window is being changed after
-                    # the ``QVTKOpenGLWindow`` has initialized itself in a previous
-                    # update pass, so we emulate the steps to ensure that the new
-                    # ``vtkRenderWindow`` is brought to the same state (minus the
-                    # actual render).
-                    self.makeCurrent()
-                    self.initializeGL()
-                    self.updateSize()
+            if self.isValid():
+                # This typically means that the render window is being changed after
+                # the ``QVTKOpenGLWindow`` has initialized itself in a previous
+                # update pass, so we emulate the steps to ensure that the new
+                # ``vtkRenderWindow`` is brought to the same state (minus the
+                # actual render).
+                self.makeCurrent()
+                self.initializeGL()
+                self.updateSize()
 
     def renderWindow(self) -> vtkRenderWindow:
         """Return the render window that is being shown in this widget.
@@ -306,9 +326,7 @@ class QVTKOpenGLNativeWidget(QtOpenGLWidgets.QOpenGLWidget):
             QVTKInteractor: The interactor.
         """
         return (
-            QVTKInteractor.SafeDownCast(self.RenderWindow.GetInteractor())
-            if self.RenderWindow is not None
-            else None
+            self.RenderWindow.GetInteractor() if self.RenderWindow is not None else None
         )
 
     @QtCore.Slot()
@@ -318,6 +336,7 @@ class QVTKOpenGLNativeWidget(QtOpenGLWidgets.QOpenGLWidget):
         This may be called anytime during the widget lifecycle. We need to release any
         ``OpenGL`` resources allocated to ``VTK`` in this method.
         """
+        self.RenderWindowAdapter.context().aboutToBeDestroyed.emit()
         self.RenderWindowAdapter = None
 
     @QtCore.Slot()

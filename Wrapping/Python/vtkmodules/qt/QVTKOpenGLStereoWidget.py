@@ -50,7 +50,16 @@ class QVTKOpenGLStereoWidget(QtWidgets.QWidget):
         self.vBoxLayout = QtWidgets.QVBoxLayout(self)
         self.vBoxLayout.setContentsMargins(0, 0, 0, 0)
 
-        self.__VTKOpenGLWindow = QVTKOpenGLWindow(renderWindow, shareContext)
+        if renderWindow is None:
+            renderWindow = vtkGenericOpenGLRenderWindow()
+
+        if shareContext is None:
+            shareContext = QtGui.QOpenGLContext.currentContext()
+
+        self.__VTKOpenGLWindow = QVTKOpenGLWindow(
+            renderWindow,
+            shareContext,
+        )
 
         self.container: QtWidgets.QWidget = QtWidgets.QWidget.createWindowContainer(
             self.__VTKOpenGLWindow,
@@ -62,7 +71,7 @@ class QVTKOpenGLStereoWidget(QtWidgets.QWidget):
         self.vBoxLayout.addWidget(self.container)
 
         self.__VTKOpenGLWindow.windowEvent.connect(
-            functools.partial(QtWidgets.QApplication.sendEvent, receiver=self)
+            functools.partial(QtWidgets.QApplication.sendEvent, self)
         )
 
         self.setMouseTracking(True)
@@ -71,7 +80,7 @@ class QVTKOpenGLStereoWidget(QtWidgets.QWidget):
         # Workaround for bug paraview/paraview#18285
         # https://gitlab.kitware.com/paraview/paraview/-/issues/18285
         # This ensures kde will not grab the window
-        self.setProperty("_kde_no_window_grab", True)
+        self.setProperty('_kde_no_window_grab', True)
 
         self.grabGesture(QtCore.Qt.PinchGesture)
         self.grabGesture(QtCore.Qt.PanGesture)
