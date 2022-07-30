@@ -422,3 +422,45 @@ class QVTKOpenGLNativeWidget(QtOpenGLWidgets.QOpenGLWidget):
         stereo_capable: bool = False,
     ) -> QtGui.QSurfaceFormat:
         return QVTKRenderWindowAdapter.defaultFormat(stereo_capable)
+
+
+class ConeWidgetExample(QtWidgets.QMainWindow):
+    def __init__(self) -> None:
+        import vtkmodules.vtkInteractionStyle  # noqa
+        import vtkmodules.vtkRenderingOpenGL2  # noqa
+        from qtpy import QtWidgets
+        from QVTKOpenGLNativeWidget import QVTKOpenGLNativeWidget
+        from vtkmodules.vtkFiltersSources import vtkConeSource
+        from vtkmodules.vtkRenderingCore import vtkActor, vtkPolyDataMapper, vtkRenderer
+        from vtkmodules.vtkRenderingOpenGL2 import vtkGenericOpenGLRenderWindow
+
+        QtWidgets.QMainWindow.__init__(self)
+
+        cone = vtkConeSource()
+        cone.SetResolution(8)
+
+        coneMapper = vtkPolyDataMapper()
+        coneMapper.SetInputConnection(cone.GetOutputPort())
+
+        coneActor = vtkActor()
+        coneActor.SetMapper(coneMapper)
+
+        renderer = vtkRenderer()
+        renderer.AddActor(coneActor)
+
+        self.window = vtkGenericOpenGLRenderWindow()
+        self.window.AddRenderer(renderer)
+
+        self.widget = QVTKOpenGLNativeWidget(self.window)
+        self.widget.setFormat(QVTKOpenGLNativeWidget.defaultFormat())
+        self.widget.setRenderWindow(self.window)
+
+        self.setCentralWidget(self.widget)
+
+
+if __name__ == '__main__':
+    app = QtWidgets.QApplication([])
+    win = ConeWidgetExample()
+    win.show()
+
+    app.exec()
