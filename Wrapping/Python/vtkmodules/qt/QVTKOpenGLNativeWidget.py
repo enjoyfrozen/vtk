@@ -9,7 +9,7 @@ specific ``vtkRenderWindow`` subclasses) was tricky and fraught with issues.
 Since ``QVTKOpenGLNativeWidget`` uses ``QOpenGLWidget`` to create the ``OpenGL`` context,
 it uses ``QSurfaceFormat`` (set using ``QOpenGLWidget.setFormat()`` or
 ``QSurfaceFormat.setDefaultFormat()``) to create an appropriate window and context.
-You can use ``QVTKOpenGLNativeWidgetcopyToFormat()`` to obtain a ``QSurfaceFormat``
+You can use ``QVTKOpenGLNativeWidget.copyToFormat()`` to obtain a ``QSurfaceFormat``
 appropriate for a ``vtkRenderWindow``.
 
 A typical usage for ``QVTKOpenGLNativeWidget`` is as follows:
@@ -58,12 +58,21 @@ OpenGL Context:
     results composed on screen.
 
 Handling Render and Paint:
+    The ``Qt`` and ``VTK`` libraries each maintain their own separate ``OpenGL`` contexts.
+    Each is double-buffered by default, meaning the front buffer is used to display
+    images on screen, the back buffer is drawn to and holds the next image to be
+    displayed, and we swap them to show the next image on the screen. Getting ``VTK``
+    objects to display in ``Qt`` widgets and windows is the purpose of the ``QVTK``
+    modules.
+
     ``QWidget`` subclasses (including ``QOpenGLWidget`` and ``QVTKOpenGLNativeWidget``)
     display their contents on the screen in ``QWidget.paint()`` in response to a paint
     event. ``QOpenGLWidget`` subclasses are expected to do ``OpenGL`` rendering in
     ``QOpenGLWidget.paintGL()``. ``QWidget`` can receive paint events for various
     reasons including widgets getting or losing focus, some other widget updating on
-    the UI e.g. ``QProgressBar`` in status bar updating, etc.
+    the UI e.g. ``QProgressBar`` in status bar updating, etc. If a repaint must be
+    triggered outside ``paintGL`` (e.g. when using timers to animate scenes), the widget's
+    ``update()`` method `must be called to schedule a repaint`_.
 
     In ``VTK`` applications, any time the ``vtkRenderWindow`` needs to be updated to
     render a new result, one calls ``vtkRenderWindow.Render()`` on it.
@@ -77,10 +86,14 @@ Handling Render and Paint:
     ``vtkRenderWindow.Render()`` on the render window when it needs to update the
     rendering. ``paintGL`` simply passes on the result rendered by the latest render to
     the ``Qt`` windowing system for composing on-screen.
+
     There may still be occasions when we may have to render in ``paint``, for
     example if the window was resized or ``Qt`` had to recreate the ``OpenGL`` context.
     In this case, ``QVTKOpenGLNativeWidget.paintGL()`` can request a render by calling
     ``QVTKOpenGLNativeWidget.renderVTK``.
+
+    .. _`must be called to schedule a repaint`:
+        https://doc.qt.io/qtforpython/PySide6/QtOpenGLWidgets/QOpenGLWidget.html#detailed-description
 
 Initialization and Cleanup:
     ``QVTKOpenGLNativeWidget`` maintains a ``vtkSmartPointer`` to ``RenderWindow`` and a

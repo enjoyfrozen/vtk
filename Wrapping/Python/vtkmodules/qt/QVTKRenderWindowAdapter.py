@@ -533,7 +533,15 @@ class QVTKRenderWindowAdapter(QtCore.QObject):
 
         format.setRenderableType(QtGui.QSurfaceFormat.OpenGL)
         format.setVersion(3, 2)
-        format.setProfile(QtGui.QSurfaceFormat.CoreProfile)
+        if os.name == 'nt':
+            # There are currently issues on Windows.
+            # See:
+            #  - https://gitlab.kitware.com/vtk/vtk/-/issues/17572
+            #  - https://discourse.vtk.org/t/problem-in-vtk-8-2-with-defaultformat-and-qvtkopenglwidget-on-windows-10-intel/998
+            format.setProfile(QtGui.QSurfaceFormat.CompatibilityProfile)
+        else:
+            # Note that compatibility profile is not fully supported on MacOS.
+            format.setProfile(QtGui.QSurfaceFormat.CoreProfile)
         format.setSwapBehavior(QtGui.QSurfaceFormat.DoubleBuffer)
         format.setRedBufferSize(_buffer_size)
         format.setGreenBufferSize(_buffer_size)

@@ -19,6 +19,8 @@ For more information, see QVTKRenderWidgetConeExample() in the file
 QVTKRenderWindowInteractor.py.
 """
 
+from __future__ import annotations
+
 import importlib
 import sys
 
