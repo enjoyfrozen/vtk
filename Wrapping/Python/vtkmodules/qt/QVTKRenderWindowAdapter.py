@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+
 import qtpy
 from OpenGL import GL
 from packaging.version import parse
@@ -57,7 +59,7 @@ class QVTKRenderWindowAdapter(QtCore.QObject):
     handled by ``QVTKOpenGLWindow`` or ``QVTKOpenGLNativeWidget``.
     """
 
-    class __QVTKInternals(QtGui.QOpenGLFunctions):
+    class __QVTKInternals:
         """Internal helper class for ``QVTKRenderWindowAdapter``.
 
         In the ``VTK`` ``C++`` source, this is private internal helper class following the
@@ -126,10 +128,6 @@ class QVTKRenderWindowAdapter(QtCore.QObject):
             self.EnableHiDPI = True  # Default to enabling DPI scaling
             self.CustomDevicePixelRatio = 0.0
 
-            self.format = self.Context.format()
-
-            # renderWindowEventHandler_ref = reference(self.__renderWindowEventHandler)
-
             observer_commands = [
                 vtkCommand.WindowMakeCurrentEvent,
                 vtkCommand.WindowIsCurrentEvent,
@@ -156,7 +154,7 @@ class QVTKRenderWindowAdapter(QtCore.QObject):
             # Since a new context is being setup, call `OpenGLInitContext`, which does
             # things that need to be done when a new context is being created.
             self.RenderWindow.SetForceMaximumHardwareLineWidth(1)
-            self.RenderWindow.SetReadyForRendering(1)
+            self.RenderWindow.SetReadyForRendering(True)
             self.RenderWindow.SetOwnContext(0)
             self.RenderWindow.OpenGLInitContext()
 
@@ -298,7 +296,7 @@ class QVTKRenderWindowAdapter(QtCore.QObject):
             self.RenderWindow.GetRenderFramebuffer().GetLastSize(srcWidth, srcHeight)
 
             self.RenderWindow.BlitDisplayFramebuffer(
-                1 if left else 0,
+                0 if left else 1,
                 0,
                 0,
                 srcWidth,
@@ -363,13 +361,17 @@ class QVTKRenderWindowAdapter(QtCore.QObject):
             targetRect: QtCore.QRect,
         ) -> None:
             if qtpy.API == 'pyside6':
-                # ``glGetBooleanv`` and other ``OpenGL`` functions have not been ported in
-                # ``PySide6``. See https://bugreports.qt.io/browse/PYSIDE-2013
+                # ``glGetBooleanv`` and other ``OpenGL`` functions have not been ported to
+                # ``PySide6``. Several functions are not working properly.
+                # See
+                #  - https://bugreports.qt.io/browse/PYSIDE-2013
+                #  - https://bugreports.qt.io/browse/PYSIDE-2017
                 return
 
             assert self.Context is not None
 
             f = self.Context.functions()
+
             if f is not None:
                 # Clear alpha now. Otherwise, we end up blending the rendering with
                 # background windows in certain cases.
@@ -377,7 +379,7 @@ class QVTKRenderWindowAdapter(QtCore.QObject):
                 # when using Mesa on Linux.
                 # See paraview/paraview#17159
                 colorMask: list[GL.GLboolean] = []
-                f.glGetBooleanv(GL.GL_COLOR_WRITEMASK, colorMask)
+                f.glGetIntegerv(GL.GL_COLOR_WRITEMASK, colorMask)
                 f.glColorMask(
                     GL.GL_FALSE,
                     GL.GL_FALSE,
@@ -386,12 +388,12 @@ class QVTKRenderWindowAdapter(QtCore.QObject):
                 )
 
                 clearColor: list[GL.GLfloat] = []
-                f.glGetFloatv(int(GL.GL_COLOR_CLEAR_VALUE), clearColor)
+                f.glGetFloatv(GL.GL_COLOR_CLEAR_VALUE, clearColor)
                 f.glClearColor(
                     0.0,
                     0.0,
                     0.0,
-                    0.0,
+                    1.0,
                 )
 
                 viewport: list[GL.GLint] = []
@@ -411,7 +413,7 @@ class QVTKRenderWindowAdapter(QtCore.QObject):
                     colorMask[2],
                     colorMask[3],
                 )
-                f.gClearColor(
+                f.glClearColor(
                     clearColor[0],
                     clearColor[1],
                     clearColor[2],
@@ -543,10 +545,10 @@ class QVTKRenderWindowAdapter(QtCore.QObject):
             # Note that compatibility profile is not fully supported on MacOS.
             format.setProfile(QtGui.QSurfaceFormat.CoreProfile)
         format.setSwapBehavior(QtGui.QSurfaceFormat.DoubleBuffer)
+        format.setDepthBufferSize(32)
         format.setRedBufferSize(_buffer_size)
         format.setGreenBufferSize(_buffer_size)
         format.setBlueBufferSize(_buffer_size)
-        format.setDepthBufferSize(_buffer_size)
         format.setAlphaBufferSize(_buffer_size)
         format.setStencilBufferSize(0)
         format.setStereo(stereo_capable)

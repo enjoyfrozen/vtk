@@ -287,6 +287,7 @@ class QVTKOpenGLWindow(QtGui.QOpenGLWindow):
             # By default, ``Qt`` sets the depth function to ``GL_LESS``, but ``VTK``
             # expects ``GL_LEQUAL``.
             ostate.vtkglDepthFunc(GL.GL_LEQUAL)
+            assert self.RenderWindowAdapter is not None
             self.RenderWindowAdapter.paint()
 
             # If rendering was triggered by the above calls, that may change the current

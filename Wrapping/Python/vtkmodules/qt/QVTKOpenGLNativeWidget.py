@@ -465,13 +465,20 @@ class ConeWidgetExample(QtWidgets.QMainWindow):
         self.window.AddRenderer(renderer)
 
         self.widget = QVTKOpenGLNativeWidget(self.window)
-        self.widget.setFormat(QVTKOpenGLNativeWidget.defaultFormat())
         self.widget.setRenderWindow(self.window)
 
         self.setCentralWidget(self.widget)
 
 
 if __name__ == '__main__':
+    # Calling ``setDefaultFormat()`` before constructing the ``QApplication`` instance
+    # is mandatory on some platforms (for example, macOS) when an ``OpenGL`` core profile
+    # context is requested. This is to ensure that resource sharing between contexts stays
+    # functional as all internal contexts are created using the correct version and
+    # profile.
+    # See:
+    #  - https://doc.qt.io/qtforpython/PySide6/QtOpenGLWidgets/QOpenGLWidget.html#painting-techniques
+    QtGui.QSurfaceFormat.setDefaultFormat(QVTKOpenGLNativeWidget.defaultFormat())
     app = QtWidgets.QApplication([])
     win = ConeWidgetExample()
     win.show()
