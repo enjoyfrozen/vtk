@@ -37,6 +37,7 @@ def print_info() -> str:
         windows_major, windows_minor, windows_build, _, _ = sys.getwindowsversion()
         print(f'OS Version: {windows_major}.{windows_minor}, Build {windows_build}')
     print(f'Python: {python_major}.{python_minor}.{python_patch}')
+    print(f'VTK: {vtkmodules.__version__}')
     print(f'Qt Binding: {qtpy.API}')
     print(f'Qt Version: {qtpy.QT_VERSION}')
 
