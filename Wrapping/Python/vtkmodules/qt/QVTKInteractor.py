@@ -9,7 +9,7 @@ import qtpy
 from packaging.version import parse
 from qtpy import QtCore
 from vtkmodules.vtkCommonCore import reference, vtkCommand
-from vtkmodules.vtkRenderingCore import vtkRenderWindowInteractor
+from vtkmodules.vtkRenderingUI import vtkGenericRenderWindowInteractor
 
 
 class _QVTKInteractorInternal(QtCore.QObject):
@@ -53,7 +53,7 @@ class _QVTKInteractorInternal(QtCore.QObject):
         self.Parent.TimerEvent(id)
 
 
-class QVTKInteractor(vtkRenderWindowInteractor):
+class QVTKInteractor(vtkGenericRenderWindowInteractor):
     """``QVTKInteractor`` handles relaying ``Qt`` events to ``VTK``.
 
     See Also:

@@ -444,8 +444,12 @@ class ConeWidgetExample(QtWidgets.QMainWindow):
         from qtpy import QtWidgets
         from QVTKOpenGLNativeWidget import QVTKOpenGLNativeWidget
         from vtkmodules.vtkFiltersSources import vtkConeSource
-        from vtkmodules.vtkRenderingCore import vtkActor, vtkPolyDataMapper, vtkRenderer
-        from vtkmodules.vtkRenderingOpenGL2 import vtkGenericOpenGLRenderWindow
+        from vtkmodules.vtkRenderingCore import (
+            vtkActor,
+            vtkPolyDataMapper,
+            vtkRenderer,
+            vtkRenderWindow,
+        )
 
         QtWidgets.QMainWindow.__init__(self)
 

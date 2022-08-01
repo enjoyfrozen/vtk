@@ -10,7 +10,7 @@ from packaging.version import parse
 from qtpy import QtCore, QtGui, QtWidgets
 from QVTKInteractorAdapter import QVTKInteractorAdapter
 from vtkmodules.util.misc import calldata_type
-from vtkmodules.vtkCommonCore import VTK_INT, reference, vtkCommand, vtkObject
+from vtkmodules.vtkCommonCore import VTK_INT, reference, vtkObject
 from vtkmodules.vtkRenderingCore import (
     VTK_CURSOR_ARROW,
     VTK_CURSOR_CROSSHAIR,
@@ -128,13 +128,13 @@ class QVTKRenderWindowAdapter(QtCore.QObject):
             self.EnableHiDPI = True  # Default to enabling DPI scaling
             self.CustomDevicePixelRatio = 0.0
 
-            observer_commands = [
-                vtkCommand.WindowMakeCurrentEvent,
-                vtkCommand.WindowIsCurrentEvent,
-                vtkCommand.WindowFrameEvent,
-                vtkCommand.StartEvent,
-                vtkCommand.EndEvent,
-                vtkCommand.CursorChangedEvent,
+            renwin_observer_commands = [
+                'WindowMakeCurrentEvent',
+                'WindowIsCurrentEvent',
+                'WindowFrameEvent',
+                'StartEvent',
+                'EndEvent',
+                'CursorChangedEvent',
             ]
 
             self.RenderWindowObserverIds = [
@@ -142,8 +142,13 @@ class QVTKRenderWindowAdapter(QtCore.QObject):
                     cmd,
                     self.__renderWindowEventHandler,
                 )
-                for cmd in observer_commands
+                for cmd in renwin_observer_commands
             ]
+
+            iren = self.RenderWindow.GetInteractor()
+
+            iren.AddObserver('CreateTimerEvent', iren.InternalCreateTimer)
+            iren.AddObserver('DestroyTimerEvent', iren.InternalDestroyTimer)
 
             # First and foremost, make sure ``vtkRenderWindow`` is not using offscreen
             # buffers as that throws off all logic to render in the buffers we're building
@@ -244,6 +249,7 @@ class QVTKRenderWindowAdapter(QtCore.QObject):
                     iren.Render()
                 else:
                     self.RenderWindow.Render()
+
             self.DoVTKRenderInPaintGL = False
             self.InPaint = False
 
@@ -444,7 +450,7 @@ class QVTKRenderWindowAdapter(QtCore.QObject):
                 self.makeCurrent()
             elif eventid == 'WindowIsCurrentEvent':
                 cstatus = reference(callData)  # cursor status
-                cstatus = self.isCurrent()
+                self.RenderWindow.SetIsCurrent(cstatus)
             elif eventid == 'WindowFrameEvent':
                 self.frame()
             elif eventid == 'CursorChangedEvent':
@@ -522,6 +528,33 @@ class QVTKRenderWindowAdapter(QtCore.QObject):
         subclasses, or as a default format for the entire application using
         ``QSurfaceFormat.setDefaultFormat()``.
 
+        Note:
+            From the `Qt docs`_, displaying a ``QOpenGLWidget`` requires an alpha channel
+            in the associated top-level window's backing store due to the way composition
+            with other ``QWidget``-based content works. If there is no alpha channel, the
+            content rendered by the ``QOpenGLWidget`` will not be visible. This can
+            become particularly relevant on Linux/X11 in remote display setups (such as,
+            with Xvnc), when using a color depth lower than 24. For example, a color
+            depth of 16 will typically map to using a backing store (back buffer) image
+            with the format ``QImage.Format_RGB16` (RGB565), leaving no room for an alpha
+            channel. Therefore, if experiencing problems with getting the contents of a
+            ``QOpenGLWidget`` composited correctly with other widgets in the window, make
+            sure the server (such as, vncserver) is configured with a 24 or 32 bit depth
+            instead of 16.
+
+            If on Windows and using ``Remote Desktop Connection``, click "Show Options"
+            and under "Display -> Colors" choose either "True Color (24 bit)" or
+            "Highest Quality (32 bit)".
+
+            The ``defaultFormat`` method sets the default buffer size of the R, G, B, and
+            A channels to 8 bits each. If necessary (in order to accomodate a remote
+            display given the information above), the user may choose to change these
+            settings.
+
+        .. _`Qt docs`:
+            https://doc.qt.io/qt-6/qopenglwidget.html
+
+
         Args:
             stereo_capable (bool, optional): Whether quad-buffer stereo is used.
                 Defaults to False.
@@ -545,7 +578,8 @@ class QVTKRenderWindowAdapter(QtCore.QObject):
             # Note that compatibility profile is not fully supported on MacOS.
             format.setProfile(QtGui.QSurfaceFormat.CoreProfile)
         format.setSwapBehavior(QtGui.QSurfaceFormat.DoubleBuffer)
-        format.setDepthBufferSize(32)
+
+        format.setDepthBufferSize(_buffer_size)
         format.setRedBufferSize(_buffer_size)
         format.setGreenBufferSize(_buffer_size)
         format.setBlueBufferSize(_buffer_size)

@@ -276,8 +276,6 @@ class QVTKOpenGLWindow(QtGui.QOpenGLWindow):
                 self.CustomDevicePixelRatio
             )
 
-            self.context().aboutToBeDestroyed.connect(self.cleanupContext)
-
     def paintGL(self) -> None:
         super().paintGL()
         if self.RenderWindow is not None:
