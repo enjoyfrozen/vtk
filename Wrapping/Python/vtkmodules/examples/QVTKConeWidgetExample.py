@@ -61,6 +61,7 @@ def print_info() -> str:
     print(f'Graphics Card: {gl_renderer}')
     print(f'Graphics Driver: {gl_version}')
     print(f'OpenGL Profile: {gl_profile}, version {gl_profile_major}.{gl_profile_minor}')
+    print(f'Shader Language: {gl_lang_version}')
 
 
 class ConeWidgetExample(QtWidgets.QMainWindow):
