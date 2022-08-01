@@ -29,11 +29,12 @@ from __future__ import annotations
 import functools
 
 from qtpy import QtCore, QtGui, QtWidgets
-from QVTKInteractor import QVTKInteractor
-from QVTKOpenGLWindow import QVTKOpenGLWindow
-from QVTKRenderWindowAdapter import QVTKRenderWindowAdapter
 from vtkmodules.vtkRenderingCore import vtkRenderWindow
 from vtkmodules.vtkRenderingOpenGL2 import vtkGenericOpenGLRenderWindow
+
+from .QVTKInteractor import QVTKInteractor
+from .QVTKOpenGLWindow import QVTKOpenGLWindow
+from .QVTKRenderWindowAdapter import QVTKRenderWindowAdapter
 
 
 class QVTKOpenGLStereoWidget(QtWidgets.QWidget):

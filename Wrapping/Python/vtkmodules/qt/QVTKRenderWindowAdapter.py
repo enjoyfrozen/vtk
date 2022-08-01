@@ -8,7 +8,6 @@ import qtpy
 from OpenGL import GL
 from packaging.version import parse
 from qtpy import QtCore, QtGui, QtWidgets
-from QVTKInteractorAdapter import QVTKInteractorAdapter
 from vtkmodules.util.misc import calldata_type
 from vtkmodules.vtkCommonCore import VTK_INT, reference, vtkObject
 from vtkmodules.vtkRenderingCore import (
@@ -25,6 +24,8 @@ from vtkmodules.vtkRenderingCore import (
     VTK_CURSOR_SIZEWE,
 )
 from vtkmodules.vtkRenderingOpenGL2 import vtkGenericOpenGLRenderWindow
+
+from .QVTKInteractorAdapter import QVTKInteractorAdapter
 
 VTK_TO_QT_CURSORS = {
     VTK_CURSOR_DEFAULT: QtCore.Qt.CursorShape.ArrowCursor,
@@ -281,7 +282,12 @@ class QVTKRenderWindowAdapter(QtCore.QObject):
             if not self.Context:
                 return False
 
-            f = self.Context.extraFunctions()
+            if qtpy.API in {'pyqt6', 'pyside6'}:
+                f = self.Context.extraFunctions()
+            else:
+                profile = QtGui.QOpenGLVersionProfile()
+                profile.setVersion(3, 2)
+                f = self.Context.versionFunctions(profile)
 
             if not f:
                 return False

@@ -8,7 +8,7 @@ from __future__ import annotations
 import qtpy
 from packaging.version import parse
 from qtpy import QtCore
-from vtkmodules.vtkCommonCore import reference, vtkCommand
+from vtkmodules.vtkCommonCore import vtkCommand
 from vtkmodules.vtkRenderingUI import vtkGenericRenderWindowInteractor
 
 
@@ -90,11 +90,10 @@ class QVTKInteractor(vtkGenericRenderWindowInteractor):
         if not self.GetEnabled():
             return
 
-        timerId_ref = reference(0)  # void*
-        self.InvokeEvent(vtkCommand.TimerEvent, timerId_ref)
+        self.InvokeEvent(vtkCommand.TimerEvent, timerId)
 
-        if self.IsOneShotTimer(timerId_ref):
-            self.DestroyTimer(timerId_ref)
+        if self.IsOneShotTimer(timerId):
+            self.DestroyTimer(timerId)
 
     def InternalCreateTimer(
         self,

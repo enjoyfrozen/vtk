@@ -11,9 +11,10 @@ import sys
 import qtpy
 from packaging.version import parse
 from qtpy import QtCore, QtWidgets
-from QVTKInteractor import QVTKInteractor
 from vtkmodules.vtkCommonCore import vtkCommand
 from vtkmodules.vtkRenderingCore import VTKI_MAX_POINTERS, vtkRenderWindowInteractor
+
+from .QVTKInteractor import QVTKInteractor
 
 ASCII_TO_KEY_SYM = {
     0: None,

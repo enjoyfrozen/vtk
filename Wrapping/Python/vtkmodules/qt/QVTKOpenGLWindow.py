@@ -39,11 +39,12 @@ import functools
 
 from OpenGL import GL
 from qtpy import QtCore, QtGui
-from QVTKInteractor import QVTKInteractor
-from QVTKRenderWindowAdapter import QVTKRenderWindowAdapter
 from vtkmodules.vtkInteractionStyle import vtkInteractorStyleTrackballCamera
 from vtkmodules.vtkRenderingCore import VTK_STEREO_CRYSTAL_EYES, vtkRenderWindow
 from vtkmodules.vtkRenderingOpenGL2 import vtkGenericOpenGLRenderWindow
+
+from .QVTKInteractor import QVTKInteractor
+from .QVTKRenderWindowAdapter import QVTKRenderWindowAdapter
 
 
 class QVTKOpenGLWindow(QtGui.QOpenGLWindow):
