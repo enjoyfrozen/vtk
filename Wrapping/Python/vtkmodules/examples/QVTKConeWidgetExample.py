@@ -32,6 +32,8 @@ def print_info() -> str:
     python_major, python_minor, python_patch, _, _ = sys.version_info
     os_ = OS.get(sys.platform, sys.platform)
 
+    print('System Info')
+    print('-----------')
     print(f'OS: {os_}')
     if os_ in {'Windows', 'Windows with Cygwin'}:
         windows_major, windows_minor, windows_build, _, _ = sys.getwindowsversion()
@@ -42,6 +44,7 @@ def print_info() -> str:
     print(f'Qt Version: {qtpy.QT_VERSION}')
 
     context = QtGui.QOpenGLContext.currentContext()
+
     f = context.functions()
     format_ = context.format()
 
@@ -63,6 +66,37 @@ def print_info() -> str:
     print(f'Graphics Driver: {gl_version}')
     print(f'OpenGL Profile: {gl_profile}, version {gl_profile_major}.{gl_profile_minor}')
     print(f'Shader Language: {gl_lang_version}')
+    print()
+
+
+def print_opengl_features() -> None:
+    features = {
+        'glActiveTexture() Function': QtGui.QOpenGLFunctions.Multitexture,
+        'Shader Functions': QtGui.QOpenGLFunctions.Shaders,
+        'Vertex and Index Buffers': QtGui.QOpenGLFunctions.Buffers,
+        'Framebuffer Object Functions': QtGui.QOpenGLFunctions.Framebuffers,
+        'glBlendColor() Function': QtGui.QOpenGLFunctions.BlendColor,
+        'glBlendEquation() Function': QtGui.QOpenGLFunctions.BlendEquation,
+        'glBlendFuncSeparate() Function': QtGui.QOpenGLFunctions.BlendEquationSeparate,
+        'Advanced Blend Equations': QtGui.QOpenGLFunctions.BlendEquationAdvanced,
+        'glBlendFuncSeparate()': QtGui.QOpenGLFunctions.BlendFuncSeparate,
+        'Blend Subtract Mode': QtGui.QOpenGLFunctions.BlendSubtract,
+        'Compressed Texture Functions': QtGui.QOpenGLFunctions,
+        'glSampleCoverage() Function': QtGui.QOpenGLFunctions.Multisample,
+        'Separate Stencil Functions': QtGui.QOpenGLFunctions.StencilSeparate,
+        'Non-Power of Two Textures': QtGui.QOpenGLFunctions.NPOTTextures,
+        'Non-Power of Two Textures can use GL_REPEAT': QtGui.QOpenGLFunctions.NPOTTextureRepeat,
+        'Fixed Function Pipeline': QtGui.QOpenGLFunctions.FixedFunctionPipeline,
+        'GL_RED and GL_RG Texture Format': QtGui.QOpenGLFunctions.TextureRGFormats,
+        'Multiple Color Attachments': QtGui.QOpenGLFunctions.MultipleRenderTargets,
+    }
+
+    print('OpenGL Available Features')
+    print('-------------------------')
+
+    for key, val in features.items():
+        avail = 'YES' if val else 'NO'
+        print(f'{key}: {avail}')
 
 
 class ConeWidgetExample(QtWidgets.QMainWindow):
@@ -106,5 +140,6 @@ if __name__ == '__main__':
     win.show()
 
     print_info()
+    print_opengl_features()
 
     app.exec()
