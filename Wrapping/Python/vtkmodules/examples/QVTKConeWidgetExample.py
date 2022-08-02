@@ -3,9 +3,30 @@ from __future__ import annotations
 import sys
 
 import qtpy
-import vtkmodules.vtkInteractionStyle  # noqa
-import vtkmodules.vtkRenderingOpenGL2  # noqa
 from qtpy import QtGui, QtWidgets
+
+# VTK 8.2 introduced `vtkmodules` so python programs could import just the modules they
+# need to reduce load times. However, VTK factory classes (i.e. those implementing the
+# Factory Method design pattern) are in separate modules from their implementation
+# classes.
+#
+# Since it is hard to know modules contain factory classes or implementation classes, or
+# which classes need implementations, VTK recommends importing all the important
+# implementation modules, even if you may not need them.
+#
+# - `vtkRenderingOpenGL2`
+# - `vtkRenderingFreeType`
+# - `vtkInteractionStyle`
+# - `vtkRenderingVolumeOpenGL2`
+# - `vtkContextOpenGL2`
+#
+# For details, see:
+#  - https://vtk.org/doc/nightly/html/md__builds_gitlab_kitware_sciviz_ci_Documentation_Doxygen_PythonWrappers.html  # pylint: disable=line-too-long
+from vtkmodules import (  # noqa: F401  # pylint: disable=unused-import
+    vtkInteractionStyle,
+    vtkRenderingFreeType,
+    vtkRenderingOpenGL2,
+)
 from vtkmodules.qt.QVTKOpenGLNativeWidget import QVTKOpenGLNativeWidget
 from vtkmodules.vtkFiltersSources import vtkConeSource
 from vtkmodules.vtkRenderingCore import vtkActor, vtkPolyDataMapper, vtkRenderer

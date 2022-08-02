@@ -391,7 +391,7 @@ class QVTKRenderWindowAdapter(QtCore.QObject):
                 # when using Mesa on Linux.
                 # See paraview/paraview#17159
                 colorMask: list[GL.GLboolean] = []
-                f.glGetIntegerv(GL.GL_COLOR_WRITEMASK, colorMask)
+                f.glGetBooleanv(GL.GL_COLOR_WRITEMASK, colorMask)
                 f.glColorMask(
                     GL.GL_FALSE,
                     GL.GL_FALSE,
