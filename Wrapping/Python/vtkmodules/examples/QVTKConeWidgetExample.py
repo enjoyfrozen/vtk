@@ -81,7 +81,7 @@ def print_opengl_features() -> None:
         'Advanced Blend Equations': QtGui.QOpenGLFunctions.BlendEquationAdvanced,
         'glBlendFuncSeparate()': QtGui.QOpenGLFunctions.BlendFuncSeparate,
         'Blend Subtract Mode': QtGui.QOpenGLFunctions.BlendSubtract,
-        'Compressed Texture Functions': QtGui.QOpenGLFunctions,
+        'Compressed Texture Functions': QtGui.QOpenGLFunctions.CompressedTextures,
         'glSampleCoverage() Function': QtGui.QOpenGLFunctions.Multisample,
         'Separate Stencil Functions': QtGui.QOpenGLFunctions.StencilSeparate,
         'Non-Power of Two Textures': QtGui.QOpenGLFunctions.NPOTTextures,
@@ -91,11 +91,14 @@ def print_opengl_features() -> None:
         'Multiple Color Attachments': QtGui.QOpenGLFunctions.MultipleRenderTargets,
     }
 
+    context = QtGui.QOpenGLContext.currentContext()
+    f = context.functions()
+
     print('OpenGL Available Features')
     print('-------------------------')
 
     for key, val in features.items():
-        avail = 'YES' if val else 'NO'
+        avail = 'YES' if f.hasOpenGLFeature(val) else 'NO'
         print(f'{key}: {avail}')
 
 
