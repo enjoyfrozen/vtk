@@ -372,26 +372,107 @@ class QVTKRenderWindowAdapter(QtCore.QObject):
             self,
             targetRect: QtCore.QRect,
         ) -> None:
-            if qtpy.API == 'pyside6':
-                # ``glGetBooleanv`` and other ``OpenGL`` functions have not been ported to
-                # ``PySide6``. Several functions are not working properly.
-                # See
-                #  - https://bugreports.qt.io/browse/PYSIDE-2013
-                #  - https://bugreports.qt.io/browse/PYSIDE-2017
-                return
+            """Clear the back buffer alpha and write out the composited value.
 
+            ``Qt 5.6`` switched from `straight alpha blending mode only`_ to
+            `straight or pre-multiplied`_. This change was accompanied by several
+            regressions for libraries and ``Qt`` widgets that previously used straight
+            alpha blending:
+
+              - `QTBUG-74285`_ and fix `Qt 255297`_
+              - `QTBUG-55245`_ and fix `Qt 168873`_
+              - `vispy #1889`
+              - `mrtrix #266`_
+              - `paraview #17159`_
+
+            This method adopts the solution discovered in the previous issues of clearing
+            the alpha buffer and returning the correct value.
+
+            Unfortunately, in ``PySide6 <=6.3```, several ``glGet`` functions from
+            ``QOpenGLFunctions`` are missing or broken:
+
+              - [PYSIDE-2013](https://bugreports.qt.io/browse/PYSIDE-2013)
+              - [PYSIDE-2017](https://bugreports.qt.io/browse/PYSIDE-2017)
+
+            Thus, the OpenGL state before clearing the buffer is not restored. This is
+            generally not a problem since typically only ``VTK`` is rendering in the
+            viewport. However, if ``Qt`` widgets are overlayed in the viewport, you may
+            experience issues. In this case, be sure to manually restore the state
+            appropriately. The corresponding OpenGL function calls are:
+
+                .. highlight:: python
+                .. code-block:: python
+                    # Grab the settings
+                    # If OpenGL functions are unavailable, you may need to grab these
+                    # from ``Qt``, ``VTK``, or the corresponding library that is
+                    # rendering.
+                    colorMask: list[GL.GLboolean] = []
+                    f.glGetBooleanv(GL.GL_COLOR_WRITEMASK, colorMask)
+
+                    clearColor: list[GL.GLfloat] = []
+                    f.glGetFloatv(GL.GL_COLOR_CLEAR_VALUE, clearColor)
+
+                    viewport: list[GL.GLint] = []
+                    f.glGetIntegerv(GL.GL_VIEWPORT, viewport)
+
+                    # Clear the buffer
+                    clearAlpha(targetRect)
+
+                    # Restore the values
+                    f.glColorMask(
+                        colorMask[0],
+                        colorMask[1],
+                        colorMask[2],
+                        colorMask[3],
+                    )
+                    f.glClearColor(
+                        clearColor[0],
+                        clearColor[1],
+                        clearColor[2],
+                        clearColor[3],
+                    )
+                    f.glViewport(
+                        viewport[0],
+                        viewport[1],
+                        viewport[2],
+                        viewport[3],
+                    )
+
+            .. _`straight alpha blending mode only`:
+              https://github.com/qt/qtbase/blob/4a1e5dbade4bab55f39bd368480dcca9a11e4b38/src/gui/painting/qplatformbackingstore.cpp#L264
+
+            .. _`straight or pre-multiplied`:
+              https://gitlab.kitware.com/vtk/vtk/-/blob/master/Rendering/OpenGL2/vtkOpenGLRenderWindow.cxx#L1254
+
+            .. _`QTBUG-74285`:
+              https://bugreports.qt.io/browse/QTBUG-74285
+
+            .. _`Qt 255297`:
+              https://codereview.qt-project.org/c/qt/qtbase/+/255297
+
+            .. _`QTBUG-55245`:
+              https://bugreports.qt.io/browse/QTBUG-55245
+
+            .. _`Qt 168873`:
+              https://codereview.qt-project.org/c/qt/qtbase/+/168873
+
+            .. _`vispy #18891`:
+              https://github.com/vispy/vispy/issues/1889
+
+            .. _`mrtrix #266`:
+              https://github.com/MRtrix3/mrtrix3/pull/266
+
+            .. _`paraview #17159`:
+              https://gitlab.kitware.com/paraview/paraview/-/issues/17159
+
+            Args:
+                targetRect (QtCore.QRect): The viewport to render to.
+            """
             assert self.Context is not None
 
             f = self.Context.functions()
 
             if f is not None:
-                # Clear alpha now. Otherwise, we end up blending the rendering with
-                # background windows in certain cases.
-                # This happens on MacOS when ``QSurfaceFormat.alphaBufferSize() > 0`` or
-                # when using Mesa on Linux.
-                # See paraview/paraview#17159
-                colorMask: list[GL.GLboolean] = []
-                f.glGetBooleanv(GL.GL_COLOR_WRITEMASK, colorMask)
                 f.glColorMask(
                     GL.GL_FALSE,
                     GL.GL_FALSE,
@@ -399,8 +480,6 @@ class QVTKRenderWindowAdapter(QtCore.QObject):
                     GL.GL_TRUE,
                 )
 
-                clearColor: list[GL.GLfloat] = []
-                f.glGetFloatv(GL.GL_COLOR_CLEAR_VALUE, clearColor)
                 f.glClearColor(
                     0.0,
                     0.0,
@@ -408,35 +487,7 @@ class QVTKRenderWindowAdapter(QtCore.QObject):
                     1.0,
                 )
 
-                viewport: list[GL.GLint] = []
-                f.glGetIntegerv(GL.GL_VIEWPORT, viewport)
-                f.glViewport(
-                    targetRect.x(),
-                    targetRect.y(),
-                    targetRect.width(),
-                    targetRect.height(),
-                )
-
                 f.glClear(GL.GL_COLOR_BUFFER_BIT)
-
-                f.glColorMask(
-                    colorMask[0],
-                    colorMask[1],
-                    colorMask[2],
-                    colorMask[3],
-                )
-                f.glClearColor(
-                    clearColor[0],
-                    clearColor[1],
-                    clearColor[2],
-                    clearColor[3],
-                )
-                f.glViewport(
-                    viewport[0],
-                    viewport[1],
-                    viewport[2],
-                    viewport[3],
-                )
 
         @calldata_type(VTK_INT)
         def __renderWindowEventHandler(

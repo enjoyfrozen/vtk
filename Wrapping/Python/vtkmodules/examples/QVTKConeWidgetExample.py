@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 
 import qtpy
+import vtkmodules
 from qtpy import QtGui, QtWidgets
 
 # VTK 8.2 introduced `vtkmodules` so python programs could import just the modules they
@@ -87,6 +88,8 @@ def print_info() -> str:
     print(f'Graphics Driver: {gl_version}')
     print(f'OpenGL Profile: {gl_profile}, version {gl_profile_major}.{gl_profile_minor}')
     print(f'Shader Language: {gl_lang_version}')
+    print()
+    print(f'Has alpha: {format_.hasAlpha()}')
     print()
 
 
