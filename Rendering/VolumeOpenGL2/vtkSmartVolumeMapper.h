@@ -359,7 +359,6 @@ public:
   vtkGetStringMacro(Transfer2DYAxisArray);
   ///@}
 
-
   ///@{
   /**
    * LowResDisable disables low res mode (default)
@@ -376,10 +375,9 @@ public:
 
   vtkSetMacro(LowResMode, int);
   vtkGetMacro(LowResMode, int)
-  ///@}
+    ///@}
 
-protected:
-  vtkSmartVolumeMapper();
+    protected : vtkSmartVolumeMapper();
   ~vtkSmartVolumeMapper() override;
 
   /**
@@ -558,7 +556,7 @@ protected:
    */
   char* Transfer2DYAxisArray;
 
-  int LowResMode;
+  int LowResMode = LowResModeDisabled;
 
 private:
   ///@{

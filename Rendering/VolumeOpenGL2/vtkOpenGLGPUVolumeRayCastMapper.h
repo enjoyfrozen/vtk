@@ -211,7 +211,7 @@ protected:
   // Description:
   // Returns a reduction ratio for each dimension
   // This ratio is computed from MaxMemoryInBytes and MaxMemoryFraction so that the total
-  // memory usage of the resampled image, by the returned ratio, does not exceed 
+  // memory usage of the resampled image, by the returned ratio, does not exceed
   // `MaxMemoryInBytes * MaxMemoryFraction`
   // \pre input is up-to-date
   // \post Aspect ratio of image is always kept
