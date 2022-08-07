@@ -259,15 +259,6 @@ protected:
       vtkPolyData* input = vtkPolyData::GetData(inputVector[0], cc);
       auto* inputPd = input->GetPointData();
       auto* arclength = vtkDoubleArray::SafeDownCast(inputPd->GetArray("arc_length"));
-      if (input->GetNumberOfPoints() == 0 || !arclength)
-      {
-        continue;
-      }
-
-      totalNumberOfPoints += input->GetNumberOfPoints();
-      inputs.push_back(input);
-      lengthArrays.push_back(arclength);
-
       for (int i = 0; i < inputPd->GetNumberOfArrays(); ++i)
       {
         auto* inputArray = inputPd->GetAbstractArray(i);
@@ -280,6 +271,15 @@ protected:
           outputPD->AddArray(newArray);
         }
       }
+
+      if (input->GetNumberOfPoints() == 0 || !arclength)
+      {
+        continue;
+      }
+
+      totalNumberOfPoints += input->GetNumberOfPoints();
+      inputs.push_back(input);
+      lengthArrays.push_back(arclength);
     }
 
     if (inputs.empty())
@@ -299,6 +299,15 @@ protected:
       polylineSource->SetPoints(outputPoints);
       polylineSource->Update();
       output->ShallowCopy(polylineSource->GetOutput());
+
+      // outputPD currently contains arrays with 0 values so we need to resize them
+      for (int i = 0; i < outputPD->GetNumberOfArrays(); ++i)
+      {
+        vtkAbstractArray* array = outputPD->GetAbstractArray(i);
+        array->SetNumberOfTuples(2);
+        ::FillDefaultValues(array);
+      }
+
       outputPD->AddArray(arclength);
       outputPD->AddArray(validPointMask);
       output->GetPointData()->ShallowCopy(outputPD);
@@ -642,15 +651,6 @@ protected:
       vtkPolyData* input = vtkPolyData::GetData(inputVector[0], cc);
       auto* inputPd = input->GetPointData();
       auto* arclength = vtkDoubleArray::SafeDownCast(inputPd->GetArray("arc_length"));
-      if (input->GetNumberOfPoints() == 0 || !arclength)
-      {
-        continue;
-      }
-
-      totalNumberOfPoints += input->GetNumberOfPoints();
-      inputs.push_back(input);
-      lengthArrays.push_back(arclength);
-
       for (int i = 0; i < inputPd->GetNumberOfArrays(); ++i)
       {
         auto* inputArray = inputPd->GetAbstractArray(i);
@@ -663,28 +663,44 @@ protected:
           outputPD->AddArray(newArray);
         }
       }
+
+      if (input->GetNumberOfPoints() == 0 || !arclength)
+      {
+        continue;
+      }
+
+      totalNumberOfPoints += input->GetNumberOfPoints();
+      inputs.push_back(input);
+      lengthArrays.push_back(arclength);
     }
 
+    vtkNew<vtkCharArray> validPointMask;
+    validPointMask->SetName("vtkValidPointMask");
+    vtkNew<vtkDoubleArray> arclength;
+    arclength->SetName("arc_length");
+    // To make data attributes coherant on all ranks we add missing arrays
+    // in early return conditions
     if (inputs.empty())
     {
+      outputPD->AddArray(validPointMask);
+      outputPD->AddArray(arclength);
+      output->GetPointData()->ShallowCopy(outputPD);
       return 1;
     }
     else if (inputs.size() == 1)
     {
       output->ShallowCopy(inputs[0]);
+
+      validPointMask->SetNumberOfTuples(inputs[0]->GetNumberOfPoints());
+      ::FillDefaultValues(validPointMask, 1);
+      output->GetPointData()->AddArray(validPointMask);
       return 1;
     }
 
     // Resize all output structure to the correct number of points
     vtkNew<vtkPoints> outputPoints;
     outputPoints->SetNumberOfPoints(totalNumberOfPoints);
-    vtkNew<vtkCharArray> validPointMask;
-    validPointMask->SetName("vtkValidPointMask");
     validPointMask->SetNumberOfTuples(totalNumberOfPoints);
-    ::FillDefaultValues(validPointMask, 1);
-    vtkNew<vtkDoubleArray> arclength;
-    arclength->SetName("arc_length");
-    arclength->SetNumberOfComponents(1);
     arclength->SetNumberOfTuples(totalNumberOfPoints);
     for (int i = 0; i < outputPD->GetNumberOfArrays(); ++i)
     {
@@ -692,6 +708,7 @@ protected:
       array->SetNumberOfTuples(totalNumberOfPoints);
       ::FillDefaultValues(array);
     }
+    ::FillDefaultValues(validPointMask, 1);
 
     // Merge all valid inputs
     std::vector<vtkIdType> inputIdx(inputs.size(), 0);
@@ -927,6 +944,8 @@ vtkSmartPointer<vtkPolyData> vtkProbeLineFilter::CreateSamplingPolyLine(
 {
   std::vector<vtkSmartPointer<vtkPolyData>> polylines;
   double previousLength = 0.0;
+  vtkSmartPointer<vtkDataSetAttributes> defaultPD;
+
   for (vtkIdType i = 0; i < pointIds->GetNumberOfIds() - 1; ++i)
   {
     const vtkVector3d p1(points->GetPoint(pointIds->GetId(i)));
@@ -935,12 +954,13 @@ vtkSmartPointer<vtkPolyData> vtkProbeLineFilter::CreateSamplingPolyLine(
       ? this->SampleLineUniformly(p1, p2, input, tolerance)
       : this->SampleLineAtEachCell(p1, p2, input, tolerance);
 
-    vtkDataArray* arclength = nullptr;
-    if (current.Get() != nullptr && current->GetNumberOfPoints() > 1)
+    if (!defaultPD)
     {
-      arclength = current->GetPointData()->GetArray("arc_length");
+      defaultPD = current->GetPointData();
     }
-    if (arclength && current->GetNumberOfCells() == 1)
+
+    vtkDataArray* arclength = current->GetPointData()->GetArray("arc_length");
+    if (arclength && current->GetNumberOfCells() == 1 && current->GetNumberOfPoints() > 1)
     {
       if (previousLength != 0.0)
       {
@@ -955,7 +975,9 @@ vtkSmartPointer<vtkPolyData> vtkProbeLineFilter::CreateSamplingPolyLine(
 
   if (polylines.empty())
   {
-    return vtkSmartPointer<vtkPolyData>::New();
+    auto res = vtkSmartPointer<vtkPolyData>::New();
+    res->GetPointData()->ShallowCopy(defaultPD);
+    return res;
   }
   else if (polylines.size() == 1)
   {
@@ -1056,6 +1078,16 @@ vtkSmartPointer<vtkPolyData> vtkProbeLineFilter::SampleLineAtEachCell(
   {
     // Satellite nodes send their local polyline
     this->Controller->Send(localMerger->GetOutput(), 0, MPI_COMMUNICATION_TAG);
+
+    // Even though we don't need to merge the intersections on satellite nodes
+    // we still want valid data attributes informations on output of each nodes
+    output = vtkSmartPointer<vtkPolyData>::New();
+    auto* localPD = localMerger->GetOutput()->GetPointData();
+    for (int i = 0; i < localPD->GetNumberOfArrays(); ++i)
+    {
+      localPD->GetAbstractArray(i)->Reset();
+    }
+    output->GetPointData()->ShallowCopy(localPD);
   }
   else
   {
@@ -1150,7 +1182,7 @@ vtkSmartPointer<vtkPolyData> vtkProbeLineFilter::IntersectCells(
 
 //------------------------------------------------------------------------------
 vtkSmartPointer<vtkPolyData> vtkProbeLineFilter::IntersectCells(const vtkVector3d& p1,
-  const vtkVector3d& p2, vtkHyperTreeGrid* htg, double vtkNotUsed(tolerance)) const
+  const vtkVector3d& p2, vtkHyperTreeGrid* htg, double tolerance) const
 {
   auto result = vtkSmartPointer<vtkPolyData>::New();
 
@@ -1166,8 +1198,8 @@ vtkSmartPointer<vtkPolyData> vtkProbeLineFilter::IntersectCells(const vtkVector3
     vtkNew<vtkIdList> backward;
     vtkNew<vtkPoints> fPoints;
     vtkNew<vtkPoints> bPoints;
-    locator->IntersectWithLine(p1.GetData(), p2.GetData(), 0.0, fPoints, forward, cell);
-    locator->IntersectWithLine(p2.GetData(), p1.GetData(), 0.0, bPoints, backward, cell);
+    locator->IntersectWithLine(p1.GetData(), p2.GetData(), tolerance, fPoints, forward, cell);
+    locator->IntersectWithLine(p2.GetData(), p1.GetData(), tolerance, bPoints, backward, cell);
     if (fPoints->GetNumberOfPoints() != bPoints->GetNumberOfPoints() ||
       forward->GetNumberOfIds() != backward->GetNumberOfIds())
     {
@@ -1215,9 +1247,9 @@ vtkSmartPointer<vtkPolyData> vtkProbeLineFilter::IntersectCells(const vtkVector3
     }
 
     int counter = 0;
-    for (const auto& it : intersectionMap)
+    for (const auto& inter : intersectionMap)
     {
-      intersections[counter] = it.second;
+      intersections[counter] = inter.second;
       counter++;
     }
   }
