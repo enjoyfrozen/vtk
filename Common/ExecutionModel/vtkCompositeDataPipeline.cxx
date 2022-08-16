@@ -17,6 +17,7 @@ PURPOSE.  See the above copyright notice for more information.
 #include "vtkAlgorithm.h"
 #include "vtkAlgorithmOutput.h"
 #include "vtkCompositeDataIterator.h"
+#include "vtkDataObjectCache.h"
 #include "vtkDataObjectTreeIterator.h"
 #include "vtkFieldData.h"
 #include "vtkImageData.h"
@@ -49,6 +50,8 @@ vtkInformationKeyMacro(vtkCompositeDataPipeline, UPDATE_COMPOSITE_INDICES, Integ
 vtkInformationKeyMacro(vtkCompositeDataPipeline, DATA_COMPOSITE_INDICES, IntegerVector);
 vtkInformationKeyMacro(vtkCompositeDataPipeline, SUPPRESS_RESET_PI, Integer);
 vtkInformationKeyMacro(vtkCompositeDataPipeline, BLOCK_AMOUNT_OF_DETAIL, Double);
+
+bool vtkCompositeDataPipelineGlobalDataCachingEnabled = true;
 
 //------------------------------------------------------------------------------
 vtkCompositeDataPipeline::vtkCompositeDataPipeline()
@@ -270,6 +273,9 @@ void vtkCompositeDataPipeline::ExecuteEach(vtkCompositeDataIterator* iter,
 {
   vtkInformation* inInfo = inInfoVec[compositePort]->GetInformationObject(connection);
 
+  this->ConfigureDataObjectCache(inInfoVec, compositePort, connection);
+  this->UpdateDataObjectCacheInputComposite(iter->GetDataSet());
+
   vtkIdType num_blocks = 0;
   // a quick iteration to get the total number of blocks to iterate over which
   // is necessary to scale progress events.
@@ -282,8 +288,15 @@ void vtkCompositeDataPipeline::ExecuteEach(vtkCompositeDataIterator* iter,
   vtkIdType block_index = 0;
 
   auto algo = this->GetAlgorithm();
+
   for (iter->InitTraversal(); !iter->IsDoneWithTraversal(); iter->GoToNextItem(), ++block_index)
   {
+    const auto cachedObjectsUsed = FillCompositeOutputsFromCache(iter, compositeOutputs);
+    if (cachedObjectsUsed)
+    {
+      continue;
+    }
+
     vtkDataObject* dobj = iter->GetCurrentDataObject();
     if (dobj)
     {
@@ -309,6 +322,8 @@ void vtkCompositeDataPipeline::ExecuteEach(vtkCompositeDataIterator* iter,
       }
     }
   }
+
+  this->UpdateDataObjectCacheOutputComposites(iter->GetDataSet(), compositeOutputs);
 
   algo->SetProgressShiftScale(0.0, 1.0);
 }
@@ -1115,6 +1130,129 @@ void vtkCompositeDataPipeline::MarkOutputsGenerated(
       }
     }
   }
+}
+
+//------------------------------------------------------------------------------
+bool vtkCompositeDataPipeline::GetGlobalDataCachingEnabled()
+{
+  return vtkCompositeDataPipelineGlobalDataCachingEnabled;
+}
+
+//------------------------------------------------------------------------------
+void vtkCompositeDataPipeline::SetGlobalDataCachingEnabled(bool enabled)
+{
+  vtkCompositeDataPipelineGlobalDataCachingEnabled = enabled;
+}
+
+//------------------------------------------------------------------------------
+bool vtkCompositeDataPipeline::IsDataCachingEnabled() const
+{
+  return !vtkDataObject::GetGlobalReleaseDataFlag() && GetGlobalDataCachingEnabled();
+}
+
+//------------------------------------------------------------------------------
+bool vtkCompositeDataPipeline::ConfigureDataObjectCache(
+  vtkInformationVector** inInfoVec, int compositePort, int connection)
+{
+  const auto inInfo = inInfoVec[compositePort]->GetInformationObject(connection);
+
+  bool dataObjectCacheIsValid =
+    this->IsDataCachingEnabled() && !inInfo->Get(vtkStreamingDemandDrivenPipeline::RELEASE_DATA());
+
+  if (dataObjectCacheIsValid && !this->IsDataObjectCacheActive())
+  {
+    this->DataObjectCache.resize(this->GetNumberOfOutputPorts());
+    for (auto& cache : this->DataObjectCache)
+    {
+      cache = vtkSmartPointer<vtkDataObjectCache>::New();
+    }
+  }
+  else if (!dataObjectCacheIsValid && this->IsDataObjectCacheActive())
+  {
+    this->DataObjectCache.clear();
+  }
+  else
+  {
+    // When the algorithm itself or any of the other inputs was changed the cache is cleared
+    auto maxMTime = this->GetAlgorithm()->GetMTime();
+    for (int i = 0; i < this->GetNumberOfInputPorts(); ++i)
+    {
+      if (i != compositePort)
+      {
+        for (int j = 0; j < inInfoVec[i]->GetNumberOfInformationObjects(); ++j)
+        {
+          const auto input = vtkDataObject::GetData(inInfoVec[i]->GetInformationObject(j));
+          if (input)
+          {
+            maxMTime = std::max(maxMTime, input->GetMTime());
+          }
+        }
+      }
+    }
+
+    for (int i = 0; i < this->GetNumberOfOutputPorts(); ++i)
+    {
+      if (maxMTime > this->DataObjectCache[i]->GetMTime())
+        this->DataObjectCache[i]->Clear();
+    }
+  }
+  return dataObjectCacheIsValid;
+}
+
+//------------------------------------------------------------------------------
+bool vtkCompositeDataPipeline::IsDataObjectCacheActive() const
+{
+  return !this->DataObjectCache.empty();
+}
+
+//------------------------------------------------------------------------------
+void vtkCompositeDataPipeline::UpdateDataObjectCacheInputComposite(vtkCompositeDataSet* inComposite)
+{
+  if (IsDataObjectCacheActive())
+  {
+    for (int i = 0; i < this->GetNumberOfOutputPorts(); ++i)
+    {
+      this->DataObjectCache[i]->Update(inComposite);
+    }
+  }
+}
+
+//------------------------------------------------------------------------------
+void vtkCompositeDataPipeline::UpdateDataObjectCacheOutputComposites(
+  vtkCompositeDataSet* inComposite,
+  const std::vector<vtkSmartPointer<vtkCompositeDataSet>>& outComposite)
+{
+  if (this->IsDataObjectCacheActive())
+  {
+    for (int i = 0; i < outComposite.size(); ++i)
+    {
+      this->DataObjectCache[i]->Finalize(inComposite, outComposite[i]);
+    }
+  }
+}
+
+//------------------------------------------------------------------------------
+int vtkCompositeDataPipeline::FillCompositeOutputsFromCache(vtkCompositeDataIterator* iter,
+  std::vector<vtkSmartPointer<vtkCompositeDataSet>>& compositeOutputs)
+{
+  size_t countCachedObjects = 0;
+  if (this->IsDataObjectCacheActive())
+  {
+    for (unsigned port = 0; port < compositeOutputs.size(); ++port)
+    {
+      auto cachedObj = this->DataObjectCache[port]->FindObject(iter);
+      if (cachedObj)
+        ++countCachedObjects;
+      compositeOutputs[port]->SetDataSet(iter, cachedObj);
+    }
+
+    if (countCachedObjects && countCachedObjects != compositeOutputs.size())
+    {
+      vtkDebugMacro(<< "Cached object count " << countCachedObjects
+                    << " does not match number of composite outputs " << compositeOutputs.size());
+    }
+  }
+  return countCachedObjects;
 }
 
 //------------------------------------------------------------------------------

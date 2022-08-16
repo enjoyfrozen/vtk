@@ -1,6 +1,7 @@
 vtk_add_test_cxx(vtkCommonExecutionModelCxxTests tests
   NO_DATA NO_VALID
   TestCopyAttributeData.cxx
+  TestDataObjectCache.cxx
   TestImageDataToStructuredGrid.cxx
   TestMetaData.cxx
   TestSetInputDataObject.cxx
