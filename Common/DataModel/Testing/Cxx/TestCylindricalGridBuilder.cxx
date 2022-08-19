@@ -120,6 +120,8 @@ int TestCylindricalGridBuilder(int argc, char* argv[])
     outlineActor->GetProperty()->RenderLinesAsTubesOn();
     outlineActor->GetProperty()->SetLineWidth(5);
     outlineActor->SetMapper(outlineMapper);
+
+    outlineMapper->SetRelativeCoincidentTopologyLineOffsetParameters(0.0, 4.0);
   }
 
   strm << "Test vtkCell::TestCylindricalGridBuilder End" << endl;
