@@ -265,6 +265,7 @@ public:
   virtual void NormalizedDisplayToViewport(double& x, double& y);
   virtual void ViewportToNormalizedViewport(double& u, double& v);
   virtual void NormalizedViewportToView(double& x, double& y, double& z);
+  virtual void NormalizedViewportToWorld(double& x, double& y, double& z);
   virtual void ViewToPose(double&, double&, double&) {}
   virtual void PoseToWorld(double&, double&, double&) {}
   virtual void DisplayToLocalDisplay(double& x, double& y);

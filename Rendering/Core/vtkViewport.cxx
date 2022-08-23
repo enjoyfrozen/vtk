@@ -568,6 +568,22 @@ void vtkViewport::NormalizedViewportToView(double& x, double& y, double& vtkNotU
 }
 
 //------------------------------------------------------------------------------
+void vtkViewport::NormalizedViewportToWorld(double& x, double& y, double& z)
+{
+  // Converting normalized viewport coordinates to view coordinates
+  this->NormalizedViewportToView(x, y, z);
+
+  // Converting view coordinates to world coordinates
+  this->SetViewPoint(x, y, z);
+  this->ViewToWorld();
+  double* worldPoint = this->GetWorldPoint();
+
+  x = worldPoint[0];
+  y = worldPoint[1];
+  z = worldPoint[2];
+}
+
+//------------------------------------------------------------------------------
 void vtkViewport::NormalizedDisplayToDisplay(double& u, double& v)
 {
   if (this->VTKWindow)

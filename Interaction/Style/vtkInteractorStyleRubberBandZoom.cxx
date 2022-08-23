@@ -26,6 +26,7 @@
 VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkInteractorStyleRubberBandZoom);
 
+//------------------------------------------------------------------------------
 vtkInteractorStyleRubberBandZoom::vtkInteractorStyleRubberBandZoom()
 {
   this->StartPosition[0] = this->StartPosition[1] = 0;
@@ -37,11 +38,13 @@ vtkInteractorStyleRubberBandZoom::vtkInteractorStyleRubberBandZoom()
   this->PixelArray = vtkUnsignedCharArray::New();
 }
 
+//------------------------------------------------------------------------------
 vtkInteractorStyleRubberBandZoom::~vtkInteractorStyleRubberBandZoom()
 {
   this->PixelArray->Delete();
 }
 
+//------------------------------------------------------------------------------
 void vtkInteractorStyleRubberBandZoom::AdjustBox(int startPosition[2], int endPosition[2]) const
 {
   if (this->LockAspectToViewport && this->CurrentRenderer != nullptr)
@@ -83,6 +86,7 @@ void vtkInteractorStyleRubberBandZoom::AdjustBox(int startPosition[2], int endPo
   }
 }
 
+//------------------------------------------------------------------------------
 void vtkInteractorStyleRubberBandZoom::OnMouseMove()
 {
   if (!this->Interactor || !this->Moving)
@@ -181,6 +185,72 @@ void vtkInteractorStyleRubberBandZoom::OnMouseMove()
   tmpPixelArray->Delete();
 }
 
+//------------------------------------------------------------------------------
+void vtkInteractorStyleRubberBandZoom::OnMouseWheelForward()
+{
+  this->OnMouseWheelAction(1.0);
+}
+
+//------------------------------------------------------------------------------
+void vtkInteractorStyleRubberBandZoom::OnMouseWheelBackward()
+{
+  this->OnMouseWheelAction(-1.0);
+}
+
+//------------------------------------------------------------------------------
+void vtkInteractorStyleRubberBandZoom::OnMouseWheelAction(double direction)
+{
+  // If the rubber band rectangle is being defined, no scroll wheel zooming should be performed to
+  // avoid camera issues
+  if (this->Moving)
+  {
+    return;
+  }
+
+  this->FindPokedRenderer(
+    this->Interactor->GetEventPosition()[0], this->Interactor->GetEventPosition()[1]);
+  if (this->CurrentRenderer == nullptr)
+  {
+    return;
+  }
+
+  this->StartZoom();
+  double factor = this->MotionFactor * direction * 0.2 * this->MouseWheelMotionFactor;
+  factor = pow(1.1, factor);
+  if (this->MouseWheelInvertDirection && factor != 0.0)
+  {
+    factor = 1.0f / factor;
+  }
+  if (vtkInteractorStyleCameraUtils::IsParallelProjectionZoomingValid(
+        this->CurrentRenderer, (direction > 0.0)))
+  {
+    vtkCamera* camera = this->CurrentRenderer->GetActiveCamera();
+    if (camera != nullptr && camera->GetParallelProjection() &&
+      this->DollyModel == VTK_DOLLY_MODEL_TARGETTED)
+    {
+      vtkInteractorStyleCameraUtils::DollyTargetted(
+        this->Interactor, this->CurrentRenderer, factor);
+    }
+    else
+    {
+      camera->Zoom(factor);
+    }
+  }
+  this->EndZoom();
+
+  vtkRenderWindowInteractor* rwi = this->Interactor;
+  if (this->AutoAdjustCameraClippingRange)
+  {
+    this->CurrentRenderer->ResetCameraClippingRange();
+  }
+  if (rwi->GetLightFollowCamera())
+  {
+    this->CurrentRenderer->UpdateLightsGeometryToFollowCamera();
+  }
+  rwi->Render();
+}
+
+//------------------------------------------------------------------------------
 void vtkInteractorStyleRubberBandZoom::OnLeftButtonDown()
 {
   if (!this->Interactor)
@@ -211,6 +281,7 @@ void vtkInteractorStyleRubberBandZoom::OnLeftButtonDown()
   }
 }
 
+//------------------------------------------------------------------------------
 void vtkInteractorStyleRubberBandZoom::OnLeftButtonUp()
 {
   if (!this->Interactor || !this->Moving)
@@ -226,6 +297,7 @@ void vtkInteractorStyleRubberBandZoom::OnLeftButtonUp()
   this->Moving = 0;
 }
 
+//------------------------------------------------------------------------------
 void vtkInteractorStyleRubberBandZoom::Zoom()
 {
   int startPosition[2] = { this->StartPosition[0], this->StartPosition[1] };
@@ -251,6 +323,7 @@ void vtkInteractorStyleRubberBandZoom::Zoom()
   this->Interactor->Render();
 }
 
+//------------------------------------------------------------------------------
 vtkVector3d vtkInteractorStyleRubberBandZoom::CalculatePerspectiveZoomFocalPoint(
   const vtkRecti& box) const
 {
@@ -261,11 +334,19 @@ vtkVector3d vtkInteractorStyleRubberBandZoom::CalculatePerspectiveZoomFocalPoint
   return worldRBCenter;
 }
 
+//------------------------------------------------------------------------------
 void vtkInteractorStyleRubberBandZoom::ZoomTraditional(const vtkRecti& box)
 {
   const int* size = this->CurrentRenderer->GetSize();
   const int* origin = this->CurrentRenderer->GetOrigin();
   vtkCamera* cam = this->CurrentRenderer->GetActiveCamera();
+
+  // If the parallel scale value is not within the allowed limits, stop zooming
+  if (!vtkInteractorStyleCameraUtils::IsParallelProjectionZoomingWithinBounds(
+        true, cam->GetParallelScale()))
+  {
+    return;
+  }
 
   const vtkVector2d rbCenter2d = box.GetCenter();
   const vtkVector3d rbCenter3d = vtkVector3d(rbCenter2d.GetX(), rbCenter2d.GetY(), 0.0);
@@ -328,6 +409,7 @@ void vtkInteractorStyleRubberBandZoom::ZoomTraditional(const vtkRecti& box)
   }
 }
 
+//------------------------------------------------------------------------------
 void vtkInteractorStyleRubberBandZoom::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);

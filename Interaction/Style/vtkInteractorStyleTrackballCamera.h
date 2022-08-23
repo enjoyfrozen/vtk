@@ -37,6 +37,7 @@
 
 #include "vtkInteractionStyleModule.h" // For export macro
 #include "vtkInteractorStyle.h"
+#include "vtkInteractorStyleCameraUtils.h"
 
 VTK_ABI_NAMESPACE_BEGIN
 class VTKINTERACTIONSTYLE_EXPORT vtkInteractorStyleTrackballCamera : public vtkInteractorStyle
@@ -54,10 +55,13 @@ public:
   void OnMouseMove() override;
   void OnLeftButtonDown() override;
   void OnLeftButtonUp() override;
+  virtual void OnLeftButtonSingleClick();
   void OnMiddleButtonDown() override;
   void OnMiddleButtonUp() override;
+  virtual void OnMiddleButtonSingleClick();
   void OnRightButtonDown() override;
   void OnRightButtonUp() override;
+  virtual void OnRightButtonSingleClick();
   void OnMouseWheelForward() override;
   void OnMouseWheelBackward() override;
   ///@}
@@ -67,10 +71,40 @@ public:
   // they are called by OnTimer, they do not have mouse coord parameters
   // (use interactor's GetEventPosition and GetLastEventPosition)
   void Rotate() override;
+  virtual bool CanRepeatRotation();
+  virtual void RepeatRotation();
   void Spin() override;
   void Pan() override;
   void Dolly() override;
   void EnvironmentRotate() override;
+
+  ///@{
+  /**
+   * Sets a radius the mouse must stay within to detect a click.
+   *
+   * When people click a mouse button, it is very common for the mouse click action to minutely move
+   * the mouse. This can make it very difficult to differentiate ButtonClick from Rotation because
+   * ButtonUp and Down will naturally occur at different pixel locations. By setting a larger
+   * radius, we allow for a small rotation to still be dectected as a click. This value should be
+   * tuned large enough to make clicking easy, but not so large the small rotations are still
+   * recognized as clicks.
+   *
+   * Default: 1.5 (enough to cover a 1 pixel radius around the clicked pixel, including on
+   * diagonals)
+   */
+  vtkSetMacro(ClickTolerance, double);
+  vtkGetMacro(ClickTolerance, double);
+  ///@}
+
+  ///@{
+  /**
+   * Which dolly model should be used to map user interaction into a camera dolly.
+   * Default: VTK_DOLLY_MODEL_DEFAULT
+   * Also See: VTK_DOLLY_MODEL_TARGETTED
+   */
+  vtkSetMacro(DollyModel, int);
+  vtkGetMacro(DollyModel, int);
+  ///@}
 
   ///@{
   /**
@@ -80,11 +114,86 @@ public:
   vtkGetMacro(MotionFactor, double);
   ///@}
 
+  ///@{
+  /**
+   * Set the apparent sensitivity of the interactor style to mouse motion.
+   */
+  vtkSetMacro(MotionFactorSingularityRotation, double);
+  vtkGetMacro(MotionFactorSingularityRotation, double);
+  ///@}
+
+  ///@{
+  /**
+   * Invert the direction of mouse wheel movement. This switches from camera-centric to
+   * model-centric scroll wheel movement.
+   */
+  vtkSetMacro(MouseWheelInvertDirection, bool);
+  vtkGetMacro(MouseWheelInvertDirection, bool);
+  ///@}
+
+  ///@{
+  /**
+   * Sets whether rotation operations can happen or if pan operations should default.
+   */
+  vtkSetMacro(RotationEnabled, bool);
+  vtkGetMacro(RotationEnabled, bool);
+  ///@}
+
+  ///@{
+  /**
+   * Which rotation model should be used to map user interaction into a rotation.
+   * Default: VTK_TRACKBALL_ROTATION_DEFAULT
+   * Also See: VTK_TRACKBALL_ROTATION_SINGULARITY, VTK_TRACKBALL_ROTATION_WORLDZ_SCREENX
+   */
+  vtkSetMacro(RotationModel, int);
+  vtkGetMacro(RotationModel, int);
+  ///@}
+
 protected:
   vtkInteractorStyleTrackballCamera();
   ~vtkInteractorStyleTrackballCamera() override;
 
-  double MotionFactor;
+  double ClickTolerance = 1.5;
+  int DollyModel = VTK_DOLLY_MODEL_DEFAULT;
+  double MotionFactor = 10.0;
+  double MotionFactorSingularityRotation = 10.0;
+  bool MouseWheelInvertDirection = false;
+  bool RotationEnabled = true;
+  int RotationModel = VTK_TRACKBALL_ROTATION_DEFAULT;
+
+  ///@{
+  /**
+   * Utility methods for recording button event positions.
+   */
+  vtkGetVector2Macro(LeftButtonDownPosition, int);
+  vtkSetVector2Macro(LeftButtonDownPosition, int);
+  vtkGetVector2Macro(MiddleButtonDownPosition, int);
+  vtkSetVector2Macro(MiddleButtonDownPosition, int);
+  vtkGetVector2Macro(RightButtonDownPosition, int);
+  vtkSetVector2Macro(RightButtonDownPosition, int);
+  ///@}
+  int LeftButtonDownPosition[2] = { 0, 0 };
+  int MiddleButtonDownPosition[2] = { 0, 0 };
+  int RightButtonDownPosition[2] = { 0, 0 };
+
+  double SingularityRotationAxis[3] = { 0.0, 0.0, 0.0 };
+  double SingularityRotationAngle = 0.0;
+
+  double ConstrainedRotationPhi = 0.0;
+  double ConstrainedRotationTheta = 0.0;
+
+  virtual void OnMouseWheelAction(double direction);
+
+  virtual void RotateDefault();
+  ///@{
+  /**
+   * Rotates the camera around its focal point according to the current values for the rotation axis
+   * and angle.
+   */
+  virtual void RotateSingularity();
+  ///@}
+  virtual void RotateSingularityCalculateAxisAndAngle();
+  virtual void RotateWorldZScreenX();
 
   virtual void Dolly(double factor);
 
