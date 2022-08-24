@@ -61,61 +61,6 @@ public:
   static vtkTableFFT* New();
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  enum // Windowing functions
-  {
-    HANNING = 0,
-    BARTLETT,
-    SINE,
-    BLACKMAN,
-    RECTANGULAR,
-
-    MAX_WINDOWING_FUNCTION
-  };
-
-  ///@{
-  /**
-   * Specify if the output should be normalized. This has 2 consequences :
-   * first is that for each block the mean signal value is removed from the input
-   * signal before doing the actual FFT. Second is that it will take the norm of
-   * the resulting imaginary values and normalize it using Parseval's theorem.
-   *
-   * Default is false
-   */
-  vtkGetMacro(Normalize, bool);
-  vtkSetMacro(Normalize, bool);
-  vtkBooleanMacro(Normalize, bool);
-  ///@}
-
-  ///@{
-  /**
-   * Specify if the input should be split in multiple blocks to compute
-   * an average fft across all blocks. It uses the Welch method except
-   * that it averages raw FFTs instead of periodograms.
-   *
-   * @see vtkTableFFT::SetNumberOfBlock(int)
-   * @see vtkTableFFT::SetBlockSize(int)
-   *
-   * Default is false
-   */
-  vtkGetMacro(AverageFft, bool);
-  virtual void SetAverageFft(bool);
-  vtkBooleanMacro(AverageFft, bool);
-  ///@}
-
-  ///@{
-  /**
-   * Specify if the filter should use the optimized discrete fourier transform for
-   * real values. This will cause output columns to have from n to ((n / 2) + 1) rows.
-   * If OptimizeForRealInput is On but the input contains columns with 2 components,
-   * these columns will be ignored.
-   *
-   * Default is false
-   */
-  vtkGetMacro(OptimizeForRealInput, bool);
-  vtkSetMacro(OptimizeForRealInput, bool);
-  vtkBooleanMacro(OptimizeForRealInput, bool);
-  ///@}
-
   ///@{
   /**
    * Specify if the filter should create a frequency column based on a column
@@ -143,37 +88,26 @@ public:
 
   ///@{
   /**
-   * Only used if @c AverageFft is true
+   * Remove trend of the signal before applying the FFT. This is a constant
+   * detrend where the mean of the signal is substracted to the signal.
    *
-   * Specify the number of blocks to use when computing the average fft over
-   * the whole input sample array. Blocks can overlap if @c NumberOfBlock times
-   * @c BlockSize is superior to the input signal size.
-   *
-   * This parameter is ignored if @c BlockSize is superior
-   * to the number of samples of the input array.
-   *
-   * @see vtkTableFFT::SetAverageFft(bool)
-   *
-   * Default is 2
+   * Default is false.
    */
-  vtkGetMacro(NumberOfBlock, int);
-  vtkSetMacro(NumberOfBlock, int);
+  vtkGetMacro(Detrend, bool);
+  vtkSetMacro(Detrend, int);
+  vtkBooleanMacro(Detrend, bool);
   ///@}
 
-  ///@{
-  /**
-   * Only used if @c AverageFft is true
-   *
-   * Specify the number of samples to use for each block. This should be a power of 2.
-   * If not, the closest power of two will be used anyway.
-   *
-   * @see vtkTableFFT::SetAverageFft(bool)
-   *
-   * Default is 1024
-   */
-  vtkGetMacro(BlockSize, int);
-  virtual void SetBlockSize(int);
-  ///@}
+  enum
+  {
+    HANNING = 0,
+    BARTLETT,
+    SINE,
+    BLACKMAN,
+    RECTANGULAR,
+
+    MAX_WINDOWING_FUNCTION
+  };
 
   ///@{
   /**
@@ -189,10 +123,79 @@ public:
 
   ///@{
   /**
+   * Specify if the filter should use the optimized discrete fourier transform for
+   * real values and return a onesided spectrum : this will cause output columns to
+   * have from n to ((n / 2) + 1) values.
+   * If ReturnOnesided is true but the input contains columns with 2 components
+   * (aka complex data), these columns will be ignored.
+   *
+   * Default is false
+   */
+  vtkGetMacro(ReturnOnesided, bool);
+  vtkSetMacro(ReturnOnesided, bool);
+  vtkBooleanMacro(ReturnOnesided, bool);
+  ///@}
+
+  ///@{
+  /**
+   * Specify if the input should be split in multiple segment to compute
+   * an average fft across all segment. It uses the Welch method.
+   *
+   * @see vtkTableFFT::SetBlockSize(int)
+   * @see vtkTableFFT::SetBlockOverlap(int)
+   *
+   * Default is false
+   */
+  vtkGetMacro(AverageFft, bool);
+  virtual void SetAverageFft(bool);
+  vtkBooleanMacro(AverageFft, bool);
+  ///@}
+
+  ///@{
+  /**
+   * Specify the number of samples to use for each segment.
+   *
+   * Only used if AverageFft is true
+   * @see vtkTableFFT::SetAverageFft(bool)
+   *
+   * Default is 1024
+   */
+  vtkGetMacro(BlockSize, int);
+  virtual void SetBlockSize(int);
+  ///@}
+
+  ///@{
+  /**
+   * Specify the number of samples which will overlap between each segment.
+   * If value is not in a valid range (ie < 0 or >= BlockSize) then the
+   * value BlockSize / 2 will be used.
+   *
+   * Only used if AverageFft is true
+   * @see vtkTableFFT::SetAverageFft(bool)
+   * @see vtkTableFFT::SetBlockSize(int)
+   *
+   * Default is -1
+   */
+  vtkGetMacro(BlockOverlap, int);
+  vtkSetMacro(BlockOverlap, int);
+  ///@}
+
+  ///@{
+  /**
+   */
+  vtkGetMacro(ScalingMethod, int);
+  vtkSetMacro(ScalingMethod, int);
+  ///@}
+
+  // --------------------------------------------------------------------------
+  // DEPRECATED METHODS
+
+  ///@{
+  /**
+   * DEPRECATED: in v9.2. Behavior was not coherent with VTK philosophy.
+   *
    * Specify if output array should be prefixed by "FFT_" or not.
    * This behavior was introduced in v9.1. Default is false.
-   *
-   * Deprecated in v9.2.
    */
   VTK_DEPRECATED_IN_9_2_0(
     "Deprecated in favor of always keeping the output array names the same as the input.")
@@ -200,6 +203,60 @@ public:
   VTK_DEPRECATED_IN_9_2_0(
     "Deprecated in favor of always keeping the output array names the same as the input.")
   vtkSetMacro(PrefixOutputArrays, bool);
+  ///@}
+
+  ///@{
+  /**
+   * DEPRECATED: in v9.3. This was doing too much and is now controlled via the 2
+   * properties Detrend and Scaling. Does not have any effect anymore.
+   *
+   * Specify if the output should be normalized. This has 2 consequences :
+   * first is that for each block the mean signal value is removed from the input
+   * signal before doing the actual FFT. Second is that it will take the norm of
+   * the resulting imaginary values and normalize it using Parseval's theorem.
+   */
+  VTK_DEPRECATED_IN_9_3_0("Function has been renamed GetReturnOnesided")
+  virtual bool GetNormalize() { return false; }
+  VTK_DEPRECATED_IN_9_3_0("Function has been renamed GetReturnOnesided")
+  virtual void SetNormalize(bool) {}
+  VTK_DEPRECATED_IN_9_3_0("Function has been renamed GetReturnOnesided")
+  virtual void NormalizeOn() {}
+  VTK_DEPRECATED_IN_9_3_0("Function has been renamed GetReturnOnesided")
+  virtual void NormalizeOff(){};
+  ///@}
+
+  ///@{
+  /**
+   * DEPRECATED: in v9.3. Property has been renamed ReturnOnesided.
+   *
+   * Specify if the filter should use the optimized discrete fourier transform for
+   * real values. This will cause output columns to have from n to ((n / 2) + 1) rows.
+   * If OptimizeForRealInput is On but the input contains columns with 2 components,
+   * these columns will be ignored.
+   */
+  VTK_DEPRECATED_IN_9_3_0("Function has been renamed GetReturnOnesided")
+  virtual bool GetOptimizeForRealInput() { return this->GetReturnOnesided(); }
+  VTK_DEPRECATED_IN_9_3_0("Function has been renamed SetReturnOnesided")
+  virtual void SetOptimizeForRealInput(bool _arg) { this->SetReturnOnesided(_arg); }
+  VTK_DEPRECATED_IN_9_3_0("Function has been renamed ReturnOnesidedOn")
+  virtual void OptimizeForRealInputOn() { this->ReturnOnesidedOn(); }
+  VTK_DEPRECATED_IN_9_3_0("Function has been renamed ReturnOnesidedOff")
+  virtual void OptimizeForRealInputOff() { this->ReturnOnesidedOff(); };
+  ///@}
+
+  ///@{
+  /**
+   * DEPRECATED: in v9.3, in favor of the more intuitive API BlockOverlap and BlockSize.
+   * Does not have any effect anymore.
+   *
+   * Set the number of segment to use wen averaging this FFT.
+   */
+  VTK_DEPRECATED_IN_9_3_0(
+    "Block behavior is not controlled using BlockSize and BlockOverlap properties.")
+  virtual int GetNumberOfBlock() { return 0; };
+  VTK_DEPRECATED_IN_9_3_0(
+    "Block behavior is not controlled using BlockSize and BlockOverlap properties.")
+  virtual void SetNumberOfBlock(int){};
   ///@}
 
 protected:
@@ -225,15 +282,17 @@ private:
   vtkTableFFT(const vtkTableFFT&) = delete;
   void operator=(const vtkTableFFT&) = delete;
 
-  bool Normalize = false;
   bool AverageFft = false;
-  bool OptimizeForRealInput = false;
+  bool ReturnOnesided = false;
   bool CreateFrequencyColumn = false;
-  int NumberOfBlock = 2;
-  vtkIdType BlockSize = 1024;
   int WindowingFunction = RECTANGULAR;
   double DefaultSampleRate = 1e4;
+  int BlockOverlap = 1;
+  bool Detrend = false;
+  int BlockSize = 1024;
+  int ScalingMethod = 0;
 
+  // Deprecated variables
   bool PrefixOutputArrays = false;
 
   struct vtkInternal;

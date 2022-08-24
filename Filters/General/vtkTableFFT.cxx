@@ -130,6 +130,7 @@ struct vtkTableFFT::vtkInternal
       : details::WindowEnergy(this->Window.begin(), this->Window.end());
   }
 
+  // TODO
   template <typename T>
   std::vector<vtkFFT::ComplexNumber> DoWelchMethod(vtkDataArray* input, size_t nblocks,
     size_t blocksize, bool normalize, bool windowing, bool optimize = false)
@@ -227,7 +228,7 @@ int vtkTableFFT::RequestData(vtkInformation* vtkNotUsed(request),
     // else if we can and should process the data array for the FFT, do it
     else if (dataArray && !vtksys::SystemTools::StringStartsWith(arrayName, "vtk") &&
       (dataArray->GetNumberOfComponents() == 1 ||
-        (dataArray->GetNumberOfComponents() == 2 && !this->OptimizeForRealInput)) &&
+        (dataArray->GetNumberOfComponents() == 2 && !this->ReturnOnesided)) &&
       !array->IsA("vtkIdTypeArray"))
     {
       vtkSmartPointer<vtkDataArray> fft = this->DoFFT(dataArray);
@@ -239,7 +240,7 @@ int vtkTableFFT::RequestData(vtkInformation* vtkNotUsed(request),
     // else pass the array to the output
     else
     {
-      if (this->OptimizeForRealInput)
+      if (this->ReturnOnesided)
       {
         vtkSmartPointer<vtkAbstractArray> half;
         half.TakeReference(array->NewInstance());
@@ -261,7 +262,7 @@ int vtkTableFFT::RequestData(vtkInformation* vtkNotUsed(request),
     std::size_t size = this->Internals->Window.size();
     double spacing = 1.0 / this->Internals->SampleRate;
 
-    std::vector<double> stdFreq = this->OptimizeForRealInput
+    std::vector<double> stdFreq = this->ReturnOnesided
       ? vtkFFT::RFftFreq(static_cast<int>(size), spacing)
       : vtkFFT::FftFreq(static_cast<int>(size), spacing);
 
@@ -300,9 +301,9 @@ void vtkTableFFT::Initialize(vtkTable* input)
     imaginaryColumnFound |= (column->GetNumberOfComponents() == 2);
   }
 
-  if (this->OptimizeForRealInput && imaginaryColumnFound)
+  if (this->ReturnOnesided && imaginaryColumnFound)
   {
-    vtkWarningMacro("OptimizeForRealInput is True but found columns with 2 components"
+    vtkWarningMacro("ReturnOnesided is True but found columns with 2 components"
                     " (interpreted as imaginary data). Imaginary columns will be ignored.");
   }
 
@@ -321,8 +322,8 @@ void vtkTableFFT::Initialize(vtkTable* input)
   this->Internals->Average = this->AverageFft;
   if (this->AverageFft)
   {
-    nfft = vtkMath::NearestPowerOfTwo(static_cast<int>(this->BlockSize));
-    if (nfft > (nsamples - this->NumberOfBlock))
+    nfft = this->BlockSize;
+    if (nfft > nsamples)
     {
       vtkWarningMacro(
         "Cannot average FFT per block : block size is too large compared to the input. "
@@ -343,7 +344,7 @@ void vtkTableFFT::Initialize(vtkTable* input)
   }
 
   // Get output size
-  this->Internals->OutputSize = this->OptimizeForRealInput ? (nfft / 2) + 1 : nfft;
+  this->Internals->OutputSize = this->ReturnOnesided ? (nfft / 2) + 1 : nfft;
 }
 
 //------------------------------------------------------------------------------
@@ -354,25 +355,29 @@ vtkSmartPointer<vtkDataArray> vtkTableFFT::DoFFT(vtkDataArray* input)
   std::vector<vtkFFT::ComplexNumber> fft;
   if (input->GetNumberOfComponents() == 1)
   {
-    fft =
-      this->Internals->DoWelchMethod<vtkFFT::ScalarNumber>(input, this->NumberOfBlock, blocksize,
-        this->Normalize, this->WindowingFunction != RECTANGULAR, this->OptimizeForRealInput);
+    fft = // TODO
+      this->Internals->DoWelchMethod<vtkFFT::ScalarNumber>(input, this->BlockOverlap, blocksize,
+        false, this->WindowingFunction != RECTANGULAR, this->ReturnOnesided);
   }
   else if (input->GetNumberOfComponents() == 2)
   {
-    fft = this->Internals->DoWelchMethod<vtkFFT::ComplexNumber>(input, this->NumberOfBlock,
-      blocksize, this->Normalize, this->WindowingFunction != RECTANGULAR);
+    // TODO
+    fft = this->Internals->DoWelchMethod<vtkFFT::ComplexNumber>(
+      input, this->BlockOverlap, blocksize, false, this->WindowingFunction != RECTANGULAR);
   }
 
   vtkSmartPointer<vtkDataArray> output;
   output.TakeReference(input->NewInstance());
-  if (this->Normalize)
+
+  // TODO
+  if /* DISABLES CODE */ ((false))
   {
     const double norm =
       1.0 / (this->Internals->WindowPonderation * blocksize * this->Internals->SampleRate);
     output->SetNumberOfComponents(1);
     output->SetNumberOfTuples(fft.size());
 
+    // TODO improve looping
     output->SetTuple1(0, vtkFFT::Abs(fft[0]) * norm);
     for (std::size_t i = 1; i < fft.size(); ++i)
     {
@@ -381,6 +386,7 @@ vtkSmartPointer<vtkDataArray> vtkTableFFT::DoFFT(vtkDataArray* input)
   }
   else
   {
+    // TODO improve looping
     output->SetNumberOfComponents(2);
     output->SetNumberOfTuples(fft.size());
     for (std::size_t i = 0; i < fft.size(); ++i)
@@ -435,9 +441,9 @@ void vtkTableFFT::PrintSelf(std::ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
   os << indent << "AverageFft: " << this->AverageFft << std::endl;
-  os << indent << "Normalize: " << this->Normalize << std::endl;
-  os << indent << "OptimizeForRealInput: " << this->OptimizeForRealInput << std::endl;
-  os << indent << "NumberOfBlock: " << this->NumberOfBlock << std::endl;
+  // os << indent << "Normalize: " << this->Normalize << std::endl;
+  os << indent << "ReturnOnesided: " << this->ReturnOnesided << std::endl;
+  // os << indent << "NumberOfBlock: " << this->NumberOfBlock << std::endl;
   os << indent << "BlockSize: " << this->BlockSize << std::endl;
   os << indent << "WindowingFunction: " << this->WindowingFunction << std::endl;
 }
