@@ -18,6 +18,8 @@
 #include "vtkObjectFactory.h"
 #include "vtkSMPTools.h"
 
+#include <stdexcept>
+
 //------------------------------------------------------------------------------
 vtkStandardNewMacro(vtkFFT);
 
@@ -183,6 +185,11 @@ void vtkFFT::RFft(ScalarNumber* input, std::size_t size, ComplexNumber* result)
 }
 
 //------------------------------------------------------------------------------
+void vtkFFT::RFft(ComplexNumber*, std::size_t, ComplexNumber*)
+{
+  throw std::domain_error("vtkFFT::RFft does not accept complex numbers as its input.");
+}
+
 //------------------------------------------------------------------------------
 vtkSmartPointer<vtkFFT::vtkScalarNumberArray> vtkFFT::RFft(vtkScalarNumberArray* input)
 {
