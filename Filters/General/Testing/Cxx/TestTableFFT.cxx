@@ -222,7 +222,7 @@ int TestTableFFT(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
   reference->RemoveAllColumns();
   details::InitializeTableComplex(input, reference);
   fftFilter->SetInputData(input);
-  fftFilter->OptimizeForRealInputOff();
+  fftFilter->ReturnOnesidedOff();
   fftFilter->CreateFrequencyColumnOff();
   fftFilter->Update();
   result = vtkDoubleArray::SafeDownCast(fftFilter->GetOutput()->GetColumn(0));
