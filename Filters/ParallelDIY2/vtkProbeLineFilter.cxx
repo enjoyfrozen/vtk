@@ -880,6 +880,7 @@ int vtkProbeLineFilter::RequestData(
 
   // The probe locations source need to be the same on all ranks : always take rank 0 source
   auto sampler = vtkSmartPointer<vtkPointSet>::Take(samplerLocal->NewInstance());
+
   if (this->Controller->GetLocalProcessId() == 0)
   {
     this->Controller->Broadcast(samplerLocal, 0);
@@ -1071,7 +1072,7 @@ vtkSmartPointer<vtkPolyData> vtkProbeLineFilter::SampleLineAtEachCell(
   }
   localMerger->Update();
 
-  // Merge polyline from all MPI processes
+  /// Merge polyline from all MPI processes
   constexpr int MPI_COMMUNICATION_TAG = 2022;
   int procid = 0;
   int numProcs = 1;
@@ -1112,9 +1113,6 @@ vtkSmartPointer<vtkPolyData> vtkProbeLineFilter::SampleLineAtEachCell(
       this->Controller->Receive(remotePolyline, distId, MPI_COMMUNICATION_TAG);
       merger->AddInputData(0, remotePolyline);
     }
-
-    merger->Update();
-    output = merger->GetOutput();
   }
 
   return output;
