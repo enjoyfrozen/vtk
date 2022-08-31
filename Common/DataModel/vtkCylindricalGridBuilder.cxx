@@ -154,6 +154,13 @@ vtkCylindricalGridBuilder::vtkCylindricalGridBuilder()
   SetMaximumAngle(361);
 }
 
+void vtkCylindricalGridBuilder::PrintSelf(ostream& os, vtkIndent indent)
+{
+  this->Superclass::PrintSelf(os, indent);
+  os << indent << "MaximumAngle: " << this->MaximumAngle << endl;
+  os << indent << "UseDegrees: " << this->UseDegrees << endl;
+}
+
 void vtkCylindricalGridBuilder::SetMaximumAngle(double maxAngle)
 {
   if (this->UseDegrees)

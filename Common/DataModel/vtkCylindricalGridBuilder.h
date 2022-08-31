@@ -40,6 +40,7 @@ class VTKCOMMONDATAMODEL_EXPORT vtkCylindricalGridBuilder : public vtkObject
 public:
   static vtkCylindricalGridBuilder* New();
   vtkTypeMacro(vtkCylindricalGridBuilder, vtkObject);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   //@{
   /**
@@ -98,6 +99,11 @@ protected:
 
 private:
   class Impl;
+
+  vtkCylindricalGridBuilder(const vtkCylindricalGridBuilder&) = delete;
+  void operator=(const vtkCylindricalGridBuilder&) = delete;
 };
 
 #endif // vtkCylindricalGridBuilder_h
+
+// VTK-HeaderTest-Exclude: vtkCylindricalGridBuilder.h
