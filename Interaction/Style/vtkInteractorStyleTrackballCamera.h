@@ -99,11 +99,10 @@ public:
   ///@{
   /**
    * Which dolly model should be used to map user interaction into a camera dolly.
-   * Default: VTK_DOLLY_MODEL_DEFAULT
-   * Also See: VTK_DOLLY_MODEL_TARGETTED
+   * Default: vtkDollyModel::Default
    */
-  vtkSetMacro(DollyModel, int);
-  vtkGetMacro(DollyModel, int);
+  vtkSetEnumMacro(DollyModel, vtkDollyModel);
+  vtkGetEnumMacro(DollyModel, vtkDollyModel);
   ///@}
 
   ///@{
@@ -142,11 +141,10 @@ public:
   ///@{
   /**
    * Which rotation model should be used to map user interaction into a rotation.
-   * Default: VTK_TRACKBALL_ROTATION_DEFAULT
-   * Also See: VTK_TRACKBALL_ROTATION_SINGULARITY, VTK_TRACKBALL_ROTATION_WORLDZ_SCREENX
+   * Default: vtkTrackballRotationModel::Default
    */
-  vtkSetMacro(RotationModel, int);
-  vtkGetMacro(RotationModel, int);
+  vtkSetEnumMacro(RotationModel, vtkTrackballRotationModel);
+  vtkGetEnumMacro(RotationModel, vtkTrackballRotationModel);
   ///@}
 
 protected:
@@ -154,12 +152,12 @@ protected:
   ~vtkInteractorStyleTrackballCamera() override;
 
   double ClickTolerance = 1.5;
-  int DollyModel = VTK_DOLLY_MODEL_DEFAULT;
+  vtkDollyModel DollyModel = vtkDollyModel::Default;
   double MotionFactor = 10.0;
   double MotionFactorSingularityRotation = 10.0;
   bool MouseWheelInvertDirection = false;
   bool RotationEnabled = true;
-  int RotationModel = VTK_TRACKBALL_ROTATION_DEFAULT;
+  vtkTrackballRotationModel RotationModel = vtkTrackballRotationModel::Default;
 
   ///@{
   /**

@@ -1,7 +1,7 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    TestTrackballZoomTargetted.cxx
+  Module:    TestTrackballZoomTargeted.cxx
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.
@@ -29,17 +29,17 @@
 #include "vtkTrackballStyleTestUtils.h"
 
 //------------------------------------------------------------------------------
-int TestTrackballZoomTargetted(int argc, char* argv[])
+int TestTrackballZoomTargeted(int argc, char* argv[])
 {
   std::ostringstream strm;
-  strm << "TestTrackballZoomTargetted: Setup" << endl;
+  strm << "TestTrackballZoomTargeted: Setup" << endl;
   vtkNew<vtkActor> coneActorX, coneActorZ;
   SetupCone(coneActorX, { 1.0, 0.0, 0.0 });
   SetupCone(coneActorZ, { 0.0, 0.0, 1.0 });
   coneActorX->SetScale(1.0, 1e-12, 1.0);
   coneActorZ->SetScale(1.0, 1e-12, 1.0);
 
-  strm << "TestTrackballZoomTargetted: Window" << endl;
+  strm << "TestTrackballZoomTargeted: Window" << endl;
   vtkNew<vtkRenderer> renderer;
   renderer->AddActor(coneActorX);
   renderer->AddActor(coneActorZ);
@@ -51,7 +51,7 @@ int TestTrackballZoomTargetted(int argc, char* argv[])
   vtkNew<vtkRenderWindowInteractor> renderWindowInteractor;
   renderWindowInteractor->SetRenderWindow(renderWindow);
   vtkNew<vtkInteractorStyleTrackballCamera> trackball;
-  trackball->SetDollyModel(VTK_DOLLY_MODEL_TARGETTED);
+  trackball->SetDollyModel(vtkDollyModel::Targeted);
   renderWindowInteractor->SetInteractorStyle(trackball);
 
   renderer->GetActiveCamera()->SetPosition(0.0, -20.0, 0.0);
@@ -61,7 +61,7 @@ int TestTrackballZoomTargetted(int argc, char* argv[])
   renderer->GetActiveCamera()->SetParallelScale(
     renderer->GetActiveCamera()->GetParallelScale() * 4.0);
 
-  strm << "TestTrackballZoomTargetted: Recorder" << endl;
+  strm << "TestTrackballZoomTargeted: Recorder" << endl;
   vtkNew<vtkInteractorEventRecorder> recorder;
   recorder->SetInteractor(renderWindowInteractor);
   const bool IS_RECORDING = false;
@@ -84,7 +84,7 @@ int TestTrackballZoomTargetted(int argc, char* argv[])
     recorder->Off();
   }
 
-  strm << "TestTrackballZoomTargetted: Verification" << endl;
+  strm << "TestTrackballZoomTargeted: Verification" << endl;
   int retVal = vtkRegressionTestImage(renderWindow);
   if (retVal == vtkRegressionTester::DO_INTERACTOR || IS_RECORDING)
   {

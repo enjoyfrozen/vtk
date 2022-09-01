@@ -221,15 +221,14 @@ void vtkInteractorStyleRubberBandZoom::OnMouseWheelAction(double direction)
   {
     factor = 1.0f / factor;
   }
-  if (vtkInteractorStyleCameraUtils::IsParallelProjectionZoomingValid(
-        this->CurrentRenderer, (direction > 0.0)))
+  if (vtkInteractorStyleCameraUtils::IsParallelProjectionZoomingValid(this->CurrentRenderer,
+        (direction > 0.0 ? vtkZoomDirection::ZoomingIn : vtkZoomDirection::ZoomingOut)))
   {
     vtkCamera* camera = this->CurrentRenderer->GetActiveCamera();
     if (camera != nullptr && camera->GetParallelProjection() &&
-      this->DollyModel == VTK_DOLLY_MODEL_TARGETTED)
+      this->DollyModel == vtkDollyModel::Targeted)
     {
-      vtkInteractorStyleCameraUtils::DollyTargetted(
-        this->Interactor, this->CurrentRenderer, factor);
+      vtkInteractorStyleCameraUtils::DollyTargeted(this->Interactor, this->CurrentRenderer, factor);
     }
     else
     {
@@ -343,7 +342,7 @@ void vtkInteractorStyleRubberBandZoom::ZoomTraditional(const vtkRecti& box)
 
   // If the parallel scale value is not within the allowed limits, stop zooming
   if (!vtkInteractorStyleCameraUtils::IsParallelProjectionZoomingWithinBounds(
-        true, cam->GetParallelScale()))
+        vtkZoomDirection::ZoomingIn, cam->GetParallelScale()))
   {
     return;
   }
@@ -415,6 +414,17 @@ void vtkInteractorStyleRubberBandZoom::PrintSelf(ostream& os, vtkIndent indent)
   this->Superclass::PrintSelf(os, indent);
   os << indent << "LockAspectToViewport: " << this->LockAspectToViewport << endl;
   os << indent << "CenterAtStartPosition: " << this->CenterAtStartPosition << endl;
+  switch (this->DollyModel)
+  {
+    case vtkDollyModel::Default:
+      os << indent << "DollyModel: Default" << endl;
+      break;
+    case vtkDollyModel::Targeted:
+      os << indent << "DollyModel: Targeted" << endl;
+      break;
+  }
+  os << indent << "MotionFactor: " << this->MotionFactor << endl;
+  os << indent << "MouseWheelInvertDirection: " << this->MouseWheelInvertDirection << endl;
   os << indent << "UseDollyForPerspectiveProjection: " << this->UseDollyForPerspectiveProjection
      << endl;
 }

@@ -29,12 +29,24 @@
 #include "vtkRenderWindowInteractor.h"
 #include "vtkRenderer.h"
 
-#define VTK_TRACKBALL_ROTATION_DEFAULT 0
-#define VTK_TRACKBALL_ROTATION_SINGULARITY 1
-#define VTK_TRACKBALL_ROTATION_WORLDZ_SCREENX 2
+enum class vtkDollyModel : int
+{
+  Default = 0,
+  Targeted
+};
 
-#define VTK_DOLLY_MODEL_DEFAULT 0
-#define VTK_DOLLY_MODEL_TARGETTED 1
+enum class vtkTrackballRotationModel : int
+{
+  Default = 0,
+  Singularity,
+  WorldZ_ScreenX
+};
+
+enum class vtkZoomDirection : int
+{
+  ZoomingIn = 0,
+  ZoomingOut
+};
 
 class VTKINTERACTIONSTYLE_EXPORT vtkInteractorStyleCameraUtils
 {
@@ -75,7 +87,8 @@ public:
    * parallelScale: Whether the specified parallel projection value is within the allowed zooming
    * bounds.
    */
-  static bool IsParallelProjectionZoomingWithinBounds(bool isZoomingIn, double parallelScale);
+  static bool IsParallelProjectionZoomingWithinBounds(
+    vtkZoomDirection zoomDirection, double parallelScale);
   ///@}
 
   ///@{
@@ -87,7 +100,8 @@ public:
    *
    * returns: Whether zooming is valid if the provided renderer is using parallel projection.
    */
-  static bool IsParallelProjectionZoomingValid(vtkRenderer* renderer, bool isZoomingIn);
+  static bool IsParallelProjectionZoomingValid(
+    vtkRenderer* renderer, vtkZoomDirection zoomDirection);
   ///@}
 
   ///@{
@@ -119,9 +133,11 @@ public:
    * renderer: Current renderer (which contains the camera)
    * factor: Dolly factor to zoom by
    */
-  static void DollyTargetted(
-    vtkRenderWindowInteractor* interactor, vtkRenderer* renderer, const double factor);
+  static void DollyTargeted(
+    vtkRenderWindowInteractor* interactor, vtkRenderer* renderer, double factor);
   ///@}
 };
 
 #endif
+
+// VTK-HeaderTest-Exclude: vtkInteractorStyleCameraUtils.h

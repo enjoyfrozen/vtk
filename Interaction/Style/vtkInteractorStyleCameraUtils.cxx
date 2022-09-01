@@ -24,23 +24,24 @@ const double vtkInteractorStyleCameraUtils::MAXIMUM_PARALLEL_SCALE_VALUE = 1.0e1
 
 //------------------------------------------------------------------------------
 bool vtkInteractorStyleCameraUtils::IsParallelProjectionZoomingWithinBounds(
-  bool isZoomingIn, double parallelScale)
+  vtkZoomDirection zoomDirection, double parallelScale)
 {
-  return ((isZoomingIn && parallelScale > MINIMUM_PARALLEL_SCALE_VALUE) ||
-    (!isZoomingIn && parallelScale < MAXIMUM_PARALLEL_SCALE_VALUE));
+  return ((zoomDirection == vtkZoomDirection::ZoomingIn &&
+            parallelScale > MINIMUM_PARALLEL_SCALE_VALUE) ||
+    (zoomDirection != vtkZoomDirection::ZoomingIn && parallelScale < MAXIMUM_PARALLEL_SCALE_VALUE));
 }
 
 //------------------------------------------------------------------------------
 bool vtkInteractorStyleCameraUtils::IsParallelProjectionZoomingValid(
-  vtkRenderer* renderer, bool isZoomingIn)
+  vtkRenderer* renderer, vtkZoomDirection zoomDirection)
 {
-  if (renderer == NULL)
+  if (renderer == nullptr)
   {
     return false;
   }
 
   vtkCamera* camera = renderer->GetActiveCamera();
-  if (camera == NULL)
+  if (camera == nullptr)
   {
     return false;
   }
@@ -49,7 +50,7 @@ bool vtkInteractorStyleCameraUtils::IsParallelProjectionZoomingValid(
   {
     // If the parallel scale value is not within the allowed limits, stop zooming
     if (!vtkInteractorStyleCameraUtils::IsParallelProjectionZoomingWithinBounds(
-          isZoomingIn, camera->GetParallelScale()))
+          zoomDirection, camera->GetParallelScale()))
     {
       return false;
     }
@@ -70,7 +71,7 @@ bool vtkInteractorStyleCameraUtils::IsParallelProjectionZoomingValid(
     // For cross-sectional views, it is expected that one of the coordinate axes will be collapsed
     // to a range of zero, so if one more axis has also a range of zero, then zooming should be
     // stopped
-    if (isZoomingIn && numberOfEqualBoundaries > 1)
+    if (zoomDirection == vtkZoomDirection::ZoomingIn && numberOfEqualBoundaries > 1)
     {
       return false;
     }
@@ -127,8 +128,8 @@ void vtkInteractorStyleCameraUtils::RotateCameraAroundWorldZScreenX(vtkRenderer*
 }
 
 //------------------------------------------------------------------------------
-void vtkInteractorStyleCameraUtils::DollyTargetted(
-  vtkRenderWindowInteractor* interactor, vtkRenderer* renderer, const double factor)
+void vtkInteractorStyleCameraUtils::DollyTargeted(
+  vtkRenderWindowInteractor* interactor, vtkRenderer* renderer, double factor)
 {
   vtkCamera* camera = renderer->GetActiveCamera();
   if (camera == nullptr)

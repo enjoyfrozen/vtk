@@ -51,7 +51,7 @@ int TestTrackballSingularityStyle(int argc, char* argv[])
   vtkNew<vtkRenderWindowInteractor> renderWindowInteractor;
   renderWindowInteractor->SetRenderWindow(renderWindow);
   vtkNew<vtkInteractorStyleTrackballCamera> trackball;
-  trackball->SetRotationModel(VTK_TRACKBALL_ROTATION_SINGULARITY);
+  trackball->SetRotationModel(vtkTrackballRotationModel::Singularity);
   renderWindowInteractor->SetInteractorStyle(trackball);
 
   renderer->GetActiveCamera()->SetPosition(0.0, -20.0, 0.0);
