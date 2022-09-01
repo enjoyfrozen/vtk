@@ -180,6 +180,10 @@ protected:
   double ConstrainedRotationPhi = 0.0;
   double ConstrainedRotationTheta = 0.0;
 
+private:
+  vtkInteractorStyleTrackballCamera(const vtkInteractorStyleTrackballCamera&) = delete;
+  void operator=(const vtkInteractorStyleTrackballCamera&) = delete;
+
   virtual void OnMouseWheelAction(double direction);
 
   virtual void RotateDefault();
@@ -194,10 +198,6 @@ protected:
   virtual void RotateWorldZScreenX();
 
   virtual void Dolly(double factor);
-
-private:
-  vtkInteractorStyleTrackballCamera(const vtkInteractorStyleTrackballCamera&) = delete;
-  void operator=(const vtkInteractorStyleTrackballCamera&) = delete;
 };
 
 VTK_ABI_NAMESPACE_END
