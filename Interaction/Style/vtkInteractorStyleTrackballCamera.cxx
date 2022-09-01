@@ -548,7 +548,7 @@ void vtkInteractorStyleTrackballCamera::RotateSingularityCalculateAxisAndAngle()
   this->SingularityRotationAxis[2] = x1 * y2 - x2 * y1;
 
   // Calculating the square of the rotation axis length
-  float rotationAxisSquaredLength = vtkMath::NormSquared(this->SingularityRotationAxis);
+  double rotationAxisSquaredLength = vtkMath::SquaredNorm(this->SingularityRotationAxis);
   if (rotationAxisSquaredLength < 0.0)
   {
     rotationAxisSquaredLength = 0.0;
