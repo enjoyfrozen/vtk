@@ -89,5 +89,5 @@ int TestTrackballStyle(int argc, char* argv[])
     recorder->Off();
     retVal = vtkRegressionTester::PASSED;
   }
-  return retVal;
+  return !retVal;
 }
