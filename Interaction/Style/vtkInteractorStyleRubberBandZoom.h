@@ -158,3 +158,5 @@ private:
 
 VTK_ABI_NAMESPACE_END
 #endif
+
+// VTK-HeaderTest-Exclude: vtkInteractorStyleRubberBandZoom.h

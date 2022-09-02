@@ -7,5 +7,5 @@ vtk_add_test_cxx(vtkInteractionStyleCxxTests tests
   )
 vtk_test_cxx_executable(vtkInteractionStyleCxxTests tests
   RENDERING_FACTORY
-  vtkTrackballStyleTestUtils
+  vtkTrackballStyleTestUtils.h
   )
