@@ -235,7 +235,7 @@ int TestScalarBar(int argc, char* argv[])
   scalarBar7->SetWidth(0.1);
   scalarBar7->SetHeight(0.35);
   scalarBar7->GetPositionCoordinate()->SetCoordinateSystemToNormalizedViewport();
-  scalarBar7->GetPositionCoordinate()->SetValue(.65, 0.625);
+  scalarBar7->GetPositionCoordinate()->SetValue(.67, 0.625);
 
   // General Look
   scalarBar7->DrawFrameOff();
