@@ -102,11 +102,13 @@ int vtkXMLDataObjectWriter::WriteInternal()
     writer->SetFileName(this->GetFileName());
     writer->SetByteOrder(this->GetByteOrder());
     writer->SetCompressor(this->GetCompressor());
+    writer->SetCompressionLevel(this->GetCompressionLevel());
     writer->SetBlockSize(this->GetBlockSize());
     writer->SetDataMode(this->GetDataMode());
     writer->SetEncodeAppendedData(this->GetEncodeAppendedData());
     writer->SetHeaderType(this->GetHeaderType());
     writer->SetIdType(this->GetIdType());
+    writer->SetWriteToOutputString(this->GetWriteToOutputString());
     writer->AddObserver(vtkCommand::ProgressEvent, this->InternalProgressObserver);
 
     // Try to write.
