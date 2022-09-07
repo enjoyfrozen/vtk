@@ -23,11 +23,13 @@
 #include "vtkmlib/ArrayConverters.h"
 
 #include "vtkCell.h"
+#include "vtkCellData.h"
 #include "vtkDataSet.h"
 #include "vtkDoubleArray.h"
 #include "vtkGenericCell.h"
 #include "vtkIdList.h"
 #include "vtkNew.h"
+#include "vtkPointData.h"
 #include "vtkPoints.h"
 
 #include <vtkm/List.h>
@@ -58,6 +60,25 @@ struct VtkmLocator
   std::mutex lock;
   std::unique_ptr<LocatorControl> control;
   vtkMTimeType buildTime = 0;
+};
+
+struct ArrayConverter
+{
+public:
+  mutable vtkDataArray* Data;
+
+  ArrayConverter()
+    : Data(nullptr)
+  {
+  }
+
+  // CastAndCall always passes a const array handle. Just shallow copy to a
+  // local array handle by taking by value.
+  template <typename T, typename S>
+  void operator()(const vtkm::cont::ArrayHandle<T, S>& handle) const
+  {
+    this->Data = make_vtkmDataArray(handle);
+  }
 };
 
 } // anonymous
@@ -95,7 +116,44 @@ void vtkmDataSet::SetVtkmDataSet(const vtkm::cont::DataSet& ds)
 {
   this->Internals->CellSet = ds.GetCellSet();
   this->Internals->Coordinates = ds.GetCoordinateSystem();
-  fromvtkm::ConvertArrays(ds, this);
+  if (this->GetUseVtkmArrays())
+  {
+    // Use vtkmDataArrays to store vtkm::cont::ArrayHandles
+    // How to return a device pointer pointing to these Arrays
+    vtkPointData* pd = this->GetPointData();
+    vtkCellData* cd = this->GetCellData();
+
+    ArrayConverter aConverter;
+
+    vtkm::IdComponent numFields = ds.GetNumberOfFields();
+    for (vtkm::IdComponent i = 0; i < numFields; ++i)
+    {
+      const vtkm::cont::Field& f = ds.GetField(i);
+      try
+      {
+        vtkDataArray* data;
+        vtkm::cont::CastAndCall(f.GetData(), aConverter);
+        data = aConverter.Data;
+        const char* name = f.GetName().c_str();
+        if (data && name && (std::string(name) != tovtkm::NoNameVTKFieldName()))
+        {
+          data->SetName(name);
+        }
+        if (f.GetAssociation() == vtkm::cont::Field::Association::Points)
+          pd->AddArray(data);
+        else if (f.GetAssociation() == vtkm::cont::Field::Association::Cells)
+          cd->AddArray(data);
+      }
+      catch (vtkm::cont::Error&)
+      {
+        std::cout << "How did we end up here!!!!" << std::endl;
+      }
+    }
+  }
+  else
+  {
+    fromvtkm::ConvertArrays(ds, this);
+  }
 }
 
 vtkm::cont::DataSet vtkmDataSet::GetVtkmDataSet() const

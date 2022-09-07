@@ -184,6 +184,9 @@ public:
   void DeepCopy(vtkDataObject* src) override;
   ///@}
 
+  void SetUseVtkmArrays(bool useVtkmArrays) { this->UseVtkmArrays = useVtkmArrays; }
+  bool GetUseVtkmArrays() { return this->UseVtkmArrays; }
+
 protected:
   vtkmDataSet();
   ~vtkmDataSet() override;
@@ -192,6 +195,7 @@ private:
   vtkmDataSet(const vtkmDataSet&) = delete;
   void operator=(const vtkmDataSet&) = delete;
 
+  bool UseVtkmArrays;
   struct DataMembers;
   std::shared_ptr<DataMembers> Internals;
   vtkmInitializer Initializer;
