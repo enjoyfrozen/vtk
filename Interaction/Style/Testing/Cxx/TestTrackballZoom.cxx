@@ -63,10 +63,10 @@ int TestTrackballZoom(int argc, char* argv[])
   strm << "TestTrackballZoom: Recorder" << endl;
   vtkNew<vtkInteractorEventRecorder> recorder;
   recorder->SetInteractor(renderWindowInteractor);
-  const bool IS_RECORDING = false;
-  if (IS_RECORDING)
+  const bool isRecording = false;
+  if (isRecording)
   {
-    recorder->SetFileName("f:/record.log");
+    recorder->SetFileName("record.log");
     recorder->Record();
     recorder->EnabledOn();
   }
@@ -85,7 +85,7 @@ int TestTrackballZoom(int argc, char* argv[])
 
   strm << "TestTrackballZoom: Verification" << endl;
   int retVal = vtkRegressionTestImage(renderWindow);
-  if (retVal == vtkRegressionTester::DO_INTERACTOR || IS_RECORDING)
+  if (retVal == vtkRegressionTester::DO_INTERACTOR || isRecording)
   {
     renderWindowInteractor->Start();
     recorder->Stop();

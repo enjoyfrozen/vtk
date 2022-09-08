@@ -26,12 +26,12 @@
 #include <vtkConeSource.h>
 #include <vtkNew.h>
 #include <vtkPolyDataMapper.h>
+#include <vtkProperty.h>
 #include <vtkSmartPointer.h>
 
 namespace
 {
 //------------------------------------------------------------------------------
-#pragma region Recorded Test : TestRecordEventLog_MouseDown_PartialUpRight
 const char TestRecordEventLog_MouseDown_PartialUpRight[] =
   "# StreamVersion 1.1 \n"
   "EnterEvent 437 144 0 0 0 0 \n"
@@ -491,9 +491,7 @@ const char TestRecordEventLog_MouseDown_PartialUpRight[] =
   "EndInteractionEvent 371 165 0 0 0 0 \n"
   "RenderEvent 371 165 0 0 0 0 \n"
   "MouseMoveEvent 371 165 0 0 0 0 \n";
-#pragma endregion Recorded Test : TestRecordEventLog_MouseDown_PartialUpRight
 
-#pragma region Recorded Test : TestRecordEventLog_PartialRightZoom
 const char TestRecordEventLog_PartialRightZoom[] = "# StreamVersion 1.1 \n"
                                                    "RenderEvent 0 0 0 0 0 0 \n"
                                                    "EnterEvent 488 194 0 0 0 0 \n"
@@ -618,8 +616,6 @@ const char TestRecordEventLog_PartialRightZoom[] = "# StreamVersion 1.1 \n"
                                                    "LeaveEvent 416 499 0 0 0 0 \n"
                                                    "ExitEvent 416 499 0 0 0 0 \n";
 
-#pragma endregion Recorded Test : TestRecordEventLog_PartialRightZoom
-
 //------------------------------------------------------------------------------
 void SetupCone(vtkSmartPointer<vtkActor> actor, std::array<double, 3> dir)
 {
@@ -632,6 +628,7 @@ void SetupCone(vtkSmartPointer<vtkActor> actor, std::array<double, 3> dir)
   coneProperty->SetColor(dir.data());
   actor->SetMapper(coneMapper);
 }
+
 }
 #endif
 

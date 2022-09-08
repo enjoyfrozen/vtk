@@ -19,8 +19,8 @@
 #include <vtkTransform.h>
 
 //------------------------------------------------------------------------------
-const double vtkInteractorStyleCameraUtils::MINIMUM_PARALLEL_SCALE_VALUE = 1.0e-16;
-const double vtkInteractorStyleCameraUtils::MAXIMUM_PARALLEL_SCALE_VALUE = 1.0e100;
+constexpr double vtkInteractorStyleCameraUtils::MINIMUM_PARALLEL_SCALE_VALUE = 1.0e-16;
+constexpr double vtkInteractorStyleCameraUtils::MAXIMUM_PARALLEL_SCALE_VALUE = 1.0e100;
 
 //------------------------------------------------------------------------------
 bool vtkInteractorStyleCameraUtils::IsParallelProjectionZoomingWithinBounds(
