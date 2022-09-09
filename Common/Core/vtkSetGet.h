@@ -270,6 +270,10 @@
     vtkDebugMacro(<< " setting " #name " to " << (arg ? arg : "(null)"));                          \
     if (arg)                                                                                       \
     {                                                                                              \
+      if (this->name == arg)                                                                       \
+      {                                                                                            \
+        return;                                                                                    \
+      }                                                                                            \
       this->name = arg;                                                                            \
     }                                                                                              \
     else                                                                                           \
@@ -284,6 +288,10 @@
     vtkDebugMacro(<< " setting " #name " to " << (arg ? arg : "(null)"));                          \
     if (arg)                                                                                       \
     {                                                                                              \
+      if (this->name == arg)                                                                       \
+      {                                                                                            \
+        return;                                                                                    \
+      }                                                                                            \
       this->name = arg;                                                                            \
     }                                                                                              \
     else                                                                                           \
