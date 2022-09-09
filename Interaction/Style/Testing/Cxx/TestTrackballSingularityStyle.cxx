@@ -61,8 +61,8 @@ int TestTrackballSingularityStyle(int argc, char* argv[])
   strm << "TestTrackballSingularityStyle: Recorder" << endl;
   vtkNew<vtkInteractorEventRecorder> recorder;
   recorder->SetInteractor(renderWindowInteractor);
-  const bool isRecording = false;
-  if (isRecording)
+  constexpr bool IS_RECORDING = false;
+  if (IS_RECORDING)
   {
     recorder->SetFileName("record.log");
     recorder->Record();
@@ -83,7 +83,7 @@ int TestTrackballSingularityStyle(int argc, char* argv[])
 
   strm << "TestTrackballSingularityStyle: Verification" << endl;
   int retVal = vtkRegressionTestImage(renderWindow);
-  if (retVal == vtkRegressionTester::DO_INTERACTOR || isRecording)
+  if (retVal == vtkRegressionTester::DO_INTERACTOR || IS_RECORDING)
   {
     renderWindowInteractor->Start();
     recorder->Stop();

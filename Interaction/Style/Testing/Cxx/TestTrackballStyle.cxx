@@ -60,8 +60,8 @@ int TestTrackballStyle(int argc, char* argv[])
   strm << "TestTrackballStyle: Recorder" << endl;
   vtkNew<vtkInteractorEventRecorder> recorder;
   recorder->SetInteractor(renderWindowInteractor);
-  const bool isRecording = false;
-  if (isRecording)
+  constexpr bool IS_RECORDING = false;
+  if (IS_RECORDING)
   {
     recorder->SetFileName("record.log");
     recorder->Record();
@@ -82,7 +82,7 @@ int TestTrackballStyle(int argc, char* argv[])
 
   strm << "TestTrackballStyle: Verification" << endl;
   int retVal = vtkRegressionTestImage(renderWindow);
-  if (retVal == vtkRegressionTester::DO_INTERACTOR || isRecording)
+  if (retVal == vtkRegressionTester::DO_INTERACTOR || IS_RECORDING)
   {
     renderWindowInteractor->Start();
     recorder->Stop();
