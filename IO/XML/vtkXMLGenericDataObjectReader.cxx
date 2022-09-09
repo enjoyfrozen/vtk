@@ -262,6 +262,7 @@ int vtkXMLGenericDataObjectReader::RequestDataObject(
   {
     this->Reader->SetFileName(this->GetFileName());
     //    this->Reader->SetStream(this->GetStream());
+    this->Reader->SetReadFromInputString(this->GetReadFromInputString());
     // Delegate the error observers
     if (this->GetReaderErrorObserver())
     {
