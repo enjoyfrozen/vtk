@@ -51,6 +51,7 @@ vtkStandardNewMacro(vtkExtractSelection);
 //------------------------------------------------------------------------------
 vtkExtractSelection::vtkExtractSelection()
 {
+  this->SetTopologyFilterOutputArrayName("vtkInsidedness");
   this->SetNumberOfInputPorts(2);
 }
 
@@ -454,9 +455,30 @@ vtkSmartPointer<vtkDataObject> vtkExtractSelection::ExtractElements(
 {
   if (this->PreserveTopology)
   {
+    if (this->GetTopologyFilterInputArrayName() &&
+      block->GetAttributesAsFieldData(type)->HasArray(this->GetTopologyFilterInputArrayName()))
+    {
+      vtkSignedCharArray* previousInsidednessArray = vtkArrayDownCast<vtkSignedCharArray>(
+        block->GetAttributesAsFieldData(type)->GetArray(this->GetTopologyFilterInputArrayName()));
+      if (previousInsidednessArray != nullptr)
+      {
+        vtkIdType size = insidednessArray->GetSize();
+        if (previousInsidednessArray->GetSize() == size)
+        {
+          for (int i = 0; i < size; i++)
+          {
+            if (previousInsidednessArray->GetValue(i) != insidednessArray->GetValue(i))
+            {
+              insidednessArray->SetValue(i, 0);
+            }
+          }
+        }
+      }
+    }
+
     auto output = block->NewInstance();
     output->ShallowCopy(block);
-    insidednessArray->SetName("vtkInsidedness");
+    insidednessArray->SetName(this->GetTopologyFilterOutputArrayName());
     output->GetAttributesAsFieldData(type)->AddArray(insidednessArray);
     return vtkSmartPointer<vtkDataObject>::Take(output);
   }
@@ -670,5 +692,9 @@ void vtkExtractSelection::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
   os << indent << "PreserveTopology: " << this->PreserveTopology << endl;
+  os << indent << "TopologyFilterInputArrayName: " << this->GetTopologyFilterInputArrayName()
+     << endl;
+  os << indent << "TopologyFilterOutputArrayName: " << this->GetTopologyFilterOutputArrayName()
+     << endl;
 }
 VTK_ABI_NAMESPACE_END
