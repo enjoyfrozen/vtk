@@ -59,7 +59,7 @@ public:
    * This value was determined empirically to be as low as possible without affecting the accuracy
    * of view elements such as camera rotations and ruler bars.
    */
-  static const double MINIMUM_PARALLEL_SCALE_VALUE;
+  static constexpr double MINIMUM_PARALLEL_SCALE_VALUE = 1.0e-16;
   ///@}
 
   ///@{
@@ -70,7 +70,7 @@ public:
    * The value for this constant was determined empirically to be significantly high considering the
    * observed models and the precision of the cross-sectional view ruler bar numbers.
    */
-  static const double MAXIMUM_PARALLEL_SCALE_VALUE;
+  static constexpr double MAXIMUM_PARALLEL_SCALE_VALUE = 1.0e100;
   ///@}
 
   ///@{

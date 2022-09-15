@@ -78,6 +78,7 @@ public:
   ///@{
   /**
    * Set the apparent sensitivity of the interactor style to mouse motion.
+   * Default: 10.0
    */
   vtkSetMacro(MotionFactor, double);
   vtkGetMacro(MotionFactor, double);
@@ -87,6 +88,7 @@ public:
   /**
    * Invert the direction of mouse wheel movement. This switches from camera-centric to
    * model-centric scroll wheel movement.
+   * Default: false
    */
   vtkSetMacro(MouseWheelInvertDirection, bool);
   vtkGetMacro(MouseWheelInvertDirection, bool);
