@@ -55,6 +55,7 @@
 #include "vtkUnstructuredGrid.h"
 
 #include <cmath>
+#include <memory>
 
 VTK_ABI_NAMESPACE_BEGIN
 vtkObjectFactoryNewMacro(vtkPlaneCutter);
