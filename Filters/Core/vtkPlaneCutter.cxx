@@ -55,7 +55,7 @@
 #include "vtkUnstructuredGrid.h"
 
 #include <cmath>
-#include <memory>
+#include <memory> // for std::unique_ptr
 
 VTK_ABI_NAMESPACE_BEGIN
 vtkObjectFactoryNewMacro(vtkPlaneCutter);
@@ -412,8 +412,10 @@ struct UnstructuredDataFunctor : public CuttingFunctor<TPointsArray>
     if (this->GeneratePolygons)
     {
       const vtkIdType estimatedSize = inCD->GetNumberOfTuples();
-      contourHelper = std::make_unique<vtkContourHelper>(loc, newVerts, newLines, newPolys, inPD,
-        inCD, outPD, newPolysData, estimatedSize, !this->GeneratePolygons);
+      vtkContourHelper* helper = new vtkContourHelper(loc, newVerts, newLines, newPolys, inPD, inCD,
+        outPD, newPolysData, estimatedSize, !this->GeneratePolygons);
+      std::unique_ptr<vtkContourHelper> helperPtr(helper);
+      contourHelper = std::move(helperPtr);
     }
 
     vtkIdList*& cellPointIds = this->CellPointIds.Local();
