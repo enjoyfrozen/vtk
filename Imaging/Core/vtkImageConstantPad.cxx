@@ -14,6 +14,7 @@
 =========================================================================*/
 #include "vtkImageConstantPad.h"
 
+#include "vtkDoubleArray.h"
 #include "vtkImageData.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
@@ -22,14 +23,21 @@
 
 vtkStandardNewMacro(vtkImageConstantPad);
 
-//------------------------------------------------------------------------------
-// Constructor sets default values
-vtkImageConstantPad::vtkImageConstantPad()
+vtkCxxSetObjectMacro(vtkImageConstantPad, Constants, vtkDoubleArray);
+
+//----------------------------------------------------------------------------
+vtkImageConstantPad::vtkImageConstantPad() {}
+
+//----------------------------------------------------------------------------
+vtkImageConstantPad::~vtkImageConstantPad()
 {
-  this->Constant = 0.0;
+  if (this->Constants)
+  {
+    this->Constants->Delete();
+  }
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------
 // This templated function executes the filter for any type of data.
 template <class T>
 void vtkImageConstantPadExecute(vtkImageConstantPad* self, vtkImageData* inData, T* inPtr,
@@ -40,8 +48,19 @@ void vtkImageConstantPadExecute(vtkImageConstantPad* self, vtkImageData* inData,
   vtkIdType inIncX, inIncY, inIncZ;
   vtkIdType outIncX, outIncY, outIncZ;
   T constant;
-  int inMinX, inMaxX, inMaxC;
   constant = static_cast<T>(self->GetConstant());
+  T* constants;
+  vtkDoubleArray* sourceConstants = self->GetConstants();
+  if (sourceConstants && sourceConstants->GetNumberOfValues() > 0)
+  {
+    int numConstants = sourceConstants->GetNumberOfValues();
+    constants = new T[numConstants];
+    for (int i = 0; i < numConstants; i++)
+    {
+      constants[i] = static_cast<T>(sourceConstants->GetValue(i));
+    }
+  }
+  int inMinX, inMaxX, inMaxC;
   int state0, state1, state2, state3;
   unsigned long count = 0;
   unsigned long target;
@@ -95,24 +114,50 @@ void vtkImageConstantPadExecute(vtkImageConstantPad* self, vtkImageData* inData,
       }
       else
       {
-        for (idxX = 0; idxX <= maxX; idxX++)
+        if (!sourceConstants || sourceConstants->GetNumberOfValues() <= 0)
         {
-          state1 = (state2 || idxX < inMinX || idxX > inMaxX);
-          for (idxC = 0; idxC < maxC; idxC++)
+          for (idxX = 0; idxX <= maxX; idxX++)
           {
-            // Pixel operation
-            // Copy Pixel
-            state0 = (state1 || idxC >= inMaxC);
-            if (state0)
+            state1 = (state2 || idxX < inMinX || idxX > inMaxX);
+            for (idxC = 0; idxC < maxC; idxC++)
             {
-              *outPtr = constant;
+              // Pixel operation
+              // Copy Pixel
+              state0 = (state1 || idxC >= inMaxC);
+              if (state0)
+              {
+                *outPtr = constant;
+              }
+              else
+              {
+                *outPtr = *inPtr;
+                inPtr++;
+              }
+              outPtr++;
             }
-            else
+          }
+        }
+        else
+        {
+          for (idxX = 0; idxX <= maxX; idxX++)
+          {
+            state1 = (state2 || idxX < inMinX || idxX > inMaxX);
+            for (idxC = 0; idxC < maxC; idxC++)
             {
-              *outPtr = *inPtr;
-              inPtr++;
+              // Pixel operation
+              // Copy Pixel
+              state0 = (state1 || idxC >= inMaxC);
+              if (state0)
+              {
+                *outPtr = self->GetConstants()->GetValue(idxC);
+              }
+              else
+              {
+                *outPtr = *inPtr;
+                inPtr++;
+              }
+              outPtr++;
             }
-            outPtr++;
           }
         }
       }
@@ -130,7 +175,7 @@ void vtkImageConstantPadExecute(vtkImageConstantPad* self, vtkImageData* inData,
   }
 }
 
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------
 // This method is passed a input and output data, and executes the filter
 // algorithm to fill the output from the input.
 // It just executes a switch statement to call the correct function for

@@ -16,6 +16,7 @@ DEPENDS
   VTK::IOImage
   VTK::RenderingCore
   VTK::RenderingHyperTreeGrid
+  VTK::RenderingLabel
   VTK::RenderingUI
   VTK::glew
 PRIVATE_DEPENDS
@@ -23,7 +24,9 @@ PRIVATE_DEPENDS
   VTK::CommonMath
   VTK::CommonSystem
   VTK::CommonTransforms
+  VTK::ImagingCore
   VTK::opengl
+  VTK::RenderingFreeType
   VTK::vtksys
 TEST_DEPENDS
   VTK::CommonSystem
