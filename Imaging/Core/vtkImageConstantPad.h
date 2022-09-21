@@ -30,6 +30,8 @@
 #include "vtkImagePadFilter.h"
 #include "vtkImagingCoreModule.h" // For export macro
 
+class vtkDoubleArray;
+
 class VTKIMAGINGCORE_EXPORT vtkImageConstantPad : public vtkImagePadFilter
 {
 public:
@@ -38,19 +40,28 @@ public:
 
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  ///@{
+  //@{
   /**
    * Set/Get the pad value.
    */
   vtkSetMacro(Constant, double);
   vtkGetMacro(Constant, double);
-  ///@}
+  //@}
+
+  //@{
+  /**
+   * Set/Get the pad values for multiple constants
+   */
+  virtual void SetConstants(vtkDoubleArray* values);
+  vtkGetObjectMacro(Constants, vtkDoubleArray);
+  //@}
 
 protected:
   vtkImageConstantPad();
-  ~vtkImageConstantPad() override = default;
+  ~vtkImageConstantPad() override;
 
-  double Constant;
+  double Constant = 0.0;
+  vtkDoubleArray* Constants = nullptr;
 
   void ThreadedRequestData(vtkInformation* request, vtkInformationVector** inputVector,
     vtkInformationVector* outputVector, vtkImageData*** inData, vtkImageData** outData, int ext[6],

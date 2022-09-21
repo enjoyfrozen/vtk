@@ -50,6 +50,7 @@
 #include "vtkDeprecation.h" // For VTK_DEPRECATED_IN_9_2_0
 #include "vtkExtractSelectionBase.h"
 #include "vtkFiltersExtractionModule.h" // For export macro
+#include "vtkType.h"                    // For OutputDataSetType
 
 class vtkSelection;
 class vtkSelectionNode;
@@ -62,10 +63,28 @@ public:
   vtkTypeMacro(vtkExtractSelectedIds, vtkExtractSelectionBase);
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
+  //@{
+  /**
+   * Get/Set the output type produced by this filter. When filtering
+   * points, setting VTK_POLY_DATA can keep both input and output
+   * data as polydata. This allows filtering without creating the cells
+   * introduced by creating an unstructured grid and converting back
+   * with a vtkGeometryFilter.
+   *
+   * Valid values are VTK_DATA_OBJECT, VTK_POLY_DATA, and
+   * VTK_UNSTRUCTURED_GRID defined in vtkType.h
+   *
+   * Defaults to VTK_DATA_OBJECT.
+   */
+  vtkSetMacro(OutputDataSetType, int);
+  vtkGetMacro(OutputDataSetType, int);
+  //@}
+
 protected:
   vtkExtractSelectedIds();
   ~vtkExtractSelectedIds() override;
 
+  int FillOutputPortInformation(int port, vtkInformation* info) override;
   // Overridden to indicate that the input must be a vtkDataSet.
   int FillInputPortInformation(int port, vtkInformation* info) override;
 
@@ -78,6 +97,8 @@ protected:
 private:
   vtkExtractSelectedIds(const vtkExtractSelectedIds&) = delete;
   void operator=(const vtkExtractSelectedIds&) = delete;
+
+  int OutputDataSetType = VTK_DATA_OBJECT;
 };
 
 #endif
