@@ -25,11 +25,13 @@
 #include "vtkObjectFactory.h"
 #include "vtkPointData.h"
 #include "vtkPoints.h"
+#include "vtkSetGet.h"
 #include "vtkStringArray.h"
 #include "vtkUnsignedCharArray.h"
 #include "vtkUnstructuredGrid.h"
 
 #include <algorithm>
+#include <cstdint> // for int32_t and int64_t
 #include <list>
 #include <vector>
 
@@ -852,6 +854,22 @@ void vtkLSDynaPartCollection::SetupPointPropertyForReading(const vtkIdType& numT
   {
     // don't do anything as we have no valid parts
   }
+  else if (isIdType)
+  {
+    auto wordSize = this->MetaData->Fam.GetWordSize();
+    if (wordSize == 8)
+    {
+      this->FillPointUserIds<std::int64_t>(numTuples, numComps, validParts, idx);
+    }
+    else if (wordSize == 4)
+    {
+      this->FillPointUserIds<std::int32_t>(numTuples, numComps, validParts, idx);
+    }
+    else
+    {
+      vtkErrorMacro(<< "Invalid word size: " << wordSize);
+    }
+  }
   else if (this->MetaData->Fam.GetWordSize() == 8)
   {
     this->FillPointProperty<double>(numTuples, numComps, validParts, idx);
@@ -873,15 +891,12 @@ bool sortPartsOnGlobalIds(const vtkLSDynaPart* p1, const vtkLSDynaPart* p2)
 {
   return p1->GetMaxGlobalPointId() < p2->GetMaxGlobalPointId();
 }
-}
 
 //------------------------------------------------------------------------------
-template <typename T>
-void vtkLSDynaPartCollection::FillPointProperty(const vtkIdType& numTuples,
+template <typename T, typename F>
+void fillPointPropertyImpl(F read_point_data, LSDynaMetaData* pMeta, const vtkIdType& numTuples,
   const vtkIdType& numComps, vtkLSDynaPart** parts, const vtkIdType numParts)
 {
-  LSDynaMetaData* p = this->MetaData;
-
   // construct the sorted array of parts so we only
   // have to iterate a subset that are interested in the points we have
   // are reading in.
@@ -909,11 +924,11 @@ void vtkLSDynaPartCollection::FillPointProperty(const vtkIdType& numTuples,
   const vtkIdType bufferChunkSize(numPointsToRead * numComps);
 
   T* buf = nullptr;
-  p->Fam.SkipWords(numPointsToSkipStart * numComps);
+  pMeta->Fam.SkipWords(numPointsToSkipStart * numComps);
   for (vtkIdType j = 0; j < loopTimes; ++j, offset += numPointsToRead)
   {
-    p->Fam.BufferChunk(LSDynaFamily::Float, bufferChunkSize);
-    buf = p->Fam.GetBufferAs<T>();
+    pMeta->Fam.BufferChunk(LSDynaFamily::Float, bufferChunkSize);
+    buf = pMeta->Fam.GetBufferAs<T>();
 
     partIt = sortedParts.begin();
     while (partIt != sortedParts.end() && (*partIt)->GetMaxGlobalPointId() < offset)
@@ -928,18 +943,46 @@ void vtkLSDynaPartCollection::FillPointProperty(const vtkIdType& numTuples,
     {
       // only read the points which have a point that lies within this section
       // so we stop once the min is larger than our max id
-      (*partIt)->ReadPointBasedProperty(buf, numPointsToRead, numComps, offset);
+      read_point_data(*partIt, buf, numPointsToRead, numComps, offset);
       ++partIt;
     }
   }
   if (leftOver > 0 && !sortedParts.empty())
   {
-    p->Fam.BufferChunk(LSDynaFamily::Float, leftOver * numComps);
-    buf = p->Fam.GetBufferAs<T>();
+    pMeta->Fam.BufferChunk(LSDynaFamily::Float, leftOver * numComps);
+    buf = pMeta->Fam.GetBufferAs<T>();
     for (partIt = sortedParts.begin(); partIt != sortedParts.end(); ++partIt)
     {
-      (*partIt)->ReadPointBasedProperty(buf, leftOver, numComps, offset);
+      read_point_data(*partIt, buf, leftOver, numComps, offset);
     }
   }
-  p->Fam.SkipWords(numPointsToSkipEnd * numComps);
+  pMeta->Fam.SkipWords(numPointsToSkipEnd * numComps);
+}
+
+} // unnamed namespace
+
+//------------------------------------------------------------------------------
+template <typename T>
+void vtkLSDynaPartCollection::FillPointProperty(const vtkIdType& numTuples,
+  const vtkIdType& numComps, vtkLSDynaPart** parts, const vtkIdType numParts)
+{
+  auto f = [](vtkLSDynaPart* part, T* data, const vtkIdType& numTuples, const vtkIdType& numComps,
+             const vtkIdType& currentGlobalPointIndex) {
+    return part->ReadPointBasedProperty(data, numTuples, numComps, currentGlobalPointIndex);
+  };
+
+  fillPointPropertyImpl<T>(f, this->MetaData, numTuples, numComps, parts, numParts);
+}
+
+//------------------------------------------------------------------------------
+template <typename T>
+void vtkLSDynaPartCollection::FillPointUserIds(const vtkIdType& numTuples,
+  const vtkIdType& numComps, vtkLSDynaPart** parts, const vtkIdType numParts)
+{
+  auto f = [](vtkLSDynaPart* part, T* data, const vtkIdType& numTuples, const vtkIdType& numComps,
+             const vtkIdType& currentGlobalPointIndex) {
+    return part->ReadPointUserIds(data, numTuples, numComps, currentGlobalPointIndex);
+  };
+
+  fillPointPropertyImpl<T>(f, this->MetaData, numTuples, numComps, parts, numParts);
 }

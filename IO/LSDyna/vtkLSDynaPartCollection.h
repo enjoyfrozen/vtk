@@ -146,6 +146,9 @@ protected:
   template <typename T>
   void FillPointProperty(const vtkIdType& numTuples, const vtkIdType& numComps,
     vtkLSDynaPart** parts, const vtkIdType numParts);
+  template <typename T>
+  void FillPointUserIds(const vtkIdType& numTuples, const vtkIdType& numComps,
+    vtkLSDynaPart** parts, const vtkIdType numParts);
 
 private:
   vtkLSDynaPartCollection(const vtkLSDynaPartCollection&) = delete;

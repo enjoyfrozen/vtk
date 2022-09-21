@@ -20,6 +20,8 @@
 #include "vtkObject.h"
 #include "vtkStdString.h" //needed for string
 
+#include <cstdint> // for int32_t and int64_t
+
 class vtkUnstructuredGrid;
 class vtkPoints;
 
@@ -104,6 +106,12 @@ public:
   void ReadPointBasedProperty(double* data, const vtkIdType& numTuples, const vtkIdType& numComps,
     const vtkIdType& currentGlobalPointIndex);
 
+  void ReadPointUserIds(std::int32_t* data, const vtkIdType& numTuples, const vtkIdType& numComps,
+    const vtkIdType& currentGlobalPointIndex);
+
+  void ReadPointUserIds(std::int64_t* data, const vtkIdType& numTuples, const vtkIdType& numComps,
+    const vtkIdType& currentGlobalPointIndex);
+
   // Description:
   // Adds a property to the part
   void AddCellProperty(const char* name, const int& offset, const int& numComps);
@@ -138,8 +146,8 @@ protected:
   void GetPropertyData(const char* name, const vtkIdType& numComps, const bool& isIdTypeArray,
     const bool& isProperty, const bool& isGeometry);
 
-  template <typename T>
-  void AddPointInformation(T* buffer, T* pointData, const vtkIdType& numTuples,
+  template <typename T, typename U>
+  void AddPointInformation(T* buffer, U* pointData, const vtkIdType& numTuples,
     const vtkIdType& numComps, const vtkIdType& currentGlobalPointIndex);
 
   // basic info about the part
