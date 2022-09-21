@@ -66,10 +66,13 @@ public:
   void OnMouseWheelBackward() override;
   ///@}
 
-  // These methods for the different interactions in different modes
-  // are overridden in subclasses to perform the correct motion. Since
-  // they are called by OnTimer, they do not have mouse coord parameters
-  // (use interactor's GetEventPosition and GetLastEventPosition)
+  ///@{
+  /**
+   * These methods for the different interactions in different modes
+   * are overridden in subclasses to perform the correct motion. Since
+   * they are called by OnTimer, they do not have mouse coord parameters
+   * (use interactor's GetEventPosition and GetLastEventPosition)
+   */
   void Rotate() override;
   virtual bool CanRepeatRotation();
   virtual void RepeatRotation();
@@ -77,6 +80,7 @@ public:
   void Pan() override;
   void Dolly() override;
   void EnvironmentRotate() override;
+  ///@}
 
   ///@{
   /**
@@ -174,6 +178,7 @@ protected:
   vtkGetVector2Macro(RightButtonDownPosition, int);
   vtkSetVector2Macro(RightButtonDownPosition, int);
   ///@}
+
   int LeftButtonDownPosition[2] = { 0, 0 };
   int MiddleButtonDownPosition[2] = { 0, 0 };
   int RightButtonDownPosition[2] = { 0, 0 };
@@ -191,13 +196,11 @@ private:
   virtual void OnMouseWheelAction(double direction);
 
   virtual void RotateDefault();
-  ///@{
-  /**
+  /*
    * Rotates the camera around its focal point according to the current values for the rotation axis
    * and angle.
    */
   virtual void RotateSingularity();
-  ///@}
   virtual void RotateSingularityCalculateAxisAndAngle();
   virtual void RotateWorldZScreenX();
 

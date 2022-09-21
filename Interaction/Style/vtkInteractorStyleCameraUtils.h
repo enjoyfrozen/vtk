@@ -51,8 +51,7 @@ enum class vtkZoomDirection : int
 class VTKINTERACTIONSTYLE_EXPORT vtkInteractorStyleCameraUtils
 {
 public:
-  ///@{
-  /**
+  /*
    * The minimum value for parallel projection's parallel scale determining how much the view can be
    * zoomed in.
    *
@@ -60,10 +59,8 @@ public:
    * of view elements such as camera rotations and ruler bars.
    */
   static constexpr double MINIMUM_PARALLEL_SCALE_VALUE = 1.0e-16;
-  ///@}
 
-  ///@{
-  /**
+  /*
    * The maximum value for parallel projection's parallel scale determining how much the view can be
    * zoomed out.
    *
@@ -71,10 +68,8 @@ public:
    * observed models and the precision of the cross-sectional view ruler bar numbers.
    */
   static constexpr double MAXIMUM_PARALLEL_SCALE_VALUE = 1.0e100;
-  ///@}
 
-  ///@{
-  /**
+  /*
    * Determines whether the specified parallel projection value is within the allowed zooming
    * bounds, considering whether the caller is zooming in or out of the view.
    *
@@ -89,10 +84,8 @@ public:
    */
   static bool IsParallelProjectionZoomingWithinBounds(
     vtkZoomDirection zoomDirection, double parallelScale);
-  ///@}
 
-  ///@{
-  /**
+  /*
    * Determines whether zooming is valid if the provided renderer is using parallel projection.
    *
    * renderer: The renderer being zoomed in/out.
@@ -102,10 +95,8 @@ public:
    */
   static bool IsParallelProjectionZoomingValid(
     vtkRenderer* renderer, vtkZoomDirection zoomDirection);
-  ///@}
 
-  ///@{
-  /**
+  /*
    * Rotates the camera
    *
    * renderer: Current renderer (which contains the camera)
@@ -121,10 +112,8 @@ public:
    */
   static void RotateCameraAroundWorldZScreenX(vtkRenderer* renderer, double phi, double theta,
     bool autoAdjustCameraClippingRange, bool lightFollowCamera);
-  ///@}
 
-  ///@{
-  /**
+  /*
    * Moves the camera forward/backward based on the specified factor centered around the current
    * mouse cursor position. This allows a user to point at an area of interest and zoom in on that
    * point while keeping it in view, even on the edges of the viewport.
@@ -135,7 +124,6 @@ public:
    */
   static void DollyTargeted(
     vtkRenderWindowInteractor* interactor, vtkRenderer* renderer, double factor);
-  ///@}
 };
 
 #endif
