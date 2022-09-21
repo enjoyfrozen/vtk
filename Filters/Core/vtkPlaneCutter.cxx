@@ -164,13 +164,13 @@ struct CuttingFunctor
   double* Normal;
   vtkIdType NumSelected;
   bool Interpolate;
-  bool GeneratePolygons;
+  bool GenerateTriangles;
   bool MergePoints;
   vtkPlaneCutter* Filter;
 
   CuttingFunctor(vtkDataSet* input, TPointsArray* pointsArray, int outputPrecision,
     vtkMultiPieceDataSet* outputMP, vtkPlane* plane, vtkSphereTree* tree, double* origin,
-    double* normal, bool interpolate, bool generatePolygons, bool mergePoints,
+    double* normal, bool interpolate, bool generateTriangles, bool mergePoints,
     vtkPlaneCutter* filter)
     : Input(input)
     , InPointsArray(pointsArray)
@@ -182,7 +182,7 @@ struct CuttingFunctor
     , Origin(origin)
     , Normal(normal)
     , Interpolate(interpolate)
-    , GeneratePolygons(generatePolygons)
+    , GenerateTriangles(generateTriangles)
     , MergePoints(mergePoints)
     , Filter(filter)
   {
@@ -241,7 +241,7 @@ struct CuttingFunctor
     localData.Output = vtkPolyData::New();
     vtkPolyData* output = localData.Output;
 
-    if (this->GeneratePolygons && this->MergePoints)
+    if (!this->GenerateTriangles && this->MergePoints)
     {
       localData.Locator = vtkMergePoints::New();
     }
@@ -322,10 +322,10 @@ struct UnstructuredDataFunctor : public CuttingFunctor<TPointsArray>
 {
   UnstructuredDataFunctor(TGrid* inputGrid, TPointsArray* pointsArray, int outputPrecision,
     vtkMultiPieceDataSet* outputMP, vtkPlane* plane, vtkSphereTree* tree, double* origin,
-    double* normal, bool interpolate, bool generatePolygons, bool mergePoints,
+    double* normal, bool interpolate, bool generateTriangles, bool mergePoints,
     vtkPlaneCutter* filter)
     : CuttingFunctor<TPointsArray>(inputGrid, pointsArray, outputPrecision, outputMP, plane, tree,
-        origin, normal, interpolate, generatePolygons, mergePoints, filter)
+        origin, normal, interpolate, generateTriangles, mergePoints, filter)
   {
     if (auto polyData = vtkPolyData::SafeDownCast(inputGrid))
     {
@@ -409,11 +409,11 @@ struct UnstructuredDataFunctor : public CuttingFunctor<TPointsArray>
     bool isFirst = vtkSMPTools::GetSingleThread();
 
     std::unique_ptr<vtkContourHelper> contourHelper;
-    if (this->GeneratePolygons)
+    if (!this->GenerateTriangles)
     {
       const vtkIdType estimatedSize = inCD->GetNumberOfTuples();
       vtkContourHelper* helper = new vtkContourHelper(loc, newVerts, newLines, newPolys, inPD, inCD,
-        outPD, newPolysData, estimatedSize, !this->GeneratePolygons);
+        outPD, newPolysData, estimatedSize, this->GenerateTriangles);
       std::unique_ptr<vtkContourHelper> helperPtr(helper);
       contourHelper = std::move(helperPtr);
     }
@@ -457,7 +457,7 @@ struct UnstructuredDataFunctor : public CuttingFunctor<TPointsArray>
           *s++ = this->Plane->FunctionValue(cellPoints->GetPoint(i));
         }
 
-        if (this->GeneratePolygons)
+        if (!this->GenerateTriangles)
         {
           contourHelper->Contour(cell, 0.0, cellScalars, cellId);
         }
@@ -527,11 +527,11 @@ struct UnstructuredDataWorker
   template <typename TPointsArray>
   void operator()(TPointsArray* pointsArray, TGrid* inputGrid, int outputPrecision,
     vtkMultiPieceDataSet* outputMP, vtkPlane* plane, vtkSphereTree* tree, double* origin,
-    double* normal, bool interpolate, bool generatePolygons, bool mergePoints,
+    double* normal, bool interpolate, bool generateTriangles, bool mergePoints,
     vtkPlaneCutter* filter)
   {
     UnstructuredDataFunctor<TGrid, TPointsArray> functor(inputGrid, pointsArray, outputPrecision,
-      outputMP, plane, tree, origin, normal, interpolate, generatePolygons, mergePoints, filter);
+      outputMP, plane, tree, origin, normal, interpolate, generateTriangles, mergePoints, filter);
     functor.BuildAccelerationStructure();
     vtkSMPTools::For(0, inputGrid->GetNumberOfCells(), functor);
   }
@@ -805,7 +805,7 @@ int vtkPlaneCutter::ExecuteDataSet(vtkDataSet* input, vtkPolyData* output)
       return 1;
     }
   }
-  else if (vtkUnstructuredGrid::SafeDownCast(input) && !this->GeneratePolygons)
+  else if (vtkUnstructuredGrid::SafeDownCast(input) && this->GenerateTriangles)
   {
     // Check whether we have 3d linear cells. Cache the computation
     // of linearity, so it only needs be done once if the input does not change.
@@ -850,10 +850,10 @@ int vtkPlaneCutter::ExecuteDataSet(vtkDataSet* input, vtkPolyData* output)
     auto pointsArray = inputPolyData->GetPoints()->GetData();
     if (!Dispatcher::Execute(pointsArray, worker, inputPolyData, this->OutputPointsPrecision,
           tempOutputMP, plane, sphereTree, planeOrigin, planeNormal, this->InterpolateAttributes,
-          this->GeneratePolygons, this->MergePoints, this))
+          this->GenerateTriangles, this->MergePoints, this))
     {
       worker(pointsArray, inputPolyData, this->OutputPointsPrecision, tempOutputMP, plane,
-        sphereTree, planeOrigin, planeNormal, this->InterpolateAttributes, this->GeneratePolygons,
+        sphereTree, planeOrigin, planeNormal, this->InterpolateAttributes, this->GenerateTriangles,
         this->MergePoints, this);
     }
   }
@@ -864,10 +864,10 @@ int vtkPlaneCutter::ExecuteDataSet(vtkDataSet* input, vtkPolyData* output)
     auto pointsArray = inputUG->GetPoints()->GetData();
     if (!Dispatcher::Execute(pointsArray, worker, inputUG, this->OutputPointsPrecision,
           tempOutputMP, plane, sphereTree, planeOrigin, planeNormal, this->InterpolateAttributes,
-          this->GeneratePolygons, this->MergePoints, this))
+          this->GenerateTriangles, this->MergePoints, this))
     {
       worker(pointsArray, inputUG, this->OutputPointsPrecision, tempOutputMP, plane, sphereTree,
-        planeOrigin, planeNormal, this->InterpolateAttributes, this->GeneratePolygons,
+        planeOrigin, planeNormal, this->InterpolateAttributes, this->GenerateTriangles,
         this->MergePoints, this);
     }
   }
@@ -930,6 +930,9 @@ void vtkPlaneCutter::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "Generate Polygons: " << (this->GeneratePolygons ? "On\n" : "Off\n");
   os << indent << "Build Tree: " << (this->BuildTree ? "On\n" : "Off\n");
   os << indent << "Build Hierarchy: " << (this->BuildHierarchy ? "On\n" : "Off\n");
+  os << indent << "Filter Topology: " << (this->FilterTopology ? "On\n" : "Off\n");
+  os << indent << "Topology Filter Array Name: " << this->TopologyFilterArrayName << "\n";
+  os << indent << "Generate Triangles: " << (this->GenerateTriangles ? "On\n" : "Off\n");
   os << indent << "Merge Points: " << (this->MergePoints ? "On\n" : "Off\n");
   os << indent << "Output Points Precision: " << this->OutputPointsPrecision << "\n";
 }

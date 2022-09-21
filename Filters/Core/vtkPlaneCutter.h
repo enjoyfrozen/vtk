@@ -190,6 +190,21 @@ public:
 
   ///@{
   /**
+   * If this is enabled (by default), the output will be triangles
+   * otherwise, the output will be the intersection polygons.
+   *
+   * When setting to false, set MergePointsOn if also using
+   * the FilterTopologyOn option.
+   *
+   * Default value is true.
+   */
+  vtkSetMacro(GenerateTriangles, bool);
+  vtkGetMacro(GenerateTriangles, bool);
+  vtkBooleanMacro(GenerateTriangles, bool);
+  ///@}
+
+  ///@{
+  /**
    * Indicate whether to merge coincident points. Merging can take extra time and produces fewer
    * output points, creating a "watertight" output surface. On the other hand, merging reduced
    * output data size and may be just as fast.
@@ -225,6 +240,7 @@ protected:
   bool GeneratePolygons;
   bool BuildTree;
   bool BuildHierarchy;
+  bool GenerateTriangles = true;
   bool MergePoints;
   int OutputPointsPrecision;
   bool FilterTopology = false;

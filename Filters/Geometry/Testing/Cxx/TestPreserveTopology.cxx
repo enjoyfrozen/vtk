@@ -184,7 +184,7 @@ int TestPreserveTopology(int argc, char* argv[])
     intersectGrid->FilterTopologyOn();
     intersectGrid->SetTopologyFilterArrayName("filter2");
     intersectGrid->SetPlane(cutPlane);
-    intersectGrid->GeneratePolygonsOn();
+    intersectGrid->GenerateTrianglesOff();
     intersectGrid->MergePointsOn();
     intersectGrid->BuildTreeOn();
     intersectGrid->BuildHierarchyOn();
