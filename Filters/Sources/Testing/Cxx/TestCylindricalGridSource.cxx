@@ -1,7 +1,7 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    TestCylindricalGridBuilder.cxx
+  Module:    TestCylindricalGridSource.cxx
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.
@@ -17,7 +17,7 @@
 
 #include "vtkDebugLeaks.h"
 
-#include "vtkCylindricalGridBuilder.h"
+#include "vtkCylindricalGridSource.h"
 #include "vtkRegressionTestImage.h"
 
 #include "vtkActor.h"
@@ -37,10 +37,10 @@
 #include "vtkTubeFilter.h"
 #include "vtkVersion.h"
 
-int TestCylindricalGridBuilder(int argc, char* argv[])
+int TestCylindricalGridSource(int argc, char* argv[])
 {
   std::ostringstream strm;
-  strm << "Test vtkCell::TestCylindricalGridBuilder Start" << endl;
+  strm << "Test vtkCell::TestCylindricalGridSource Start" << endl;
 
   vtkNew<vtkActor> lineActor;
   {
@@ -86,7 +86,7 @@ int TestCylindricalGridBuilder(int argc, char* argv[])
   vtkNew<vtkActor> outlineActor;
   {
     // Add the grid
-    vtkNew<vtkCylindricalGridBuilder> grid;
+    vtkNew<vtkCylindricalGridSource> grid;
     grid->SetMaximumAngle(5);
     grid->InsertNextCylindricalCell(0.5, 1, 0, 360, -1, 1);
     grid->InsertNextCylindricalCell(0.5, 1, 0, 90, 1, 2);
@@ -124,7 +124,7 @@ int TestCylindricalGridBuilder(int argc, char* argv[])
     outlineMapper->SetRelativeCoincidentTopologyLineOffsetParameters(0.0, 4.0);
   }
 
-  strm << "Test vtkCell::TestCylindricalGridBuilder End" << endl;
+  strm << "Test vtkCell::TestCylindricalGridSource End" << endl;
 
   vtkNew<vtkRenderer> renderer;
   renderer->AddActor(lineActor);

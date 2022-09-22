@@ -1,4 +1,4 @@
-#include "vtkCylindricalGridBuilder.h"
+#include "vtkCylindricalGridSource.h"
 
 #include "vtkCellType.h"
 #include "vtkIdList.h"
@@ -8,7 +8,7 @@
 #include <cmath>
 #include <map>
 
-class vtkCylindricalGridBuilder::Impl
+class vtkCylindricalGridSource::Impl
 {
 public:
   Impl() {}
@@ -59,10 +59,10 @@ public:
     vtkSmartPointer<vtkPoints> points);
 };
 
-const double vtkCylindricalGridBuilder::Impl::TWO_PI_PRECISION_FACTOR =
+const double vtkCylindricalGridSource::Impl::TWO_PI_PRECISION_FACTOR =
   1.9999999; // to avoid point duplication with precision errors
 
-int vtkCylindricalGridBuilder::Impl::CalculateNumberOfIntermediatePointsRequired(
+int vtkCylindricalGridSource::Impl::CalculateNumberOfIntermediatePointsRequired(
   double p1, double p2, double maximumAngle)
 {
   double delta = p2 - p1;
@@ -70,7 +70,7 @@ int vtkCylindricalGridBuilder::Impl::CalculateNumberOfIntermediatePointsRequired
   return std::max(0, static_cast<int>(numberOfSegmentsRequired - 1));
 }
 
-double vtkCylindricalGridBuilder::Impl::LocatePolarAngleInFirstRevolution(double p1)
+double vtkCylindricalGridSource::Impl::LocatePolarAngleInFirstRevolution(double p1)
 {
   // Remove Multiple Revolutions
   double pi2 = 2.0 * vtkMath::Pi();
@@ -86,8 +86,8 @@ double vtkCylindricalGridBuilder::Impl::LocatePolarAngleInFirstRevolution(double
   return p1;
 }
 
-vtkIdType vtkCylindricalGridBuilder::Impl::CreateUniquePoint(double r, double p, double z,
-  vtkCylindricalGridBuilder::Impl::UniquePointIndexLookupTable& pointLookup,
+vtkIdType vtkCylindricalGridSource::Impl::CreateUniquePoint(double r, double p, double z,
+  vtkCylindricalGridSource::Impl::UniquePointIndexLookupTable& pointLookup,
   vtkSmartPointer<vtkPoints> points)
 {
   p = LocatePolarAngleInFirstRevolution(p);
@@ -107,9 +107,9 @@ vtkIdType vtkCylindricalGridBuilder::Impl::CreateUniquePoint(double r, double p,
   return pointID;
 }
 
-std::vector<vtkIdType> vtkCylindricalGridBuilder::Impl::CreatePointLine(double r, double p1,
+std::vector<vtkIdType> vtkCylindricalGridSource::Impl::CreatePointLine(double r, double p1,
   double p2, double z, int numIntermediatePoints,
-  vtkCylindricalGridBuilder::Impl::UniquePointIndexLookupTable& pointLookup,
+  vtkCylindricalGridSource::Impl::UniquePointIndexLookupTable& pointLookup,
   vtkSmartPointer<vtkPoints> points)
 {
   std::vector<vtkIdType> pointIDs;
@@ -144,8 +144,8 @@ std::vector<vtkIdType> vtkCylindricalGridBuilder::Impl::CreatePointLine(double r
   return pointIDs;
 }
 
-vtkStandardNewMacro(vtkCylindricalGridBuilder);
-vtkCylindricalGridBuilder::vtkCylindricalGridBuilder()
+vtkStandardNewMacro(vtkCylindricalGridSource);
+vtkCylindricalGridSource::vtkCylindricalGridSource()
   : Grid(vtkSmartPointer<vtkUnstructuredGrid>::New())
   , UseDegrees(true)
 {
@@ -154,14 +154,14 @@ vtkCylindricalGridBuilder::vtkCylindricalGridBuilder()
   SetMaximumAngle(361);
 }
 
-void vtkCylindricalGridBuilder::PrintSelf(ostream& os, vtkIndent indent)
+void vtkCylindricalGridSource::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
   os << indent << "MaximumAngle: " << this->MaximumAngle << endl;
   os << indent << "UseDegrees: " << this->UseDegrees << endl;
 }
 
-void vtkCylindricalGridBuilder::SetMaximumAngle(double maxAngle)
+void vtkCylindricalGridSource::SetMaximumAngle(double maxAngle)
 {
   if (this->UseDegrees)
   {
@@ -172,7 +172,7 @@ void vtkCylindricalGridBuilder::SetMaximumAngle(double maxAngle)
     vtkMath::RadiansFromDegrees(0.1), std::min(maxAngle, vtkMath::RadiansFromDegrees(361.0)));
 }
 
-double vtkCylindricalGridBuilder::GetMaximumAngle()
+double vtkCylindricalGridSource::GetMaximumAngle()
 {
   if (this->UseDegrees)
   {
@@ -181,7 +181,7 @@ double vtkCylindricalGridBuilder::GetMaximumAngle()
   return this->MaximumAngle;
 }
 
-void vtkCylindricalGridBuilder::InsertNextCylindricalCell(
+void vtkCylindricalGridSource::InsertNextCylindricalCell(
   double r1, double r2, double p1, double p2, double z1)
 {
   // Initialize Parameters
@@ -239,7 +239,7 @@ void vtkCylindricalGridBuilder::InsertNextCylindricalCell(
   this->Grid->InsertNextCell(VTK_POLYHEDRON, faceList);
 }
 
-void vtkCylindricalGridBuilder::InsertNextCylindricalCell(
+void vtkCylindricalGridSource::InsertNextCylindricalCell(
   double r1, double r2, double p1, double p2, double z1, double z2)
 {
   // Initialize Parameters
@@ -285,8 +285,8 @@ void vtkCylindricalGridBuilder::InsertNextCylindricalCell(
   auto facesTopBottom = 2 * (edgePoints - 1);
   auto facesInsideOutside = 2 * (edgePoints - 1);
   auto facesEnds =
-    ((p2 - p1) >= (vtkCylindricalGridBuilder::Impl::TWO_PI_PRECISION_FACTOR * vtkMath::Pi())) ? 0
-                                                                                              : 2;
+    ((p2 - p1) >= (vtkCylindricalGridSource::Impl::TWO_PI_PRECISION_FACTOR * vtkMath::Pi())) ? 0
+                                                                                             : 2;
   faces.push_back(facesTopBottom + facesInsideOutside + facesEnds);
 
   // Bottom

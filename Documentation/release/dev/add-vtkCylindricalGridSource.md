@@ -1,6 +1,6 @@
-## Add vtkCylindricalGridBuilder
+## Add vtkCylindricalGridSource
 
-Adds vtkCylindricalGridBuilder to build cylindrical grids;
+Adds vtkCylindricalGridSource to build cylindrical grids;
 unstructured grids with cells that have radial curvature,
 up to and including complete rings.
 

@@ -1,7 +1,7 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    vtkCylindricalGridBuilder.h
+  Module:    vtkCylindricalGridSource.h
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.
@@ -13,10 +13,10 @@
 
 =========================================================================*/
 /**
- * @class   vtkCylindricalGridBuilder
+ * @class   vtkCylindricalGridSource
  * @brief   a utility for building cylindrical cells around the z axis
  *
- * vtkCylindricalGridBuilder is a utility class for building cylindrical cells for an unstructured
+ * vtkCylindricalGridSource is a utility class for building cylindrical cells for an unstructured
  * grid. These cells have a radial curvature, up to and including a complete ring about the z axis.
  * Cells are represented by a cartesian radius, polar theta rotation angle about the origin, and a
  * cartesian z height.
@@ -25,21 +25,21 @@
  * vtkUnstructuredGrid
  */
 
-#ifndef vtkCylindricalGridBuilder_h
-#define vtkCylindricalGridBuilder_h
+#ifndef vtkCylindricalGridSource_h
+#define vtkCylindricalGridSource_h
 
-#include "vtkCommonDataModelModule.h" // For export macro
+#include "vtkFiltersSourcesModule.h" // For export macro
 #include "vtkObject.h"
 #include "vtkSmartPointer.h"
 #include "vtkUnstructuredGrid.h"
 
 class vtkUnstructuredGrid;
 
-class VTKCOMMONDATAMODEL_EXPORT vtkCylindricalGridBuilder : public vtkObject
+class VTKFILTERSSOURCES_EXPORT vtkCylindricalGridSource : public vtkObject
 {
 public:
-  static vtkCylindricalGridBuilder* New();
-  vtkTypeMacro(vtkCylindricalGridBuilder, vtkObject);
+  static vtkCylindricalGridSource* New();
+  vtkTypeMacro(vtkCylindricalGridSource, vtkObject);
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
   //@{
@@ -90,7 +90,7 @@ public:
   //@}
 
 protected:
-  vtkCylindricalGridBuilder();
+  vtkCylindricalGridSource();
 
   vtkSmartPointer<vtkUnstructuredGrid> Grid;
 
@@ -100,10 +100,10 @@ protected:
 private:
   class Impl;
 
-  vtkCylindricalGridBuilder(const vtkCylindricalGridBuilder&) = delete;
-  void operator=(const vtkCylindricalGridBuilder&) = delete;
+  vtkCylindricalGridSource(const vtkCylindricalGridSource&) = delete;
+  void operator=(const vtkCylindricalGridSource&) = delete;
 };
 
-#endif // vtkCylindricalGridBuilder_h
+#endif // vtkCylindricalGridSource_h
 
-// VTK-HeaderTest-Exclude: vtkCylindricalGridBuilder.h
+// VTK-HeaderTest-Exclude: vtkCylindricalGridSource.h

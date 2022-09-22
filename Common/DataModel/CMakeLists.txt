@@ -48,7 +48,6 @@ set(classes
   vtkCoordinateFrame
   vtkCubicLine
   vtkCylinder
-  vtkCylindricalGridBuilder
   vtkDataAssembly
   vtkDataAssemblyUtilities
   vtkDataObject

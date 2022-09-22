@@ -6,6 +6,7 @@ vtk_add_test_cxx(vtkFiltersSourcesCxxTests tests
   TestConeSource.cxx,NO_VALID
   TestCubeSource.cxx,NO_VALID
   TestCylinderSource.cxx,NO_VALID
+  TestCylindricalGridSource.cxx
   TestDiskSource.cxx,NO_VALID
   TestEllipseArcSource.cxx
   TestEllipticalButtonSource.cxx,NO_VALID
