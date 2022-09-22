@@ -77,7 +77,7 @@ public:
   template <typename T, typename S>
   void operator()(const vtkm::cont::ArrayHandle<T, S>& handle) const
   {
-    this->Data = make_vtkmDataArray(handle);
+    this->Data = make_vtkmDataArray(handle, WrapOnly::On);
   }
 };
 

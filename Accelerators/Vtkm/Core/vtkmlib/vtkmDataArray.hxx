@@ -20,6 +20,8 @@
 #ifndef vtkmDataArray_hxx
 #define vtkmDataArray_hxx
 
+#include <vector>
+
 #include "vtkObjectFactory.h"
 #include "vtkSmartPointer.h"
 
@@ -52,6 +54,9 @@ public:
   virtual void Reallocate(vtkIdType numTuples) = 0;
 
   virtual vtkm::cont::UnknownArrayHandle GetVtkmUnknownArrayHandle() const = 0;
+
+  virtual void GetDevicePointers(std::vector<const void*>&) const = 0;
+  virtual void GetHostPointers(std::vector<const void*>&) const = 0;
 };
 
 //-----------------------------------------------------------------------------
@@ -102,6 +107,101 @@ struct FlattenVec<T, vtkm::VecTraitsTagSingleComponent>
   {
     return vtkm::VecTraits<T>::GetComponent(vec, 0);
   }
+};
+
+//-----------------------------------------------------------------------------
+template <typename ValueType, typename StorageTag>
+class ArrayHandleWrapOnly
+  : public ArrayHandleWrapperBase<typename FlattenVec<ValueType>::ComponentType>
+{
+private:
+  using ArrayHandleType = vtkm::cont::ArrayHandle<ValueType, StorageTag>;
+  using ComponentType = typename FlattenVec<ValueType>::ComponentType;
+
+public:
+  explicit ArrayHandleWrapOnly(const ArrayHandleType& handle)
+    : Handle(handle)
+  {
+  }
+
+  vtkIdType GetNumberOfTuples() const override { return this->Handle.GetNumberOfValues(); }
+
+  int GetNumberOfComponents() const override { return 1; }
+
+  void SetTuple(vtkIdType, const ComponentType*) override
+  {
+    vtkGenericWarningMacro(<< "SetTuple called on wrap-only vtkmDataArray");
+  }
+
+  void GetTuple(vtkIdType idx, ComponentType* value) const override
+  {
+    vtkGenericWarningMacro(<< "SetTuple called on wrap-only vtkmDataArray");
+  }
+
+  void SetComponent(vtkIdType, int, const ComponentType&) override
+  {
+    vtkGenericWarningMacro(<< "SetComponent called on wrap-only vtkmDataArray");
+  }
+
+  ComponentType GetComponent(vtkIdType tuple, int comp) const override
+  {
+    vtkGenericWarningMacro(<< "GetComponent called on wrap-only vtkmDataArray");
+    return ComponentType(0);
+  }
+
+  void Allocate(vtkIdType) override
+  {
+    vtkGenericWarningMacro(<< "Allocate called on wrap-only vtkmDataArray");
+  }
+
+  void Reallocate(vtkIdType) override
+  {
+    vtkGenericWarningMacro(<< "Reallocate called on wrap-only vtkmDataArray");
+  }
+
+  vtkm::cont::UnknownArrayHandle GetVtkmUnknownArrayHandle() const override
+  {
+    return vtkm::cont::UnknownArrayHandle{ this->Handle };
+  }
+
+  void GetDevicePointers(std::vector<const void*>& pointers) const override
+  {
+    auto buffers = this->Handle.GetBuffers();
+    auto numbuff = this->Handle.GetNumberOfBuffers();
+    for (int i = 0; i < numbuff; i++)
+    {
+      // std::cout << "Is allocated on device? : " <<
+      // buffers[i].IsAllocatedOnDevice(vtkm::cont::DeviceAdapterTagCuda{}) << std::endl;
+      vtkm::cont::Token token;
+      if (buffers[i].IsAllocatedOnDevice(vtkm::cont::DeviceAdapterTagCuda{}))
+      {
+        const void* dpointer =
+          buffers[i].ReadPointerDevice(vtkm::cont::DeviceAdapterTagCuda{}, token);
+        // printf("Address of device pointer is %p\n", (void *)dpointer);
+        pointers.emplace_back(dpointer);
+      }
+    }
+  }
+
+  void GetHostPointers(std::vector<const void*>& pointers) const override
+  {
+    auto buffers = this->Handle.GetBuffers();
+    auto numbuff = this->Handle.GetNumberOfBuffers();
+    for (int i = 0; i < numbuff; i++)
+    {
+      // std::cout << "Is allocated on host? : " << buffers[i].IsAllocatedOnHost() << std::endl;
+      vtkm::cont::Token token;
+      if (buffers[i].IsAllocatedOnHost())
+      {
+        const void* hpointer = buffers[i].ReadPointerHost(token);
+        // printf("Address of host pointer is %p\n", (void *)hpointer);
+        pointers.emplace_back(hpointer);
+      }
+    }
+  }
+
+private:
+  ArrayHandleType Handle;
 };
 
 //-----------------------------------------------------------------------------
@@ -181,6 +281,16 @@ public:
     return vtkm::cont::UnknownArrayHandle{ this->Handle };
   }
 
+  void GetDevicePointers(std::vector<const void*>& pointers) const override
+  {
+    vtkGenericWarningMacro(<< "GetDevicePointers called on unsupported vtkmDataArray");
+  }
+
+  void GetHostPointers(std::vector<const void*>& pointers) const override
+  {
+    vtkGenericWarningMacro(<< "GetDevicePointers called on unsupported vtkmDataArray");
+  }
+
 private:
   ArrayHandleType Handle;
   PortalType Portal;
@@ -248,6 +358,16 @@ public:
   vtkm::cont::UnknownArrayHandle GetVtkmUnknownArrayHandle() const override
   {
     return vtkm::cont::UnknownArrayHandle{ this->Handle };
+  }
+
+  void GetDevicePointers(std::vector<const void*>& pointers) const override
+  {
+    vtkGenericWarningMacro(<< "GetDevicePointers called on unsupported vtkmDataArray");
+  }
+
+  void GetHostPointers(std::vector<const void*>& pointers) const override
+  {
+    vtkGenericWarningMacro(<< "GetDevicePointers called on unsupported vtkmDataArray");
   }
 
 private:
@@ -332,6 +452,16 @@ public:
     return vtkm::cont::UnknownArrayHandle{ this->GetVtkmArray() };
   }
 
+  void GetDevicePointers(std::vector<const void*>& pointers) const override
+  {
+    vtkGenericWarningMacro(<< "GetDevicePointers called on unsupported vtkmDataArray");
+  }
+
+  void GetHostPointers(std::vector<const void*>& pointers) const override
+  {
+    vtkGenericWarningMacro(<< "GetDevicePointers called on unsupported vtkmDataArray");
+  }
+
 private:
   VtkmArrayType GetVtkmArray() const
   {
@@ -364,11 +494,18 @@ ArrayHandleWrapperBase<typename FlattenVec<T>::ComponentType>* WrapArrayHandle(
   return new ArrayHandleWrapperReadOnly<T, S>{ ah };
 }
 
+// The wrapOnly flag is intended to support the case where we only weap the VTK-m array handle
+// without getting any of it's Portals. This is intended to prevent any host/device syncs
+// that are not intended and to support the use cases where the user might just want the
+// ArrayHandle to query for host/device pointers.
 template <typename T, typename S>
 ArrayHandleWrapperBase<typename FlattenVec<T>::ComponentType>* MakeArrayHandleWrapper(
-  const vtkm::cont::ArrayHandle<T, S>& ah)
+  const vtkm::cont::ArrayHandle<T, S>& ah, bool wrapOnly = false)
 {
-  return WrapArrayHandle(ah, typename IsReadOnly<vtkm::cont::ArrayHandle<T, S>>::type{});
+  if (wrapOnly)
+    return new ArrayHandleWrapOnly<T, S>{ ah };
+  else
+    return WrapArrayHandle(ah, typename IsReadOnly<vtkm::cont::ArrayHandle<T, S>>::type{});
 }
 
 template <typename T>
@@ -433,7 +570,10 @@ void vtkmDataArray<T>::SetVtkmArrayHandle(const vtkm::cont::ArrayHandle<V, S>& a
   static_assert(std::is_same<T, typename internal::FlattenVec<V>::ComponentType>::value,
     "Component type of the arrays don't match");
 
-  this->VtkmArray.reset(internal::MakeArrayHandleWrapper(ah));
+  if (this->WrapOnly)
+    this->VtkmArray.reset(internal::MakeArrayHandleWrapper(ah, true));
+  else
+    this->VtkmArray.reset(internal::MakeArrayHandleWrapper(ah));
 
   this->Size = this->VtkmArray->GetNumberOfTuples() * this->VtkmArray->GetNumberOfComponents();
   this->MaxId = this->Size - 1;
@@ -505,6 +645,30 @@ bool vtkmDataArray<T>::ReallocateTuples(vtkIdType numTuples)
 {
   this->VtkmArray->Reallocate(numTuples);
   return true;
+}
+
+template <typename T>
+void vtkmDataArray<T>::SetWrapOnly()
+{
+  this->WrapOnly = true;
+}
+
+template <typename T>
+std::vector<const void*> vtkmDataArray<T>::GetDeviceArrays() const
+{
+  // TODO : implement
+  std::vector<const void*> pointers;
+  this->VtkmArray->GetDevicePointers(pointers);
+  return pointers;
+}
+
+template <typename T>
+std::vector<const void*> vtkmDataArray<T>::GetHostArrays() const
+{
+  // TODO : implement
+  std::vector<const void*> pointers;
+  this->VtkmArray->GetHostPointers(pointers);
+  return pointers;
 }
 
 VTK_ABI_NAMESPACE_END
