@@ -17,6 +17,7 @@
 #include "vtkMultiThreader.h"
 
 #include <cassert>
+#include <mutex>
 #include <queue>
 #include <utility>
 
@@ -41,6 +42,12 @@ public:
   void MarkDone()
   {
     this->Done = true;
+    // very rarely, the notification can be wasted causing a deadlock.
+    // https://stackoverflow.com/questions/60658842/condition-variable-doesnt-get-notified-to-wake-up-even-with-a-predicate
+    // No, even a predicate that returns an atomic_bool doesn't magically work.
+    // lock the mutex to avoid a wasted notification.
+    // https://en.cppreference.com/w/cpp/thread/condition_variable
+    std::unique_lock<std::mutex> lk(this->TasksMutex);
     this->TasksCV.notify_all();
   }
 
