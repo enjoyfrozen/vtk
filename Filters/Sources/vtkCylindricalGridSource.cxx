@@ -1,7 +1,24 @@
+/*=========================================================================
+
+  Program:   Visualization Toolkit
+  Module:    vtkCylindricalGridSource.cxx
+
+  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+  All rights reserved.
+  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
+
+  This software is distributed WITHOUT ANY WARRANTY; without even
+  the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+  PURPOSE.  See the above copyright notice for more information.
+
+  =========================================================================*/
+
 #include "vtkCylindricalGridSource.h"
 
 #include "vtkCellType.h"
 #include "vtkIdList.h"
+#include "vtkInformation.h"
+#include "vtkInformationVector.h"
 #include "vtkMath.h"
 #include "vtkObjectFactory.h"
 
@@ -11,8 +28,8 @@
 class vtkCylindricalGridSource::Impl
 {
 public:
-  Impl() {}
-  virtual ~Impl() {}
+  Impl() = default;
+  ~Impl() = default;
 
   //@{
   /**
@@ -32,7 +49,8 @@ public:
   static double LocatePolarAngleInFirstRevolution(double p1);
   //@}
 
-  static const double TWO_PI_PRECISION_FACTOR;
+  static constexpr double TWO_PI_PRECISION_FACTOR =
+    1.9999999; // to avoid point duplication with precision errors
 
   struct Point
   {
@@ -58,9 +76,6 @@ public:
     int numIntermediatePoints, UniquePointIndexLookupTable& pointLookup,
     vtkSmartPointer<vtkPoints> points);
 };
-
-const double vtkCylindricalGridSource::Impl::TWO_PI_PRECISION_FACTOR =
-  1.9999999; // to avoid point duplication with precision errors
 
 int vtkCylindricalGridSource::Impl::CalculateNumberOfIntermediatePointsRequired(
   double p1, double p2, double maximumAngle)
@@ -149,9 +164,27 @@ vtkCylindricalGridSource::vtkCylindricalGridSource()
   : Grid(vtkSmartPointer<vtkUnstructuredGrid>::New())
   , UseDegrees(true)
 {
+  this->SetNumberOfInputPorts(0);
+
   // Set the default maximum angle to disable inserting intermediate points. Set slightly
   // larger than one revolution to avoid precision errors on 360 degree cells.
   SetMaximumAngle(361);
+}
+
+int vtkCylindricalGridSource::RequestData(vtkInformation* vtkNotUsed(request),
+  vtkInformationVector** vtkNotUsed(inputVector), vtkInformationVector* outputVector)
+{
+  // get the output info object
+  vtkInformation* outInfo = outputVector->GetInformationObject(0);
+
+  // get the output
+  vtkUnstructuredGrid* output =
+    vtkUnstructuredGrid::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
+
+  // load grid
+  output->ShallowCopy(this->Grid);
+
+  return 1;
 }
 
 void vtkCylindricalGridSource::PrintSelf(ostream& os, vtkIndent indent)
@@ -196,7 +229,7 @@ void vtkCylindricalGridSource::InsertNextCylindricalCell(
 
   // Create Data Structures Required
   auto points = this->Grid->GetPoints();
-  if (points == NULL)
+  if (points == nullptr)
   {
     vtkNew<vtkPoints> newPoints;
     this->Grid->SetPoints(newPoints);
@@ -254,7 +287,7 @@ void vtkCylindricalGridSource::InsertNextCylindricalCell(
 
   // Create Data Structures Required
   auto points = this->Grid->GetPoints();
-  if (points == NULL)
+  if (points == nullptr)
   {
     vtkNew<vtkPoints> newPoints;
     this->Grid->SetPoints(newPoints);

@@ -13,13 +13,13 @@
 
 =========================================================================*/
 /**
- * @class   vtkCylindricalGridSource
- * @brief   a utility for building cylindrical cells around the z axis
+ * @class  vtkCylindricalGridSource
+ * @brief  Builds cylindrical cells around the z axis
  *
- * vtkCylindricalGridSource is a utility class for building cylindrical cells for an unstructured
- * grid. These cells have a radial curvature, up to and including a complete ring about the z axis.
- * Cells are represented by a cartesian radius, polar theta rotation angle about the origin, and a
- * cartesian z height.
+ * vtkCylindricalGridSource is a source to build cylindrical cells into an unstructured grid. These
+ * cells have a radial curvature, up to and including a complete ring about the z axis. Cells are
+ * represented by a cartesian radius, polar theta rotation angle about the origin, and a cartesian z
+ * height.
  *
  * @sa
  * vtkUnstructuredGrid
@@ -32,26 +32,16 @@
 #include "vtkObject.h"
 #include "vtkSmartPointer.h"
 #include "vtkUnstructuredGrid.h"
+#include "vtkUnstructuredGridAlgorithm.h"
 
 class vtkUnstructuredGrid;
 
-class VTKFILTERSSOURCES_EXPORT vtkCylindricalGridSource : public vtkObject
+class VTKFILTERSSOURCES_EXPORT vtkCylindricalGridSource : public vtkUnstructuredGridAlgorithm
 {
 public:
   static vtkCylindricalGridSource* New();
-  vtkTypeMacro(vtkCylindricalGridSource, vtkObject);
+  vtkTypeMacro(vtkCylindricalGridSource, vtkUnstructuredGridAlgorithm);
   void PrintSelf(ostream& os, vtkIndent indent) override;
-
-  //@{
-  /**
-   * The grid to which the cells should be added.
-   *
-   * A default grid will be created which cells can be added to. If the grid the cells should be
-   * added to needs to be customized outside this class, a different grid can always be supplied.
-   */
-  void SetGrid(vtkSmartPointer<vtkUnstructuredGrid> grid) { this->Grid = grid; }
-  vtkSmartPointer<vtkUnstructuredGrid> GetGrid() { return this->Grid; }
-  //@}
 
   //@{
   /**
@@ -60,6 +50,8 @@ public:
    * If a cell's polar angle becomes too large, intermediate points will be inserted into the inner
    * and outer curved surfaces of the cell. This preserves the visual rendering of the cell's
    * curvature.
+   *
+   * Default: 361 degrees (360 + margin to prevent artifacting in 360 degree rings)
    *
    * @warning
    * A polygonal representation of a cylindrical cell is built as soon as the cell is added, so this
@@ -72,6 +64,7 @@ public:
   //@{
   /**
    * Should any radial coordinates be represented in degrees (true) or radians (false)?
+   *
    * Default value is true(1).
    */
   vtkSetMacro(UseDegrees, bool);
@@ -92,8 +85,9 @@ public:
 protected:
   vtkCylindricalGridSource();
 
-  vtkSmartPointer<vtkUnstructuredGrid> Grid;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
+  vtkSmartPointer<vtkUnstructuredGrid> Grid;
   double MaximumAngle;
   bool UseDegrees;
 

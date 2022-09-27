@@ -95,7 +95,7 @@ int TestCylindricalGridSource(int argc, char* argv[])
     grid->InsertNextCylindricalCell(0.5, 1, vtkMath::Pi(), vtkMath::Pi() * 2.0, 4, 5);
 
     vtkNew<vtkDataSetSurfaceFilter> surface;
-    surface->SetInputData(grid->GetGrid());
+    surface->SetInputConnection(grid->GetOutputPort());
 
     vtkNew<vtkPolyDataMapper> mapper;
     mapper->SetInputConnection(surface->GetOutputPort());
