@@ -159,6 +159,11 @@ set(classes
   vtkAbstractRenderDevice
   vtkRenderWidget)
 
+if (TARGET VTK::AcceleratorsVTKmDataModel)
+  list(APPEND classes
+    vtkmDataSetMapper)
+endif()
+
 set(nowrap_classes
   vtkCIEDE2000)
 

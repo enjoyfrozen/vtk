@@ -52,3 +52,5 @@ TEST_DEPENDS
   VTK::RenderingVolumeOpenGL2
   VTK::TestingCore
   VTK::TestingRendering
+OPTIONAL_DEPENDS
+  VTK::AcceleratorsVTKmDataModel
