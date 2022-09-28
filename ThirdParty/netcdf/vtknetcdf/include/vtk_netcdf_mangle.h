@@ -1246,7 +1246,7 @@
 #define write_numrecs vtknetcdf_write_numrecs
 
 /* Only define strlcat conditionally, as it's provided by system headers on the BSDs. */
-#if !defined(__APPLE__) && !defined(__FreeBSD__) && !defined(__NetBSD__) && !defined(__OpenBSD__) && !defined(_BSD_SOURCE)
+#if !defined(__APPLE__) && !defined(__FreeBSD__) && !defined(__NetBSD__) && !defined(__OpenBSD__) && !defined(_BSD_SOURCE) && !defined(__CYGWIN__)
 #define strlcat vtknetcdf_strlcat
 #endif
 

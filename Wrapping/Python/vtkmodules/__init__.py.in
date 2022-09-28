@@ -1,14 +1,125 @@
-r"""
+"""
 Currently, this package is experimental and may change in the future.
 """
 from __future__ import absolute_import
 import sys
+import enum
 
+
+class _CCP(enum.IntFlag):
+    """
+    Values for cygwin_convert_path from winsup/cygwin/include/sys/cygwin.h.
+    """
+    CCP_POSIX_TO_WIN_A = 0
+    CCP_POSIX_TO_WIN_W = 1
+    CCP_WIN_A_TO_POSIX = 2
+    CCP_WIN_W_TO_POSIX = 3
+
+    CCP_CONVTYPE_MASK = 3
+
+    CCP_ABSOLUTE = 0
+    CCP_RELATIVE = 0x100
+    CCP_PROC_CYGDRIVE = 0x200
+
+    CCP_CONVFLAGS_MASK = 0x300
+
+
+def _cygwin_create_path(what, src):
+    """
+    Convert 'src' to a POSIX or Windows path based on 'what'. Regardless of
+    'what', 'src' must be a Python (unicode) string, i.e. the difference
+    between 'WIN_A' and 'WIN_W' is abstraced away.
+    """
+    import ctypes
+    import os
+    cygwin = ctypes.CDLL("cygwin1.dll", use_errno=True)
+    cygwin_create_path = cygwin.cygwin_create_path
+    cygwin_create_path.restype = ctypes.c_void_p
+    cygwin_create_path.argtypes = [ctypes.c_uint, ctypes.c_void_p]
+    free = cygwin.free
+    free.restype = None
+    free.argtypes = [ctypes.c_void_p]
+    if what & _CCP.CCP_CONVTYPE_MASK == _CCP.CCP_WIN_W_TO_POSIX:
+        src = ctypes.c_wchar_p(src)
+    else:
+        src = ctypes.c_char_p(src.encode())
+    ptr = cygwin_create_path(what, src)
+    if ptr is None:
+        raise Exception(f"{os.strerror(ctypes.get_errno())}")
+    if what & _CCP.CCP_CONVTYPE_MASK == _CCP.CCP_POSIX_TO_WIN_W:
+        val = ctypes.c_wchar_p(ptr).value
+    else:
+        val = ctypes.c_char_p(ptr).value.decode()
+    free(ptr)
+    return val
+
+def _add_dll_directory(path):
+    """
+    Implementation of os.add_dll_directory for Cygwin.
+    """
+    import ctypes
+    # Assumption: handle is closed when garbage collected.
+    k32 = ctypes.CDLL("Kernel32.dll")
+    # Path must be a windows path
+    path = _cygwin_create_path(_CCP.CCP_POSIX_TO_WIN_W, path)
+    cookie = k32.AddDllDirectory(path)
+    # Unlike the real class, this isn't a context manager.
+    def remove_dll_directory():
+        k32.RemoveDllDirectory(cookie)
+    remove_dll_directory.close = remove_dll_directory
+    return remove_dll_directory
+
+def _prepare_add_dll_directory():
+    """
+    User DLL search paths must be explicitly enabled. This somehow disables
+    Cygwin's system search paths, which must be added again. See:
+
+        https://sourceware.org/pipermail/cygwin/2022-May/251514.html
+
+    The release for Python 3.8 include this Windows-specific note:
+
+      Only the system paths, the directory containing the DLL or PYD file,
+      and directories added with add_dll_directory() are searched for
+      load-time dependencies.
+
+    Note that a Windows build of Python would search the 'vtkmodules' directory
+    and thus that directory would not need to be added to the DLL search path.
+    A Linux build would set the RPATH for each object file. In Cygwin system
+    library search paths are added to PATH by package files installed to
+    '/etc/profile.d'. We want these system paths as if we were Linux without
+    inheriting from windows PATH. Allow user modifications from ~/.bashrc as if
+    LD_LIBRARY_PATH was set.
+    """
+    import os
+    import ctypes
+    import subprocess
+    k32 = ctypes.CDLL("Kernel32.dll")
+    # LOAD_LIBRARY_SEARCH_DEFAULT_DIRS
+    k32.SetDefaultDllDirectories(0x1000)
+    env = {k:v for k,v in os.environ.items() if k != "PATH"}
+    env["CYGWIN_NOWINPATH"] = "1"
+    try:
+        p = subprocess.run\
+            ( ["/usr/bin/bash", "-l", "-i", "-c", "echo -n $PATH"]
+            , env=env, capture_output=True, check=True
+            )
+        dirs = p.stdout.decode().split(":")
+    except CalledProcessError:
+        dirs = ["/usr/bin", "/usr/lib"]
+    for d in dirs:
+        _add_dll_directory(d)
 
 def _windows_dll_path():
     import os
+    try:
+        add_dll_directory_f = os.add_dll_directory
+    except AttributeError:
+        add_dll_directory_f = _add_dll_directory
     _vtk_python_path = '@VTK_PYTHON_SITE_PACKAGES_SUFFIX@/vtkmodules'
-    _vtk_dll_path = '@CMAKE_INSTALL_BINDIR@'
+    if sys.platform == 'cygwin':
+        _vtk_dll_path = _vtk_python_path
+    else:
+        _vtk_dll_path = '@CMAKE_INSTALL_BINDIR@'
     # Compute the DLL path based on the location of the file and traversing up
     # the installation prefix to append the DLL path.
     _vtk_dll_directory = os.path.dirname(os.path.abspath(__file__))
@@ -21,7 +132,7 @@ def _windows_dll_path():
     if os.path.exists(_vtk_dll_directory):
         # We never remove this path; it is required for VTK to work and there's
         # no scope where we can easily remove the directory again.
-        _ = os.add_dll_directory(_vtk_dll_directory)
+        _ = add_dll_directory_f(_vtk_dll_directory)
 
     # Build tree support.
     try:
@@ -30,7 +141,7 @@ def _windows_dll_path():
         # Add any paths needed for the build tree.
         for path in _build_paths.paths:
             if os.path.exists(path):
-                _ = os.add_dll_directory(path)
+                _ = add_dll_directory_f(path)
     except ImportError:
         # Relocatable install tree (or non-Windows).
         pass
@@ -39,7 +150,9 @@ def _windows_dll_path():
 # CPython 3.8 added behaviors which modified the DLL search path on Windows to
 # only search "blessed" paths. When importing SMTK, ensure that SMTK's DLLs are
 # in this set of "blessed" paths.
-if sys.version_info >= (3, 8) and sys.platform == 'win32':
+if sys.version_info >= (3, 8) and sys.platform in ('win32', 'cygwin'):
+    if sys.platform == 'cygwin':
+        _prepare_add_dll_directory()
     _windows_dll_path()
 
 
