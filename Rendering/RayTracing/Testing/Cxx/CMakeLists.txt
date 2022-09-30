@@ -112,7 +112,13 @@ if (VTK_ENABLE_OSPRAY AND VTK_ENABLE_VISRTX)
     )
 endif ()
 
-set(all_tests ${tests} ${tests_optix} ${tests_combined})
+if (VTK_ENABLE_OSPRAY AND TARGET VTK::AcceleratorsVTKmDataModel)
+  vtk_add_test_cxx(vtkRenderingRayTracingCxxTests tests_vtkm
+    TestvtkmOSPRayDataSetMapper.cxx
+    )
+endif ()
+
+set(all_tests ${tests} ${tests_optix} ${tests_combined} ${tests_vtkm})
 vtk_test_cxx_executable(vtkRenderingRayTracingCxxTests all_tests RENDERING_FACTORY
   DISABLE_FLOATING_POINT_EXCEPTIONS
   vtkOSPRayTestInteractor.cxx

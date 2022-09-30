@@ -27,6 +27,7 @@ void vtkmOSPRayDataSetMapperNode::Render(bool prepass)
   if (prepass)
   {
     // Do the rendering
+    vtkWarningMacro(<< "Rendering a dataset");
   }
 }
 
