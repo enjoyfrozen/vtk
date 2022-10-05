@@ -34,6 +34,7 @@ vtkOpenXRRenderer::vtkOpenXRRenderer()
 //------------------------------------------------------------------------------
 vtkCamera* vtkOpenXRRenderer::MakeCamera()
 {
+
   vtkCamera* cam = vtkOpenXRCamera::New();
   this->InvokeEvent(vtkCommand::CreateCameraEvent, cam);
   return cam;

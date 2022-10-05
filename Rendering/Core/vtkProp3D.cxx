@@ -25,6 +25,22 @@
 
 #include <cmath>
 
+//============================================================================
+vtkProp3D::CoordinateSystems vtkProp3D::ViewingMode = WORLD;
+
+//------------------------------------------------------------------------------
+vtkProp3D::CoordinateSystems vtkProp3D::GetViewingMode()
+{
+  return ViewingMode;
+}
+
+//------------------------------------------------------------------------------
+void vtkProp3D::SetViewingMode(vtkProp3D::CoordinateSystems mode)
+{
+  std::cout << "Setting viewing mode to " << mode << std::endl;
+  ViewingMode = mode;
+}
+
 //------------------------------------------------------------------------------
 // Construct with the following defaults: origin(0,0,0)
 // position=(0,0,0) and orientation=(0,0,0). No user defined
@@ -498,7 +514,7 @@ void vtkProp3D::ComputeMatrix()
   }
 
   // check whether or not need to rebuild the matrix
-  if (this->GetMTime() > this->MatrixMTime || this->CoordinateSystem != vtkProp3D::WORLD)
+  if (this->GetMTime() > this->MatrixMTime || this->CoordinateSystemRenderer != nullptr)
   {
     this->GetOrientation();
     this->Transform->Push();
@@ -526,21 +542,36 @@ void vtkProp3D::ComputeMatrix()
       this->Transform->Concatenate(this->UserTransform->GetMatrix());
     }
 
-    if (this->CoordinateSystem == PHYSICAL && this->CoordinateSystemRenderer)
+    if (ViewingMode == WORLD)
     {
-      vtkRenderWindow* renWin =
-        static_cast<vtkRenderWindow*>(this->CoordinateSystemRenderer->GetVTKWindow());
-      renWin->GetPhysicalToWorldMatrix(this->Matrix);
-      this->Transform->Concatenate(this->Matrix);
-    }
-    else if (this->CoordinateSystem == DEVICE && this->CoordinateSystemRenderer)
-    {
-      vtkRenderWindow* renWin =
-        static_cast<vtkRenderWindow*>(this->CoordinateSystemRenderer->GetVTKWindow());
-      if (renWin->GetDeviceToWorldMatrixForDevice(
-            static_cast<vtkEventDataDevice>(this->CoordinateSystemDevice), this->Matrix))
+      if (this->CoordinateSystem == WORLD && this->CoordinateSystemRenderer)
       {
+        vtkRenderWindow* renWin =
+          static_cast<vtkRenderWindow*>(this->CoordinateSystemRenderer->GetVTKWindow());
+        renWin->GetPhysicalToWorldMatrix(this->Matrix);
+        this->Matrix->Invert();
         this->Transform->Concatenate(this->Matrix);
+      }
+      // TODO: figure out how to handle things in device coords when viewing in world coords
+    }
+    else  // IF viewing mode is not WORLD, it must be PHYSICAL
+    {
+      if (this->CoordinateSystem == PHYSICAL && this->CoordinateSystemRenderer)
+      {
+        vtkRenderWindow* renWin =
+          static_cast<vtkRenderWindow*>(this->CoordinateSystemRenderer->GetVTKWindow());
+        renWin->GetPhysicalToWorldMatrix(this->Matrix);
+        this->Transform->Concatenate(this->Matrix);
+      }
+      else if (this->CoordinateSystem == DEVICE && this->CoordinateSystemRenderer)
+      {
+        vtkRenderWindow* renWin =
+          static_cast<vtkRenderWindow*>(this->CoordinateSystemRenderer->GetVTKWindow());
+        if (renWin->GetDeviceToWorldMatrixForDevice(
+              static_cast<vtkEventDataDevice>(this->CoordinateSystemDevice), this->Matrix))
+        {
+          this->Transform->Concatenate(this->Matrix);
+        }
       }
     }
 

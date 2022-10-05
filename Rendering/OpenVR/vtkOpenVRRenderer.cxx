@@ -21,12 +21,14 @@ https://github.com/ValveSoftware/openvr/blob/master/LICENSE
 #include "vtkCommand.h"
 #include "vtkObjectFactory.h"
 #include "vtkOpenVRCamera.h"
+#include "vtkProp3D.h"
 
 vtkStandardNewMacro(vtkOpenVRRenderer);
 
 //------------------------------------------------------------------------------
 vtkCamera* vtkOpenVRRenderer::MakeCamera()
 {
+  vtkProp3D::SetViewingMode(vtkProp3D::PHYSICAL);
   vtkCamera* cam = vtkOpenVRCamera::New();
   this->InvokeEvent(vtkCommand::CreateCameraEvent, cam);
   return cam;

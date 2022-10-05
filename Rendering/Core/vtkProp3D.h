@@ -388,6 +388,9 @@ public:
   vtkGetMacro(CoordinateSystemDevice, int);
   ///@}
 
+  static CoordinateSystems GetViewingMode();
+  static void SetViewingMode(CoordinateSystems mode);
+
 protected:
   vtkProp3D();
   ~vtkProp3D() override;
@@ -414,6 +417,8 @@ protected:
 private:
   vtkProp3D(const vtkProp3D&) = delete;
   void operator=(const vtkProp3D&) = delete;
+
+  static CoordinateSystems ViewingMode;
 };
 
 #endif

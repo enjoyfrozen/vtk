@@ -74,14 +74,62 @@ int TestOpenXRInitialization(int argc, char* argv[])
   mapper->SetInputConnection(tf->GetOutputPort());
   mapper->SetVBOShiftScaleMethod(vtkOpenGLVertexBufferObject::AUTO_SHIFT_SCALE);
   actor->SetMapper(mapper);
-  actor->GetProperty()->SetAmbientColor(0.2, 0.2, 1.0);
-  actor->GetProperty()->SetDiffuseColor(1.0, 0.65, 0.7);
+  // Red dragon is in world coordinate system (the default coord sys)
+  actor->GetProperty()->SetAmbientColor(1.0, 0.0, 0.0);
+  actor->GetProperty()->SetDiffuseColor(1.0, 0.0, 0.0);
   actor->GetProperty()->SetSpecularColor(1.0, 1.0, 1.0);
   actor->GetProperty()->SetSpecular(0.5);
   actor->GetProperty()->SetDiffuse(0.7);
   actor->GetProperty()->SetAmbient(0.5);
   actor->GetProperty()->SetSpecularPower(20.0);
   actor->GetProperty()->SetOpacity(1.0);
+
+  vtkNew<vtkActor> pactor;
+  renderer->AddActor(pactor);
+
+  vtkNew<vtkTransform> trans2;
+  trans2->Scale(4.0, 2.0, 2.0);
+
+  vtkNew<vtkOpenGLPolyDataMapper> pmapper;
+  pmapper->SetInputConnection(reader->GetOutputPort());
+  pmapper->SetVBOShiftScaleMethod(vtkOpenGLVertexBufferObject::AUTO_SHIFT_SCALE);
+  pactor->SetMapper(pmapper);
+  // pactor->SetScale(3.0, 3.0, 3.0);
+  pactor->SetUserMatrix(trans2->GetMatrix());
+  // Green dragon is in physical coords
+  pactor->GetProperty()->SetAmbientColor(0.0, 1.0, 0.0);
+  pactor->GetProperty()->SetDiffuseColor(0.0, 1.0, 0.0);
+  pactor->GetProperty()->SetSpecular(0.5);
+  pactor->GetProperty()->SetDiffuse(0.7);
+  pactor->GetProperty()->SetAmbient(0.5);
+  pactor->GetProperty()->SetSpecularPower(20.0);
+  pactor->GetProperty()->SetOpacity(1.0);
+  pactor->SetCoordinateSystemToPhysical();
+  pactor->SetCoordinateSystemRenderer(renderer);
+  pactor->UseBoundsOff();
+
+  vtkNew<vtkActor> dactor;
+  renderer->AddActor(dactor);
+
+  vtkNew<vtkOpenGLPolyDataMapper> dmapper;
+  dmapper->SetInputConnection(reader->GetOutputPort());
+  dmapper->SetVBOShiftScaleMethod(vtkOpenGLVertexBufferObject::AUTO_SHIFT_SCALE);
+  dactor->SetMapper(dmapper);
+  dactor->SetScale(2.0, 2.0, 2.0);
+  dactor->SetPosition(0.0, 0.0, -0.2);
+  // Blue dragon is in device coords (of left controller)
+  dactor->GetProperty()->SetAmbientColor(0.0, 0.0, 1.0);
+  dactor->GetProperty()->SetDiffuseColor(0.0, 0.0, 1.0);
+  dactor->GetProperty()->SetSpecular(0.5);
+  dactor->GetProperty()->SetDiffuse(0.7);
+  dactor->GetProperty()->SetAmbient(0.5);
+  dactor->GetProperty()->SetSpecularPower(20.0);
+  dactor->GetProperty()->SetOpacity(1.0);
+  dactor->SetCoordinateSystemToDevice();
+  dactor->SetCoordinateSystemDevice(static_cast<int>(vtkEventDataDevice::LeftController));
+  dactor->SetCoordinateSystemRenderer(renderer);
+  dactor->UseBoundsOff();
+
 
   renderer->ResetCamera();
 

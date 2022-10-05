@@ -18,6 +18,7 @@
 #include "vtkObjectFactory.h"
 #include "vtkOpenGLRenderWindow.h"
 #include "vtkOpenXRUtilities.h"
+#include "vtkProp3D.h"
 #include "vtkWindows.h" // Does nothing if we are not on windows
 
 // include what we need for the helper window
@@ -46,6 +47,8 @@ struct vtkXVisualInfo : public XVisualInfo
 //------------------------------------------------------------------------------
 bool vtkOpenXRManager::Initialize(vtkOpenGLRenderWindow* helperWindow)
 {
+  vtkProp3D::SetViewingMode(vtkProp3D::PHYSICAL);
+
   if (!this->CreateInstance())
   {
     vtkWarningWithObjectMacro(nullptr, "Initialize failed to CreateInstance");
