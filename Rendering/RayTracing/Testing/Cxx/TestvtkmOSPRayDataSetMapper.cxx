@@ -41,8 +41,6 @@ int TestvtkmOSPRayDataSetMapper(int argc, char* argv[])
 {
   cout << "CTEST_FULL_OUTPUT (Avoid ctest truncation of output)" << endl;
 
-  int desiredPoints = 1.0e3;
-
   // Create the RenderWindow, Renderer and both Actors
   vtkNew<vtkRenderer> renderer;
   renderer->SetBackground(0.1, 0.2, 0.2);

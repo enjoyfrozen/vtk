@@ -22,10 +22,13 @@
 #define vtkmOSPRayDataSetMapperNode_h
 
 #include "vtkMapperNode.h"
+#include "vtkOSPRayCache.h"               // For common cache infrastructure
 #include "vtkRenderingRayTracingModule.h" // For export macro
 
 VTK_ABI_NAMESPACE_BEGIN
 // Forward declarations
+class vtkOSPRayActorNode;
+class vtkmDataSet;
 
 class VTKRENDERINGRAYTRACING_EXPORT vtkmOSPRayDataSetMapperNode : public vtkMapperNode
 {
@@ -58,6 +61,17 @@ protected:
   ~vtkmOSPRayDataSetMapperNode() = default;
 
   // Helper members
+  std::vector<OSPGeometricModel> GeometricModels;
+  std::vector<OSPInstance> Instances;
+  ///@{
+  /**
+   * @brief add/remove precomputed ospray geometries to renderer model.
+   */
+  void RenderGeometricModels();
+  void ClearGeometricModels();
+  ///@}
+  void ORenderDataSet(void* renderer, vtkOSPRayActorNode* aNode, vtkmDataSet* ds,
+    double* ambientColor, double* diffuseColor, double opacity, std::string material);
 
 private:
   vtkmOSPRayDataSetMapperNode(const vtkmOSPRayDataSetMapperNode&) = delete;
