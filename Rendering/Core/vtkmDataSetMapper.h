@@ -50,8 +50,8 @@ public:
   void Render(vtkRenderer* ren, vtkActor* act) override;
 
 protected:
-  vtkmDataSetMapper() {}
-  ~vtkmDataSetMapper() {}
+  vtkmDataSetMapper() = default;
+  ~vtkmDataSetMapper() = default;
 
   // Helper members
   // see algorithm for more info
