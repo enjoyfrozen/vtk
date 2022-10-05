@@ -86,6 +86,8 @@ vtkRenderWindow::vtkRenderWindow()
   this->SharedRenderWindow = nullptr;
 
   this->CursorFileName = nullptr;
+
+  this->PhysicalToWorldMatrix = nullptr;
 }
 
 //------------------------------------------------------------------------------
@@ -94,6 +96,11 @@ vtkRenderWindow::~vtkRenderWindow()
   this->SetInteractor(nullptr);
   this->SetSharedRenderWindow(nullptr);
   this->SetCursorFileName(nullptr);
+
+  if (this->PhysicalToWorldMatrix != nullptr)
+  {
+    this->PhysicalToWorldMatrix->UnRegister(this);
+  }
 
   if (this->Renderers)
   {
@@ -185,14 +192,47 @@ void vtkRenderWindow::SetInteractor(vtkRenderWindowInteractor* rwi)
   }
 }
 
+//------------------------------------------------------------------------------
 void vtkRenderWindow::GetPhysicalToWorldMatrix(vtkMatrix4x4* matrix)
 {
   if (matrix)
   {
-    matrix->Identity();
+    if (this->PhysicalToWorldMatrix == nullptr)
+    {
+      matrix->Identity();
+      return;
+    }
+    matrix->DeepCopy(this->PhysicalToWorldMatrix);
   }
 }
 
+//------------------------------------------------------------------------------
+void vtkRenderWindow::SetPhysicalToWorldMatrix(vtkMatrix4x4* matrix)
+{
+  if (matrix == this->PhysicalToWorldMatrix)
+  {
+    return;
+  }
+
+  if (this->PhysicalToWorldMatrix != nullptr)
+  {
+    this->PhysicalToWorldMatrix->UnRegister(this);
+    this->PhysicalToWorldMatrix = nullptr;
+  }
+
+  if (matrix)
+  {
+    if (this->PhysicalToWorldMatrix == nullptr)
+    {
+      this->PhysicalToWorldMatrix = matrix;
+      this->PhysicalToWorldMatrix->Register(this);
+    }
+  }
+
+  this->Modified();
+}
+
+//------------------------------------------------------------------------------
 bool vtkRenderWindow::GetDeviceToWorldMatrixForDevice(
   vtkEventDataDevice vtkNotUsed(device), vtkMatrix4x4* vtkNotUsed(deviceToWorldMatrix))
 {

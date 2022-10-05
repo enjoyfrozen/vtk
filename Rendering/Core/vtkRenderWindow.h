@@ -728,6 +728,7 @@ public:
    * to the matrix mapping that space to world coordinates.
    */
   virtual void GetPhysicalToWorldMatrix(vtkMatrix4x4* matrix);
+  virtual void SetPhysicalToWorldMatrix(vtkMatrix4x4* matrix);
 
   /**
    * Store in \p deviceToWorldMatrix the matrix that goes from device coordinates
@@ -776,6 +777,8 @@ protected:
 
   bool UseSRGBColorSpace;
   char* CursorFileName;
+
+  vtkMatrix4x4* PhysicalToWorldMatrix;
 
   /**
    * The universal time since the last abort check occurred.
