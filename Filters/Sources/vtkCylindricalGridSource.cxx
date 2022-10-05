@@ -214,7 +214,7 @@ double vtkCylindricalGridSource::GetMaximumAngle()
   return this->MaximumAngle;
 }
 
-void vtkCylindricalGridSource::InsertNextCylindricalCell(
+void vtkCylindricalGridSource::InsertCylindricalCell(
   double r1, double r2, double p1, double p2, double z1)
 {
   // Initialize Parameters
@@ -272,7 +272,7 @@ void vtkCylindricalGridSource::InsertNextCylindricalCell(
   this->Grid->InsertNextCell(VTK_POLYHEDRON, faceList);
 }
 
-void vtkCylindricalGridSource::InsertNextCylindricalCell(
+void vtkCylindricalGridSource::InsertCylindricalCell(
   double r1, double r2, double p1, double p2, double z1, double z2)
 {
   // Initialize Parameters

@@ -78,8 +78,8 @@ public:
    * Defined by an inner and outer cartesian radius, starting and ending polar rotation, and
    * cartesian z height. In 2D or 3D depending on how many z coordinates are supplied.
    */
-  void InsertNextCylindricalCell(double r1, double r2, double p1, double p2, double z1);
-  void InsertNextCylindricalCell(double r1, double r2, double p1, double p2, double z1, double z2);
+  void InsertCylindricalCell(double r1, double r2, double p1, double p2, double z1);
+  void InsertCylindricalCell(double r1, double r2, double p1, double p2, double z1, double z2);
   //@}
 
 protected:

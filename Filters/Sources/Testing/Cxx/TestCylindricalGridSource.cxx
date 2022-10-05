@@ -88,11 +88,11 @@ int TestCylindricalGridSource(int argc, char* argv[])
     // Add the grid
     vtkNew<vtkCylindricalGridSource> grid;
     grid->SetMaximumAngle(5);
-    grid->InsertNextCylindricalCell(0.5, 1, 0, 360, -1, 1);
-    grid->InsertNextCylindricalCell(0.5, 1, 0, 90, 1, 2);
-    grid->InsertNextCylindricalCell(0.5, 1, 45, 180, 2.5, 3);
+    grid->InsertCylindricalCell(0.5, 1, 0, 360, -1, 1);
+    grid->InsertCylindricalCell(0.5, 1, 0, 90, 1, 2);
+    grid->InsertCylindricalCell(0.5, 1, 45, 180, 2.5, 3);
     grid->UseDegreesOff();
-    grid->InsertNextCylindricalCell(0.5, 1, vtkMath::Pi(), vtkMath::Pi() * 2.0, 4, 5);
+    grid->InsertCylindricalCell(0.5, 1, vtkMath::Pi(), vtkMath::Pi() * 2.0, 4, 5);
 
     vtkNew<vtkDataSetSurfaceFilter> surface;
     surface->SetInputConnection(grid->GetOutputPort());
