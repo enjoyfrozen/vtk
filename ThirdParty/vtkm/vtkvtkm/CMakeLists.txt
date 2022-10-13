@@ -16,7 +16,8 @@ if ("TBB" IN_LIST vtk_smp_backends)
 endif ()
 
 set(VTKm_ENABLE_CUDA "${VTK_USE_CUDA}")
-set(VTKm_ENABLE_KOKKOS "${VTK_USE_HIP}")
+set(VTKm_ENABLE_KOKKOS "${VTK_USE_KOKKOS}")
+#set(VTKm_ENABLE_KOKKOS "${VTK_USE_HIP}")
 
 set(VTKm_INSTALL_LIB_DIR "${_vtk_build_LIBRARY_DESTINATION}")
 set(VTKm_INSTALL_INCLUDE_DIR "${_vtk_build_HEADERS_DESTINATION}/vtkvtkm/vtk-m")

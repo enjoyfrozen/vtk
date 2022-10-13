@@ -55,8 +55,7 @@ public:
 
   virtual vtkm::cont::UnknownArrayHandle GetVtkmUnknownArrayHandle() const = 0;
 
-  virtual void GetDevicePointers(std::vector<const void*>&) const = 0;
-  virtual void GetHostPointers(std::vector<const void*>&) const = 0;
+  virtual void GetArrayInformation(MetaData&) const = 0;
 };
 
 //-----------------------------------------------------------------------------
@@ -110,6 +109,50 @@ struct FlattenVec<T, vtkm::VecTraitsTagSingleComponent>
 };
 
 //-----------------------------------------------------------------------------
+namespace detail
+{
+
+struct MetaDataFunctor
+{
+  template <typename Device, typename T, typename Storage>
+  VTKM_CONT bool operator()(
+    Device, const vtkm::cont::ArrayHandle<T, Storage>& fielddata, MetaData& metadata)
+  {
+    int ompdevice = omp_get_default_device();
+    auto ompcontext = nullptr; // omp_target_get_context(ompdevice);
+    auto buffers = fielddata.GetBuffers();
+    auto numbuff = fielddata.GetNumberOfBuffers();
+    vtkm::cont::Token token;
+    std::vector<const void*> pointers;
+    std::vector<ALLOC> allocs;
+    for (int i = 0; i < numbuff; i++)
+    {
+      const void* pointer;
+      ALLOC alloc;
+      if (buffers[i].IsAllocatedOnDevice(Device{}))
+      {
+        alloc = ALLOC::DEVICE;
+        pointer = buffers[i].ReadPointerDevice(Device{}, token);
+      }
+      if (buffers[i].IsAllocatedOnHost())
+      {
+        alloc = ALLOC::HOST;
+        pointer = buffers[i].ReadPointerHost(token);
+      }
+      printf("Pointer is pointing to %p\n", pointer);
+      pointers.push_back(pointer);
+      allocs.push_back(alloc);
+    }
+    metadata.Device = (const void*)&ompdevice;
+    metadata.Context = (const void*)&ompcontext;
+    metadata.NumPointers = pointers.size();
+    metadata.Pointers = pointers;
+    metadata.Allocs = allocs;
+    return true;
+  }
+};
+}
+
 template <typename ValueType, typename StorageTag>
 class ArrayHandleWrapOnly
   : public ArrayHandleWrapperBase<typename FlattenVec<ValueType>::ComponentType>
@@ -164,40 +207,9 @@ public:
     return vtkm::cont::UnknownArrayHandle{ this->Handle };
   }
 
-  void GetDevicePointers(std::vector<const void*>& pointers) const override
+  void GetArrayInformation(MetaData& metadata) const override
   {
-    auto buffers = this->Handle.GetBuffers();
-    auto numbuff = this->Handle.GetNumberOfBuffers();
-    for (int i = 0; i < numbuff; i++)
-    {
-      // std::cout << "Is allocated on device? : " <<
-      // buffers[i].IsAllocatedOnDevice(vtkm::cont::DeviceAdapterTagCuda{}) << std::endl;
-      vtkm::cont::Token token;
-      if (buffers[i].IsAllocatedOnDevice(vtkm::cont::DeviceAdapterTagCuda{}))
-      {
-        const void* dpointer =
-          buffers[i].ReadPointerDevice(vtkm::cont::DeviceAdapterTagCuda{}, token);
-        // printf("Address of device pointer is %p\n", (void *)dpointer);
-        pointers.emplace_back(dpointer);
-      }
-    }
-  }
-
-  void GetHostPointers(std::vector<const void*>& pointers) const override
-  {
-    auto buffers = this->Handle.GetBuffers();
-    auto numbuff = this->Handle.GetNumberOfBuffers();
-    for (int i = 0; i < numbuff; i++)
-    {
-      // std::cout << "Is allocated on host? : " << buffers[i].IsAllocatedOnHost() << std::endl;
-      vtkm::cont::Token token;
-      if (buffers[i].IsAllocatedOnHost())
-      {
-        const void* hpointer = buffers[i].ReadPointerHost(token);
-        // printf("Address of host pointer is %p\n", (void *)hpointer);
-        pointers.emplace_back(hpointer);
-      }
-    }
+    bool found = vtkm::cont::TryExecute(detail::MetaDataFunctor{}, this->Handle, metadata);
   }
 
 private:
@@ -281,14 +293,9 @@ public:
     return vtkm::cont::UnknownArrayHandle{ this->Handle };
   }
 
-  void GetDevicePointers(std::vector<const void*>& pointers) const override
+  void GetArrayInformation(MetaData& metadata) const override
   {
-    vtkGenericWarningMacro(<< "GetDevicePointers called on unsupported vtkmDataArray");
-  }
-
-  void GetHostPointers(std::vector<const void*>& pointers) const override
-  {
-    vtkGenericWarningMacro(<< "GetDevicePointers called on unsupported vtkmDataArray");
+    vtkGenericWarningMacro(<< "GetArrayInformation called on unsupported vtkmDataArray");
   }
 
 private:
@@ -360,14 +367,9 @@ public:
     return vtkm::cont::UnknownArrayHandle{ this->Handle };
   }
 
-  void GetDevicePointers(std::vector<const void*>& pointers) const override
+  void GetArrayInformation(MetaData& metadata) const override
   {
-    vtkGenericWarningMacro(<< "GetDevicePointers called on unsupported vtkmDataArray");
-  }
-
-  void GetHostPointers(std::vector<const void*>& pointers) const override
-  {
-    vtkGenericWarningMacro(<< "GetDevicePointers called on unsupported vtkmDataArray");
+    vtkGenericWarningMacro(<< "GetArrayInformation called on unsupported vtkmDataArray");
   }
 
 private:
@@ -452,14 +454,9 @@ public:
     return vtkm::cont::UnknownArrayHandle{ this->GetVtkmArray() };
   }
 
-  void GetDevicePointers(std::vector<const void*>& pointers) const override
+  void GetArrayInformation(MetaData& metadata) const override
   {
-    vtkGenericWarningMacro(<< "GetDevicePointers called on unsupported vtkmDataArray");
-  }
-
-  void GetHostPointers(std::vector<const void*>& pointers) const override
-  {
-    vtkGenericWarningMacro(<< "GetDevicePointers called on unsupported vtkmDataArray");
+    vtkGenericWarningMacro(<< "GetArrayInformation called on unsupported vtkmDataArray");
   }
 
 private:
@@ -654,21 +651,11 @@ void vtkmDataArray<T>::SetWrapOnly()
 }
 
 template <typename T>
-std::vector<const void*> vtkmDataArray<T>::GetDeviceArrays() const
+MetaData vtkmDataArray<T>::GetArrayInformation() const
 {
-  // TODO : implement
-  std::vector<const void*> pointers;
-  this->VtkmArray->GetDevicePointers(pointers);
-  return pointers;
-}
-
-template <typename T>
-std::vector<const void*> vtkmDataArray<T>::GetHostArrays() const
-{
-  // TODO : implement
-  std::vector<const void*> pointers;
-  this->VtkmArray->GetHostPointers(pointers);
-  return pointers;
+  MetaData metadata;
+  this->VtkmArray->GetArrayInformation(metadata);
+  return metadata;
 }
 
 VTK_ABI_NAMESPACE_END

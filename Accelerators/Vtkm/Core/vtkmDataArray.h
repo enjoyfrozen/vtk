@@ -32,6 +32,21 @@
 
 #include <memory> // For unique_ptr
 
+enum class ALLOC
+{
+  HOST = 0,
+  DEVICE
+};
+
+struct MetaData
+{
+  const void* Device;
+  const void* Context;
+  size_t NumPointers;
+  std::vector<const void*> Pointers;
+  std::vector<ALLOC> Allocs;
+};
+
 namespace internal
 {
 VTK_ABI_NAMESPACE_BEGIN
@@ -81,8 +96,9 @@ public:
   void SetTypedComponent(vtkIdType tupleIdx, int compIdx, ValueType value);
 
   void SetWrapOnly();
-  std::vector<const void*> GetDeviceArrays() const;
-  std::vector<const void*> GetHostArrays() const;
+
+  MetaData GetArrayInformation() const;
+  // std::vector<const void*> GetHostArrays() const;
 
 protected:
   vtkmDataArray();
