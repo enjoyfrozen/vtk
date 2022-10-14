@@ -149,6 +149,22 @@ public:
 
   ///@{
   /**
+   * Set the handle color when unselected and selected.
+   */
+  void SetSelectedWidgetColor(double, double, double);
+  void SetSelectedWidgetColor(double c[3])
+  {
+    this->SetSelectedWidgetColor(c[0], c[1], c[2]);
+  }
+  void SetForegroundWidgetColor(double, double, double);
+  void SetForegroundWidgetColor(double c[3])
+  {
+    this->SetForegroundWidgetColor(c[0], c[1], c[2]);
+  }
+  ///@}
+
+  ///@{
+  /**
    * Set the "hot spot" size; i.e., the region around the focus, in which the
    * motion vector is used to control the constrained sliding action. Note the
    * size is specified as a fraction of the length of the diagonal of the

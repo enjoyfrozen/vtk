@@ -297,6 +297,22 @@ public:
    */
   void SetLineColor(double r, double g, double b);
 
+  ///@{
+  /**
+   * Set the color when unselected and selected.
+   */
+  void SetSelectedWidgetColor(double, double, double);
+  void SetSelectedWidgetColor(double c[3])
+  {
+    this->SetSelectedWidgetColor(c[0], c[1], c[2]);
+  }
+  void SetForegroundWidgetColor(double, double, double);
+  void SetForegroundWidgetColor(double c[3])
+  {
+    this->SetForegroundWidgetColor(c[0], c[1], c[2]);
+  }
+  ///@}
+
   /**
    * Get the distance annotation property
    */
