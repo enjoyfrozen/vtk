@@ -41,8 +41,6 @@ bool ArePointsEquidistant(double x[3], vtkIdType id1, vtkIdType id2, vtkPointSet
 
   if (differenceDist2 / (firstDist2 + secondDist2) > .00001)
   {
-    cerr << "Results do not match (first " << id1 << ":" << firstDist2 << " , second " << id2 << ":"
-         << secondDist2 << ") " << endl;
     return false;
   }
   return true;
@@ -68,14 +66,10 @@ bool DoesListHaveProperPoints(
     {
       auto uact = firstList->GetId(uid);
       double* upt = grid->GetPoint(uact);
-      cerr << "FROM 1 " << uid << " " << uact << " " << upt[0] << "," << upt[1] << "," << upt[2]
-           << endl;
       for (vtkIdType kid = 0; kid < secondList->GetNumberOfIds(); kid++)
       {
         auto kact = secondList->GetId(kid);
         double* kpt = grid->GetPoint(kact);
-        cerr << "FROM 2 " << kid << " " << kact << " " << kpt[0] << "," << kpt[1] << "," << kpt[2]
-             << endl;
         if (ArePointsEquidistant(x, firstList->GetId(uid), secondList->GetId(kid), grid))
         {
           found = 1;
@@ -93,19 +87,19 @@ bool DoesListHaveProperPoints(
 
 // This test compares results for different point locators since they should
 // all return the same results (within a tolerance)
-int ComparePointLocators(vtkAbstractPointLocator* locator1, vtkAbstractPointLocator* locator2)
+int ComparePointLocators(vtkAbstractPointLocator* locator1, std::string name1,
+  vtkAbstractPointLocator* locator2, std::string name2)
 {
-  int rval = 0;
   int i, j, k, kOffset, jOffset, offset;
   float x[3];
   static const int dims[3] = { 39, 31, 31 };
 
   // Create the structured grid.
-  vtkStructuredGrid* sgrid = vtkStructuredGrid::New();
+  vtkNew<vtkStructuredGrid> sgrid;
   sgrid->SetDimensions(dims);
 
   // We also create the points.
-  vtkPoints* points = vtkPoints::New();
+  vtkNew<vtkPoints> points;
   points->Allocate(dims[0] * dims[1] * dims[2]);
 
   for (k = 0; k < dims[2]; k++)
@@ -125,19 +119,14 @@ int ComparePointLocators(vtkAbstractPointLocator* locator1, vtkAbstractPointLoca
     }
   }
   sgrid->SetPoints(points);
-  points->Delete();
 
-  vtkTimerLog* tl = vtkTimerLog::New();
-  tl->StartTimer();
+  vtkNew<vtkTimerLog> tl;
+
   locator1->SetDataSet(sgrid);
   locator1->BuildLocator();
-  tl->StopTimer();
-  cerr << "EMB BUILD " << tl->GetElapsedTime() << " ****************************" << endl;
-  tl->StartTimer();
+
   locator2->SetDataSet(sgrid);
   locator2->BuildLocator();
-  tl->StopTimer();
-  cerr << "VTK BUILD " << tl->GetElapsedTime() << " ****************************" << endl;
 
   double bounds[6];
   sgrid->GetBounds(bounds);
@@ -147,101 +136,72 @@ int ComparePointLocators(vtkAbstractPointLocator* locator1, vtkAbstractPointLoca
     bounds[i * 2] *= .5;
     bounds[i * 2 + 1] *= 1.2;
   }
+
   int numSearchPoints = 20;
-  vtkIdList* locator1List = vtkIdList::New();
-  vtkIdList* locator2List = vtkIdList::New();
+  vtkNew<vtkIdList> locator1List;
+  vtkNew<vtkIdList> locator2List;
+
   for (i = 0; i < numSearchPoints; i++)
   {
-    cerr << " ITERATION " << i << endl;
     double point[3] = { (bounds[0] + (bounds[1] - bounds[0]) * i / numSearchPoints),
       (bounds[2] + (bounds[3] - bounds[2]) * i / numSearchPoints),
       (bounds[4] + (bounds[5] - bounds[4]) * i / numSearchPoints) };
-    cerr << "LOOKING FOR " << point[0] << "," << point[1] << "," << point[2] << endl;
-    tl->StartTimer();
+
+    // test FindClosestPoint
     vtkIdType locator1Pt = locator1->FindClosestPoint(point);
-    tl->StopTimer();
-    cerr << "EMB SEARCH " << tl->GetElapsedTime() << " ****************************" << endl;
-    tl->StartTimer();
     vtkIdType locator2Pt = locator2->FindClosestPoint(point);
-    tl->StopTimer();
-    cerr << "VTK SEARCH " << tl->GetElapsedTime() << " ****************************" << endl;
-    cerr << "survey says " << locator1Pt << " " << locator2Pt << endl;
+
     if (!ArePointsEquidistant(point, locator1Pt, locator2Pt, sgrid))
     {
-      cerr << " from FindClosestPoint.\n";
-      rval++;
+      return EXIT_FAILURE;
     }
+
+    // test FindClosestNPoints
     int N = 1 + i * 250 / numSearchPoints; // test different amounts of points to search for
-    cerr << "LOOKING FOR " << N << " near " << point[0] << "," << point[1] << "," << point[2]
-         << endl;
     locator1->FindClosestNPoints(N, point, locator1List);
     locator2->FindClosestNPoints(N, point, locator2List);
     if (!ArePointsEquidistant(point, locator1Pt, locator1List->GetId(0), sgrid))
     {
-      cerr
-        << "for comparing FindClosestPoint and first result of FindClosestNPoints for locator1.\n";
-      rval++;
+      return EXIT_FAILURE;
     }
     if (!ArePointsEquidistant(point, locator2Pt, locator2List->GetId(0), sgrid))
     {
-      cerr
-        << "for comparing FindClosestPoint and first result of FindClosestNPoints for locator2.\n";
-      rval++;
+      return EXIT_FAILURE;
     }
 
     for (j = 0; j < N; j++)
     {
       if (!ArePointsEquidistant(point, locator1List->GetId(j), locator2List->GetId(j), sgrid))
       {
-        cerr << "for point " << j << " for ClosestNPoints search.\n";
-        rval++;
+        return EXIT_FAILURE;
       }
     }
+
+    // test FindPointsWithinRadius
     double radius = 10;
-    cerr << "Looking within " << radius << " of " << point[0] << "," << point[1] << "," << point[2]
-         << endl;
     locator1->FindPointsWithinRadius(radius, point, locator1List);
     locator2->FindPointsWithinRadius(radius, point, locator2List);
-    cerr << "emb vs vtk " << endl;
-    cerr << (DoesListHaveProperPoints(point, locator1List, locator2List, sgrid) ? "PROPER"
-                                                                                : "IMPROPER")
-         << endl;
-    cerr << "vtk vs emb " << endl;
-    cerr << (DoesListHaveProperPoints(point, locator2List, locator1List, sgrid) ? "PROPER"
-                                                                                : "IMPROPER")
-         << endl;
+
     if (!DoesListHaveProperPoints(point, locator1List, locator2List, sgrid) ||
       !DoesListHaveProperPoints(point, locator2List, locator1List, sgrid))
     {
-      cerr << "Problem with FindPointsWithinRadius\n";
-      rval++;
+      return EXIT_FAILURE;
     }
-    cerr << "Looking for closest to " << point[0] << "," << point[1] << "," << point[2]
-         << " within " << radius << endl;
+
+    // test FindClosestPointWithinRadius
     double dist2;
     locator1Pt = locator1->FindClosestPointWithinRadius(radius, point, dist2);
     locator2Pt = locator2->FindClosestPointWithinRadius(radius, point, dist2);
-    cerr << "SURVEY SAYS " << locator1Pt << " " << locator1Pt << endl;
     if (locator1Pt < 0 || locator2Pt < 0)
     {
       if (locator1Pt >= 0 || locator2Pt >= 0)
       {
-        if (locator1Pt < 0)
-          cerr << "L1 < 0 " << endl;
-        if (locator2Pt < 0)
-          cerr << "L2 < 0 " << endl;
-        if (locator1Pt >= 0)
-          cerr << "L1 >= 0 " << endl;
-        if (locator2Pt >= 0)
-          cerr << "L2 >= 0 " << endl;
-        cerr << "Inconsistent results for FindClosestPointWithinRadius\n";
-        rval++;
+        return EXIT_FAILURE;
       }
     }
     else if (!ArePointsEquidistant(point, locator1Pt, locator2Pt, sgrid))
     {
-      cerr << "Incorrect result for FindClosestPointWithinRadius.\n";
-      rval++;
+      return EXIT_FAILURE;
     }
     if (locator1Pt >= 0)
     {
@@ -249,36 +209,146 @@ int ComparePointLocators(vtkAbstractPointLocator* locator1, vtkAbstractPointLoca
       locator1List->InsertNextId(locator1Pt);
       if (!DoesListHaveProperPoints(point, locator1List, locator2List, sgrid))
       {
-        cerr << "Inconsistent results for FindClosestPointWithinRadius and FindPointsWithRadius\n";
-        rval++;
+        return EXIT_FAILURE;
       }
     }
   }
 
-  locator1List->Delete();
-  locator2List->Delete();
+  return EXIT_SUCCESS;
+}
 
-  sgrid->Delete();
+int RegressionTestEmbreePointLocator()
+{
+  int rval = 0;
+  int i, j, k, kOffset, jOffset, offset;
+  float x[3];
+  static const int dims[3] = { 39, 31, 31 };
+  vtkNew<vtkTimerLog> tl;
 
-  return rval; // returns 0 if all tests passes
+  // number of points to test timing against
+  const int numSearchPoints = 50;
+
+  // return value.
+  // Positive if Embree averaged faster than uniform and kd tree locators
+  // max score of numSearchPoints
+  int embreeScore = 0;
+
+  // Create the structured grid.
+  vtkNew<vtkStructuredGrid> sgrid;
+  sgrid->SetDimensions(dims);
+
+  // We also create the points.
+  vtkNew<vtkPoints> points;
+  points->Allocate(dims[0] * dims[1] * dims[2]);
+
+  for (k = 0; k < dims[2]; k++)
+  {
+    x[2] = 1.0 + k * 1.2;
+    kOffset = k * dims[0] * dims[1];
+    for (j = 0; j < dims[1]; j++)
+    {
+      x[1] = sqrt(10. + j * 2.);
+      jOffset = j * dims[0];
+      for (i = 0; i < dims[0]; i++)
+      {
+        x[0] = 1 + i * i * .5;
+        offset = i + jOffset + kOffset;
+        points->InsertPoint(offset, x);
+      }
+    }
+  }
+  sgrid->SetPoints(points);
+
+  // create each point locator type
+  vtkNew<vtkKdTreePointLocator> kdTreeLocator;
+  vtkNew<vtkPointLocator> uniformLocator;
+  vtkNew<vtkEmbreePointLocator> embreeLocator;
+
+  kdTreeLocator->SetDataSet(sgrid);
+  kdTreeLocator->BuildLocator();
+
+  uniformLocator->SetDataSet(sgrid);
+  uniformLocator->BuildLocator();
+
+  embreeLocator->SetDataSet(sgrid);
+  embreeLocator->BuildLocator();
+
+  double bounds[6];
+  sgrid->GetBounds(bounds);
+  for (i = 0; i < 3; i++)
+  {
+    // expand the search so we are looking for points inside and outside the BB
+    bounds[i * 2] *= .5;
+    bounds[i * 2 + 1] *= 1.2;
+  }
+
+  vtkNew<vtkIdList> kdTreeList;
+  vtkNew<vtkIdList> uniformList;
+  vtkNew<vtkIdList> embreeList;
+
+  double kdTreeTime = 0;
+  double uniformTime = 0;
+  double embreeTime = 0;
+
+  for (i = 0; i < numSearchPoints; i++)
+  {
+    double point[3] = { (bounds[0] + (bounds[1] - bounds[0]) * i / numSearchPoints),
+      (bounds[2] + (bounds[3] - bounds[2]) * i / numSearchPoints),
+      (bounds[4] + (bounds[5] - bounds[4]) * i / numSearchPoints) };
+
+    tl->StartTimer();
+    vtkIdType kdTreePt = kdTreeLocator->FindClosestPoint(point);
+    tl->StopTimer();
+    kdTreeTime = tl->GetElapsedTime();
+
+    tl->StartTimer();
+    vtkIdType uniformPt = uniformLocator->FindClosestPoint(point);
+    tl->StopTimer();
+    uniformTime = tl->GetElapsedTime();
+
+    tl->StartTimer();
+    vtkIdType embreePt = embreeLocator->FindClosestPoint(point);
+    tl->StopTimer();
+    embreeTime = tl->GetElapsedTime();
+
+    // check correctness of embree-identified point
+    if (!ArePointsEquidistant(point, embreePt, kdTreePt, sgrid))
+    {
+      return EXIT_FAILURE;
+    }
+    if (!ArePointsEquidistant(point, embreePt, uniformPt, sgrid))
+    {
+      return EXIT_FAILURE;
+    }
+
+    // check search time of embree compared to kd tree and uniform search
+    if (embreeTime < kdTreeTime && embreeTime < uniformTime)
+    {
+      embreeScore++;
+    }
+    else
+    {
+      embreeScore--;
+    }
+  }
+  // positive score -> embree is faster on average
+  // negative score -> embree is slower on average
+  return embreeScore;
 }
 
 int TestEmbreePointLocator(int, char*[])
 {
-  vtkKdTreePointLocator* kdTreeLocator = vtkKdTreePointLocator::New();
-  vtkPointLocator* uniformLocator = vtkPointLocator::New();
-
   int rval = 0;
-  // cout << "Comparing vtkPointLocator to vtkKdTreePointLocator.\n";
-  // rval = ComparePointLocators(uniformLocator, kdTreeLocator);
 
-  vtkEmbreePointLocator* embreeLocator = vtkEmbreePointLocator::New();
-  cerr << "Comparing vtkEmbreePointLocator to vtkKdTreePointLocator.\n";
-  rval += ComparePointLocators(embreeLocator, kdTreeLocator);
+  vtkNew<vtkKdTreePointLocator> kdTreeLocator;
+  vtkNew<vtkEmbreePointLocator> embreeLocator;
 
-  kdTreeLocator->Delete();
-  uniformLocator->Delete();
-  embreeLocator->Delete();
+  // offers a correctness test for embree against known locator implementation
+  rval += ComparePointLocators(embreeLocator, "embree", kdTreeLocator, "kdtree");
+
+  // offers a performance test for embree vs kd tree and uniform locators
+  int embreeScore = RegressionTestEmbreePointLocator();
+  rval += (embreeScore > 0) ? 0 : 1;
 
   return rval;
 }

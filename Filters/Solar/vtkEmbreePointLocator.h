@@ -37,32 +37,27 @@ public:
   void PrintSelf(ostream& os, vtkIndent indent) override;
   ///@}
 
-  // Re-use any superclass signatures that we don't override.
-  using vtkAbstractPointLocator::FindClosestNPoints;
-  using vtkAbstractPointLocator::FindClosestPoint;
-  using vtkAbstractPointLocator::FindClosestPointWithinRadius;
-  using vtkAbstractPointLocator::FindPointsWithinRadius;
+  /** overridden to provide implementation */
+  virtual void BuildLocator() override;
 
   /** overridden to provide implementation */
-  virtual void BuildLocator();
+  virtual void FreeSearchStructure() override;
 
   /** overridden to provide implementation */
-  virtual void FreeSearchStructure();
+  virtual void GenerateRepresentation(int level, vtkPolyData* pd) override;
 
   /** overridden to provide implementation */
-  virtual void GenerateRepresentation(int level, vtkPolyData* pd);
+  virtual vtkIdType FindClosestPoint(const double x[3]) override;
 
   /** overridden to provide implementation */
-  virtual vtkIdType FindClosestPoint(const double x[3]);
+  virtual vtkIdType FindClosestPointWithinRadius(
+    double radius, const double x[3], double& dist2) override;
 
   /** overridden to provide implementation */
-  virtual vtkIdType FindClosestPointWithinRadius(double radius, const double x[3], double& dist2);
+  virtual void FindClosestNPoints(int N, const double x[3], vtkIdList* result) override;
 
   /** overridden to provide implementation */
-  virtual void FindClosestNPoints(int N, const double x[3], vtkIdList* result);
-
-  /** overridden to provide implementation */
-  virtual void FindPointsWithinRadius(double R, const double x[3], vtkIdList* result);
+  virtual void FindPointsWithinRadius(double R, const double x[3], vtkIdList* result) override;
 
   // PIMPL
   class vtkInternals;
