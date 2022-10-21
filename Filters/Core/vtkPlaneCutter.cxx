@@ -365,6 +365,7 @@ struct UnstructuredDataFunctor : public CuttingFunctor<TPointsArray>
     vtkDoubleArray* cellScalars = this->CellScalars.Local();
     vtkPointData* inPD = this->Input->GetPointData();
     vtkCellData* inCD = this->Input->GetCellData();
+    vtkUnsignedCharArray* ghostCells = this->Input->GetCellGhostArray();
 
     vtkPolyData* output = localData.Output;
     vtkPointData* outPD = nullptr;
@@ -404,6 +405,7 @@ struct UnstructuredDataFunctor : public CuttingFunctor<TPointsArray>
       {
         break;
       }
+
       needCell = false;
       if (this->SphereTree)
       {
@@ -418,6 +420,13 @@ struct UnstructuredDataFunctor : public CuttingFunctor<TPointsArray>
         // without a sphere tree, use the inOutPoints
         needCell = this->IsCellSlicedByPlane(cellId, cellPointIds);
       }
+      // We skip cells marked as hidden
+      if (ghostCells &&
+        (ghostCells->GetValue(cellId) & vtkDataSetAttributes::CellGhostTypes::HIDDENCELL))
+      {
+        needCell = false;
+      }
+
       if (needCell)
       {
         this->Input->GetCell(cellId, cell);

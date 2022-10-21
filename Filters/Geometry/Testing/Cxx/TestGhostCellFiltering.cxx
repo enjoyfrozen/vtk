@@ -1,7 +1,7 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    TestPreserveTopology.cxx
+  Module:    TestGhostCellFiltering.cxx
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.
@@ -94,14 +94,14 @@ bool ValidateGhostArray(vtkUnstructuredGrid* grid, int expected, std::string err
 
 } // namespace
 
-int TestPreserveTopology(int argc, char* argv[])
+int TestGhostCellFiltering(int argc, char* argv[])
 {
   bool passedAsserts = true;
   const double cellSize = 1.0;
   const int numCells = nI * nJ * nK;
 
   std::ostringstream strm;
-  strm << "TestPreserveTopology Start" << endl;
+  strm << "TestGhostCellFiltering Start" << endl;
 
   vtkNew<vtkUnstructuredGrid> grid;
   {
@@ -236,7 +236,7 @@ int TestPreserveTopology(int argc, char* argv[])
     intersectActor->SetMapper(mapper);
   }
 
-  strm << "TestPreserveTopology End" << endl;
+  strm << "TestGhostCellFiltering End" << endl;
 
   vtkNew<vtkRenderer> renderer;
   renderer->AddActor(actor);
