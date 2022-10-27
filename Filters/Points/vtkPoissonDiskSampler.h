@@ -63,6 +63,14 @@ public:
 
   ///@{
   /**
+   * Setter / Getter for `Seed`. It is used to make the point sampling reproducible.
+   */
+  vtkSetMacro(Seed, long unsigned int);
+  vtkGetMacro(Seed, long unsigned int);
+  ///@}
+
+  ///@{
+  /**
    * Specify a point locator. By default a vtkKdTreePointLocator is
    * used. The locator performs efficient searches to locate points
    * around a sample point.
@@ -79,6 +87,11 @@ protected:
    * Radius used to query point neighbors using the `Locator`.
    */
   double Radius;
+
+  /**
+   * Seed used to shuffle the points in DartThrower algorithm.
+   */
+  long unsigned int Seed;
 
   /**
    * Locator being used to query point neighbors.
