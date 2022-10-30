@@ -737,7 +737,7 @@ void vtkCocoaRenderWindow::CreateAWindow()
       // This will show the menu and the dock
       //[theWindow setLevel:NSFloatingWindowLevel];
     }
-    else
+    else if (!this->UseOffScreenBuffers && this->ShowWindow)
     {
       if ((this->Size[0] + this->Size[1]) == 0)
       {
@@ -772,7 +772,7 @@ void vtkCocoaRenderWindow::CreateAWindow()
                                                   defer:NO];
     }
 
-    if (!theWindow)
+    if (!theWindow && !this->UseOffScreenBuffers && this->ShowWindow)
     {
       vtkErrorMacro("Could not create window, serious error!");
       return;
@@ -867,7 +867,7 @@ void vtkCocoaRenderWindow::CreateAWindow()
       [glView release];
 #endif
     }
-    else
+    else if (!this->UseOffScreenBuffers && this->ShowWindow)
     {
       NSRect backingViewRect = NSMakeRect(0.0, 0.0, (CGFloat)this->Size[0], (CGFloat)this->Size[1]);
 
