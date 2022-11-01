@@ -24,6 +24,7 @@
 #include "vtkOSPRayRendererNode.h"
 #include "vtkPointGaussianMapper.h"
 #include "vtkPointSource.h"
+#include "vtkProperty.h"
 #include "vtkRandomAttributeGenerator.h"
 #include "vtkRegressionTestImage.h"
 #include "vtkRenderWindow.h"
@@ -60,6 +61,7 @@ int TestvtkmOSPRayDataSetMapper(int argc, char* argv[])
 
   // Create the rendering pipeline
   vtkNew<vtkActor> actor;
+  actor->GetProperty()->SetPointSize(5);
   vtkNew<vtkmDataSetMapper> mapper;
   mapper->SetInputData(dsVtkm);
   actor->SetMapper(mapper);

@@ -402,7 +402,6 @@ void vtkmOSPRayDataSetMapperNode::Render(bool prepass)
   if (prepass)
   {
     // Do the rendering
-    vtkWarningMacro(<< "Rendering a dataset");
     // we use a lot of params from our parent
     vtkOSPRayActorNode* aNode = vtkOSPRayActorNode::SafeDownCast(this->Parent);
     vtkActor* act = vtkActor::SafeDownCast(aNode->GetRenderable());
