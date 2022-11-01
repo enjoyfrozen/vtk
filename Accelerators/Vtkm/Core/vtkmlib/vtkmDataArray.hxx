@@ -118,7 +118,7 @@ struct MetaDataFunctor
   VTKM_CONT bool operator()(
     Device, const vtkm::cont::ArrayHandle<T, Storage>& fielddata, MetaData& metadata)
   {
-    int ompdevice = omp_get_default_device();
+    int ompdevice = 0;         // omp_get_default_device();
     auto ompcontext = nullptr; // omp_target_get_context(ompdevice);
     auto buffers = fielddata.GetBuffers();
     auto numbuff = buffers.size();
