@@ -121,7 +121,7 @@ struct MetaDataFunctor
     int ompdevice = omp_get_default_device();
     auto ompcontext = nullptr; // omp_target_get_context(ompdevice);
     auto buffers = fielddata.GetBuffers();
-    auto numbuff = fielddata.GetNumberOfBuffers();
+    auto numbuff = buffers.size();
     vtkm::cont::Token token;
     std::vector<const void*> pointers;
     std::vector<ALLOC> allocs;
