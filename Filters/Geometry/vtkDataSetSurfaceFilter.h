@@ -211,6 +211,27 @@ public:
 
   ///@{
   /**
+   * Should unstructured grids also filter out cells as specified by a 'vtkInsidedness' array?
+   *
+   * Default value is false.
+   */
+  vtkSetMacro(FilterTopology, bool);
+  vtkGetMacro(FilterTopology, bool);
+  vtkBooleanMacro(FilterTopology, bool);
+  //@}
+
+  //@{
+  /**
+   * Name for the 'vtkInsidedness' array used in topology filtering.
+   *
+   * Default value is "vtkInsidedness".
+   */
+  vtkSetStringMacro(TopologyFilterArrayName);
+  vtkGetStringMacro(TopologyFilterArrayName);
+  //@}
+
+  //@{
+  /**
    * Direct access methods so that this class can be used as an
    * algorithm without using it as a filter (i.e., no pipeline updates).
    */
@@ -357,6 +378,9 @@ protected:
   int NonlinearSubdivisionLevel;
   vtkTypeBool Delegation;
   bool FastMode;
+
+  bool FilterTopology = false;
+  char* TopologyFilterArrayName = nullptr;
 
 private:
   int UnstructuredGridBaseExecute(vtkDataSet* input, vtkPolyData* output);

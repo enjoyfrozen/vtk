@@ -19,6 +19,7 @@
 #include "vtkArrayDispatch.h"
 #include "vtkCellArray.h"
 #include "vtkCellData.h"
+#include "vtkContourHelper.h"
 #include "vtkConvertToMultiBlockDataSet.h"
 #include "vtkDataObjectTreeRange.h"
 #include "vtkDataSet.h"
@@ -30,6 +31,7 @@
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
 #include "vtkMath.h"
+#include "vtkMergePoints.h"
 #include "vtkMultiBlockDataSet.h"
 #include "vtkMultiPieceDataSet.h"
 #include "vtkNew.h"
@@ -53,6 +55,7 @@
 #include "vtkUnstructuredGrid.h"
 
 #include <cmath>
+#include <memory> // for std::unique_ptr
 
 VTK_ABI_NAMESPACE_BEGIN
 vtkObjectFactoryNewMacro(vtkPlaneCutter);
@@ -65,7 +68,7 @@ namespace // begin anonymous namespace
 struct vtkLocalDataType
 {
   vtkPolyData* Output;
-  vtkNonMergingPointLocator* Locator;
+  vtkPointLocator* Locator;
   vtkCellData* NewVertsData;
   vtkCellData* NewLinesData;
   vtkCellData* NewPolysData;
@@ -161,11 +164,14 @@ struct CuttingFunctor
   double* Normal;
   vtkIdType NumSelected;
   bool Interpolate;
+  bool GenerateTriangles;
+  bool MergePoints;
   vtkPlaneCutter* Filter;
 
   CuttingFunctor(vtkDataSet* input, TPointsArray* pointsArray, int outputPrecision,
     vtkMultiPieceDataSet* outputMP, vtkPlane* plane, vtkSphereTree* tree, double* origin,
-    double* normal, bool interpolate, vtkPlaneCutter* filter)
+    double* normal, bool interpolate, bool generateTriangles, bool mergePoints,
+    vtkPlaneCutter* filter)
     : Input(input)
     , InPointsArray(pointsArray)
     , OutputMP(outputMP)
@@ -176,6 +182,8 @@ struct CuttingFunctor
     , Origin(origin)
     , Normal(normal)
     , Interpolate(interpolate)
+    , GenerateTriangles(generateTriangles)
+    , MergePoints(mergePoints)
     , Filter(filter)
   {
   }
@@ -233,7 +241,14 @@ struct CuttingFunctor
     localData.Output = vtkPolyData::New();
     vtkPolyData* output = localData.Output;
 
-    localData.Locator = vtkNonMergingPointLocator::New();
+    if (!this->GenerateTriangles && this->MergePoints)
+    {
+      localData.Locator = vtkMergePoints::New();
+    }
+    else
+    {
+      localData.Locator = vtkNonMergingPointLocator::New();
+    }
     vtkPointLocator* locator = localData.Locator;
 
     vtkIdType numCells = this->Input->GetNumberOfCells();
@@ -307,9 +322,10 @@ struct UnstructuredDataFunctor : public CuttingFunctor<TPointsArray>
 {
   UnstructuredDataFunctor(TGrid* inputGrid, TPointsArray* pointsArray, int outputPrecision,
     vtkMultiPieceDataSet* outputMP, vtkPlane* plane, vtkSphereTree* tree, double* origin,
-    double* normal, bool interpolate, vtkPlaneCutter* filter)
+    double* normal, bool interpolate, bool generateTriangles, bool mergePoints,
+    vtkPlaneCutter* filter)
     : CuttingFunctor<TPointsArray>(inputGrid, pointsArray, outputPrecision, outputMP, plane, tree,
-        origin, normal, interpolate, filter)
+        origin, normal, interpolate, generateTriangles, mergePoints, filter)
   {
     if (auto polyData = vtkPolyData::SafeDownCast(inputGrid))
     {
@@ -392,7 +408,18 @@ struct UnstructuredDataFunctor : public CuttingFunctor<TPointsArray>
     const unsigned char* selected = this->Selected + beginCellId;
     bool isFirst = vtkSMPTools::GetSingleThread();
 
+    std::unique_ptr<vtkContourHelper> contourHelper;
+    if (!this->GenerateTriangles)
+    {
+      const vtkIdType estimatedSize = inCD->GetNumberOfTuples();
+      vtkContourHelper* helper = new vtkContourHelper(loc, newVerts, newLines, newPolys, inPD, inCD,
+        outPD, newPolysData, estimatedSize, this->GenerateTriangles);
+      std::unique_ptr<vtkContourHelper> helperPtr(helper);
+      contourHelper = std::move(helperPtr);
+    }
+
     vtkIdList*& cellPointIds = this->CellPointIds.Local();
+
     // Loop over the cell, processing only the one that are needed
     for (vtkIdType cellId = beginCellId; cellId < endCellId; ++cellId)
     {
@@ -430,29 +457,36 @@ struct UnstructuredDataFunctor : public CuttingFunctor<TPointsArray>
           *s++ = this->Plane->FunctionValue(cellPoints->GetPoint(i));
         }
 
-        tmpOutCD = nullptr;
-        if (this->Interpolate)
+        if (!this->GenerateTriangles)
         {
-          // Select correct cell data
-          switch (cell->GetCellDimension())
-          {
-            case (0):
-              VTK_FALLTHROUGH;
-            case (1):
-              tmpOutCD = newVertsData;
-              break;
-            case (2):
-              tmpOutCD = newLinesData;
-              break;
-            case (3):
-              tmpOutCD = newPolysData;
-              break;
-            default:
-              break;
-          }
+          contourHelper->Contour(cell, 0.0, cellScalars, cellId);
         }
-        cell->Contour(
-          0.0, cellScalars, loc, newVerts, newLines, newPolys, inPD, outPD, inCD, cellId, tmpOutCD);
+        else
+        {
+          tmpOutCD = nullptr;
+          if (this->Interpolate)
+          {
+            // Select correct cell data
+            switch (cell->GetCellDimension())
+            {
+              case (0):
+                VTK_FALLTHROUGH;
+              case (1):
+                tmpOutCD = newVertsData;
+                break;
+              case (2):
+                tmpOutCD = newLinesData;
+                break;
+              case (3):
+                tmpOutCD = newPolysData;
+                break;
+              default:
+                break;
+            }
+          }
+          cell->Contour(0.0, cellScalars, loc, newVerts, newLines, newPolys, inPD, outPD, inCD,
+            cellId, tmpOutCD);
+        }
       }
     }
   }
@@ -493,10 +527,11 @@ struct UnstructuredDataWorker
   template <typename TPointsArray>
   void operator()(TPointsArray* pointsArray, TGrid* inputGrid, int outputPrecision,
     vtkMultiPieceDataSet* outputMP, vtkPlane* plane, vtkSphereTree* tree, double* origin,
-    double* normal, bool interpolate, vtkPlaneCutter* filter)
+    double* normal, bool interpolate, bool generateTriangles, bool mergePoints,
+    vtkPlaneCutter* filter)
   {
     UnstructuredDataFunctor<TGrid, TPointsArray> functor(inputGrid, pointsArray, outputPrecision,
-      outputMP, plane, tree, origin, normal, interpolate, filter);
+      outputMP, plane, tree, origin, normal, interpolate, generateTriangles, mergePoints, filter);
     functor.BuildAccelerationStructure();
     vtkSMPTools::For(0, inputGrid->GetNumberOfCells(), functor);
   }
@@ -518,6 +553,7 @@ vtkPlaneCutter::vtkPlaneCutter()
   , DataChanged(true)
 {
   this->InputInfo = vtkInputInfo(nullptr, 0);
+  this->SetTopologyFilterArrayName("vtkInsidedness");
 }
 
 //------------------------------------------------------------------------------
@@ -696,8 +732,10 @@ int vtkPlaneCutter::ExecuteDataSet(vtkDataSet* input, vtkPolyData* output)
   vtkSphereTree* sphereTree = nullptr;
   if (this->BuildTree)
   {
-    auto pair =
-      this->SphereTrees.insert(std::make_pair(input, vtk::TakeSmartPointer(vtkSphereTree::New())));
+    sphereTree = vtkSphereTree::New();
+    sphereTree->SetFilterTopology(this->GetFilterTopology());
+    sphereTree->SetTopologyFilterArrayName(this->GetTopologyFilterArrayName());
+    auto pair = this->SphereTrees.insert(std::make_pair(input, vtk::TakeSmartPointer(sphereTree)));
     sphereTree = pair.first->second.GetPointer();
   }
   bool& canBeFullyProcessed =
@@ -767,7 +805,7 @@ int vtkPlaneCutter::ExecuteDataSet(vtkDataSet* input, vtkPolyData* output)
       return 1;
     }
   }
-  else if (vtkUnstructuredGrid::SafeDownCast(input))
+  else if (vtkUnstructuredGrid::SafeDownCast(input) && this->GenerateTriangles)
   {
     // Check whether we have 3d linear cells. Cache the computation
     // of linearity, so it only needs be done once if the input does not change.
@@ -812,10 +850,11 @@ int vtkPlaneCutter::ExecuteDataSet(vtkDataSet* input, vtkPolyData* output)
     auto pointsArray = inputPolyData->GetPoints()->GetData();
     if (!Dispatcher::Execute(pointsArray, worker, inputPolyData, this->OutputPointsPrecision,
           tempOutputMP, plane, sphereTree, planeOrigin, planeNormal, this->InterpolateAttributes,
-          this))
+          this->GenerateTriangles, this->MergePoints, this))
     {
       worker(pointsArray, inputPolyData, this->OutputPointsPrecision, tempOutputMP, plane,
-        sphereTree, planeOrigin, planeNormal, this->InterpolateAttributes, this);
+        sphereTree, planeOrigin, planeNormal, this->InterpolateAttributes, this->GenerateTriangles,
+        this->MergePoints, this);
     }
   }
   // get any implementations of vtkUnstructuredGridBase
@@ -825,10 +864,11 @@ int vtkPlaneCutter::ExecuteDataSet(vtkDataSet* input, vtkPolyData* output)
     auto pointsArray = inputUG->GetPoints()->GetData();
     if (!Dispatcher::Execute(pointsArray, worker, inputUG, this->OutputPointsPrecision,
           tempOutputMP, plane, sphereTree, planeOrigin, planeNormal, this->InterpolateAttributes,
-          this))
+          this->GenerateTriangles, this->MergePoints, this))
     {
       worker(pointsArray, inputUG, this->OutputPointsPrecision, tempOutputMP, plane, sphereTree,
-        planeOrigin, planeNormal, this->InterpolateAttributes, this);
+        planeOrigin, planeNormal, this->InterpolateAttributes, this->GenerateTriangles,
+        this->MergePoints, this);
     }
   }
   else
@@ -890,6 +930,9 @@ void vtkPlaneCutter::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "Generate Polygons: " << (this->GeneratePolygons ? "On\n" : "Off\n");
   os << indent << "Build Tree: " << (this->BuildTree ? "On\n" : "Off\n");
   os << indent << "Build Hierarchy: " << (this->BuildHierarchy ? "On\n" : "Off\n");
+  os << indent << "Filter Topology: " << (this->FilterTopology ? "On\n" : "Off\n");
+  os << indent << "Topology Filter Array Name: " << this->TopologyFilterArrayName << "\n";
+  os << indent << "Generate Triangles: " << (this->GenerateTriangles ? "On\n" : "Off\n");
   os << indent << "Merge Points: " << (this->MergePoints ? "On\n" : "Off\n");
   os << indent << "Output Points Precision: " << this->OutputPointsPrecision << "\n";
 }

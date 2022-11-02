@@ -178,6 +178,18 @@ public:
   vtkGetMacro(OutputPointsPrecision, int);
   ///@}
 
+  //@{
+  /**
+   * Should the remainder of clipped cells be triangulated (on/true) or merged into an intersected
+   * polygon (off/false)?
+   *
+   * Default is on/true.
+   */
+  vtkSetMacro(GenerateTriangles, bool);
+  vtkGetMacro(GenerateTriangles, bool);
+  vtkBooleanMacro(GenerateTriangles, bool);
+  //@}
+
 protected:
   vtkClipPolyData(vtkImplicitFunction* cf = nullptr);
   ~vtkClipPolyData() override;
@@ -191,6 +203,7 @@ protected:
   vtkTypeBool GenerateClipScalars;
   vtkTypeBool GenerateClippedOutput;
   int OutputPointsPrecision;
+  bool GenerateTriangles = true;
 
 private:
   vtkClipPolyData(const vtkClipPolyData&) = delete;

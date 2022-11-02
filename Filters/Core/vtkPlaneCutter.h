@@ -135,7 +135,7 @@ public:
   ///@{
   /**
    * Indicate whether to generate polygons instead of triangles when cutting
-   * structured and rectilinear grid.
+   * structured, rectilinear, and unstructured grid.
    * No effect with other kinds of inputs, enabled by default.
    */
   vtkSetMacro(GeneratePolygons, bool);
@@ -167,14 +167,53 @@ public:
   vtkBooleanMacro(BuildHierarchy, bool);
   ///@}
 
+  //@{
+  /**
+   * Should unstructured grids also filter out cells as specified by a 'vtkInsidedness' array?
+   *
+   * Default value is false.
+   */
+  vtkSetMacro(FilterTopology, bool);
+  vtkGetMacro(FilterTopology, bool);
+  vtkBooleanMacro(FilterTopology, bool);
+  //@}
+
+  //@{
+  /**
+   * Name for a 'vtkInsidedness' array used in topology filtering.
+   *
+   * Default value is "vtkInsidedness".
+   */
+  vtkSetStringMacro(TopologyFilterArrayName);
+  vtkGetStringMacro(TopologyFilterArrayName);
+  //@}
+
   ///@{
   /**
-   * Indicate whether to merge coincident points. Merging can take extra time
-   * and produces fewer output points, creating a "watertight" output
-   * surface. On the other hand, merging reduced output data size and may be
-   * just as fast. MergingPoints = off is meaningful only for vtkUnstructuredGrid,
-   * and vtkPolyData that all of its input cells are NOT convex polygons. For all the
-   * other input types, the output has unique points. Default is off.
+   * If this is enabled (by default), the output will be triangles
+   * otherwise, the output will be the intersection polygons.
+   *
+   * When setting to false, set MergePointsOn if also using
+   * the FilterTopologyOn option.
+   *
+   * Default value is true.
+   */
+  vtkSetMacro(GenerateTriangles, bool);
+  vtkGetMacro(GenerateTriangles, bool);
+  vtkBooleanMacro(GenerateTriangles, bool);
+  ///@}
+
+  ///@{
+  /**
+   * Indicate whether to merge coincident points. Merging can take extra time and produces fewer
+   * output points, creating a "watertight" output surface. On the other hand, merging reduced
+   * output data size and may be just as fast.
+   *
+   * MergingPoints = off is meaningful only for vtkUnstructuredGrid, and vtkPolyData that all of its
+   * input cells are NOT convex polygons. For all the other input types, the output has unique
+   * points.
+   *
+   * Default is off.
    */
   vtkSetMacro(MergePoints, bool);
   vtkGetMacro(MergePoints, bool);
@@ -201,8 +240,11 @@ protected:
   bool GeneratePolygons;
   bool BuildTree;
   bool BuildHierarchy;
+  bool GenerateTriangles = true;
   bool MergePoints;
   int OutputPointsPrecision;
+  bool FilterTopology = false;
+  char* TopologyFilterArrayName = nullptr;
 
   // Support delegation to vtkPolyDataPlaneCutter/vtk3DLinearGridPlaneCutter.
   bool DataChanged;

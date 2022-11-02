@@ -225,6 +225,27 @@ public:
   vtkGetMacro(OutputPointsPrecision, int);
   ///@}
 
+  //@{
+  /**
+   * Should unstructured grids also filter out cells as specified by a 'vtkInsidedness' array?
+   *
+   * Default value is false.
+   */
+  vtkSetMacro(FilterTopology, bool);
+  vtkGetMacro(FilterTopology, bool);
+  vtkBooleanMacro(FilterTopology, bool);
+  //@}
+
+  //@{
+  /**
+   * Name for a 'vtkInsidedness' array used in topology filtering.
+   *
+   * Default value is "vtkInsidedness".
+   */
+  vtkSetStringMacro(TopologyFilterArrayName);
+  vtkGetStringMacro(TopologyFilterArrayName);
+  //@}
+
 protected:
   vtkCutter(vtkImplicitFunction* cf = nullptr);
   ~vtkCutter() override;
@@ -252,6 +273,9 @@ protected:
   vtkContourValues* ContourValues;
   vtkTypeBool GenerateCutScalars;
   int OutputPointsPrecision;
+
+  bool FilterTopology = false;
+  char* TopologyFilterArrayName = nullptr;
 
 private:
   vtkCutter(const vtkCutter&) = delete;
