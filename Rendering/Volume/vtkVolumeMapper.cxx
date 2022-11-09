@@ -20,6 +20,7 @@
 #include "vtkImageData.h"
 #include "vtkInformation.h"
 #include "vtkRectilinearGrid.h"
+#include "vtkmDataSet.h"
 
 #include <cmath>
 
@@ -113,6 +114,10 @@ void vtkVolumeMapper::SetInputData(vtkDataSet* genericInput)
   {
     this->SetInputData(rectGrid);
   }
+  else if (vtkmDataSet* vtkmds = vtkmDataSet::SafeDownCast(genericInput))
+  {
+    this->SetInputData(vtkmds);
+  }
   else
   {
     vtkErrorMacro("The SetInput method of this mapper requires either"
@@ -126,6 +131,11 @@ void vtkVolumeMapper::SetInputData(vtkImageData* input)
 }
 
 void vtkVolumeMapper::SetInputData(vtkRectilinearGrid* input)
+{
+  this->SetInputDataInternal(0, input);
+}
+
+void vtkVolumeMapper::SetInputData(vtkmDataSet* input)
 {
   this->SetInputDataInternal(0, input);
 }

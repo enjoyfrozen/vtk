@@ -32,6 +32,7 @@
 #include "vtkVolumeMapper.h"
 #include "vtkVolumeNode.h"
 #include "vtkVolumeProperty.h"
+#include "vtkmDataSet.h"
 
 #include <algorithm>
 #include <vector>
@@ -121,17 +122,20 @@ void vtkOSPRayVolumeMapperNode::Render(bool prepass)
     mapper->GetInputAlgorithm()->Update();
 
     vtkImageData* data = vtkImageData::SafeDownCast(mapper->GetDataSetInput());
-    if (!data)
-    {
-      return;
-    }
+    vtkmDataSet* vtkmds = vtkmDataSet::SafeDownCast(mapper->GetDataSetInput());
+    //    if (!data || !vtkmds)
+    //    {
+    //      return;
+    //    }
 
     int fieldAssociation;
-    vtkDataArray* sa = vtkDataArray::SafeDownCast(this->GetArrayToProcess(data, fieldAssociation));
+    vtkDataArray* sa =
+      vtkDataArray::SafeDownCast(this->GetArrayToProcess(vtkmds, fieldAssociation));
     if (!sa)
     {
+      sa = vtkmds->GetPointData()->GetArray(0);
       // OK - PV cli/srv for instance vtkErrorMacro("VolumeMapper's Input has no scalar array!");
-      return;
+      // return;
     }
 
     if (!this->TransferFunction)
@@ -170,8 +174,7 @@ void vtkOSPRayVolumeMapperNode::Render(bool prepass)
       }
       int ScalarDataType = sa->GetDataType();
       void* ScalarDataPointer = sa->GetVoidPointer(0);
-      int dim[3];
-      data->GetDimensions(dim);
+      int dim[3] = { 5, 5, 5 };
       if (fieldAssociation == vtkDataObject::FIELD_ASSOCIATION_CELLS)
       {
         dim[0] = dim[0] - 1;
@@ -214,18 +217,20 @@ void vtkOSPRayVolumeMapperNode::Render(bool prepass)
       //
       double origin[3];
       double scale[3];
-      data->GetOrigin(origin);
+      // data->GetOrigin(origin);
       vol->GetScale(scale);
-      const double* bds = vol->GetBounds();
+      const double* bds = vtkmds->GetBounds();
       origin[0] = bds[0];
       origin[1] = bds[2];
       origin[2] = bds[4];
+      std::cout << "origin: " << origin[0] << " " << origin[1] << " " << origin[2] << std::endl;
 
-      double spacing[3];
-      data->GetSpacing(spacing);
+      // double spacing[3];
+      // data->GetSpacing(spacing);
       scale[0] = (bds[1] - bds[0]) / double(dim[0] - 1);
       scale[1] = (bds[3] - bds[2]) / double(dim[1] - 1);
       scale[2] = (bds[5] - bds[4]) / double(dim[2] - 1);
+      std::cout << "scale: " << scale[0] << " " << scale[1] << " " << scale[2] << std::endl;
 
       ospSetVec3f(this->OSPRayVolume, "gridOrigin", origin[0], origin[1], origin[2]);
       ospSetVec3f(this->OSPRayVolume, "gridSpacing", scale[0], scale[1], scale[2]);

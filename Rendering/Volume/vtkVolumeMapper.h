@@ -33,6 +33,7 @@ class vtkImageData;
 class vtkRectilinearGrid;
 class vtkRenderer;
 class vtkVolume;
+class vtkmDataSet;
 
 #define VTK_CROP_SUBVOLUME 0x0002000
 #define VTK_CROP_FENCE 0x2ebfeba
@@ -55,6 +56,7 @@ public:
   virtual void SetInputData(vtkImageData*);
   virtual void SetInputData(vtkDataSet*);
   virtual void SetInputData(vtkRectilinearGrid*);
+  virtual void SetInputData(vtkmDataSet*);
   virtual vtkDataSet* GetInput();
   virtual vtkDataSet* GetInput(const int port);
   ///@}

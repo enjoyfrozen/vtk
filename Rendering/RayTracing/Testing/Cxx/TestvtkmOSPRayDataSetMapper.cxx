@@ -18,10 +18,14 @@
 
 #include "vtkActor.h"
 #include "vtkCamera.h"
+#include "vtkColorTransferFunction.h"
+#include "vtkFloatArray.h"
 #include "vtkLookupTable.h"
 #include "vtkNew.h"
 #include "vtkOSPRayPass.h"
 #include "vtkOSPRayRendererNode.h"
+#include "vtkPiecewiseFunction.h"
+#include "vtkPointData.h"
 #include "vtkPointGaussianMapper.h"
 #include "vtkPointSource.h"
 #include "vtkProperty.h"
@@ -30,7 +34,10 @@
 #include "vtkRenderWindow.h"
 #include "vtkRenderWindowInteractor.h"
 #include "vtkRenderer.h"
+#include "vtkSmartVolumeMapper.h"
 #include "vtkTesting.h"
+#include "vtkVolume.h"
+#include "vtkVolumeProperty.h"
 #include "vtkmDataSet.h"
 #include "vtkmDataSetMapper.h"
 
@@ -56,8 +63,23 @@ int TestvtkmOSPRayDataSetMapper(int argc, char* argv[])
   // Create the vtkmDataSet
   vtkm::cont::testing::MakeTestDataSet Maker;
   auto dataset = Maker.Make3DUniformDataSet1();
+  // vtkNew<vtkFloatArray> pointField;
+  // auto srcScalars =
+  // dataset.GetField("pointVar").GetData().AsArrayHandle<vtkm::cont::ArrayHandle<float>>(); auto
+  // portal = srcScalars.ReadPortal(); vtkm::Id length = portal.GetNumberOfValues();
+
+  // pointField->SetName("pointVar");
+  // pointField->SetNumberOfComponents(1);
+  // pointField->SetNumberOfTuples(length);
+  // for (vtkm::Id i = 0; i < length; ++i)
+  // {
+  //   pointField->SetValue(i, portal.Get(i));
+  //   std::cout << i << " " << portal.Get(i) << std::endl;
+  // }
   vtkNew<vtkmDataSet> dsVtkm;
+  dsVtkm->SetUseVtkmArrays(false);
   dsVtkm->SetVtkmDataSet(dataset);
+  // imageData->GetPointData()->AddArray(pointField);
 
   // Create the rendering pipeline
   vtkNew<vtkActor> actor;
@@ -65,7 +87,32 @@ int TestvtkmOSPRayDataSetMapper(int argc, char* argv[])
   vtkNew<vtkmDataSetMapper> mapper;
   mapper->SetInputData(dsVtkm);
   actor->SetMapper(mapper);
-  renderer->AddActor(actor);
+  // renderer->AddActor(actor);
+
+  // Create the volume rendering pipeline
+  vtkNew<vtkVolume> volume;
+  vtkNew<vtkSmartVolumeMapper> volumeMapper;
+  vtkNew<vtkVolumeProperty> volumeProperty;
+  volumeMapper->SetInputData(dsVtkm);
+  volume->SetProperty(volumeProperty);
+  volumeMapper->SetBlendModeToComposite();
+  volume->SetMapper(volumeMapper);
+
+  vtkNew<vtkPiecewiseFunction> scalarOpacity;
+  scalarOpacity->AddPoint(0, 1.0);
+  scalarOpacity->AddPoint(90, 1.0);
+
+  volumeProperty->ShadeOff();
+  volumeProperty->SetInterpolationType(VTK_LINEAR_INTERPOLATION);
+
+  volumeProperty->SetScalarOpacity(scalarOpacity);
+
+  vtkSmartPointer<vtkColorTransferFunction> colorTransferFunction =
+    volumeProperty->GetRGBTransferFunction(0);
+  colorTransferFunction->RemoveAllPoints();
+  colorTransferFunction->AddRGBPoint(0.0, 1.0, 0.8, 0.1);
+  colorTransferFunction->AddRGBPoint(90, 1.0, 0.8, 0.1);
+  renderer->AddViewProp(volume);
 
   vtkNew<vtkOSPRayPass> ospray;
   renderer->SetPass(ospray);
@@ -75,7 +122,7 @@ int TestvtkmOSPRayDataSetMapper(int argc, char* argv[])
   style->SetCurrentRenderer(renderer);
 
   renderer->ResetCamera();
-  renderer->GetActiveCamera()->Zoom(2.0);
+  // renderer->GetActiveCamera()->Zoom(2.0);
   renderWindow->Render();
 
   int retVal = vtkRegressionTestImage(renderWindow);
