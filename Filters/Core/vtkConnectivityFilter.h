@@ -50,6 +50,10 @@
  * was processed and has no other significance with respect to the size of
  * or number of cells.
  *
+ * Seeds can be used to extract regions. Either point or cell seeds can be
+ * used. Seeds are used to extract all point-connected cells that contain
+ * at least one seed.
+ *
  * @sa
  * vtkPolyDataConnectivityFilter
  */
@@ -58,6 +62,8 @@
 #define vtkConnectivityFilter_h
 
 #include "vtkFiltersCoreModule.h" // For export macro
+#include "vtkSmartPointer.h" // For memory mgmt
+#include "vtkIdList.h" // For adding seeds
 #include "vtkPointSetAlgorithm.h"
 
 #define VTK_EXTRACT_POINT_SEEDED_REGIONS 1
@@ -71,7 +77,6 @@ VTK_ABI_NAMESPACE_BEGIN
 class vtkDataArray;
 class vtkDataSet;
 class vtkFloatArray;
-class vtkIdList;
 class vtkIdTypeArray;
 class vtkIntArray;
 class vtkPolyData;
@@ -79,8 +84,13 @@ class vtkPolyData;
 class VTKFILTERSCORE_EXPORT vtkConnectivityFilter : public vtkPointSetAlgorithm
 {
 public:
+  ///@{
+  /**
+   * Standard methods to obtain type information, and print instance values.
+   */
   vtkTypeMacro(vtkConnectivityFilter, vtkPointSetAlgorithm);
   void PrintSelf(ostream& os, vtkIndent indent) override;
+  ///@}
 
   /**
    * Construct with default extraction mode to extract largest regions.
@@ -149,6 +159,19 @@ public:
    */
   void DeleteSeed(vtkIdType id);
 
+  ///@{
+  /**
+   * Add (or retrieve) an array of seeds. This operation will replace any
+   * seeds added through the AddSeed() method; although subsequent uses of
+   * AddSeed(), DeleteSeed(), and InitializeSeedList() will modify the
+   * specified seed array.  Note that if a seed array is updated through
+   * AddSeeds(), the seed array may require a Modified() invocation to ensure
+   * that the filter updates itself properly.
+   */
+  vtkSetSmartPointerMacro(Seeds, vtkIdList);
+  vtkGetSmartPointerMacro(Seeds, vtkIdList);
+  ///@}
+
   /**
    * Initialize list of region ids to extract.
    */
@@ -216,6 +239,11 @@ public:
   vtkGetMacro(OutputPointsPrecision, int);
   ///@}
 
+  /**
+   * The modified time is also a function of the seed array.
+   */
+  vtkMTimeType GetMTime() override;
+
 protected:
   vtkConnectivityFilter();
   ~vtkConnectivityFilter() override;
@@ -233,9 +261,9 @@ protected:
   vtkTypeBool ColorRegions; // boolean turns on/off scalar gen for separate regions
   int ExtractionMode;       // how to extract regions
   int OutputPointsPrecision;
-  vtkIdList* Seeds;              // id's of points or cells used to seed regions
-  vtkIdList* SpecifiedRegionIds; // regions specified for extraction
-  vtkIdTypeArray* RegionSizes;   // size (in cells) of each region extracted
+  vtkSmartPointer<vtkIdList> Seeds;              // id's of points or cells used to seed regions
+  vtkSmartPointer<vtkIdList> SpecifiedRegionIds; // regions specified for extraction
+  vtkSmartPointer<vtkIdTypeArray> RegionSizes;   // size (in cells) of each region extracted
 
   double ClosestPoint[3];
 
@@ -250,20 +278,20 @@ protected:
 
 private:
   // used to support algorithm execution
-  vtkFloatArray* CellScalars;
-  vtkIdList* NeighborCellPointIds;
+  vtkSmartPointer<vtkFloatArray> CellScalars;
+  vtkSmartPointer<vtkIdList> NeighborCellPointIds;
   vtkIdType* Visited;
   vtkIdType* PointMap;
-  vtkIdTypeArray* NewScalars;
-  vtkIdTypeArray* NewCellScalars;
+  vtkSmartPointer<vtkIdTypeArray> NewScalars;
+  vtkSmartPointer<vtkIdTypeArray> NewCellScalars;
   vtkIdType RegionNumber;
   vtkIdType PointNumber;
   vtkIdType NumCellsInRegion;
-  vtkDataArray* InScalars;
-  vtkIdList* Wave;
-  vtkIdList* Wave2;
-  vtkIdList* PointIds;
-  vtkIdList* CellIds;
+  vtkSmartPointer<vtkDataArray> InScalars;
+  std::vector<vtkIdType> Wave;
+  std::vector<vtkIdType> Wave2;
+  vtkSmartPointer<vtkIdList> PointIds;
+  vtkSmartPointer<vtkIdList> CellIds;
 
 private:
   vtkConnectivityFilter(const vtkConnectivityFilter&) = delete;

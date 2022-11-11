@@ -62,6 +62,7 @@ vtk_add_test_python(
   TestRectilinearGridPlaneCutter.py
   TestRectilinearSynchronizedTemplates.py
   TestScalarTrees.py
+  TestSeedArrayConnectivity.py
   TestSphereTreeFilter.py
   TestSphereTreeFilter2.py
   TestStaticCleanPolyData.py
