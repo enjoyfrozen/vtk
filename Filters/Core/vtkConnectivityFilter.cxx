@@ -531,7 +531,7 @@ int vtkConnectivityFilter::RequestData(vtkInformation* vtkNotUsed(request),
 //
 void vtkConnectivityFilter::TraverseAndMark(vtkDataSet* input)
 {
-  vtkIdType i, j, k, cellId, numIds, ptId, numPts, numCells;
+  vtkIdType i, j, k, cellId, numIds, ptId, numPts, numCells=0;
 
   while ((numIds = static_cast<vtkIdType>(this->Wave.size())) > 0)
   {
