@@ -134,12 +134,11 @@ struct MetaDataFunctor
         alloc = ALLOC::DEVICE;
         pointer = buffers[i].ReadPointerDevice(Device{}, token);
       }
-      if (buffers[i].IsAllocatedOnHost())
+      else if (buffers[i].IsAllocatedOnHost())
       {
         alloc = ALLOC::HOST;
         pointer = buffers[i].ReadPointerHost(token);
       }
-      printf("Pointer is pointing to %p\n", pointer);
       pointers.push_back(pointer);
       allocs.push_back(alloc);
     }
@@ -491,7 +490,7 @@ ArrayHandleWrapperBase<typename FlattenVec<T>::ComponentType>* WrapArrayHandle(
   return new ArrayHandleWrapperReadOnly<T, S>{ ah };
 }
 
-// The wrapOnly flag is intended to support the case where we only weap the VTK-m array handle
+// The wrapOnly flag is intended to support the case where we only wrap the VTK-m array handle
 // without getting any of it's Portals. This is intended to prevent any host/device syncs
 // that are not intended and to support the use cases where the user might just want the
 // ArrayHandle to query for host/device pointers.
