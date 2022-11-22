@@ -19,6 +19,10 @@
 
 #include <memory>
 
+/**
+ *
+ */
+
 VTK_ABI_NAMESPACE_BEGIN
 class vtkDataArray;
 class vtkIdList;
