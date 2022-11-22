@@ -15,6 +15,41 @@
 #ifndef vtkIndexedImplicitBackend_h
 #define vtkIndexedImplicitBackend_h
 
+/**
+ * \class vtkIndexedImplicitBackend
+ *
+ * A backend for the `vtkImplicitArray` framework allowing one to use a subset of a given data
+ * array, by providing a `vtkIdList` or `vtkDataArray` of indexes as indirection, as another
+ * `vtkDataArray` without any excess memory consumption.
+ *
+ * This structure can be classified as a closure and can be called using syntax similar to a
+ * function call.
+ *
+ * An example of potential usage in a `vtkImplicitArray`:
+ * ```
+ * vtkNew<vtkIntArray> baseArray;
+ * baseArray->SetNumberOfComponents(1);
+ * baseArray->SetNumberOfTuples(100);
+ * auto range = vtk::DataArrayValueRange<1>(baseArray);
+ * std::iota(range.begin(), range.end(), 0);
+ *
+ * vtkNew<vtkIdList> handles;
+ * handles->SetNumberOfIds(100);
+ * for (vtkIdType idx = 0; idx < 100; idx++)
+ * {
+ *   handles->SetId(idx, 99-idx);
+ * }
+ *
+ * vtkNew<vtkImplicitArray<vtkIndexedImplicitBackend<int>>> indexedArr; // More compact with
+ *                                                                      // `vtkIndexedArray<int>`
+ *                                                                      // if available
+ * indexedArr->SetBackend(std::make_shared<vtkIndexedImplicitBackend<int>>(handles, baseArray));
+ * ```
+ *
+ * @sa
+ * vtkImplicitArray, vtkIndexedArray
+ */
+
 #include "vtkCommonImplicitArraysModule.h"
 
 #include <memory>
