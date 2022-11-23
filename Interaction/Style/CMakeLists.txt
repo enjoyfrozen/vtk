@@ -1,4 +1,5 @@
 set(classes
+  vtkInteractorStyle3DCursor
   vtkInteractorStyleDrawPolygon
   vtkInteractorStyleFlight
   vtkInteractorStyleImage
