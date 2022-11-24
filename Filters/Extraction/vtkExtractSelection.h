@@ -174,6 +174,13 @@ protected:
   bool PreserveTopology = false;
 
 private:
+  template <typename T, typename T2>
+  vtkSmartPointer<vtkUnsignedCharArray> ExtractElementGhosts(T hiddenMask, T2 hiddenValue,
+    vtkUnsignedCharArray* inputGhostArray, vtkSmartPointer<vtkSignedCharArray> insidednessArray);
+  template <typename T>
+  void ExtractElementHideGhostsInInsidedness(T hiddenMask, vtkUnsignedCharArray* inputGhostArray,
+    vtkSmartPointer<vtkSignedCharArray> insidednessArray);
+
   vtkExtractSelection(const vtkExtractSelection&) = delete;
   void operator=(const vtkExtractSelection&) = delete;
 };

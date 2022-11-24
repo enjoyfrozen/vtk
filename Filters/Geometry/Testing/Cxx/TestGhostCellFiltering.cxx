@@ -81,6 +81,11 @@ vtkIdType GetPointIndex(vtkIdType i, vtkIdType j, vtkIdType k)
 bool ValidateGhostArray(vtkUnstructuredGrid* grid, int expected, std::string errorMessage)
 {
   vtkUnsignedCharArray* ghosts = grid->GetCellGhostArray();
+  if (ghosts == nullptr)
+  {
+    vtkGenericWarningMacro(<< "Assertion failed: GhostArray doesn't exist");
+    return false;
+  }
   vtkIdType found = std::count_if(ghosts->Begin(), ghosts->End(),
     [](vtkUnsignedCharArray::ValueType value) { return value != 0; });
   bool passed = (found == expected);
@@ -156,6 +161,7 @@ int TestGhostCellFiltering(int argc, char* argv[])
     grid->GetCellData()->SetPedigreeIds(pedigreeIds);
   }
 
+  // Check cells can be filtered with ghost arrays
   vtkNew<vtkExtractSelection> filter1;
   {
     filter1->GenerateGhostArrayOn();
@@ -164,6 +170,7 @@ int TestGhostCellFiltering(int argc, char* argv[])
   }
   filter1->Update();
 
+  // Check filters can be stacked cumulatively
   vtkNew<vtkExtractSelection> filter2;
   {
     filter2->GenerateGhostArrayOn();
@@ -172,11 +179,45 @@ int TestGhostCellFiltering(int argc, char* argv[])
   }
   filter2->Update();
 
+  // Check that a previous ghost array can still be used to filter cells even if this filter doesn't
+  // filter out any more cells itself.
+  vtkNew<vtkExtractSelection> filter3;
+  {
+    // This still requires a selection node to know what type (Cell, Point, ...) of filtering the
+    // ghost array should be used against.
+    filter3->SetInputConnection(filter2->GetOutputPort());
+    vtkNew<vtkSelectionNode> selectionNode;
+    selectionNode->SetFieldType(vtkSelectionNode::CELL);
+    selectionNode->SetContentType(vtkSelectionNode::PEDIGREEIDS);
+    vtkNew<vtkSelection> selection;
+    selection->AddNode(selectionNode);
+    filter3->SetInputData(1, selection);
+  }
+  filter3->Update();
+
+  // Validate ghost array output
   auto filterOutput1 = static_cast<vtkUnstructuredGrid*>(filter1->GetOutput());
   auto filterOutput2 = static_cast<vtkUnstructuredGrid*>(filter2->GetOutput());
+  auto filterOutput3 = static_cast<vtkUnstructuredGrid*>(filter3->GetOutput());
   passedAsserts &= ValidateGhostArray(filterOutput1, 2, "filter1");
   passedAsserts &= ValidateGhostArray(filterOutput2, 11, "filter2");
+  if (filterOutput2->GetNumberOfCells() != 60)
+  {
+    vtkGenericWarningMacro(<< "Assertion failed: Expected " << 60 << " (Found "
+                           << filterOutput2->GetNumberOfCells() << ") cells: "
+                           << "filter2");
+    passedAsserts = false;
+  }
+  passedAsserts &= ValidateGhostArray(filterOutput3, 0, "filter3");
+  if (filterOutput3->GetNumberOfCells() != 49)
+  {
+    vtkGenericWarningMacro(<< "Assertion failed: Expected " << 49 << " (Found "
+                           << filterOutput3->GetNumberOfCells() << ") cells: "
+                           << "filter3");
+    passedAsserts = false;
+  }
 
+  // Setup visual test output
   vtkNew<vtkDataSetSurfaceFilter> surface;
   {
     surface->SetInputConnection(filter2->GetOutputPort());
@@ -194,7 +235,6 @@ int TestGhostCellFiltering(int argc, char* argv[])
   }
 
   vtkNew<vtkPlaneCutter> intersectGrid;
-  // vtkNew<vtkCompositeDataGeometryFilter> intersectGridMultiPieceDataJoiner;
   {
     intersectGrid->SetInputConnection(filter2->GetOutputPort());
     intersectGrid->SetPlane(cutPlane);
@@ -203,8 +243,6 @@ int TestGhostCellFiltering(int argc, char* argv[])
     intersectGrid->BuildHierarchyOn();
 
     intersectGrid->Update();
-    // intersectGridMultiPieceDataJoiner->SetInputConnection(intersectGrid->GetOutputPort());
-    // intersectGridMultiPieceDataJoiner->Update();
   }
 
   vtkNew<vtkActor> actor;
@@ -224,7 +262,6 @@ int TestGhostCellFiltering(int argc, char* argv[])
   vtkNew<vtkActor> intersectActor;
   {
     vtkNew<vtkPolyDataMapper> mapper;
-    // mapper->SetInputConnection(intersectGridMultiPieceDataJoiner->GetOutputPort());
     mapper->SetInputConnection(intersectGrid->GetOutputPort());
     mapper->ScalarVisibilityOn();
 
