@@ -80,8 +80,30 @@ public:
    * vtkThreshold::Between.
    */
   void SetThresholdFunction(int function);
+  void SetThresholdFunctionToBetween() { this->SetThresholdFunction(THRESHOLD_BETWEEN); }
+  void SetThresholdFunctionToLower() { this->SetThresholdFunction(THRESHOLD_LOWER); }
+  void SetThresholdFunctionToUpper() { this->SetThresholdFunction(THRESHOLD_UPPER); }
   int GetThresholdFunction();
   ///@}
+
+  /**
+   * Set threshold function to "lower" and set the lower threshold value.
+   * Criterion is cells whose scalars are less or equal to lower threshold.
+   */
+  void ThresholdByLower(double lower);
+
+  /**
+   * Set threshold function to "upper" and set the upper threshold value.
+   * Criterion is cells whose scalars are greater or equal to upper threshold.
+   */
+  void ThresholdByUpper(double upper);
+
+  /**
+   * Set threshold function to "between" and set the lower and upper threshold value.
+   * Criterion is cells whose scalars are between lower and upper thresholds
+   * (inclusive of the end values).
+   */
+  void ThresholdBetween(double lower, double upper);
 
   ///@{
   /**

@@ -69,6 +69,41 @@ int vtkThreshold::Between(double s) const
   return (s >= this->LowerThreshold ? (s <= this->UpperThreshold ? 1 : 0) : 0);
 }
 
+// Criterion is cells whose scalars are less or equal to lower threshold.
+void vtkThreshold::ThresholdByLower(double lower)
+{
+  if (this->LowerThreshold != lower || this->ThresholdFunction != &vtkThreshold::Lower)
+  {
+    this->LowerThreshold = lower;
+    this->ThresholdFunction = &vtkThreshold::Lower;
+    this->Modified();
+  }
+}
+
+// Criterion is cells whose scalars are greater or equal to upper threshold.
+void vtkThreshold::ThresholdByUpper(double upper)
+{
+  if (this->UpperThreshold != upper || this->ThresholdFunction != &vtkThreshold::Upper)
+  {
+    this->UpperThreshold = upper;
+    this->ThresholdFunction = &vtkThreshold::Upper;
+    this->Modified();
+  }
+}
+
+// Criterion is cells whose scalars are between lower and upper thresholds.
+void vtkThreshold::ThresholdBetween(double lower, double upper)
+{
+  if (this->LowerThreshold != lower || this->UpperThreshold != upper ||
+    this->ThresholdFunction != &vtkThreshold::Between)
+  {
+    this->LowerThreshold = lower;
+    this->UpperThreshold = upper;
+    this->ThresholdFunction = &vtkThreshold::Between;
+    this->Modified();
+  }
+}
+
 //------------------------------------------------------------------------------
 void vtkThreshold::SetThresholdFunction(int function)
 {
