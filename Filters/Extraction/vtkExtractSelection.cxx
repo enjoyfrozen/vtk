@@ -541,7 +541,10 @@ vtkSmartPointer<vtkDataObject> vtkExtractSelection::ExtractElements(vtkDataObjec
   vtkDataObject::AttributeTypes type, EvaluationResult evaluationResult, vtkDataObject* outputBlock)
 {
   // Check if no work needs to be done
-  vtkUnsignedCharArray* inputGhostArray = inputBlock->GetAttributes(type)->GetGhostArray();
+  vtkUnsignedCharArray* inputGhostArray =
+    (type == vtkDataObject::AttributeTypes::CELL || type == vtkDataObject::AttributeTypes::POINT)
+    ? inputBlock->GetGhostArray(type)
+    : nullptr;
   bool extractAll = evaluationResult == EvaluationResult::ALL;
   bool extractNone = evaluationResult == EvaluationResult::NONE;
   if (extractNone && inputGhostArray == nullptr)
