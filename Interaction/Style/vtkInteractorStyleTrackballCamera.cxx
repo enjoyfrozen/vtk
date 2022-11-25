@@ -326,9 +326,9 @@ void vtkInteractorStyleTrackballCamera::Rotate()
     case vtkTrackballRotationModel::WorldZ_ScreenX:
       this->RotateWorldZScreenX();
       break;
-    case vtkTrackballRotationModel::Default:
+    case vtkTrackballRotationModel::AzimuthElevation:
     default:
-      this->RotateDefault();
+      this->RotateAzimuthElevation();
       break;
   }
 
@@ -360,7 +360,7 @@ bool vtkInteractorStyleTrackballCamera::CanRepeatRotation()
     case vtkTrackballRotationModel::WorldZ_ScreenX:
       return (std::abs(this->ConstrainedRotationPhi) >= std::numeric_limits<float>::min()) ||
         (std::abs(this->ConstrainedRotationTheta) >= std::numeric_limits<float>::min());
-    case vtkTrackballRotationModel::Default:
+    case vtkTrackballRotationModel::AzimuthElevation:
     default:
       return false;
   }
@@ -383,10 +383,10 @@ void vtkInteractorStyleTrackballCamera::RepeatRotation()
       vtkInteractorStyleCameraUtils::RotateCameraAroundWorldZScreenX(this->CurrentRenderer,
         this->ConstrainedRotationPhi, this->ConstrainedRotationTheta, false, false);
       break;
-    case vtkTrackballRotationModel::Default:
+    case vtkTrackballRotationModel::AzimuthElevation:
     default:
-      vtkErrorMacro(
-        "RotateAgain not implemented for this RotationModel (vtkTrackballRotationModel::Default)");
+      vtkErrorMacro("RotateAgain not implemented for this RotationModel "
+                    "(vtkTrackballRotationModel::AzimuthElevation)");
       break;
   }
 
@@ -403,7 +403,7 @@ void vtkInteractorStyleTrackballCamera::RepeatRotation()
 }
 
 //------------------------------------------------------------------------------
-void vtkInteractorStyleTrackballCamera::RotateDefault()
+void vtkInteractorStyleTrackballCamera::RotateAzimuthElevation()
 {
   if (this->CurrentRenderer == nullptr)
   {
@@ -793,31 +793,15 @@ void vtkInteractorStyleTrackballCamera::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
   os << indent << "ClickTolerance: " << this->ClickTolerance << "\n";
-  switch (this->DollyModel)
-  {
-    case vtkDollyModel::Default:
-      os << indent << "DollyModel: Default" << endl;
-      break;
-    case vtkDollyModel::Targeted:
-      os << indent << "DollyModel: Targeted" << endl;
-      break;
-  }
+  os << indent
+     << "DollyModel: " << vtkInteractorStyleCameraUtils::DollyModelToString(this->DollyModel)
+     << endl;
   os << indent << "MotionFactor: " << this->MotionFactor << "\n";
   os << indent << "MotionFactorSingularityRotation: " << this->MotionFactorSingularityRotation
      << "\n";
   os << indent << "MouseWheelInvertDirection: " << this->MouseWheelInvertDirection << "\n";
   os << indent << "RotationEnabled: " << this->RotationEnabled << "\n";
-  switch (this->RotationModel)
-  {
-    case vtkTrackballRotationModel::Default:
-      os << indent << "RotationModel: Default" << endl;
-      break;
-    case vtkTrackballRotationModel::Singularity:
-      os << indent << "RotationModel: Singularity" << endl;
-      break;
-    case vtkTrackballRotationModel::WorldZ_ScreenX:
-      os << indent << "RotationModel: WorldZ_ScreenX" << endl;
-      break;
-  }
+  os << indent << "RotationModel: "
+     << vtkInteractorStyleCameraUtils::TrackballRotationModelToString(this->RotationModel) << endl;
 }
 VTK_ABI_NAMESPACE_END

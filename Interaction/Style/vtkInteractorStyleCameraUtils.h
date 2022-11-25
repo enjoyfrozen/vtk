@@ -31,13 +31,13 @@
 
 enum class vtkDollyModel : int
 {
-  Default = 0,
-  Targeted
+  Centered = 0, // Dolly relative to screen center
+  Targeted      // Dolly centered on target point (mouse position)
 };
 
 enum class vtkTrackballRotationModel : int
 {
-  Default = 0,
+  AzimuthElevation = 0,
   Singularity,
   WorldZ_ScreenX
 };
@@ -124,6 +124,16 @@ public:
    */
   static void DollyTargeted(
     vtkRenderWindowInteractor* interactor, vtkRenderer* renderer, double factor);
+
+  /*
+   * Generates a string representation for the vtkDollyModel enum
+   */
+  static const char* DollyModelToString(vtkDollyModel model);
+
+  /*
+   * Generates a string representation for the vtkTrackballRotationModel enum
+   */
+  static const char* TrackballRotationModelToString(vtkTrackballRotationModel model);
 };
 
 #endif

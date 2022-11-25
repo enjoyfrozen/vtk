@@ -103,7 +103,7 @@ public:
   ///@{
   /**
    * Which dolly model should be used to map user interaction into a camera dolly.
-   * Default: vtkDollyModel::Default
+   * Default: vtkDollyModel::Centered
    */
   vtkSetEnumMacro(DollyModel, vtkDollyModel);
   vtkGetEnumMacro(DollyModel, vtkDollyModel);
@@ -149,7 +149,7 @@ public:
   ///@{
   /**
    * Which rotation model should be used to map user interaction into a rotation.
-   * Default: vtkTrackballRotationModel::Default
+   * Default: vtkTrackballRotationModel::AzimuthElevation
    */
   vtkSetEnumMacro(RotationModel, vtkTrackballRotationModel);
   vtkGetEnumMacro(RotationModel, vtkTrackballRotationModel);
@@ -160,12 +160,12 @@ protected:
   ~vtkInteractorStyleTrackballCamera() override;
 
   double ClickTolerance = 1.5;
-  vtkDollyModel DollyModel = vtkDollyModel::Default;
+  vtkDollyModel DollyModel = vtkDollyModel::Centered;
   double MotionFactor = 10.0;
   double MotionFactorSingularityRotation = 10.0;
   bool MouseWheelInvertDirection = false;
   bool RotationEnabled = true;
-  vtkTrackballRotationModel RotationModel = vtkTrackballRotationModel::Default;
+  vtkTrackballRotationModel RotationModel = vtkTrackballRotationModel::AzimuthElevation;
 
   ///@{
   /**
@@ -195,7 +195,7 @@ private:
 
   virtual void OnMouseWheelAction(double direction);
 
-  virtual void RotateDefault();
+  virtual void RotateAzimuthElevation();
   /*
    * Rotates the camera around its focal point according to the current values for the rotation axis
    * and angle.

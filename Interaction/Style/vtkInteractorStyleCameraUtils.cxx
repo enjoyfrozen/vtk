@@ -217,3 +217,34 @@ void vtkInteractorStyleCameraUtils::DollyTargeted(
   camera->SetFocalPoint(focalPoint);
   camera->SetPosition(cameraPosition);
 }
+
+//------------------------------------------------------------------------------
+const char* vtkInteractorStyleCameraUtils::DollyModelToString(vtkDollyModel model)
+{
+  switch (model)
+  {
+    case vtkDollyModel::Centered:
+      return "Centered";
+    case vtkDollyModel::Targeted:
+      return "Targeted";
+    default:
+      return "Unknown vtkDollyModel";
+  }
+}
+
+//------------------------------------------------------------------------------
+const char* vtkInteractorStyleCameraUtils::TrackballRotationModelToString(
+  vtkTrackballRotationModel model)
+{
+  switch (model)
+  {
+    case vtkTrackballRotationModel::AzimuthElevation:
+      return "AzimuthElevation";
+    case vtkTrackballRotationModel::Singularity:
+      return "Singularity";
+    case vtkTrackballRotationModel::WorldZ_ScreenX:
+      return "WorldZ_ScreenX";
+    default:
+      return "Unknown vtkTrackballRotationModel";
+  }
+}

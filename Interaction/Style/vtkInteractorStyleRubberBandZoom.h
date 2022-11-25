@@ -69,7 +69,7 @@ public:
   ///@{
   /**
    * Which dolly model should be used to map user interaction into a camera dolly.
-   * Default: vtkDollyModel::Default
+   * Default: vtkDollyModel::Centered
    */
   vtkSetEnumMacro(DollyModel, vtkDollyModel);
   vtkGetEnumMacro(DollyModel, vtkDollyModel);
@@ -140,7 +140,7 @@ protected:
   int Moving;
   bool LockAspectToViewport;
   bool CenterAtStartPosition;
-  vtkDollyModel DollyModel = vtkDollyModel::Default;
+  vtkDollyModel DollyModel = vtkDollyModel::Centered;
   double MotionFactor = 10.0;
   bool MouseWheelInvertDirection = false;
   bool UseDollyForPerspectiveProjection;

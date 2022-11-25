@@ -414,15 +414,9 @@ void vtkInteractorStyleRubberBandZoom::PrintSelf(ostream& os, vtkIndent indent)
   this->Superclass::PrintSelf(os, indent);
   os << indent << "LockAspectToViewport: " << this->LockAspectToViewport << endl;
   os << indent << "CenterAtStartPosition: " << this->CenterAtStartPosition << endl;
-  switch (this->DollyModel)
-  {
-    case vtkDollyModel::Default:
-      os << indent << "DollyModel: Default" << endl;
-      break;
-    case vtkDollyModel::Targeted:
-      os << indent << "DollyModel: Targeted" << endl;
-      break;
-  }
+  os << indent
+     << "DollyModel: " << vtkInteractorStyleCameraUtils::DollyModelToString(this->DollyModel)
+     << endl;
   os << indent << "MotionFactor: " << this->MotionFactor << endl;
   os << indent << "MouseWheelInvertDirection: " << this->MouseWheelInvertDirection << endl;
   os << indent << "UseDollyForPerspectiveProjection: " << this->UseDollyForPerspectiveProjection
