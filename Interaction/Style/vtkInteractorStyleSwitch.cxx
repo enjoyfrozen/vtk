@@ -25,107 +25,93 @@
 #include "vtkRenderWindowInteractor.h"
 
 VTK_ABI_NAMESPACE_BEGIN
+namespace
+{
+enum StyleID
+{
+  JOYSTICK_CAMERA,
+  JOYSTICK_ACTOR,
+  TRACKBALL_CAMERA,
+  TRACKBALL_ACTOR,
+  MULTITOUCH_CAMERA
+};
+}
+
+//------------------------------------------------------------------------------
 vtkStandardNewMacro(vtkInteractorStyleSwitch);
 
 //------------------------------------------------------------------------------
 vtkInteractorStyleSwitch::vtkInteractorStyleSwitch()
 {
-  this->JoystickActor = vtkInteractorStyleJoystickActor::New();
-  this->JoystickCamera = vtkInteractorStyleJoystickCamera::New();
-  this->TrackballActor = vtkInteractorStyleTrackballActor::New();
-  this->TrackballCamera = vtkInteractorStyleTrackballCamera::New();
-  this->MultiTouchCamera = vtkInteractorStyleMultiTouchCamera::New();
-  this->JoystickOrTrackball = VTKIS_JOYSTICK;
-  this->CameraOrActor = VTKIS_CAMERA;
-  this->MultiTouch = false;
-  this->CurrentStyle = nullptr;
+  vtkNew<vtkInteractorStyleJoystickCamera> joystickCamera;
+  vtkNew<vtkInteractorStyleJoystickActor> joystickActor;
+  vtkNew<vtkInteractorStyleTrackballCamera> trackballCamera;
+  vtkNew<vtkInteractorStyleTrackballActor> trackballActor;
+  vtkNew<vtkInteractorStyleMultiTouchCamera> multiTouchCamera;
+
+  this->AddStyle(joystickCamera);
+  this->AddStyle(joystickActor);
+  this->AddStyle(trackballCamera);
+  this->AddStyle(trackballActor);
+  this->AddStyle(multiTouchCamera);
 }
 
 //------------------------------------------------------------------------------
-vtkInteractorStyleSwitch::~vtkInteractorStyleSwitch()
-{
-  this->JoystickActor->Delete();
-  this->JoystickActor = nullptr;
-
-  this->JoystickCamera->Delete();
-  this->JoystickCamera = nullptr;
-
-  this->TrackballActor->Delete();
-  this->TrackballActor = nullptr;
-
-  this->TrackballCamera->Delete();
-  this->TrackballCamera = nullptr;
-
-  this->MultiTouchCamera->Delete();
-  this->MultiTouchCamera = nullptr;
-}
+vtkInteractorStyleSwitch::~vtkInteractorStyleSwitch() = default;
 
 //------------------------------------------------------------------------------
-void vtkInteractorStyleSwitch::SetAutoAdjustCameraClippingRange(vtkTypeBool value)
+void vtkInteractorStyleSwitch::SetInteractor(vtkRenderWindowInteractor* iren)
 {
-  if (value == this->AutoAdjustCameraClippingRange)
+  if (iren == this->Interactor)
   {
     return;
   }
 
-  if (value < 0 || value > 1)
+  // If we already have an interactor, stop observing it
+  if (this->Interactor)
   {
-    vtkErrorMacro("Value must be between 0 and 1 for"
-      << " SetAutoAdjustCameraClippingRange");
-    return;
+    this->Interactor->RemoveObserver(this->EventCallbackCommand);
   }
 
-  this->AutoAdjustCameraClippingRange = value;
-  this->JoystickActor->SetAutoAdjustCameraClippingRange(value);
-  this->JoystickCamera->SetAutoAdjustCameraClippingRange(value);
-  this->TrackballActor->SetAutoAdjustCameraClippingRange(value);
-  this->TrackballCamera->SetAutoAdjustCameraClippingRange(value);
-  this->MultiTouchCamera->SetAutoAdjustCameraClippingRange(value);
+  // Set the interactor to the internal styles.
+  this->Superclass::SetInteractor(iren);
 
-  this->Modified();
+  // Add observer (i.e. ProcessEvents) for char and delete events.
+  if (iren)
+  {
+    iren->AddObserver(vtkCommand::CharEvent, this->EventCallbackCommand, this->Priority);
+    iren->AddObserver(vtkCommand::DeleteEvent, this->EventCallbackCommand, this->Priority);
+  }
 }
 
 //------------------------------------------------------------------------------
 void vtkInteractorStyleSwitch::SetCurrentStyleToJoystickActor()
 {
-  this->JoystickOrTrackball = VTKIS_JOYSTICK;
-  this->CameraOrActor = VTKIS_ACTOR;
-  this->MultiTouch = false;
-  this->SetCurrentStyle();
+  this->SetCurrentStyle(JOYSTICK_ACTOR);
 }
 
 //------------------------------------------------------------------------------
 void vtkInteractorStyleSwitch::SetCurrentStyleToJoystickCamera()
 {
-  this->JoystickOrTrackball = VTKIS_JOYSTICK;
-  this->CameraOrActor = VTKIS_CAMERA;
-  this->MultiTouch = false;
-  this->SetCurrentStyle();
+  this->SetCurrentStyle(JOYSTICK_CAMERA);
 }
 
 //------------------------------------------------------------------------------
 void vtkInteractorStyleSwitch::SetCurrentStyleToTrackballActor()
 {
-  this->JoystickOrTrackball = VTKIS_TRACKBALL;
-  this->CameraOrActor = VTKIS_ACTOR;
-  this->MultiTouch = false;
-  this->SetCurrentStyle();
+  this->SetCurrentStyle(TRACKBALL_ACTOR);
 }
 
 //------------------------------------------------------------------------------
 void vtkInteractorStyleSwitch::SetCurrentStyleToTrackballCamera()
 {
-  this->JoystickOrTrackball = VTKIS_TRACKBALL;
-  this->CameraOrActor = VTKIS_CAMERA;
-  this->MultiTouch = false;
-  this->SetCurrentStyle();
+  this->SetCurrentStyle(TRACKBALL_CAMERA);
 }
 
 //------------------------------------------------------------------------------
 void vtkInteractorStyleSwitch::SetCurrentStyleToMultiTouchCamera()
 {
-  this->MultiTouch = true;
-  this->SetCurrentStyle();
+  this->SetCurrentStyle(MULTITOUCH_CAMERA);
 }
 
 //------------------------------------------------------------------------------
@@ -136,165 +122,38 @@ void vtkInteractorStyleSwitch::OnChar()
     case 'j':
     case 'J':
       this->JoystickOrTrackball = VTKIS_JOYSTICK;
-      this->MultiTouch = false;
       this->EventCallbackCommand->SetAbortFlag(1);
+      this->SetCurrentStyle((this->JoystickOrTrackball << 1) | this->CameraOrActor);
       break;
     case 't':
     case 'T':
       this->JoystickOrTrackball = VTKIS_TRACKBALL;
-      this->MultiTouch = false;
       this->EventCallbackCommand->SetAbortFlag(1);
+      this->SetCurrentStyle((this->JoystickOrTrackball << 1) | this->CameraOrActor);
       break;
     case 'c':
     case 'C':
       this->CameraOrActor = VTKIS_CAMERA;
-      this->MultiTouch = false;
       this->EventCallbackCommand->SetAbortFlag(1);
+      this->SetCurrentStyle((this->JoystickOrTrackball << 1) | this->CameraOrActor);
       break;
     case 'a':
     case 'A':
       this->CameraOrActor = VTKIS_ACTOR;
-      this->MultiTouch = false;
       this->EventCallbackCommand->SetAbortFlag(1);
+      this->SetCurrentStyle((this->JoystickOrTrackball << 1) | this->CameraOrActor);
       break;
     case 'm':
     case 'M':
-      this->MultiTouch = true;
       this->EventCallbackCommand->SetAbortFlag(1);
+      this->SetCurrentStyleToMultiTouchCamera();
       break;
   }
-  // Set the CurrentStyle pointer to the picked style
-  this->SetCurrentStyle();
-}
-
-//------------------------------------------------------------------------------
-// this will do nothing if the CurrentStyle matches
-// JoystickOrTrackball and CameraOrActor
-// It should! If the this->Interactor was changed (using SetInteractor()),
-// and the currentstyle should not change.
-void vtkInteractorStyleSwitch::SetCurrentStyle()
-{
-  // if the currentstyle does not match JoystickOrTrackball
-  // and CameraOrActor ivars, then call SetInteractor(0)
-  // on the Currentstyle to remove all of the observers.
-  // Then set the Currentstyle and call SetInteractor with
-  // this->Interactor so the callbacks are set for the
-  // currentstyle.
-  if (this->MultiTouch)
-  {
-    if (this->CurrentStyle != this->MultiTouchCamera)
-    {
-      if (this->CurrentStyle)
-      {
-        this->CurrentStyle->SetInteractor(nullptr);
-      }
-      this->CurrentStyle = this->MultiTouchCamera;
-    }
-  }
-  else if (this->JoystickOrTrackball == VTKIS_JOYSTICK && this->CameraOrActor == VTKIS_CAMERA)
-  {
-    if (this->CurrentStyle != this->JoystickCamera)
-    {
-      if (this->CurrentStyle)
-      {
-        this->CurrentStyle->SetInteractor(nullptr);
-      }
-      this->CurrentStyle = this->JoystickCamera;
-    }
-  }
-  else if (this->JoystickOrTrackball == VTKIS_JOYSTICK && this->CameraOrActor == VTKIS_ACTOR)
-  {
-    if (this->CurrentStyle != this->JoystickActor)
-    {
-      if (this->CurrentStyle)
-      {
-        this->CurrentStyle->SetInteractor(nullptr);
-      }
-      this->CurrentStyle = this->JoystickActor;
-    }
-  }
-  else if (this->JoystickOrTrackball == VTKIS_TRACKBALL && this->CameraOrActor == VTKIS_CAMERA)
-  {
-    if (this->CurrentStyle != this->TrackballCamera)
-    {
-      if (this->CurrentStyle)
-      {
-        this->CurrentStyle->SetInteractor(nullptr);
-      }
-      this->CurrentStyle = this->TrackballCamera;
-    }
-  }
-  else if (this->JoystickOrTrackball == VTKIS_TRACKBALL && this->CameraOrActor == VTKIS_ACTOR)
-  {
-    if (this->CurrentStyle != this->TrackballActor)
-    {
-      if (this->CurrentStyle)
-      {
-        this->CurrentStyle->SetInteractor(nullptr);
-      }
-      this->CurrentStyle = this->TrackballActor;
-    }
-  }
-  if (this->CurrentStyle)
-  {
-    this->CurrentStyle->SetInteractor(this->Interactor);
-    this->CurrentStyle->SetTDxStyle(this->TDxStyle);
-  }
-}
-
-//------------------------------------------------------------------------------
-void vtkInteractorStyleSwitch::SetInteractor(vtkRenderWindowInteractor* iren)
-{
-  if (iren == this->Interactor)
-  {
-    return;
-  }
-  // if we already have an Interactor then stop observing it
-  if (this->Interactor)
-  {
-    this->Interactor->RemoveObserver(this->EventCallbackCommand);
-  }
-  this->Interactor = iren;
-  // add observers for each of the events handled in ProcessEvents
-  if (iren)
-  {
-    iren->AddObserver(vtkCommand::CharEvent, this->EventCallbackCommand, this->Priority);
-
-    iren->AddObserver(vtkCommand::DeleteEvent, this->EventCallbackCommand, this->Priority);
-  }
-  this->SetCurrentStyle();
 }
 
 //------------------------------------------------------------------------------
 void vtkInteractorStyleSwitch::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
-  os << indent << "CurrentStyle " << this->CurrentStyle << "\n";
-  if (this->CurrentStyle)
-  {
-    vtkIndent next_indent = indent.GetNextIndent();
-    os << next_indent << this->CurrentStyle->GetClassName() << "\n";
-    this->CurrentStyle->PrintSelf(os, indent.GetNextIndent());
-  }
-}
-
-//------------------------------------------------------------------------------
-void vtkInteractorStyleSwitch::SetDefaultRenderer(vtkRenderer* renderer)
-{
-  this->vtkInteractorStyle::SetDefaultRenderer(renderer);
-  this->JoystickActor->SetDefaultRenderer(renderer);
-  this->JoystickCamera->SetDefaultRenderer(renderer);
-  this->TrackballActor->SetDefaultRenderer(renderer);
-  this->TrackballCamera->SetDefaultRenderer(renderer);
-}
-
-//------------------------------------------------------------------------------
-void vtkInteractorStyleSwitch::SetCurrentRenderer(vtkRenderer* renderer)
-{
-  this->vtkInteractorStyle::SetCurrentRenderer(renderer);
-  this->JoystickActor->SetCurrentRenderer(renderer);
-  this->JoystickCamera->SetCurrentRenderer(renderer);
-  this->TrackballActor->SetCurrentRenderer(renderer);
-  this->TrackballCamera->SetCurrentRenderer(renderer);
 }
 VTK_ABI_NAMESPACE_END

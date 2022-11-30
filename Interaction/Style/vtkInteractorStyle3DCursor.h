@@ -2,7 +2,7 @@
 #define vtkInteractorStyle3DCursor_h
 
 #include "vtkInteractionStyleModule.h" // for export macro
-#include "vtkInteractorStyleTrackballCamera.h" // for inheritance
+#include "vtkInteractorStyleSwitchBase.h" // for inheritance
 #include "vtkNew.h" // for vtkNew
 
 VTK_ABI_NAMESPACE_BEGIN
@@ -14,11 +14,11 @@ class vtkCallbackCommand;
 class vtkHardwarePicker;
 class vtkWorldPointPicker;
 
-class VTKINTERACTIONSTYLE_EXPORT vtkInteractorStyle3DCursor : public vtkInteractorStyleTrackballCamera
+class VTKINTERACTIONSTYLE_EXPORT vtkInteractorStyle3DCursor : public vtkInteractorStyleSwitchBase
 {
 public:
   static vtkInteractorStyle3DCursor* New();
-  vtkTypeMacro(vtkInteractorStyle3DCursor, vtkInteractorStyleTrackballCamera);
+  vtkTypeMacro(vtkInteractorStyle3DCursor, vtkInteractorStyleSwitchBase);
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**

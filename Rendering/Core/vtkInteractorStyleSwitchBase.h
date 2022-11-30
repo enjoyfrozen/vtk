@@ -30,6 +30,9 @@
 
 #include "vtkInteractorStyle.h"
 #include "vtkRenderingCoreModule.h" // For export macro
+#include "vtkSmartPointer.h"
+
+#include <vector> // For std::vector
 
 VTK_ABI_NAMESPACE_BEGIN
 class VTKRENDERINGCORE_EXPORT vtkInteractorStyleSwitchBase : public vtkInteractorStyle
@@ -39,7 +42,24 @@ public:
   vtkTypeMacro(vtkInteractorStyleSwitchBase, vtkInteractorStyle);
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
+  void SetInteractor(vtkRenderWindowInteractor* interactor) override;
   vtkRenderWindowInteractor* GetInteractor() override;
+
+  std::size_t AddStyle(vtkInteractorStyle* style);
+  std::size_t GetNumberOfStyles();
+
+  void SetCurrentStyle(std::size_t id);
+  vtkInteractorStyle* GetCurrentStyle();
+
+  ///@{
+  /**
+   * Overriden to call the function to all the stored
+   * interactor styles.
+   */
+  void SetDefaultRenderer(vtkRenderer*) override;
+  void SetCurrentRenderer(vtkRenderer*) override;
+  void SetAutoAdjustCameraClippingRange(vtkTypeBool) override;
+  ///@}
 
 protected:
   vtkInteractorStyleSwitchBase();
@@ -48,6 +68,9 @@ protected:
 private:
   vtkInteractorStyleSwitchBase(const vtkInteractorStyleSwitchBase&) = delete;
   void operator=(const vtkInteractorStyleSwitchBase&) = delete;
+
+  std::vector<vtkSmartPointer<vtkInteractorStyle>> Styles;
+  std::size_t CurrentStyleId = 0;
 };
 
 VTK_ABI_NAMESPACE_END

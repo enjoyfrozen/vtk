@@ -17,9 +17,10 @@
  * @brief   class to swap between interactory styles
  *
  * The class vtkInteractorStyleSwitch allows handles interactively switching
- * between four interactor styles -- joystick actor, joystick camera,
- * trackball actor, and trackball camera.  Type 'j' or 't' to select
- * joystick or trackball, and type 'c' or 'a' to select camera or actor.
+ * between five interactor styles: joystick actor, joystick camera,
+ * trackball actor, trackball camera and multitouch camera.
+ * Type 'j' or 't' to select joystick or trackball,
+ * and type 'c' or 'a' to select camera or actor.
  * The default interactor style is joystick camera.
  * @sa
  * vtkInteractorStyleJoystickActor vtkInteractorStyleJoystickCamera
@@ -53,21 +54,17 @@ public:
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
-   * The sub styles need the interactor too.
+   * Overriden to add the key observer allwing to change
+   * the internal interactor style by pressing the
+   * appropriate keys.
    */
   void SetInteractor(vtkRenderWindowInteractor* iren) override;
 
-  /**
-   * We must override this method in order to pass the setting down to
-   * the underlying styles
-   */
-  void SetAutoAdjustCameraClippingRange(vtkTypeBool value) override;
-
   ///@{
   /**
-   * Set/Get current style
+   * Convenience methods to Set/Get the current internal
+   * interactor style.
    */
-  vtkGetObjectMacro(CurrentStyle, vtkInteractorStyle);
   void SetCurrentStyleToJoystickActor();
   void SetCurrentStyleToJoystickCamera();
   void SetCurrentStyleToTrackballActor();
@@ -76,40 +73,27 @@ public:
   ///@}
 
   /**
-   * Only care about the char event, which is used to switch between
-   * different styles.
+   * In this interactor style, we only care about the char events,
+   * which are used to switch between different interactor styles.
    */
   void OnChar() override;
-
-  ///@{
-  /**
-   * Overridden from vtkInteractorObserver because the interactor styles
-   * used by this class must also be updated.
-   */
-  void SetDefaultRenderer(vtkRenderer*) override;
-  void SetCurrentRenderer(vtkRenderer*) override;
-  ///@}
 
 protected:
   vtkInteractorStyleSwitch();
   ~vtkInteractorStyleSwitch() override;
 
-  void SetCurrentStyle();
-
-  vtkInteractorStyleJoystickActor* JoystickActor;
-  vtkInteractorStyleJoystickCamera* JoystickCamera;
-  vtkInteractorStyleTrackballActor* TrackballActor;
-  vtkInteractorStyleTrackballCamera* TrackballCamera;
-  vtkInteractorStyleMultiTouchCamera* MultiTouchCamera;
-  vtkInteractorStyle* CurrentStyle;
-
-  int JoystickOrTrackball;
-  int CameraOrActor;
-  bool MultiTouch;
+  /**
+   * Internal method used to choose the internal style depending
+   * on the keys combination.
+   */
+  void SetCurrentStyleInternal();
 
 private:
   vtkInteractorStyleSwitch(const vtkInteractorStyleSwitch&) = delete;
   void operator=(const vtkInteractorStyleSwitch&) = delete;
+
+  int JoystickOrTrackball = VTKIS_JOYSTICK;
+  int CameraOrActor = VTKIS_CAMERA;
 };
 
 VTK_ABI_NAMESPACE_END

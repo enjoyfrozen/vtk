@@ -65,10 +65,10 @@ void vtkInteractorStyle3DCursor::SetInteractor(vtkRenderWindowInteractor* intera
 
   this->Superclass::SetInteractor(interactor);
 
-  if (interactor)
+  if (this->Interactor) // The interactor has been updated and is not null
   {
     // Add a new passive observer displaying the 3D cursor under the mouse
-    interactor->AddObserver(vtkCommand::MouseMoveEvent, this->Place3DCursor, this->Priority);
+    this->Interactor->AddObserver(vtkCommand::MouseMoveEvent, this->Place3DCursor, this->Priority);
 
     // Retrieve current renderer
     this->FindPokedRenderer(0, 0);
@@ -87,7 +87,7 @@ void vtkInteractorStyle3DCursor::SetInteractor(vtkRenderWindowInteractor* intera
     this->GetCurrentRenderer()->AddActor(this->Cursor);
 
     // Hide cursor (DOES NOT SEEMS TO WORK HERE - vtkXOpenGLRenderWindow)
-    interactor->GetRenderWindow()->HideCursor();
+    this->Interactor->GetRenderWindow()->HideCursor();
   }
 }
 
