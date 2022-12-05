@@ -115,6 +115,7 @@ endif ()
 if (VTK_ENABLE_OSPRAY AND TARGET VTK::AcceleratorsVTKmDataModel)
   vtk_add_test_cxx(vtkRenderingRayTracingCxxTests tests_vtkm
     TestvtkmOSPRayDataSetMapper.cxx
+    TestvtkmOSPRayVolumeMapper.cxx
     )
 endif ()
 

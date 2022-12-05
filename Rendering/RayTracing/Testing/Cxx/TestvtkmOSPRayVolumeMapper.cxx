@@ -1,7 +1,7 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    TestvtkmOSPRayDataSetMapper.cxx
+  Module:    TestvtkmOSPRayVolumeMapper.cxx
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.
@@ -16,19 +16,20 @@
 // Description
 // This is a test for the point gaussian mapper in the ospray backend
 
-#include "vtkActor.h"
-#include "vtkCamera.h"
+#include "vtkColorTransferFunction.h"
 #include "vtkNew.h"
 #include "vtkOSPRayPass.h"
 #include "vtkOSPRayRendererNode.h"
-#include "vtkProperty.h"
+#include "vtkPiecewiseFunction.h"
 #include "vtkRegressionTestImage.h"
 #include "vtkRenderWindow.h"
 #include "vtkRenderWindowInteractor.h"
 #include "vtkRenderer.h"
+#include "vtkSmartVolumeMapper.h"
 #include "vtkTesting.h"
+#include "vtkVolume.h"
+#include "vtkVolumeProperty.h"
 #include "vtkmDataSet.h"
-#include "vtkmDataSetMapper.h"
 
 // vtk-m includes
 #include <vtkm/cont/Initialize.h>
@@ -36,7 +37,7 @@
 
 #include "vtkOSPRayTestInteractor.h"
 
-int TestvtkmOSPRayDataSetMapper(int argc, char* argv[])
+int TestvtkmOSPRayVolumeMapper(int argc, char* argv[])
 {
   cout << "CTEST_FULL_OUTPUT (Avoid ctest truncation of output)" << endl;
 
@@ -61,13 +62,31 @@ int TestvtkmOSPRayDataSetMapper(int argc, char* argv[])
   dsVtkm->SetUseVtkmArrays(false);
   dsVtkm->SetVtkmDataSet(dataset);
 
-  // Create the rendering pipeline
-  vtkNew<vtkActor> actor;
-  actor->GetProperty()->SetPointSize(5);
-  vtkNew<vtkmDataSetMapper> mapper;
-  mapper->SetInputData(dsVtkm);
-  actor->SetMapper(mapper);
-  renderer->AddActor(actor);
+  // Create the volume rendering pipeline
+  vtkNew<vtkVolume> volume;
+  vtkNew<vtkSmartVolumeMapper> volumeMapper;
+  vtkNew<vtkVolumeProperty> volumeProperty;
+  volumeMapper->SetInputData(dsVtkm);
+  volume->SetProperty(volumeProperty);
+  volumeMapper->SetBlendModeToComposite();
+  volume->SetMapper(volumeMapper);
+
+  vtkNew<vtkPiecewiseFunction> scalarOpacity;
+  scalarOpacity->AddPoint(0, 0.1);
+  scalarOpacity->AddPoint(90, 1.0);
+
+  volumeProperty->ShadeOff();
+  volumeProperty->SetInterpolationType(VTK_LINEAR_INTERPOLATION);
+
+  volumeProperty->SetScalarOpacity(scalarOpacity);
+
+  vtkSmartPointer<vtkColorTransferFunction> colorTransferFunction =
+    volumeProperty->GetRGBTransferFunction(0);
+  colorTransferFunction->RemoveAllPoints();
+  colorTransferFunction->AddRGBPoint(0.0, 1.0, 0.0, 0.1);
+  colorTransferFunction->AddRGBPoint(45, 0.0, 0.8, 0.1);
+  colorTransferFunction->AddRGBPoint(90, 1.0, 0.8, 0.1);
+  renderer->AddViewProp(volume);
 
   vtkNew<vtkOSPRayPass> ospray;
   renderer->SetPass(ospray);
