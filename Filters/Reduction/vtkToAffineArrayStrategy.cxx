@@ -112,17 +112,17 @@ void vtkToAffineArrayStrategy::PrintSelf(std::ostream& os, vtkIndent indent)
 }
 
 //-------------------------------------------------------------------------
-Option<double> vtkToAffineArrayStrategy::EstimateReduction(vtkDataArray* arr)
+vtkToImplicitStrategy::Optional vtkToAffineArrayStrategy::EstimateReduction(vtkDataArray* arr)
 {
   if (!arr)
   {
     vtkWarningMacro("Cannot transform nullptr to affine array.");
-    return Option<double>();
+    return vtkToImplicitStrategy::Optional();
   }
   int nVals = arr->GetNumberOfTuples() * arr->GetNumberOfComponents();
   if (!nVals)
   {
-    return Option<double>();
+    return vtkToImplicitStrategy::Optional();
   }
   ::AffineChecker checker;
   bool isAffine = false;
@@ -130,7 +130,8 @@ Option<double> vtkToAffineArrayStrategy::EstimateReduction(vtkDataArray* arr)
   {
     checker(arr, this->Tolerance, isAffine);
   }
-  return isAffine ? Option<double>(2.0 / nVals) : Option<double>();
+  return isAffine ? vtkToImplicitStrategy::Optional(2.0 / nVals)
+                  : vtkToImplicitStrategy::Optional();
 }
 
 //-------------------------------------------------------------------------

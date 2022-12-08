@@ -52,13 +52,13 @@ public:
   /**
    * Parent API
    */
-  Option<double> EstimateReduction(vtkDataArray*) override;
+  vtkToImplicitStrategy::Optional EstimateReduction(vtkDataArray*) override;
   vtkSmartPointer<vtkDataArray> Reduce(vtkDataArray*) override;
   /**
    * Destroys intermediate result of Ramer-Douglas-Peucker algorithm on last array passed to
    * `EstimateReduction`
    */
-  void Squeeze() override;
+  void ClearCache() override;
   ///@}
 
 protected:

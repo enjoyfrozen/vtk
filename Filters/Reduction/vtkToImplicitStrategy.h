@@ -19,25 +19,6 @@
 #include "vtkObject.h"
 
 VTK_ABI_NAMESPACE_BEGIN
-
-template <typename T>
-struct Option
-{
-  bool IsSome = false;
-  T Value;
-
-  Option()
-    : IsSome(false)
-  {
-  }
-
-  Option(T val)
-    : IsSome(true)
-    , Value(val)
-  {
-  }
-};
-
 /**
  * @class vtkToImplicitStrategy
  *
@@ -62,8 +43,12 @@ public:
 
   /**
    * Estimate the reduction (if possible) that can be obtained on the array using this strategy
+   * - if not possible: the return Optional.IsSome member will be false
+   * - if possible: the return Option.IsSome member will be true with Optional.Value begin the
+   * reduction factor
    */
-  virtual Option<double> EstimateReduction(vtkDataArray*) = 0;
+  struct Optional;
+  virtual Optional EstimateReduction(vtkDataArray*) = 0;
 
   /**
    * Return a reduced version of the input array
@@ -74,7 +59,7 @@ public:
    * Destroy any cached variables present in the object (useful for storing calculation results
    * in-between the estimation and reduction phases)
    */
-  virtual void Squeeze(){};
+  virtual void ClearCache(){};
 
 protected:
   vtkToImplicitStrategy() = default;
@@ -85,6 +70,24 @@ protected:
 private:
   vtkToImplicitStrategy(const vtkToImplicitStrategy&) = delete;
   void operator=(const vtkToImplicitStrategy&) = delete;
+};
+
+//-------------------------------------------------------------------------
+struct vtkToImplicitStrategy::Optional
+{
+  bool IsSome = false;
+  double Value;
+
+  Optional()
+    : IsSome(false)
+  {
+  }
+
+  Optional(double val)
+    : IsSome(true)
+    , Value(val)
+  {
+  }
 };
 VTK_ABI_NAMESPACE_END
 

@@ -38,7 +38,7 @@ public:
   /**
    * Parent API
    */
-  Option<double> EstimateReduction(vtkDataArray*) override;
+  vtkToImplicitStrategy::Optional EstimateReduction(vtkDataArray*) override;
   vtkSmartPointer<vtkDataArray> Reduce(vtkDataArray*) override;
   ///@}
 

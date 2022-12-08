@@ -63,9 +63,8 @@ struct RDPAlgorithm
     {
       auto slope = (*end - *begin) / std::distance(begin, end);
       // for computing the distance between the affine representation and the actual value
-      auto distance = [&](const Iterator& it) {
-        return std::abs(static_cast<double>(slope * std::distance(begin, it) + *begin - *it));
-      };
+      auto distance = [&](const Iterator& it)
+      { return std::abs(static_cast<double>(slope * std::distance(begin, it) + *begin - *it)); };
       // compute max distance loop
       for (Iterator it = begin + 1; it != end; ++it)
       {
@@ -101,7 +100,8 @@ struct GenerateFunctionalRepresentation
   {
     using VType = vtk::GetAPIType<ArrayT>;
 
-    auto makeConstant = [](VType val, vtkIdType diff) {
+    auto makeConstant = [](VType val, vtkIdType diff)
+    {
       vtkNew<vtkConstantArray<VType>> constant;
       constant->SetBackend(std::make_shared<vtkConstantImplicitBackend<VType>>(val));
       constant->SetNumberOfComponents(1);
@@ -188,20 +188,31 @@ public:
   /*
    * Release cached vertices
    */
-  void Squeeze() { this->Vertexes.clear(); }
+  void ClearCache()
+  {
+    if (!this->Vertexes.empty())
+    {
+      this->Vertexes.clear();
+    }
+    if (this->CachedArray)
+    {
+      this->CachedArray = nullptr;
+    }
+  }
 
   /*
    * Perform RDP algorithm and estimate by how much we can reduce the current array
    */
-  Option<double> EstimateReduction(vtkDataArray* arr, double tol)
+  vtkToImplicitStrategy::Optional EstimateReduction(vtkDataArray* arr, double tol)
   {
-    this->Squeeze();
+    this->ClearCache();
+    this->CachedArray = arr;
     ::RDPAlgorithm algo;
     if (!Dispatch::Execute(arr, algo, tol, this->Vertexes))
     {
       algo(arr, tol, this->Vertexes);
     }
-    return Option<double>(
+    return vtkToImplicitStrategy::Optional(
       static_cast<double>(this->EstimateCompressedSize(arr, tol)) / arr->GetNumberOfValues());
   }
 
@@ -210,7 +221,7 @@ public:
    */
   vtkSmartPointer<vtkDataArray> Reduce(vtkDataArray* arr, double tol)
   {
-    if (this->Vertexes.empty())
+    if (this->Vertexes.empty() || (arr != this->CachedArray))
     {
       this->EstimateReduction(arr, tol);
       if (this->Vertexes.empty())
@@ -225,6 +236,7 @@ public:
     {
       generator(arr, tol, this->Vertexes, res);
     }
+    this->ClearCache();
     return res;
   }
 
@@ -277,6 +289,7 @@ private:
    * keys are unique
    */
   std::set<vtkIdType> Vertexes;
+  vtkDataArray* CachedArray = nullptr;
 };
 
 //-------------------------------------------------------------------------
@@ -300,17 +313,18 @@ void vtkToImplicitRamerDouglasPeuckerStrategy::PrintSelf(std::ostream& os, vtkIn
 }
 
 //-------------------------------------------------------------------------
-Option<double> vtkToImplicitRamerDouglasPeuckerStrategy::EstimateReduction(vtkDataArray* arr)
+vtkToImplicitStrategy::Optional vtkToImplicitRamerDouglasPeuckerStrategy::EstimateReduction(
+  vtkDataArray* arr)
 {
   if (!arr)
   {
     vtkWarningMacro("Cannot transform nullptr to affine/constant by parts array.");
-    return Option<double>();
+    return vtkToImplicitStrategy::Optional();
   }
   int nVals = arr->GetNumberOfValues();
   if (!nVals)
   {
-    return Option<double>();
+    return vtkToImplicitStrategy::Optional();
   }
   return this->Internals->EstimateReduction(arr, this->Tolerance);
 }
@@ -332,8 +346,8 @@ vtkSmartPointer<vtkDataArray> vtkToImplicitRamerDouglasPeuckerStrategy::Reduce(v
 }
 
 //-------------------------------------------------------------------------
-void vtkToImplicitRamerDouglasPeuckerStrategy::Squeeze()
+void vtkToImplicitRamerDouglasPeuckerStrategy::ClearCache()
 {
-  this->Internals->Squeeze();
+  this->Internals->ClearCache();
 }
 VTK_ABI_NAMESPACE_END

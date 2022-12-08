@@ -104,17 +104,17 @@ void vtkToConstantArrayStrategy::PrintSelf(std::ostream& os, vtkIndent indent)
 }
 
 //-------------------------------------------------------------------------
-Option<double> vtkToConstantArrayStrategy::EstimateReduction(vtkDataArray* arr)
+vtkToImplicitStrategy::Optional vtkToConstantArrayStrategy::EstimateReduction(vtkDataArray* arr)
 {
   if (!arr)
   {
     vtkWarningMacro("Cannot transform nullptr to constant array.");
-    return Option<double>();
+    return vtkToImplicitStrategy::Optional();
   }
   int nVals = arr->GetNumberOfTuples() * arr->GetNumberOfComponents();
   if (!nVals)
   {
-    return Option<double>();
+    return vtkToImplicitStrategy::Optional();
   }
   bool isConstant = false;
   ::CheckConstantWorklet worker;
@@ -122,7 +122,8 @@ Option<double> vtkToConstantArrayStrategy::EstimateReduction(vtkDataArray* arr)
   {
     worker(arr, this->Tolerance, isConstant);
   }
-  return isConstant ? Option<double>(1.0 / nVals) : Option<double>();
+  return isConstant ? vtkToImplicitStrategy::Optional(1.0 / nVals)
+                    : vtkToImplicitStrategy::Optional();
 }
 
 //-------------------------------------------------------------------------

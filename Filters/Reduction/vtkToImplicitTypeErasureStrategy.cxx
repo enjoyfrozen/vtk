@@ -79,12 +79,12 @@ private:
 struct ReductionChecker
 {
   template <typename ArrayT>
-  void operator()(ArrayT* arr, Option<double>& reduction)
+  void operator()(ArrayT* arr, vtkToImplicitStrategy::Optional& reduction)
   {
     using VType = vtk::GetAPIType<ArrayT>;
     if (!std::is_integral<VType>::value)
     {
-      reduction = Option<double>();
+      reduction = vtkToImplicitStrategy::Optional();
       return;
     }
     auto range = vtk::DataArrayValueRange(arr);
@@ -92,9 +92,9 @@ struct ReductionChecker
     auto minElem = std::min_element(range.begin(), range.end());
     VType span = *maxElem - *minElem;
     std::size_t nBytes = std::ceil(std::log2(span) / 8);
-    reduction =
-      (nBytes < sizeof(VType) ? Option<double>(static_cast<double>(nBytes) / sizeof(VType))
-                              : Option<double>());
+    reduction = (nBytes < sizeof(VType)
+        ? vtkToImplicitStrategy::Optional(static_cast<double>(nBytes) / sizeof(VType))
+        : vtkToImplicitStrategy::Optional());
   }
 };
 
@@ -164,19 +164,20 @@ void vtkToImplicitTypeErasureStrategy::PrintSelf(std::ostream& os, vtkIndent ind
 }
 
 //-------------------------------------------------------------------------
-Option<double> vtkToImplicitTypeErasureStrategy::EstimateReduction(vtkDataArray* arr)
+vtkToImplicitStrategy::Optional vtkToImplicitTypeErasureStrategy::EstimateReduction(
+  vtkDataArray* arr)
 {
   if (!arr)
   {
     vtkWarningMacro("Cannot transform nullptr to type erased array.");
-    return Option<double>();
+    return vtkToImplicitStrategy::Optional();
   }
   int nVals = arr->GetNumberOfValues();
   if (!nVals)
   {
-    return Option<double>();
+    return vtkToImplicitStrategy::Optional();
   }
-  Option<double> reduction;
+  vtkToImplicitStrategy::Optional reduction;
   ::ReductionChecker checker;
   ::Dispatch::Execute(arr, checker, reduction);
   return reduction;
