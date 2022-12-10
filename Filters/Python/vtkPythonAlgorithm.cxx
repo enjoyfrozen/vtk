@@ -145,10 +145,8 @@ void vtkPythonAlgorithm::SetPythonObject(PyObject* obj)
   char mname[] = "Initialize";
   VTK_GET_METHOD(method, this->Object, mname, /* no return */)
 
-  vtkSmartPyObject args(PyTuple_New(1));
-
   PyObject* vtkself = VTKToPython(this);
-  PyTuple_SET_ITEM(args.GetPointer(), 0, vtkself);
+  vtkSmartPyObject args(PyTuple_Pack(1, vtkself));
 
   vtkSmartPyObject result(PyObject_Call(method, args, nullptr));
 
@@ -172,25 +170,17 @@ vtkTypeBool vtkPythonAlgorithm::ProcessRequest(
   char mname[] = "ProcessRequest";
   VTK_GET_METHOD(method, this->Object, mname, 0)
 
-  vtkSmartPyObject args(PyTuple_New(4));
-
   PyObject* vtkself = VTKToPython(this);
-  PyTuple_SET_ITEM(args.GetPointer(), 0, vtkself);
-
   PyObject* pyrequest = VTKToPython(request);
-  PyTuple_SET_ITEM(args.GetPointer(), 1, pyrequest);
-
   int nports = this->GetNumberOfInputPorts();
   PyObject* pyininfos = PyTuple_New(nports);
   for (int i = 0; i < nports; ++i)
   {
     PyObject* pyininfo = VTKToPython(inInfo[i]);
-    PyTuple_SET_ITEM(pyininfos, i, pyininfo);
+    PyTuple_SetItem(pyininfos, i, pyininfo);
   }
-  PyTuple_SET_ITEM(args.GetPointer(), 2, pyininfos);
-
   PyObject* pyoutinfo = VTKToPython(outInfo);
-  PyTuple_SET_ITEM(args.GetPointer(), 3, pyoutinfo);
+  vtkSmartPyObject args(PyTuple_Pack(4, vtkself, pyrequest, pyininfos, pyoutinfo));
 
   vtkSmartPyObject result(PyObject_Call(method, args, nullptr));
 
@@ -203,16 +193,10 @@ int vtkPythonAlgorithm::FillInputPortInformation(int port, vtkInformation* info)
   char mname[] = "FillInputPortInformation";
   VTK_GET_METHOD(method, this->Object, mname, 0)
 
-  vtkSmartPyObject args(PyTuple_New(3));
-
   PyObject* vtkself = VTKToPython(this);
-  PyTuple_SET_ITEM(args.GetPointer(), 0, vtkself);
-
   PyObject* pyport = PyInt_FromLong(port);
-  PyTuple_SET_ITEM(args.GetPointer(), 1, pyport);
-
   PyObject* pyinfo = VTKToPython(info);
-  PyTuple_SET_ITEM(args.GetPointer(), 2, pyinfo);
+  vtkSmartPyObject args(PyTuple_Pack(3, vtkself, pyport, pyinfo));
 
   vtkSmartPyObject result(PyObject_Call(method, args, nullptr));
 
@@ -225,16 +209,10 @@ int vtkPythonAlgorithm::FillOutputPortInformation(int port, vtkInformation* info
   char mname[] = "FillOutputPortInformation";
   VTK_GET_METHOD(method, this->Object, mname, 0)
 
-  vtkSmartPyObject args(PyTuple_New(3));
-
   PyObject* vtkself = VTKToPython(this);
-  PyTuple_SET_ITEM(args.GetPointer(), 0, vtkself);
-
   PyObject* pyport = PyInt_FromLong(port);
-  PyTuple_SET_ITEM(args.GetPointer(), 1, pyport);
-
   PyObject* pyinfo = VTKToPython(info);
-  PyTuple_SET_ITEM(args.GetPointer(), 2, pyinfo);
+  vtkSmartPyObject args(PyTuple_Pack(3, vtkself, pyport, pyinfo));
 
   vtkSmartPyObject result(PyObject_Call(method, args, nullptr));
 
