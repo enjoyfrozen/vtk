@@ -505,7 +505,9 @@ void vtkmOSPRayDataSetMapperNode::ORenderDataSet(void* renderer, vtkOSPRayActorN
 
   OSPData position;
 #if VTKM_OSPRAY_ZERO_COPY
-  // TODO: pass the vertices to ospray without copying
+  auto points = ds->GetPoints();
+  void* vertices = points->GetVoidPointer(0);
+  position = new ospNewSharedData1D(vertices, OSP_VEC3F, numPoints);
 #else
   std::vector<osp::vec3f> vertices(numPoints);
   double x[3];
