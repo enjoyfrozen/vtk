@@ -1,4 +1,5 @@
 set(classes
+  QQuickVtkItem
   QQuickVTKInteractiveWidget
   QQuickVTKInteractorAdapter
   QQuickVTKRenderItem

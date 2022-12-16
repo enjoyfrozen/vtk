@@ -17,6 +17,7 @@
 
 // VTK includes
 #include "QVTKInteractorAdapter.h"
+#include "vtkDeprecation.h"
 #include "vtkGUISupportQtQuickModule.h" // for export macro
 
 // Qt includes
@@ -43,6 +44,7 @@ class vtkRenderer;
  * @class QQuickVTKInteractorAdapter
  * @brief Intermediate class that handles relaying Qt events to VTK
  */
+VTK_DEPRECATED_IN_9_3_0("Use QQuickVtkItem instead")
 class VTKGUISUPPORTQTQUICK_EXPORT QQuickVTKInteractorAdapter : public QVTKInteractorAdapter
 {
   Q_OBJECT

@@ -27,15 +27,16 @@
 #include <QObject>
 
 // vtk includes
-#include "vtkWeakPointer.h" // For vtkWeakPointer
-
+#include "vtkDeprecation.h"
 #include "vtkGUISupportQtQuickModule.h" // for export macro
+#include "vtkWeakPointer.h"             // For vtkWeakPointer
 
 // Forward declarations
 VTK_ABI_NAMESPACE_BEGIN
 class vtkAbstractWidget;
 class vtkRenderer;
 
+VTK_DEPRECATED_IN_9_3_0("Use QQuickVtkItem instead")
 class VTKGUISUPPORTQTQUICK_EXPORT QQuickVTKInteractiveWidget : public QObject
 {
   Q_OBJECT

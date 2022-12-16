@@ -1,7 +1,10 @@
 <!DOCTYPE RCC><RCC version="1.0">
-  <qresource prefix="/">
-    <file>TestQQuickVTKRenderItem.qml</file>
-    <file>TestQQuickVTKRenderItemWidget.qml</file>
-    <file>TestQQuickVTKRenderWindow.qml</file>
-  </qresource>
+    <qresource prefix="/">
+      <file>TestQQuickVtkItem_1.qml</file>
+      <file>TestQQuickVtkItem_2.qml</file>
+      <file>TestQQuickVtkItem_3.qml</file>
+      <file>TestQQuickVTKRenderItem.qml</file>
+      <file>TestQQuickVTKRenderItemWidget.qml</file>
+      <file>TestQQuickVTKRenderWindow.qml</file>
+    </qresource>
 </RCC>
