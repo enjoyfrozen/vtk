@@ -7,30 +7,25 @@
 #include <QtQuick/QSGTextureProvider>
 
 #include <QtGui/QOpenGLContext>
-#include <QtGui/QScreen>
 
 #include <QtCore/QEvent>
-#include <QtCore/QMap>
 #include <QtCore/QQueue>
-#include <QtCore/QRunnable>
-#include <QtCore/QSharedPointer>
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 #include <QtCore/QThread>
+#endif
 
-#include <vtkGenericOpenGLRenderWindow.h>
-#include <vtkInteractorStyleTrackballCamera.h>
-#include <vtkOpenGLFramebufferObject.h>
-#include <vtkOpenGLState.h>
-#include <vtkRenderWindowInteractor.h>
-#include <vtkRenderer.h>
-#include <vtkRendererCollection.h>
-#include <vtkTextureObject.h>
+#include "vtkGenericOpenGLRenderWindow.h"
+#include "vtkInteractorStyleTrackballCamera.h"
+#include "vtkOpenGLFramebufferObject.h"
+#include "vtkOpenGLState.h"
+#include "vtkRenderWindowInteractor.h"
+#include "vtkRenderer.h"
+#include "vtkRendererCollection.h"
+#include "vtkTextureObject.h"
 
-#include <QVTKInteractor.h>
-#include <QVTKInteractorAdapter.h>
-#include <QVTKRenderWindowAdapter.h>
-
-#include <limits>
-#include <queue>
+#include "QVTKInteractor.h"
+#include "QVTKInteractorAdapter.h"
+#include "QVTKRenderWindowAdapter.h"
 
 // no touch events for now
 #define NO_TOUCH
@@ -89,7 +84,7 @@ bool checkGraphicsApi(QQuickWindow* window)
   {
     qCritical(R"***(Error: QtQuick scenegraph is using an unsupported graphics API: %d.
 Set the QSG_INFO environment variable to get more information.
-Use QQuickVtkItem::setupGraphicsApi() to set the right backend.)***",
+Use QQuickVtkItem::setupGraphicsApi() to set the OpenGL backend.)***",
       api);
     return false;
   }
@@ -123,29 +118,6 @@ void QQuickVtkItem::dispatch_async(std::function<void(vtkRenderWindow*, vtkUserD
 
   update();
 }
-
-#if 0
-void QQuickVtkItem::qtRect2vtkViewport(QRectF const& qtRect, double vtkViewport[4], QRectF* glRect)
-{
-    // Calculate our scaled size
-    auto sz = size() * window()->devicePixelRatio();
-
-    // Use a temporary if not supplied by caller
-    QRectF tmp; if (!glRect) 
-        glRect = &tmp;
-
-    // Convert origin to be bottom-left
-    *glRect = QRectF{{qtRect.x(), sz.height() - qtRect.bottom() - 1.0}, qtRect.size()};
-
-    // Convert to a vtkViewport
-    if (vtkViewport) {
-        vtkViewport[0] = glRect->topLeft    ().x() / (sz.width () - 1.0);
-        vtkViewport[1] = glRect->topLeft    ().y() / (sz.height() - 1.0);
-        vtkViewport[2] = glRect->bottomRight().x() / (sz.width () - 1.0);
-        vtkViewport[3] = glRect->bottomRight().y() / (sz.height() - 1.0);
-    };
-}
-#endif
 
 class QSGVtkObjectNode
   : public QSGTextureProvider
@@ -184,16 +156,12 @@ public:
     vtkNew<vtkInteractorStyleTrackballCamera> style;
     iren->SetInteractorStyle(style);
     vtkUserData = item->initializeVTK(vtkWindow);
-    if (auto ia = vtkWindow->GetInteractor(); ia && !QVTKInteractor::SafeDownCast(ia))
+    if (auto* ia = vtkWindow->GetInteractor(); ia && !QVTKInteractor::SafeDownCast(ia))
     {
       qWarning().nospace() << "QQuickVTKItem.cpp:" << __LINE__
                            << ", YIKES!! Only QVTKInteractor is supported";
       return;
     }
-    //        vtkWindow->GetRenderers()->InitTraversal(); while (auto renderer =
-    //        vtkWindow->GetRenderers()->GetNextItem())
-    //            if (renderer->GetBackgroundAlpha() < 1./255)
-    //                renderer->SetBackgroundAlpha(1.0);
     vtkWindow->SetReadyForRendering(false);
     vtkWindow->GetInteractor()->Initialize();
     vtkWindow->SetMapped(true);
@@ -216,10 +184,12 @@ public Q_SLOTS:
     {
       m_renderPending = false;
 
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
       const bool needsWrap =
         QSGRendererInterface::isApiRhiBased(m_window->rendererInterface()->graphicsApi());
       if (needsWrap)
         m_window->beginExternalCommands();
+#endif
 
       // Render VTK into it's framebuffer
       auto ostate = vtkWindow->GetState();
@@ -233,8 +203,10 @@ public Q_SLOTS:
       vtkWindow->SetReadyForRendering(false);
       ostate->Pop();
 
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
       if (needsWrap)
         m_window->endExternalCommands();
+#endif
 
       markDirty(QSGNode::DirtyMaterial);
       Q_EMIT textureChanged();
@@ -260,7 +232,7 @@ protected:
   QQuickWindow* m_window = nullptr;
   QQuickItem* m_item = nullptr;
   qreal m_devicePixelRatio = 0;
-  QSizeF size;
+  QSizeF m_size;
   friend class QQuickVtkItem;
 };
 
@@ -280,9 +252,7 @@ QSGNode* QQuickVtkItem::updatePaintNode(QSGNode* node, UpdatePaintNodeData*)
     if (!checkGraphicsApi(window()))
       return nullptr;
     if (!d->node)
-    {
       d->node = new QSGVtkObjectNode;
-    }
     n = d->node;
   }
 
@@ -299,13 +269,13 @@ QSGNode* QQuickVtkItem::updatePaintNode(QSGNode* node, UpdatePaintNodeData*)
   // Watch for size changes
   n->m_devicePixelRatio = window()->devicePixelRatio();
   auto sz = size() * n->m_devicePixelRatio;
-  bool dirtySize = sz != n->size;
+  bool dirtySize = sz != n->m_size;
   if (dirtySize)
   {
     n->vtkWindow->SetSize(sz.width(), sz.height());
     n->vtkWindow->GetInteractor()->SetSize(n->vtkWindow->GetSize());
     delete n->texture();
-    n->size = sz;
+    n->m_size = sz;
   }
 
   // Dispatch commands to VTK
@@ -351,8 +321,6 @@ QSGNode* QQuickVtkItem::updatePaintNode(QSGNode* node, UpdatePaintNodeData*)
   n->setFiltering(smooth() ? QSGTexture::Linear : QSGTexture::Nearest);
   n->setRect(0, 0, width(), height());
 
-  // ??? n->scheduleRender();
-
   if (d->scheduleRender)
   {
     n->scheduleRender();
@@ -382,8 +350,8 @@ QSGTextureProvider* QQuickVtkItem::textureProvider() const
   if (QQuickItem::isTextureProvider())
     return QQuickItem::textureProvider();
 
-  QQuickWindow* w = window();
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+  QQuickWindow* w = window();
   if (!w || !w->openglContext() || QThread::currentThread() != w->openglContext()->thread())
   {
     qWarning("QQuickFramebufferObject::textureProvider: can only be queried on the rendering "
@@ -424,6 +392,7 @@ bool QQuickVtkItem::event(QEvent* ev)
 
   if (!ev)
     return false;
+
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
   switch (ev->type())
   {
@@ -579,6 +548,7 @@ bool QQuickVtkItem::event(QEvent* ev)
     delete e;
   });
 #endif
+
   ev->accept();
 
   return true;
