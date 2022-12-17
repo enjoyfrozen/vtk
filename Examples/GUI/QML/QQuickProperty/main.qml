@@ -6,7 +6,6 @@ import QtQuick.Layouts 1.15
 import com.vtk.example 1.0
 
 ApplicationWindow {
-    id: win
     visible: true
     width: 640
     height: 640
@@ -44,15 +43,14 @@ ApplicationWindow {
         itemDelegate: DynamicSplitView.ItemDelegate
         {
             Rectangle {
-                id: r
                 border { width: 5; color: "steelblue" }
                 radius: 5
                 color: "magenta"
                 anchors.fill: parent
 
                 MyVtkItem {
-                    id: vtk
                     anchors.fill: parent
+                    anchors.margins: 5
                     source: sources.currentText
                 }
             }
