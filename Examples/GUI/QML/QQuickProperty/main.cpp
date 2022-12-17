@@ -57,7 +57,7 @@ public:
   {
     vtkNew<Data> vtk;
 
-    vtk->actor->SetMapper(vtk->mapper.Get());
+    vtk->actor->SetMapper(vtk->mapper);
 
     vtk->renderer->AddActor(vtk->actor);
     vtk->renderer->ResetCamera();
