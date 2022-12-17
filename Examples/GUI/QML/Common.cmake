@@ -15,12 +15,12 @@ endif()
 message (STATUS "VTK_DIR: ${VTK_DIR}")
 message (STATUS "VTK_VERSION: ${VTK_VERSION}")
 
-# Use the same QT version as used by VTK
-set(QT_DIR "")
-if ("${Qt5_DIR}" STREQUAL "")
-    set(QT_DIR ${Qt6_DIR})
-else()
+if (NOT "${Qt5_DIR}" STREQUAL "")
+    message (STATUS "Qt5_DIR:" ${Qt5_DIR})
     set(QT_DIR ${Qt5_DIR})
+elseif (NOT "${Qt6_DIR}" STREQUAL "")
+    message (STATUS "Qt6_DIR:" ${Qt6_DIR})
+    set(QT_DIR ${Qt6_DIR})
 endif()
 message (STATUS "QT_DIR:" ${QT_DIR})
 
