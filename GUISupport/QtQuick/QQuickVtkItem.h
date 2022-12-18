@@ -89,7 +89,6 @@ public:
   {
     Q_UNUSED(renderWindow);
     Q_UNUSED(userData);
-    return;
   }
 
   ///@{
