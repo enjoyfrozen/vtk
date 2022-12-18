@@ -115,11 +115,4 @@ ApplicationWindow {
             }
         }
     }
-
-    Text {
-        text: "Left-Click to horizontal-split;  Right-Click to vertical-split;  Middle-Click to delete-split"
-        font.pointSize: 12
-        anchors.bottom: parent.bottom
-        anchors.horizontalCenter: parent.horizontalCenter
-    }
 }
