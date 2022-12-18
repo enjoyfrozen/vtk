@@ -11,11 +11,15 @@
 #include <QVTKRenderWindowAdapter.h>
 
 #include <vtkActor.h>
+#include <vtkCamera.h>
 #include <vtkCapsuleSource.h>
 #include <vtkConeSource.h>
+#include <vtkInteractorStyleTrackballCamera.h>
 #include <vtkPolyDataMapper.h>
 #include <vtkRenderWindow.h>
+#include <vtkRenderWindowInteractor.h>
 #include <vtkRenderer.h>
+#include <vtkRendererCollection.h>
 #include <vtkSphereSource.h>
 
 struct Presenter : QObject
@@ -53,8 +57,57 @@ public:
     vtkNew<vtkPolyDataMapper> mapper;
   };
 
+  struct ClickStyle : vtkInteractorStyleTrackballCamera
+  {
+    static ClickStyle* New();
+    vtkTypeMacro(ClickStyle, vtkInteractorStyleTrackballCamera);
+
+    int manhattenDistance(int x, int y) { return abs(x - _x) + abs(y - _y); }
+
+    void OnLeftButtonDown() override
+    {
+      _x = this->Interactor->GetEventPosition()[0];
+      _y = this->Interactor->GetEventPosition()[1];
+    }
+
+    void OnMouseMove() override
+    {
+      if (_x < 0 || _y < 0)
+        return Superclass::OnMouseMove();
+
+      int x = this->Interactor->GetEventPosition()[0];
+      int y = this->Interactor->GetEventPosition()[1];
+      if (manhattenDistance(x, y) > 5)
+      {
+        this->Interactor->SetEventPosition(_x, _y);
+        Superclass::OnLeftButtonDown();
+        this->Interactor->SetEventPosition(x, y);
+        Superclass::OnMouseMove();
+        _x = _y = -1;
+      }
+    }
+
+    void OnLeftButtonUp() override
+    {
+      if (_x < 0 || _y < 0)
+        return Superclass::OnLeftButtonUp();
+
+      if (pThis)
+        emit pThis->clicked();
+
+      _x = _y = -1;
+    }
+
+    int _x = -1, _y = -1;
+    QPointer<MyVtkItem> pThis;
+  };
+
   vtkUserData initializeVTK(vtkRenderWindow* renderWindow) override
   {
+    vtkNew<ClickStyle> style;
+    style->pThis = this;
+    renderWindow->GetInteractor()->SetInteractorStyle(style);
+
     vtkNew<Data> vtk;
 
     vtk->actor->SetMapper(vtk->mapper);
@@ -91,11 +144,25 @@ public:
     // Notice that there are 2 (two) 'destructed' messages but you only clicked the middle-button
     // once!! QML deleted both "small" QSGNodes and then created a new QSGNode to fill the empty
     // column.
-
     setSource(_source, true);
+
+    // restore the Camera state
+    vtk->renderer->GetActiveCamera()->DeepCopy(_camera);
 
     return vtk;
   }
+
+  void destroyingVTK(vtkRenderWindow* renderWindow, vtkUserData userData) override
+  {
+    auto* vtk = Data::SafeDownCast(userData);
+    if (!vtk)
+      return;
+
+    // save the camera state
+    _camera->DeepCopy(vtk->renderer->GetActiveCamera());
+  }
+
+  vtkNew<vtkCamera> _camera;
 
   void resetCamera()
   {
@@ -143,8 +210,11 @@ public:
   }
   Q_SIGNAL void sourceChanged(QString);
   QString _source;
+
+  Q_SIGNAL void clicked();
 };
 vtkStandardNewMacro(MyVtkItem::Data);
+vtkStandardNewMacro(MyVtkItem::ClickStyle);
 
 int main(int argc, char* argv[])
 {

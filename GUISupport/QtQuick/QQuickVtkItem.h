@@ -70,6 +70,30 @@ public:
 
   ///@{
   /**
+   * At any moment the QML SceneGraph can decide to delete the underlying QSGNode.
+   * If this happens this method will be called before the VTK objects used by
+   * this node are destroyed
+   *
+   * \note All VTK objects are owned by and run on the QML render thread!!  This means you CAN NOT
+   * touch any VTK state from any place other than in this method, the initializeVTK method, or in
+   * your dispatch_async() functions!!
+   *
+   * \note At the time of this method execution, the GUI thread is blocked. Hence, it is safe to
+   *       perform state synchronization between the GUI elements and the VTK classes here.
+   *
+   * \param renderWindow, the VTK render window that creates this object's pixels for display
+   *
+   * \param vtkUserData, the object associated with the VTK render window
+   */
+  virtual void destroyingVTK(vtkRenderWindow* renderWindow, vtkUserData userData)
+  {
+    Q_UNUSED(renderWindow);
+    Q_UNUSED(userData);
+    return;
+  }
+
+  ///@{
+  /**
    * This is the function that enqueues an async command that will be executed just before VTK
    * renders
    *

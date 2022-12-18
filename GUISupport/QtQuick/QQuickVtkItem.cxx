@@ -129,6 +129,9 @@ public:
 
   ~QSGVtkObjectNode()
   {
+    if (m_item)
+      m_item->destroyingVTK(vtkWindow, vtkUserData);
+
     delete QSGVtkObjectNode::texture();
 
     // Cleanup the VTK window resources
@@ -173,8 +176,11 @@ public:
 
   void scheduleRender()
   {
-    m_renderPending = true;
-    m_window->update();
+    if (m_window)
+    {
+      m_renderPending = true;
+      m_window->update();
+    }
   }
 
 public Q_SLOTS:
@@ -185,7 +191,7 @@ public Q_SLOTS:
       m_renderPending = false;
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
-      const bool needsWrap =
+      const bool needsWrap = m_window &&
         QSGRendererInterface::isApiRhiBased(m_window->rendererInterface()->graphicsApi());
       if (needsWrap)
         m_window->beginExternalCommands();
@@ -215,6 +221,9 @@ public Q_SLOTS:
 
   void handleScreenChange()
   {
+    if (!m_window || !m_item)
+      return;
+
     if (m_window->effectiveDevicePixelRatio() != m_devicePixelRatio)
     {
 
@@ -229,8 +238,8 @@ private:
 
 protected:
   // variables set in QQuickVtkItem::updatePaintNode()
-  QQuickWindow* m_window = nullptr;
-  QQuickItem* m_item = nullptr;
+  QPointer<QQuickWindow> m_window;
+  QPointer<QQuickVtkItem> m_item;
   qreal m_devicePixelRatio = 0;
   QSizeF m_size;
   friend class QQuickVtkItem;

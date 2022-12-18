@@ -15,6 +15,31 @@ ApplicationWindow {
         id: header
         RowLayout {
             anchors.fill: parent
+            RowLayout {
+                spacing: 1
+                Button {
+                    id: btn1
+                    text: "Split Horizontal"
+                    rightPadding: 8
+                    onClicked: dsv.focused.split(Qt.Horizontal)
+                }
+                Button {
+                    id: btn2
+                    text: "Split Vertical"
+                    onClicked: dsv.focused.split(Qt.Vertical)
+                }
+                Button {
+                    id: btn3
+                    text: "UnSplit"
+                    onClicked: dsv.focused.unsplit(), dsv.pop()
+                }
+                Component.onCompleted: {
+                    let width = Math.max(btn1.width, btn2.width, btn3.width)
+                    btn1.Layout.preferredWidth = width
+                    btn2.Layout.preferredWidth = width
+                    btn3.Layout.preferredWidth = width
+                }
+            }
             Item {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -38,35 +63,56 @@ ApplicationWindow {
     }
 
     DynamicSplitView {
+        id: dsv
         anchors.fill: parent
 
+        property var focused: null
+        property var stack: []
+        function push(item) {
+            console.log("pushing:", item, "focused:", focused)
+            stack.push(item)
+            focused = item
+        }
+        function pop() {
+            if (stack.length >= 2) {
+
+                // remove all copies of the item at the top of the stack
+                stack = stack.filter(function(f) { return f !== focused})
+
+                // remove all duplicate runs of identical items in the stack
+                stack = stack.filter(function(item, pos, ary) { return !pos || item !== ary[pos - 1];});
+
+                // the new focused element is now at the top of the stack
+                focused = stack.length>0 ? stack[stack.length -1]: null
+            }
+        }
         itemDelegate: DynamicSplitView.ItemDelegate
         {
+            id: item
+
             Rectangle {
-                border { width: 5; color: "steelblue" }
+                border {
+                    id: border
+                    width: 5;
+                    color: dsv.focused === item ? "goldenrod" : "steelblue"
+                }
                 radius: 5
                 color: "magenta"
                 anchors.fill: parent
 
                 MyVtkItem {
                     anchors.fill: parent
-                    anchors.margins: 5
+                    anchors.margins: border.width
                     source: sources.currentText
+                    onClicked: {
+                        if (dsv.focused != item)
+                            dsv.push(item)
+                    }
                 }
             }
 
-            MouseArea {
-                anchors.fill: parent
-                acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
-                onClicked: mouse=> {
-                    if (mouse.button === Qt.LeftButton) {
-                        split(Qt.Horizontal)
-                    } else if (mouse.button === Qt.RightButton) {
-                        split(Qt.Vertical)
-                    } else {
-                        unsplit()
-                    }
-                }
+            Component.onCompleted: {
+                dsv.push(item)
             }
         }
     }
