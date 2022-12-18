@@ -6,6 +6,7 @@
 #include <QtGui/QGuiApplication>
 
 #include <QtCore/QPointer.h>
+#include <QtCore/QScopedPointer.h>
 
 #include <QQuickVTKItem.h>
 #include <QVTKRenderWindowAdapter.h>
@@ -57,63 +58,13 @@ public:
     vtkNew<vtkPolyDataMapper> mapper;
   };
 
-  struct ClickStyle : vtkInteractorStyleTrackballCamera
-  {
-    static ClickStyle* New();
-    vtkTypeMacro(ClickStyle, vtkInteractorStyleTrackballCamera);
-
-    int manhattenDistance(int x, int y) { return abs(x - _x) + abs(y - _y); }
-
-    void OnLeftButtonDown() override
-    {
-      _x = this->Interactor->GetEventPosition()[0];
-      _y = this->Interactor->GetEventPosition()[1];
-    }
-
-    void OnMouseMove() override
-    {
-      if (_x < 0 || _y < 0)
-        return Superclass::OnMouseMove();
-
-      int x = this->Interactor->GetEventPosition()[0];
-      int y = this->Interactor->GetEventPosition()[1];
-      if (manhattenDistance(x, y) > 5)
-      {
-        this->Interactor->SetEventPosition(_x, _y);
-        Superclass::OnLeftButtonDown();
-        this->Interactor->SetEventPosition(x, y);
-        Superclass::OnMouseMove();
-        _x = _y = -1;
-      }
-    }
-
-    void OnLeftButtonUp() override
-    {
-      if (_x < 0 || _y < 0)
-        return Superclass::OnLeftButtonUp();
-
-      if (pThis)
-        emit pThis->clicked();
-
-      _x = _y = -1;
-    }
-
-    int _x = -1, _y = -1;
-    QPointer<MyVtkItem> pThis;
-  };
-
   vtkUserData initializeVTK(vtkRenderWindow* renderWindow) override
   {
-    vtkNew<ClickStyle> style;
-    style->pThis = this;
-    renderWindow->GetInteractor()->SetInteractorStyle(style);
-
     vtkNew<Data> vtk;
 
     vtk->actor->SetMapper(vtk->mapper);
 
     vtk->renderer->AddActor(vtk->actor);
-    vtk->renderer->ResetCamera();
     vtk->renderer->SetBackground(0.5, 0.5, 0.7);
     vtk->renderer->SetBackground2(0.7, 0.7, 0.7);
     vtk->renderer->SetGradientBackground(true);
@@ -125,9 +76,8 @@ public:
     // To this end we've added a "force" parameter to our Qt property setter which is set true
     // here in initializeVtk but is defaulted false whenever QML (or other C++ code) invokes it.
     //
-    // To see QML randomly delete our QSGNode, left-click to split horizontally, then
-    // right-click to split vertically and then middle-click in the smallest top-most view and
-    // observe the console output.
+    // To see QML randomly delete our QSGNode, split horizontally, then split vertically and then
+    // unsplit the smallest top-most view and observe the console output.
     //
     // You'll see something like:
     //
@@ -141,27 +91,25 @@ public:
     //qml: destructed ItemDelegate(0x1f8d4394e80, "viewBase 1") SplitView_QMLTYPE_1_QML_5(0x1f8d4395660, "splitView 0")
     // clang-format on
     //
-    // Notice that there are 2 (two) 'destructed' messages but you only clicked the middle-button
-    // once!! QML deleted both "small" QSGNodes and then created a new QSGNode to fill the empty
-    // column.
+    // Notice that there are 2 (two) 'destructed' messages but you only unsplit once!!
+    // QML deleted both "small" QSGNodes and then created a new QSGNode to fill the empty column.
     setSource(_source, true);
 
-    // restore the Camera state
+    // Note:  It is okay to store some non-graphical VTK objects in the QQuickVtkItem instead of the
+    // vtkUserData but ONLY if they are accessed from the qml-render-thread. (i.e. only in the
+    // initializeVTK, destroyingVTK or dispatch_async methods)
     vtk->renderer->GetActiveCamera()->DeepCopy(_camera);
 
     return vtk;
   }
-
   void destroyingVTK(vtkRenderWindow* renderWindow, vtkUserData userData) override
   {
     auto* vtk = Data::SafeDownCast(userData);
     if (!vtk)
       return;
 
-    // save the camera state
     _camera->DeepCopy(vtk->renderer->GetActiveCamera());
   }
-
   vtkNew<vtkCamera> _camera;
 
   void resetCamera()
@@ -211,16 +159,60 @@ public:
   Q_SIGNAL void sourceChanged(QString);
   QString _source;
 
+  bool event(QEvent* ev) override
+  {
+    switch (ev->type())
+    {
+      case QEvent::MouseButtonPress:
+      {
+        auto e = static_cast<QMouseEvent*>(ev);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+        _click.reset(new QMouseEvent(e->type(), e->localPos(), e->windowPos(), e->screenPos(),
+          e->button(), e->buttons(), e->modifiers(), e->source()));
+#else
+        _click.reset(e->clone());
+#endif
+        break;
+      }
+      case QEvent::MouseMove:
+      {
+        if (!_click)
+          return QQuickVtkItem::event(ev);
+
+        auto e = static_cast<QMouseEvent*>(ev);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+        if ((_click->pos() - e->pos()).manhattanLength() > 5)
+#else
+        if ((_click->position() - e->position()).manhattanLength() > 5)
+#endif
+        {
+          QQuickVtkItem::event(std::unique_ptr<QMouseEvent>(std::move(_click)).get());
+          return QQuickVtkItem::event(e);
+        }
+        break;
+      }
+      case QEvent::MouseButtonRelease:
+      {
+        if (!_click)
+          return QQuickVtkItem::event(ev);
+        else
+          emit clicked();
+        break;
+      }
+    }
+    ev->accept();
+    return true;
+  }
+  std::unique_ptr<QMouseEvent> _click;
   Q_SIGNAL void clicked();
 };
 vtkStandardNewMacro(MyVtkItem::Data);
-vtkStandardNewMacro(MyVtkItem::ClickStyle);
 
 int main(int argc, char* argv[])
 {
   QQuickVtkItem::setGraphicsApi();
 
-#if defined(Q_OS_WIN)
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
   QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 #endif
 
