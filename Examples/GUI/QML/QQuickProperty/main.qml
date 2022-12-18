@@ -69,12 +69,11 @@ ApplicationWindow {
         property var focused: null
         property var stack: []
         function push(item) {
-            console.log("pushing:", item, "focused:", focused)
             stack.push(item)
             focused = item
         }
         function pop() {
-            if (stack.length >= 2) {
+            if (stack.length > 1) {
 
                 // remove all copies of the item at the top of the stack
                 stack = stack.filter(function(f) { return f !== focused})
