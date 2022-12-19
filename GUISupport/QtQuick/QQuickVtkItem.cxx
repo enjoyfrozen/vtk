@@ -7,8 +7,10 @@
 #include <QtQuick/QSGTextureProvider>
 
 #include <QtGui/QOpenGLContext>
+#include <QtGui/QScreen>
 
 #include <QtCore/QEvent>
+#include <QtCore/QPointer>
 #include <QtCore/QQueue>
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 #include <QtCore/QThread>
@@ -39,8 +41,12 @@ void QQuickVtkItem::setGraphicsApi()
   // transparent background.
   fmt.setAlphaBufferSize(0);
   QSurfaceFormat::setDefaultFormat(fmt);
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
   QQuickWindow::setGraphicsApi(QSGRendererInterface::OpenGLRhi);
+#else
+  QQuickWindow::setSceneGraphBackend(QSGRendererInterface::OpenGLRhi);
+#endif
 #endif
 }
 
@@ -84,7 +90,7 @@ bool checkGraphicsApi(QQuickWindow* window)
   {
     qCritical(R"***(Error: QtQuick scenegraph is using an unsupported graphics API: %d.
 Set the QSG_INFO environment variable to get more information.
-Use QQuickVtkItem::setupGraphicsApi() to set the OpenGL backend.)***",
+Use QQuickVtkItem::setupGraphicsApi() to set the OpenGLRhi backend.)***",
       api);
     return false;
   }
@@ -159,7 +165,8 @@ public:
     vtkNew<vtkInteractorStyleTrackballCamera> style;
     iren->SetInteractorStyle(style);
     vtkUserData = item->initializeVTK(vtkWindow);
-    if (auto* ia = vtkWindow->GetInteractor(); ia && !QVTKInteractor::SafeDownCast(ia))
+    auto* ia = vtkWindow->GetInteractor();
+    if (ia && !QVTKInteractor::SafeDownCast(ia))
     {
       qWarning().nospace() << "QQuickVTKItem.cpp:" << __LINE__
                            << ", YIKES!! Only QVTKInteractor is supported";
@@ -219,7 +226,7 @@ public Q_SLOTS:
     }
   }
 
-  void handleScreenChange()
+  void handleScreenChange(QScreen*)
   {
     if (!m_window || !m_item)
       return;
@@ -304,8 +311,8 @@ QSGNode* QQuickVtkItem::updatePaintNode(QSGNode* node, UpdatePaintNodeData*)
   {
     n->scheduleRender();
     n->render();
-    if (auto fb = n->vtkWindow->GetDisplayFramebuffer();
-        fb && fb->GetNumberOfColorAttachments() > 0)
+    auto fb = n->vtkWindow->GetDisplayFramebuffer();
+    if (fb && fb->GetNumberOfColorAttachments() > 0)
     {
       GLuint texId = fb->GetColorAttachmentAsTextureObject(0)->GetHandle();
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
@@ -323,7 +330,7 @@ QSGNode* QQuickVtkItem::updatePaintNode(QSGNode* node, UpdatePaintNodeData*)
     else
       qWarning().nospace()
         << "QQuickVTKItem.cpp:" << __LINE__
-        << ", YIKES!!, Render() didn't create any ColorBufferAttachements to its FrameBuffer!?";
+        << ", YIKES!!, Render() didn't create any ColorBufferAttachements in its FrameBuffer!?";
   }
 
   n->setTextureCoordinatesTransform(QSGSimpleTextureNode::MirrorVertically);
@@ -410,88 +417,88 @@ bool QQuickVtkItem::event(QEvent* ev)
     case QEvent::HoverMove:
     {
       auto e = static_cast<QHoverEvent*>(ev);
-      dispatch_async([d, e = QHoverEvent(e->type(), e->posF(), e->oldPosF(), e->modifiers())](
-                       vtkRenderWindow* vtkWindow, vtkUserData) mutable {
-        d->qt2vtkInteractorAdapter.ProcessEvent(&e, vtkWindow->GetInteractor());
+      auto c =
+        QSharedPointer<QHoverEvent>::create(e->type(), e->posF(), e->oldPosF(), e->modifiers());
+      dispatch_async([d, c](vtkRenderWindow* vtkWindow, vtkUserData) mutable {
+        d->qt2vtkInteractorAdapter.ProcessEvent(c.get(), vtkWindow->GetInteractor());
       });
       break;
     }
     case QEvent::Enter:
     {
       auto e = static_cast<QEnterEvent*>(ev);
-      dispatch_async([d, e = QEnterEvent(e->localPos(), e->windowPos(), e->screenPos())](
-                       vtkRenderWindow* vtkWindow, vtkUserData) mutable {
-        d->qt2vtkInteractorAdapter.ProcessEvent(&e, vtkWindow->GetInteractor());
+      auto c = QSharedPointer<QEnterEvent>::create(e->localPos(), e->windowPos(), e->screenPos());
+      dispatch_async([d, c](vtkRenderWindow* vtkWindow, vtkUserData) mutable {
+        d->qt2vtkInteractorAdapter.ProcessEvent(c.get(), vtkWindow->GetInteractor());
       });
       break;
     }
     case QEvent::Leave:
     {
       auto e = static_cast<QEvent*>(ev);
-      dispatch_async([d, e = QEvent(e->type())](vtkRenderWindow* vtkWindow, vtkUserData) mutable {
-        d->qt2vtkInteractorAdapter.ProcessEvent(&e, vtkWindow->GetInteractor());
+      auto c = QSharedPointer<QEvent>::create(e->type());
+      dispatch_async([d, c](vtkRenderWindow* vtkWindow, vtkUserData) mutable {
+        d->qt2vtkInteractorAdapter.ProcessEvent(c.get(), vtkWindow->GetInteractor());
       });
       break;
     }
     case QEvent::DragEnter:
     {
       auto e = static_cast<QDragEnterEvent*>(ev);
-      dispatch_async(
-        [d,
-          e = QDragEnterEvent(e->pos(), e->possibleActions(), e->mimeData(), e->mouseButtons(),
-            e->keyboardModifiers())](vtkRenderWindow* vtkWindow, vtkUserData) mutable {
-          d->qt2vtkInteractorAdapter.ProcessEvent(&e, vtkWindow->GetInteractor());
-        });
+      auto c = QSharedPointer<QDragEnterEvent>::create(
+        e->pos(), e->possibleActions(), e->mimeData(), e->mouseButtons(), e->keyboardModifiers());
+      dispatch_async([d, c](vtkRenderWindow* vtkWindow, vtkUserData) mutable {
+        d->qt2vtkInteractorAdapter.ProcessEvent(c.get(), vtkWindow->GetInteractor());
+      });
       break;
     }
     case QEvent::DragLeave:
     {
-      dispatch_async([d, e = QDragLeaveEvent()](vtkRenderWindow* vtkWindow, vtkUserData) mutable {
-        d->qt2vtkInteractorAdapter.ProcessEvent(&e, vtkWindow->GetInteractor());
+      auto c = QSharedPointer<QDragLeaveEvent>::create();
+      dispatch_async([d, c](vtkRenderWindow* vtkWindow, vtkUserData) mutable {
+        d->qt2vtkInteractorAdapter.ProcessEvent(c.get(), vtkWindow->GetInteractor());
       });
       break;
     }
     case QEvent::DragMove:
     {
       auto e = static_cast<QDragMoveEvent*>(ev);
-      dispatch_async(
-        [d,
-          e = QDragMoveEvent(e->pos(), e->possibleActions(), e->mimeData(), e->mouseButtons(),
-            e->keyboardModifiers())](vtkRenderWindow* vtkWindow, vtkUserData) mutable {
-          d->qt2vtkInteractorAdapter.ProcessEvent(&e, vtkWindow->GetInteractor());
-        });
+      auto c = QSharedPointer<QDragMoveEvent>::create(
+        e->pos(), e->possibleActions(), e->mimeData(), e->mouseButtons(), e->keyboardModifiers());
+      dispatch_async([d, c](vtkRenderWindow* vtkWindow, vtkUserData) mutable {
+        d->qt2vtkInteractorAdapter.ProcessEvent(c.get(), vtkWindow->GetInteractor());
+      });
       break;
     }
     case QEvent::Drop:
     {
       auto e = static_cast<QDropEvent*>(ev);
-      dispatch_async(
-        [d,
-          e = QDropEvent(e->pos(), e->possibleActions(), e->mimeData(), e->mouseButtons(),
-            e->keyboardModifiers())](vtkRenderWindow* vtkWindow, vtkUserData) mutable {
-          d->qt2vtkInteractorAdapter.ProcessEvent(&e, vtkWindow->GetInteractor());
-        });
+      auto c = QSharedPointer<QDropEvent>::create(
+        e->pos(), e->possibleActions(), e->mimeData(), e->mouseButtons(), e->keyboardModifiers());
+      dispatch_async([d, c](vtkRenderWindow* vtkWindow, vtkUserData) mutable {
+        d->qt2vtkInteractorAdapter.ProcessEvent(c.get(), vtkWindow->GetInteractor());
+      });
       break;
     }
     case QEvent::ContextMenu:
     {
       auto e = static_cast<QContextMenuEvent*>(ev);
-      dispatch_async(
-        [d, e = QContextMenuEvent(e->reason(), e->pos(), e->globalPos(), e->modifiers())](
-          vtkRenderWindow* vtkWindow, vtkUserData) mutable {
-          d->qt2vtkInteractorAdapter.ProcessEvent(&e, vtkWindow->GetInteractor());
-        });
+      auto c = QSharedPointer<QContextMenuEvent>::create(
+        e->reason(), e->pos(), e->globalPos(), e->modifiers());
+      dispatch_async([d, c](vtkRenderWindow* vtkWindow, vtkUserData) mutable {
+        d->qt2vtkInteractorAdapter.ProcessEvent(c.get(), vtkWindow->GetInteractor());
+      });
       break;
     }
     case QEvent::KeyPress:
     case QEvent::KeyRelease:
     {
       auto e = static_cast<QKeyEvent*>(ev);
-      dispatch_async([d,
-                       e = QKeyEvent(e->type(), e->key(), e->modifiers(), e->nativeScanCode(),
-                         e->nativeVirtualKey(), e->nativeModifiers(), e->text(), e->isAutoRepeat(),
-                         e->count())](vtkRenderWindow* vtkWindow, vtkUserData) mutable {
-        d->qt2vtkInteractorAdapter.ProcessEvent(&e, vtkWindow->GetInteractor());
+      auto c =
+        QSharedPointer<QKeyEvent>::create(e->type(), e->key(), e->modifiers(), e->nativeScanCode(),
+          e->nativeVirtualKey(), e->nativeModifiers(), e->text(), e->isAutoRepeat(), e->count());
+      dispatch_async([d, c](vtkRenderWindow* vtkWindow, vtkUserData) mutable {
+        d->qt2vtkInteractorAdapter.ProcessEvent(c.get(), vtkWindow->GetInteractor());
       });
       break;
     }
@@ -499,9 +506,9 @@ bool QQuickVtkItem::event(QEvent* ev)
     case QEvent::FocusOut:
     {
       auto e = static_cast<QFocusEvent*>(ev);
-      dispatch_async([d, e = QFocusEvent(e->type(), e->reason())](
-                       vtkRenderWindow* vtkWindow, vtkUserData) mutable {
-        d->qt2vtkInteractorAdapter.ProcessEvent(&e, vtkWindow->GetInteractor());
+      auto c = QSharedPointer<QFocusEvent>::create(e->type(), e->reason());
+      dispatch_async([d, c](vtkRenderWindow* vtkWindow, vtkUserData) mutable {
+        d->qt2vtkInteractorAdapter.ProcessEvent(c.get(), vtkWindow->GetInteractor());
       });
       break;
     }
@@ -511,11 +518,10 @@ bool QQuickVtkItem::event(QEvent* ev)
     case QEvent::MouseButtonDblClick:
     {
       auto e = static_cast<QMouseEvent*>(ev);
-      dispatch_async([d,
-                       e = QMouseEvent(e->type(), e->localPos(), e->windowPos(), e->screenPos(),
-                         e->button(), e->buttons(), e->modifiers(), e->source())](
-                       vtkRenderWindow* vtkWindow, vtkUserData) mutable {
-        d->qt2vtkInteractorAdapter.ProcessEvent(&e, vtkWindow->GetInteractor());
+      auto c = QSharedPointer<QMouseEvent>::create(e->type(), e->localPos(), e->windowPos(),
+        e->screenPos(), e->button(), e->buttons(), e->modifiers(), e->source());
+      dispatch_async([d, c](vtkRenderWindow* vtkWindow, vtkUserData) mutable {
+        d->qt2vtkInteractorAdapter.ProcessEvent(c.get(), vtkWindow->GetInteractor());
       });
       break;
     }
@@ -523,11 +529,11 @@ bool QQuickVtkItem::event(QEvent* ev)
     case QEvent::Wheel:
     {
       auto e = static_cast<QWheelEvent*>(ev);
-      dispatch_async([d,
-                       e = QWheelEvent(e->position(), e->globalPosition(), e->pixelDelta(),
-                         e->angleDelta(), e->buttons(), e->modifiers(), e->phase(), e->inverted(),
-                         e->source())](vtkRenderWindow* vtkWindow, vtkUserData) mutable {
-        d->qt2vtkInteractorAdapter.ProcessEvent(&e, vtkWindow->GetInteractor());
+      auto c =
+        QSharedPointer<QWheelEvent>::create(e->position(), e->globalPosition(), e->pixelDelta(),
+          e->angleDelta(), e->buttons(), e->modifiers(), e->phase(), e->inverted(), e->source());
+      dispatch_async([d, c](vtkRenderWindow* vtkWindow, vtkUserData) mutable {
+        d->qt2vtkInteractorAdapter.ProcessEvent(c.get(), vtkWindow->GetInteractor());
       });
       break;
     }
@@ -539,12 +545,11 @@ bool QQuickVtkItem::event(QEvent* ev)
     case QEvent::TouchCancel:
     {
       auto e = static_cast<QTouchEvent*>(ev);
-      dispatch_async(
-        [d,
-          e = QTouchEvent(e->type(), e->device(), e->modifiers(), e->touchPointStates(),
-            e->touchPoints())](vtkRenderWindow* vtkWindow, vtkUserData) mutable {
-          d->qt2vtkInteractorAdapter.ProcessEvent(&e, vtkWindow->GetInteractor());
-        });
+      auto c = QSharedPointer<QTouchEvent>::create(
+        e->type(), e->device(), e->modifiers(), e->touchPointStates(), e->touchPoints());
+      dispatch_async([d, c](vtkRenderWindow* vtkWindow, vtkUserData) mutable {
+        d->qt2vtkInteractorAdapter.ProcessEvent(c.get(), vtkWindow->GetInteractor());
+      });
       break;
     }
 #endif
@@ -552,7 +557,8 @@ bool QQuickVtkItem::event(QEvent* ev)
       return QQuickItem::event(ev);
   }
 #else
-  dispatch_async([d, e = ev->clone()](vtkRenderWindow* vtkWindow, vtkUserData) mutable {
+  auto e = ev->clone();
+  dispatch_async([d, e](vtkRenderWindow* vtkWindow, vtkUserData) mutable {
     d->qt2vtkInteractorAdapter.ProcessEvent(e, vtkWindow->GetInteractor());
     delete e;
   });

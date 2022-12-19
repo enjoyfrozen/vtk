@@ -41,8 +41,8 @@ public:
    * attaching it to the window
    *
    * \note All VTK objects are owned by and run on the QML render thread!!  This means you CAN NOT
-   * touch any VTK state from any place other than in this method or in your dispatch_async()
-   * functions!!
+   * touch any VTK state from any place other than in this method, in destroyingVTK or in your
+   * dispatch_async() functions!!
    *
    * \note All VTK objects must be stored in the vtkUserData object returned from this method.
    *       They will be destroyed if the underlaying QSGNode (which must contain all VTK objects) is
@@ -75,7 +75,7 @@ public:
    * this node are destroyed
    *
    * \note All VTK objects are owned by and run on the QML render thread!!  This means you CAN NOT
-   * touch any VTK state from any place other than in this method, the initializeVTK method, or in
+   * touch any VTK state from any place other than in this method, in initializeVTK, or in
    * your dispatch_async() functions!!
    *
    * \note At the time of this method execution, the GUI thread is blocked. Hence, it is safe to
@@ -98,10 +98,10 @@ public:
    *
    * \note All VTK objects are owned by and run on the QML render thread!!  This means you CAN NOT
    * touch any VTK state from any place other than in your function object passed as a parameter
-   * here or initializeVTK()!!
+   * here in initializeVTK(), or in destroyingVTK() methods!!
    *
-   * \note This function should only be called from the qt-gui-thread, eg. from a QML button
-   * click-handler
+   * \note This function most likely will only be called from the qt-gui-thread, eg. from a QML
+   * button click-handler, but may be called from a dispatch_async() function as well.
    *
    * \note At the time of the async command execution, the GUI thread is blocked. Hence, it is safe
    * to perform state synchronization between the GUI elements and the VTK classes in the async

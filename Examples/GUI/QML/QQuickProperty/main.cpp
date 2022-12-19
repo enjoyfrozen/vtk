@@ -105,24 +105,14 @@ public:
   void destroyingVTK(vtkRenderWindow* renderWindow, vtkUserData userData) override
   {
     auto* vtk = Data::SafeDownCast(userData);
-    if (!vtk)
-      return;
-
     _camera->DeepCopy(vtk->renderer->GetActiveCamera());
   }
   vtkNew<vtkCamera> _camera;
 
   void resetCamera()
   {
-    dispatch_async([pThis = QPointer<MyVtkItem>(this), this](
-                     vtkRenderWindow* renderWindow, vtkUserData userData) {
-      if (!pThis)
-        return;
-
+    dispatch_async([this](vtkRenderWindow* renderWindow, vtkUserData userData) {
       auto* vtk = Data::SafeDownCast(userData);
-      if (!vtk)
-        return;
-
       vtk->renderer->ResetCamera();
       scheduleRender();
     });
@@ -136,15 +126,8 @@ public:
       emit sourceChanged((forceVtk = true, _source = v));
 
     if (forceVtk)
-      dispatch_async([pThis = QPointer<MyVtkItem>(this), this](
-                       vtkRenderWindow* renderWindow, vtkUserData userData) {
-        if (!pThis)
-          return;
-
+      dispatch_async([this](vtkRenderWindow* renderWindow, vtkUserData userData) {
         auto* vtk = Data::SafeDownCast(userData);
-        if (!vtk)
-          return;
-
         // clang-format off
           vtk->mapper->SetInputConnection(
                 _source == "Cone"    ? vtk->cone->GetOutputPort()
@@ -186,7 +169,7 @@ public:
         if ((_click->position() - e->position()).manhattanLength() > 5)
 #endif
         {
-          QQuickVtkItem::event(std::unique_ptr<QMouseEvent>(std::move(_click)).get());
+          QQuickVtkItem::event(QScopedPointer<QMouseEvent>(_click.take()).get());
           return QQuickVtkItem::event(e);
         }
         break;
@@ -203,7 +186,7 @@ public:
     ev->accept();
     return true;
   }
-  std::unique_ptr<QMouseEvent> _click;
+  QScopedPointer<QMouseEvent> _click;
   Q_SIGNAL void clicked();
 };
 vtkStandardNewMacro(MyVtkItem::Data);
