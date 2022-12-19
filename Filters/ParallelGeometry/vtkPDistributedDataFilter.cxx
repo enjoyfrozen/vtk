@@ -250,6 +250,10 @@ int vtkPDistributedDataFilter::RequestData(vtkInformation* vtkNotUsed(request),
   std::vector<int> leafTypes;
   for (iter->InitTraversal(); !iter->IsDoneWithTraversal(); iter->GoToNextItem())
   {
+    if (this->CheckAbort())
+    {
+      break;
+    }
     vtkDataObject* dObj = iter->GetCurrentDataObject();
     if (dObj)
     {
@@ -305,6 +309,10 @@ int vtkPDistributedDataFilter::RequestData(vtkInformation* vtkNotUsed(request),
   unsigned int cc = 0;
   for (iter->InitTraversal(); !iter->IsDoneWithTraversal(); iter->GoToNextItem(), cc++)
   {
+    if (this->CheckAbort())
+    {
+      break;
+    }
     vtkSmartPointer<vtkDataSet> ds;
     ds = vtkDataSet::SafeDownCast(iter->GetCurrentDataObject());
     if (ds == nullptr)
@@ -327,6 +335,9 @@ int vtkPDistributedDataFilter::RequestData(vtkInformation* vtkNotUsed(request),
       outputMB->SetDataSet(iter, ug);
     }
   }
+
+  this->Controller->Barrier();
+  this->CheckAbort();
 
   return 1;
 }
@@ -509,6 +520,9 @@ int vtkPDistributedDataFilter::RequestDataInternal(vtkDataSet* input, vtkUnstruc
   }
 
   this->UpdateProgress(1);
+
+  this->Controller->Barrier();
+  this->CheckAbort();
 
   return 1;
 }
