@@ -102,6 +102,10 @@ void vtkPExtractHistogram2D::Learn(
   // update the maximum bin count
   for (int i = 0; i < recvArray->GetNumberOfTuples(); i++)
   {
+    if (this->CheckAbort())
+    {
+      break;
+    }
     if (this->MaximumBinCount < recvArray->GetTuple1(i))
       this->MaximumBinCount = (long unsigned)recvArray->GetTuple1(i);
   }
@@ -110,6 +114,9 @@ void vtkPExtractHistogram2D::Learn(
 
   primaryTab->Initialize();
   primaryTab->AddColumn(outImage->GetPointData()->GetScalars());
+
+  comm->Barrier();
+  this->CheckAbort();
 }
 
 int vtkPExtractHistogram2D::ComputeBinExtents(

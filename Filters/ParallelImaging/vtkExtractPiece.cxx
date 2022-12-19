@@ -109,6 +109,10 @@ int vtkExtractPiece::RequestData(vtkInformation* vtkNotUsed(request),
   vtkCompositeDataIterator* iter = input->NewIterator();
   for (iter->InitTraversal(); !iter->IsDoneWithTraversal(); iter->GoToNextItem())
   {
+    if (this->CheckAbort())
+    {
+      break;
+    }
     vtkDataObject* tmpDS = iter->GetCurrentDataObject();
     switch (tmpDS->GetDataObjectType())
     {
