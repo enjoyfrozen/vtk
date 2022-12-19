@@ -206,6 +206,9 @@ int vtkGhostCellsGenerator::RequestData(
         inputsPD, outputsPD, numberOfGhostLayersToCompute, this->Controller);
   }
 
+  this->Controller->Barrier();
+  this->CheckAbort();
+
   return retVal && !error;
 }
 

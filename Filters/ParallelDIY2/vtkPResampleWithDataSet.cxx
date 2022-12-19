@@ -1199,6 +1199,9 @@ int vtkPResampleWithDataSet::RequestData(
     }
   }
 
+  comm.barrier();
+  this->CheckAbort();
+
   return 1;
 }
 

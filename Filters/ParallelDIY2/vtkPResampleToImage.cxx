@@ -533,6 +533,9 @@ int vtkPResampleToImage::RequestData(
   SetPointsToImage(pointFieldMetaData, block->Points, output);
   this->SetBlankPointsAndCells(output);
 
+  comm.barrier();
+  this->CheckAbort();
+
   return 1;
 }
 VTK_ABI_NAMESPACE_END

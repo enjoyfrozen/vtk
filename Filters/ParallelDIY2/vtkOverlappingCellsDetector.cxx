@@ -681,6 +681,9 @@ int vtkOverlappingCellsDetector::ExposeOverlappingCellsAmongBlocks(
     output->GetCellData()->SetActiveScalars(this->GetNumberOfOverlapsPerCellArrayName());
   }
 
+  comm.barrier();
+  this->CheckAbort();
+
   return 1;
 }
 

@@ -230,6 +230,9 @@ static bool GenerateIds(vtkDataObject* dobj, vtkGenerateGlobalIds* self, bool ce
   });
   vtkLogEndScope("exchange-ghosted-ids");
   self->UpdateProgress(1.0);
+
+  comm.barrier();
+  self->CheckAbort();
   return true;
 }
 VTK_ABI_NAMESPACE_END

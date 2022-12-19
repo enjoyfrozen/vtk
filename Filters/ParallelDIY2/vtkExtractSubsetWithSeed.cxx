@@ -763,6 +763,9 @@ int vtkExtractSubsetWithSeed::RequestData(
     replaceLeaves(outputMB);
   }
 
+  comm.barrier();
+  this->CheckAbort();
+
   vtkInformation* info = outputVector->GetInformationObject(0);
   info->Remove(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT());
   return 1;

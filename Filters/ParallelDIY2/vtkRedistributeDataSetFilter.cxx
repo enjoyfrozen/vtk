@@ -555,6 +555,9 @@ int vtkRedistributeDataSetFilter::RequestData(
     outputDO->GetFieldData()->PassData(inputDO->GetFieldData());
   }
 
+  this->Controller->Barrier();
+  this->CheckAbort();
+
   this->SetProgressShiftScale(0.0, 1.0);
   this->UpdateProgress(1.0);
   return 1;
