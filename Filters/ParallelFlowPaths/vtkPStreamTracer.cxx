@@ -1714,6 +1714,9 @@ int vtkPStreamTracer::RequestData(
   PRINT("Done in " << iterations << " iterations");
 
   traceOutputs.erase(traceOutputs.begin(), traceOutputs.end());
+
+  this->Controller->Barrier();
+  this->CheckAbort();
   return 1;
 }
 
