@@ -104,6 +104,9 @@ int vtkDistributedPointCloudFilter::RequestData(
     c->Delete();
   }
 
+  this->Controller->Barrier();
+  this->CheckAbort();
+
   return 1;
 }
 

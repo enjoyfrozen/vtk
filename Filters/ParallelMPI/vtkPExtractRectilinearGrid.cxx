@@ -243,6 +243,9 @@ int vtkPExtractRectilinearGrid::RequestData(
   DEBUG_EXTENT("FinalOutputExtent", finalOutputExtent);
 #endif
 
+  this->Controller->Barrier();
+  this->CheckAbort();
+
   return 1;
 }
 
