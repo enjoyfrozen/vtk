@@ -187,5 +187,8 @@ void vtkPDescriptiveStatistics::Learn(
     delete[] M_g;
   }
   delete[] n_g;
+
+  com->Barrier();
+  this->CheckAbort();
 }
 VTK_ABI_NAMESPACE_END

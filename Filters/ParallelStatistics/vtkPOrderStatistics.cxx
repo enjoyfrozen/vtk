@@ -355,6 +355,9 @@ void vtkPOrderStatistics::Learn(
     card_g->Delete();
     histoTab_g->Delete();
   } // for ( unsigned int b = 0; b < nBlocks; ++ b )
+
+  com->Barrier();
+  this->CheckAbort();
 }
 
 //------------------------------------------------------------------------------

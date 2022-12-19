@@ -389,6 +389,9 @@ void vtkPContingencyStatistics::Learn(
   delete[] xyOffset;
   delete[] kcOffset;
 
+  com->Barrier();
+  this->CheckAbort();
+
 #if DEBUG_PARALLEL_CONTINGENCY_STATISTICS
   timer->StopTimer();
 
