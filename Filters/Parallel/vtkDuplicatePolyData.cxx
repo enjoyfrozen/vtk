@@ -229,6 +229,7 @@ int vtkDuplicatePolyData::RequestData(vtkInformation* vtkNotUsed(request),
   pd->GetPointData()->PassData(input->GetPointData());
   pd->GetCellData()->PassData(input->GetCellData());
   append->AddInputData(pd);
+  append->SetContainerAlgorithm(this);
   pd->Delete();
 
   for (idx = 0; idx < this->ScheduleLength; ++idx)
@@ -276,6 +277,9 @@ int vtkDuplicatePolyData::RequestData(vtkInformation* vtkNotUsed(request),
   }
 
   this->MemorySize = output->GetActualMemorySize();
+
+  this->Controller->Barrier();
+  this->CheckAbort();
 
   return 1;
 }

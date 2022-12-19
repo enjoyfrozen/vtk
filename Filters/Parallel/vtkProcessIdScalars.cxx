@@ -105,6 +105,8 @@ int vtkProcessIdScalars::RequestData(vtkInformation* vtkNotUsed(request),
 
   pieceColors->Delete();
 
+  this->CheckAbort();
+
   return 1;
 }
 
@@ -116,6 +118,10 @@ vtkIntArray* vtkProcessIdScalars::MakeProcessIdScalars(int piece, vtkIdType num)
 
   for (vtkIdType i = 0; i < num; ++i)
   {
+    if (this->CheckAbort())
+    {
+      break;
+    }
     pieceColors->SetValue(i, piece);
   }
 
@@ -133,6 +139,10 @@ vtkFloatArray* vtkProcessIdScalars::MakeRandomScalars(int piece, vtkIdType num)
 
   for (vtkIdType i = 0; i < num; ++i)
   {
+    if (this->CheckAbort())
+    {
+      break;
+    }
     pieceColors->SetValue(i, randomValue);
   }
 

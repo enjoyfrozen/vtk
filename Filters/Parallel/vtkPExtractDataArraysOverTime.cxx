@@ -214,5 +214,8 @@ void vtkPExtractDataArraysOverTime::ReorganizeData(vtkMultiBlockDataSet* dataset
     this->Controller->Broadcast(stream, 0);
     dataset->CompositeShallowCopy(mb);
   } // end rank 0
+
+  this->Controller->Barrier();
+  this->CheckAbort();
 }
 VTK_ABI_NAMESPACE_END

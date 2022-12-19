@@ -237,6 +237,10 @@ int vtkExtractUnstructuredGridPiece::RequestData(vtkInformation* vtkNotUsed(requ
 
     for (cellIter->GoToFirstCell(); !cellIter->IsDoneWithTraversal(); cellIter->GoToNextCell())
     {
+      if (this->CheckAbort())
+      {
+        break;
+      }
       const vtkIdType cellId = cellIter->GetCurrentCellId();
       vtkIdType numCellPts;
       const vtkIdType* ids;
@@ -319,6 +323,10 @@ int vtkExtractUnstructuredGridPiece::RequestData(vtkInformation* vtkNotUsed(requ
   vtkIdType idx;
   for (idx = 0; idx < input->GetNumberOfPoints(); ++idx)
   {
+    if (this->CheckAbort())
+    {
+      break;
+    }
     if (pointMap->GetId(idx) == -1)
     {
       ++count;
@@ -327,6 +335,10 @@ int vtkExtractUnstructuredGridPiece::RequestData(vtkInformation* vtkNotUsed(requ
   vtkIdType count2 = 0;
   for (idx = 0; idx < input->GetNumberOfPoints(); ++idx)
   {
+    if (this->CheckAbort())
+    {
+      break;
+    }
     if (pointMap->GetId(idx) == -1)
     {
       if ((count2++ * numPieces / count) == piece)

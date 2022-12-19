@@ -170,10 +170,12 @@ int vtkAggregateDataSetFilter::RequestData(
     if (recvBuffer.size() == 1)
     {
       output->ShallowCopy(input);
+      this->CheckAbort();
     }
     else if (input->IsA("vtkPolyData"))
     {
       vtkNew<vtkAppendPolyData> appendFilter;
+      appendFilter->SetContainerAlgorithm(this);
       for (std::vector<vtkSmartPointer<vtkDataObject>>::iterator it = recvBuffer.begin();
            it != recvBuffer.end(); ++it)
       {
@@ -185,6 +187,7 @@ int vtkAggregateDataSetFilter::RequestData(
     else if (input->IsA("vtkUnstructuredGrid"))
     {
       vtkNew<vtkAppendFilter> appendFilter;
+      appendFilter->SetContainerAlgorithm(this);
       appendFilter->SetMergePoints(this->MergePoints);
       for (std::vector<vtkSmartPointer<vtkDataObject>>::iterator it = recvBuffer.begin();
            it != recvBuffer.end(); ++it)
@@ -195,6 +198,9 @@ int vtkAggregateDataSetFilter::RequestData(
       output->ShallowCopy(appendFilter->GetOutput());
     }
   }
+
+  subController->Barrier();
+  this->CheckAbort();
 
   return 1;
 }

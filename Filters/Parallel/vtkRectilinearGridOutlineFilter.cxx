@@ -240,6 +240,8 @@ int vtkRectilinearGridOutlineFilter::RequestData(vtkInformation* vtkNotUsed(requ
 
   output->Squeeze();
 
+  this->CheckAbort();
+
   return 1;
 }
 

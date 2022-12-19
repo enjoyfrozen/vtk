@@ -583,6 +583,9 @@ int vtkHyperTreeGridGhostCellsGenerator::ProcessTrees(
     output->SetMask(outputMask);
   }
 
+  this->Internals->Controller->Barrier();
+  this->CheckAbort();
+
   this->UpdateProgress(1.);
   return 1;
 }

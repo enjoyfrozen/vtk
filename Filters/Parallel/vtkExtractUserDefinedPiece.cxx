@@ -154,6 +154,10 @@ int vtkExtractUserDefinedPiece::RequestData(vtkInformation* vtkNotUsed(request),
   // Filter the cells
   for (cellId = 0; cellId < input->GetNumberOfCells(); cellId++)
   {
+    if (this->CheckAbort())
+    {
+      break;
+    }
     if (cellTags->GetValue(cellId) != -1) // satisfied thresholding
     {
       if (cellGhostLevels)

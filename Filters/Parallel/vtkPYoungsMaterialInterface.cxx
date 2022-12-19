@@ -71,11 +71,17 @@ void vtkPYoungsMaterialInterface::Aggregate(int nmat, int* inputsPerMaterial)
   int* tmp = new int[nmat * nprocs];
   com->AllGather(inputsPerMaterial, tmp, nmat);
 
+  bool abort = false;
   // Scan sum : done by all processes, not optimal but easy
-  for (vtkIdType m = 0; m < nmat; ++m)
+  for (vtkIdType m = 0; m < nmat && !abort; ++m)
   {
     for (vtkIdType p = 1; p < nprocs; ++p)
     {
+      abort = this->CheckAbort();
+      if (abort)
+      {
+        break;
+      }
       vtkIdType pnmat = p * nmat + m;
       tmp[pnmat] += tmp[pnmat - nmat];
     }
@@ -83,8 +89,12 @@ void vtkPYoungsMaterialInterface::Aggregate(int nmat, int* inputsPerMaterial)
 
   vtkIdType offset = (nprocs - 1) * nmat;
   this->NumberOfDomains = 0;
-  for (int m = 0; m < nmat; ++m)
+  for (int m = 0; m < nmat && !abort; ++m)
   {
+    if (this->CheckAbort())
+    {
+      break;
+    }
     // Sum all counts from all processes
     int inputsPerMaterialSum = tmp[offset + m];
     if (inputsPerMaterialSum > this->NumberOfDomains)
@@ -96,5 +106,8 @@ void vtkPYoungsMaterialInterface::Aggregate(int nmat, int* inputsPerMaterial)
     inputsPerMaterial[m] = (myid ? tmp[(myid - 1) * nmat + m] : 0);
   }
   delete[] tmp;
+
+  com->Barrier();
+  this->CheckAbort();
 }
 VTK_ABI_NAMESPACE_END

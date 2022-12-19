@@ -55,7 +55,7 @@ int vtkPOutlineFilter::RequestData(
   internals.SetIsCornerSource(false);
   internals.SetController(this->Controller);
 
-  return internals.RequestData(request, inputVector, outputVector);
+  return internals.RequestData(request, inputVector, outputVector, this);
 }
 
 int vtkPOutlineFilter::FillInputPortInformation(int, vtkInformation* info)

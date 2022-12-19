@@ -143,6 +143,10 @@ void vtkIntegrateAttributes::ExecuteBlock(vtkDataSet* input, vtkUnstructuredGrid
   int cellType;
   for (cellId = 0; cellId < numCells; ++cellId)
   {
+    if (this->CheckAbort())
+    {
+      break;
+    }
     cellType = input->GetCellType(cellId);
     // Make sure we are not integrating ghost/blanked cells.
     if (ghostArray &&
@@ -337,6 +341,10 @@ int vtkIntegrateAttributes::RequestData(
     vtkFieldList cdList;
     for (iter->InitTraversal(); !iter->IsDoneWithTraversal(); iter->GoToNextItem())
     {
+      if (this->CheckAbort())
+      {
+        break;
+      }
       vtkDataObject* dobj = iter->GetCurrentDataObject();
       vtkDataSet* ds = vtkDataSet::SafeDownCast(dobj);
       if (ds)
@@ -366,6 +374,10 @@ int vtkIntegrateAttributes::RequestData(
     // Now execute for each block.
     for (iter->InitTraversal(); !iter->IsDoneWithTraversal(); iter->GoToNextItem())
     {
+      if (this->CheckAbort())
+      {
+        break;
+      }
       vtkDataObject* dobj = iter->GetCurrentDataObject();
       vtkDataSet* ds = vtkDataSet::SafeDownCast(dobj);
       if (ds && ds->GetNumberOfPoints() > 0)
@@ -501,6 +513,9 @@ int vtkIntegrateAttributes::RequestData(
     output->GetPoints()->SetPoint(0, pt);
   }
 
+  this->Controller->Barrier();
+  this->CheckAbort();
+
   return 1;
 }
 
@@ -572,6 +587,10 @@ void vtkIntegrateAttributes::AllocateAttributes(
   outda->CopyAllocate(fieldList);
   for (int cc = 0, max = outda->GetNumberOfArrays(); cc < max; ++cc)
   {
+    if (this->CheckAbort())
+    {
+      break;
+    }
     auto array = vtkDoubleArray::SafeDownCast(outda->GetAbstractArray(cc));
     assert(array != nullptr);
     array->SetNumberOfTuples(1);
@@ -581,6 +600,10 @@ void vtkIntegrateAttributes::AllocateAttributes(
 
   for (int cc = 0; cc < vtkDataSetAttributes::NUM_ATTRIBUTES; ++cc)
   {
+    if (this->CheckAbort())
+    {
+      break;
+    }
     // this should not be necessary, however, the old version of
     // vtkIntegrateAttributes didn't mark active attributes for any arrays. We
     // preserve that behavior here. This is needed since filters like vtkGlyph3D

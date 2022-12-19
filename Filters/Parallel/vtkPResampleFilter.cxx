@@ -158,6 +158,7 @@ int vtkPResampleFilter::RequestData(vtkInformation* vtkNotUsed(request),
   probeFilter->SetController(this->Controller);
   probeFilter->SetSourceData(input);
   probeFilter->SetInputData(source);
+  probeFilter->SetContainerAlgorithm(this);
   probeFilter->Update();
   output->ShallowCopy(probeFilter->GetOutput());
 

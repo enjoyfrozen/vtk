@@ -62,6 +62,9 @@ int vtkPMergeArrays::MergeDataObjectFields(vtkDataObject* input, int idx, vtkDat
     }
   }
 
+  controller->Barrier();
+  this->CheckAbort();
+
   return 1;
 }
 VTK_ABI_NAMESPACE_END

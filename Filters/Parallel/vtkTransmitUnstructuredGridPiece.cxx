@@ -79,6 +79,9 @@ int vtkTransmitUnstructuredGridPiece::RequestData(vtkInformation* vtkNotUsed(req
     this->SatelliteExecute(procId, output, outInfo);
   }
 
+  this->Controller->Barrier();
+  this->CheckAbort();
+
   return 1;
 }
 
@@ -105,6 +108,7 @@ void vtkTransmitUnstructuredGridPiece::RootExecute(
   tmp->ShallowCopy(input);
   extract->SetCreateGhostCells(this->CreateGhostCells);
   extract->SetInputData(tmp);
+  extract->SetContainerAlgorithm(this);
   extractExecutive->UpdateDataObject();
 
   vtkInformation* extractOutInfo = extractExecutive->GetOutputInformation(0);

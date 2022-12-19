@@ -118,6 +118,7 @@ int vtkPieceRequestFilter::RequestData(vtkInformation* vtkNotUsed(request),
   vtkDataObject* input = vtkDataObject::GetData(inputVector[0]);
   vtkDataObject* output = vtkDataObject::GetData(outputVector);
   output->ShallowCopy(input);
+  this->CheckAbort();
   return 1;
 }
 

@@ -89,6 +89,8 @@ int vtkPieceScalars::RequestData(vtkInformation* vtkNotUsed(request),
 
   pieceColors->Delete();
 
+  this->CheckAbort();
+
   return 1;
 }
 

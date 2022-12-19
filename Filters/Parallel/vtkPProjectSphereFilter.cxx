@@ -52,6 +52,9 @@ void vtkPProjectSphereFilter::ComputePointsClosestToCenterLine(
         polePointIds->Reset();
       }
     }
+
+    controller->Barrier();
+    this->CheckAbort();
   }
 }
 
@@ -66,6 +69,9 @@ double vtkPProjectSphereFilter::GetZTranslation(vtkPointSet* input)
     {
       controller->AllReduce(&localMax, &globalMax, 1, vtkCommunicator::MAX_OP);
     }
+
+    controller->Barrier();
+    this->CheckAbort();
   }
 
   return globalMax;

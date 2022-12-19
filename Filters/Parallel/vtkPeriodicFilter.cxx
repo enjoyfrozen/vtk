@@ -118,6 +118,10 @@ int vtkPeriodicFilter::RequestData(vtkInformation* vtkNotUsed(request),
   iter->InitTraversal();
   while (!iter->IsDoneWithTraversal() && !this->Indices.empty())
   {
+    if (this->CheckAbort())
+    {
+      break;
+    }
     const unsigned int index = iter->GetCurrentFlatIndex();
     if (this->Indices.find(index) != this->Indices.end())
     {
@@ -150,6 +154,10 @@ int vtkPeriodicFilter::RequestData(vtkInformation* vtkNotUsed(request),
       iter->InitTraversal();
       while (!iter->IsDoneWithTraversal() && !this->Indices.empty())
       {
+        if (this->CheckAbort())
+        {
+          break;
+        }
         if (reducedPeriodNumbers[i] > this->PeriodNumbers[i])
         {
           const unsigned int index = iter->GetCurrentFlatIndex();
@@ -161,6 +169,8 @@ int vtkPeriodicFilter::RequestData(vtkInformation* vtkNotUsed(request),
         iter->GoToNextItem();
         i++;
       }
+      controller->Barrier();
+      this->CheckAbort();
     }
     delete[] reducedPeriodNumbers;
   }

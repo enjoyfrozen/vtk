@@ -73,6 +73,7 @@ int vtkRemoveGhosts::RequestData(vtkInformation* vtkNotUsed(request),
     // no ghost information so can just shallow copy input
     output->ShallowCopy(input);
     output->GetPointData()->RemoveArray(vtkDataSetAttributes::GhostArrayName());
+    this->CheckAbort();
     return 1;
   }
 
@@ -83,6 +84,7 @@ int vtkRemoveGhosts::RequestData(vtkInformation* vtkNotUsed(request),
     output->ShallowCopy(input);
     output->GetPointData()->RemoveArray(vtkDataSetAttributes::GhostArrayName());
     output->GetCellData()->RemoveArray(vtkDataSetAttributes::GhostArrayName());
+    this->CheckAbort();
     return 1;
   }
 
@@ -97,6 +99,7 @@ int vtkRemoveGhosts::RequestData(vtkInformation* vtkNotUsed(request),
   }
   output->GetCellData()->RemoveArray(vtkDataSetAttributes::GhostArrayName());
   output->GetPointData()->RemoveArray(vtkDataSetAttributes::GhostArrayName());
+  this->CheckAbort();
   return 1;
 }
 

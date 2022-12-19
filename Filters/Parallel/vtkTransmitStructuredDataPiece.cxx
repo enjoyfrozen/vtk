@@ -103,6 +103,9 @@ int vtkTransmitStructuredDataPiece::RequestData(vtkInformation* vtkNotUsed(reque
     this->SatelliteExecute(procId, output, outInfo);
   }
 
+  this->Controller->Barrier();
+  this->CheckAbort();
+
   return 1;
 }
 

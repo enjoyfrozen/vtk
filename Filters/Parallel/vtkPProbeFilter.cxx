@@ -112,6 +112,10 @@ int vtkPProbeFilter::RequestData(
         {
           for (pointId = 0; pointId < numRemotePoints; ++pointId)
           {
+            if (this->CheckAbort())
+            {
+              break;
+            }
             if (maskArray->GetValue(pointId) == 1)
             {
               for (k = 0; k < pointData->GetNumberOfArrays(); ++k)
@@ -130,6 +134,12 @@ int vtkPProbeFilter::RequestData(
     }
     remoteProbeOutput->Delete();
   }
+  if (this->Controller)
+  {
+    this->Controller->Barrier();
+  }
+
+  this->CheckAbort();
 
   return 1;
 }
