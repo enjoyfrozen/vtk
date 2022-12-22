@@ -14,7 +14,7 @@ vtk_add_test_cxx(vtkGUISupportQtQuickCxxTests tests
   TestQQuickVTKRenderWindow.cxx
   )
 
- set(qml_files
+set(qml_files
   TestQQuickVTKRenderItem.qml
   TestQQuickVTKRenderItemWidget.qml
   TestQQuickVTKRenderWindow.qml)
@@ -26,15 +26,15 @@ foreach (qml_file IN LISTS qml_files)
     @ONLY)
 endforeach ()
 
-set(qml_files2
+set(qml_files
   TestQQuickVtkItem_1.qml
   TestQQuickVtkItem_2.qml
   TestQQuickVtkItem_3.qml)
 
-foreach (qml_file2 IN LISTS qml_files2)
+foreach (qml_file IN LISTS qml_files)
   configure_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/${qml_file2}"
-    "${CMAKE_CURRENT_BINARY_DIR}/${qml_file2}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/${qml_file}"
+    "${CMAKE_CURRENT_BINARY_DIR}/${qml_file}"
     COPYONLY)
 endforeach ()
 

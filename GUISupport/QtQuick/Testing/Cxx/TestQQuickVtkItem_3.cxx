@@ -47,8 +47,8 @@ PURPOSE.  See the above copyright notice for more information.
 
 namespace
 {
-int argc = 0;
-char** argv = nullptr;
+int Argc = 0;
+char** Argv = nullptr;
 
 /*=========================================================================*/
 
@@ -104,7 +104,7 @@ struct MyVolumeItem : QQuickVtkItem
     vtkNew<vtkSmartVolumeMapper> volumeMapper;
     vtkNew<vtkXMLImageDataReader> reader;
     const char* volumeFile =
-      vtkTestUtilities::ExpandDataFileName(argc, argv, "Data/vase_1comp.vti");
+      vtkTestUtilities::ExpandDataFileName(Argc, Argv, "Data/vase_1comp.vti");
     reader->SetFileName(volumeFile);
     volumeMapper->SetInputConnection(reader->GetOutputPort());
     delete[] volumeFile;
@@ -179,8 +179,8 @@ vtkStandardNewMacro(MyGlyphItem::Data);
 
 int TestQQuickVtkItem_3(int argc, char* argv[])
 {
-  ::argc = argc;
-  ::argv = argv;
+  Argc = argc;
+  Argv = argv;
 
   cout << "CTEST_FULL_OUTPUT (Avoid ctest truncation of output)" << endl;
 

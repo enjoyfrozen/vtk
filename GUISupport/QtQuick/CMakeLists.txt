@@ -1,9 +1,9 @@
 set(classes
-  QQuickVtkItem
   QQuickVTKInteractiveWidget
   QQuickVTKInteractorAdapter
   QQuickVTKRenderItem
   QQuickVTKRenderWindow
+  QQuickVtkItem
   )
 
 include(vtkQt)
