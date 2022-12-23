@@ -12,7 +12,8 @@ set(classes
   vtkSocketCommunicator
   vtkSocketController
   vtkSubCommunicator
-  vtkSubGroup)
+  vtkSubGroup
+  vtkThreadedCallbackQueue)
 
 set(template_classes
   vtkThreadedTaskQueue)
