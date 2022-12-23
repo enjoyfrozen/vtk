@@ -1,4 +1,5 @@
 set(classes
+
   vtkCommunicator
   vtkDummyCommunicator
   vtkDummyController
@@ -12,7 +13,8 @@ set(classes
   vtkSocketCommunicator
   vtkSocketController
   vtkSubCommunicator
-  vtkSubGroup)
+  vtkSubGroup
+  vtkThreadedCallbackQueue)
 
 set(template_classes
   vtkThreadedTaskQueue)
