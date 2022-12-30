@@ -146,13 +146,13 @@ void vtkOSPRayVolumeMapperNode::Render(bool prepass)
     {
       sa = vtkDataArray::SafeDownCast(this->GetArrayToProcess(data, fieldAssociation));
     }
-    else
+    else if (vtkmds)
     {
       sa = vtkDataArray::SafeDownCast(this->GetArrayToProcess(vtkmds, fieldAssociation));
-    }
-    if (!sa)
-    {
-      sa = vtkmds->GetPointData()->GetArray(0);
+      if (!sa)
+      {
+        sa = vtkmds->GetPointData()->GetArray(0);
+      }
     }
 #else
     vtkDataArray* sa = vtkDataArray::SafeDownCast(this->GetArrayToProcess(data, fieldAssociation));
@@ -201,16 +201,24 @@ void vtkOSPRayVolumeMapperNode::Render(bool prepass)
       void* ScalarDataPointer = sa->GetVoidPointer(0);
       int dim[3] = { 1, 1, 1 };
 #ifdef VTKOSPRAY_ENABLE_VTKM
-      auto ds = vtkmds->GetVtkmDataSet();
-      auto cs = ds.GetCoordinateSystem();
-      if (cs.GetData().IsType<vtkm::cont::ArrayHandleUniformPointCoordinates>())
+      if (vtkmds)
       {
-        auto portal =
-          cs.GetData().AsArrayHandle<vtkm::cont::ArrayHandleUniformPointCoordinates>().ReadPortal();
-        vtkm::Id3 d = portal.GetDimensions();
-        dim[0] = d[0];
-        dim[1] = d[1];
-        dim[2] = d[2];
+        auto ds = vtkmds->GetVtkmDataSet();
+        auto cs = ds.GetCoordinateSystem();
+        if (cs.GetData().IsType<vtkm::cont::ArrayHandleUniformPointCoordinates>())
+        {
+          auto portal = cs.GetData()
+                          .AsArrayHandle<vtkm::cont::ArrayHandleUniformPointCoordinates>()
+                          .ReadPortal();
+          vtkm::Id3 d = portal.GetDimensions();
+          dim[0] = d[0];
+          dim[1] = d[1];
+          dim[2] = d[2];
+        }
+      }
+      else if (data)
+      {
+        data->GetDimensions(dim);
       }
 #else
       data->GetDimensions(dim);
@@ -255,14 +263,22 @@ void vtkOSPRayVolumeMapperNode::Render(bool prepass)
       //
       // Send Volumetric data to OSPRay
       //
+      double bds[6] = { 0, 1, 0, 1, 0, 1 };
+#ifdef VTKOSPRAY_ENABLE_VTKM
+      if (vtkmds)
+      {
+        vtkmds->GetBounds(bds);
+      }
+      else if (data)
+      {
+        data->GetBounds(bds);
+      }
+#else
+      data->GetBounds(bds);
+#endif
       double origin[3];
       double scale[3];
       vol->GetScale(scale);
-#ifdef VTKOSPRAY_ENABLE_VTKM
-      const double* bds = vtkmds->GetBounds();
-#else
-      const double* bds = data->GetBounds();
-#endif
       origin[0] = bds[0];
       origin[1] = bds[2];
       origin[2] = bds[4];
