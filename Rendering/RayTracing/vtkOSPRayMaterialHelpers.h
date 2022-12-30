@@ -39,6 +39,7 @@
 VTK_ABI_NAMESPACE_BEGIN
 class vtkImageData;
 class vtkOSPRayRendererNode;
+class vtkProperty;
 VTK_ABI_NAMESPACE_END
 
 namespace vtkOSPRayMaterialHelpers
@@ -71,6 +72,16 @@ void MakeMaterials(
  * material in the material library.
  */
 OSPMaterial MakeMaterial(vtkOSPRayRendererNode* orn, OSPRenderer oRenderer, std::string nickname);
+
+/**
+ * Construct one ospray material within the given renderer that
+ * corresponds to the visual characteristics set out in the
+ * vtkProperty parameters.
+ */
+OSPMaterial MakePropertyMaterial(vtkOSPRayRendererNode* orn, OSPRenderer oRenderer,
+  vtkProperty* property, double* ambientColor, double* diffuseColor, float* specularf,
+  double opacity, bool pt_avail, bool& useCustomMaterial, std::map<std::string, OSPMaterial>& mats,
+  const std::string& materialName);
 
 /**
  * Wraps ospNewMaterial
