@@ -267,8 +267,6 @@ void vtkOSPRayVolumeMapperNode::Render(bool prepass)
       origin[1] = bds[2];
       origin[2] = bds[4];
 
-      // double spacing[3];
-      // data->GetSpacing(spacing);
       scale[0] = (bds[1] - bds[0]) / double(dim[0] - 1);
       scale[1] = (bds[3] - bds[2]) / double(dim[1] - 1);
       scale[2] = (bds[5] - bds[4]) / double(dim[2] - 1);
