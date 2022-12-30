@@ -320,6 +320,11 @@ void vtkmOSPRayDataSetMapperNode::ORenderDataSet(void* renderer, vtkOSPRayActorN
   auto points = ds->GetPoints();
   void* vertices = points->GetVoidPointer(0);
   position = new ospNewSharedData1D(vertices, OSP_VEC3F, numPoints);
+  // Tell OSPRay how to access the pointer from device memory
+  int ompdevice = omp_get_default_device();
+  auto ompcontext = omp_target_get_context(ompdevice);
+  ospDeviceSetParam(ospGetCurrentDevice(), "levelzerodevice", OSP_VOID_PTR, vertices);
+  ospDeviceSetParam(ospGetCurrentDevice(), "levelzerocontext", OSP_VOID_PTR, vertices);
 #else
   std::vector<osp::vec3f> vertices(numPoints);
   double x[3];
