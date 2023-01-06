@@ -31,7 +31,7 @@
 
 //------------------------------------------------------------------------------
 // Interactive test meant to be used with a HMD, not intended to be run in CI
-int TestOpenXRInteractive(int argc, char* argv[])
+int TestOpenXRInteractiveBox(int argc, char* argv[])
 {
   vtkNew<vtkOpenXRRenderer> renderer;
   vtkNew<vtkOpenXRRenderWindow> renderWindow;

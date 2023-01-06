@@ -14,7 +14,8 @@ endif ()
 
 if (VTK_OPENXR_TESTING_ENABLE_INTERACTIVE_TESTS)
   list (APPEND openxr_tests
-    TestOpenXRInteractive.cxx,NO_VALID)
+    TestOpenXRInteractiveBox.cxx,NO_VALID
+    TestOpenXRInteractiveDragon.cxx,NO_VALID)
 endif ()
 
 vtk_add_test_cxx(vtkRenderingOpenXRCxxTests tests ${openxr_tests})
