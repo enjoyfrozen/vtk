@@ -31,7 +31,7 @@
 
 //------------------------------------------------------------------------------
 // Interactive test meant to be used with a HMD, not intended to be run in CI
-int TestOpenVRInteractiveBox(int, char**)
+int TestOpenVRInteractiveBox(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 {
   vtkNew<vtkOpenVRRenderer> renderer;
   vtkNew<vtkOpenVRRenderWindow> renderWindow;

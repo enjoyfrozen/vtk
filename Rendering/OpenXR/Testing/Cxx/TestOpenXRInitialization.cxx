@@ -19,7 +19,7 @@
 
 //------------------------------------------------------------------------------
 // Only initialize, requires a OpenXR implementation but do not render anything
-int TestOpenXRInitialization(int argc, char* argv[])
+int TestOpenXRInitialization(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 {
   vtkNew<vtkOpenXRRenderer> renderer;
   vtkNew<vtkOpenXRRenderWindow> renderWindow;

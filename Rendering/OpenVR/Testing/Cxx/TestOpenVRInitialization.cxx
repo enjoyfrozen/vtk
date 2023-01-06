@@ -19,7 +19,7 @@
 
 //------------------------------------------------------------------------------
 // Only initialize, requires a OpenVR implementation but do not render anything
-int TestOpenVRInitialization(int argc, char* argv[])
+int TestOpenVRInitialization(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 {
   vtkNew<vtkOpenVRRenderer> renderer;
   vtkNew<vtkOpenVRRenderWindow> renderWindow;

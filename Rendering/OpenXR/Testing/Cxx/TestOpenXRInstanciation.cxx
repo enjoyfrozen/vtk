@@ -19,7 +19,7 @@
 
 //------------------------------------------------------------------------------
 // Only instanciates, do not requires a OpenXR implementation to run
-int TestOpenXRInstanciation(int argc, char* argv[])
+int TestOpenXRInstanciation(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 {
   vtkNew<vtkOpenXRRenderer> renderer;
   vtkNew<vtkOpenXRRenderWindow> renderWindow;

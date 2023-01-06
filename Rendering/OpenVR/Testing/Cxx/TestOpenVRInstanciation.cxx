@@ -19,7 +19,7 @@
 
 //------------------------------------------------------------------------------
 // Only instanciates, do not requires a OpenVR implementation to run
-int TestOpenVRInstanciation(int, char**)
+int TestOpenVRInstanciation(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 {
   vtkNew<vtkOpenVRRenderer> renderer;
   vtkNew<vtkOpenVRRenderWindow> renderWindow;
