@@ -147,6 +147,11 @@ void vtkOpenXRRenderWindow::Initialize()
 //------------------------------------------------------------------------------
 void vtkOpenXRRenderWindow::Finalize()
 {
+  if (!this->Initialized)
+  {
+    return;
+  }
+
   this->ReleaseGraphicsResources(this);
 
   vtkOpenXRManager::GetInstance().Finalize();

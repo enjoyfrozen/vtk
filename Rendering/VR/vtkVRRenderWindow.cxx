@@ -376,6 +376,11 @@ void vtkVRRenderWindow::Initialize()
 //------------------------------------------------------------------------------
 void vtkVRRenderWindow::Finalize()
 {
+  if (!this->Initialized)
+  {
+    return;
+  }
+
   this->ReleaseGraphicsResources(this);
   this->DeviceHandleToDeviceDataMap.clear();
 
@@ -383,6 +388,8 @@ void vtkVRRenderWindow::Finalize()
   {
     this->HelperWindow->Finalize();
   }
+
+  this->Initialized = false;
 }
 
 //------------------------------------------------------------------------------
