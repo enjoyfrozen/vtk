@@ -404,7 +404,7 @@ protected:
   virtual std::string GetWindowTitleFromAPI() { return "VTK - VR"; }
 
   virtual bool CreateFramebuffers(uint32_t viewCount = 2) = 0;
-  void RenderFramebuffer(FramebufferDesc& framebufferDesc);
+  virtual void RenderFramebuffer(FramebufferDesc& framebufferDesc) = 0;
 
   bool TrackHMD = true;
 

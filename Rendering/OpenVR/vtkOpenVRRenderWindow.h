@@ -164,6 +164,7 @@ protected:
   bool GetSizeFromAPI() override;
 
   bool CreateFramebuffers(uint32_t viewCount = 2) override;
+  void RenderFramebuffer(FramebufferDesc& framebufferDesc) override;
   bool CreateOneFramebuffer(int nWidth, int nHeight, FramebufferDesc& framebufferDesc);
 
   /**

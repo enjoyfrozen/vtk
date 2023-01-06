@@ -283,6 +283,24 @@ void vtkOpenVRRenderWindow::StereoRenderComplete()
 }
 
 //------------------------------------------------------------------------------
+void vtkOpenVRRenderWindow::RenderFramebuffer(FramebufferDesc& framebufferDesc)
+{
+  this->GetState()->PushDrawFramebufferBinding();
+  this->GetState()->vtkglBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebufferDesc.ResolveFramebufferId);
+
+  glBlitFramebuffer(0, 0, this->Size[0], this->Size[1], 0, 0, this->Size[0], this->Size[1],
+    GL_COLOR_BUFFER_BIT, GL_LINEAR);
+
+  if (framebufferDesc.ResolveDepthTextureId != 0)
+  {
+    glBlitFramebuffer(0, 0, this->Size[0], this->Size[1], 0, 0, this->Size[0], this->Size[1],
+      GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+  }
+
+  this->GetState()->PopDrawFramebufferBinding();
+}
+
+//------------------------------------------------------------------------------
 bool vtkOpenVRRenderWindow::CreateFramebuffers(uint32_t viewCount)
 {
   this->FramebufferDescs.resize(viewCount);
