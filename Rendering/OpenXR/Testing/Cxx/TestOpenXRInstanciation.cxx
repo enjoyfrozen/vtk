@@ -18,8 +18,8 @@
 #include "vtkOpenXRRenderer.h"
 
 //------------------------------------------------------------------------------
-// Only initialize, requires a OpenXR implementation but do not render anything
-int TestOpenXRInitialization(int argc, char* argv[])
+// Only instanciates, do not requires a OpenXR implementation to run
+int TestOpenXRInstanciation(int argc, char* argv[])
 {
   vtkNew<vtkOpenXRRenderer> renderer;
   vtkNew<vtkOpenXRRenderWindow> renderWindow;
@@ -31,8 +31,6 @@ int TestOpenXRInitialization(int argc, char* argv[])
   renderer->AddActor(actor);
   renderWindow->AddRenderer(renderer);
   iren->SetRenderWindow(renderWindow);
-  iren->SetActionManifestDirectory("../../");
-  iren->Initialize();
 
   return 0;
 }

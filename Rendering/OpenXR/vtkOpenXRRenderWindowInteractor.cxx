@@ -39,7 +39,7 @@ vtkOpenXRRenderWindowInteractor::vtkOpenXRRenderWindowInteractor()
   {
     this->DeviceInputDownCount[i] = 0;
   }
-  this->ActionManifestFileName = "./vtk_openxr_actions.json";
+  this->ActionManifestFileName = "vtk_openxr_actions.json";
 
   // OpenXR can't have slashes in the action set name (as well as action names)
   this->ActionSetName = "vtk-actions";
@@ -493,8 +493,8 @@ void vtkOpenXRRenderWindowInteractor::Initialize()
   // Prevent unbound action warning
   this->AddAction("handposegrip", [](vtkEventData*) {});
 
-  std::string fullpath =
-    vtksys::SystemTools::CollapseFullPath(this->ActionManifestFileName.c_str());
+  std::string fullpath = vtksys::SystemTools::CollapseFullPath(
+    this->ActionManifestDirectory + this->ActionManifestFileName);
 
   if (!this->LoadActions(fullpath))
   {
