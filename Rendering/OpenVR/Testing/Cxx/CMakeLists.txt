@@ -1,12 +1,23 @@
-vtk_add_test_cxx(vtkRenderingOpenVRCxxTests tests
-  TestAvatar.cxx
-#  Medical.cxx,NO_VALID
-  )
+option(VTK_OPENVR_TESTING_ENABLE_RUNTIME_TESTS "Enable OpenVR tests that require an OpenVR runtime" OFF)
+mark_as_advanced(VTK_OPENVR_TESTING_ENABLE_RUNTIME_TESTS)
+option(VTK_OPENVR_TESTING_ENABLE_INTERACTIVE_TESTS "Enable OpenVR tests that are interactive" OFF) 
+mark_as_advanced(VTK_OPENVR_TESTING_ENABLE_INTERACTIVE_TESTS)
 
-if (WIN32)
-  vtk_add_test_cxx(vtkRenderingOpenVRCxxTests tests
-    TestDragon.cxx,NO_VALID
-    )
+set(OpenVR_tests
+  TestAvatar.cxx
+  TestOpenVRInstanciation.cxx,NO_VALID)
+
+if (VTK_OPENVR_TESTING_ENABLE_RUNTIME_TESTS)
+  list (APPEND OpenVR_tests
+    TestOpenVRInitialization.cxx,NO_VALID
+    TestOpenVRRendering.cxx)
 endif ()
 
-vtk_test_cxx_executable(vtkRenderingOpenVRCxxTests tests RENDERING_FACTORY)
+if (VTK_OPENVR_TESTING_ENABLE_INTERACTIVE_TESTS)
+  list (APPEND OpenVR_tests
+    TestOpenVRInteractiveBox.cxx,NO_VALID
+    TestOpenVRInteractiveDragon.cxx,NO_VALID)
+endif ()
+
+vtk_add_test_cxx(vtkRenderingOpenVRCxxTests tests ${OpenVR_tests})
+vtk_test_cxx_executable(vtkRenderingOpenVRCxxTests tests)

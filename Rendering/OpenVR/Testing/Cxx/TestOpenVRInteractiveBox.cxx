@@ -19,10 +19,10 @@
 #include "vtkNew.h"
 #include "vtkOpenGLPolyDataMapper.h"
 #include "vtkOpenGLVertexBufferObject.h"
-#include "vtkOpenXRCamera.h"
-#include "vtkOpenXRRenderWindow.h"
-#include "vtkOpenXRRenderWindowInteractor.h"
-#include "vtkOpenXRRenderer.h"
+#include "vtkOpenVRCamera.h"
+#include "vtkOpenVRRenderWindow.h"
+#include "vtkOpenVRRenderWindowInteractor.h"
+#include "vtkOpenVRRenderer.h"
 #include "vtkProperty.h"
 #include "vtkRegressionTestImage.h"
 #include "vtkRenderWindowInteractor.h"
@@ -31,12 +31,12 @@
 
 //------------------------------------------------------------------------------
 // Interactive test meant to be used with a HMD, not intended to be run in CI
-int TestOpenXRInteractive(int argc, char* argv[])
+int TestOpenVRInteractiveBox(int, char**)
 {
-  vtkNew<vtkOpenXRRenderer> renderer;
-  vtkNew<vtkOpenXRRenderWindow> renderWindow;
-  vtkNew<vtkOpenXRCamera> cam;
-  vtkNew<vtkOpenXRRenderWindowInteractor> iren;
+  vtkNew<vtkOpenVRRenderer> renderer;
+  vtkNew<vtkOpenVRRenderWindow> renderWindow;
+  vtkNew<vtkOpenVRCamera> cam;
+  vtkNew<vtkOpenVRRenderWindowInteractor> iren;
   vtkNew<vtkActor> actor;
 
   renderer->RemoveCuller(renderer->GetCullers()->GetLastItem());
@@ -70,6 +70,13 @@ int TestOpenXRInteractive(int argc, char* argv[])
 
   renderer->ResetCamera();
 
-  iren->Start();
+  // the HMD may not be turned on/etc
+  renderWindow->Initialize();
+  if (renderWindow->GetHMD())
+  {
+    renderer->ResetCamera();
+    renderWindow->Render();
+    iren->Start();
+  }
   return 0;
 }
