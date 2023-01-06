@@ -81,6 +81,13 @@ public:
   void Initialize() override;
 
   /**
+   * Finalize the rendering window.  This will shutdown all system-specific
+   * resources. After having called this, it should be possible to destroy
+   * a window that was used for a SetWindowId() call without any ill effects.
+   */
+  void Finalize() override;
+
+  /**
    * Free up any graphics resources associated with this window
    * a value of nullptr means the context may already be destroyed
    */
@@ -151,7 +158,7 @@ public:
 
 protected:
   vtkOpenVRRenderWindow();
-  ~vtkOpenVRRenderWindow() override = default;
+  ~vtkOpenVRRenderWindow() override;
 
   std::string GetWindowTitleFromAPI() override;
   bool GetSizeFromAPI() override;

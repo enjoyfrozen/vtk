@@ -258,18 +258,6 @@ public:
   void Start() override;
 
   /**
-   * Initialize the rendering window.
-   */
-  void Initialize() override;
-
-  /**
-   * Finalize the rendering window.  This will shutdown all system-specific
-   * resources. After having called this, it should be possible to destroy
-   * a window that was used for a SetWindowId() call without any ill effects.
-   */
-  void Finalize() override;
-
-  /**
    * Make this windows OpenGL context the current context.
    */
   void MakeCurrent() override;

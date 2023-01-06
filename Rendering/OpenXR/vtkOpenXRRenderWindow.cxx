@@ -160,6 +160,8 @@ void vtkOpenXRRenderWindow::Finalize()
   {
     this->HelperWindow->Finalize();
   }
+
+  this->Initialized = false;
 }
 
 //------------------------------------------------------------------------------

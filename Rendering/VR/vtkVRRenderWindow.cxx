@@ -59,8 +59,6 @@ vtkVRRenderWindow::vtkVRRenderWindow()
 //------------------------------------------------------------------------------
 vtkVRRenderWindow::~vtkVRRenderWindow()
 {
-  this->Finalize();
-
   vtkRenderer* ren;
   vtkCollectionSimpleIterator rit;
   this->Renderers->InitTraversal(rit);
@@ -340,56 +338,6 @@ void vtkVRRenderWindow::Start()
   }
 
   this->Superclass::Start();
-}
-
-//------------------------------------------------------------------------------
-void vtkVRRenderWindow::Initialize()
-{
-  if (this->Initialized)
-  {
-    return;
-  }
-
-  this->GetSizeFromAPI();
-
-  this->HelperWindow->SetDisplayId(this->GetGenericDisplayId());
-  this->HelperWindow->SetShowWindow(false);
-  this->HelperWindow->Initialize();
-
-  this->MakeCurrent();
-
-  this->OpenGLInit();
-
-  // some classes override the ivar in a getter :-(
-  this->MaximumHardwareLineWidth = this->HelperWindow->GetMaximumHardwareLineWidth();
-
-  glDepthRange(0., 1.);
-
-  this->SetWindowName(this->GetWindowTitleFromAPI().c_str());
-
-  this->CreateFramebuffers();
-
-  this->Initialized = true;
-  vtkDebugMacro(<< "End of VRRenderWindow Initialization");
-}
-
-//------------------------------------------------------------------------------
-void vtkVRRenderWindow::Finalize()
-{
-  if (!this->Initialized)
-  {
-    return;
-  }
-
-  this->ReleaseGraphicsResources(this);
-  this->DeviceHandleToDeviceDataMap.clear();
-
-  if (this->HelperWindow && this->HelperWindow->GetGenericContext())
-  {
-    this->HelperWindow->Finalize();
-  }
-
-  this->Initialized = false;
 }
 
 //------------------------------------------------------------------------------

@@ -35,6 +35,11 @@ vtkOpenVRRenderWindow::vtkOpenVRRenderWindow()
 {
   this->DashboardOverlay = vtkSmartPointer<vtkOpenVRDefaultOverlay>::New();
 }
+//------------------------------------------------------------------------------
+vtkOpenVRRenderWindow::~vtkOpenVRRenderWindow()
+{
+  this->Finalize();
+}
 
 //------------------------------------------------------------------------------
 vtkRenderWindowInteractor* vtkOpenVRRenderWindow::MakeRenderWindowInteractor()
@@ -363,6 +368,11 @@ std::string vtkOpenVRRenderWindow::GetWindowTitleFromAPI()
 //------------------------------------------------------------------------------
 void vtkOpenVRRenderWindow::Initialize()
 {
+  if (this->Initialized)
+  {
+    return;
+  }
+
   // Loading the SteamVR Runtime
   vr::EVRInitError eError = vr::VRInitError_None;
   this->HMD = vr::VR_Init(&eError, vr::VRApplication_Scene);
@@ -391,15 +401,23 @@ void vtkOpenVRRenderWindow::Initialize()
     return;
   }
 
-  // Initialize the helper window and OpenGL through the superclass
-  // This will also call CreateFramebuffers
-  this->Superclass::Initialize();
+  this->GetSizeFromAPI();
 
-  if (!this->Initialized)
-  {
-    vtkErrorMacro("VRRenderWindow initialization failed.");
-    return;
-  }
+  this->HelperWindow->SetDisplayId(this->GetGenericDisplayId());
+  this->HelperWindow->SetShowWindow(false);
+  this->HelperWindow->Initialize();
+
+  this->MakeCurrent();
+
+  this->OpenGLInit();
+
+  this->MaximumHardwareLineWidth = this->HelperWindow->GetMaximumHardwareLineWidth();
+
+  glDepthRange(0., 1.);
+
+  this->SetWindowName(this->GetWindowTitleFromAPI().c_str());
+
+  this->CreateFramebuffers();
 
   if (!vr::VRCompositor())
   {
@@ -408,6 +426,10 @@ void vtkOpenVRRenderWindow::Initialize()
   }
 
   this->DashboardOverlay->Create(this);
+
+  this->Initialized = true;
+
+  vtkDebugMacro(<< "End of OpenXRRenderWindow Initialization");
 }
 
 //------------------------------------------------------------------------------
@@ -420,6 +442,25 @@ void vtkOpenVRRenderWindow::ReleaseGraphicsResources(vtkWindow* renWin)
     vr::VR_Shutdown();
     this->HMD = nullptr;
   }
+}
+
+//------------------------------------------------------------------------------
+void vtkOpenVRRenderWindow::Finalize()
+{
+  if (!this->Initialized)
+  {
+    return;
+  }
+
+  this->ReleaseGraphicsResources(this);
+  this->DeviceHandleToDeviceDataMap.clear();
+
+  if (this->HelperWindow && this->HelperWindow->GetGenericContext())
+  {
+    this->HelperWindow->Finalize();
+  }
+
+  this->Initialized = false;
 }
 
 //------------------------------------------------------------------------------
