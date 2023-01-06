@@ -94,9 +94,7 @@ void vtkOpenXRRenderWindowInteractor::ProcessXrEvents()
       // We lost some data
       case XR_TYPE_EVENT_DATA_EVENTS_LOST:
       {
-        const auto stateEvent = *reinterpret_cast<const XrEventDataEventsLost*>(&eventData);
-        vtkDebugMacro(<< "OpenXR event [XR_TYPE_EVENT_DATA_EVENTS_LOST] : "
-                      << stateEvent.lostEventCount << " events data lost!");
+        vtkDebugMacro(<< "OpenXR event [XR_TYPE_EVENT_DATA_EVENTS_LOST] : some events data lost!");
         // do we care if the runtime loses events?
         break;
       }
