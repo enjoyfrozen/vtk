@@ -136,44 +136,46 @@ struct ScaleWorker
     static constexpr int VTK_SMP_THRESHOLD = 750000;
     if (numPts >= VTK_SMP_THRESHOLD)
     {
-      vtkSMPTools::For(0, numPts, [&](vtkIdType ptId, vtkIdType endPtId) {
-        double s, *n = normal, inNormal[3];
-        bool isFirst = vtkSMPTools::GetSingleThread();
-        for (; ptId < endPtId; ++ptId)
+      vtkSMPTools::For(0, numPts,
+        [&](vtkIdType ptId, vtkIdType endPtId)
         {
-          if (isFirst)
+          double s, *n = normal, inNormal[3];
+          bool isFirst = vtkSMPTools::GetSingleThread();
+          for (; ptId < endPtId; ++ptId)
           {
-            self->CheckAbort();
-          }
-          if (self->GetAbortOutput())
-          {
-            break;
-          }
-          const auto xi = ipts[ptId];
-          auto xo = opts[ptId];
+            if (isFirst)
+            {
+              self->CheckAbort();
+            }
+            if (self->GetAbortOutput())
+            {
+              break;
+            }
+            const auto xi = ipts[ptId];
+            auto xo = opts[ptId];
 
-          if (XYPlane)
-          {
-            s = xi[2];
-          }
-          else
-          {
-            const auto sval = sRange[ptId];
-            s = sval[0]; // 0th component of the tuple
-          }
+            if (XYPlane)
+            {
+              s = xi[2];
+            }
+            else
+            {
+              const auto sval = sRange[ptId];
+              s = sval[0]; // 0th component of the tuple
+            }
 
-          if (inNormals)
-          {
-            inNormals->GetTuple(ptId, inNormal);
-            n = inNormal;
-          }
+            if (inNormals)
+            {
+              inNormals->GetTuple(ptId, inNormal);
+              n = inNormal;
+            }
 
-          xo[0] = xi[0] + sf * s * n[0];
-          xo[1] = xi[1] + sf * s * n[1];
-          xo[2] = xi[2] + sf * s * n[2];
-        }
-      }); // lambda
-    }     // threaded
+            xo[0] = xi[0] + sf * s * n[0];
+            xo[1] = xi[1] + sf * s * n[1];
+            xo[2] = xi[2] + sf * s * n[2];
+          }
+        }); // lambda
+    }       // threaded
 
     else // serial
     {
@@ -278,13 +280,18 @@ int vtkWarpScalar::RequestData(vtkInformation* vtkNotUsed(request),
       markBoundary->GenerateBoundaryFacesOn();
       markBoundary->SetContainerAlgorithm(this);
       markBoundary->Update();
-      vtkDataSet* ds = vtkDataSet::SafeDownCast(markBoundary->GetOutputDataObject(0));
+      vtkPointSet* ptSet = vtkPointSet::SafeDownCast(markBoundary->GetOutputDataObject(0));
+      if (!ptSet)
+      {
+        vtkErrorMacro("Output of mark boundaries is not point set");
+        return 0;
+      }
       boundaryPoints = vtkArrayDownCast<vtkUnsignedCharArray>(
-        ds->GetPointData()->GetArray(markBoundary->GetBoundaryPointsName()));
+        ptSet->GetPointData()->GetArray(markBoundary->GetBoundaryPointsName()));
       boundaryCells = vtkArrayDownCast<vtkUnsignedCharArray>(
-        ds->GetCellData()->GetArray(markBoundary->GetBoundaryCellsName()));
+        ptSet->GetCellData()->GetArray(markBoundary->GetBoundaryCellsName()));
       boundaryFaceIndexes = vtkArrayDownCast<vtkIdTypeArray>(
-        ds->GetCellData()->GetArray(markBoundary->GetBoundaryFacesName()));
+        ptSet->GetCellData()->GetArray(markBoundary->GetBoundaryFacesName()));
       if (!boundaryPoints || !boundaryCells || !boundaryFaceIndexes)
       {
         vtkErrorMacro("Could not extract boundary arrays");
@@ -391,15 +398,23 @@ int vtkWarpScalar::RequestData(vtkInformation* vtkNotUsed(request),
       vtkErrorMacro("Could not recover topology from output");
       return 0;
     }
+    vtkNew<vtkCellArray> topCopy;
+    topCopy->DeepCopy(topology);
+    topCopy->Append(topology, input->GetNumberOfPoints());
+    if (polyOutput)
     {
-      vtkNew<vtkCellArray> topCopy;
-      topCopy->DeepCopy(topology);
-      topology->Append(topCopy, input->GetNumberOfPoints());
-      this->AppendArrays(output->GetPointData());
-      this->AppendArrays(output->GetCellData());
+      polyOutput->SetPolys(topCopy);
     }
+    else
+    {
+      vtkNew<vtkUnsignedCharArray> cTypes;
+      cTypes->DeepCopy(ugOutput->GetDistinctCellTypesArray());
+      ugOutput->SetCells(cTypes, topCopy);
+    }
+    this->AppendArrays(output->GetPointData());
+    this->AppendArrays(output->GetCellData());
     this->BuildSideWalls(
-      output, topology, input->GetNumberOfPoints(), boundaryCells, boundaryFaceIndexes);
+      output, topCopy, input->GetNumberOfPoints(), boundaryCells, boundaryFaceIndexes);
   }
   return 1;
 }
@@ -487,7 +502,7 @@ void vtkWarpScalar::BuildSideWalls(vtkPointSet* output, vtkCellArray* topology, 
       constexpr std::size_t nBitsvtkIdType = sizeof(vtkIdType) * CHAR_BIT;
       std::bitset<nBitsvtkIdType> faceMask = *faceIter;
       vtkCell* bCell = output->GetCell(iCell);
-      int nEdges = std::max(bCell->GetNumberOfEdges(), static_cast<int>(nBitsvtkIdType));
+      int nEdges = std::min(bCell->GetNumberOfEdges(), static_cast<int>(nBitsvtkIdType));
       for (int iEdge = 0; iEdge < nEdges; iEdge++)
       {
         if (faceMask[iEdge])
@@ -516,12 +531,20 @@ void vtkWarpScalar::BuildSideWalls(vtkPointSet* output, vtkCellArray* topology, 
 //------------------------------------------------------------------------------
 void vtkWarpScalar::AppendArrays(vtkDataSetAttributes* setData)
 {
+  std::vector<vtkSmartPointer<vtkAbstractArray>> buffer(setData->GetNumberOfArrays());
   for (int iArr = 0; iArr < setData->GetNumberOfArrays(); iArr++)
   {
     vtkAbstractArray* aa = setData->GetArray(iArr);
     vtkSmartPointer<vtkAbstractArray> newAa = vtk::TakeSmartPointer(aa->NewInstance());
     newAa->DeepCopy(aa);
-    aa->InsertTuples(aa->GetNumberOfTuples(), newAa->GetNumberOfTuples(), 0, newAa);
+    newAa->InsertTuples(newAa->GetNumberOfTuples(), aa->GetNumberOfTuples(), 0, aa);
+    buffer[iArr] = newAa;
+  }
+  // This operation will replace all arrays in the data attributes with their doubly deep copied
+  // counterparts
+  for (auto arr : buffer)
+  {
+    setData->AddArray(arr);
   }
 }
 
