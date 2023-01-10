@@ -125,6 +125,7 @@ public:
   /**
    * Set/Get the .json filename describing action bindings for events.
    * Based on https://github.com/ValveSoftware/openvr/wiki/Action-manifest
+   * Default is empty.
    */
   vtkGetMacro(ActionManifestFileName, std::string);
   vtkSetMacro(ActionManifestFileName, std::string);
@@ -133,7 +134,7 @@ public:
   ///@{
   /**
    * Set/Get the path to the directory to search for the ActionManifestFileName
-   * Default to "./"
+   * Default is empty.
    */
   vtkGetMacro(ActionManifestDirectory, std::string);
   vtkSetMacro(ActionManifestDirectory, std::string);
@@ -191,7 +192,7 @@ protected:
   vtkNew<vtkMatrix4x4> StartingPhysicalToWorldMatrix;
   int DeviceInputDownCount[vtkEventDataNumberOfDevices];
   std::string ActionManifestFileName;
-  std::string ActionManifestDirectory = "./";
+  std::string ActionManifestDirectory;
   std::string ActionSetName;
 
 private:
