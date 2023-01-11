@@ -80,7 +80,7 @@ void vtkVRRenderWindow::PrintSelf(ostream& os, vtkIndent indent)
 
   os << indent << "ContextId: " << this->HelperWindow->GetGenericContext() << "\n";
   os << indent << "Window Id: " << this->HelperWindow->GetGenericWindowId() << "\n";
-  os << indent << "Initialized: " << this->Initialized << "\n";
+  os << indent << "VRInitialized: " << this->VRInitialized << "\n";
   os << indent << "PhysicalViewDirection: (" << this->PhysicalViewDirection[0] << ", "
      << this->PhysicalViewDirection[1] << ", " << this->PhysicalViewDirection[2] << ")\n";
   os << indent << "PhysicalViewUp: (" << this->PhysicalViewUp[0] << ", " << this->PhysicalViewUp[1]
@@ -326,18 +326,6 @@ void vtkVRRenderWindow::AddRenderer(vtkRenderer* ren)
     return;
   }
   this->Superclass::AddRenderer(ren);
-}
-
-//------------------------------------------------------------------------------
-void vtkVRRenderWindow::Start()
-{
-  // if the renderer has not been initialized, do so now
-  if (this->HelperWindow && !this->Initialized)
-  {
-    this->Initialize();
-  }
-
-  this->Superclass::Start();
 }
 
 //------------------------------------------------------------------------------

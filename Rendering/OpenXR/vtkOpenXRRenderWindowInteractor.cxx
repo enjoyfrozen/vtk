@@ -475,7 +475,7 @@ void vtkOpenXRRenderWindowInteractor::Initialize()
   // Make sure the render window is initialized
   renWin->Initialize();
 
-  if (!renWin->GetInitialized())
+  if (!renWin->GetVRInitialized())
   {
     return;
   }

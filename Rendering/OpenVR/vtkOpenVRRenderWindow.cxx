@@ -386,8 +386,14 @@ std::string vtkOpenVRRenderWindow::GetWindowTitleFromAPI()
 //------------------------------------------------------------------------------
 void vtkOpenVRRenderWindow::Initialize()
 {
-  if (this->Initialized)
+  if (this->VRInitialized)
   {
+    return;
+  }
+
+  if (!this->HelperWindow)
+  {
+    vtkErrorMacro(<< "HelperWindow is not set");
     return;
   }
 
@@ -445,9 +451,7 @@ void vtkOpenVRRenderWindow::Initialize()
 
   this->DashboardOverlay->Create(this);
 
-  this->Initialized = true;
-
-  vtkDebugMacro(<< "End of OpenXRRenderWindow Initialization");
+  this->VRInitialized = true;
 }
 
 //------------------------------------------------------------------------------
@@ -465,7 +469,7 @@ void vtkOpenVRRenderWindow::ReleaseGraphicsResources(vtkWindow* renWin)
 //------------------------------------------------------------------------------
 void vtkOpenVRRenderWindow::Finalize()
 {
-  if (!this->Initialized)
+  if (!this->VRInitialized)
   {
     return;
   }
@@ -478,7 +482,7 @@ void vtkOpenVRRenderWindow::Finalize()
     this->HelperWindow->Finalize();
   }
 
-  this->Initialized = false;
+  this->VRInitialized = false;
 }
 
 //------------------------------------------------------------------------------
