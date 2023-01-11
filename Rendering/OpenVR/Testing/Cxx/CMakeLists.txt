@@ -1,6 +1,6 @@
 # The runtime tests requires an OpenVR runtime and a HMD to pass
 # Tested with :
-# - Valve Index on Windows (TODO LINUX) 
+# - Valve Index on Windows 
 # - Windows Mixed Reality within SteamVR
 option(VTK_OPENVR_TESTING_ENABLE_RUNTIME_TESTS "Enable OpenVR tests that require an OpenVR runtime" OFF)
 mark_as_advanced(VTK_OPENVR_TESTING_ENABLE_RUNTIME_TESTS)

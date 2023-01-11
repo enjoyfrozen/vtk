@@ -1,13 +1,13 @@
 # The runtime tests requires an OpenXR runtime and a HMD to pass
 # Tested with :
 # - Monado on linux
-# - Valve Index on Windows TODO LINUX
+# - Valve Index on Windows
 # - Windows Mixed Reality within SteamVR
 option(VTK_OPENXR_TESTING_ENABLE_RUNTIME_TESTS "Enable OpenXR tests that require an OpenXR runtime" OFF)
 mark_as_advanced(VTK_OPENXR_TESTING_ENABLE_RUNTIME_TESTS)
 
-# The interactive tests requires an OpenXR runtime and a HMD and will juste run interactively.
-# To make it pass, just exit the VR environnement using the menu inside VR.
+# The interactive tests require an OpenXR runtime and a HMD and will just run interactively.
+# To make it pass, just exit the VR environment using the menu inside VR.
 option(VTK_OPENXR_TESTING_ENABLE_INTERACTIVE_TESTS "Enable OpenXR tests that are interactive" OFF) 
 mark_as_advanced(VTK_OPENXR_TESTING_ENABLE_INTERACTIVE_TESTS)
 
