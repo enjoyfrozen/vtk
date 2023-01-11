@@ -5,8 +5,8 @@
 option(VTK_OPENVR_TESTING_ENABLE_RUNTIME_TESTS "Enable OpenVR tests that require an OpenVR runtime" OFF)
 mark_as_advanced(VTK_OPENVR_TESTING_ENABLE_RUNTIME_TESTS)
 
-# The interactive tests requires an OpenVR runtime and a HMD and will juste run interactively.
-# To make it pass, just exit the VR environnement using the menu inside VR.
+# The interactive tests require an OpenVR runtime and a HMD and will just run interactively.
+# To make it pass, just exit the VR environment using the menu inside VR.
 option(VTK_OPENVR_TESTING_ENABLE_INTERACTIVE_TESTS "Enable OpenVR tests that are interactive" OFF) 
 mark_as_advanced(VTK_OPENVR_TESTING_ENABLE_INTERACTIVE_TESTS)
 
