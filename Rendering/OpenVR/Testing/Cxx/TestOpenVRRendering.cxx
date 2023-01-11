@@ -25,7 +25,7 @@
 // Render a non-opaque sphere with a background
 // ensuring the generated image looks the same
 // whatever the viewpoint
-int TestOpenVRRendering(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
+int TestOpenVRRendering(int argc, char* argv[])
 {
   vtkNew<vtkOpenVRRenderer> renderer;
   vtkNew<vtkOpenVRRenderWindow> renderWindow;
