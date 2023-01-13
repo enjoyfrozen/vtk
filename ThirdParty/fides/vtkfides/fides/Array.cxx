@@ -1005,7 +1005,7 @@ void ArrayGTCCoordinates::PostRead(std::vector<vtkm::cont::DataSet>& dataSets,
   }
 
   auto& dataSet = dataSets[0];
-  auto& cs = dataSet.GetCoordinateSystem();
+  auto cs = dataSet.GetCoordinateSystem();
 
   size_t numInsertPlanes = 0;
   if (metaData.Has(fides::keys::fusion::PLANE_INSERTION()))

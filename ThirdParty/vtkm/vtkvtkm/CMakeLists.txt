@@ -66,10 +66,10 @@ set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 add_subdirectory(vtk-m)
 vtkm_setup_job_pool()
 
-vtk_module_add_module(VTK::vtkm
+vtk_module_add_module(VTK::vtkvtkm
   HEADER_ONLY)
-vtk_module_link(VTK::vtkm INTERFACE vtkm_cont vtkm_filter)
+vtk_module_link(VTK::vtkvtkm INTERFACE vtkm_cont vtkm_filter)
 
-if (VTK_USE_HIP AND NOT TARGET vtkm::kokkos_hip)
+if (VTK_USE_HIP AND NOT TARGET vtkm_kokkos_hip)
   message(FATAL_ERROR "VTK_USE_HIP=ON but Kokkos HIP backend not found, exiting.")
 endif()

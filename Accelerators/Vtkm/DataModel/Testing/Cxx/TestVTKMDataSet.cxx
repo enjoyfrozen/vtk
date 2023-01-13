@@ -17,6 +17,7 @@
 #include "vtkUnsignedCharArray.h"
 #include "vtkUnstructuredGrid.h"
 #include "vtkmDataArray.h"
+#include "vtkmlib/DataArrayConverters.h"
 
 #include <vtkm/cont/ArrayHandleUniformPointCoordinates.h>
 #include <vtkm/cont/testing/MakeTestDataSet.h>
@@ -283,6 +284,7 @@ void TestUniformDataSet()
   auto spacing = portal.GetSpacing();
 
   vtkNew<vtkFloatArray> pointField, cellField;
+  vtkDataArray* coordsField = fromvtkm::Convert(dataset.GetField("coords"));
   FieldCopy(dataset.GetField("pointvar").GetData().AsArrayHandle<vtkm::cont::ArrayHandle<float>>(),
     "pointvar", pointField);
   FieldCopy(dataset.GetField("cellvar").GetData().AsArrayHandle<vtkm::cont::ArrayHandle<float>>(),
@@ -292,8 +294,13 @@ void TestUniformDataSet()
   imageData->SetDimensions(dims[0], dims[1], dims[2]);
   imageData->SetOrigin(origin[0], origin[1], origin[2]);
   imageData->SetSpacing(spacing[0], spacing[1], spacing[2]);
+
+  // Add coordsField as another pointField to mimic the fromvtkm::convert
+  imageData->GetPointData()->AddArray(coordsField);
   imageData->GetPointData()->AddArray(pointField);
   imageData->GetCellData()->AddArray(cellField);
+
+  coordsField->FastDelete();
 
   vtkNew<vtkImageDataToPointSet> voxToHex;
   voxToHex->SetInputData(imageData);
@@ -318,6 +325,7 @@ void TestCurvilinearDataSet()
   CoordsCopy(dataset.GetCoordinateSystem(), points);
 
   vtkNew<vtkFloatArray> pointField, cellField;
+  vtkDataArray* coordsField = fromvtkm::Convert(dataset.GetField("coordinates"));
   FieldCopy(dataset.GetField("pointvar").GetData().AsArrayHandle<vtkm::cont::ArrayHandle<float>>(),
     "pointvar", pointField);
   FieldCopy(dataset.GetField("cellvar").GetData().AsArrayHandle<vtkm::cont::ArrayHandle<float>>(),
@@ -326,8 +334,13 @@ void TestCurvilinearDataSet()
   vtkNew<vtkStructuredGrid> dsVtk;
   dsVtk->SetDimensions(dims[0], dims[1], dims[2]);
   dsVtk->SetPoints(points);
+
+  // Add coordsField as another pointField to mimic the fromvtkm::convert
+  dsVtk->GetPointData()->AddArray(coordsField);
   dsVtk->GetPointData()->AddArray(pointField);
   dsVtk->GetCellData()->AddArray(cellField);
+
+  coordsField->FastDelete();
 
   vtkNew<vtkmDataSet> dsVtkm;
   dsVtkm->SetVtkmDataSet(dataset);
@@ -360,6 +373,7 @@ void TestExplicitDataSet()
   }
 
   vtkNew<vtkFloatArray> pointField, cellField;
+  vtkDataArray* coordsField = fromvtkm::Convert(dataset.GetField("coordinates"));
   FieldCopy(dataset.GetField("pointvar").GetData().AsArrayHandle<vtkm::cont::ArrayHandle<float>>(),
     "pointvar", pointField);
   FieldCopy(dataset.GetField("cellvar").GetData().AsArrayHandle<vtkm::cont::ArrayHandle<float>>(),
@@ -368,8 +382,13 @@ void TestExplicitDataSet()
   vtkNew<vtkUnstructuredGrid> dsVtk;
   dsVtk->SetPoints(points);
   dsVtk->SetCells(shapes, connectivity);
+
+  // Add coordsField as another pointField to mimic the fromvtkm::convert
+  dsVtk->GetPointData()->AddArray(coordsField);
   dsVtk->GetPointData()->AddArray(pointField);
   dsVtk->GetCellData()->AddArray(cellField);
+
+  coordsField->FastDelete();
 
   vtkNew<vtkmDataSet> dsVtkm;
   dsVtkm->SetVtkmDataSet(dataset);

@@ -22,7 +22,7 @@ foreach (vtk_module IN LISTS vtk_modules)
     "${vtk_component}")
 endforeach ()
 
-if (TARGET "VTK::vtkm")
+if (TARGET "VTK::vtkvtkm")
   set(vtk_has_vtkm ON)
 else ()
   set(vtk_has_vtkm OFF)
