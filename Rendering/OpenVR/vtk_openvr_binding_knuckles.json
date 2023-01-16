@@ -32,15 +32,6 @@
         {
           "inputs": {
             "click": {
-              "output": "/actions/vtk/in/showmenu"
-            }
-          },
-          "mode": "button",
-          "path": "/user/hand/right/input/b"
-        },
-        {
-          "inputs": {
-            "click": {
               "output": "/actions/vtk/in/nextcamerapose"
             }
           },
@@ -73,6 +64,24 @@
           },
           "mode": "button",
           "path": "/user/hand/right/input/a"
+        },
+        {
+          "inputs": {
+            "click": {
+              "output": "/actions/vtk/in/modifier"
+            }
+          },
+          "mode": "button",
+          "path": "/user/hand/left/input/b"
+        },
+        {
+          "inputs": {
+            "click": {
+              "output": "/actions/vtk/in/showmenu"
+            }
+          },
+          "mode": "button",
+          "path": "/user/hand/right/input/b"
         }
       ]
     }

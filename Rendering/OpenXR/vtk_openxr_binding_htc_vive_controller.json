@@ -29,7 +29,26 @@
               "output": "movement"
             }
           },
+          "path": "/user/hand/left/input/trackpad"
+        },
+        {
+          "inputs": {
+            "touch": {
+              "output": "startelevation"
+            },
+            "position": {
+              "output": "elevation"
+            }
+          },
           "path": "/user/hand/right/input/trackpad"
+        },
+        {
+          "inputs": {
+            "click": {
+              "output": "leftgripaction"
+            }
+          },
+          "path": "/user/hand/left/input/squeeze"
         },
         {
           "inputs": {
@@ -42,10 +61,10 @@
         {
           "inputs": {
             "click": {
-              "output": "leftgripaction"
+              "output": "modifier"
             }
           },
-          "path": "/user/hand/left/input/squeeze"
+          "path": "/user/hand/left/input/menu"
         },
         {
           "inputs": {

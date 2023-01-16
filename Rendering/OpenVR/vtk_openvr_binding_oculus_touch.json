@@ -12,16 +12,16 @@
             }
           },
           "mode": "joystick",
-          "path": "/user/hand/right/input/joystick"
+          "path": "/user/hand/left/input/joystick"
         },
         {
           "inputs": {
-            "click": {
-              "output": "/actions/vtk/in/leftgripaction"
+            "position": {
+              "output": "/actions/vtk/in/elevation"
             }
           },
-          "mode": "button",
-          "path": "/user/hand/left/input/grip"
+          "mode": "joystick",
+          "path": "/user/hand/right/input/joystick"
         },
         {
           "inputs": {
@@ -44,11 +44,11 @@
         {
           "inputs": {
             "click": {
-              "output": "/actions/vtk/in/showmenu"
+              "output": "/actions/vtk/in/leftgripaction"
             }
           },
           "mode": "button",
-          "path": "/user/hand/right/input/b"
+          "path": "/user/hand/left/input/grip"
         },
         {
           "inputs": {
@@ -58,6 +58,24 @@
           },
           "mode": "button",
           "path": "/user/hand/right/input/grip"
+        },
+        {
+          "inputs": {
+            "click": {
+              "output": "/actions/vtk/in/modifier"
+            }
+          },
+          "mode": "button",
+          "path": "/user/hand/left/input/y"
+        },
+        {
+          "inputs": {
+            "click": {
+              "output": "/actions/vtk/in/showmenu"
+            }
+          },
+          "mode": "button",
+          "path": "/user/hand/right/input/b"
         }
       ]
     }
@@ -65,7 +83,7 @@
   "category": "steamvr_input",
   "controller_type": "oculus_touch",
   "description": "",
-  "name": "vtk-oculus",
+  "name": "Bindings for VTK applications for Oculus Touch controllers",
   "options": {},
   "simulated_actions": []
 }

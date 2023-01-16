@@ -60,6 +60,7 @@ public:
   void OnMove3D(vtkEventData* edata) override;
   void OnMenu3D(vtkEventData* edata) override;
   void OnElevation3D(vtkEventData* edata) override;
+  void OnModifier3D(vtkEventData* edata) override;
   ///@}
 
   ///@{
@@ -166,6 +167,16 @@ public:
   vtkGetMacro(Style, MovementStyle);
   ///@}
 
+  ///@{
+  /**
+   * Specify if all actors should be selected during a grab or pick action.
+   * Default is false.
+   */
+  vtkSetMacro(GrabAllActors, bool);
+  vtkGetMacro(GrabAllActors, bool);
+  vtkBooleanMacro(GrabAllActors, bool);
+  ///@}
+
   /**
    * Return interaction state for the specified device (dolly, pick, none, etc...).
    */
@@ -200,7 +211,6 @@ public:
    * Make the pick actor a polydata built from the points and edges of the
    * given cell, and show it.
    */
-
   void ShowPickCell(vtkCell* cell, vtkProp3D*);
 
   /**
@@ -262,6 +272,7 @@ protected:
 
   bool HoverPick = false;
   bool GrabWithRay = true;
+  bool GrabAllActors = false;
 
   vtkNew<vtkVRMenuWidget> Menu;
   vtkNew<vtkVRMenuRepresentation> MenuRepresentation;

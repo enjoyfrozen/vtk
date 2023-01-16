@@ -31,6 +31,7 @@ void vtkOpenVRInteractorStyle::SetupActions(vtkRenderWindowInteractor* iren)
   if (oiren)
   {
     oiren->AddAction("/actions/vtk/in/Elevation", vtkCommand::Elevation3DEvent, true);
+    oiren->AddAction("/actions/vtk/in/Modifier", vtkCommand::Modifier3DEvent, false);
     oiren->AddAction("/actions/vtk/in/Movement", vtkCommand::ViewerMovement3DEvent, true);
     oiren->AddAction("/actions/vtk/in/NextCameraPose", vtkCommand::NextPose3DEvent, false);
     oiren->AddAction("/actions/vtk/in/PositionProp", vtkCommand::PositionProp3DEvent, false);

@@ -61,10 +61,10 @@
         {
           "inputs": {
             "click": {
-              "output": "triggeraction"
+              "output": "modifier"
             }
           },
-          "path": "/user/hand/right/input/trigger"
+          "path": "/user/hand/left/input/b"
         },
         {
           "inputs": {
@@ -73,6 +73,14 @@
             }
           },
           "path": "/user/hand/right/input/b"
+        },
+        {
+          "inputs": {
+            "click": {
+              "output": "triggeraction"
+            }
+          },
+          "path": "/user/hand/right/input/trigger"
         }
       ]
     }

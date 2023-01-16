@@ -14,6 +14,7 @@ PURPOSE.  See the above copyright notice for more information.
 =========================================================================*/
 #include "vtkVRInteractorStyle.h"
 
+#include "vtkAssembly.h"
 #include "vtkAssemblyPath.h"
 #include "vtkCallbackCommand.h"
 #include "vtkCamera.h"
@@ -101,6 +102,7 @@ void vtkVRInteractorStyle::PrintSelf(ostream& os, vtkIndent indent)
   this->Superclass::PrintSelf(os, indent);
   os << indent << "HoverPick: " << this->HoverPick << endl;
   os << indent << "GrabWithRay: " << this->GrabWithRay << endl;
+  os << indent << "GrabAllActors: " << this->GrabAllActors << endl;
 }
 
 //------------------------------------------------------------------------------
@@ -340,6 +342,26 @@ void vtkVRInteractorStyle::OnMenu3D(vtkEventData* edata)
 }
 
 //------------------------------------------------------------------------------
+void vtkVRInteractorStyle::OnModifier3D(vtkEventData* edata)
+{
+  vtkEventDataDevice3D* edd = edata->GetAsEventDataDevice3D();
+
+  if (!edd)
+  {
+    return;
+  }
+
+  if (edd->GetAction() == vtkEventDataAction::Press)
+  {
+    this->InteractionState[static_cast<int>(edd->GetDevice())] = VTKIS_MODIFIER;
+  }
+  else if (edd->GetAction() == vtkEventDataAction::Release)
+  {
+    this->InteractionState[static_cast<int>(edd->GetDevice())] = VTKIS_NONE;
+  }
+}
+
+//------------------------------------------------------------------------------
 // Interaction entry points
 //------------------------------------------------------------------------------
 void vtkVRInteractorStyle::StartPick(vtkEventDataDevice3D* edata)
@@ -384,6 +406,7 @@ void vtkVRInteractorStyle::EndLoadCamPose(vtkEventDataDevice3D* edata)
 //------------------------------------------------------------------------------
 void vtkVRInteractorStyle::StartPositionProp(vtkEventDataDevice3D* edata)
 {
+  // Check if an object has been picked
   if (this->GrabWithRay)
   {
     if (!this->HardwareSelect(edata->GetDevice(), true))
@@ -409,9 +432,29 @@ void vtkVRInteractorStyle::StartPositionProp(vtkEventDataDevice3D* edata)
     this->FindPickedActor(pos, nullptr);
   }
 
-  if (this->InteractionProp == nullptr)
+  if (!this->InteractionProp)
   {
     return;
+  }
+
+  // Grab or pick all actors in the scene
+  vtkNew<vtkAssembly> assembly;
+
+  if (this->GrabAllActors && this->CurrentRenderer)
+  {
+    vtkActor* actor;
+    vtkActorCollection* ac = this->CurrentRenderer->GetActors();
+    vtkCollectionSimpleIterator iter;
+
+    for (ac->InitTraversal(iter); (actor = ac->GetNextActor(iter));)
+    {
+      if (actor->GetPickable())
+      {
+        assembly->AddPart(actor);
+      }
+    }
+
+    this->InteractionProp = assembly;
   }
 
   this->InteractionState[static_cast<int>(edata->GetDevice())] = VTKIS_POSITION_PROP;
@@ -856,9 +899,21 @@ void vtkVRInteractorStyle::MapInputToAction(vtkCommand::EventIds eid, int state)
 //------------------------------------------------------------------------------
 void vtkVRInteractorStyle::StartAction(int state, vtkEventDataDevice3D* edata)
 {
+  // Check whether the modifier is active
+  bool modifier = false;
+
+  for (int d = 0; d < vtkEventDataNumberOfDevices; ++d)
+  {
+    if (this->InteractionState[d] == VTKIS_MODIFIER)
+    {
+      modifier = true;
+    }
+  }
+
   switch (state)
   {
     case VTKIS_POSITION_PROP:
+      this->GrabAllActors = modifier;
       this->StartPositionProp(edata);
       break;
     case VTKIS_DOLLY:
@@ -890,6 +945,7 @@ void vtkVRInteractorStyle::EndAction(int state, vtkEventDataDevice3D* edata)
   switch (state)
   {
     case VTKIS_POSITION_PROP:
+      this->GrabAllActors = false;
       this->EndPositionProp(edata);
       break;
     case VTKIS_DOLLY:
