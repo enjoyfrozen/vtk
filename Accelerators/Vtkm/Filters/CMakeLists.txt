@@ -122,7 +122,7 @@ vtkm_add_target_information(${vtkm_accel_target}
                             MODIFY_CUDA_FLAGS
                             DEVICE_SOURCES ${sources})
 
-if (TARGET vtkm_cuda)
+if (TARGET vtkm::cuda)
   # Temporarily suppress "has address taken but no possible call to it" warnings,
   # until we figure out its implications.
   # We are disabling all warnings as nvlink has no known way to suppress
@@ -159,7 +159,7 @@ if (MSVC)
     )
   set(vtkm_msvc_flags)
   foreach (msvc_warning_flag IN LISTS msvc_warning_flags)
-    if (TARGET vtkm_cuda)
+    if (TARGET vtkm::cuda)
       list(APPEND vtkm_msvc_flags
         $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=${msvc_warning_flag},${msvc_warning_flag}>)
     else ()

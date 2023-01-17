@@ -6,7 +6,7 @@ vtk_add_test_cxx(vtkAcceleratorsVTKmCoreCxxTests tests
   TestVTKMImplicitDataArray.cxx,VALID
   )
 
-if (TARGET vtkm_cuda)
+if (TARGET vtkm::cuda)
   #the enable_language call is scoped! so we have to re-enable
   #cuda in the test directory
   enable_language(CUDA)
@@ -39,7 +39,7 @@ target_link_libraries(vtkAcceleratorsVTKmCoreCxxTests
   PRIVATE
     vtkm_cont_testing)
 
-if (TARGET vtkm_cuda)
+if (TARGET vtkm::cuda)
   # When cuda is enabled VTK::AcceleratorsVTKmCore is built statically but with fpic
   # enabled so the tests are also built with fpic enabled
   set_target_properties(vtkAcceleratorsVTKmCoreCxxTests PROPERTIES

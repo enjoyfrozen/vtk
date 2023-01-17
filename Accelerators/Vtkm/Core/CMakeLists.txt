@@ -58,7 +58,7 @@ vtkm_add_target_information(${vtkm_accel_target}
                             DEVICE_SOURCES ${sources})
 
 list(TRANSFORM nowrap_classes APPEND ".cxx" OUTPUT_VARIABLE device_sources)
-if (TARGET vtkm_cuda)
+if (TARGET vtkm::cuda)
   # Temporarily suppress "has address taken but no possible call to it" warnings,
   # until we figure out its implications.
   # We are disabling all warnings as nvlink has no known way to suppress
@@ -70,7 +70,7 @@ if (TARGET vtkm_cuda)
 
   vtk_module_set_properties(VTK::AcceleratorsVTKmCore CUDA_SEPARABLE_COMPILATION ON)
 
-elseif (TARGET vtkm_kokkos_hip)
+elseif (TARGET vtkm::kokkos_hip)
   list(TRANSFORM nowrap_classes APPEND ".cxx" OUTPUT_VARIABLE hip_impl)
   set_source_files_properties(${device_sources} PROPERTIES LANGUAGE HIP)
   kokkos_compilation(SOURCE ${device_sources})
@@ -95,7 +95,7 @@ if (MSVC)
     )
   set(vtkm_msvc_flags)
   foreach (msvc_warning_flag IN LISTS msvc_warning_flags)
-    if (TARGET vtkm_cuda)
+    if (TARGET vtkm::cuda)
       list(APPEND vtkm_msvc_flags
         $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=${msvc_warning_flag},${msvc_warning_flag}>)
     else ()

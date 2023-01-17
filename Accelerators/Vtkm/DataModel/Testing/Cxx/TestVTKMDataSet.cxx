@@ -20,7 +20,12 @@
 #include "vtkmlib/DataArrayConverters.h"
 
 #include <vtkm/cont/ArrayHandleUniformPointCoordinates.h>
+
+#ifdef VTKm_IS_EXTERNAL_BUILD
+#include <vtkm/cont/testlib/MakeTestDataSet.h>
+#else
 #include <vtkm/cont/testing/MakeTestDataSet.h>
+#endif
 
 #include <array>
 #include <random>

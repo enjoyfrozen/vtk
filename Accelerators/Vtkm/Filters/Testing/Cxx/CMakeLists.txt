@@ -26,7 +26,7 @@ vtk_add_test_cxx(vtkAcceleratorsVTKmFiltersCxxTests tests
   TestVTKMWarpVector.cxx
   )
 
-if (TARGET vtkm_cuda)
+if (TARGET vtkm::cuda)
   #the enable_language call is scoped! so we have to re-enable
   #cuda in the test directory
   enable_language(CUDA)
@@ -61,7 +61,7 @@ target_link_libraries(vtkAcceleratorsVTKmFiltersCxxTests
   PRIVATE
     vtkm_cont_testing)
 
-if (TARGET vtkm_cuda)
+if (TARGET vtkm::cuda)
   set_target_properties(vtkAcceleratorsVTKmFiltersCxxTests PROPERTIES
     CUDA_ARCHITECTURES OFF)
 endif()

@@ -1,3 +1,14 @@
+# We need this in order to make External Test builds to work: TestVTKMDataSet
+# includes MakeTestDataSet, however, MakeTestDataSet both  source tree and
+# installed tree has two different paths, to deal with this we need to
+# determine at configure time the VTKm dependency type and pass that
+# information down to the build tool so that the source code can parametrize
+# the include.
+if (TARGET vtkm::cont)
+  set_source_files_properties(TestVTKMDataSet.cxx PROPERTIES
+    COMPILE_DEFINITIONS VTKm_IS_EXTERNAL_BUILD=1)
+endif()
+
 # We are splitting the tests into two executables to workaround an issue in
 # cuda. With all the tests in the same executable several tests are failing
 # in cuda. We have not identified the root cause of the problem yet.
@@ -5,11 +16,7 @@ vtk_add_test_cxx(vtkAcceleratorsVTKmDataModelCxxTests tests
   TestVTKMDataSet.cxx,NO_VALID
   )
 
-if (TARGET vtkm_cuda)
-  #the enable_language call is scoped! so we have to re-enable
-  #cuda in the test directory
-  enable_language(CUDA)
-
+if (TARGET vtkm::cuda)
   foreach(src IN LISTS tests)
     string(REPLACE "," ";" src ${src})
     list(GET src 0 src)
@@ -39,7 +46,7 @@ target_link_libraries(vtkAcceleratorsVTKmDataModelCxxTests
   PRIVATE
     vtkm_cont_testing)
 
-if (TARGET vtkm_cuda)
+if (TARGET vtkm::cuda)
   # When cuda is enabled VTK::AcceleratorsVTKmDataModel is built statically but with fpic
   # enabled so the tests are also built with fpic enabled
   set_target_properties(vtkAcceleratorsVTKmDataModelCxxTests PROPERTIES

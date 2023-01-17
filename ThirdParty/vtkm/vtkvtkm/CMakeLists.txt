@@ -73,3 +73,13 @@ vtk_module_link(VTK::vtkvtkm INTERFACE vtkm_cont vtkm_filter)
 if (VTK_USE_HIP AND NOT TARGET vtkm_kokkos_hip)
   message(FATAL_ERROR "VTK_USE_HIP=ON but Kokkos HIP backend not found, exiting.")
 endif()
+
+if (TARGET vtkm_cuda)
+  add_library("vtkm::cuda" INTERFACE IMPORTED GLOBAL)
+  target_link_libraries("vtkm::cuda" INTERFACE vtkm_cuda)
+endif()
+
+if (TARGET vtkm_kokkos_hip)
+  add_library("vtkm::kokkos_hip" INTERFACE IMPORTED GLOBAL)
+  target_link_libraries("vtkm::kokkos_hip" INTERFACE vtkm_kokkos_hip)
+endif()
