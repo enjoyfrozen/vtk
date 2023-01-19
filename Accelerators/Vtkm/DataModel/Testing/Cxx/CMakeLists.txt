@@ -4,7 +4,7 @@
 # determine at configure time the VTKm dependency type and pass that
 # information down to the build tool so that the source code can parametrize
 # the include.
-if (TARGET vtkm::cont)
+if (VTKm_FOUND)
   set_source_files_properties(TestVTKMDataSet.cxx PROPERTIES
     COMPILE_DEFINITIONS VTKm_IS_EXTERNAL_BUILD=1)
 endif()
