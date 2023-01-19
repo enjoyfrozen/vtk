@@ -41,8 +41,8 @@ class TestFidesBasic(Testing.vtkTest):
         ds = pds.GetPartition(0)
         self.assertEqual(ds.GetNumberOfCells(), 24)
         self.assertEqual(ds.GetNumberOfPoints(), 20)
-        self.assertEqual(ds.GetPointData().GetNumberOfArrays(), 1)
-        self.assertEqual(ds.GetPointData().GetArray(0).GetName(), "dpot2")
+        self.assertEqual(ds.GetPointData().GetNumberOfArrays(), 2)
+        self.assertEqual(ds.GetPointData().GetArray(1).GetName(), "dpot2")
         return
 
     def testSecond(self):
@@ -70,8 +70,8 @@ class TestFidesBasic(Testing.vtkTest):
         ds = pds.GetPartition(0)
         self.assertEqual(ds.GetNumberOfCells(), 24)
         self.assertEqual(ds.GetNumberOfPoints(), 20)
-        self.assertEqual(ds.GetPointData().GetNumberOfArrays(), 1)
-        self.assertEqual(ds.GetPointData().GetArray(0).GetName(), "dpot2")
+        self.assertEqual(ds.GetPointData().GetNumberOfArrays(), 2)
+        self.assertEqual(ds.GetPointData().GetArray(1).GetName(), "dpot2")
         self.assertEqual(ds.GetClassName(), "vtkmDataSet")
         return
 
@@ -94,8 +94,8 @@ class TestFidesBasic(Testing.vtkTest):
         ds = pds.GetPartition(0)
         self.assertEqual(ds.GetNumberOfCells(), 24)
         self.assertEqual(ds.GetNumberOfPoints(), 20)
-        self.assertEqual(ds.GetPointData().GetNumberOfArrays(), 2)
-        self.assertEqual(ds.GetPointData().GetArray(0).GetName(), "dpot")
+        self.assertEqual(ds.GetPointData().GetNumberOfArrays(), 3)
+        self.assertEqual(ds.GetPointData().GetArray(1).GetName(), "dpot")
         self.assertEqual(ds.GetClassName(), "vtkmDataSet")
         return
 
@@ -125,8 +125,8 @@ class TestFidesBasic(Testing.vtkTest):
         ds = pds.GetPartition(0)
         self.assertEqual(ds.GetNumberOfCells(), 440)
         self.assertEqual(ds.GetNumberOfPoints(), 648)
-        self.assertEqual(ds.GetPointData().GetNumberOfArrays(), 1)
-        self.assertEqual(ds.GetPointData().GetArray(0).GetName(), "density")
+        self.assertEqual(ds.GetPointData().GetNumberOfArrays(), 2)
+        self.assertEqual(ds.GetPointData().GetArray(1).GetName(), "density")
         return
 
 if __name__ == "__main__":
