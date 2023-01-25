@@ -39,9 +39,6 @@ vtkLagrangianMatidaIntegrationModel::vtkLagrangianMatidaIntegrationModel()
   this->SeedArrayNames->InsertNextValue("ParticleDensity");
   this->SeedArrayComps->InsertNextValue(1);
   this->SeedArrayTypes->InsertNextValue(VTK_DOUBLE);
-
-  this->NumFuncs = 6;     // u, v, w, du/dt, dv/dt, dw/dt
-  this->NumIndepVars = 7; // x, y, z, u, v, w, t
 }
 
 //------------------------------------------------------------------------------

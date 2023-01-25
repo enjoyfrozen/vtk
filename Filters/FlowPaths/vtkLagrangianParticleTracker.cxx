@@ -244,8 +244,7 @@ vtkLagrangianParticleTracker::vtkLagrangianParticleTracker()
   , ParticleCounter(0)
   , IntegratedParticleCounter(0)
   , IntegratedParticleCounterIncrement(1)
-  , MinimumVelocityMagnitude(0.001)
-  , MinimumReductionFactor(1.1)
+  , MinimumVelocityMagnitude(1.0)
   , FlowCache(nullptr)
   , FlowTime(0)
   , SurfacesCache(nullptr)
@@ -290,7 +289,6 @@ void vtkLagrangianParticleTracker::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "AdaptiveStepReintegration: " << this->AdaptiveStepReintegration << endl;
   os << indent << "GenerateParticlePathsOutput: " << this->GenerateParticlePathsOutput << endl;
   os << indent << "MinimumVelocityMagnitude: " << this->MinimumVelocityMagnitude << endl;
-  os << indent << "MinimumReductionFactor: " << this->MinimumReductionFactor << endl;
   os << indent << "ParticleCounter: " << this->ParticleCounter << endl;
   os << indent << "IntegratedParticleCounter: " << this->IntegratedParticleCounter << endl;
 }
@@ -942,27 +940,13 @@ bool vtkLagrangianParticleTracker::InitializeParticles(const vtkBoundingBox* bou
   vtkDataArray* initialIntegrationTimes = nullptr;
   if (seeds->GetNumberOfPoints() > 0)
   {
-    // Recover initial velocities, index 0
+    // Recover initial velocities if any, index 0
     initialVelocities =
       vtkDataArray::SafeDownCast(this->IntegrationModel->GetSeedArray(0, seedData));
-    if (!initialVelocities)
-    {
-      vtkErrorMacro(<< "initialVelocity is not set in particle data, "
-                       "unable to initialize particles!");
-      return false;
-    }
 
     // Recover initial integration time if any, index 1
-    if (this->IntegrationModel->GetUseInitialIntegrationTime())
-    {
-      initialIntegrationTimes =
-        vtkDataArray::SafeDownCast(this->IntegrationModel->GetSeedArray(1, seedData));
-      if (!initialVelocities)
-      {
-        vtkWarningMacro("initialIntegrationTimes is not set in particle data, "
-                        "initial integration time set to zero!");
-      }
-    }
+    initialIntegrationTimes =
+      vtkDataArray::SafeDownCast(this->IntegrationModel->GetSeedArray(1, seedData));
   }
 
   // Create one particle for each point
@@ -990,7 +974,19 @@ void vtkLagrangianParticleTracker::GenerateParticles(const vtkBoundingBox* vtkNo
     vtkLagrangianParticle* particle = new vtkLagrangianParticle(nVar, particleId, particleId, i,
       initialIntegrationTime, seedData, this->IntegrationModel->GetNumberOfTrackedUserData());
     memcpy(particle->GetPosition(), position, 3 * sizeof(double));
-    initialVelocities->GetTuple(i, particle->GetVelocity());
+
+    if (initialVelocities)
+    {
+      initialVelocities->GetTuple(i, particle->GetVelocity());
+    }
+    else
+    {
+      double* vel = particle->GetVelocity();
+      vel[0] = 0;
+      vel[1] = 0;
+      vel[2] = 0;
+    }
+
     particle->SetThreadedData(this->SerialThreadedData);
     this->IntegrationModel->InitializeParticle(particle);
     if (this->IntegrationModel->FindInLocators(particle->GetPosition(), particle))
@@ -1039,6 +1035,21 @@ int vtkLagrangianParticleTracker::Integrate(vtkInitialValueProblemSolver* integr
       // Stop integration
       particle->SetTermination(vtkLagrangianParticle::PARTICLE_TERMINATION_OUT_OF_DOMAIN);
       break;
+    }
+
+    // Abort integration if there is too many steps or too old already
+    if (this->MaximumNumberOfSteps > -1 &&
+        particle->GetNumberOfSteps() >= this->MaximumNumberOfSteps &&
+      particle->GetTermination() == vtkLagrangianParticle::PARTICLE_TERMINATION_NOT_TERMINATED)
+    {
+      particle->SetTermination(vtkLagrangianParticle::PARTICLE_TERMINATION_OUT_OF_STEPS);
+      break;
+    }
+    if (this->MaximumIntegrationTime >= 0.0 &&
+      particle->GetIntegrationTime() >= this->MaximumIntegrationTime &&
+      particle->GetTermination() == vtkLagrangianParticle::PARTICLE_TERMINATION_NOT_TERMINATED)
+    {
+      particle->SetTermination(vtkLagrangianParticle::PARTICLE_TERMINATION_OUT_OF_TIME);
     }
 
     double stepLength = stepFactor * cellLength;
@@ -1166,18 +1177,6 @@ int vtkLagrangianParticleTracker::Integrate(vtkInitialValueProblemSolver* integr
     if (integrator->IsAdaptive() || this->AdaptiveStepReintegration)
     {
       stepFactor = stepTime * reintegrationFactor * velocityMagnitude / cellLength;
-    }
-    if (this->MaximumNumberOfSteps > -1 &&
-      particle->GetNumberOfSteps() == this->MaximumNumberOfSteps &&
-      particle->GetTermination() == vtkLagrangianParticle::PARTICLE_TERMINATION_NOT_TERMINATED)
-    {
-      particle->SetTermination(vtkLagrangianParticle::PARTICLE_TERMINATION_OUT_OF_STEPS);
-    }
-    if (this->MaximumIntegrationTime >= 0.0 &&
-      particle->GetIntegrationTime() >= this->MaximumIntegrationTime &&
-      particle->GetTermination() == vtkLagrangianParticle::PARTICLE_TERMINATION_NOT_TERMINATED)
-    {
-      particle->SetTermination(vtkLagrangianParticle::PARTICLE_TERMINATION_OUT_OF_TIME);
     }
   }
 

@@ -8,6 +8,7 @@ set(classes
   vtkInterpolatedVelocityField
   vtkLagrangianBasicIntegrationModel
   vtkLagrangianMatidaIntegrationModel
+  vtkLagrangianSimpleIntegrationModel
   vtkLagrangianParticle
   vtkLagrangianParticleTracker
   vtkLinearTransformCellLocator

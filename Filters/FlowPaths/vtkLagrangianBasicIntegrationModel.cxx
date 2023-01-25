@@ -73,7 +73,6 @@ vtkLagrangianBasicIntegrationModel::vtkLagrangianBasicIntegrationModel()
   : Locator(nullptr)
   , Tolerance(1.0e-8)
   , NonPlanarQuadSupport(false)
-  , UseInitialIntegrationTime(false)
   , Tracker(nullptr)
 {
   SurfaceArrayDescription surfaceTypeDescription;
@@ -84,6 +83,7 @@ vtkLagrangianBasicIntegrationModel::vtkLagrangianBasicIntegrationModel()
   surfaceTypeDescription.enumValues.emplace_back(SURFACE_TYPE_BOUNCE, "Bounce");
   surfaceTypeDescription.enumValues.emplace_back(SURFACE_TYPE_BREAK, "BreakUp");
   surfaceTypeDescription.enumValues.emplace_back(SURFACE_TYPE_PASS, "PassThrough");
+  surfaceTypeDescription.enumValues.emplace_back(SURFACE_TYPE_PERIODIC, "Periodic");
   this->SurfaceArrayDescriptions["SurfaceType"] = surfaceTypeDescription;
 
   this->SeedArrayNames->InsertNextValue("ParticleInitialVelocity");
@@ -102,6 +102,9 @@ vtkLagrangianBasicIntegrationModel::vtkLagrangianBasicIntegrationModel()
   vtkNew<vtkStaticCellLocator> locator;
   this->SetLocator(locator);
   this->LocatorsBuilt = false;
+
+  this->NumFuncs = 6;     // u, v, w, du/dt, dv/dt, dw/dt
+  this->NumIndepVars = 7; // x, y, z, u, v, w, t
 }
 
 //------------------------------------------------------------------------------
@@ -172,6 +175,7 @@ void vtkLagrangianBasicIntegrationModel::AddDataSet(
   }
   else
   {
+    this->DataSetsBB.AddBounds(datasetCpy->GetBounds());
     this->DataSets->push_back(datasetCpy);
   }
 
@@ -181,7 +185,7 @@ void vtkLagrangianBasicIntegrationModel::AddDataSet(
   {
     if (surface)
     {
-      locator.TakeReference(vtkStaticCellLocator::New());
+      locator.TakeReference(this->Locator->NewInstance());
     }
     else
     {
@@ -428,6 +432,9 @@ vtkLagrangianParticle* vtkLagrangianBasicIntegrationModel::ComputeSurfaceInterac
         vtkErrorMacro(<< "Something went wrong with pass-through surface, "
                          "next results will be invalid.");
         return nullptr;
+      case vtkLagrangianBasicIntegrationModel::SURFACE_TYPE_PERIODIC:
+        recordInteraction = this->ComputePeriodicParticle(particle, particles);
+        break;
       default:
         if (surfaceType != SURFACE_TYPE_MODEL && surfaceType < USER_SURFACE_TYPE)
         {
@@ -530,6 +537,49 @@ bool vtkLagrangianBasicIntegrationModel::BreakParticle(vtkLagrangianParticle* pa
   std::lock_guard<std::mutex> guard(this->ParticleQueueMutex);
   particles.push(particle1);
   particles.push(particle2);
+  return true;
+}
+
+//------------------------------------------------------------------------------
+bool vtkLagrangianBasicIntegrationModel::ComputePeriodicParticle(vtkLagrangianParticle* particle,
+  std::queue<vtkLagrangianParticle*>& particles)
+{
+  // Terminate particle
+  particle->SetTermination(vtkLagrangianParticle::PARTICLE_TERMINATION_SURF_PERIODIC);
+  particle->SetInteraction(vtkLagrangianParticle::SURFACE_INTERACTION_PERIODIC);
+  
+  // Create new particles
+  vtkLagrangianParticle* particle1 = particle->NewParticle(this->Tracker->GetNewParticleId());
+
+  // Set velocity for the new particle
+  double* nextVel = particle->GetNextVelocity();
+  double* part1Vel = particle1->GetVelocity();
+  for (int i = 0; i < 3; i++)
+  {
+    part1Vel[i] = nextVel[i];
+  }
+
+  // Compute periodical position for the new particle
+  double* nextPos = particle->GetNextPosition();
+  double* part1Pos = particle1->GetPosition();
+  for (int i = 0; i < 3; i++)
+  {
+    double bbLength = this->DataSetsBB.GetLength(i);
+    double tol = bbLength < 1 ? this->Tolerance / this->DataSetsBB.GetLength(i) : this->Tolerance;
+    if (nextPos[i] + tol >= this->DataSetsBB.GetMaxPoint()[i])
+    {
+      part1Pos[i] = nextPos[i] + tol - this->DataSetsBB.GetLength(i);
+    }
+    else if (nextPos[i] - tol <= this->DataSetsBB.GetMinPoint()[i])
+    {
+      part1Pos[i] = nextPos[i] - tol + this->DataSetsBB.GetLength(i);
+    }
+  }
+
+  // push new particle in queue
+  // Mutex Locked Area
+  std::lock_guard<std::mutex> guard(this->ParticleQueueMutex);
+  particles.push(particle1);
   return true;
 }
 
@@ -823,17 +873,14 @@ vtkAbstractArray* vtkLagrangianBasicIntegrationModel::GetSeedArray(int idx, vtkP
   // Check the provided index
   if (this->InputArrays.count(idx) == 0)
   {
-    vtkErrorMacro(<< "No arrays at index:" << idx);
     return nullptr;
   }
 
   ArrayMapVal arrayIndexes = this->InputArrays[idx];
 
-  // Check port, should be 1 for Source
+  // Check port, should be 1 for a valid Source array
   if (arrayIndexes.first.val[0] != 1)
   {
-    vtkErrorMacro(<< "This input array at idx " << idx << " named " << arrayIndexes.second
-                  << " is not a particle data array");
     return nullptr;
   }
 
@@ -851,11 +898,6 @@ vtkAbstractArray* vtkLagrangianBasicIntegrationModel::GetSeedArray(int idx, vtkP
     {
       // Recover array
       vtkAbstractArray* array = pointData->GetAbstractArray(arrayIndexes.second.c_str());
-      if (!array)
-      {
-        vtkErrorMacro(<< "This input array at idx " << idx << " named " << arrayIndexes.second
-                      << " cannot be found, please check arrays.");
-      }
       return array;
     }
     default:
@@ -871,17 +913,14 @@ int vtkLagrangianBasicIntegrationModel::GetFlowOrSurfaceDataNumberOfComponents(
   // Check index
   if (this->InputArrays.count(idx) == 0)
   {
-    vtkErrorMacro(<< "No arrays at index:" << idx);
     return -1;
   }
 
   ArrayMapVal arrayIndexes = this->InputArrays[idx];
 
-  // Check port, should be 0 for Input or 2 for Surface
+  // Check port, should be 0 for valid Input or 2 for valid Surface
   if (arrayIndexes.first.val[0] != 0 && arrayIndexes.first.val[0] != 2)
   {
-    vtkErrorMacro(<< "This input array at idx " << idx << " named " << arrayIndexes.second
-                  << " is not a flow or surface data array");
     return -1;
   }
 
@@ -909,8 +948,6 @@ int vtkLagrangianBasicIntegrationModel::GetFlowOrSurfaceDataNumberOfComponents(
       vtkDataArray* array = dataSet->GetPointData()->GetArray(arrayIndexes.second.c_str());
       if (!array)
       {
-        vtkErrorMacro(<< "This input array at idx " << idx << " named " << arrayIndexes.second
-                      << " cannot be found, please check arrays.");
         return -1;
       }
       return array->GetNumberOfComponents();
@@ -920,8 +957,6 @@ int vtkLagrangianBasicIntegrationModel::GetFlowOrSurfaceDataNumberOfComponents(
       vtkDataArray* array = dataSet->GetCellData()->GetArray(arrayIndexes.second.c_str());
       if (!array)
       {
-        vtkErrorMacro(<< "This input array at idx " << idx << " named " << arrayIndexes.second
-                      << " cannot be found, please check arrays.");
         return -1;
       }
       return array->GetNumberOfComponents();
@@ -931,9 +966,7 @@ int vtkLagrangianBasicIntegrationModel::GetFlowOrSurfaceDataNumberOfComponents(
       vtkDataArray* array = dataSet->GetFieldData()->GetArray(arrayIndexes.second.c_str());
       if (!array)
       {
-        vtkErrorMacro(<< "This input array at idx " << idx << " named " << arrayIndexes.second
-                      << " cannot be found, please check arrays.");
-        return false;
+        return -1;
       }
       return array->GetNumberOfComponents();
     }
@@ -995,14 +1028,10 @@ bool vtkLagrangianBasicIntegrationModel::GetFlowOrSurfaceData(vtkLagrangianParti
       vtkDataArray* array = dataSet->GetPointData()->GetArray(arrayIndexes.second.c_str());
       if (!array)
       {
-        vtkErrorMacro(<< "This input array at idx " << idx << " named " << arrayIndexes.second
-                      << " cannot be found, please check arrays.");
         return false;
       }
       if (tupleId >= dataSet->GetNumberOfCells())
       {
-        vtkErrorMacro(<< "This input array at idx " << idx << " named " << arrayIndexes.second
-                      << " does not contain cellId :" << tupleId << " . Please check arrays.");
         return false;
       }
 
@@ -1023,15 +1052,11 @@ bool vtkLagrangianBasicIntegrationModel::GetFlowOrSurfaceData(vtkLagrangianParti
     {
       if (tupleId >= dataSet->GetNumberOfCells())
       {
-        vtkErrorMacro(<< "This input array at idx " << idx << " named " << arrayIndexes.second
-                      << " does not contain cellId :" << tupleId << " . Please check arrays.");
         return false;
       }
       vtkDataArray* array = dataSet->GetCellData()->GetArray(arrayIndexes.second.c_str());
       if (!array)
       {
-        vtkErrorMacro(<< "This input array at idx " << idx << " named " << arrayIndexes.second
-                      << " cannot be found, please check arrays.");
         return false;
       }
       array->GetTuple(tupleId, data);
@@ -1042,10 +1067,6 @@ bool vtkLagrangianBasicIntegrationModel::GetFlowOrSurfaceData(vtkLagrangianParti
       vtkDataArray* array = dataSet->GetFieldData()->GetArray(arrayIndexes.second.c_str());
       if (!array || tupleId >= array->GetNumberOfTuples())
       {
-        vtkErrorMacro(<< "This input array at idx " << idx << " named " << arrayIndexes.second
-                      << " cannot be found in FieldData or does not contain"
-                         "tuple index: "
-                      << tupleId << " , please check arrays.");
         return false;
       }
       array->GetTuple(tupleId, data);
@@ -1166,11 +1187,21 @@ vtkDoubleArray* vtkLagrangianBasicIntegrationModel::GetSurfaceArrayDefaultValues
        ++it)
   {
     std::vector<double> defaultValues(it->second.nComp);
-    for (size_t iDs = 0; iDs < this->Surfaces->size(); iDs++)
+    if (this->Surfaces->size() == 0)
     {
+      // Surface have not been provided, just use the model to compute a single value
       this->ComputeSurfaceDefaultValues(
-        it->first.c_str(), (*this->Surfaces)[iDs].second, it->second.nComp, defaultValues.data());
+        it->first.c_str(), nullptr, it->second.nComp, defaultValues.data());
       this->SurfaceArrayDefaultValues->InsertNextTuple(defaultValues.data());
+    }
+    else
+    {
+      for (size_t iDs = 0; iDs < this->Surfaces->size(); iDs++)
+      {
+        this->ComputeSurfaceDefaultValues(
+          it->first.c_str(), (*this->Surfaces)[iDs].second, it->second.nComp, defaultValues.data());
+        this->SurfaceArrayDefaultValues->InsertNextTuple(defaultValues.data());
+      }
     }
   }
   return this->SurfaceArrayDefaultValues;

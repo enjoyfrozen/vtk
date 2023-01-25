@@ -51,6 +51,7 @@
 #ifndef vtkLagrangianBasicIntegrationModel_h
 #define vtkLagrangianBasicIntegrationModel_h
 
+#include "vtkBoundingBox.h" // For bounding box
 #include "vtkFiltersFlowPathsModule.h" // For export macro
 #include "vtkFunctionSet.h"
 #include "vtkNew.h"         // For arrays
@@ -97,7 +98,8 @@ public:
     SURFACE_TYPE_TERM = 1,
     SURFACE_TYPE_BOUNCE = 2,
     SURFACE_TYPE_BREAK = 3,
-    SURFACE_TYPE_PASS = 4
+    SURFACE_TYPE_PASS = 4,
+    SURFACE_TYPE_PERIODIC = 5,
   } SurfaceType;
 
   typedef enum VariableStep
@@ -161,15 +163,6 @@ public:
 
   ///@{
   /**
-   * Set/Get the Use of initial integration input array to process
-   */
-  vtkSetMacro(UseInitialIntegrationTime, bool);
-  vtkGetMacro(UseInitialIntegrationTime, bool);
-  vtkBooleanMacro(UseInitialIntegrationTime, bool);
-  ///@}
-
-  ///@{
-  /**
    * Get the tolerance to use with this model.
    */
   vtkGetMacro(Tolerance, double);
@@ -197,6 +190,7 @@ public:
    * BREAK_UP :
    * vtkLagrangianBasicIntegrationModel::BreakUp method will be used
    * PASS : The interaction will be recorded
+   * PERIODIC : ComputePeriodicParticle method will be used
    * with no effect on the particle
    */
   virtual vtkLagrangianParticle* ComputeSurfaceInteraction(vtkLagrangianParticle* particle,
@@ -529,6 +523,14 @@ protected:
     std::queue<vtkLagrangianParticle*>& particles);
 
   /**
+   * Terminate a particle and create a new particle using a periodic computation using the bounding box
+   * of all the volumic datasets.
+   * This method is thread-safe and uses vtkLagrangianBasicIntegrationModel::ParticleQueueMutex
+   * to access the particles queue, its reimplementation should also be.
+   */
+  virtual bool ComputePeriodicParticle(vtkLagrangianParticle* particle, std::queue<vtkLagrangianParticle*>& particles);
+
+  /**
    * Call vtkLagrangianBasicIntegrationModel::Terminate
    * This method is to be reimplemented in inherited classes willing
    * to implement specific particle surface interactions
@@ -569,6 +571,7 @@ protected:
    * from the provided particle seed data
    * Access then the first tuple to access the data
    * This method is thread-safe.
+   * Can return nullptr if the array does not exist
    */
   virtual vtkAbstractArray* GetSeedArray(int idx, vtkLagrangianParticle* particle);
 
@@ -578,6 +581,7 @@ protected:
    * Make sure that data pointer is large enough using
    * GetFlowOrSurfaceDataNumberOfComponents if needed.
    * This method is thread-safe.
+   * Return true if data was found or false otherwise
    */
   virtual bool GetFlowOrSurfaceData(vtkLagrangianParticle* particle, int idx,
     vtkDataSet* flowDataSet, vtkIdType tupleId, double* weights, double* data);
@@ -594,6 +598,7 @@ protected:
   /**
    * Recover a field association for a specified array index
    * if it has been set using SetInputArrayToProcess
+   * Returns -1 in case of error.
    * This method is thread-safe.
    */
   virtual int GetFlowOrSurfaceDataFieldAssociation(int idx);
@@ -604,7 +609,8 @@ protected:
    * nComponents could be retrieved with arrayName but is
    * given for simplification purposes.
    * it is your responsibility to initialize all components of
-   * defaultValues[nComponent]
+   * defaultValues[nComponent].
+   * Provided dataset can be nullptr.
    */
   virtual void ComputeSurfaceDefaultValues(
     const char* arrayName, vtkDataSet* dataset, int nComponent, double* defaultValues);
@@ -614,6 +620,7 @@ protected:
   vtkLocatorsType* Locators;
   vtkDataSetsType* DataSets;
   int WeightsSize = 0;
+  vtkBoundingBox DataSetsBB;
 
   struct ArrayVal
   {
@@ -636,7 +643,6 @@ protected:
   double Tolerance;
   double LocatorTolerance = 0.001;
   bool NonPlanarQuadSupport;
-  bool UseInitialIntegrationTime;
   int NumberOfTrackedUserData = 0;
 
   vtkNew<vtkStringArray> SeedArrayNames;

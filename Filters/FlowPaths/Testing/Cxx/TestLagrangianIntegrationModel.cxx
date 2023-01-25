@@ -152,26 +152,6 @@ int TestLagrangianIntegrationModel(int, char*[])
     return EXIT_FAILURE;
   }
 
-  odeWavelet->SetUseInitialIntegrationTime(true);
-  if (!odeWavelet->GetUseInitialIntegrationTime())
-  {
-    std::cerr << "Problems with UseInitialIntegrationTime" << std::endl;
-    return EXIT_FAILURE;
-  }
-  odeWavelet->UseInitialIntegrationTimeOff();
-  if (odeWavelet->GetUseInitialIntegrationTime())
-  {
-    std::cerr << "Problems with UseInitialIntegrationTime" << std::endl;
-    return EXIT_FAILURE;
-  }
-  odeWavelet->UseInitialIntegrationTimeOn();
-  if (!odeWavelet->GetUseInitialIntegrationTime())
-  {
-    std::cerr << "Problems with UseInitialIntegrationTime" << std::endl;
-    return EXIT_FAILURE;
-  }
-  odeWavelet->SetUseInitialIntegrationTime(false);
-
   vtkLagrangianThreadedData* data = odeWavelet->InitializeThreadedData();
   vtkLagrangianParticle part(nvar, seedIdx, seedIdx, 0, 0, pd, 3);
   part.SetThreadedData(data);
