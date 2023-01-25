@@ -30,6 +30,8 @@ if (VTK_PYTHON_VERSION STREQUAL "2")
     "Please migrate to a supported version of Python.")
 endif ()
 
+set(vtk_stable_abi_requirement "3.8") # XXX: sync with `Py_LIMITED_API`
+
 # VTK only supports a single Python version at a time, so make artifact finding
 # interactive.
 set("Python${VTK_PYTHON_VERSION}_ARTIFACTS_INTERACTIVE" ON)
@@ -56,13 +58,19 @@ elseif (VTK_PYTHON_VERSION STREQUAL "3")
     PACKAGE Python3
     VERSION "${vtk_python_min_version}"
     COMPONENTS Interpreter Development.Module
-    OPTIONAL_COMPONENTS Development.Embed
+    OPTIONAL_COMPONENTS Development.Embed Development.SABIModule
     FORWARD_VERSION_REQ MINOR)
 else ()
   message(FATAL_ERROR
     "`VTK_PYTHON_VERSION` must either be 2 or 3.")
 endif ()
 set(vtk_python_includes "${Python${VTK_PYTHON_VERSION}_INCLUDE_DIRS}")
+if (Python3_VERSION VERSION_GREATER vtk_stable_abi_requirement AND
+    Python3_Development.SABIModule_FOUND)
+  set(vtk_python_sabi_target "Python${VTK_PYTHON_VERSION}::SABIModule")
+else ()
+  set(vtk_python_sabi_target "")
+endif ()
 set(vtk_python_target "Python${VTK_PYTHON_VERSION}::Module")
 set(vtk_python_embed_target "Python${VTK_PYTHON_VERSION}::Python")
 set(vtk_python_version "${Python${VTK_PYTHON_VERSION}_VERSION}")
@@ -177,9 +185,18 @@ if (VTK_PYTHON_OPTIONAL_LINK AND TARGET "${vtk_python_embed_target}")
     "$<$<AND:${should_use},$<PLATFORM_ID:Linux>,${ifx_mask}>:LINKER:--unresolved-symbols=ignore-in-shared-libs>")
 
   # Use the `PythonX::Module` target from FindPython.
-  vtk_module_link(VTK::Python
-    INTERFACE
-      "${vtk_python_target}")
+  if (vtk_python_sabi_target)
+    vtk_module_link(VTK::Python
+      INTERFACE
+        "${vtk_python_sabi_target}")
+    vtk_module_definitions(VTK::Python
+      INTERFACE
+        "Py_LIMITED_API=0x03080000") # XXX: sync with `vtk_stable_abi_requirement`
+  else ()
+    vtk_module_link(VTK::Python
+      INTERFACE
+        "${vtk_python_target}")
+  endif ()
 
   # This target is intended for use by the end-result executable with a
   # `VTK::Python` link in its total library closure. This exposes the

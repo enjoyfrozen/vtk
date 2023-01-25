@@ -18,8 +18,13 @@ if (UNIX AND NOT APPLE)
   endif ()
 endif ()
 
-find_package(Python3 COMPONENTS Interpreter Development.Module)
-set_property(GLOBAL PROPERTY _vtk_python_soabi "${Python3_SOABI}")
+find_package(Python3 COMPONENTS Interpreter Development.Module Development.SABIModule)
+if (Python3_VERSION VERSION_GREATER "3.8" AND
+    Python3_Development.SABIModule_FOUND)
+  set_property(GLOBAL PROPERTY _vtk_python_soabi "${Python3_SOSABI}")
+else ()
+  set_property(GLOBAL PROPERTY _vtk_python_soabi "${Python3_SOABI}")
+endif ()
 
 set(VTK_VERSION_SUFFIX "dev0"
   CACHE STRING "Suffix to use for the wheel version (e.g, 'dev0')")

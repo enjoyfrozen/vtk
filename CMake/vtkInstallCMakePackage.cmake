@@ -162,9 +162,9 @@ set(vtk_cmake_patch_files
   patches/3.22/FindMPI/test_mpi.c
   patches/3.22/FindMPI/test_mpi.f90.in
   patches/3.22/FindMPI.cmake
-  patches/3.23/FindPython/Support.cmake
-  patches/3.23/FindPython2.cmake
-  patches/3.23/FindPython3.cmake
+  patches/3.26/FindPython/Support.cmake
+  patches/3.26/FindPython2.cmake
+  patches/3.26/FindPython3.cmake
   patches/99/FindHDF5.cmake
   patches/99/FindOpenGL.cmake)
 
