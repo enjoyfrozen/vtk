@@ -134,9 +134,8 @@ public:
       return *this;
     }
 
-    // Strip adjacent record delimiters and whitespace...
-    if (this->RecordAdjacent &&
-      (this->RecordDelimiters.count(value) || this->Whitespace.count(value)))
+    // Strip adjacent record delimiters ...
+    if (this->RecordAdjacent && this->RecordDelimiters.count(value))
     {
       return *this;
     }
