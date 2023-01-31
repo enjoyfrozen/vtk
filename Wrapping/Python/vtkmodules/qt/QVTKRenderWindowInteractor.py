@@ -1,4 +1,3 @@
-# coding=utf-8
 """
 A simple VTK widget for PyQt or PySide.
 See http://www.trolltech.com for Qt documentation,
@@ -53,9 +52,12 @@ Changes by Eric Larson and Guillaume Favelier, Apr. 2022
  Support for PyQt6
 """
 
+from __future__ import annotations
+
 # Check whether a specific PyQt implementation was chosen
 try:
     import vtkmodules.qt
+
     PyQtImpl = vtkmodules.qt.PyQtImpl
 except ImportError:
     pass
@@ -67,6 +69,7 @@ except ImportError:
 QVTKRWIBase = "QWidget"
 try:
     import vtkmodules.qt
+
     QVTKRWIBase = vtkmodules.qt.QVTKRWIBase
 except ImportError:
     pass
@@ -77,27 +80,27 @@ from vtkmodules.vtkRenderingUI import vtkGenericRenderWindowInteractor
 if PyQtImpl is None:
     # Autodetect the PyQt implementation to use
     try:
-        import PySide6.QtCore
+
         PyQtImpl = "PySide6"
     except ImportError:
         try:
-            import PyQt6.QtCore
+
             PyQtImpl = "PyQt6"
         except ImportError:
             try:
-                import PyQt5.QtCore
+
                 PyQtImpl = "PyQt5"
             except ImportError:
                 try:
-                    import PySide2.QtCore
+
                     PyQtImpl = "PySide2"
                 except ImportError:
                     try:
-                        import PyQt4.QtCore
+
                         PyQtImpl = "PyQt4"
                     except ImportError:
                         try:
-                            import PySide.QtCore
+
                             PyQtImpl = "PySide"
                         except ImportError:
                             raise ImportError("Cannot load either PyQt or PySide")
@@ -106,7 +109,9 @@ if PyQtImpl is None:
 if QVTKRWIBase != "QWidget":
     if PyQtImpl in ["PySide6", "PyQt6"] and QVTKRWIBase == "QOpenGLWidget":
         pass  # compatible
-    elif PyQtImpl in ["PyQt5", "PySide2","PyQt4", "PySide"] and QVTKRWIBase == "QGLWidget":
+    elif (
+        PyQtImpl in ["PyQt5", "PySide2", "PyQt4", "PySide"] and QVTKRWIBase == "QGLWidget"
+    ):
         pass  # compatible
     else:
         raise ImportError("Cannot load " + QVTKRWIBase + " from " + PyQtImpl)
@@ -114,79 +119,37 @@ if QVTKRWIBase != "QWidget":
 if PyQtImpl == "PySide6":
     if QVTKRWIBase == "QOpenGLWidget":
         from PySide6.QtOpenGLWidgets import QOpenGLWidget
-    from PySide6.QtWidgets import QWidget
-    from PySide6.QtWidgets import QSizePolicy
-    from PySide6.QtWidgets import QApplication
-    from PySide6.QtWidgets import QMainWindow
+    from PySide6.QtCore import QEvent, QSize, Qt, QTimer
     from PySide6.QtGui import QCursor
-    from PySide6.QtCore import Qt
-    from PySide6.QtCore import QTimer
-    from PySide6.QtCore import QObject
-    from PySide6.QtCore import QSize
-    from PySide6.QtCore import QEvent
+    from PySide6.QtWidgets import QApplication, QMainWindow, QSizePolicy, QWidget
 elif PyQtImpl == "PyQt6":
     if QVTKRWIBase == "QOpenGLWidget":
         from PyQt6.QtOpenGLWidgets import QOpenGLWidget
-    from PyQt6.QtWidgets import QWidget
-    from PyQt6.QtWidgets import QSizePolicy
-    from PyQt6.QtWidgets import QApplication
-    from PyQt6.QtWidgets import QMainWindow
+    from PyQt6.QtCore import QEvent, QSize, Qt, QTimer
     from PyQt6.QtGui import QCursor
-    from PyQt6.QtCore import Qt
-    from PyQt6.QtCore import QTimer
-    from PyQt6.QtCore import QObject
-    from PyQt6.QtCore import QSize
-    from PyQt6.QtCore import QEvent
+    from PyQt6.QtWidgets import QApplication, QMainWindow, QSizePolicy, QWidget
 elif PyQtImpl == "PyQt5":
     if QVTKRWIBase == "QGLWidget":
         from PyQt5.QtOpenGL import QGLWidget
-    from PyQt5.QtWidgets import QWidget
-    from PyQt5.QtWidgets import QSizePolicy
-    from PyQt5.QtWidgets import QApplication
-    from PyQt5.QtWidgets import QMainWindow
+    from PyQt5.QtCore import QEvent, QSize, Qt, QTimer
     from PyQt5.QtGui import QCursor
-    from PyQt5.QtCore import Qt
-    from PyQt5.QtCore import QTimer
-    from PyQt5.QtCore import QObject
-    from PyQt5.QtCore import QSize
-    from PyQt5.QtCore import QEvent
+    from PyQt5.QtWidgets import QApplication, QMainWindow, QSizePolicy, QWidget
 elif PyQtImpl == "PySide2":
     if QVTKRWIBase == "QGLWidget":
         from PySide2.QtOpenGL import QGLWidget
-    from PySide2.QtWidgets import QWidget
-    from PySide2.QtWidgets import QSizePolicy
-    from PySide2.QtWidgets import QApplication
-    from PySide2.QtWidgets import QMainWindow
+    from PySide2.QtCore import QEvent, QSize, Qt, QTimer
     from PySide2.QtGui import QCursor
-    from PySide2.QtCore import Qt
-    from PySide2.QtCore import QTimer
-    from PySide2.QtCore import QObject
-    from PySide2.QtCore import QSize
-    from PySide2.QtCore import QEvent
+    from PySide2.QtWidgets import QApplication, QMainWindow, QSizePolicy, QWidget
 elif PyQtImpl == "PyQt4":
     if QVTKRWIBase == "QGLWidget":
         from PyQt4.QtOpenGL import QGLWidget
-    from PyQt4.QtGui import QWidget
-    from PyQt4.QtGui import QSizePolicy
-    from PyQt4.QtGui import QApplication
-    from PyQt4.QtGui import QMainWindow
-    from PyQt4.QtCore import Qt
-    from PyQt4.QtCore import QTimer
-    from PyQt4.QtCore import QObject
-    from PyQt4.QtCore import QSize
-    from PyQt4.QtCore import QEvent
+    from PyQt4.QtCore import QEvent, QSize, Qt, QTimer
+    from PyQt4.QtGui import QApplication, QMainWindow, QSizePolicy, QWidget
 elif PyQtImpl == "PySide":
     if QVTKRWIBase == "QGLWidget":
         from PySide.QtOpenGL import QGLWidget
-    from PySide.QtGui import QWidget
-    from PySide.QtGui import QSizePolicy
-    from PySide.QtGui import QApplication
-    from PySide.QtGui import QMainWindow
-    from PySide.QtCore import Qt
-    from PySide.QtCore import QTimer
-    from PySide.QtCore import QObject
-    from PySide.QtCore import QSize
-    from PySide.QtCore import QEvent
+    from PySide.QtCore import QEvent, QSize, Qt, QTimer
+    from PySide.QtGui import QApplication, QMainWindow, QSizePolicy, QWidget
 else:
     raise ImportError("Unknown PyQt implementation " + repr(PyQtImpl))
 
@@ -218,8 +181,11 @@ if PyQtImpl == 'PyQt6':
         WindowType = Qt.WindowFlags
         KeyboardModifier = Qt.KeyboardModifiers
 else:
-    CursorShape = MouseButton = WindowType = WidgetAttribute = \
-        KeyboardModifier = FocusPolicy = ConnectionType = Key = Qt
+    CursorShape = (
+        MouseButton
+    ) = (
+        WindowType
+    ) = WidgetAttribute = KeyboardModifier = FocusPolicy = ConnectionType = Key = Qt
     SizePolicy = QSizePolicy
     EventType = QEvent
 
@@ -238,7 +204,7 @@ def _get_event_pos(ev):
 
 class QVTKRenderWindowInteractor(QVTKRWIBaseClass):
 
-    """ A QVTKRenderWindowInteractor for Python and Qt.  Uses a
+    """A QVTKRenderWindowInteractor for Python and Qt.  Uses a
     vtkGenericRenderWindowInteractor to handle the interactions.  Use
     GetRenderWindow() to get the vtkRenderWindow.  Create with the
     keyword stereo=1 in order to generate a stereo-capable window.
@@ -307,17 +273,17 @@ class QVTKRenderWindowInteractor(QVTKRWIBaseClass):
 
     # Map between VTK and Qt cursors.
     _CURSOR_MAP = {
-        0:  CursorShape.ArrowCursor,          # VTK_CURSOR_DEFAULT
-        1:  CursorShape.ArrowCursor,          # VTK_CURSOR_ARROW
-        2:  CursorShape.SizeBDiagCursor,      # VTK_CURSOR_SIZENE
-        3:  CursorShape.SizeFDiagCursor,      # VTK_CURSOR_SIZENWSE
-        4:  CursorShape.SizeBDiagCursor,      # VTK_CURSOR_SIZESW
-        5:  CursorShape.SizeFDiagCursor,      # VTK_CURSOR_SIZESE
-        6:  CursorShape.SizeVerCursor,        # VTK_CURSOR_SIZENS
-        7:  CursorShape.SizeHorCursor,        # VTK_CURSOR_SIZEWE
-        8:  CursorShape.SizeAllCursor,        # VTK_CURSOR_SIZEALL
-        9:  CursorShape.PointingHandCursor,   # VTK_CURSOR_HAND
-        10: CursorShape.CrossCursor,          # VTK_CURSOR_CROSSHAIR
+        0: CursorShape.ArrowCursor,  # VTK_CURSOR_DEFAULT
+        1: CursorShape.ArrowCursor,  # VTK_CURSOR_ARROW
+        2: CursorShape.SizeBDiagCursor,  # VTK_CURSOR_SIZENE
+        3: CursorShape.SizeFDiagCursor,  # VTK_CURSOR_SIZENWSE
+        4: CursorShape.SizeBDiagCursor,  # VTK_CURSOR_SIZESW
+        5: CursorShape.SizeFDiagCursor,  # VTK_CURSOR_SIZESE
+        6: CursorShape.SizeVerCursor,  # VTK_CURSOR_SIZENS
+        7: CursorShape.SizeHorCursor,  # VTK_CURSOR_SIZEWE
+        8: CursorShape.SizeAllCursor,  # VTK_CURSOR_SIZEALL
+        9: CursorShape.PointingHandCursor,  # VTK_CURSOR_HAND
+        10: CursorShape.CrossCursor,  # VTK_CURSOR_CROSSHAIR
     }
 
     def __init__(self, parent=None, **kw):
@@ -356,7 +322,7 @@ class QVTKRenderWindowInteractor(QVTKRWIBaseClass):
         elif QVTKRWIBase == "QOpenGLWidget":
             QOpenGLWidget.__init__(self, parent)
 
-        if rw: # user-supplied render window
+        if rw:  # user-supplied render window
             self._RenderWindow = rw
         else:
             self._RenderWindow = vtkRenderWindow()
@@ -365,30 +331,30 @@ class QVTKRenderWindowInteractor(QVTKRWIBaseClass):
 
         # Python2
         if type(WId).__name__ == 'PyCObject':
-            from ctypes import pythonapi, c_void_p, py_object
+            from ctypes import c_void_p, py_object, pythonapi
 
-            pythonapi.PyCObject_AsVoidPtr.restype  = c_void_p
+            pythonapi.PyCObject_AsVoidPtr.restype = c_void_p
             pythonapi.PyCObject_AsVoidPtr.argtypes = [py_object]
 
             WId = pythonapi.PyCObject_AsVoidPtr(WId)
 
         # Python3
         elif type(WId).__name__ == 'PyCapsule':
-            from ctypes import pythonapi, c_void_p, py_object, c_char_p
+            from ctypes import c_char_p, c_void_p, py_object, pythonapi
 
             pythonapi.PyCapsule_GetName.restype = c_char_p
             pythonapi.PyCapsule_GetName.argtypes = [py_object]
 
             name = pythonapi.PyCapsule_GetName(WId)
 
-            pythonapi.PyCapsule_GetPointer.restype  = c_void_p
+            pythonapi.PyCapsule_GetPointer.restype = c_void_p
             pythonapi.PyCapsule_GetPointer.argtypes = [py_object, c_char_p]
 
             WId = pythonapi.PyCapsule_GetPointer(WId, name)
 
         self._RenderWindow.SetWindowInfo(str(int(WId)))
 
-        if stereo: # stereo mode
+        if stereo:  # stereo mode
             self._RenderWindow.StereoCapableWindowOn()
             self._RenderWindow.SetStereoTypeToCrystalEyes()
 
@@ -401,7 +367,7 @@ class QVTKRenderWindowInteractor(QVTKRWIBaseClass):
         # do all the necessary qt setup
         self.setAttribute(WidgetAttribute.WA_OpaquePaintEvent)
         self.setAttribute(WidgetAttribute.WA_PaintOnScreen)
-        self.setMouseTracking(True) # get all mouse events
+        self.setMouseTracking(True)  # get all mouse events
         self.setFocusPolicy(FocusPolicy.WheelFocus)
         self.setSizePolicy(QSizePolicy(SizePolicy.Expanding, SizePolicy.Expanding))
 
@@ -410,8 +376,9 @@ class QVTKRenderWindowInteractor(QVTKRWIBaseClass):
 
         self._Iren.AddObserver('CreateTimerEvent', self.CreateTimer)
         self._Iren.AddObserver('DestroyTimerEvent', self.DestroyTimer)
-        self._Iren.GetRenderWindow().AddObserver('CursorChangedEvent',
-                                                 self.CursorChangedEvent)
+        self._Iren.GetRenderWindow().AddObserver(
+            'CursorChangedEvent', self.CursorChangedEvent
+        )
 
         # If we've a parent, it does not close the child when closed.
         # Connect the parent's destroyed signal to this widget's close
@@ -426,8 +393,9 @@ class QVTKRenderWindowInteractor(QVTKRWIBaseClass):
         elif hasattr(self._Iren, attr):
             return getattr(self._Iren, attr)
         else:
-            raise AttributeError(self.__class__.__name__ +
-                  " has no attribute named " + attr)
+            raise AttributeError(
+                self.__class__.__name__ + " has no attribute named " + attr
+            )
 
     def Finalize(self):
         '''
@@ -476,16 +444,16 @@ class QVTKRenderWindowInteractor(QVTKRWIBaseClass):
 
     def resizeEvent(self, ev):
         scale = self._getPixelRatio()
-        w = int(round(scale*self.width()))
-        h = int(round(scale*self.height()))
-        self._RenderWindow.SetDPI(int(round(72*scale)))
+        w = int(round(scale * self.width()))
+        h = int(round(scale * self.height()))
+        self._RenderWindow.SetDPI(int(round(72 * scale)))
         vtkRenderWindow.SetSize(self._RenderWindow, w, h)
         self._Iren.SetSize(w, h)
         self._Iren.ConfigureEvent()
         self.update()
 
     def _GetKeyCharAndKeySym(self, ev):
-        """ Convert a Qt key into a char and a vtk keysym.
+        """Convert a Qt key into a char and a vtk keysym.
 
         This is essentially copied from the c++ implementation in
         GUISupport/Qt/QVTKInteractorAdapter.cxx.
@@ -541,25 +509,32 @@ class QVTKRenderWindowInteractor(QVTKRWIBaseClass):
         else:
             # Qt4 seems not to provide any cross-platform means to get the
             # pixel ratio.
-            return 1.
+            return 1.0
 
-    def _setEventInformation(self, x, y, ctrl, shift,
-                             key, repeat=0, keysum=None):
+    def _setEventInformation(self, x, y, ctrl, shift, key, repeat=0, keysum=None):
         scale = self._getPixelRatio()
-        self._Iren.SetEventInformation(int(round(x*scale)),
-                                       int(round((self.height()-y-1)*scale)),
-                                       ctrl, shift, key, repeat, keysum)
+        self._Iren.SetEventInformation(
+            int(round(x * scale)),
+            int(round((self.height() - y - 1) * scale)),
+            ctrl,
+            shift,
+            key,
+            repeat,
+            keysum,
+        )
 
     def enterEvent(self, ev):
         ctrl, shift = self._GetCtrlShift(ev)
-        self._setEventInformation(self.__saveX, self.__saveY,
-                                  ctrl, shift, chr(0), 0, None)
+        self._setEventInformation(
+            self.__saveX, self.__saveY, ctrl, shift, chr(0), 0, None
+        )
         self._Iren.EnterEvent()
 
     def leaveEvent(self, ev):
         ctrl, shift = self._GetCtrlShift(ev)
-        self._setEventInformation(self.__saveX, self.__saveY,
-                                  ctrl, shift, chr(0), 0, None)
+        self._setEventInformation(
+            self.__saveX, self.__saveY, ctrl, shift, chr(0), 0, None
+        )
         self._Iren.LeaveEvent()
 
     def mousePressEvent(self, ev):
@@ -568,8 +543,7 @@ class QVTKRenderWindowInteractor(QVTKRWIBaseClass):
         if ev.type() == EventType.MouseButtonDblClick:
             repeat = 1
         x, y = _get_event_pos(ev)
-        self._setEventInformation(x, y,
-                                  ctrl, shift, chr(0), repeat, None)
+        self._setEventInformation(x, y, ctrl, shift, chr(0), repeat, None)
 
         self._ActiveButton = ev.button()
 
@@ -583,8 +557,7 @@ class QVTKRenderWindowInteractor(QVTKRWIBaseClass):
     def mouseReleaseEvent(self, ev):
         ctrl, shift = self._GetCtrlShift(ev)
         x, y = _get_event_pos(ev)
-        self._setEventInformation(x, y,
-                                  ctrl, shift, chr(0), 0, None)
+        self._setEventInformation(x, y, ctrl, shift, chr(0), 0, None)
 
         if self._ActiveButton == MouseButton.LeftButton:
             self._Iren.LeftButtonReleaseEvent()
@@ -601,23 +574,20 @@ class QVTKRenderWindowInteractor(QVTKRWIBaseClass):
         self.__saveY = y
 
         ctrl, shift = self._GetCtrlShift(ev)
-        self._setEventInformation(x, y,
-                                  ctrl, shift, chr(0), 0, None)
+        self._setEventInformation(x, y, ctrl, shift, chr(0), 0, None)
         self._Iren.MouseMoveEvent()
 
     def keyPressEvent(self, ev):
         key, keySym = self._GetKeyCharAndKeySym(ev)
         ctrl, shift = self._GetCtrlShift(ev)
-        self._setEventInformation(self.__saveX, self.__saveY,
-                                  ctrl, shift, key, 0, keySym)
+        self._setEventInformation(self.__saveX, self.__saveY, ctrl, shift, key, 0, keySym)
         self._Iren.KeyPressEvent()
         self._Iren.CharEvent()
 
     def keyReleaseEvent(self, ev):
         key, keySym = self._GetKeyCharAndKeySym(ev)
         ctrl, shift = self._GetCtrlShift(ev)
-        self._setEventInformation(self.__saveX, self.__saveY,
-                                  ctrl, shift, key, 0, keySym)
+        self._setEventInformation(self.__saveX, self.__saveY, ctrl, shift, key, 0, keySym)
         self._Iren.KeyReleaseEvent()
 
     def wheelEvent(self, ev):
@@ -643,11 +613,12 @@ class QVTKRenderWindowInteractor(QVTKRWIBaseClass):
 def QVTKRenderWidgetConeExample():
     """A simple example that uses the QVTKRenderWindowInteractor class."""
 
-    from vtkmodules.vtkFiltersSources import vtkConeSource
-    from vtkmodules.vtkRenderingCore import vtkActor, vtkPolyDataMapper, vtkRenderer
+    import vtkmodules.vtkInteractionStyle
+
     # load implementations for rendering and interaction factory classes
     import vtkmodules.vtkRenderingOpenGL2
-    import vtkmodules.vtkInteractionStyle
+    from vtkmodules.vtkFiltersSources import vtkConeSource
+    from vtkmodules.vtkRenderingCore import vtkActor, vtkPolyDataMapper, vtkRenderer
 
     # every QT app needs an app
     app = QApplication(['QVTKRenderWindowInteractor'])
@@ -691,26 +662,135 @@ def QVTKRenderWidgetConeExample():
 
 
 _keysyms_for_ascii = (
-    None, None, None, None, None, None, None, None,
-    None, "Tab", None, None, None, None, None, None,
-    None, None, None, None, None, None, None, None,
-    None, None, None, None, None, None, None, None,
-    "space", "exclam", "quotedbl", "numbersign",
-    "dollar", "percent", "ampersand", "quoteright",
-    "parenleft", "parenright", "asterisk", "plus",
-    "comma", "minus", "period", "slash",
-    "0", "1", "2", "3", "4", "5", "6", "7",
-    "8", "9", "colon", "semicolon", "less", "equal", "greater", "question",
-    "at", "A", "B", "C", "D", "E", "F", "G",
-    "H", "I", "J", "K", "L", "M", "N", "O",
-    "P", "Q", "R", "S", "T", "U", "V", "W",
-    "X", "Y", "Z", "bracketleft",
-    "backslash", "bracketright", "asciicircum", "underscore",
-    "quoteleft", "a", "b", "c", "d", "e", "f", "g",
-    "h", "i", "j", "k", "l", "m", "n", "o",
-    "p", "q", "r", "s", "t", "u", "v", "w",
-    "x", "y", "z", "braceleft", "bar", "braceright", "asciitilde", "Delete",
-    )
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    "Tab",
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    "space",
+    "exclam",
+    "quotedbl",
+    "numbersign",
+    "dollar",
+    "percent",
+    "ampersand",
+    "quoteright",
+    "parenleft",
+    "parenright",
+    "asterisk",
+    "plus",
+    "comma",
+    "minus",
+    "period",
+    "slash",
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "colon",
+    "semicolon",
+    "less",
+    "equal",
+    "greater",
+    "question",
+    "at",
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F",
+    "G",
+    "H",
+    "I",
+    "J",
+    "K",
+    "L",
+    "M",
+    "N",
+    "O",
+    "P",
+    "Q",
+    "R",
+    "S",
+    "T",
+    "U",
+    "V",
+    "W",
+    "X",
+    "Y",
+    "Z",
+    "bracketleft",
+    "backslash",
+    "bracketright",
+    "asciicircum",
+    "underscore",
+    "quoteleft",
+    "a",
+    "b",
+    "c",
+    "d",
+    "e",
+    "f",
+    "g",
+    "h",
+    "i",
+    "j",
+    "k",
+    "l",
+    "m",
+    "n",
+    "o",
+    "p",
+    "q",
+    "r",
+    "s",
+    "t",
+    "u",
+    "v",
+    "w",
+    "x",
+    "y",
+    "z",
+    "braceleft",
+    "bar",
+    "braceright",
+    "asciitilde",
+    "Delete",
+)
 
 _keysyms = {
     Key.Key_Backspace: 'BackSpace',
@@ -805,7 +885,7 @@ _keysyms = {
     Key.Key_F24: 'F24',
     Key.Key_NumLock: 'Num_Lock',
     Key.Key_ScrollLock: 'Scroll_Lock',
-    }
+}
 
 
 if __name__ == "__main__":

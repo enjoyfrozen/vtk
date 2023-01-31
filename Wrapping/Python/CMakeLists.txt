@@ -123,6 +123,12 @@ set(python_files
   vtkmodules/numpy_interface/dataset_adapter.py
   vtkmodules/numpy_interface/internal_algorithms.py
   vtkmodules/qt/QVTKRenderWindowInteractor.py
+  vtkmodules/qt/QVTKInteractor.py
+  vtkmodules/qt/QVTKInteractorAdapter.py
+  vtkmodules/qt/QVTKOpenGLNativeWidget.py
+  vtkmodules/qt/QVTKOpenGLStereoWidget.py
+  vtkmodules/qt/QVTKOpenGLWindow.py
+  vtkmodules/qt/QVTKRenderWindowAdapter.py
   vtkmodules/qt/__init__.py
   vtkmodules/test/BlackBox.py
   vtkmodules/test/ErrorObserver.py

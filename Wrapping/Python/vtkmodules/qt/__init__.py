@@ -19,6 +19,8 @@ For more information, see QVTKRenderWidgetConeExample() in the file
 QVTKRenderWindowInteractor.py.
 """
 
+from __future__ import annotations
+
 import importlib
 import sys
 
@@ -44,4 +46,12 @@ for impl in ["PySide6", "PyQt6", "PyQt5", "PySide2", "PyQt4", "PySide"]:
 # readGLBuffer warnings...)
 QVTKRWIBase = "QWidget"
 
-__all__ = ['QVTKRenderWindowInteractor']
+__all__ = [
+    'QVTKRenderWindowInteractor',
+    'QVTKInteractor',
+    'QVTKInteractorAdapter',
+    'QVTKOpenGLNativeWidget',
+    'QVTKOpenGLStereoWidget',
+    'QVTKOpenGLWindow',
+    'QVTKRenderWindowAdapter',
+]
