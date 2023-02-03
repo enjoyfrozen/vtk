@@ -95,6 +95,7 @@ void vtkPlot::Update()
     this->Data->GetInput()->GetMTime() > this->BuildTime)
   {
     this->Data->Update();
+    this->Modified();
     data_updated = true;
   }
 

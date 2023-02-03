@@ -441,6 +441,17 @@ bool vtkChartXY::Paint(vtkContext2D* painter)
     recalculateTransform = true;
   }
 
+  // Plots may have changed during Update
+  for (size_t i = 0; i < this->ChartPrivate->plots.size(); ++i)
+  {
+    if (this->ChartPrivate->plots[i]->GetVisible() &&
+      this->ChartPrivate->TransformCalculatedTime < this->ChartPrivate->plots[i]->GetMTime())
+    {
+      // Cause the plot bounds and transform to be recalculated if necessary
+      this->RecalculateBounds();
+    }
+  }
+
   // Recalculate the plot transform, min and max values if necessary
   if (!this->PlotTransformValid)
   {
@@ -1341,12 +1352,7 @@ vtkIdType vtkChartXY::AddPlot(vtkPlot* plot, unsigned int blockIndex)
   vtkIdType plotIndex = static_cast<vtkIdType>(this->ChartPrivate->plots.size() - 1);
   this->SetPlotCorner(plot, 0);
   // Ensure that the bounds are recalculated
-  this->PlotTransformValid = false;
-  // Mark the scene as dirty
-  if (this->Scene)
-  {
-    this->Scene->SetDirty(true);
-  }
+  this->RecalculateBounds();
 
   this->ChartPrivate->MapCompositeIndexToPlots[blockIndex].emplace_back(plot);
   this->ChartPrivate->PlotCompositeIndexes[plot] = blockIndex;
@@ -1379,12 +1385,7 @@ bool vtkChartXY::RemovePlot(vtkIdType index)
     this->ChartPrivate->plots.erase(this->ChartPrivate->plots.begin() + index);
 
     // Ensure that the bounds are recalculated
-    this->PlotTransformValid = false;
-    if (this->Scene)
-    {
-      // Mark the scene as dirty
-      this->Scene->SetDirty(true);
-    }
+    this->RecalculateBounds();
     return true;
   }
   else
@@ -1413,12 +1414,7 @@ void vtkChartXY::ClearPlots()
   this->ChartPrivate->PlotCorners.resize(1);
 
   // Ensure that the bounds are recalculated
-  this->PlotTransformValid = false;
-  if (this->Scene)
-  {
-    // Mark the scene as dirty
-    this->Scene->SetDirty(true);
-  }
+  this->RecalculateBounds();
 }
 
 //------------------------------------------------------------------------------
