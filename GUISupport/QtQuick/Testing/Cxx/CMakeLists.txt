@@ -6,6 +6,9 @@ find_package("Qt${vtk_qt_major_version}"
 set(CMAKE_AUTORCC ON)
 
 vtk_add_test_cxx(vtkGUISupportQtQuickCxxTests tests
+  TestQQuickVTKItem_1.cxx
+  TestQQuickVTKItem_2.cxx
+  TestQQuickVTKItem_3.cxx
   TestQQuickVTKRenderItem.cxx
   TestQQuickVTKRenderItemWidget.cxx
   TestQQuickVTKRenderWindow.cxx
@@ -21,6 +24,18 @@ foreach (qml_file IN LISTS qml_files)
     "${CMAKE_CURRENT_SOURCE_DIR}/${qml_file}.in"
     "${CMAKE_CURRENT_BINARY_DIR}/${qml_file}"
     @ONLY)
+endforeach ()
+
+set(qml_files
+  TestQQuickVTKItem_1.qml
+  TestQQuickVTKItem_2.qml
+  TestQQuickVTKItem_3.qml)
+
+foreach (qml_file IN LISTS qml_files)
+  configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/${qml_file}"
+    "${CMAKE_CURRENT_BINARY_DIR}/${qml_file}"
+    COPYONLY)
 endforeach ()
 
 configure_file(
@@ -39,7 +54,6 @@ target_link_libraries(vtkGUISupportQtQuickCxxTests
     )
 
 target_compile_definitions(vtkGUISupportQtQuickCxxTests PRIVATE QT_NO_KEYWORDS)
-
 set_property(
   TEST
     VTK::GUISupportQtQuickCxx-TestQQuickVTKRenderItem
