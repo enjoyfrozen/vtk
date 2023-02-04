@@ -3,6 +3,7 @@ set(classes
   QQuickVTKInteractorAdapter
   QQuickVTKRenderItem
   QQuickVTKRenderWindow
+  QQuickVTKItem
   )
 
 include(vtkQt)
