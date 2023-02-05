@@ -309,12 +309,15 @@ struct ExtractEdges : public ExtractEdgesBase<IDType, TIP>
 {
   const unsigned char* InOut;
   const double* Distance;
+  vtkUnsignedCharArray* GhostCells;
 
   ExtractEdges(TIP* inPts, CellIter* c, vtkPlane* plane, unsigned char* inout, double* distance,
-    vtkCellArray* tris, bool computeCells, vtk3DLinearGridPlaneCutter* filter)
+    vtkCellArray* tris, bool computeCells, vtkUnsignedCharArray* ghostCells,
+    vtk3DLinearGridPlaneCutter* filter)
     : ExtractEdgesBase<IDType, TIP>(inPts, c, plane, tris, computeCells, filter)
     , InOut(inout)
     , Distance(distance)
+    , GhostCells(ghostCells)
   {
   }
 
@@ -344,8 +347,15 @@ struct ExtractEdges : public ExtractEdgesBase<IDType, TIP>
       {
         break;
       }
+      // We skip cells marked as hidden
+      bool cellIsHidden = false;
+      if (this->GhostCells &&
+        (this->GhostCells->GetValue(cellId) & vtkDataSetAttributes::CellGhostTypes::HIDDENCELL))
+      {
+        cellIsHidden = true;
+      }
       // Does the plane cut this cell?
-      if (Classify::PlaneIntersects(this->InOut, cellIter->NumVerts, c))
+      if (!cellIsHidden && Classify::PlaneIntersects(this->InOut, cellIter->NumVerts, c))
       {
         unsigned short isoCase;
         vtkIdType i;
@@ -785,6 +795,7 @@ int ProcessEdges(vtkIdType numCells, vtkPoints* inPts, CellIter* cellIter, vtkPl
   TIds* originalCells = nullptr;
 
   const bool computeCells = (inCD != nullptr && inCD->GetNumberOfArrays() > 0);
+  vtkUnsignedCharArray* ghostCells = (inCD != nullptr ? inCD->GetGhostArray() : nullptr);
 
   // Extract edges
   int ptsType = inPts->GetDataType();
@@ -792,7 +803,7 @@ int ProcessEdges(vtkIdType numCells, vtkPoints* inPts, CellIter* cellIter, vtkPl
   {
     float* pts = static_cast<float*>(inPts->GetVoidPointer(0));
     ExtractEdges<TIds, float> extractEdges(
-      pts, cellIter, plane, inout, distance, newPolys, computeCells, filter);
+      pts, cellIter, plane, inout, distance, newPolys, computeCells, ghostCells, filter);
     EXECUTE_REDUCED_SMPFOR(seqProcessing, numCells, extractEdges, numThreads);
     numTris = extractEdges.NumTris;
     mergeEdges = extractEdges.Edges;
@@ -802,7 +813,7 @@ int ProcessEdges(vtkIdType numCells, vtkPoints* inPts, CellIter* cellIter, vtkPl
   {
     double* pts = static_cast<double*>(inPts->GetVoidPointer(0));
     ExtractEdges<TIds, double> extractEdges(
-      pts, cellIter, plane, inout, distance, newPolys, computeCells, filter);
+      pts, cellIter, plane, inout, distance, newPolys, computeCells, ghostCells, filter);
     EXECUTE_REDUCED_SMPFOR(seqProcessing, numCells, extractEdges, numThreads);
     numTris = extractEdges.NumTris;
     mergeEdges = extractEdges.Edges;

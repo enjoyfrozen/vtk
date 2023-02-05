@@ -67,9 +67,26 @@ public:
 
   ///@{
   /**
-   * This flag tells the extraction filter not to extract a subset of the
-   * data, but instead to produce a vtkInsidedness array and add it to the
-   * input dataset. Default value is false(0).
+   * This flag tells the extraction filter not to extract a subset of the data, but instead to
+   * produce a vtkGhostArray and add it to the dataset.
+   *
+   * Turn this feature on for higher performance filtering so this filter only builds the array, but
+   * doesn't have to filter and copy data arrays when you know a downstream filter will have to
+   * iterate over your whole dataset anyways.
+   *
+   * Default value is false.
+   */
+  vtkSetMacro(GenerateGhostArray, bool);
+  vtkGetMacro(GenerateGhostArray, bool);
+  vtkBooleanMacro(GenerateGhostArray, bool);
+  ///@}
+
+  ///@{
+  /**
+   * This flag tells the extraction filter not to extract a subset of the data, but instead to
+   * produce a vtkInsidedness array and add it to the input dataset.
+   *
+   * Default value is false.
    */
   vtkSetMacro(PreserveTopology, bool);
   vtkGetMacro(PreserveTopology, bool);
@@ -153,9 +170,17 @@ protected:
   void ExtractSelectedRows(
     vtkTable* input, vtkTable* output, vtkSignedCharArray* rowsInside, bool extractAll);
 
+  bool GenerateGhostArray = false;
   bool PreserveTopology = false;
 
 private:
+  template <typename T, typename T2>
+  vtkSmartPointer<vtkUnsignedCharArray> ExtractElementGhosts(T hiddenMask, T2 hiddenValue,
+    vtkUnsignedCharArray* inputGhostArray, vtkSmartPointer<vtkSignedCharArray> insidednessArray);
+  template <typename T>
+  void ExtractElementHideGhostsInInsidedness(T hiddenMask, vtkUnsignedCharArray* inputGhostArray,
+    vtkSmartPointer<vtkSignedCharArray> insidednessArray);
+
   vtkExtractSelection(const vtkExtractSelection&) = delete;
   void operator=(const vtkExtractSelection&) = delete;
 };

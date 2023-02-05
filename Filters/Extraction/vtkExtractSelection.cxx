@@ -18,6 +18,7 @@
 #include "vtkCell.h"
 #include "vtkCellData.h"
 #include "vtkCompositeDataSet.h"
+#include "vtkDataObject.h"
 #include "vtkDataObjectTree.h"
 #include "vtkDataSet.h"
 #include "vtkExtractCells.h"
@@ -42,6 +43,11 @@
 #include <cassert>
 #include <map>
 #include <vector>
+
+static constexpr unsigned char MASKED_CELL_VALUE = vtkDataSetAttributes::HIDDENCELL |
+  vtkDataSetAttributes::DUPLICATECELL | vtkDataSetAttributes::REFINEDCELL;
+
+static constexpr unsigned char MASKED_POINT_VALUE = vtkDataSetAttributes::HIDDENPOINT;
 
 VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkExtractSelection);
@@ -532,26 +538,94 @@ vtkExtractSelection::EvaluationResult vtkExtractSelection::EvaluateSelection(
 vtkSmartPointer<vtkDataObject> vtkExtractSelection::ExtractElements(vtkDataObject* inputBlock,
   vtkDataObject::AttributeTypes type, EvaluationResult evaluationResult, vtkDataObject* outputBlock)
 {
+  // Check if no work needs to be done
+  vtkUnsignedCharArray* inputGhostArray =
+    (type == vtkDataObject::AttributeTypes::CELL || type == vtkDataObject::AttributeTypes::POINT)
+    ? inputBlock->GetGhostArray(type)
+    : nullptr;
   bool extractAll = evaluationResult == EvaluationResult::ALL;
   bool extractNone = evaluationResult == EvaluationResult::NONE;
-  if (extractNone)
+  if (extractNone && inputGhostArray == nullptr)
   {
     // Assume nothing was selected and return.
     return nullptr;
   }
+
+  // Check if there are no cells listed to filter
   auto fd = outputBlock->GetAttributes(type);
   vtkSmartPointer<vtkSignedCharArray> insidednessArray =
     fd ? vtkSignedCharArray::SafeDownCast(fd->GetArray("__vtkInsidedness__")) : nullptr;
-  if (!insidednessArray || insidednessArray->GetNumberOfTuples() <= 0)
+  if ((!inputGhostArray || inputGhostArray->GetNumberOfTuples() <= 0) &&
+    (!insidednessArray || insidednessArray->GetNumberOfTuples() <= 0))
   {
-    // No insidedness array
+    // No ghost or insidedness arrays
     return nullptr;
   }
+
+  // If a ghost array should be generated, create the ghost array from the selection criteria
+  // instead of filtering data directly
+  if (this->GenerateGhostArray &&
+    (type == vtkDataObject::AttributeTypes::CELL || type == vtkDataObject::AttributeTypes::POINT))
+  {
+    vtkSmartPointer<vtkUnsignedCharArray> ghosts;
+    if (type == vtkDataObject::AttributeTypes::CELL)
+    {
+      ghosts = ExtractElementGhosts(MASKED_CELL_VALUE,
+        vtkDataSetAttributes::CellGhostTypes::HIDDENCELL, inputGhostArray, insidednessArray);
+    }
+    else
+    {
+      ghosts = ExtractElementGhosts(MASKED_POINT_VALUE,
+        vtkDataSetAttributes::PointGhostTypes::HIDDENPOINT, inputGhostArray, insidednessArray);
+    }
+
+    outputBlock->ShallowCopy(inputBlock);
+    if (ghosts != nullptr)
+    {
+      outputBlock->GetAttributesAsFieldData(type)->AddArray(ghosts);
+    }
+    if (insidednessArray != nullptr)
+    {
+      insidednessArray->SetName("vtkInsidedness");
+      outputBlock->GetAttributesAsFieldData(type)->AddArray(insidednessArray);
+    }
+    return outputBlock;
+  }
+
+  // If a ghost array exists from a previous filter, setup filtering so those ghost cells can be
+  // removed from the output as if they were directly filtered
+  if (inputGhostArray)
+  {
+    if (insidednessArray == nullptr)
+    {
+      insidednessArray = vtkSmartPointer<vtkSignedCharArray>::New();
+      insidednessArray->SetNumberOfValues(inputGhostArray->GetNumberOfValues());
+      insidednessArray->FillComponent(0, 1);
+    }
+
+    if (type == vtkDataObject::AttributeTypes::CELL)
+    {
+      ExtractElementHideGhostsInInsidedness(MASKED_CELL_VALUE, inputGhostArray, insidednessArray);
+    }
+    else
+    {
+      ExtractElementHideGhostsInInsidedness(MASKED_POINT_VALUE, inputGhostArray, insidednessArray);
+    }
+  }
+
+  // If data is to be filtered...
   vtkSmartPointer<vtkDataObject> result;
   if (this->PreserveTopology)
   {
-    insidednessArray->SetName("vtkInsidedness");
-    outputBlock->GetAttributesAsFieldData(type)->AddArray(insidednessArray);
+    if (inputGhostArray != nullptr)
+    {
+      fd->AddArray(inputGhostArray);
+    }
+    if (insidednessArray != nullptr)
+    {
+      insidednessArray->SetName("vtkInsidedness");
+      outputBlock->GetAttributesAsFieldData(type)->AddArray(insidednessArray);
+    }
     result = outputBlock;
     return result;
   }
@@ -624,6 +698,80 @@ vtkSmartPointer<vtkDataObject> vtkExtractSelection::ExtractElements(vtkDataObjec
     result = outputBlock;
   }
   return result && result->GetNumberOfElements(type) > 0 ? result : nullptr;
+}
+
+//------------------------------------------------------------------------------
+template <typename T, typename T2>
+vtkSmartPointer<vtkUnsignedCharArray> vtkExtractSelection::ExtractElementGhosts(T hiddenMask,
+  T2 hiddenValue, vtkUnsignedCharArray* inputGhostArray,
+  vtkSmartPointer<vtkSignedCharArray> insidednessArray)
+{
+  vtkIdType size = 0;
+  if (inputGhostArray != nullptr)
+  {
+    size = std::max(size, inputGhostArray->GetNumberOfTuples());
+  }
+  if (insidednessArray != nullptr)
+  {
+    size = std::max(size, insidednessArray->GetNumberOfTuples());
+  }
+  if (size <= 0)
+  {
+    return nullptr;
+  }
+
+  vtkNew<vtkUnsignedCharArray> ghosts;
+  ghosts->SetNumberOfTuples(size);
+  ghosts->FillComponent(0, 0);
+  ghosts->SetName(vtkDataSetAttributes::GhostArrayName());
+
+  if (inputGhostArray && inputGhostArray->GetSize() == size)
+  {
+    for (vtkIdType i = 0; i < size; i++)
+    {
+      if ((inputGhostArray->GetValue(i) & hiddenMask) ||
+        (insidednessArray != nullptr && insidednessArray->GetValue(i) == 0))
+      {
+        ghosts->SetValue(i, hiddenValue);
+      }
+    }
+  }
+  else
+  {
+    if (inputGhostArray)
+    {
+      vtkErrorMacro("A ghost array exists, but is the wrong size and will be ignored");
+    }
+
+    if (insidednessArray != nullptr)
+    {
+      for (vtkIdType i = 0; i < size; i++)
+      {
+        if (insidednessArray->GetValue(i) == 0)
+        {
+          ghosts->SetValue(i, hiddenValue);
+        }
+      }
+    }
+  }
+
+  return ghosts;
+}
+
+//------------------------------------------------------------------------------
+template <typename T>
+void vtkExtractSelection::ExtractElementHideGhostsInInsidedness(T hiddenMask,
+  vtkUnsignedCharArray* inputGhostArray, vtkSmartPointer<vtkSignedCharArray> insidednessArray)
+{
+  vtkIdType numValues =
+    std::min(inputGhostArray->GetNumberOfValues(), insidednessArray->GetNumberOfValues());
+  for (vtkIdType i = 0; i < numValues; i++)
+  {
+    if (inputGhostArray->GetValue(i) & hiddenMask)
+    {
+      insidednessArray->SetValue(i, 0);
+    }
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -860,6 +1008,7 @@ void vtkExtractSelection::ExtractSelectedRows(
 void vtkExtractSelection::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
+  os << indent << "GenerateGhostArray: " << this->GenerateGhostArray << endl;
   os << indent << "PreserveTopology: " << this->PreserveTopology << endl;
 }
 VTK_ABI_NAMESPACE_END
