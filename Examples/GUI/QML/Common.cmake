@@ -66,7 +66,7 @@ endif()
 
 # VTK section
 
-find_package(VTK 9.2.0) 
+find_package(VTK) 
 
 if (NOT VTK_FOUND)
   message("Skipping ${MYNAME}: ${VTK_NOT_FOUND_MESSAGE}")
