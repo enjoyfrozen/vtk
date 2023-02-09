@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 
-set(MYNAME QQuickProperty)
+set(MYNAME QtQuickProperty)
 
 project(${MYNAME} VERSION 1.0)
 
