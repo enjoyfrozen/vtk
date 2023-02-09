@@ -66,7 +66,7 @@ endif()
 
 # VTK section
 
-find_package(VTK) 
+find_package(VTK COMPONENTS CommonCore CommonColor ChartsCore GUISupportQtQuick RenderingContextOpenGL2) 
 
 if (NOT VTK_FOUND)
   message("Skipping ${MYNAME}: ${VTK_NOT_FOUND_MESSAGE}")
