@@ -151,8 +151,8 @@ VTK_ABI_NAMESPACE_BEGIN
 class QQuickVTKInteractiveWidget;
 class vtkImageData;
 
-VTK_DEPRECATED_IN_9_3_0("Use QQuickVTKItem instead")
-class VTKGUISUPPORTQTQUICK_EXPORT QQuickVTKRenderItem
+class VTK_DEPRECATED_IN_9_3_0(
+  "Use QQuickVTKItem instead") VTKGUISUPPORTQTQUICK_EXPORT QQuickVTKRenderItem
   : public QQuickItem
   , protected QOpenGLFunctions
 {

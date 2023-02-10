@@ -36,8 +36,9 @@ VTK_ABI_NAMESPACE_BEGIN
 class vtkAbstractWidget;
 class vtkRenderer;
 
-VTK_DEPRECATED_IN_9_3_0("Use QQuickVTKItem instead")
-class VTKGUISUPPORTQTQUICK_EXPORT QQuickVTKInteractiveWidget : public QObject
+class VTK_DEPRECATED_IN_9_3_0(
+  "Use QQuickVTKItem instead") VTKGUISUPPORTQTQUICK_EXPORT QQuickVTKInteractiveWidget
+  : public QObject
 {
   Q_OBJECT
   typedef QObject Superclass;

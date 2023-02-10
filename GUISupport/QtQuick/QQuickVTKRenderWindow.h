@@ -142,8 +142,8 @@ class vtkRenderWindow;
 class vtkRenderer;
 class vtkWindowToImageFilter;
 
-VTK_DEPRECATED_IN_9_3_0("Use QQuickVTKItem instead")
-class VTKGUISUPPORTQTQUICK_EXPORT QQuickVTKRenderWindow
+class VTK_DEPRECATED_IN_9_3_0(
+  "Use QQuickVTKItem instead") VTKGUISUPPORTQTQUICK_EXPORT QQuickVTKRenderWindow
   : public QQuickItem
   , protected QOpenGLFunctions
 {
