@@ -25,3 +25,5 @@ vtk_module_autoinit( TARGETS ${MYNAME} MODULES ${VTK_LIBRARIES} )
 
 message (STATUS "VTK_DIR: ${VTK_DIR}")
 message (STATUS "VTK_VERSION: ${VTK_VERSION}")
+
+#newline at end of file
