@@ -63,18 +63,3 @@ if(QT_VERSION_MAJOR EQUAL 6)
     qt_import_qml_plugins(${MYNAME})
     qt_finalize_executable(${MYNAME})
 endif()
-
-# VTK section
-
-find_package(VTK COMPONENTS CommonCore CommonColor ChartsCore GUISupportQtQuick RenderingContextOpenGL2) 
-
-if (NOT VTK_FOUND)
-  message("Skipping ${MYNAME}: ${VTK_NOT_FOUND_MESSAGE}")
-  return ()
-endif()
-
-target_link_libraries(${MYNAME} PRIVATE ${VTK_LIBRARIES})
-vtk_module_autoinit( TARGETS ${MYNAME} MODULES ${VTK_LIBRARIES} )
-
-message (STATUS "VTK_DIR: ${VTK_DIR}")
-message (STATUS "VTK_VERSION: ${VTK_VERSION}")

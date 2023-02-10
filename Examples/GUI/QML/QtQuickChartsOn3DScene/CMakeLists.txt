@@ -10,4 +10,17 @@ set(PROJECT_SOURCES
   qml.qrc
 )
 
+find_package(VTK COMPONENTS CommonCore CommonColor ChartsCore GUISupportQtQuick RenderingContextOpenGL2) 
+
+if (NOT VTK_FOUND)
+  message("Skipping ${MYNAME}: ${VTK_NOT_FOUND_MESSAGE}")
+  return ()
+endif()
+
 include(../Common.cmake)
+
+target_link_libraries(${MYNAME} PRIVATE ${VTK_LIBRARIES})
+vtk_module_autoinit( TARGETS ${MYNAME} MODULES ${VTK_LIBRARIES} )
+
+message (STATUS "VTK_DIR: ${VTK_DIR}")
+message (STATUS "VTK_VERSION: ${VTK_VERSION}")
