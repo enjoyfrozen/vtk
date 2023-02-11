@@ -5,8 +5,8 @@
 
 #include <QtGui/QGuiApplication>
 
-#include <QtCore/QPointer.h>
-#include <QtCore/QScopedPointer.h>
+#include <QtCore/QPointer>
+#include <QtCore/QScopedPointer>
 
 #include <QQuickVTKItem.h>
 #include <QVTKRenderWindowAdapter.h>
