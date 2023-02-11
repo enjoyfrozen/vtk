@@ -40,7 +40,7 @@ else()
     endif()
 endif()
 
-target_compile_definitions(${MYNAME} PRIVATE 
+target_compile_definitions(${MYNAME} PRIVATE
   $<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>:QT_QML_DEBUG>
 )
 

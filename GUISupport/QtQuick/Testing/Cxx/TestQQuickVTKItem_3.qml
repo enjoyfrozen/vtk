@@ -40,4 +40,3 @@ Window {
     }
   }
 }
-// comment to fix Kitware Robot reformat problem
