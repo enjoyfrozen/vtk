@@ -550,8 +550,9 @@ bool QQuickVTKItem::event(QEvent* ev)
     case QEvent::Wheel:
     {
       auto e = static_cast<QWheelEvent*>(ev);
-      auto c = QSharedPointer<QWheelEvent>::create(e->pos(), e->globalPos(), e->pixelDelta(),
-        e->angleDelta(), e->buttons(), e->modifiers(), e->phase(), e->inverted(), e->source());
+      auto c =
+        QSharedPointer<QWheelEvent>::create(e->position(), e->globalPosition(), e->pixelDelta(),
+          e->angleDelta(), e->buttons(), e->modifiers(), e->phase(), e->inverted(), e->source());
 
       dispatch_async([d, c](vtkRenderWindow* vtkWindow, vtkUserData) mutable {
         d->qt2vtkInteractorAdapter.ProcessEvent(c.get(), vtkWindow->GetInteractor());
