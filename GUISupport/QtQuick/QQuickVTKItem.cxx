@@ -551,7 +551,11 @@ bool QQuickVTKItem::event(QEvent* ev)
     {
       auto e = static_cast<QWheelEvent*>(ev);
       auto c =
+#if QT_VERSION < QT_VERSION_CHECK(5, 15, 0)
+        QSharedPointer<QWheelEvent>::create(e->pos(), e->globalPos(), e->pixelDelta(),
+#else
         QSharedPointer<QWheelEvent>::create(e->position(), e->globalPosition(), e->pixelDelta(),
+#endif
           e->angleDelta(), e->buttons(), e->modifiers(), e->phase(), e->inverted(), e->source());
 
       dispatch_async([d, c](vtkRenderWindow* vtkWindow, vtkUserData) mutable {
