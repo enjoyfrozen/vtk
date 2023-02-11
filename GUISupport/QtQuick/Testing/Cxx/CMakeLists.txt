@@ -9,11 +9,13 @@ vtk_add_test_cxx(vtkGUISupportQtQuickCxxTests tests
   TestQQuickVTKItem_1.cxx
   TestQQuickVTKItem_2.cxx
   TestQQuickVTKItem_3.cxx
+  # VTK_DEPRECATED_IN_9_3_0 applies to these three tests
   TestQQuickVTKRenderItem.cxx
   TestQQuickVTKRenderItemWidget.cxx
   TestQQuickVTKRenderWindow.cxx
   )
 
+# VTK_DEPRECATED_IN_9_3_0 applies here
 set(qml_files
   TestQQuickVTKRenderItem.qml
   TestQQuickVTKRenderItemWidget.qml
@@ -54,6 +56,8 @@ target_link_libraries(vtkGUISupportQtQuickCxxTests
     )
 
 target_compile_definitions(vtkGUISupportQtQuickCxxTests PRIVATE QT_NO_KEYWORDS)
+
+# VTK_DEPRECATED_IN_9_3_0 applies here
 set_property(
   TEST
     VTK::GUISupportQtQuickCxx-TestQQuickVTKRenderItem
