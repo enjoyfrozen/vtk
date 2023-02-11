@@ -1,6 +1,6 @@
 <RCC>
-    <qresource prefix="/">
-        <file>main.qml</file>
-        <file>DynamicSplitView.qml</file>
-    </qresource>
+  <qresource prefix="/">
+    <file>main.qml</file>
+    <file>DynamicSplitView.qml</file>
+  </qresource>
 </RCC>
