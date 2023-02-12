@@ -59,21 +59,13 @@ struct MyConeItem : QQuickVTKItem
     vtkTypeMacro(Data, vtkObject);
   };
 
-  struct Callback : public vtkCommand
+  void onEndEvent(vtkObject* caller, unsigned long, void*)
   {
-    static Callback* New();
-    void Execute(vtkObject* caller, unsigned long evt, void*) override
-    {
-      if (evt == vtkCommand::EndEvent)
-      {
-        vtkRenderWindow* renderWindow = vtkRenderWindow::SafeDownCast(caller);
-        renderWindow->GetRenderers()->GetFirstRenderer()->ResetCamera();
-        renderWindow->RemoveObserver(this);
-        this->pThis->scheduleRender();
-      }
-    }
-    MyConeItem* pThis;
-  };
+    vtkRenderWindow* renderWindow = vtkRenderWindow::SafeDownCast(caller);
+    renderWindow->GetRenderers()->GetFirstRenderer()->ResetCamera();
+    renderWindow->RemoveObserver(this->endEventTag);
+    this->scheduleRender();
+  }
 
   vtkUserData initializeVTK(vtkRenderWindow* renderWindow) override
   {
@@ -93,15 +85,14 @@ struct MyConeItem : QQuickVTKItem
     renderer->SetBackground2(0.7, 0.7, 0.7);
     renderer->SetGradientBackground(true);
 
-    vtkNew<Callback> myCallback;
-    myCallback->pThis = this;
-    renderWindow->AddObserver(vtkCommand::EndEvent, myCallback);
+    endEventTag = renderWindow->AddObserver(vtkCommand::EndEvent, this, &MyConeItem::onEndEvent);
 
     return vtk;
   }
+
+  unsigned long endEventTag;
 };
 vtkStandardNewMacro(MyConeItem::Data);
-vtkStandardNewMacro(MyConeItem::Callback);
 
 /*=========================================================================*/
 
@@ -115,10 +106,9 @@ struct MyWidgetItem : QQuickVTKItem
     vtkNew<vtkImplicitPlaneWidget2> planeWidget;
   };
 
-  struct Callback : public vtkCommand
+  struct Callback
   {
-    static Callback* New();
-    void Execute(vtkObject* caller, unsigned long evt, void*) override
+    void Execute(vtkObject* caller, unsigned long evt, void*)
     {
       if (evt == vtkCommand::InteractionEvent)
       {
@@ -134,7 +124,7 @@ struct MyWidgetItem : QQuickVTKItem
         this->Rep->SetPlaceFactor(1.25);
         this->Rep->PlaceWidget(this->Glyph->GetOutput()->GetBounds());
         this->Renderer->GetActiveCamera()->Azimuth(20);
-        this->Renderer->GetRenderWindow()->RemoveObserver(this);
+        this->Renderer->GetRenderWindow()->RemoveObserver(this->EndEventTag);
         this->pThis->scheduleRender();
       }
     }
@@ -149,6 +139,7 @@ struct MyWidgetItem : QQuickVTKItem
     vtkRenderer* Renderer;
     vtkImplicitPlaneRepresentation* Rep;
     MyWidgetItem* pThis;
+    unsigned long EndEventTag;
   };
 
   vtkUserData initializeVTK(vtkRenderWindow* renderWindow) override
@@ -204,17 +195,17 @@ struct MyWidgetItem : QQuickVTKItem
     // The SetInteractor method is how 3D widgets are associated with the render
     // window interactor. Internally, SetInteractor sets up a bunch of callbacks
     // using the Command/Observer mechanism (AddObserver()).
-    vtkNew<Callback> myCallback;
-    myCallback->Plane = plane;
-    myCallback->Actor = selectActor;
-    myCallback->Glyph = glyph;
-    myCallback->Rep = rep;
-    myCallback->Renderer = renderer;
-    myCallback->pThis = this;
+    myCallback.Plane = plane;
+    myCallback.Actor = selectActor;
+    myCallback.Glyph = glyph;
+    myCallback.Rep = rep;
+    myCallback.Renderer = renderer;
+    myCallback.pThis = this;
 
     vtk->planeWidget->SetRepresentation(rep);
-    vtk->planeWidget->AddObserver(vtkCommand::InteractionEvent, myCallback);
-    renderer->GetRenderWindow()->AddObserver(vtkCommand::EndEvent, myCallback);
+    vtk->planeWidget->AddObserver(vtkCommand::InteractionEvent, &myCallback, &Callback::Execute);
+    myCallback.EndEventTag = renderer->GetRenderWindow()->AddObserver(
+      vtkCommand::EndEvent, &myCallback, &Callback::Execute);
     auto iren = renderWindow->GetInteractor();
     vtk->planeWidget->SetInteractor(iren);
     vtk->planeWidget->SetCurrentRenderer(renderer);
@@ -226,9 +217,10 @@ struct MyWidgetItem : QQuickVTKItem
 
     return vtk;
   }
+
+  Callback myCallback;
 };
 vtkStandardNewMacro(MyWidgetItem::Data);
-vtkStandardNewMacro(MyWidgetItem::Callback);
 }
 
 int TestQQuickVTKItem_2(int argc, char* argv[])
