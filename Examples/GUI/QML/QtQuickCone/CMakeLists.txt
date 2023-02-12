@@ -10,7 +10,11 @@ set(PROJECT_SOURCES
   qml.qrc
 )
 
-find_package(VTK COMPONENTS CommonCore CommonColor GUISupportQtQuick)
+find_package(VTK
+  COMPONENTS
+    CommonCore
+    FiltersSources
+    GUISupportQtQuick)
 
 if (NOT VTK_FOUND)
   message("Skipping ${MYNAME}: ${VTK_NOT_FOUND_MESSAGE}")
