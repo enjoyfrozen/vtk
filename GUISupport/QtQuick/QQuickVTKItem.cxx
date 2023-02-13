@@ -47,7 +47,6 @@
 #include "QVTKInteractorAdapter.h"
 #include "QVTKRenderWindowAdapter.h"
 
-QT_WARNING_PUSH
 QT_WARNING_DISABLE_GCC("-Wshadow-ivar")
 QT_WARNING_DISABLE_CLANG("-Wshadow-ivar")
 QT_WARNING_DISABLE_MSVC(4458)
@@ -603,5 +602,3 @@ VTK_ABI_NAMESPACE_END
 
 #include "QQuickVTKItem.moc"
 #include "moc_QQuickVTKItem.cpp"
-
-QT_WARNING_POP
