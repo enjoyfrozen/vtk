@@ -120,7 +120,7 @@ Use QQuickVTKItem::setupGraphicsApi() to set the OpenGLRhi backend.)***",
 
 QQuickVTKItem::QQuickVTKItem(QQuickItem* parent)
   : QQuickItem(parent)
-  , d_ptr(new QQuickVTKItemPrivate(this))
+  , _d_ptr(new QQuickVTKItemPrivate(this))
 {
   setAcceptHoverEvents(true);
 #ifndef NO_TOUCH

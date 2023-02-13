@@ -148,8 +148,8 @@ private Q_SLOTS:
 
 private:
   Q_DISABLE_COPY(QQuickVTKItem)
-  Q_DECLARE_PRIVATE(QQuickVTKItem)
-  QScopedPointer<QQuickVTKItemPrivate> d_ptr;
+  Q_DECLARE_PRIVATE_D(_d_ptr, QQuickVTKItem)
+  QScopedPointer<QQuickVTKItemPrivate> _d_ptr;
 };
 
 VTK_ABI_NAMESPACE_END
