@@ -49,6 +49,7 @@
 
 QT_WARNING_PUSH
 QT_WARNING_DISABLE_GCC("-Wshadow-ivar")
+QT_WARNING_DISABLE_CLANG("-Wshadow-ivar")
 QT_WARNING_DISABLE_MSVC(4458)
 
 // no touch events for now
