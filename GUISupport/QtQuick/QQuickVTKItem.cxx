@@ -47,6 +47,10 @@
 #include "QVTKInteractorAdapter.h"
 #include "QVTKRenderWindowAdapter.h"
 
+QT_WARNING_PUSH
+QT_WARNING_DISABLE_GCC("-Wshadow-ivar")
+QT_WARNING_DISABLE_MSVC(4458)
+
 // no touch events for now
 #define NO_TOUCH
 
@@ -598,3 +602,5 @@ VTK_ABI_NAMESPACE_END
 
 #include "QQuickVTKItem.moc"
 #include "moc_QQuickVTKItem.cpp"
+
+QT_WARNING_POP
