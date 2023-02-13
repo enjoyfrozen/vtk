@@ -112,7 +112,6 @@ struct MyWidgetItem : QQuickVTKItem
     {
       if (evt == vtkCommand::InteractionEvent)
       {
-        vtkImplicitPlaneWidget2* planeWidget = vtkImplicitPlaneWidget2::SafeDownCast(caller);
         this->Rep->GetPlane(this->Plane);
         this->Actor->VisibilityOn();
       }

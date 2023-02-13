@@ -151,7 +151,7 @@ class QSGVtkObjectNode
 public:
   QSGVtkObjectNode() { qsgnode_set_description(this, QStringLiteral("vtknode")); }
 
-  ~QSGVtkObjectNode()
+  ~QSGVtkObjectNode() override
   {
     if (m_item)
       m_item->destroyingVTK(vtkWindow, vtkUserData);
