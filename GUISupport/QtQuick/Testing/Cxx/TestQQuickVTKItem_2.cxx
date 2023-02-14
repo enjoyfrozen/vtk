@@ -108,7 +108,7 @@ struct MyWidgetItem : QQuickVTKItem
 
   struct Callback
   {
-    void Execute(vtkObject* caller, unsigned long evt, void*)
+    void Execute(vtkObject*, unsigned long evt, void*)
     {
       if (evt == vtkCommand::InteractionEvent)
       {

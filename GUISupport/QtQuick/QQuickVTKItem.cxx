@@ -212,7 +212,7 @@ public:
     }
   }
 
-public Q_SLOTS:
+public Q_SLOTS: // NOLINT(readability-redundant-access-specifiers)
   void render()
   {
     if (m_renderPending)
@@ -317,12 +317,12 @@ QSGNode* QQuickVTKItem::updatePaintNode(QSGNode* node, UpdatePaintNodeData*)
   }
 
   // Dispatch commands to VTK
-  if (d->asyncDispatch.size())
+  if (!d->asyncDispatch.empty())
   {
     n->scheduleRender();
 
     n->vtkWindow->SetReadyForRendering(true);
-    while (d->asyncDispatch.size())
+    while (!d->asyncDispatch.empty())
       d->asyncDispatch.dequeue()(n->vtkWindow, n->vtkUserData);
     n->vtkWindow->SetReadyForRendering(false);
   }
@@ -601,4 +601,3 @@ bool QQuickVTKItem::event(QEvent* ev)
 VTK_ABI_NAMESPACE_END
 
 #include "QQuickVTKItem.moc"
-#include "moc_QQuickVTKItem.cpp"
