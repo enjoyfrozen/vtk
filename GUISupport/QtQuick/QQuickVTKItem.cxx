@@ -1,7 +1,7 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    QQuickVTKInteractiveWidget.h
+  Module:    QQuickVTKItem.cxx
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen, John Stone
   All rights reserved.

@@ -76,7 +76,7 @@ public:
    * \note At the time of this method execution, the GUI thread is blocked. Hence, it is safe to
    *       perform state synchronization between the GUI elements and the VTK classes here.
    *
-   * \param renderWindow, the VTK render window that creates this object's pixels for display
+   * \param renderWindow The VTK render window that creates this object's pixels for display
    *
    * \return The vtkUserData object associated with the VTK render window
    */
@@ -99,9 +99,9 @@ public:
    * \note At the time of this method execution, the GUI thread is blocked. Hence, it is safe to
    *       perform state synchronization between the GUI elements and the VTK classes here.
    *
-   * \param renderWindow, the VTK render window that creates this object's pixels for display
+   * \param renderWindow The VTK render window that creates this object's pixels for display
    *
-   * \param vtkUserData, the object associated with the VTK render window
+   * \param vtkUserData The object associated with the VTK render window
    */
   virtual void destroyingVTK(vtkRenderWindow* renderWindow, vtkUserData userData)
   {
@@ -125,7 +125,7 @@ public:
    * to perform state synchronization between the GUI elements and the VTK classes in the async
    * command function.
    *
-   * \param renderWindow, the VTK render window that creates this object's pixels for display
+   * \param renderWindow The VTK render window that creates this object's pixels for display
    * \param userData An optional User Data object associated with the VTK render window
    */
   void dispatch_async(std::function<void(vtkRenderWindow* renderWindow, vtkUserData userData)>);
