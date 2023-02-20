@@ -104,6 +104,16 @@ vtk_add_test_cxx(vtkIOImageCxxTests tests
 vtk_add_test_cxx(vtkIOImageCxxTests tests
   TestWriteToUnicodeFileJPEG,TestWriteToUnicodeFile.cxx,NO_VALID
     "image.jpg")
+    
+vtk_add_test_cxx(vtkIOImageCxxTests tests
+  TestMetaIOFromRAI,TestMetaIO.cxx,NO_VALID
+    "DATA{${_vtk_build_TEST_INPUT_DATA_DIRECTORY}/Data/MetaIO/HeadMRVolumeRAI.mhd,HeadMRVolume.raw}"
+    -1 0 0 0 -1 0 0 0 -1)
+
+vtk_add_test_cxx(vtkIOImageCxxTests tests
+  TestMetaIOWithDirection,TestMetaIO.cxx,NO_VALID
+    "DATA{${_vtk_build_TEST_INPUT_DATA_DIRECTORY}/Data/MetaIO/HeadMRVolumeWithDirection.mhd,HeadMRVolume.raw}"
+    0.866025 -0.5 0 0.5 0.866025 0 0 0 1)
 
 if (VTK_USE_LARGE_DATA)
   vtk_add_test_cxx(vtkIOImageCxxTests large_data_tests
