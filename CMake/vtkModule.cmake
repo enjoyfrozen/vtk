@@ -831,6 +831,9 @@ function (vtk_module_scan)
         "_vtk_module_${_vtk_scan_module_name}_kit" "${${_vtk_scan_module_name}_KIT}")
     set_property(GLOBAL
       PROPERTY
+        "_vtk_module_${_vtk_scan_module_name}_groups" "${${_vtk_scan_module_name}_GROUPS}")
+    set_property(GLOBAL
+      PROPERTY
         "_vtk_module_${_vtk_scan_module_name}_depends" "${${_vtk_scan_module_name}_DEPENDS}")
     set_property(GLOBAL
       PROPERTY

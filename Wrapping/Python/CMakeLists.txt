@@ -74,16 +74,27 @@ endif ()
 set(_vtkmodules_all)
 set(_vtk_python_imports)
 set(_vtk_python_external_imports)
+set(_vtk_python_unconditional_groups StandAlone Rendering)
 foreach (_vtk_python_module IN LISTS vtk_python_wrapped_modules)
+  get_property(_vtk_python_module_groups
+    GLOBAL PROPERTY "_vtk_module_${_vtk_python_module}_groups")
+  set(_try "try:\n  ")
+  set(_except "except ImportError:\n  pass\n")
+  foreach (_vtk_python_module_group IN LISTS _vtk_python_module_groups)
+    if (_vtk_python_module_group IN_LIST _vtk_python_unconditional_groups)
+      set(_try)
+      set(_except)
+    endif ()
+  endforeach ()
   get_property(_vtk_python_library_name
     TARGET    "${_vtk_python_module}"
     PROPERTY  "INTERFACE_vtk_module_library_name")
   string(APPEND _vtkmodules_all
     "    \'${_vtk_python_library_name}\',\n")
   string(APPEND _vtk_python_imports
-    "from .${_vtk_python_library_name} import *\n")
+    "${_try}from .${_vtk_python_library_name} import *\n${_except}")
   string(APPEND _vtk_python_external_imports
-    "from vtkmodules.${_vtk_python_library_name} import *\n")
+    "${_try}from vtkmodules.${_vtk_python_library_name} import *\n${_except}")
 endforeach ()
 
 set(_vtk_python_files)
