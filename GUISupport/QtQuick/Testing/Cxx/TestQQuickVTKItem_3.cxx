@@ -74,9 +74,6 @@ struct MyGeomItem : QQuickVTKItem
     actor->SetMapper(mapper);
     renderer->AddActor(actor);
     renderer->ResetCamera();
-    //    renderer->SetBackground(0.5, 0.5, 0.7);
-    renderer->SetBackground2(0.7, 0.7, 0.7);
-    //    renderer->SetGradientBackground(true);
 
     return vtk;
   }
@@ -129,9 +126,6 @@ struct MyVolumeItem : QQuickVTKItem
     volume->SetProperty(volumeProperty);
     renderer->AddVolume(volume);
     renderer->ResetCamera();
-    // renderer->SetBackground(0.5, 0.5, 0.7);
-    renderer->SetBackground(0, 0, 1);
-    // renderer->SetBackground2(0.7, 0.7, 0.7);
 
     return vtk;
   }
@@ -166,7 +160,6 @@ struct MyGlyphItem : QQuickVTKItem
     glyphActor->SetMapper(glyphMapper);
     glyphActor->GetProperty()->SetDiffuseColor(0.5, 1.0, 0.8);
     renderer->AddActor(glyphActor);
-    renderer->SetBackground(0.5, 0.5, 0.7);
     renderer->ResetCamera();
 
     return vtk;
@@ -203,7 +196,7 @@ int TestQQuickVTKItem_3(int argc, char* argv[])
 
   // Wait a little for the application and window to be set up properly
   QEventLoop loop;
-  QTimer::singleShot(100, &loop, SLOT(quit()));
+  QTimer::singleShot(1000, &loop, SLOT(quit()));
   loop.exec();
 
   vtkNew<vtkTesting> vtktesting;

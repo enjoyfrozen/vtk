@@ -181,6 +181,8 @@ public:
           emit clicked();
         break;
       }
+      default:
+        break;
     }
     ev->accept();
     return true;
