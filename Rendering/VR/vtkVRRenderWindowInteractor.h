@@ -169,7 +169,7 @@ protected:
 
   ///@{
   /**
-   * Handle multitouch events. Multitouch events recognition starts when
+   * Handle complex gesture events. Complex gesture events recognition starts when
    * both controllers triggers are pressed.
    *
    * To differentiate the Rotate, Pinch and Pan gestures, the default implementation
@@ -199,7 +199,7 @@ protected:
   ///@}
 
   /**
-   * Store physical to world matrix at the start of a multitouch gesture.
+   * Store physical to world matrix at the start of a complex gesture.
    */
   vtkNew<vtkMatrix4x4> StartingPhysicalToWorldMatrix;
   int DeviceInputDownCount[vtkEventDataNumberOfDevices];
