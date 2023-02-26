@@ -255,6 +255,7 @@ int TestQQuickVTKItem_2(int argc, char* argv[])
 
   // Capture a screenshot of the item
   QImage im = window->grabWindow();
+  im = im.convertToFormat(QImage::Format_ARGB32);
 
   std::string validName = std::string(vtktesting->GetValidImageFileName());
   std::string::size_type slashPos = validName.rfind('/');
