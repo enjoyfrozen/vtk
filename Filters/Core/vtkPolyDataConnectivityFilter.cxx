@@ -18,7 +18,6 @@
 #include "vtkCellArray.h"
 #include "vtkCellData.h"
 #include "vtkFloatArray.h"
-#include "vtkIdList.h"
 #include "vtkIdTypeArray.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
@@ -32,10 +31,11 @@
 VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkPolyDataConnectivityFilter);
 
+//------------------------------------------------------------------------------
 // Construct with default extraction mode to extract largest regions.
 vtkPolyDataConnectivityFilter::vtkPolyDataConnectivityFilter()
 {
-  this->RegionSizes = vtkIdTypeArray::New();
+  this->RegionSizes = vtkSmartPointer<vtkIdTypeArray>::New();
   this->ExtractionMode = VTK_EXTRACT_LARGEST_REGION;
   this->ColorRegions = 0;
 
@@ -46,31 +46,35 @@ vtkPolyDataConnectivityFilter::vtkPolyDataConnectivityFilter()
 
   this->ClosestPoint[0] = this->ClosestPoint[1] = this->ClosestPoint[2] = 0.0;
 
-  this->CellScalars = vtkFloatArray::New();
+  this->CellScalars = vtkSmartPointer<vtkFloatArray>::New();
   this->CellScalars->Allocate(8);
 
-  this->NeighborCellPointIds = vtkIdList::New();
+  this->NeighborCellPointIds = vtkSmartPointer<vtkIdList>::New();
   this->NeighborCellPointIds->Allocate(8);
 
-  this->Seeds = vtkIdList::New();
-  this->SpecifiedRegionIds = vtkIdList::New();
+  this->Seeds = vtkSmartPointer<vtkIdList>::New();
+  this->SpecifiedRegionIds = vtkSmartPointer<vtkIdList>::New();
 
   this->MarkVisitedPointIds = 0;
-  this->VisitedPointIds = vtkIdList::New();
+  this->VisitedPointIds = vtkSmartPointer<vtkIdList>::New();
 
   this->OutputPointsPrecision = DEFAULT_PRECISION;
 }
 
-vtkPolyDataConnectivityFilter::~vtkPolyDataConnectivityFilter()
+//------------------------------------------------------------------------------
+vtkPolyDataConnectivityFilter::~vtkPolyDataConnectivityFilter() = default;
+
+//------------------------------------------------------------------------------
+// Overload standard modified time function. Users may specify a seed array and
+// modify it outside of the filter.
+vtkMTimeType vtkPolyDataConnectivityFilter::GetMTime()
 {
-  this->RegionSizes->Delete();
-  this->CellScalars->Delete();
-  this->NeighborCellPointIds->Delete();
-  this->Seeds->Delete();
-  this->SpecifiedRegionIds->Delete();
-  this->VisitedPointIds->Delete();
+  vtkMTimeType mTime = this->Superclass::GetMTime();
+  vtkMTimeType mTime2 = this->Seeds->GetMTime();
+  return ( mTime > mTime2 ? mTime : mTime2 );
 }
 
+//------------------------------------------------------------------------------
 int vtkPolyDataConnectivityFilter::RequestData(vtkInformation* vtkNotUsed(request),
   vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
@@ -84,7 +88,6 @@ int vtkPolyDataConnectivityFilter::RequestData(vtkInformation* vtkNotUsed(reques
 
   vtkIdType cellId, newCellId, i, pt;
   vtkPoints* inPts;
-  vtkPoints* newPts;
   vtkIdType *cells, id, n;
   vtkIdType npts;
   const vtkIdType* pts;
@@ -132,7 +135,7 @@ int vtkPolyDataConnectivityFilter::RequestData(vtkInformation* vtkNotUsed(reques
 
   // Build cell structure
   //
-  this->Mesh = vtkPolyData::New();
+  this->Mesh = vtkSmartPointer<vtkPolyData>::New();
   this->Mesh->CopyStructure(input);
   this->Mesh->BuildLinks();
   this->UpdateProgress(0.10);
@@ -148,12 +151,12 @@ int vtkPolyDataConnectivityFilter::RequestData(vtkInformation* vtkNotUsed(reques
   this->PointMap = new vtkIdType[numPts];
   std::fill_n(this->PointMap, numPts, -1);
 
-  this->NewScalars = vtkIdTypeArray::New();
+  this->NewScalars = vtkSmartPointer<vtkIdTypeArray>::New();
   this->NewScalars->SetName("RegionId");
   this->NewScalars->SetNumberOfTuples(numPts);
-  newPts = vtkPoints::New();
 
   // Set the desired precision for the points in the output.
+  vtkNew<vtkPoints> newPts;
   if (this->OutputPointsPrecision == vtkAlgorithm::DEFAULT_PRECISION)
   {
     newPts->SetDataType(inPts->GetDataType());
@@ -180,9 +183,9 @@ int vtkPolyDataConnectivityFilter::RequestData(vtkInformation* vtkNotUsed(reques
   this->RegionNumber = 0;
   maxCellsInRegion = 0;
 
-  this->CellIds = vtkIdList::New();
+  this->CellIds = vtkSmartPointer<vtkIdList>::New();
   this->CellIds->Allocate(8, VTK_CELL_SIZE);
-  this->PointIds = vtkIdList::New();
+  this->PointIds = vtkSmartPointer<vtkIdList>::New();
   this->PointIds->Allocate(8, VTK_CELL_SIZE);
 
   if (this->ExtractionMode != VTK_EXTRACT_POINT_SEEDED_REGIONS &&
@@ -316,40 +319,34 @@ int vtkPolyDataConnectivityFilter::RequestData(vtkInformation* vtkNotUsed(reques
     int idx = outputPD->AddArray(this->NewScalars);
     outputPD->SetActiveAttribute(idx, vtkDataSetAttributes::SCALARS);
   }
-  this->NewScalars->Delete();
 
   output->SetPoints(newPts);
-  newPts->Delete();
 
   // Create output cells. Have to allocate storage first.
   //
   if ((n = input->GetVerts()->GetNumberOfCells()) > 0)
   {
-    vtkCellArray* newVerts = vtkCellArray::New();
+    vtkNew<vtkCellArray> newVerts;
     newVerts->AllocateEstimate(n, 1);
     output->SetVerts(newVerts);
-    newVerts->Delete();
   }
   if ((n = input->GetLines()->GetNumberOfCells()) > 0)
   {
-    vtkCellArray* newLines = vtkCellArray::New();
+    vtkNew<vtkCellArray> newLines;
     newLines->AllocateEstimate(n, 2);
     output->SetLines(newLines);
-    newLines->Delete();
   }
   if ((n = input->GetPolys()->GetNumberOfCells()) > 0)
   {
-    vtkCellArray* newPolys = vtkCellArray::New();
+    vtkNew<vtkCellArray> newPolys;
     newPolys->AllocateEstimate(n, 3);
     output->SetPolys(newPolys);
-    newPolys->Delete();
   }
   if ((n = input->GetStrips()->GetNumberOfCells()) > 0)
   {
-    vtkCellArray* newStrips = vtkCellArray::New();
+    vtkNew<vtkCellArray> newStrips;
     newStrips->AllocateEstimate(n, 5);
     output->SetStrips(newStrips);
-    newStrips->Delete();
   }
 
   if (this->ExtractionMode == VTK_EXTRACT_POINT_SEEDED_REGIONS ||
@@ -440,12 +437,13 @@ int vtkPolyDataConnectivityFilter::RequestData(vtkInformation* vtkNotUsed(reques
     }
   }
 
+  // Release temporary memory
   delete[] this->Visited;
   delete[] this->PointMap;
-  this->Mesh->Delete();
+  this->Mesh = nullptr;
   output->Squeeze();
-  this->CellIds->Delete();
-  this->PointIds->Delete();
+  this->CellIds = nullptr;
+  this->PointIds = nullptr;
 
 #ifndef NDEBUG
   int num = this->GetNumberOfExtractedRegions();
@@ -462,6 +460,7 @@ int vtkPolyDataConnectivityFilter::RequestData(vtkInformation* vtkNotUsed(reques
   return 1;
 }
 
+//------------------------------------------------------------------------------
 // Mark current cell as visited and assign region number.  Note:
 // traversal occurs across shared vertices.
 //
@@ -583,6 +582,7 @@ int vtkPolyDataConnectivityFilter::GetNumberOfExtractedRegions()
   return this->RegionSizes->GetMaxId() + 1;
 }
 
+//------------------------------------------------------------------------------
 // Initialize list of point ids/cell ids used to seed regions.
 void vtkPolyDataConnectivityFilter::InitializeSeedList()
 {
@@ -590,6 +590,7 @@ void vtkPolyDataConnectivityFilter::InitializeSeedList()
   this->Seeds->Reset();
 }
 
+//------------------------------------------------------------------------------
 // Add a seed id (point or cell id). Note: ids are 0-offset.
 void vtkPolyDataConnectivityFilter::AddSeed(int id)
 {
@@ -597,6 +598,7 @@ void vtkPolyDataConnectivityFilter::AddSeed(int id)
   this->Seeds->InsertNextId(id);
 }
 
+//------------------------------------------------------------------------------
 // Delete a seed id (point or cell id). Note: ids are 0-offset.
 void vtkPolyDataConnectivityFilter::DeleteSeed(int id)
 {
@@ -604,6 +606,7 @@ void vtkPolyDataConnectivityFilter::DeleteSeed(int id)
   this->Seeds->DeleteId(id);
 }
 
+//------------------------------------------------------------------------------
 // Initialize list of region ids to extract.
 void vtkPolyDataConnectivityFilter::InitializeSpecifiedRegionList()
 {
@@ -611,6 +614,7 @@ void vtkPolyDataConnectivityFilter::InitializeSpecifiedRegionList()
   this->SpecifiedRegionIds->Reset();
 }
 
+//------------------------------------------------------------------------------
 // Add a region id to extract. Note: ids are 0-offset.
 void vtkPolyDataConnectivityFilter::AddSpecifiedRegion(int id)
 {
@@ -618,6 +622,7 @@ void vtkPolyDataConnectivityFilter::AddSpecifiedRegion(int id)
   this->SpecifiedRegionIds->InsertNextId(id);
 }
 
+//------------------------------------------------------------------------------
 // Delete a region id to extract. Note: ids are 0-offset.
 void vtkPolyDataConnectivityFilter::DeleteSpecifiedRegion(int id)
 {
@@ -625,6 +630,7 @@ void vtkPolyDataConnectivityFilter::DeleteSpecifiedRegion(int id)
   this->SpecifiedRegionIds->DeleteId(id);
 }
 
+//------------------------------------------------------------------------------
 void vtkPolyDataConnectivityFilter::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
