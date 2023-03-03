@@ -173,7 +173,18 @@ vtkStandardNewMacro(MyGlyphItem::Data);
 int TestQQuickVTKItem_3(int argc, char* argv[])
 {
   Argc = argc;
-  Argv = argv;
+  Argv = new char*[argc];
+  for (int i = 0; i < argc; ++i)
+  {
+    Argv[i] = new char[strlen(argv[i]) + 1];
+    strcpy(Argv[i], argv[i]);
+  }
+  auto cleanup = [&](int rc) {
+    for (int i = 0; i < Argc; ++i)
+      delete[] Argv[i];
+    delete[] Argv;
+    return rc;
+  };
 
   cout << "CTEST_FULL_OUTPUT (Avoid ctest truncation of output)" << endl;
 
@@ -203,12 +214,12 @@ int TestQQuickVTKItem_3(int argc, char* argv[])
   vtktesting->AddArguments(argc, argv);
   if (vtktesting->IsInteractiveModeSpecified())
   {
-    return QApplication::exec();
+    return cleanup(QApplication::exec());
   }
 
   // Capture a screenshot of the item
   QImage im = window->grabWindow();
-  im = im.convertToFormat(QImage::Format_ARGB32);
+  im = im.convertToFormat(QImage::Format_RGB32);
 
   std::string validName = std::string(vtktesting->GetValidImageFileName());
   std::string::size_type slashPos = validName.rfind('/');
@@ -226,7 +237,7 @@ int TestQQuickVTKItem_3(int argc, char* argv[])
   {
     case vtkTesting::FAILED:
     case vtkTesting::NOT_RUN:
-      return EXIT_FAILURE;
+      return cleanup(EXIT_FAILURE);
   }
-  return EXIT_SUCCESS;
+  return cleanup(EXIT_SUCCESS);
 }
