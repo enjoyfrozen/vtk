@@ -101,7 +101,7 @@ public:
    *
    * \param renderWindow The VTK render window that creates this object's pixels for display
    *
-   * \param vtkUserData The object associated with the VTK render window
+   * \param userData The object associated with the VTK render window
    */
   virtual void destroyingVTK(vtkRenderWindow* renderWindow, vtkUserData userData)
   {
@@ -125,10 +125,11 @@ public:
    * to perform state synchronization between the GUI elements and the VTK classes in the async
    * command function.
    *
-   * \param renderWindow The VTK render window that creates this object's pixels for display
-   * \param userData An optional User Data object associated with the VTK render window
+   * \param f The async command you want to execute. It's parameters are 1.) The VTK render 
+   *  window that creates this object's pixels for display 2.) userData An optional User Data object
+   *  associated with the VTK render window
    */
-  void dispatch_async(std::function<void(vtkRenderWindow* renderWindow, vtkUserData userData)>);
+  void dispatch_async(std::function<void(vtkRenderWindow* renderWindow, vtkUserData userData)> f);
   ///@}
 
 protected:
