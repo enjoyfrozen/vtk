@@ -67,7 +67,11 @@ void QQuickVTKItem::setGraphicsApi()
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
   QQuickWindow::setGraphicsApi(QSGRendererInterface::OpenGLRhi);
 #else
+#ifdef Q_OS_MAC
+  QQuickWindow::setSceneGraphBackend(QSGRendererInterface::OpenGL);
+#else
   QQuickWindow::setSceneGraphBackend(QSGRendererInterface::OpenGLRhi);
+#endif
 #endif
 #endif
 }
