@@ -251,7 +251,7 @@ int TestQQuickVTKItem_3(int argc, char* argv[])
 
   // Wait a little for the application and window to be set up properly
   QEventLoop loop;
-  QTimer::singleShot(100, &loop, SLOT(quit()));
+  QTimer::singleShot(1000, &loop, SLOT(quit()));
   loop.exec();
 
   if (retVal != EXIT_SUCCESS)
