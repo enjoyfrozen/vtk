@@ -114,7 +114,7 @@ bool checkGraphicsApi(QQuickWindow* window)
 #endif
   )
   {
-    qCritical(R"***(Error: QtQuick scenegraph is using an unsupported graphics API: %d.
+    qFatal("%s", R"***(Error: QtQuick scenegraph is using an unsupported graphics API: %d.
 Set the QSG_INFO environment variable to get more information.
 Use QQuickVTKItem::setupGraphicsApi() to set the OpenGLRhi backend.)***",
       api);
@@ -354,12 +354,11 @@ QSGNode* QQuickVTKItem::updatePaintNode(QSGNode* node, UpdatePaintNodeData*)
       n->setTexture(texture);
     }
     else if (!fb)
-      qWarning().nospace() << "QQuickVTKItem.cpp:" << __LINE__
-                           << ", YIKES!!, Render() didn't create a FrameBuffer!?";
+      qFatal("%s %d %s", "QQuickVTKItem.cpp:", __LINE__,
+        ", YIKES!!, Render() didn't create a FrameBuffer!?");
     else
-      qWarning().nospace()
-        << "QQuickVTKItem.cpp:" << __LINE__
-        << ", YIKES!!, Render() didn't create any ColorBufferAttachements in its FrameBuffer!?";
+      qFatal("%s %d %s", "QQuickVTKItem.cpp:", __LINE__,
+        ", YIKES!!, Render() didn't create any ColorBufferAttachements in its FrameBuffer!?");
   }
 
   n->setTextureCoordinatesTransform(QSGSimpleTextureNode::MirrorVertically);
@@ -399,8 +398,9 @@ QSGTextureProvider* QQuickVTKItem::textureProvider() const
   QQuickWindow* w = window();
   if (!w || !w->openglContext() || QThread::currentThread() != w->openglContext()->thread())
   {
-    qWarning("QQuickFramebufferObject::textureProvider: can only be queried on the rendering "
-             "thread of an exposed window");
+    qFatal("%s",
+      "QQuickFramebufferObject::textureProvider: can only be queried on the rendering "
+      "thread of an exposed window");
     return nullptr;
   }
 #endif
