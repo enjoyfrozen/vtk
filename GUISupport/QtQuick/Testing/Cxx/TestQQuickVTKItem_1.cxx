@@ -34,6 +34,11 @@ PURPOSE.  See the above copyright notice for more information.
 #include <QTimer>
 #include <QUrl>
 
+#if defined(Q_OS_WIN) && QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+#include "QVTKRenderWindowAdapter.h"
+#include <QOpenGLFramebufferObject>
+#endif
+
 namespace
 {
 struct MyVtkItem : QQuickVTKItem
@@ -70,7 +75,14 @@ int TestQQuickVTKItem_1(int argc, char* argv[])
 {
   cout << "CTEST_FULL_OUTPUT (Avoid ctest truncation of output)" << endl;
 
+#if defined(Q_OS_WIN) && QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+  QSurfaceFormat fmt = QVTKRenderWindowAdapter::defaultFormat(false);
+  fmt.setAlphaBufferSize(0);
+  QSurfaceFormat::setDefaultFormat(fmt);
+  QQuickWindow::setSceneGraphBackend(QSGRendererInterface::OpenGL);
+#else
   QQuickVTKItem::setGraphicsApi();
+#endif
   QApplication app(argc, argv);
 
   qmlRegisterType<MyVtkItem>("Vtk", 1, 0, "MyVtkItem");
@@ -83,23 +95,49 @@ int TestQQuickVTKItem_1(int argc, char* argv[])
   QObject* topLevel = engine.rootObjects().value(0);
   QQuickWindow* window = qobject_cast<QQuickWindow*>(topLevel);
 
-  window->show();
-
   vtkNew<vtkTesting> vtktesting;
   vtktesting->AddArguments(argc, argv);
   if (vtktesting->IsInteractiveModeSpecified())
   {
+    window->show();
     return QApplication::exec();
   }
 
+  // Capture a screenshot of the item
+  int retVal = EXIT_SUCCESS;
+  QImage im;
+
+#if defined(Q_OS_WIN) && QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+  QScopedPointer<QOpenGLFramebufferObject> fbo;
+  QObject::connect(window, &QQuickWindow::beforeRendering, [&] {
+    if (fbo.isNull())
+    {
+      QOpenGLFramebufferObjectFormat fmt;
+      fbo.reset(new QOpenGLFramebufferObject(window->size(), fmt));
+      window->setRenderTarget(fbo.data());
+    }
+  });
+  QObject::connect(window, &QQuickWindow::afterRendering, [&] {
+    if (im.isNull() && !fbo.isNull())
+    {
+      im = fbo->toImage();
+    }
+  });
+#endif
+
+  window->show();
+
   // Wait a little for the application and window to be set up properly
   QEventLoop loop;
-  QTimer::singleShot(1000, &loop, SLOT(quit()));
+  QTimer::singleShot(100, &loop, SLOT(quit()));
   loop.exec();
 
-  // Capture a screenshot of the item
-  QImage im = window->grabWindow();
-  im = im.convertToFormat(QImage::Format_ARGB32);
+  if (retVal != EXIT_SUCCESS)
+    return retVal;
+
+#if !(defined(Q_OS_WIN) && QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
+  im = window->grabWindow();
+#endif
 
   std::string validName = std::string(vtktesting->GetValidImageFileName());
   std::string::size_type slashPos = validName.rfind('/');
@@ -111,7 +149,7 @@ int TestQQuickVTKItem_1(int argc, char* argv[])
   std::string vImage = tmpDir + "/" + validName;
   im.save(QString::fromStdString(vImage), "PNG");
 
-  int retVal = vtktesting->RegressionTest(vImage, 10);
+  retVal = vtktesting->RegressionTest(vImage, 10);
 
   switch (retVal)
   {
