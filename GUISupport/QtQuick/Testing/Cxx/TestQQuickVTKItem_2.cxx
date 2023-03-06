@@ -268,6 +268,8 @@ int TestQQuickVTKItem_2(int argc, char* argv[])
   QObject::connect(window, &QQuickWindow::beforeRendering, [&] {
     if (fbo.isNull())
     {
+      cout << "TestQQuickVTKItem_2; QQuickWindow::beforeRendering: window->size(): <"
+           << window->size().width() << ", " << window->size().height() << ">" << endl;
       QOpenGLFramebufferObjectFormat fmt;
       fbo.reset(new QOpenGLFramebufferObject(window->size(), fmt));
       window->setRenderTarget(fbo.data());
@@ -277,6 +279,8 @@ int TestQQuickVTKItem_2(int argc, char* argv[])
     if (im.isNull() && !fbo.isNull())
     {
       im = fbo->toImage();
+      cout << "TestQQuickVTKItem_2; QQuickWindow::afterRendering: im.size(): <" << im.width()
+           << ", " << im.height() << ">" << endl;
       if (!im.reinterpretAsFormat(QImage::Format_RGB32))
         retVal = EXIT_FAILURE;
     }
