@@ -6,8 +6,8 @@ import QtQuick.Window 2.12
 // import the VTK module
 import Vtk 1.0
 
-// window containing the application
-Window {
+// item containing the application
+Item {
   // title of the application
   width: 800
   height: 800

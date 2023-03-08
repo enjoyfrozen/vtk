@@ -5,8 +5,8 @@ import QtQuick.Window 2.12
 // import MyVtkItem
 import Vtk 1.0
 
-// window containing the application
-Window {
+// Item containing test items
+Item {
   width: 400
   height: 400
 

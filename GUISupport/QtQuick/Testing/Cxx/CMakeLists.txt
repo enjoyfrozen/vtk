@@ -47,6 +47,7 @@ configure_file(
 
 vtk_test_cxx_executable(vtkGUISupportQtQuickCxxTests tests
   "${CMAKE_CURRENT_BINARY_DIR}/TestQQuickVTK.qrc"
+  TestQQuickCommon.cxx
   )
 
 target_link_libraries(vtkGUISupportQtQuickCxxTests

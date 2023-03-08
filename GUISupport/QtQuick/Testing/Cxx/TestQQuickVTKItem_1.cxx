@@ -17,6 +17,7 @@ PURPOSE.  See the above copyright notice for more information.
 // Tests QQuickVTKItem
 
 #include "QQuickVTKItem.h"
+#include "TestQQuickCommon.h"
 #include "vtkActor.h"
 #include "vtkConeSource.h"
 #include "vtkNew.h"
@@ -28,16 +29,6 @@ PURPOSE.  See the above copyright notice for more information.
 #include "vtkWindowToImageFilter.h"
 
 #include <QApplication>
-#include <QDebug>
-#include <QQmlApplicationEngine>
-#include <QQuickWindow>
-#include <QTimer>
-#include <QUrl>
-
-#if defined(Q_OS_WIN) && QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-#include "QVTKRenderWindowAdapter.h"
-#include <QOpenGLFramebufferObject>
-#endif
 
 namespace
 {
@@ -75,91 +66,10 @@ int TestQQuickVTKItem_1(int argc, char* argv[])
 {
   cout << "CTEST_FULL_OUTPUT (Avoid ctest truncation of output)" << endl;
 
-#if defined(Q_OS_WIN) && QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-  QSurfaceFormat fmt = QVTKRenderWindowAdapter::defaultFormat(false);
-  fmt.setAlphaBufferSize(0);
-  QSurfaceFormat::setDefaultFormat(fmt);
-  QQuickWindow::setSceneGraphBackend(QSGRendererInterface::OpenGL);
-#else
-  QQuickVTKItem::setGraphicsApi();
-#endif
+  detail::setGraphicsApi();
   QApplication app(argc, argv);
 
   qmlRegisterType<MyVtkItem>("Vtk", 1, 0, "MyVtkItem");
 
-  QQmlApplicationEngine engine;
-  engine.setOutputWarningsToStandardError(true);
-  qDebug() << "QML2_IMPORT_PATH:" << engine.importPathList();
-  engine.load(QUrl("qrc:///TestQQuickVTKItem_1.qml"));
-
-  QObject* topLevel = engine.rootObjects().value(0);
-  QQuickWindow* window = qobject_cast<QQuickWindow*>(topLevel);
-
-  vtkNew<vtkTesting> vtktesting;
-  vtktesting->AddArguments(argc, argv);
-  if (vtktesting->IsInteractiveModeSpecified())
-  {
-    window->show();
-    return QApplication::exec();
-  }
-
-  // Capture a screenshot of the item
-  int retVal = EXIT_SUCCESS;
-  QImage im;
-
-#if defined(Q_OS_WIN) && QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-  QScopedPointer<QOpenGLFramebufferObject> fbo;
-  QObject::connect(window, &QQuickWindow::beforeRendering, [&] {
-    if (fbo.isNull())
-    {
-      cout << "TestQQuickVTKItem_1; QQuickWindow::beforeRendering: window->size(): <"
-           << window->size().width() << ", " << window->size().height() << ">" << endl;
-      QOpenGLFramebufferObjectFormat fmt;
-      fbo.reset(new QOpenGLFramebufferObject(window->size(), fmt));
-      window->setRenderTarget(fbo.data());
-    }
-  });
-  QObject::connect(window, &QQuickWindow::afterRendering, [&] {
-    if (im.isNull() && !fbo.isNull())
-    {
-      im = fbo->toImage();
-      cout << "TestQQuickVTKItem_1; QQuickWindow::afterRendering: im.size(): <" << im.width()
-           << ", " << im.height() << ">" << endl;
-    }
-  });
-#endif
-
-  window->show();
-
-  // Wait a little for the application and window to be set up properly
-  QEventLoop loop;
-  QTimer::singleShot(1000, &loop, SLOT(quit()));
-  loop.exec();
-
-  if (retVal != EXIT_SUCCESS)
-    return retVal;
-
-#if !(defined(Q_OS_WIN) && QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
-  im = window->grabWindow();
-#endif
-
-  std::string validName = std::string(vtktesting->GetValidImageFileName());
-  std::string::size_type slashPos = validName.rfind('/');
-  if (slashPos != std::string::npos)
-  {
-    validName = validName.substr(slashPos + 1);
-  }
-  std::string tmpDir = vtktesting->GetTempDirectory();
-  std::string vImage = tmpDir + "/" + validName;
-  im.save(QString::fromStdString(vImage), "PNG");
-
-  retVal = vtktesting->RegressionTest(vImage, 10);
-
-  switch (retVal)
-  {
-    case vtkTesting::FAILED:
-    case vtkTesting::NOT_RUN:
-      return EXIT_FAILURE;
-  }
-  return EXIT_SUCCESS;
+  return detail::performTest(argc, argv, "qrc:///TestQQuickVTKItem_1.qml");
 }
