@@ -49,9 +49,9 @@ vtkStaticCleanPolyData::vtkStaticCleanPolyData()
   this->MergingArray = nullptr;
   this->SetMergingArray("");
 
-  this->ConvertPolysToLines = false;
-  this->ConvertLinesToPoints = false;
-  this->ConvertStripsToPolys = false;
+  this->ConvertPolysToLines = true;
+  this->ConvertLinesToPoints = true;
+  this->ConvertStripsToPolys = true;
 
   this->RemoveUnusedPoints = true;
   this->ProduceMergeMap = false;

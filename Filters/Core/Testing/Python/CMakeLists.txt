@@ -59,6 +59,7 @@ vtk_add_test_python(
   TestSphereTreeFilter.py
   TestSphereTreeFilter2.py
   TestStaticCleanPolyData.py
+  TestStaticCleanPolyData2.py, NO_VALID
   TestStructuredGridPlaneCutter.py
   TestSurfaceNets2D.py
   TestSurfaceNets2D2.py
