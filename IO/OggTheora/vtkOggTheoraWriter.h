@@ -18,13 +18,15 @@
 #ifndef vtkOggTheoraWriter_h
 #define vtkOggTheoraWriter_h
 
+#include "vtkDeprecation.h" // For VTK_DEPRECATED_IN_9_3_0
 #include "vtkGenericMovieWriter.h"
 #include "vtkIOOggTheoraModule.h" // For export macro
 
 VTK_ABI_NAMESPACE_BEGIN
 class vtkOggTheoraWriterInternal;
 
-class VTKIOOGGTHEORA_EXPORT vtkOggTheoraWriter : public vtkGenericMovieWriter
+class VTK_DEPRECATED_IN_9_3_0("libtheora has not had a release since 2010, nor commit since 2020")
+  VTKIOOGGTHEORA_EXPORT vtkOggTheoraWriter : public vtkGenericMovieWriter
 {
 public:
   static vtkOggTheoraWriter* New();
