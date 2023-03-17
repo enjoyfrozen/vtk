@@ -18,6 +18,11 @@ set(classes
   vtkOSPRayVolumeNode
   vtkOSPRayWindowNode)
 
+if (TARGET VTK::AcceleratorsVTKmDataModel)
+  list(APPEND classes
+    vtkmOSPRayDataSetMapperNode)
+endif()
+
 set(nowrap_classes
   RTWrapper/RTWrapper)
 
@@ -86,6 +91,12 @@ if (VTK_ENABLE_OSPRAY)
     PRIVATE
       VTK_ENABLE_OSPRAY
       OSPRAY_VERSION_MINOR=${ospray_VERSION_MINOR})
+
+  if (TARGET VTK::AcceleratorsVTKmDataModel)
+    vtk_module_definitions(VTK::RenderingRayTracing
+      PRIVATE
+        VTKOSPRAY_ENABLE_VTKM)
+  endif ()
 endif ()
 
 # VisRTX

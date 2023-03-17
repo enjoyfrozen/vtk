@@ -100,6 +100,15 @@ vtkViewNode* particle_maker()
   return vn;
 }
 
+#ifdef VTKOSPRAY_ENABLE_VTKM
+#include "vtkmOSPRayDataSetMapperNode.h"
+vtkViewNode* vtkm_maker()
+{
+  vtkmOSPRayDataSetMapperNode* vn = vtkmOSPRayDataSetMapperNode::New();
+  return vn;
+}
+#endif
+
 //============================================================================
 vtkStandardNewMacro(vtkOSPRayViewNodeFactory);
 
@@ -129,6 +138,9 @@ vtkOSPRayViewNodeFactory::vtkOSPRayViewNodeFactory()
   this->RegisterOverride("vtkAMRVolumeMapper", amrm_maker);
   this->RegisterOverride("vtkMoleculeMapper", molecule_maker);
   this->RegisterOverride("vtkOpenGLPointGaussianMapper", particle_maker);
+#ifdef VTKOSPRAY_ENABLE_VTKM
+  this->RegisterOverride("vtkmDataSetMapper", vtkm_maker);
+#endif
 }
 
 //------------------------------------------------------------------------------

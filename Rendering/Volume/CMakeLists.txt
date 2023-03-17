@@ -37,3 +37,8 @@ set(classes
 vtk_module_add_module(VTK::RenderingVolume
   CLASSES ${classes})
 vtk_add_test_mangling(VTK::RenderingVolume)
+
+if(TARGET VTK::AcceleratorsVTKmDataModel)
+  vtk_module_definitions(VTK::RenderingVolume
+    PUBLIC VTKRENDERING_ENABLE_VTKM)
+endif()

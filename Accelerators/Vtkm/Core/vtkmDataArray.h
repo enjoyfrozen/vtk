@@ -32,6 +32,21 @@
 
 #include <memory> // For unique_ptr
 
+enum class ALLOC
+{
+  HOST = 0,
+  DEVICE
+};
+
+struct MetaData
+{
+  const void* Device;
+  const void* Context;
+  size_t NumPointers;
+  std::vector<const void*> Pointers;
+  std::vector<ALLOC> Allocs;
+};
+
 namespace internal
 {
 VTK_ABI_NAMESPACE_BEGIN
@@ -43,6 +58,12 @@ VTK_ABI_NAMESPACE_END
 } // internal
 
 VTK_ABI_NAMESPACE_BEGIN
+enum class WrapOnly
+{
+  On,
+  Off
+};
+
 template <typename T>
 class vtkmDataArray : public vtkGenericDataArray<vtkmDataArray<T>, T>
 {
@@ -74,6 +95,11 @@ public:
   ValueType GetTypedComponent(vtkIdType tupleIdx, int compIdx) const;
   void SetTypedComponent(vtkIdType tupleIdx, int compIdx, ValueType value);
 
+  void SetWrapOnly();
+
+  MetaData GetArrayInformation() const;
+  // std::vector<const void*> GetHostArrays() const;
+
 protected:
   vtkmDataArray();
   ~vtkmDataArray() override;
@@ -89,15 +115,18 @@ private:
   // To access AllocateTuples and ReallocateTuples
   friend Superclass;
 
+  bool WrapOnly = false;
   std::unique_ptr<internal::ArrayHandleWrapperBase<T>> VtkmArray;
 };
 
 //=============================================================================
 template <typename T, typename S>
 inline vtkmDataArray<typename vtkm::VecTraits<T>::BaseComponentType>* make_vtkmDataArray(
-  const vtkm::cont::ArrayHandle<T, S>& ah)
+  const vtkm::cont::ArrayHandle<T, S>& ah, const WrapOnly wrapOnly = WrapOnly::Off)
 {
   auto ret = vtkmDataArray<typename vtkm::VecTraits<T>::BaseComponentType>::New();
+  if (wrapOnly == WrapOnly::On)
+    ret->SetWrapOnly();
   ret->SetVtkmArrayHandle(ah);
   return ret;
 }

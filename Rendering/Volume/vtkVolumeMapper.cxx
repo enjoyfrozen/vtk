@@ -21,6 +21,10 @@
 #include "vtkInformation.h"
 #include "vtkRectilinearGrid.h"
 
+#ifdef VTKRENDERING_ENABLE_VTKM
+#include "vtkmDataSet.h"
+#endif
+
 #include <cmath>
 
 // Construct a vtkVolumeMapper with empty scalar input and clipping off.
@@ -113,6 +117,12 @@ void vtkVolumeMapper::SetInputData(vtkDataSet* genericInput)
   {
     this->SetInputData(rectGrid);
   }
+#ifdef VTKRENDERING_ENABLE_VTKM
+  else if (vtkmDataSet* vtkmds = vtkmDataSet::SafeDownCast(genericInput))
+  {
+    this->SetInputData(vtkmds);
+  }
+#endif
   else
   {
     vtkErrorMacro("The SetInput method of this mapper requires either"
@@ -129,6 +139,13 @@ void vtkVolumeMapper::SetInputData(vtkRectilinearGrid* input)
 {
   this->SetInputDataInternal(0, input);
 }
+
+#ifdef VTKRENDERING_ENABLE_VTKM
+void vtkVolumeMapper::SetInputData(vtkmDataSet* input)
+{
+  this->SetInputDataInternal(0, input);
+}
+#endif
 
 vtkDataSet* vtkVolumeMapper::GetInput()
 {

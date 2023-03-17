@@ -153,6 +153,8 @@ if(VTK_USE_CUDA)
   enable_language(CUDA)
 endif()
 
+option(VTK_USE_KOKKOS "Support KOKKOS backend accelerator" OFF)
+
 #-----------------------------------------------------------------------------
 # Add an option to enable/disable HIP support.
 cmake_dependent_option(VTK_USE_HIP "Support HIP backend accelerator" OFF

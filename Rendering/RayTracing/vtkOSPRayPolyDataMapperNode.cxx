@@ -684,131 +684,6 @@ OSPGeometricModel RenderAsTriangles(OSPData vertices, std::vector<unsigned int>&
   return ospGeoModel;
 }
 
-//------------------------------------------------------------------------------
-OSPMaterial MakeActorMaterial(vtkOSPRayRendererNode* orn, OSPRenderer oRenderer,
-  vtkProperty* property, double* ambientColor, double* diffuseColor, float* specularf,
-  double opacity, bool pt_avail, bool& useCustomMaterial, std::map<std::string, OSPMaterial>& mats,
-  const std::string& materialName)
-{
-  RTW::Backend* backend = orn->GetBackend();
-  useCustomMaterial = false;
-  if (backend == nullptr)
-  {
-    return OSPMaterial();
-  }
-
-  float lum = static_cast<float>(vtkOSPRayActorNode::GetLuminosity(property));
-
-  float diffusef[] = { static_cast<float>(diffuseColor[0] * property->GetDiffuse()),
-    static_cast<float>(diffuseColor[1] * property->GetDiffuse()),
-    static_cast<float>(diffuseColor[2] * property->GetDiffuse()) };
-  if (lum > 0.0)
-  {
-    OSPMaterial oMaterial = vtkOSPRayMaterialHelpers::NewMaterial(orn, oRenderer, "luminous");
-    ospSetVec3f(oMaterial, "color", diffusef[0], diffusef[1], diffusef[2]);
-    ospSetFloat(oMaterial, "intensity", lum);
-    return oMaterial;
-  }
-
-  if (pt_avail && property->GetMaterialName())
-  {
-    if (std::string("Value Indexed") == property->GetMaterialName())
-    {
-      vtkOSPRayMaterialHelpers::MakeMaterials(
-        orn, oRenderer, mats); // todo: do an mtime check to avoid doing this when unchanged
-      std::string requested_mat_name = materialName;
-      if (!requested_mat_name.empty() && requested_mat_name != "Value Indexed")
-      {
-        useCustomMaterial = true;
-        return vtkOSPRayMaterialHelpers::MakeMaterial(orn, oRenderer, requested_mat_name.c_str());
-      }
-    }
-    else
-    {
-      useCustomMaterial = true;
-      return vtkOSPRayMaterialHelpers::MakeMaterial(orn, oRenderer, property->GetMaterialName());
-    }
-  }
-
-  OSPMaterial oMaterial;
-  if (pt_avail && property->GetInterpolation() == VTK_PBR)
-  {
-    oMaterial = vtkOSPRayMaterialHelpers::NewMaterial(orn, oRenderer, "principled");
-
-    ospSetVec3f(oMaterial, "baseColor", diffusef[0], diffusef[1], diffusef[2]);
-    ospSetFloat(oMaterial, "metallic", static_cast<float>(property->GetMetallic()));
-    ospSetFloat(oMaterial, "roughness", static_cast<float>(property->GetRoughness()));
-    ospSetFloat(oMaterial, "opacity", static_cast<float>(opacity));
-    // As OSPRay seems to not recalculate the refractive index of the base layer
-    // we need to recalculate, from the effective reflectance of the base layer (with the
-    // coat), the ior of the base that will produce the same reflectance but with the air
-    // with an ior of 1.0
-    double baseF0 = property->ComputeReflectanceOfBaseLayer();
-    const double exteriorIor = 1.0;
-    double baseIor = vtkProperty::ComputeIORFromReflectance(baseF0, exteriorIor);
-    ospSetFloat(oMaterial, "ior", static_cast<float>(baseIor));
-    float edgeColor[3] = { static_cast<float>(property->GetEdgeTint()[0]),
-      static_cast<float>(property->GetEdgeTint()[1]),
-      static_cast<float>(property->GetEdgeTint()[2]) };
-    ospSetVec3f(oMaterial, "edgeColor", edgeColor[0], edgeColor[1], edgeColor[2]);
-    ospSetFloat(oMaterial, "anisotropy", static_cast<float>(property->GetAnisotropy()));
-    ospSetFloat(oMaterial, "rotation", static_cast<float>(property->GetAnisotropyRotation()));
-    ospSetFloat(oMaterial, "baseNormalScale", static_cast<float>(property->GetNormalScale()));
-    ospSetFloat(oMaterial, "coat", static_cast<float>(property->GetCoatStrength()));
-    ospSetFloat(oMaterial, "coatIor", static_cast<float>(property->GetCoatIOR()));
-    ospSetFloat(oMaterial, "coatRoughness", static_cast<float>(property->GetCoatRoughness()));
-    float coatColor[] = { static_cast<float>(property->GetCoatColor()[0]),
-      static_cast<float>(property->GetCoatColor()[1]),
-      static_cast<float>(property->GetCoatColor()[2]) };
-    ospSetVec3f(oMaterial, "coatColor", coatColor[0], coatColor[1], coatColor[2]);
-    ospSetFloat(oMaterial, "coatNormal", static_cast<float>(property->GetCoatNormalScale()));
-  }
-  else
-  {
-    oMaterial = vtkOSPRayMaterialHelpers::NewMaterial(orn, oRenderer, "obj");
-
-    float ambientf[] = { static_cast<float>(ambientColor[0] * property->GetAmbient()),
-      static_cast<float>(ambientColor[1] * property->GetAmbient()),
-      static_cast<float>(ambientColor[2] * property->GetAmbient()) };
-
-    float specPower = static_cast<float>(property->GetSpecularPower());
-    float specAdjust = 2.0f / (2.0f + specPower);
-    specularf[0] =
-      static_cast<float>(property->GetSpecularColor()[0] * property->GetSpecular() * specAdjust);
-    specularf[1] =
-      static_cast<float>(property->GetSpecularColor()[1] * property->GetSpecular() * specAdjust);
-    specularf[2] =
-      static_cast<float>(property->GetSpecularColor()[2] * property->GetSpecular() * specAdjust);
-
-    ospSetVec3f(oMaterial, "ka", ambientf[0], ambientf[1], ambientf[2]);
-    if (property->GetDiffuse() == 0.0)
-    {
-      // a workaround for ParaView, remove when ospray supports Ka
-      ospSetVec3f(oMaterial, "kd", ambientf[0], ambientf[1], ambientf[2]);
-    }
-    else
-    {
-      ospSetVec3f(oMaterial, "kd", diffusef[0], diffusef[1], diffusef[2]);
-    }
-    ospSetVec3f(oMaterial, "ks", specularf[0], specularf[1], specularf[2]);
-    ospSetFloat(oMaterial, "ns", specPower);
-    ospSetFloat(oMaterial, "d", static_cast<float>(opacity));
-  }
-
-  return oMaterial;
-}
-
-//------------------------------------------------------------------------------
-OSPMaterial MakeActorMaterial(vtkOSPRayRendererNode* orn, OSPRenderer oRenderer,
-  vtkProperty* property, double* ambientColor, double* diffuseColor, float* specularf,
-  double opacity)
-{
-  bool dontcare1;
-  std::map<std::string, OSPMaterial> dontcare2;
-  return MakeActorMaterial(orn, oRenderer, property, ambientColor, diffuseColor, specularf, opacity,
-    false, dontcare1, dontcare2, "");
-};
-
 VTK_ABI_NAMESPACE_END
 }
 
@@ -938,8 +813,9 @@ void vtkOSPRayPolyDataMapperNode::ORenderPoly(void* renderer, vtkOSPRayActorNode
     orn->GetRendererType(vtkRenderer::SafeDownCast(orn->GetRenderable()));
   bool pt_avail =
     rendererType == std::string("pathtracer") || rendererType == std::string("optix pathtracer");
-  OSPMaterial oMaterial = vtkosp::MakeActorMaterial(orn, oRenderer, property, ambientColor,
-    diffuseColor, specularf, opacity, pt_avail, useCustomMaterial, mats, materialName);
+  OSPMaterial oMaterial =
+    vtkOSPRayMaterialHelpers::MakePropertyMaterial(orn, oRenderer, property, ambientColor,
+      diffuseColor, specularf, opacity, pt_avail, useCustomMaterial, mats, materialName);
   ospCommit(oMaterial);
   uniqueMats.insert(oMaterial);
 
@@ -1148,8 +1024,10 @@ void vtkOSPRayPolyDataMapperNode::ORenderPoly(void* renderer, vtkOSPRayActorNode
 
           // edge material
           double* eColor = property->GetEdgeColor();
-          OSPMaterial oMaterial2 =
-            vtkosp::MakeActorMaterial(orn, oRenderer, property, eColor, eColor, specularf, opacity);
+          bool customMat;
+          std::map<std::string, OSPMaterial> custMatMap;
+          OSPMaterial oMaterial2 = vtkOSPRayMaterialHelpers::MakePropertyMaterial(orn, oRenderer,
+            property, eColor, eColor, specularf, opacity, false, customMat, custMatMap, "");
           ospCommit(oMaterial2);
 
           this->GeometricModels.emplace_back(
@@ -1254,8 +1132,10 @@ void vtkOSPRayPolyDataMapperNode::ORenderPoly(void* renderer, vtkOSPRayActorNode
 
           // edge material
           double* eColor = property->GetEdgeColor();
-          OSPMaterial oMaterial2 =
-            vtkosp::MakeActorMaterial(orn, oRenderer, property, eColor, eColor, specularf, opacity);
+          bool customMat;
+          std::map<std::string, OSPMaterial> custMatMap;
+          OSPMaterial oMaterial2 = vtkOSPRayMaterialHelpers::MakePropertyMaterial(orn, oRenderer,
+            property, eColor, eColor, specularf, opacity, false, customMat, custMatMap, "");
           ospCommit(oMaterial2);
 
           this->GeometricModels.emplace_back(

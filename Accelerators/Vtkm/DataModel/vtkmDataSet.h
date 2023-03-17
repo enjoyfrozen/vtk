@@ -21,6 +21,7 @@
 #define vtkmDataSet_h
 
 #include "vtkAcceleratorsVTKmDataModelModule.h" // For export macro
+#include "vtkDataArray.h"
 #include "vtkDataSet.h"
 #include "vtkmlib/vtkmInitializer.h" // Need for initializing vtk-m
 
@@ -74,6 +75,11 @@ public:
    * Get point coordinates with ptId such that: 0 <= ptId < NumberOfPoints.
    */
   double* GetPoint(vtkIdType ptId) VTK_SIZEHINT(3) override;
+
+  /**
+   * Get pointer to the coordinate array
+   */
+  const vtkDataArray* GetPoints() const;
 
   /**
    * Copy point coordinates into user provided array x[3] for specified
@@ -184,6 +190,9 @@ public:
   void DeepCopy(vtkDataObject* src) override;
   ///@}
 
+  void SetUseVtkmArrays(bool useVtkmArrays) { this->UseVtkmArrays = useVtkmArrays; }
+  bool GetUseVtkmArrays() { return this->UseVtkmArrays; }
+
 protected:
   vtkmDataSet();
   ~vtkmDataSet() override;
@@ -192,6 +201,7 @@ private:
   vtkmDataSet(const vtkmDataSet&) = delete;
   void operator=(const vtkmDataSet&) = delete;
 
+  bool UseVtkmArrays;
   struct DataMembers;
   std::shared_ptr<DataMembers> Internals;
   vtkmInitializer Initializer;

@@ -23,11 +23,13 @@
 #include "vtkmlib/ArrayConverters.h"
 
 #include "vtkCell.h"
+#include "vtkCellData.h"
 #include "vtkDataSet.h"
 #include "vtkDoubleArray.h"
 #include "vtkGenericCell.h"
 #include "vtkIdList.h"
 #include "vtkNew.h"
+#include "vtkPointData.h"
 #include "vtkPoints.h"
 
 #include <vtkm/List.h>
@@ -60,12 +62,32 @@ struct VtkmLocator
   vtkMTimeType buildTime = 0;
 };
 
+struct ArrayConverter
+{
+public:
+  mutable vtkDataArray* Data;
+
+  ArrayConverter()
+    : Data(nullptr)
+  {
+  }
+
+  // CastAndCall always passes a const array handle. Just shallow copy to a
+  // local array handle by taking by value.
+  template <typename T, typename S>
+  void operator()(const vtkm::cont::ArrayHandle<T, S>& handle) const
+  {
+    this->Data = make_vtkmDataArray(handle, WrapOnly::On);
+  }
+};
+
 } // anonymous
 
 struct vtkmDataSet::DataMembers
 {
   vtkm::cont::UnknownCellSet CellSet;
   vtkm::cont::CoordinateSystem Coordinates;
+  vtkm::cont::ArrayHandle<vtkm::Vec3f> Points;
   vtkNew<vtkGenericCell> Cell;
 
   VtkmLocator<vtkm::cont::PointLocatorSparseGrid> PointLocator;
@@ -95,7 +117,46 @@ void vtkmDataSet::SetVtkmDataSet(const vtkm::cont::DataSet& ds)
 {
   this->Internals->CellSet = ds.GetCellSet();
   this->Internals->Coordinates = ds.GetCoordinateSystem();
-  fromvtkm::ConvertArrays(ds, this);
+  vtkm::cont::ArrayCopyShallowIfPossible(
+    ds.GetCoordinateSystem().GetData(), this->Internals->Points);
+  if (this->GetUseVtkmArrays())
+  {
+    // Use vtkmDataArrays to store vtkm::cont::ArrayHandles
+    // How to return a device pointer pointing to these Arrays
+    vtkPointData* pd = this->GetPointData();
+    vtkCellData* cd = this->GetCellData();
+
+    ArrayConverter aConverter;
+
+    vtkm::IdComponent numFields = ds.GetNumberOfFields();
+    for (vtkm::IdComponent i = 0; i < numFields; ++i)
+    {
+      const vtkm::cont::Field& f = ds.GetField(i);
+      try
+      {
+        vtkDataArray* data;
+        vtkm::cont::CastAndCall(f.GetData(), aConverter);
+        data = aConverter.Data;
+        const char* name = f.GetName().c_str();
+        if (data && name && (std::string(name) != tovtkm::NoNameVTKFieldName()))
+        {
+          data->SetName(name);
+        }
+        if (f.GetAssociation() == vtkm::cont::Field::Association::Points)
+          pd->AddArray(data);
+        else if (f.GetAssociation() == vtkm::cont::Field::Association::Cells)
+          cd->AddArray(data);
+      }
+      catch (vtkm::cont::Error&)
+      {
+        std::cout << "How did we end up here!!!!" << std::endl;
+      }
+    }
+  }
+  else
+  {
+    fromvtkm::ConvertArrays(ds, this);
+  }
 }
 
 vtkm::cont::DataSet vtkmDataSet::GetVtkmDataSet() const
@@ -146,6 +207,20 @@ void vtkmDataSet::GetPoint(vtkIdType id, double x[3])
   x[0] = value[0];
   x[1] = value[1];
   x[2] = value[2];
+}
+
+const vtkDataArray* vtkmDataSet::GetPoints() const
+{
+  vtkDataArray* data;
+  ArrayConverter aConverter;
+  vtkm::cont::CastAndCall(this->Internals->Points, aConverter);
+  data = aConverter.Data;
+  const char* name = this->Internals->Coordinates.GetName().c_str();
+  if (data && name && (std::string(name) != tovtkm::NoNameVTKFieldName()))
+  {
+    data->SetName(name);
+  }
+  return data;
 }
 
 vtkCell* vtkmDataSet::GetCell(vtkIdType cellId)
@@ -213,9 +288,9 @@ void vtkmDataSet::GetCellPoints(vtkIdType cellId, vtkIdList* ptIds)
   auto* csBase = this->Internals->CellSet.GetCellSetBase();
   if (csBase)
   {
-    vtkm::Id numPoints = csBase->GetNumberOfPointsInCell(cellId);
-    ptIds->SetNumberOfIds(numPoints);
-    csBase->GetCellPointIds(cellId, ptIds->GetPointer(0));
+    /*    vtkm::Id numPoints = csBase->GetNumberOfPointsInCell(cellId);
+        ptIds->SetNumberOfIds(numPoints);
+        csBase->GetCellPointIds(cellId, ptIds->GetPointer(0));*/
   }
 }
 
@@ -242,11 +317,11 @@ struct WorkletGetPointCells : vtkm::worklet::WorkletVisitPointsWithCells
   template <typename IndicesVecType, typename Device>
   VTKM_EXEC void operator()(vtkm::Id count, IndicesVecType idxs, Device) const
   {
-    this->Output->SetNumberOfIds(count);
-    for (vtkm::Id i = 0; i < count; ++i)
-    {
-      this->Output->SetId(i, idxs[i]);
-    }
+    /*    this->Output->SetNumberOfIds(count);
+        for (vtkm::Id i = 0; i < count; ++i)
+        {
+          this->Output->SetId(i, idxs[i]);
+        }*/
   }
 
   vtkIdList* Output;

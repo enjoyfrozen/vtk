@@ -20,6 +20,8 @@
 #ifndef vtkmDataArray_hxx
 #define vtkmDataArray_hxx
 
+#include <vector>
+
 #include "vtkObjectFactory.h"
 #include "vtkSmartPointer.h"
 
@@ -52,6 +54,8 @@ public:
   virtual void Reallocate(vtkIdType numTuples) = 0;
 
   virtual vtkm::cont::UnknownArrayHandle GetVtkmUnknownArrayHandle() const = 0;
+
+  virtual void GetArrayInformation(MetaData&) const = 0;
 };
 
 //-----------------------------------------------------------------------------
@@ -102,6 +106,113 @@ struct FlattenVec<T, vtkm::VecTraitsTagSingleComponent>
   {
     return vtkm::VecTraits<T>::GetComponent(vec, 0);
   }
+};
+
+//-----------------------------------------------------------------------------
+namespace detail
+{
+
+struct MetaDataFunctor
+{
+  template <typename Device, typename T, typename Storage>
+  VTKM_CONT bool operator()(
+    Device, const vtkm::cont::ArrayHandle<T, Storage>& fielddata, MetaData& metadata)
+  {
+    int ompdevice = omp_get_default_device();
+    auto ompcontext = omp_target_get_context(ompdevice);
+    auto buffers = fielddata.GetBuffers();
+    auto numbuff = buffers.size();
+    vtkm::cont::Token token;
+    std::vector<const void*> pointers;
+    std::vector<ALLOC> allocs;
+    for (int i = 0; i < numbuff; i++)
+    {
+      const void* pointer;
+      ALLOC alloc;
+      if (buffers[i].IsAllocatedOnDevice(Device{}))
+      {
+        alloc = ALLOC::DEVICE;
+        pointer = buffers[i].ReadPointerDevice(Device{}, token);
+      }
+      else if (buffers[i].IsAllocatedOnHost())
+      {
+        alloc = ALLOC::HOST;
+        pointer = buffers[i].ReadPointerHost(token);
+      }
+      pointers.push_back(pointer);
+      allocs.push_back(alloc);
+    }
+    metadata.Device = (const void*)&ompdevice;
+    metadata.Context = (const void*)&ompcontext;
+    metadata.NumPointers = pointers.size();
+    metadata.Pointers = pointers;
+    metadata.Allocs = allocs;
+    return true;
+  }
+};
+}
+
+template <typename ValueType, typename StorageTag>
+class ArrayHandleWrapOnly
+  : public ArrayHandleWrapperBase<typename FlattenVec<ValueType>::ComponentType>
+{
+private:
+  using ArrayHandleType = vtkm::cont::ArrayHandle<ValueType, StorageTag>;
+  using ComponentType = typename FlattenVec<ValueType>::ComponentType;
+
+public:
+  explicit ArrayHandleWrapOnly(const ArrayHandleType& handle)
+    : Handle(handle)
+  {
+  }
+
+  vtkIdType GetNumberOfTuples() const override { return this->Handle.GetNumberOfValues(); }
+
+  int GetNumberOfComponents() const override { return 1; }
+
+  void SetTuple(vtkIdType, const ComponentType*) override
+  {
+    vtkGenericWarningMacro(<< "SetTuple called on wrap-only vtkmDataArray");
+  }
+
+  void GetTuple(vtkIdType idx, ComponentType* value) const override
+  {
+    vtkGenericWarningMacro(<< "SetTuple called on wrap-only vtkmDataArray");
+  }
+
+  void SetComponent(vtkIdType, int, const ComponentType&) override
+  {
+    vtkGenericWarningMacro(<< "SetComponent called on wrap-only vtkmDataArray");
+  }
+
+  ComponentType GetComponent(vtkIdType tuple, int comp) const override
+  {
+    vtkGenericWarningMacro(<< "GetComponent called on wrap-only vtkmDataArray");
+    return ComponentType(0);
+  }
+
+  void Allocate(vtkIdType) override
+  {
+    vtkGenericWarningMacro(<< "Allocate called on wrap-only vtkmDataArray");
+  }
+
+  void Reallocate(vtkIdType) override
+  {
+    vtkGenericWarningMacro(<< "Reallocate called on wrap-only vtkmDataArray");
+  }
+
+  vtkm::cont::UnknownArrayHandle GetVtkmUnknownArrayHandle() const override
+  {
+    return vtkm::cont::UnknownArrayHandle{ this->Handle };
+  }
+
+  void GetArrayInformation(MetaData& metadata) const override
+  {
+    bool found = vtkm::cont::TryExecute(detail::MetaDataFunctor{}, this->Handle, metadata);
+  }
+
+private:
+  ArrayHandleType Handle;
 };
 
 //-----------------------------------------------------------------------------
@@ -181,6 +292,11 @@ public:
     return vtkm::cont::UnknownArrayHandle{ this->Handle };
   }
 
+  void GetArrayInformation(MetaData& metadata) const override
+  {
+    vtkGenericWarningMacro(<< "GetArrayInformation called on unsupported vtkmDataArray");
+  }
+
 private:
   ArrayHandleType Handle;
   PortalType Portal;
@@ -248,6 +364,11 @@ public:
   vtkm::cont::UnknownArrayHandle GetVtkmUnknownArrayHandle() const override
   {
     return vtkm::cont::UnknownArrayHandle{ this->Handle };
+  }
+
+  void GetArrayInformation(MetaData& metadata) const override
+  {
+    vtkGenericWarningMacro(<< "GetArrayInformation called on unsupported vtkmDataArray");
   }
 
 private:
@@ -332,6 +453,11 @@ public:
     return vtkm::cont::UnknownArrayHandle{ this->GetVtkmArray() };
   }
 
+  void GetArrayInformation(MetaData& metadata) const override
+  {
+    vtkGenericWarningMacro(<< "GetArrayInformation called on unsupported vtkmDataArray");
+  }
+
 private:
   VtkmArrayType GetVtkmArray() const
   {
@@ -364,11 +490,18 @@ ArrayHandleWrapperBase<typename FlattenVec<T>::ComponentType>* WrapArrayHandle(
   return new ArrayHandleWrapperReadOnly<T, S>{ ah };
 }
 
+// The wrapOnly flag is intended to support the case where we only wrap the VTK-m array handle
+// without getting any of it's Portals. This is intended to prevent any host/device syncs
+// that are not intended and to support the use cases where the user might just want the
+// ArrayHandle to query for host/device pointers.
 template <typename T, typename S>
 ArrayHandleWrapperBase<typename FlattenVec<T>::ComponentType>* MakeArrayHandleWrapper(
-  const vtkm::cont::ArrayHandle<T, S>& ah)
+  const vtkm::cont::ArrayHandle<T, S>& ah, bool wrapOnly = false)
 {
-  return WrapArrayHandle(ah, typename IsReadOnly<vtkm::cont::ArrayHandle<T, S>>::type{});
+  if (wrapOnly)
+    return new ArrayHandleWrapOnly<T, S>{ ah };
+  else
+    return WrapArrayHandle(ah, typename IsReadOnly<vtkm::cont::ArrayHandle<T, S>>::type{});
 }
 
 template <typename T>
@@ -433,7 +566,10 @@ void vtkmDataArray<T>::SetVtkmArrayHandle(const vtkm::cont::ArrayHandle<V, S>& a
   static_assert(std::is_same<T, typename internal::FlattenVec<V>::ComponentType>::value,
     "Component type of the arrays don't match");
 
-  this->VtkmArray.reset(internal::MakeArrayHandleWrapper(ah));
+  if (this->WrapOnly)
+    this->VtkmArray.reset(internal::MakeArrayHandleWrapper(ah, true));
+  else
+    this->VtkmArray.reset(internal::MakeArrayHandleWrapper(ah));
 
   this->Size = this->VtkmArray->GetNumberOfTuples() * this->VtkmArray->GetNumberOfComponents();
   this->MaxId = this->Size - 1;
@@ -505,6 +641,20 @@ bool vtkmDataArray<T>::ReallocateTuples(vtkIdType numTuples)
 {
   this->VtkmArray->Reallocate(numTuples);
   return true;
+}
+
+template <typename T>
+void vtkmDataArray<T>::SetWrapOnly()
+{
+  this->WrapOnly = true;
+}
+
+template <typename T>
+MetaData vtkmDataArray<T>::GetArrayInformation() const
+{
+  MetaData metadata;
+  this->VtkmArray->GetArrayInformation(metadata);
+  return metadata;
 }
 
 VTK_ABI_NAMESPACE_END

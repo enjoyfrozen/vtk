@@ -33,6 +33,11 @@
 #include "vtkVolumeNode.h"
 #include "vtkVolumeProperty.h"
 
+#ifdef VTKOSPRAY_ENABLE_VTKM
+#include "vtkmDataSet.h"
+#include <vtkm/cont/DataSet.h>
+#endif
+
 #include <algorithm>
 #include <vector>
 
@@ -121,13 +126,37 @@ void vtkOSPRayVolumeMapperNode::Render(bool prepass)
     mapper->GetInputAlgorithm()->Update();
 
     vtkImageData* data = vtkImageData::SafeDownCast(mapper->GetDataSetInput());
+#ifdef VTKOSPRAY_ENABLE_VTKM
+    vtkmDataSet* vtkmds = vtkmDataSet::SafeDownCast(mapper->GetDataSetInput());
+    if (!data && !vtkmds)
+    {
+      return;
+    }
+#else
     if (!data)
     {
       return;
     }
+#endif
 
     int fieldAssociation;
+#ifdef VTKOSPRAY_ENABLE_VTKM
+    vtkDataArray* sa = nullptr;
+    if (data)
+    {
+      sa = vtkDataArray::SafeDownCast(this->GetArrayToProcess(data, fieldAssociation));
+    }
+    else if (vtkmds)
+    {
+      sa = vtkDataArray::SafeDownCast(this->GetArrayToProcess(vtkmds, fieldAssociation));
+      if (!sa)
+      {
+        sa = vtkmds->GetPointData()->GetArray(0);
+      }
+    }
+#else
     vtkDataArray* sa = vtkDataArray::SafeDownCast(this->GetArrayToProcess(data, fieldAssociation));
+#endif
     if (!sa)
     {
       // OK - PV cli/srv for instance vtkErrorMacro("VolumeMapper's Input has no scalar array!");
@@ -170,8 +199,30 @@ void vtkOSPRayVolumeMapperNode::Render(bool prepass)
       }
       int ScalarDataType = sa->GetDataType();
       void* ScalarDataPointer = sa->GetVoidPointer(0);
-      int dim[3];
+      int dim[3] = { 1, 1, 1 };
+#ifdef VTKOSPRAY_ENABLE_VTKM
+      if (vtkmds)
+      {
+        auto ds = vtkmds->GetVtkmDataSet();
+        auto cs = ds.GetCoordinateSystem();
+        if (cs.GetData().IsType<vtkm::cont::ArrayHandleUniformPointCoordinates>())
+        {
+          auto portal = cs.GetData()
+                          .AsArrayHandle<vtkm::cont::ArrayHandleUniformPointCoordinates>()
+                          .ReadPortal();
+          vtkm::Id3 d = portal.GetDimensions();
+          dim[0] = d[0];
+          dim[1] = d[1];
+          dim[2] = d[2];
+        }
+      }
+      else if (data)
+      {
+        data->GetDimensions(dim);
+      }
+#else
       data->GetDimensions(dim);
+#endif
       if (fieldAssociation == vtkDataObject::FIELD_ASSOCIATION_CELLS)
       {
         dim[0] = dim[0] - 1;
@@ -212,17 +263,26 @@ void vtkOSPRayVolumeMapperNode::Render(bool prepass)
       //
       // Send Volumetric data to OSPRay
       //
+      double bds[6] = { 0, 1, 0, 1, 0, 1 };
+#ifdef VTKOSPRAY_ENABLE_VTKM
+      if (vtkmds)
+      {
+        vtkmds->GetBounds(bds);
+      }
+      else if (data)
+      {
+        data->GetBounds(bds);
+      }
+#else
+      data->GetBounds(bds);
+#endif
       double origin[3];
       double scale[3];
-      data->GetOrigin(origin);
       vol->GetScale(scale);
-      const double* bds = vol->GetBounds();
       origin[0] = bds[0];
       origin[1] = bds[2];
       origin[2] = bds[4];
 
-      double spacing[3];
-      data->GetSpacing(spacing);
       scale[0] = (bds[1] - bds[0]) / double(dim[0] - 1);
       scale[1] = (bds[3] - bds[2]) / double(dim[1] - 1);
       scale[2] = (bds[5] - bds[4]) / double(dim[2] - 1);
