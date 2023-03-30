@@ -16,6 +16,7 @@
 #include "vtkHyperTreeGridContour.h"
 
 #include "vtkBitArray.h"
+#include "vtkCell.h"
 #include "vtkCellArray.h"
 #include "vtkCellData.h"
 #include "vtkContourHelper.h"

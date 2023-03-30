@@ -56,6 +56,7 @@ class vtkIncrementalPointLocator;
 class vtkLine;
 class vtkPixel;
 class vtkUnsignedCharArray;
+class vtkCell;
 class vtkVoxel;
 
 class VTKFILTERSHYPERTREE_EXPORT vtkHyperTreeGridContour : public vtkHyperTreeGridAlgorithm

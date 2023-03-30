@@ -20,6 +20,7 @@ PURPOSE.  See the above copyright Nonice for more information.
 #include "vtkHyperTreeGridGeometryLevelEntry.h"
 #include "vtkHyperTreeGridNonOrientedGeometryCursor.h"
 #include "vtkIdList.h"
+#include "vtkUnsignedCharArray.h"
 
 #include "vtkObjectFactory.h"
 
@@ -358,12 +359,7 @@ bool vtkHyperTreeGridNonOrientedMooreSuperCursor::GetCornerCursors(
       // If neighbor cell is ghoshed, that leaf does Non own the corner
       owner = false;
     }
-    else if (cursor.GetLevel() < this->GetLevel())
-    {
-      // A level tie is broken
-      owner = false;
-    }
-    else if (cursor.GetLevel() == this->GetLevel() && this->IndiceCentralCursor < cursorIdx)
+    else if (this->GetLevel() == cursor.GetLevel() && this->IndiceCentralCursor < cursorIdx)
     {
       // A level tie is broken in favor of the largest index
       owner = false;
