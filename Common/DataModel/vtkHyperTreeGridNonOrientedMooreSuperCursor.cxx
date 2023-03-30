@@ -44,7 +44,7 @@ void vtkHyperTreeGridNonOrientedMooreSuperCursor::Initialize(
   }
   assert("pre: Non_same_grid" && this->Grid == grid);
 
-  // JB Initialize caracteristique
+  // Initialize characteristic
   switch (grid->GetNumberOfChildren())
   {
     case 2:
@@ -103,7 +103,7 @@ void vtkHyperTreeGridNonOrientedMooreSuperCursor::Initialize(
     }
   } // switch Dimension
 
-  // JB Pour le niveau zero tout est defini
+  // For level zero everything is defined
   this->CentralCursor->Initialize(grid, treeIndex, create);
   //
   this->CurrentFirstNonValidEntryByLevel = 0;
@@ -119,7 +119,7 @@ void vtkHyperTreeGridNonOrientedMooreSuperCursor::Initialize(
     isOld = false;
     this->Entries.resize(this->FirstNonValidEntryByLevel[this->CurrentFirstNonValidEntryByLevel]);
   }
-  // JB Pour le niveau zero tout est reference
+  // For level zero everything is reference
   this->FirstCurrentNeighboorReferenceEntry = 0;
   if (this->ReferenceEntries.size() <=
     this->FirstCurrentNeighboorReferenceEntry + this->NumberOfCursors - 1)
@@ -141,7 +141,7 @@ void vtkHyperTreeGridNonOrientedMooreSuperCursor::Initialize(
   unsigned int n[3];
   grid->GetCellDims(n);
 
-  // JB Initialisation des cursors
+  // Initialize cursors
   switch (grid->GetDimension())
   {
     case 1:
@@ -334,8 +334,9 @@ bool vtkHyperTreeGridNonOrientedMooreSuperCursor::GetCornerCursors(
   // Collect the cursor index for this leaf
   leaves->SetId(l, cursorIdx);
 
-  // Determine ownership of corner
+  // Determine ownership of this corner
   bool owner = true;
+
   if (cursorIdx != this->IndiceCentralCursor)
   {
     vtkHyperTreeGridGeometryLevelEntry& cursor = this->Entries[this->GetIndiceEntry(cursorIdx)];
@@ -351,7 +352,18 @@ bool vtkHyperTreeGridNonOrientedMooreSuperCursor::GetCornerCursors(
       // If neighbor cell is masked, that leaf does Non own the corner
       owner = false;
     }
-    else if (this->IndiceCentralCursor < cursorIdx && cursor.GetLevel() == this->GetLevel())
+    else if (this->GetGrid()->GetGhostCells() &&
+      this->GetGrid()->GetGhostCells()->GetTuple1(cursor.GetGlobalNodeIndex()))
+    {
+      // If neighbor cell is ghoshed, that leaf does Non own the corner
+      owner = false;
+    }
+    else if (cursor.GetLevel() < this->GetLevel())
+    {
+      // A level tie is broken
+      owner = false;
+    }
+    else if (cursor.GetLevel() == this->GetLevel() && this->IndiceCentralCursor < cursorIdx)
     {
       // A level tie is broken in favor of the largest index
       owner = false;
