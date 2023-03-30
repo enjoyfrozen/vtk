@@ -161,7 +161,7 @@ void vtkHyperTreeGridNonOrientedMooreSuperCursor::Initialize(
       {
         // Cell has a neighbor to the right
         unsigned int r = grid->GetShiftedLevelZeroIndex(treeIndex, 1, 0, 0);
-        this->Entries[1].Initialize(grid, r); // au lieu de 2
+        this->Entries[1].Initialize(grid, r); // instead of 2
       }
       else if (isOld)
       {
@@ -223,7 +223,7 @@ void vtkHyperTreeGridNonOrientedMooreSuperCursor::Initialize(
       {
         // Cell has a neighbor to the east
         unsigned int r = grid->GetShiftedLevelZeroIndex(treeIndex, 1, 0, 0);
-        this->Entries[4].Initialize(grid, r); // au lieu de 5
+        this->Entries[4].Initialize(grid, r); // instead of 5
       }
       else
       { // if (toE)
@@ -233,12 +233,12 @@ void vtkHyperTreeGridNonOrientedMooreSuperCursor::Initialize(
       {
         // Cell has a neighbor to the north
         unsigned int r = grid->GetShiftedLevelZeroIndex(treeIndex, 0, 1, 0);
-        this->Entries[6].Initialize(grid, r); // au lieu de 7
+        this->Entries[6].Initialize(grid, r); // instead of 7
         if (toW)
         {
           // Cell has a neighbor to the northwest
           r = grid->GetShiftedLevelZeroIndex(treeIndex, (unsigned int)-1, 1, 0);
-          this->Entries[5].Initialize(grid, r); // au lieu de 6
+          this->Entries[5].Initialize(grid, r); // instead of 6
         }
         else
         { // if (toW)
@@ -248,7 +248,7 @@ void vtkHyperTreeGridNonOrientedMooreSuperCursor::Initialize(
         {
           // Cell has a neighbor to the northeast
           r = grid->GetShiftedLevelZeroIndex(treeIndex, 1, 1, 0);
-          this->Entries[7].Initialize(grid, r); // au lieu de 8
+          this->Entries[7].Initialize(grid, r); // instead of 8
         }
         else
         { // if (toW)
