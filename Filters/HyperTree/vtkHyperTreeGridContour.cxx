@@ -155,38 +155,38 @@ void vtkHyperTreeGridContour::PrintSelf(ostream& os, vtkIndent indent)
 
   if (this->Line)
   {
-    os << indent << ": " << this->Line << "\n";
+    os << indent << "Line: " << this->Line << "\n";
   }
   else
   {
-    os << indent << ": (none)\n";
+    os << indent << "Line: (none)\n";
   }
 
   if (this->Pixel)
   {
-    os << indent << ": " << this->Pixel << "\n";
+    os << indent << "Pixel: " << this->Pixel << "\n";
   }
   else
   {
-    os << indent << ": (none)\n";
+    os << indent << "Pixel: (none)\n";
   }
 
   if (this->Voxel)
   {
-    os << indent << ": " << this->Voxel << "\n";
+    os << indent << "Voxel: " << this->Voxel << "\n";
   }
   else
   {
-    os << indent << ": (none)\n";
+    os << indent << "Voxel: (none)\n";
   }
 
   if (this->Leaves)
   {
-    os << indent << ": " << this->Leaves << "\n";
+    os << indent << "Leaves: " << this->Leaves << "\n";
   }
   else
   {
-    os << indent << ": (none)\n";
+    os << indent << "Leaves: (none)\n";
   }
 }
 
@@ -343,7 +343,6 @@ int vtkHyperTreeGridContour::ProcessTrees(vtkHyperTreeGrid* input, vtkDataObject
   // Initialize storage for signs and values
   // NOLINTNEXTLINE(bugprone-sizeof-expression)
   this->CellSigns = (vtkBitArray**)malloc(numContours * sizeof(*this->CellSigns));
-  this->Signs.resize(numContours, true);
   for (int c = 0; c < numContours; ++c)
   {
     this->CellSigns[c] = vtkBitArray::New();
@@ -363,6 +362,14 @@ int vtkHyperTreeGridContour::ProcessTrees(vtkHyperTreeGrid* input, vtkDataObject
     }
     // Initialize new grid cursor at root of current input tree
     input->InitializeNonOrientedCursor(cursor, index);
+
+    vtkIdType id = cursor->GetGlobalNodeIndex();
+    if ((this->InGhostArray && this->InGhostArray->GetTuple1(id)) ||
+      (this->InMask && this->InMask->GetTuple1(id)))
+    {
+      continue;
+    }
+
     // Pre-process tree recursively
     this->RecursivelyPreProcessTree(cursor);
   } // it
@@ -378,6 +385,14 @@ int vtkHyperTreeGridContour::ProcessTrees(vtkHyperTreeGrid* input, vtkDataObject
     }
     // Initialize new Moore cursor at root of current tree
     input->InitializeNonOrientedMooreSuperCursor(supercursor, index);
+
+    vtkIdType id = supercursor->GetGlobalNodeIndex();
+    if ((this->InGhostArray && this->InGhostArray->GetTuple1(id)) ||
+      (this->InMask && this->InMask->GetTuple1(id)))
+    {
+      continue;
+    }
+
     // Compute contours recursively
     this->RecursivelyProcessTree(supercursor);
   } // it
@@ -427,7 +442,8 @@ bool vtkHyperTreeGridContour::RecursivelyPreProcessTree(vtkHyperTreeGridNonOrien
   // Retrieve global index of input cursor
   vtkIdType id = cursor->GetGlobalNodeIndex();
 
-  if (this->InGhostArray && this->InGhostArray->GetTuple1(id))
+  if ((this->InGhostArray && this->InGhostArray->GetTuple1(id)) ||
+    (this->InMask && this->InMask->GetTuple1(id)))
   {
     return false;
   }
@@ -435,81 +451,157 @@ bool vtkHyperTreeGridContour::RecursivelyPreProcessTree(vtkHyperTreeGridNonOrien
   // Retrieve number of contours
   vtkIdType numContours = this->ContourValues->GetNumberOfContours();
 
-  // Descend further into input trees only if cursor is not a leaf
-  bool selected = false;
-  if (!cursor->IsLeaf())
+  // Create storage for signs relative to contour values
+  std::vector<bool> signs(numContours, true);
+
+  //----------------------------------------------------------------------------
+  if (cursor->IsLeaf())
   {
-    // Cursor is not at leaf, recurse to all all children
-    int numChildren = cursor->GetNumberOfChildren();
-    for (int child = 0; child < numChildren; ++child)
-    {
-      if (this->CheckAbort())
-      {
-        break;
-      }
-      // Create storage for signs relative to contour values
-      std::vector<bool> signs(numContours);
+    // Case: cursor is at leaf
+    // Set selected has false
+    this->SelectedCells->SetTuple1(id, false);
 
-      cursor->ToChild(child);
-
-      // Recurse and keep track of whether this branch is selected
-      selected |= this->RecursivelyPreProcessTree(cursor);
-
-      // Check if branch not completely selected
-      if (!selected)
-      {
-        // If not, update contour values
-        for (int c = 0; c < numContours; ++c)
-        {
-          // Retrieve global index of child
-          vtkIdType childId = cursor->GetGlobalNodeIndex();
-
-          // Compute and store selection flags for current contour
-          if (!child)
-          {
-            // Initialize sign array with sign of first child
-            signs[c] = (this->CellSigns[c]->GetTuple1(childId) != 0.0);
-          } // if ( ! child )
-          else
-          {
-            // For subsequent children compare their sign with stored value
-            if (signs[c] != (this->CellSigns[c]->GetTuple1(childId) != 0.0))
-            {
-              // A change of sign occurred, therefore cell must selected
-              selected = true;
-            }
-          } // else
-        }   // c
-      }     // if( ! selected )
-
-      cursor->ToParent();
-    } // child
-  }
-  else if (!this->InGhostArray || !this->InGhostArray->GetTuple1(id))
-  {
-    // Cursor is at leaf, retrieve its active scalar value
+    // Retrieve its active scalar value
     double val = this->InScalars->GetTuple1(id);
 
     // Iterate over all contours
     double* values = this->ContourValues->GetValues();
+
+    // Set signs for all contours
     for (int c = 0; c < numContours; ++c)
     {
-      this->Signs[c] = val > values[c];
+      this->CellSigns[c]->SetTuple1(id, (val > values[c]));
     }
-  } // else
 
-  // Update list of selected cells
+    // return selected
+    return false;
+  }
+
+  //----------------------------------------------------------------------------
+  // Case: cursor is at coarse
+
+  // Descend further into input trees only if cursor is not a leaf
+  // Default, all children (recursively) have the same sign, selected has false
+  bool selected = false;
+
+  // Number of children
+  int numChildren = cursor->GetNumberOfChildren();
+
+  // Memorize if first child valid
+  bool firstChild = true;
+
+  // Recurse to all children
+  for (int child = 0; child < numChildren; ++child)
+  {
+    if (this->CheckAbort())
+    {
+      break;
+    }
+
+    // Move to child cell
+    cursor->ToChild(child);
+
+    // Retrieve global index of child
+    vtkIdType childId = cursor->GetGlobalNodeIndex();
+
+    // Ignore masked child cell, compute other cell included ghost cell
+    if (this->InMask && this->InMask->GetTuple1(childId))
+    {
+      // Move to parent cell
+      cursor->ToParent();
+      continue;
+    }
+
+    // Recurse a child and modifing to the state of this child cell
+    // cause if child cell is selected (so coarse) then current coarse is selected
+    selected |= this->RecursivelyPreProcessTree(cursor);
+
+    // If coarse is selected, there is no global state of childs values
+    // (not the values of all child cells below or above all contours)
+    // no need then to set a value to CellSigns
+    if (!selected)
+    {
+      // Compute and store signs flags for current contour
+      if (firstChild)
+      {
+        // If firstChild, set CellSigns by contour values
+        for (int c = 0; c < numContours; ++c)
+        {
+          // Initialize sign array with sign of first child
+          signs[c] = (this->CellSigns[c]->GetTuple1(childId) != 0.0);
+        } // c
+
+        firstChild = false;
+      } // if ( firstChild )
+      else
+      {
+        // If not, update CellSigns by contour values
+        for (int c = 0; c < numContours; ++c)
+        {
+          // For subsequent children compare their sign with stored value
+          if (signs[c] != (this->CellSigns[c]->GetTuple1(childId) != 0.0))
+          {
+            // A change of sign occurred, therefore cell must selected
+            selected = true;
+          }
+        } // c
+      }   // else
+    }     // if( ! selected )
+
+    // Move to parent cell
+    cursor->ToParent();
+  } // child
+
+  if (firstChild)
+  {
+    selected = true;
+  }
+
+  // Set selected
   this->SelectedCells->SetTuple1(id, selected);
 
   // Set signs for all contours
   for (int c = 0; c < numContours; ++c)
   {
     // Parent cell has that of one of its children
-    this->CellSigns[c]->SetTuple1(id, this->Signs[c]);
+    this->CellSigns[c]->SetTuple1(id, signs[c]);
   }
 
   // Return whether current node was fully selected
   return selected;
+}
+
+//------------------------------------------------------------------------------
+void vtkHyperTreeGridContour::ComputeCell(vtkHyperTreeGridNonOrientedMooreSuperCursor* supercursor,
+  vtkIdType numContours, double* values, vtkCell* cell,
+  const std::vector<vtkIdType>& nids // local neighboor cell 0 to 9 2D, 27 3D
+)
+{
+  // Iterate ...
+  int lid = 0;
+  double x[3];
+  for (auto nid = nids.begin(); nid != nids.end(); ++lid, ++nid)
+  {
+    // Retrieve neighbor coordinates and store them
+    supercursor->GetPoint(*nid, x);
+    cell->Points->SetPoint(lid, x);
+
+    // Retrieve neighbor index and add to list of cell vertices
+    vtkIdType idN = supercursor->GetGlobalNodeIndex(*nid);
+    cell->PointIds->SetId(lid, idN);
+
+    // Assign scalar value attached to this contour item
+    this->CellScalars->SetTuple(lid, this->InScalars->GetTuple(idN));
+  } // cornerIdx
+
+  // Compute cell isocontour for each isovalue
+  for (int c = 0; c < numContours; ++c)
+  {
+    this->Helper->Contour(cell, values[c], this->CellScalars, this->CurrentId);
+  } // c
+
+  // Increment output cell counter
+  ++this->CurrentId;
 }
 
 //------------------------------------------------------------------------------
@@ -519,73 +611,30 @@ void vtkHyperTreeGridContour::RecursivelyProcessTree(
   // Retrieve global index of input cursor
   vtkIdType id = supercursor->GetGlobalNodeIndex();
 
-  if (this->InGhostArray && this->InGhostArray->GetTuple1(id))
+  if ((this->InGhostArray && this->InGhostArray->GetTuple1(id)) ||
+    (this->InMask && this->InMask->GetTuple1(id)))
   {
     return;
   }
+
   // Retrieve dimensionality
   unsigned int dim = supercursor->GetDimension();
 
-  // Descend further into input trees only if cursor is not a leaf
-  if (!supercursor->IsLeaf())
-  {
-    // Cell is not selected until proven otherwise
-    bool selected = false;
-
-    // Iterate over contours
-    for (vtkIdType c = 0; c < this->ContourValues->GetNumberOfContours() && !selected; ++c)
-    {
-      // Retrieve sign with respect to contour value at current cursor
-      bool sign = (this->CellSigns[c]->GetTuple1(id) != 0.0);
-
-      // Iterate over all cursors of Moore neighborhood around center
-      unsigned int nn = supercursor->GetNumberOfCursors() - 1;
-      for (unsigned int neighbor = 0; neighbor < nn && !selected; ++neighbor)
-      {
-        // Retrieve global index of neighbor
-        unsigned int icursorN = MooreCursors[dim - 1][neighbor];
-        if (supercursor->HasTree(icursorN))
-        {
-          vtkIdType idN = supercursor->GetGlobalNodeIndex(icursorN);
-
-          // Decide whether neighbor was selected or must be retained because of a sign change
-          selected = this->SelectedCells->GetTuple1(idN) == 1 ||
-            ((this->CellSigns[c]->GetTuple1(idN) != 0.0) != sign) ||
-            (this->InGhostArray && this->InGhostArray->GetTuple1(idN));
-        }
-        else
-        {
-          selected = false;
-        }
-      } // neighbor
-    }   // c
-
-    if (selected)
-    {
-      // Node has at least one neighbor containing one contour, recurse to all children
-      unsigned int numChildren = supercursor->GetNumberOfChildren();
-      for (unsigned int child = 0; child < numChildren; ++child)
-      {
-        // Create child cursor from parent in input grid
-        supercursor->ToChild(child);
-        // Recurse
-        this->RecursivelyProcessTree(supercursor);
-        supercursor->ToParent();
-      }
-    }
-  }
-  else if ((!this->InMask || !this->InMask->GetTuple1(id)))
+  if (supercursor->IsLeaf())
   {
     // Cell is not masked, iterate over its corners
     unsigned int numLeavesCorners = 1 << dim;
+
     for (unsigned int cornerIdx = 0; cornerIdx < numLeavesCorners; ++cornerIdx)
     {
       bool owner = true;
+
       this->Leaves->SetNumberOfIds(numLeavesCorners);
 
       // Iterate over every leaf touching the corner and check ownership
       for (unsigned int leafIdx = 0; leafIdx < numLeavesCorners && owner; ++leafIdx)
       {
+        // IT CANNOT HAVE INCLUDED THE COMPUTE OF THE OWNER
         owner = supercursor->GetCornerCursors(cornerIdx, leafIdx, this->Leaves);
       } // leafIdx
 
@@ -595,49 +644,104 @@ void vtkHyperTreeGridContour::RecursivelyProcessTree(
         vtkIdType numContours = this->ContourValues->GetNumberOfContours();
         double* values = this->ContourValues->GetValues();
 
+        bool convexe = true;         // cube
+        std::vector<vtkIdType> nids; // local neighboor cell 0 to 9 2D, 27 3D
+        double xs[3 * (numLeavesCorners + 7)];
+        std::vector<vtkIdType> gids;
+        for (unsigned int leafIdx = 0; leafIdx < numLeavesCorners; ++leafIdx)
+        {
+          vtkIdType cornerIdx = this->Leaves->GetId(leafIdx);
+          nids.emplace_back(cornerIdx);
+
+          convexe = convexe && (supercursor->GetLevel() == supercursor->GetLevel(cornerIdx));
+
+          supercursor->GetPoint(cornerIdx, &xs[3 * leafIdx]);
+
+          vtkIdType gid = supercursor->GetGlobalNodeIndex(cornerIdx);
+          gids.emplace_back(gid);
+        }
+
         // Generate contour topology depending on dimensionality
         vtkCell* cell = nullptr;
         switch (dim)
         {
           case 1:
             cell = this->Line;
+            ComputeCell(supercursor, numContours, values, cell, nids);
             break;
+
           case 2:
             cell = this->Pixel;
+            ComputeCell(supercursor, numContours, values, cell, nids);
             break;
+
           case 3:
+            // TODO use here vtkPolyhedron extended for concavity
+            // TODO and use fine describe of convexe characterizes the cell
+            // TODO Here, convexe var is coarse characterizes
             cell = this->Voxel;
+            ComputeCell(supercursor, numContours, values, cell, nids);
         } // switch ( dim )
 
-        // Iterate over cell corners
-        double x[3];
-        supercursor->GetPoint(x);
-        for (unsigned int _cornerIdx = 0; _cornerIdx < numLeavesCorners; ++_cornerIdx)
-        {
-          // Get cursor corresponding to this corner
-          vtkIdType cursorId = this->Leaves->GetId(_cornerIdx);
-
-          // Retrieve neighbor coordinates and store them
-          supercursor->GetPoint(cursorId, x);
-          cell->Points->SetPoint(_cornerIdx, x);
-
-          // Retrieve neighbor index and add to list of cell vertices
-          vtkIdType idN = supercursor->GetGlobalNodeIndex(cursorId);
-          cell->PointIds->SetId(_cornerIdx, idN);
-
-          // Assign scalar value attached to this contour item
-          this->CellScalars->SetTuple(_cornerIdx, this->InScalars->GetTuple(idN));
-        } // cornerIdx
-        // Compute cell isocontour for each isovalue
-        for (int c = 0; c < numContours; ++c)
-        {
-          this->Helper->Contour(cell, values[c], this->CellScalars, this->CurrentId);
-        } // c
-
-        // Increment output cell counter
-        ++this->CurrentId;
       } // if ( owner )
-    }   // cornerIdx
-  }     // else if ( ! this->InMask || this->InMask->GetTuple1( id ) )
+
+    } // cornerIdx
+
+    return;
+  }
+
+  // Descend further into input trees only if cursor is not a leaf
+  bool selected = (this->SelectedCells->GetTuple1(id) != 0.0);
+
+  // Iterate over contours
+  if (!selected)
+  {
+    for (vtkIdType c = 0; c < this->ContourValues->GetNumberOfContours() && !selected; ++c)
+    {
+      // Retrieve sign with respect to contour value at current cursor
+      bool sign = (this->CellSigns[c]->GetTuple1(id) != 0.0);
+
+      // Iterate over all cursors of Moore neighborhood around center
+      unsigned int nn = supercursor->GetNumberOfCursors() - 1;
+
+      for (unsigned int neighbor = 0; neighbor < nn && !selected; ++neighbor)
+      {
+        // Retrieve global index of neighbor
+        unsigned int icursorN = MooreCursors[dim - 1][neighbor];
+
+        if (supercursor->HasTree(icursorN))
+        {
+          vtkIdType idN = supercursor->GetGlobalNodeIndex(icursorN);
+
+          if (this->InMask && this->InMask->GetTuple1(idN))
+          {
+            continue;
+          }
+
+          // Decide whether neighbor was selected or must be retained because of a sign change
+          selected = this->SelectedCells->GetTuple1(idN) == 1 ||
+            ((this->CellSigns[c]->GetTuple1(idN) != 0.0) != sign);
+        }
+      } // neighbor
+    }   // c
+  }
+
+  if (selected)
+  {
+    // Node has at least one neighbor containing one contour, recurse to all children
+    unsigned int numChildren = supercursor->GetNumberOfChildren();
+
+    for (unsigned int child = 0; child < numChildren; ++child)
+    {
+      // Move to child cursor
+      supercursor->ToChild(child);
+
+      // Compute cursor
+      this->RecursivelyProcessTree(supercursor);
+
+      // Move to parent cursor
+      supercursor->ToParent();
+    }
+  }
 }
 VTK_ABI_NAMESPACE_END
