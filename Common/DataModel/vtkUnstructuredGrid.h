@@ -696,8 +696,8 @@ protected:
   // The Faces class represents polygonal faces using a vtkCellArray structure.
   // The FaceLocations store a polyhedron as a list of faces defined in Faces using a vtkCellArray
   // structure.
-  vtkSmartPointer<vtkCellArray> Faces;
-  vtkSmartPointer<vtkCellArray> FaceLocations;
+  vtkSmartPointer<vtkCellArray> PolyhedronFaces;
+  vtkSmartPointer<vtkCellArray> PolyhedronFaceLocations;
 
   // Legacy support -- stores the old-style cell array locations.
   vtkSmartPointer<vtkIdTypeArray> CellLocations;
@@ -716,9 +716,9 @@ protected:
   // the cell, followed by a vtkCellArray data organization
   // (n,i,j,k,n,i,j,k,...).
   VTK_DEPRECATED_IN_9_3_0("Please use version of Faces and FaceLocations relying on vtkCellArray")
-  vtkSmartPointer<vtkIdTypeArray> OldFaces;
+  vtkSmartPointer<vtkIdTypeArray> Faces;
   VTK_DEPRECATED_IN_9_3_0("Please use version of Faces and FaceLocations relying on vtkCellArray")
-  vtkSmartPointer<vtkIdTypeArray> OldFaceLocations;
+  vtkSmartPointer<vtkIdTypeArray> FaceLocations;
 
 private:
   // Hide these from the user and the compiler.
