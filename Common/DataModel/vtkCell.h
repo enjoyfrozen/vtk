@@ -126,7 +126,13 @@ public:
    */
   virtual int RequiresExplicitFaceRepresentation() { return 0; }
   virtual void SetFaces(vtkIdType* vtkNotUsed(faces)) {}
+  virtual vtkTypeBool SetCellFaces(vtkIdType vtkNotUsed(nfaces),
+    vtkIdType const* vtkNotUsed(faceIds), vtkCellArray* vtkNotUsed(faces))
+  {
+    return EXIT_SUCCESS;
+  }
   virtual vtkIdType* GetFaces() { return nullptr; }
+  virtual VTK_NEWINSTANCE vtkCellArray* GetCellFaces() { return nullptr; }
 
   /**
    * Get the point coordinates for the cell.

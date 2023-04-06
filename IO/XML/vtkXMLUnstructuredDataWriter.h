@@ -105,6 +105,9 @@ protected:
   void WriteCellsInline(const char* name, vtkCellArray* cells, vtkDataArray* types,
     vtkIdTypeArray* faces, vtkIdTypeArray* faceOffsets, vtkIndent indent);
 
+  void WritePolyCellsInline(const char* name, vtkCellArray* cells, vtkDataArray* types,
+    vtkCellArray* faces, vtkCellArray* faceOffsets, vtkIndent indent);
+
   void WriteCellsInlineWorker(const char* name, vtkDataArray* types, vtkIndent indent);
 
   void WriteCellsAppended(
@@ -116,6 +119,9 @@ protected:
   void WriteCellsAppended(const char* name, vtkCellIterator* cellIter, vtkIdType numCells,
     vtkIndent indent, OffsetsManagerGroup* cellsManager);
 
+  void WritePolyCellsAppended(const char* name, vtkDataArray* types, vtkCellArray* faces,
+    vtkCellArray* faceOffsets, vtkIndent indent, OffsetsManagerGroup* cellsManager);
+
   void WriteCellsAppendedData(
     vtkCellArray* cells, vtkDataArray* types, int timestep, OffsetsManagerGroup* cellsManager);
 
@@ -126,6 +132,9 @@ protected:
   void WriteCellsAppendedData(vtkCellArray* cells, vtkDataArray* types, vtkIdTypeArray* faces,
     vtkIdTypeArray* faceOffsets, int timestep, OffsetsManagerGroup* cellsManager);
 
+  void WritePolyCellsAppendedData(vtkCellArray* cells, vtkDataArray* types, vtkCellArray* faces,
+    vtkCellArray* faceOffsets, int timestep, OffsetsManagerGroup* cellsManager);
+
   void WriteCellsAppendedDataWorker(
     vtkDataArray* types, int timestep, OffsetsManagerGroup* cellsManager);
 
@@ -135,6 +144,7 @@ protected:
 
   // For polyhedron support, conversion results are stored in Faces and FaceOffsets
   void ConvertFaces(vtkIdTypeArray* faces, vtkIdTypeArray* faceOffsets);
+  void ConvertPolyFaces(vtkCellArray* faces, vtkCellArray* faceOffsets);
 
   // Get the number of points/cells.  Valid after Update has been
   // invoked on the input.

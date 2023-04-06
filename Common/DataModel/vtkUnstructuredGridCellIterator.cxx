@@ -54,20 +54,20 @@ void vtkUnstructuredGridCellIterator::PrintSelf(ostream& os, vtkIndent indent)
     os << indent << "Types: (none)" << endl;
   }
 
-  if (this->FaceConn)
+  if (this->polyFaceConn)
   {
     os << indent << "FaceConn:\n";
-    this->FaceConn->PrintSelf(os, indent.GetNextIndent());
+    this->polyFaceConn->PrintSelf(os, indent.GetNextIndent());
   }
   else
   {
     os << indent << "FaceConn: (none)" << endl;
   }
 
-  if (this->FaceLocs)
+  if (this->polyFaceLocs)
   {
     os << indent << "FaceLocs:\n";
-    this->FaceLocs->PrintSelf(os, indent.GetNextIndent());
+    this->polyFaceLocs->PrintSelf(os, indent.GetNextIndent());
   }
   else
   {
@@ -104,8 +104,8 @@ void vtkUnstructuredGridCellIterator::SetUnstructuredGrid(vtkUnstructuredGrid* u
     this->Cells->GoToFirstCell();
 
     this->Types = cellTypeArray;
-    this->FaceConn = ug->GetFaces();
-    this->FaceLocs = ug->GetFaceLocations();
+    this->polyFaceConn = ug->GetPolyhedronFaces();
+    this->polyFaceLocs = ug->GetPolyhedronFaceLocations();
     this->Coords = points;
   }
 }
@@ -182,15 +182,31 @@ inline vtkIdType FaceSetSize(const vtkIdType* begin)
 //------------------------------------------------------------------------------
 void vtkUnstructuredGridCellIterator::FetchFaces()
 {
-  if (this->FaceLocs)
+  if (this->polyFaceLocs)
   {
     const vtkIdType cellId = this->Cells->GetCurrentCellId();
-    const vtkIdType faceLoc = this->FaceLocs->GetValue(cellId);
-    const vtkIdType* faceSet = this->FaceConn->GetPointer(faceLoc);
-    vtkIdType facesSize = FaceSetSize(faceSet);
+    const vtkIdType* faceIds;
+    vtkIdType nfaces;
+    this->polyFaceLocs->GetCellAtId(cellId, nfaces, faceIds);
+    vtkIdType facesSize = 1;
+    for (vtkIdType faceNum = 0; faceNum < nfaces; ++faceNum)
+    {
+      facesSize += this->polyFaceConn->GetCellSize(faceIds[faceNum]) + 1;
+    }
     this->Faces->SetNumberOfIds(facesSize);
-    vtkIdType* tmpPtr = this->Faces->GetPointer(0);
-    std::copy_n(faceSet, facesSize, tmpPtr);
+    this->Faces->SetId(0, nfaces);
+    vtkIdType loc = 0;
+    const vtkIdType* facePtr;
+    for (vtkIdType faceNum = 0; faceNum < nfaces; ++faceNum)
+    {
+      vtkIdType npts;
+      this->polyFaceConn->GetCellAtId(faceIds[faceNum], npts, facePtr);
+      this->Faces->SetId(++loc, npts);
+      for (vtkIdType i = 0; i < npts; ++i)
+      {
+        this->Faces->SetId(++loc, facePtr[i]);
+      }
+    }
   }
   else
   {

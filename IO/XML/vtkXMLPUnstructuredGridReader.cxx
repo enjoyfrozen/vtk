@@ -131,39 +131,44 @@ int vtkXMLPUnstructuredGridReader::ReadPieceData()
   this->CopyCellArray(this->TotalNumberOfCells, input->GetCells(), output->GetCells());
 
   // Copy Faces and FaceLocations with offset adjustment if they exist
-  if (vtkIdTypeArray* inputFaces = input->GetFaces())
+  if (vtkCellArray* inputFaces = input->GetPolyhedronFaces())
   {
-    vtkIdTypeArray* inputFaceLocations = input->GetFaceLocations();
-    vtkIdTypeArray* outputFaces = output->GetFaces();
+    vtkCellArray* inputFaceLocations = input->GetPolyhedronFaceLocations();
+    vtkCellArray* outputFaces = output->GetPolyhedronFaces();
     if (!outputFaces)
     {
       output->InitializeFacesRepresentation(0);
-      outputFaces = output->GetFaces();
+      outputFaces = output->GetPolyhedronFaces();
     }
-    vtkIdTypeArray* outputFaceLocations = output->GetFaceLocations();
-    const vtkIdType numFaceLocs = inputFaceLocations->GetNumberOfValues();
+    vtkCellArray* outputFaceLocations = output->GetPolyhedronFaceLocations();
+    const vtkIdType numFaceLocs = inputFaceLocations->GetNumberOfCells();
     for (vtkIdType i = 0; i < numFaceLocs; ++i)
     {
-      outputFaceLocations->InsertNextValue(outputFaces->GetMaxId() + 1);
-      vtkIdType location = inputFaceLocations->GetValue(i);
-      if (location < 0) // the face offsets array contains -1 for regular cells
+      vtkIdType size = inputFaceLocations->GetCellSize(i);
+      if (size < 1) // the face offsets array contains -1 for regular cells
       {
+        outputFaceLocations->InsertNextCell(0);
         continue;
       }
-
-      vtkIdType numFaces = inputFaces->GetValue(location);
-      location++;
-      outputFaces->InsertNextValue(numFaces);
+      vtkIdType numFaces;
+      const vtkIdType* faceIds;
+      inputFaceLocations->GetCellAtId(i, numFaces, faceIds);
+      outputFaceLocations->InsertNextCell(numFaces);
       for (vtkIdType f = 0; f < numFaces; f++)
       {
-        vtkIdType numPoints = inputFaces->GetValue(location);
-        outputFaces->InsertNextValue(numPoints);
-        location++;
+        outputFaceLocations->InsertCellPoint(outputFaces->GetNumberOfCells() + f);
+      }
+
+      for (vtkIdType f = 0; f < numFaces; f++)
+      {
+        vtkIdType numPoints;
+        const vtkIdType* ptsIds;
+        inputFaces->GetCellAtId(faceIds[f], numPoints, ptsIds);
+        outputFaces->InsertNextCell(numPoints);
         for (vtkIdType p = 0; p < numPoints; p++)
         {
           // only the point ids get the offset
-          outputFaces->InsertNextValue(inputFaces->GetValue(location) + this->StartPoint);
-          location++;
+          outputFaces->InsertCellPoint(ptsIds[p] + this->StartPoint);
         }
       }
     }
@@ -223,11 +228,11 @@ int vtkXMLPUnstructuredGridReader::FillOutputPortInformation(int, vtkInformation
 void vtkXMLPUnstructuredGridReader::SqueezeOutputArrays(vtkDataObject* output)
 {
   vtkUnstructuredGrid* grid = vtkUnstructuredGrid::SafeDownCast(output);
-  if (vtkIdTypeArray* outputFaces = grid->GetFaces())
+  if (vtkCellArray* outputFaces = grid->GetPolyhedronFaces())
   {
     outputFaces->Squeeze();
   }
-  if (vtkIdTypeArray* outputFaceLocations = grid->GetFaceLocations())
+  if (vtkCellArray* outputFaceLocations = grid->GetPolyhedronFaceLocations())
   {
     outputFaceLocations->Squeeze();
   }

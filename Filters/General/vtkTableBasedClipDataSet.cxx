@@ -2525,7 +2525,7 @@ vtkSmartPointer<vtkUnstructuredGrid> ClipUnstructuredData(TGrid* input, vtkPoint
   auto outputClippedCells = vtkSmartPointer<vtkUnstructuredGrid>::New();
   outputClippedCells->SetPoints(outputPoints);
   outputClippedCells->GetPointData()->ShallowCopy(outputPointData);
-  outputClippedCells->SetCells(outputCellTypes, outputCellArray, nullptr, nullptr);
+  outputClippedCells->SetPolyhedronCells(outputCellTypes, outputCellArray, nullptr, nullptr);
   outputClippedCells->GetCellData()->ShallowCopy(outputCellData);
 
   return outputClippedCells;
@@ -2671,7 +2671,7 @@ vtkSmartPointer<vtkUnstructuredGrid> ClipStructuredData(TGrid* input, vtkPoints*
   auto outputClippedCells = vtkSmartPointer<vtkUnstructuredGrid>::New();
   outputClippedCells->SetPoints(outputPoints);
   outputClippedCells->GetPointData()->ShallowCopy(outputPointData);
-  outputClippedCells->SetCells(outputCellTypes, outputCellArray, nullptr, nullptr);
+  outputClippedCells->SetPolyhedronCells(outputCellTypes, outputCellArray, nullptr, nullptr);
   outputClippedCells->GetCellData()->ShallowCopy(outputCellData);
 
   return outputClippedCells;

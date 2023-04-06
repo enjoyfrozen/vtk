@@ -225,19 +225,19 @@ int vtkPolyDataToUnstructuredGrid::RequestData(
 
   if (hasOnlyVerts)
   {
-    output->SetCells(cellTypes, input->GetVerts(), nullptr, nullptr);
+    output->SetPolyhedronCells(cellTypes, input->GetVerts(), nullptr, nullptr);
   }
   else if (hasOnlyLines)
   {
-    output->SetCells(cellTypes, input->GetLines(), nullptr, nullptr);
+    output->SetPolyhedronCells(cellTypes, input->GetLines(), nullptr, nullptr);
   }
   else if (hasOnlyPolys)
   {
-    output->SetCells(cellTypes, input->GetPolys(), nullptr, nullptr);
+    output->SetPolyhedronCells(cellTypes, input->GetPolys(), nullptr, nullptr);
   }
   else if (hasOnlyStrips)
   {
-    output->SetCells(cellTypes, input->GetStrips(), nullptr, nullptr);
+    output->SetPolyhedronCells(cellTypes, input->GetStrips(), nullptr, nullptr);
   }
   else
   {
@@ -288,7 +288,7 @@ int vtkPolyDataToUnstructuredGrid::RequestData(
     vtkNew<vtkCellArray> cellArray;
     cellArray->SetData(offsets, connectivity);
     // set cells
-    output->SetCells(cellTypes, cellArray, nullptr, nullptr);
+    output->SetPolyhedronCells(cellTypes, cellArray, nullptr, nullptr);
   }
 
   this->UpdateProgress(0.95);

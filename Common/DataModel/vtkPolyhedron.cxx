@@ -596,6 +596,43 @@ void vtkPolyhedron::SetFaces(vtkIdType* faces)
 }
 
 //------------------------------------------------------------------------------
+// Specify the faces for this cell from a vtkCellArray definition.
+vtkTypeBool vtkPolyhedron::SetCellFaces(
+  vtkIdType nfaces, vtkIdType const* faceIds, vtkCellArray* faces)
+{
+  // Set up face structure
+  this->GlobalFaces->Reset();
+  this->FaceLocations->Reset();
+
+  if (nfaces < 1 || !faceIds || !faces)
+  {
+    return EXIT_FAILURE;
+  }
+
+  this->FaceLocations->SetNumberOfValues(nfaces);
+
+  this->GlobalFaces->InsertNextValue(nfaces);
+
+  const vtkIdType* face = nullptr;
+  vtkIdType faceLoc = 1;
+  vtkIdType i, fid, npts;
+
+  for (fid = 0; fid < nfaces; ++fid)
+  {
+    faces->GetCellAtId(faceIds[fid], npts, face);
+    this->GlobalFaces->InsertNextValue(npts);
+    for (i = 0; i < npts; ++i)
+    {
+      this->GlobalFaces->InsertNextValue(face[i]);
+    }
+    this->FaceLocations->SetValue(fid, faceLoc);
+
+    faceLoc += npts + 1;
+  } // for all faces selected in faceIds
+  return EXIT_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
 // Return the list of faces for this cell.
 vtkIdType* vtkPolyhedron::GetFaces()
 {
@@ -605,6 +642,20 @@ vtkIdType* vtkPolyhedron::GetFaces()
   }
 
   return this->GlobalFaces->GetPointer(0);
+}
+
+vtkCellArray* vtkPolyhedron::GetCellFaces()
+{
+  if (!this->GlobalFaces->GetNumberOfTuples())
+  {
+    return nullptr;
+  }
+
+  vtkCellArray* faces = vtkCellArray::New();
+  faces->ImportLegacyFormat(
+    this->GlobalFaces->GetPointer(1), this->GlobalFaces->GetNumberOfValues() - 1);
+
+  return faces;
 }
 
 //------------------------------------------------------------------------------

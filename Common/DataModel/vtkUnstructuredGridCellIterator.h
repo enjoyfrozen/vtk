@@ -77,8 +77,8 @@ protected:
 
   vtkSmartPointer<vtkCellArrayIterator> Cells;
   vtkSmartPointer<vtkUnsignedCharArray> Types;
-  vtkSmartPointer<vtkIdTypeArray> FaceConn;
-  vtkSmartPointer<vtkIdTypeArray> FaceLocs;
+  vtkSmartPointer<vtkCellArray> polyFaceConn;
+  vtkSmartPointer<vtkCellArray> polyFaceLocs;
   vtkSmartPointer<vtkPoints> Coords;
 
 private:

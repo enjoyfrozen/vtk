@@ -70,7 +70,10 @@ public:
   void Initialize() override;
   int RequiresExplicitFaceRepresentation() override;
   void SetFaces(vtkIdType* faces) override;
+  vtkTypeBool SetCellFaces(
+    vtkIdType nfaces, vtkIdType const* faceIds, vtkCellArray* faces) override;
   vtkIdType* GetFaces() override;
+  VTK_NEWINSTANCE vtkCellArray* GetCellFaces() override;
   int GetNumberOfEdges() override;
   int GetNumberOfFaces() override;
   vtkCell* GetEdge(int edgeId) override;

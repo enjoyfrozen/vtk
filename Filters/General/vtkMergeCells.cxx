@@ -361,24 +361,26 @@ vtkIdType vtkMergeCells::AddNewCellsUnstructuredGrid(vtkDataSet* set, vtkIdType*
   // Connectivity for the merged grid so far
 
   vtkCellArray* cellArray = nullptr;
-  vtkIdType* flocs = nullptr;
-  vtkIdType* faces = nullptr;
+  vtkCellArray* flocs = nullptr;
+  vtkCellArray* faces = nullptr;
   unsigned char* types = nullptr;
 
   vtkIdType numCells = 0;
   vtkIdType numConnections = 0;
+  vtkIdType numFaces = 0;
   vtkIdType numFacesConnections = 0;
 
   if (!firstSet)
   {
     cellArray = grid->GetCells();
     types = grid->GetCellTypesArray()->GetPointer(0);
-    flocs = grid->GetFaceLocations() ? grid->GetFaceLocations()->GetPointer(0) : nullptr;
-    faces = grid->GetFaces() ? grid->GetFaces()->GetPointer(0) : nullptr;
+    flocs = grid->GetPolyhedronFaceLocations() ? grid->GetPolyhedronFaceLocations() : nullptr;
+    faces = grid->GetPolyhedronFaces() ? grid->GetPolyhedronFaces() : nullptr;
 
     numCells = cellArray->GetNumberOfCells();
     numConnections = cellArray->GetNumberOfConnectivityIds();
-    numFacesConnections = faces ? grid->GetFaces()->GetNumberOfValues() : 0;
+    numFacesConnections = faces ? grid->GetPolyhedronFaces()->GetNumberOfConnectivityIds() : 0;
+    numFaces = faces ? grid->GetPolyhedronFaces()->GetNumberOfCells() : 0;
   }
 
   // New output grid: merging of existing and incoming grids
@@ -405,28 +407,37 @@ vtkIdType vtkMergeCells::AddNewCellsUnstructuredGrid(vtkDataSet* set, vtkIdType*
   }
 
   // FACES LOCATION ARRAY
-  vtkNew<vtkIdTypeArray> facesLocationArray;
-  facesLocationArray->SetNumberOfValues(totalNumCells);
+  vtkNew<vtkCellArray> facesLocationArray;
+  facesLocationArray->Allocate(totalNumCells);
+  facesLocationArray->GetOffsetsArray()->SetNumberOfValues(totalNumCells + 1);
   if (!firstSet && flocs)
   {
-    vtkIdType* fiptr = facesLocationArray->GetPointer(0); // new output dataset
-    memcpy(fiptr, flocs, numCells * sizeof(vtkIdType));   // existing set
+    // TODO use a worker
+    auto copycells = std::min(numCells, totalNumCells);
+    facesLocationArray->GetConnectivityArray()->DeepCopy(flocs->GetConnectivityArray());
+    auto flocoff = flocs->GetOffsetsArray();
+    auto fiptroff = facesLocationArray->GetOffsetsArray();
+    for (vtkIdType idx = 0; idx < copycells + 1; ++idx)
+    {
+      vtkIdType tmp;
+      tmp = flocoff->GetTuple1(idx);
+      fiptroff->SetTuple1(idx, tmp);
+    }
   }
   else if (!firstSet)
   {
-    facesLocationArray->FillComponent(0, -1);
+    facesLocationArray->GetOffsetsArray()->FillComponent(0, 0);
   }
 
   bool havePolyhedron = false;
 
   // FACES ARRAY
-  vtkNew<vtkIdTypeArray> facesArray;
-  facesArray->SetNumberOfValues(numFacesConnections);
+  vtkNew<vtkCellArray> facesArray;
+  facesArray->Allocate(numFaces, numFacesConnections);
   if (!firstSet && faces)
   {
     havePolyhedron = true;
-    vtkIdType* faptr = facesArray->GetPointer(0);                  // new output dataset
-    memcpy(faptr, faces, numFacesConnections * sizeof(vtkIdType)); // existing set
+    facesArray->DeepCopy(faces);
   }
 
   // set up new cell data
@@ -470,24 +481,34 @@ vtkIdType vtkMergeCells::AddNewCellsUnstructuredGrid(vtkDataSet* set, vtkIdType*
       const vtkIdType* ptIds;
       newGrid->GetFaceStream(oldCellId, nfaces, ptIds);
 
-      facesLocationArray->SetValue(finalCellId, facesArray->GetNumberOfValues());
-      facesArray->InsertNextValue(nfaces);
+      auto faceLocOff = facesLocationArray->GetOffsetsArray();
+      auto faceLocCon = facesLocationArray->GetConnectivityArray();
+
+      auto startFace = faceLocCon->GetNumberOfValues();
+      faceLocOff->SetTuple1(finalCellId, startFace);
+      faceLocOff->SetTuple1(finalCellId + 1, startFace + nfaces);
+      for (vtkIdType loc = startFace; loc < startFace + nfaces; ++loc)
+      {
+        faceLocCon->SetTuple1(loc, loc);
+      }
 
       for (vtkIdType i = 0; i < nfaces; i++)
       {
         vtkIdType nfpts = *ptIds++;
-        facesArray->InsertNextValue(nfpts);
+        facesArray->InsertNextCell(nfpts);
         for (vtkIdType j = 0; j < nfpts; j++)
         {
           oldPtId = *ptIds++;
           finalPtId = idMap ? idMap[oldPtId] : this->NumberOfPoints + oldPtId;
-          facesArray->InsertNextValue(finalPtId);
+          facesArray->InsertCellPoint(finalPtId);
         }
       }
     }
     else
     {
-      facesLocationArray->SetValue(finalCellId, -1);
+      // Hazardous...
+      vtkIdType tmp = facesLocationArray->GetOffsetsArray()->GetTuple1(finalCellId - 1);
+      facesLocationArray->GetOffsetsArray()->SetTuple1(finalCellId, tmp);
     }
 
     grid->GetCellData()->CopyData(
@@ -498,11 +519,11 @@ vtkIdType vtkMergeCells::AddNewCellsUnstructuredGrid(vtkDataSet* set, vtkIdType*
 
   if (havePolyhedron)
   {
-    grid->SetCells(typeArray, finalCellArray, facesLocationArray, facesArray);
+    grid->SetPolyhedronCells(typeArray, finalCellArray, facesLocationArray, facesArray);
   }
   else
   {
-    grid->SetCells(typeArray, finalCellArray, nullptr, nullptr);
+    grid->SetPolyhedronCells(typeArray, finalCellArray, nullptr, nullptr);
   }
 
   if (duplicateCellIds)
