@@ -329,8 +329,6 @@ public:
   void SetCells(int type, vtkCellArray* cells);
   void SetCells(int* types, vtkCellArray* cells);
   void SetCells(vtkUnsignedCharArray* cellTypes, vtkCellArray* cells);
-  void SetCells(vtkUnsignedCharArray* cellTypes, vtkCellArray* cells, vtkIdTypeArray* faceLocations,
-    vtkIdTypeArray* faces);
   void SetPolyhedronCells(vtkUnsignedCharArray* cellTypes, vtkCellArray* cells,
     vtkCellArray* faceLocations, vtkCellArray* faces);
   ///@}
@@ -597,13 +595,12 @@ public:
    */
   void SetCells(
     vtkUnsignedCharArray* cellTypes, vtkIdTypeArray* cellLocations, vtkCellArray* cells);
-  // void SetCells(vtkUnsignedCharArray* cellTypes, vtkIdTypeArray* cellLocations, vtkCellArray*
-  // cells,
-  //  vtkIdTypeArray* faceLocations, vtkIdTypeArray* faces);
-  // VTK_DEPRECATED_IN_9_3_0("Please prefer to use the new SetPolyhedronCells")
-  // void SetCells(vtkUnsignedCharArray* cellTypes, vtkCellArray* cells, vtkIdTypeArray*
-  // faceLocations,
-  //  vtkIdTypeArray* faces);
+  void SetCells(vtkUnsignedCharArray* cellTypes, vtkIdTypeArray* cellLocations, vtkCellArray* cells,
+    vtkIdTypeArray* faceLocations, vtkIdTypeArray* faces);
+
+  VTK_DEPRECATED_IN_9_3_0("Please prefer to use the new SetPolyhedronCells")
+  void SetCells(vtkUnsignedCharArray* cellTypes, vtkCellArray* cells, vtkIdTypeArray* faceLocations,
+    vtkIdTypeArray* faces);
   ///@}
 
   /**

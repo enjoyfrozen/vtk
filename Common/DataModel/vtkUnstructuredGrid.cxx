@@ -282,11 +282,11 @@ void vtkUnstructuredGrid::SetCells(
 }
 
 //------------------------------------------------------------------------------
-/*void vtkUnstructuredGrid::SetCells(vtkUnsignedCharArray* cellTypes, vtkIdTypeArray*,
+void vtkUnstructuredGrid::SetCells(vtkUnsignedCharArray* cellTypes, vtkIdTypeArray*,
   vtkCellArray* cells, vtkIdTypeArray* faceLocations, vtkIdTypeArray* faces)
 {
   this->SetCells(cellTypes, cells, faceLocations, faces);
-}*/
+}
 
 //------------------------------------------------------------------------------
 vtkUnstructuredGrid::vtkUnstructuredGrid()
