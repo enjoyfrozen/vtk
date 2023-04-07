@@ -170,10 +170,9 @@ void SetPolyhedralCells(
   vtkNew<vtkCellArray> faceLocations;
 
   connectivity->AllocateEstimate(elements->GetNumberOfCells(), 10);
-  faces
-    ->AllocateExact(
-      subelements->GetNumberOfCells(), subelements->GetConnectivityArray()->GetNumberOfTuples())
-      faceLocations->AllocateExact(elements->GetNumberOfCells(), subelements->GetNumberOfCells());
+  faces->AllocateExact(
+    subelements->GetNumberOfCells(), subelements->GetConnectivityArray()->GetNumberOfTuples());
+  faceLocations->AllocateExact(elements->GetNumberOfCells(), subelements->GetNumberOfCells());
 
   auto eIter = vtk::TakeSmartPointer(elements->NewIterator());
   auto seIter = vtk::TakeSmartPointer(subelements->NewIterator());
@@ -277,8 +276,9 @@ struct MixedPolyhedralCells
 
     const vtkNew<vtkUnsignedCharArray> cellTypes;
     const vtkNew<vtkCellArray> connectivity;
-    const vtkNew<vtkIdTypeArray> faces;
-    const vtkNew<vtkIdTypeArray> faceLocations;
+    const vtkNew<vtkCellArray> faces;
+    const vtkNew<vtkCellArray> faceLocations;
+    vtkIdType numFace = 0;
 
     for (const auto& cellType : elementShapesRange)
     {
@@ -292,9 +292,7 @@ struct MixedPolyhedralCells
         std::set<vtkIdType> cellPointSet;
         auto nCellFaces = static_cast<vtkIdType>(*elementSizesIterator++);
         auto offset = static_cast<vtkIdType>(*elementOffsetsIterator++);
-        const vtkIdType faceMaxId = faces->GetMaxId() + 1;
-        faceLocations->InsertNextValue(faceMaxId);
-        faces->InsertNextValue(nCellFaces);
+        faceLocations->InsertNextCell(nCellFaces);
 
         auto elementRange =
           vtk::DataArrayValueRange(elementConnectivity, offset, offset + nCellFaces);
@@ -303,14 +301,15 @@ struct MixedPolyhedralCells
         {
           const vtkIdType nFacePts = subElementSizesArray->GetVariantValue(faceId).ToLongLong();
           const vtkIdType faceOffset = subElementOffsetsArray->GetVariantValue(faceId).ToLongLong();
+          faceLocations->InsertCellPoint(numFace++);
 
           auto facePtRange =
             vtk::DataArrayValueRange(subElementConnectivity, faceOffset, faceOffset + nFacePts);
 
-          faces->InsertNextValue(nFacePts);
+          faces->InsertNextCell(nFacePts);
           for (const SubConnectivityArrayType ptId : facePtRange)
           {
-            faces->InsertNextValue(ptId);
+            faces->InsertCellPoint(ptId);
             cellPointSet.insert(ptId);
           }
         }
@@ -332,13 +331,13 @@ struct MixedPolyhedralCells
         {
           connectivity->InsertCellPoint(static_cast<vtkIdType>(item));
         }
-        faceLocations->InsertNextValue(-1);
+        faceLocations->InsertNextCell(0);
       }
     }
 
-    if (faces->GetNumberOfValues() > 0)
+    if (faces->GetNumberOfCells() > 0)
     {
-      ug->SetCells(cellTypes, connectivity, faceLocations, faces);
+      ug->SetPolyhedralCells(cellTypes, connectivity, faceLocations, faces);
     }
     else
     {
