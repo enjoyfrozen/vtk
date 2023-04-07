@@ -166,17 +166,20 @@ void SetPolyhedralCells(
   vtkUnstructuredGrid* grid, vtkCellArray* elements, vtkCellArray* subelements)
 {
   vtkNew<vtkCellArray> connectivity;
-  vtkNew<vtkIdTypeArray> faces;
-  vtkNew<vtkIdTypeArray> faceLocations;
+  vtkNew<vtkCellArray> faces;
+  vtkNew<vtkCellArray> faceLocations;
 
   connectivity->AllocateEstimate(elements->GetNumberOfCells(), 10);
-  faces->Allocate(subelements->GetConnectivityArray()->GetNumberOfTuples());
-  faceLocations->Allocate(elements->GetNumberOfCells());
+  faces
+    ->AllocateExact(
+      subelements->GetNumberOfCells(), subelements->GetConnectivityArray()->GetNumberOfTuples())
+      faceLocations->AllocateExact(elements->GetNumberOfCells(), subelements->GetNumberOfCells());
 
   auto eIter = vtk::TakeSmartPointer(elements->NewIterator());
   auto seIter = vtk::TakeSmartPointer(subelements->NewIterator());
 
   std::vector<vtkIdType> cellPoints;
+  vtkIdType faceNum = 0;
   for (eIter->GoToFirstCell(); !eIter->IsDoneWithTraversal(); eIter->GoToNextCell())
   {
     // init;
@@ -185,23 +188,19 @@ void SetPolyhedralCells(
     // get cell from 'elements'.
     vtkIdType size;
     vtkIdType const* seIds;
-    eIter->GetCurrentCell(size, seIds);
 
-    faceLocations->InsertNextValue(faces->GetNumberOfTuples());
-    faces->InsertNextValue(size); // number-of-cell-faces.
+    eIter->GetCurrentCell(size, seIds);
+    faceLocations->InsertNextCell(size);
+
     for (vtkIdType fIdx = 0; fIdx < size; ++fIdx)
     {
+      faceLocations->InsertCellPoint(faceNum++);
       seIter->GoToCell(seIds[fIdx]);
 
       vtkIdType ptSize;
       vtkIdType const* ptIds;
       seIter->GetCurrentCell(ptSize, ptIds);
-      faces->InsertNextValue(ptSize); // number-of-face-points.
-      for (vtkIdType ptIdx = 0; ptIdx < ptSize; ++ptIdx)
-      {
-        faces->InsertNextValue(ptIds[ptIdx]);
-      }
-
+      faces->InsertNextCell(ptSize, ptIds);
       // accumulate pts from all faces in this cell to build the 'connectivity' array.
       std::copy(ptIds, ptIds + ptSize, std::back_inserter(cellPoints));
     }
@@ -217,7 +216,7 @@ void SetPolyhedralCells(
   vtkNew<vtkUnsignedCharArray> cellTypes;
   cellTypes->SetNumberOfTuples(connectivity->GetNumberOfCells());
   cellTypes->FillValue(static_cast<unsigned char>(VTK_POLYHEDRON));
-  grid->SetCells(cellTypes, connectivity, faceLocations, faces);
+  grid->SetPolyhedralCells(cellTypes, connectivity, faceLocations, faces);
 }
 
 struct MixedPolyhedralCells
@@ -343,7 +342,7 @@ struct MixedPolyhedralCells
     }
     else
     {
-      ug->SetCells(cellTypes, connectivity, nullptr, nullptr);
+      ug->SetPolyhedralCells(cellTypes, connectivity, nullptr, nullptr);
     }
   }
 };

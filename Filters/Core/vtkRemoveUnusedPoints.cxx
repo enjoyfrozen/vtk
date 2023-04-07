@@ -150,7 +150,7 @@ bool CopyConnectivity(vtkUnstructuredGrid* input, vtkUnstructuredGrid* output,
 
   vtkNew<vtkCellArray> outCellArray;
   outCellArray->SetData(inOffsets, outConnectivity);
-  output->SetPolyhedronCells(input->GetCellTypesArray(), outCellArray, inFaceLocations, outFaces);
+  output->SetPolyhedralCells(input->GetCellTypesArray(), outCellArray, inFaceLocations, outFaces);
   return true;
 }
 }

@@ -4886,7 +4886,7 @@ void DeepCopyInputAndAllocateGhosts(::UnstructuredGridBlock* block,
   outputCellArray->GetConnectivityArray()->SetNumberOfTuples(connectivitySize);
   outputCellArray->GetOffsetsArray()->SetNumberOfTuples(numberOfCells + 1);
 
-  output->SetPolyhedronCells(types, outputCellArray,
+  output->SetPolyhedralCells(types, outputCellArray,
       outputFaceLocations, outputFaces);
 
   ::CloneUnstructuredGrid(input, output, info);

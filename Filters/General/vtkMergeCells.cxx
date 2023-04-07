@@ -519,11 +519,11 @@ vtkIdType vtkMergeCells::AddNewCellsUnstructuredGrid(vtkDataSet* set, vtkIdType*
 
   if (havePolyhedron)
   {
-    grid->SetPolyhedronCells(typeArray, finalCellArray, facesLocationArray, facesArray);
+    grid->SetPolyhedralCells(typeArray, finalCellArray, facesLocationArray, facesArray);
   }
   else
   {
-    grid->SetPolyhedronCells(typeArray, finalCellArray, nullptr, nullptr);
+    grid->SetPolyhedralCells(typeArray, finalCellArray, nullptr, nullptr);
   }
 
   if (duplicateCellIds)

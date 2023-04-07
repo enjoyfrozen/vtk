@@ -710,7 +710,7 @@ int vtkExtractCells::RequestData(vtkInformation* vtkNotUsed(request),
   {
     ::ExtractPolyhedralFaces(cells, inputUG, work);
   }
-  output->SetPolyhedronCells(
+  output->SetPolyhedralCells(
     cells.CellTypes, cells.Connectivity, cells.polyFaceLocations, cells.polyFaces);
   this->UpdateProgress(1.00);
 
@@ -751,7 +751,7 @@ bool vtkExtractCells::Copy(vtkDataSet* input, vtkUnstructuredGrid* output)
 
   const auto numCells = input->GetNumberOfCells();
   auto cells = ::ExtractCells(input, AllElementsWork{ 0, numCells }, this->BatchSize);
-  output->SetPolyhedronCells(cells.CellTypes, cells.Connectivity, nullptr, nullptr);
+  output->SetPolyhedralCells(cells.CellTypes, cells.Connectivity, nullptr, nullptr);
 
   // copy cell/point arrays.
   output->GetPointData()->ShallowCopy(input->GetPointData());

@@ -875,7 +875,7 @@ void vtkLSDynaPart::BuildCells()
   cellTypes->SetVoidArray(this->Cells->types.data(), this->NumberOfCells, 1);
 
   // actually set up the grid
-  this->Grid->SetPolyhedronCells(cellTypes, cells, nullptr, nullptr);
+  this->Grid->SetPolyhedralCells(cellTypes, cells, nullptr, nullptr);
 
   // remove references
   cellTypes->FastDelete();

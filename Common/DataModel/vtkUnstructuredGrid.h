@@ -324,12 +324,12 @@ public:
    * Provide cell information to define the dataset.
    *
    * Cells like vtkPolyhedron require points plus a list of faces. To handle
-   * vtkPolyhedron, use SetPolyhedronCells()
+   * vtkPolyhedron, use SetPolyhedralCells()
    */
   void SetCells(int type, vtkCellArray* cells);
   void SetCells(int* types, vtkCellArray* cells);
   void SetCells(vtkUnsignedCharArray* cellTypes, vtkCellArray* cells);
-  void SetPolyhedronCells(vtkUnsignedCharArray* cellTypes, vtkCellArray* cells,
+  void SetPolyhedralCells(vtkUnsignedCharArray* cellTypes, vtkCellArray* cells,
     vtkCellArray* faceLocations, vtkCellArray* faces);
   ///@}
 
@@ -598,7 +598,7 @@ public:
   void SetCells(vtkUnsignedCharArray* cellTypes, vtkIdTypeArray* cellLocations, vtkCellArray* cells,
     vtkIdTypeArray* faceLocations, vtkIdTypeArray* faces);
 
-  VTK_DEPRECATED_IN_9_3_0("Please prefer to use the new SetPolyhedronCells")
+  VTK_DEPRECATED_IN_9_3_0("Please prefer to use the new SetPolyhedralCells")
   void SetCells(vtkUnsignedCharArray* cellTypes, vtkCellArray* cells, vtkIdTypeArray* faceLocations,
     vtkIdTypeArray* faces);
   ///@}
@@ -693,8 +693,8 @@ protected:
   // The Faces class represents polygonal faces using a vtkCellArray structure.
   // The FaceLocations store a polyhedron as a list of faces defined in Faces using a vtkCellArray
   // structure.
-  vtkSmartPointer<vtkCellArray> PolyhedronFaces;
-  vtkSmartPointer<vtkCellArray> PolyhedronFaceLocations;
+  vtkSmartPointer<vtkCellArray> ElementFaces;
+  vtkSmartPointer<vtkCellArray> ElementFaceLocations;
 
   // Legacy support -- stores the old-style cell array locations.
   vtkSmartPointer<vtkIdTypeArray> CellLocations;

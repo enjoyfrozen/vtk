@@ -533,7 +533,7 @@ int vtkStaticCleanUnstructuredGrid::RequestData(vtkInformation* vtkNotUsed(reque
   }
 
   // Finally, assemble the filter output.
-  output->SetPolyhedronCells(input->GetCellTypesArray(), outCells, faceLocations, faces);
+  output->SetPolyhedralCells(input->GetCellTypesArray(), outCells, faceLocations, faces);
 
   // Free unneeded memory
   this->Locator->Initialize();
