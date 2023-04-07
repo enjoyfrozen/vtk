@@ -145,24 +145,40 @@ struct RemoveGhostCellsWorker
     auto outputFaces = vtkArrayDownCast<ArrayT2>(outputFacesDA);
     auto outputFacesOffsets = vtkArrayDownCast<ArrayT2>(outputFacesOffsetsDA);
 
-    outputFacesOffsets->SetNumberOfValues(inputFacesOffsets->GetNumberOfValues());
-    outputFaces->SetNumberOfValues(inputFaces->GetNumberOfValues());
+    using RangeInput = typename vtk::detail::SelectValueRange<ArrayT1, 1>::type;
+    using RangeOutput = typename vtk::detail::SelectValueRange<ArrayT2, 1>::type;
 
-    outputFaceLocationsOffsets->SetNumberOfValues(inputFaceLocationsOffsets->GetNumberOfValues());
-    outputFaceLocationsOffsets->Fill(-1);
-    outputFaceLocations->SetNumberOfValues(inputFaceLocations->GetNumberOfValues());
+    RangeInput inputFacesOffsetsRange;
+    RangeInput inputFacesRange;
+    RangeInput inputFaceLocsOffsetRange;
+    RangeInput inputFaceLocsRange;
 
-    auto inputFacesOffsetsRange = vtk::DataArrayValueRange<1>(inputFacesOffsets);
-    auto inputFacesRange = vtk::DataArrayValueRange<1>(inputFaces);
+    RangeOutput outputFacesOffsetRange;
+    RangeOutput outputFacesRange;
+    RangeOutput outputFaceLocsOffsetRange;
+    RangeOutput outputFaceLocsRange;
 
-    auto inputFaceLocsOffsetRange = vtk::DataArrayValueRange<1>(inputFaceLocationsOffsets);
-    auto inputFaceLocsRange = vtk::DataArrayValueRange<1>(inputFaceLocations);
+    if (inputFacesOffsets && inputFaces)
+    {
+      outputFacesOffsets->SetNumberOfValues(inputFacesOffsets->GetNumberOfValues());
+      outputFaces->SetNumberOfValues(inputFaces->GetNumberOfValues());
 
-    auto outputFacesOffsetRange = vtk::DataArrayValueRange<1>(outputFacesOffsets);
-    auto outputFacesRange = vtk::DataArrayValueRange<1>(outputFaces);
+      outputFaceLocationsOffsets->SetNumberOfValues(inputFaceLocationsOffsets->GetNumberOfValues());
+      outputFaceLocationsOffsets->Fill(-1);
+      outputFaceLocations->SetNumberOfValues(inputFaceLocations->GetNumberOfValues());
 
-    auto outputFaceLocsOffsetRange = vtk::DataArrayValueRange<1>(outputFaceLocationsOffsets);
-    auto outputFaceLocsRange = vtk::DataArrayValueRange<1>(outputFaceLocations);
+      inputFacesOffsetsRange = vtk::DataArrayValueRange<1>(inputFacesOffsets);
+      inputFacesRange = vtk::DataArrayValueRange<1>(inputFaces);
+
+      inputFaceLocsOffsetRange = vtk::DataArrayValueRange<1>(inputFaceLocationsOffsets);
+      inputFaceLocsRange = vtk::DataArrayValueRange<1>(inputFaceLocations);
+
+      outputFacesOffsetRange = vtk::DataArrayValueRange<1>(outputFacesOffsets);
+      outputFacesRange = vtk::DataArrayValueRange<1>(outputFaces);
+
+      outputFaceLocsOffsetRange = vtk::DataArrayValueRange<1>(outputFaceLocationsOffsets);
+      outputFaceLocsRange = vtk::DataArrayValueRange<1>(outputFaceLocations);
+    }
 
     std::vector<vtkIdType> pointIdRedirectionMap(numPoints, -1);
 
