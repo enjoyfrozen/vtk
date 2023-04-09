@@ -157,11 +157,19 @@ int vtkPExodusIIWriter::GlobalContinueExecuting(int localContinue)
 //------------------------------------------------------------------------------
 unsigned int vtkPExodusIIWriter::GetMaxNameLength()
 {
+  // Initialize local and global max name lengths
   unsigned int maxName = this->Superclass::GetMaxNameLength();
+  unsigned int globalMaxName = maxName;
 
+  // Perform global reduction if MPI controller is available
   vtkMultiProcessController* c = vtkMultiProcessController::GetGlobalController();
-  unsigned int globalMaxName = 0;
-  c->AllReduce(&maxName, &globalMaxName, 1, vtkCommunicator::MAX_OP);
+  if (c)
+  {
+    unsigned int globalMaxName = 0;
+    c->AllReduce(&maxName, &globalMaxName, 1, vtkCommunicator::MAX_OP);
+  }
+
+  // Return possibly globally-reduced max name length
   return maxName;
 }
 VTK_ABI_NAMESPACE_END
