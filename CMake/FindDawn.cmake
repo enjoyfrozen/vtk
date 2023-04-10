@@ -20,6 +20,8 @@ find_library(DAWN_NATIVE_LIBRARY
   NAMES
     dawn_native
   PATHS ${DAWN_BINARY_DIR}
+  PATH_SUFFIXES
+    src/dawn/native
   DOC "Path to dawn_native library")
 mark_as_advanced(DAWN_NATIVE_LIBRARY)
 
@@ -27,6 +29,8 @@ find_library(DAWN_PLATFORM_LIBRARY
   NAMES
     dawn_platform
   PATHS ${DAWN_BINARY_DIR}
+  PATH_SUFFIXES
+    src/dawn/platform
   DOC "Path to dawn_platform library")
 mark_as_advanced(DAWN_PLATFORM_LIBRARY)
 
@@ -34,6 +38,8 @@ find_library(DAWN_CPP_LIBRARY
   NAMES
     dawncpp
   PATHS ${DAWN_BINARY_DIR}
+  PATH_SUFFIXES
+    src/dawn
   DOC "Path to dawncpp library")
 mark_as_advanced(DAWN_CPP_LIBRARY)
 
@@ -41,12 +47,16 @@ find_library(DAWN_PROC_LIBRARY
   NAMES
     dawn_proc
   PATHS ${DAWN_BINARY_DIR}
+  PATH_SUFFIXES
+    src/dawn
   DOC "Path to dawn_proc library")
 mark_as_advanced(DAWN_PROC_LIBRARY)
 
 find_path(DAWN_GEN_INCLUDE_DIR
   NAMES dawn/webgpu_cpp.h
-  PATHS ${DAWN_BINARY_DIR}/gen/include
+  PATHS ${DAWN_BINARY_DIR}
+  PATH_SUFFIXES
+    gen/include
   DOC "Path to generated dawn/webgpu_cpp.h")
 mark_as_advanced(DAWN_GEN_INCLUDE_DIR)
 
