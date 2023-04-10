@@ -20,21 +20,21 @@ find_library(DAWN_NATIVE_LIBRARY
   NAMES
     dawn_native
   PATHS ${DAWN_BINARY_DIR}
-  DOC "Path to libdawn_native")
+  DOC "Path to dawn_native library")
 mark_as_advanced(DAWN_NATIVE_LIBRARY)
 
 find_library(DAWN_PLATFORM_LIBRARY
   NAMES
     dawn_platform
   PATHS ${DAWN_BINARY_DIR}
-  DOC "Path to libdawn_platform")
+  DOC "Path to dawn_platform library")
 mark_as_advanced(DAWN_PLATFORM_LIBRARY)
 
 find_library(DAWN_PROC_LIBRARY
   NAMES
     dawn_proc
   PATHS ${DAWN_BINARY_DIR}
-  DOC "Path to libdawn_proc")
+  DOC "Path to dawn_proc library")
 mark_as_advanced(DAWN_PROC_LIBRARY)
 
 find_path(DAWN_GEN_INCLUDE_DIR
