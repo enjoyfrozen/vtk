@@ -56,7 +56,7 @@ unset(wgsl_shader_headers)
 set(shader_files
   wgsl/PolyData.wgsl
 )
-foreach(file IN LISTS shader_files)
+foreach (file IN LISTS shader_files)
   vtk_encode_string(
     INPUT         "${file}"
     EXPORT_SYMBOL "VTKRENDERINGWEBGPU_NO_EXPORT"
@@ -67,7 +67,7 @@ foreach(file IN LISTS shader_files)
     "${source}")
   list(APPEND wgsl_shader_headers
     "${header}")
-endforeach()
+endforeach ()
 
 foreach (webgpu_override IN LISTS webgpu_overrides)
   vtk_object_factory_declare(
@@ -131,7 +131,7 @@ if (VTK_USE_SDL2)
   list(APPEND classes vtkSDL2WebGPURenderWindow)
 endif ()
 
-set (intial_cpp_code
+set(intial_cpp_code
   "
   // defaults
   int use_opengl = 1\;
@@ -233,13 +233,13 @@ vtk_object_factory_configure(
   EXTRA_INCLUDES "<vtkCollection.h>" "<vtkObjectFactoryCollection.h>" "<vtkLogger.h>" "<cstdlib>"
   INITIAL_CODE ${intial_cpp_code})
 
-list (APPEND vtk_wgpu_public_headers
+list(APPEND vtk_wgpu_public_headers
   vtk_wgpu.h
 )
-list (APPEND vtk_wgpu_public_headers
+list(APPEND vtk_wgpu_public_headers
   vtkWGPUContext.h
 )
-list (APPEND vtk_wgpu_priv_sources
+list(APPEND vtk_wgpu_priv_sources
   vtkWGPUContext.cxx
 )
 
@@ -274,22 +274,22 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
   vtk_module_link(VTK::RenderingWebGPU
     PUBLIC
       SDL2::SDL2)
-else()
+else ()
   # WebGPU native
   if (WIN32)
     vtk_module_definitions(VTK::RenderingWebGPU PRIVATE
       "VTK_DAWN_ENABLE_BACKEND_D3D12"
     )
-  elseif(ANDROID)
+  elseif (ANDROID)
     vtk_module_definitions(VTK::RenderingWebGPU PRIVATE
       "VTK_DAWN_ENABLE_BACKEND_VULKAN"
     )
-  elseif(UNIX)
+  elseif (UNIX)
     vtk_module_definitions(VTK::RenderingWebGPU PRIVATE
       "VTK_DAWN_ENABLE_BACKEND_VULKAN"
       "VTK_DAWN_USE_X11"
     )
-  elseif(APPLE)
+  elseif (APPLE)
     vtk_module_definitions(VTK::RenderingWebGPU PRIVATE
       "VTK_DAWN_ENABLE_BACKEND_METAL"
     )
