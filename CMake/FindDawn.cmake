@@ -7,7 +7,6 @@ Uses the following variables:
   * `DAWN_PROC_LIBRARY`: Path to Dawn's `proc` library.
   * `DAWN_INCLUDE_DIR`: Directory with Dawn's headers.
   * `DAWN_GEN_INCLUDE_DIR`: Directory with Dawn's generated headers.
-  * `DAWN_SRC_INCLUDE_DIR`: Directory with Dawn's generated sources.
 
 Imported targets:
 
@@ -51,12 +50,6 @@ find_path(DAWN_GEN_INCLUDE_DIR
   DOC "Path to generated dawn/webgpu_cpp.h")
 mark_as_advanced(DAWN_GEN_INCLUDE_DIR)
 
-find_path(DAWN_GEN_SRC_DIR
-  NAMES dawn/webgpu_cpp.cpp
-  PATHS ${DAWN_BINARY_DIR}/gen/src
-  DOC "Path to generated dawn/webgpu_cpp.cpp")
-mark_as_advanced(DAWN_GEN_SRC_DIR)
-
 find_path(DAWN_INCLUDE_DIR
   NAMES dawn/dawn_proc.h
   PATHS ${DAWN_SOURCE_DIR}/include
@@ -66,7 +59,7 @@ mark_as_advanced(DAWN_INCLUDE_DIR)
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(Dawn
   REQUIRED_VARS
-    DAWN_INCLUDE_DIR DAWN_GEN_INCLUDE_DIR DAWN_GEN_SRC_DIR
+    DAWN_INCLUDE_DIR DAWN_GEN_INCLUDE_DIR
     DAWN_PLATFORM_LIBRARY DAWN_NATIVE_LIBRARY DAWN_CPP_LIBRARY DAWN_PROC_LIBRARY)
 
 if (Dawn_FOUND)
