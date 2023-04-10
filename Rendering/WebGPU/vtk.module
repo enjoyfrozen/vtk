@@ -6,8 +6,6 @@ GROUPS
   Rendering
 IMPLEMENTS
   VTK::RenderingCore
-CONDITION
-  VTK_ENABLE_WEBGPU
 DEPENDS
   VTK::CommonCore
   VTK::RenderingCore
