@@ -170,6 +170,6 @@ unsigned int vtkPExodusIIWriter::GetMaxNameLength()
   }
 
   // Return possibly globally-reduced max name length
-  return maxName;
+  return globalMaxName;
 }
 VTK_ABI_NAMESPACE_END
