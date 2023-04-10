@@ -251,11 +251,6 @@ vtk_module_add_module(VTK::RenderingWebGPU
   PRIVATE_HEADERS ${vtk_object_factory_header} ${vtk_wgpu_private_headers} ${wgsl_shader_headers}
 )
 
-vtk_module_definitions(VTK::RenderingWebGPU
-  PUBLIC
-    VTK_ENABLE_WEBGPU
-)
-
 if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
   # By default Emscripten system enables VTK_USE_SDL2. See vtkOpenGLOptions.cmake
   vtk_module_compile_features(VTK::RenderingWebGPU
