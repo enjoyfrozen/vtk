@@ -104,7 +104,7 @@ if (VTK_USE_SDL2 AND (VTK_USE_X OR VTK_USE_COCOA OR VTK_USE_WIN32_OPENGL))
 endif ()
 set(has_vtkRenderWindow_override 0)
 set(vtk_webgpu_factory_override_classname "")
-if (VTK_USE_SDL2)
+if (VTK_USE_SDL2 AND CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
   # By default Emscripten system enables VTK_USE_SDL2. See vtkOpenGLOptions.cmake
   set(vtk_webgpu_factory_override_classname "vtkSDL2WebGPURenderWindow")
   set(has_vtkRenderWindow_override 1)
@@ -188,7 +188,6 @@ else ()
   vtk_module_find_package(PACKAGE Dawn)
   vtk_module_link(VTK::RenderingWebGPU
     PUBLIC
-      SDL2
       Dawn::Native
       Dawn::Proc
       Dawn::Cpp
