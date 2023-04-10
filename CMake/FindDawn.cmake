@@ -1,5 +1,5 @@
 #[==[
-Provides the following variables:
+Uses the following variables:
 
   * `DAWN_NATIVE_LIBRARY`: Path to Dawn's `native` library.
   * `DAWN_PLATFORM_LIBRARY`: Path to Dawn's `platform` library.
@@ -7,6 +7,13 @@ Provides the following variables:
   * `DAWN_INCLUDE_DIR`: Directory with Dawn's headers.
   * `DAWN_GEN_INCLUDE_DIR`: Directory with Dawn's generated headers.
   * `DAWN_SRC_INCLUDE_DIR`: Directory with Dawn's generated sources.
+
+Imported targets:
+
+  * `Dawn::Headers`: `INTERFACE` target for Dawn's headers.
+  * `Dawn::Platform`: Target for `dawn_platform`
+  * `Dawn::Proc`: Target for `dawn_proc`
+  * `Dawn::Native`: Target for `dawn_native`
 #]==]
 
 find_library(DAWN_NATIVE_LIBRARY
@@ -53,3 +60,29 @@ find_package_handle_standard_args(Dawn
   REQUIRED_VARS
     DAWN_INCLUDE_DIR DAWN_GEN_INCLUDE_DIR DAWN_GEN_SRC_DIR
     DAWN_PLATFORM_LIBRARY DAWN_NATIVE_LIBRARY DAWN_PROC_LIBRARY)
+
+if (Dawn_FOUND)
+  if (NOT TARGET Dawn::Headers)
+    add_library(Dawn::Headers INTERFACE IMPORTED)
+    set_target_properties(Dawn::Headers PROPERTIES
+      INTERFACE_INCLUDE_DIRECTORIES "${DAWN_INCLUDE_DIR};${DAWN_GEN_INCLUDE_DIR}")
+  endif ()
+  if (NOT TARGET Dawn::Platform)
+    add_library(Dawn::Platform UNKNOWN IMPORTED)
+    set_target_properties(Dawn::Platform PROPERTIES
+      IMPORTED_LOCATION "${DAWN_PLATFORM_LIBRARY}"
+      INTERFACE_LINK_LIBRARIES "Dawn::Headers")
+  endif ()
+  if (NOT TARGET Dawn::Native)
+    add_library(Dawn::Native UNKNOWN IMPORTED)
+    set_target_properties(Dawn::Native PROPERTIES
+      IMPORTED_LOCATION "${DAWN_NATIVE_LIBRARY}"
+      INTERFACE_LINK_LIBRARIES "Dawn::Headers;Dawn::Platform")
+  endif ()
+  if (NOT TARGET Dawn::Proc)
+    add_library(Dawn::Proc UNKNOWN IMPORTED)
+    set_target_properties(Dawn::Proc PROPERTIES
+      IMPORTED_LOCATION "${DAWN_PROC_LIBRARY}"
+      INTERFACE_LINK_LIBRARIES "Dawn::Headers")
+  endif ()
+endif ()
