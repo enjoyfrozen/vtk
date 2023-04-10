@@ -3,6 +3,7 @@ Uses the following variables:
 
   * `DAWN_NATIVE_LIBRARY`: Path to Dawn's `native` library.
   * `DAWN_PLATFORM_LIBRARY`: Path to Dawn's `platform` library.
+  * `DAWN_CPP_LIBRARY`: Path to Dawn's `cpp` library.
   * `DAWN_PROC_LIBRARY`: Path to Dawn's `proc` library.
   * `DAWN_INCLUDE_DIR`: Directory with Dawn's headers.
   * `DAWN_GEN_INCLUDE_DIR`: Directory with Dawn's generated headers.
@@ -29,6 +30,13 @@ find_library(DAWN_PLATFORM_LIBRARY
   PATHS ${DAWN_BINARY_DIR}
   DOC "Path to dawn_platform library")
 mark_as_advanced(DAWN_PLATFORM_LIBRARY)
+
+find_library(DAWN_CPP_LIBRARY
+  NAMES
+    dawncpp
+  PATHS ${DAWN_BINARY_DIR}
+  DOC "Path to dawncpp library")
+mark_as_advanced(DAWN_CPP_LIBRARY)
 
 find_library(DAWN_PROC_LIBRARY
   NAMES
@@ -59,7 +67,7 @@ include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(Dawn
   REQUIRED_VARS
     DAWN_INCLUDE_DIR DAWN_GEN_INCLUDE_DIR DAWN_GEN_SRC_DIR
-    DAWN_PLATFORM_LIBRARY DAWN_NATIVE_LIBRARY DAWN_PROC_LIBRARY)
+    DAWN_PLATFORM_LIBRARY DAWN_NATIVE_LIBRARY DAWN_CPP_LIBRARY DAWN_PROC_LIBRARY)
 
 if (Dawn_FOUND)
   if (NOT TARGET Dawn::Headers)
@@ -78,6 +86,12 @@ if (Dawn_FOUND)
     set_target_properties(Dawn::Native PROPERTIES
       IMPORTED_LOCATION "${DAWN_NATIVE_LIBRARY}"
       INTERFACE_LINK_LIBRARIES "Dawn::Headers;Dawn::Platform")
+  endif ()
+  if (NOT TARGET Dawn::Cpp)
+    add_library(Dawn::Cpp UNKNOWN IMPORTED)
+    set_target_properties(Dawn::Cpp PROPERTIES
+      IMPORTED_LOCATION "${DAWN_CPP_LIBRARY}"
+      INTERFACE_LINK_LIBRARIES "Dawn::Headers")
   endif ()
   if (NOT TARGET Dawn::Proc)
     add_library(Dawn::Proc UNKNOWN IMPORTED)
