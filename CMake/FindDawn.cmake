@@ -13,8 +13,7 @@ The following components are discovered:
 
 find_library(DAWN_NATIVE_LIBRARY
   NAMES
-    libdawn_native.so
-    libdawn_native.dll
+    dawn_native
   PATHS ${DAWN_BINARY_DIR}
   DOC "Path to libdawn_native"
 )
@@ -22,8 +21,7 @@ mark_as_advanced(DAWN_NATIVE_LIBRARY)
 
 find_library(DAWN_PLATFORM_LIBRARY
   NAMES
-    libdawn_platform.so
-    libdawn_platform.dll
+    dawn_platform
   PATHS ${DAWN_BINARY_DIR}
   DOC "Path to libdawn_platform"
 )
@@ -31,8 +29,7 @@ mark_as_advanced(DAWN_PLATFORM_LIBRARY)
 
 find_library(DAWN_PROC_LIBRARY
   NAMES
-    libdawn_proc.so
-    libdawn_proc.dll
+    dawn_proc
   PATHS ${DAWN_BINARY_DIR}
   DOC "Path to libdawn_proc"
 )
