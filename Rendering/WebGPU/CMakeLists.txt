@@ -154,6 +154,8 @@ vtk_module_compile_features(VTK::RenderingWebGPU
   PUBLIC
     cxx_std_14)
 
+set(use_dawn_native 0)
+
 if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
   vtk_module_include(VTK::RenderingWebGPU
     PUBLIC
@@ -184,14 +186,16 @@ else ()
     # TODO
   endif ()
   vtk_module_find_package(PACKAGE Dawn)
-  # Must include these source files here.
-  vtk_module_sources(VTK::RenderingWebGPU PRIVATE
-    "${DAWN_GEN_SRC_DIR}/dawn/webgpu_cpp.cpp"
-    "${DAWN_GEN_SRC_DIR}/dawn/dawn_proc.c")
   vtk_module_link(VTK::RenderingWebGPU
-    PRIVATE
-      ${DAWN_LIBRARIES})
-  vtk_module_include(VTK::RenderingWebGPU
     PUBLIC
-      ${DAWN_INCLUDE_DIRS})
+      SDL2
+      Dawn::Native
+      Dawn::Proc
+      Dawn::Cpp
+  )
+  set(use_dawn_native 1)
 endif ()
+
+vtk_module_definitions(VTK::RenderingWebGPU
+  PUBLIC
+    "VTK_USE_DAWN_NATIVE=$<BOOL:${use_dawn_native}>")
