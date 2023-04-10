@@ -156,12 +156,11 @@ vtk_module_add_module(VTK::RenderingWebGPU
   PRIVATE_HEADERS ${vtk_object_factory_header} ${vtk_wgpu_private_headers} ${wgsl_shader_headers}
 )
 
+vtk_module_compile_features(VTK::RenderingWebGPU
+  PUBLIC
+    cxx_std_14)
+
 if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
-  # By default Emscripten system enables VTK_USE_SDL2. See vtkOpenGLOptions.cmake
-  vtk_module_compile_features(VTK::RenderingWebGPU
-    PRIVATE
-      cxx_std_14
-  )
   vtk_module_include(VTK::RenderingWebGPU
     INTERFACE
       "${EMSCRIPTEN_ROOT_PATH}/cache/sysroot/include/webgpu"
@@ -199,10 +198,6 @@ else ()
     )
   endif()
   vtk_module_find_package(PACKAGE Dawn)
-  vtk_module_compile_features(VTK::RenderingWebGPU
-    PUBLIC
-      cxx_std_14
-  )
   # Must include these source files here.
   vtk_module_sources(VTK::RenderingWebGPU PRIVATE
     "${DAWN_GEN_SRC_DIR}/dawn/webgpu_cpp.cpp"
