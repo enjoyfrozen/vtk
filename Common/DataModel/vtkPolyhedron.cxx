@@ -597,8 +597,7 @@ void vtkPolyhedron::SetFaces(vtkIdType* faces)
 
 //------------------------------------------------------------------------------
 // Specify the faces for this cell from a vtkCellArray definition.
-vtkTypeBool vtkPolyhedron::SetCellFaces(
-  vtkIdType nfaces, vtkIdType const* faceIds, vtkCellArray* faces)
+int vtkPolyhedron::SetCellFaces(vtkIdType nfaces, vtkIdType const* faceIds, vtkCellArray* faces)
 {
   // Set up face structure
   this->GlobalFaces->Reset();
@@ -606,7 +605,7 @@ vtkTypeBool vtkPolyhedron::SetCellFaces(
 
   if (nfaces < 1 || !faceIds || !faces)
   {
-    return EXIT_FAILURE;
+    return 1;
   }
 
   this->FaceLocations->SetNumberOfValues(nfaces);
@@ -629,7 +628,7 @@ vtkTypeBool vtkPolyhedron::SetCellFaces(
 
     faceLoc += npts + 1;
   } // for all faces selected in faceIds
-  return EXIT_SUCCESS;
+  return 0;
 }
 
 //------------------------------------------------------------------------------

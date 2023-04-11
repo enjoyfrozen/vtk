@@ -149,8 +149,7 @@ void vtkGenericCell::SetFaces(vtkIdType* faces)
 }
 
 //------------------------------------------------------------------------------
-vtkTypeBool vtkGenericCell::SetCellFaces(
-  vtkIdType nfaces, vtkIdType const* faceIds, vtkCellArray* faces)
+int vtkGenericCell::SetCellFaces(vtkIdType nfaces, vtkIdType const* faceIds, vtkCellArray* faces)
 {
   return this->Cell->SetCellFaces(nfaces, faceIds, faces);
 }

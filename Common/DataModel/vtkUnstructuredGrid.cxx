@@ -1484,18 +1484,18 @@ vtkIdType* vtkUnstructuredGrid::GetFaces(vtkIdType cellId)
 //------------------------------------------------------------------------------
 // Return faces for a polyhedral cell (or face-explicit cell).
 // The faces is of format [nCellFaces, nFace0Pts, i, j, k, nFace1Pts, i, j, k, ...]
-vtkTypeBool vtkUnstructuredGrid::GetFaces(vtkIdType cellId, vtkIdTypeArray* faces)
+int vtkUnstructuredGrid::GetFaces(vtkIdType cellId, vtkIdTypeArray* faces)
 {
   // Get the locations of the face
   if (!this->ElementFaces || cellId < 0 ||
     cellId > this->ElementFaceLocations->GetNumberOfCells() ||
     (this->ElementFaceLocations->GetCellSize(cellId)) == 0)
   {
-    return EXIT_FAILURE;
+    return 1;
   }
   if (!faces)
   {
-    return EXIT_FAILURE;
+    return 1;
   }
   vtkIdType nfaces;
   vtkIdType const* faceIds;
@@ -1519,7 +1519,7 @@ vtkTypeBool vtkUnstructuredGrid::GetFaces(vtkIdType cellId, vtkIdTypeArray* face
       faces->InsertNextValue(ptIds[j]);
     }
   }
-  return EXIT_SUCCESS;
+  return 0;
 }
 
 //------------------------------------------------------------------------------
@@ -1542,14 +1542,14 @@ void vtkUnstructuredGrid::GetPolyhedronFaces(
 }
 
 //------------------------------------------------------------------------------
-vtkTypeBool vtkUnstructuredGrid::CopyPolyhedronToFaceStream(vtkCellArray* faceArray,
+int vtkUnstructuredGrid::CopyPolyhedronToFaceStream(vtkCellArray* faceArray,
   vtkCellArray* faceLocationArray, vtkIdTypeArray* faceStream, vtkIdTypeArray* faceLocation)
 {
   // allow nullptr for faceLocation
   vtkSmartPointer<vtkIdTypeArray> faceLocationTmp(nullptr);
   if (!faceArray || !faceLocationArray || !faceStream)
   {
-    return EXIT_FAILURE;
+    return 1;
   }
   if (!faceLocation)
   {
@@ -1598,14 +1598,14 @@ vtkTypeBool vtkUnstructuredGrid::CopyPolyhedronToFaceStream(vtkCellArray* faceAr
     {
       faceArray->GetCellAtId(cellFaces[faceNum], NumberOfPoints, cellPoints);
       faceStream->InsertNextValue(NumberOfPoints);
-      for (vtkIdType ptIdx; ptIdx < NumberOfPoints; ++ptIdx)
+      for (vtkIdType ptIdx = 0; ptIdx < NumberOfPoints; ++ptIdx)
       {
         faceStream->InsertNextValue(cellPoints[ptIdx]);
       }
       loc += NumberOfPoints + 1;
     }
   }
-  return EXIT_SUCCESS;
+  return 0;
 }
 
 //------------------------------------------------------------------------------
@@ -1632,8 +1632,8 @@ vtkIdTypeArray* vtkUnstructuredGrid::GetFaces()
   }
   if (updateCache)
   {
-    if (CopyPolyhedronToFaceStream(this->ElementFaces, this->ElementFaceLocations, this->Faces,
-          this->FaceLocations) != EXIT_SUCCESS)
+    if (CopyPolyhedronToFaceStream(
+          this->ElementFaces, this->ElementFaceLocations, this->Faces, this->FaceLocations) != 0)
     {
       return nullptr;
     }
@@ -1666,8 +1666,8 @@ vtkIdTypeArray* vtkUnstructuredGrid::GetFaceLocations()
   }
   if (updateCache)
   {
-    if (CopyPolyhedronToFaceStream(this->ElementFaces, this->ElementFaceLocations, this->Faces,
-          this->FaceLocations) != EXIT_SUCCESS)
+    if (CopyPolyhedronToFaceStream(
+          this->ElementFaces, this->ElementFaceLocations, this->Faces, this->FaceLocations) != 0)
     {
       return nullptr;
     }

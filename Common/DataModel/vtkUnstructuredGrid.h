@@ -452,7 +452,7 @@ public:
    * Special support for polyhedron. Return nullptr for all other cell types.
    */
   vtkIdType* GetFaces(vtkIdType cellId);
-  vtkTypeBool GetFaces(vtkIdType cellId, vtkIdTypeArray* faces);
+  int GetFaces(vtkIdType cellId, vtkIdTypeArray* faces);
 
   /**
    * Special support for polyhedron. Do not handle all other cell types.
@@ -606,8 +606,8 @@ public:
   /**
    * Backward compatibility function to convert new polyhedron storage to legacy
    */
-  static vtkTypeBool CopyPolyhedronToFaceStream(vtkCellArray* faceArray,
-    vtkCellArray* faceLocationArray, vtkIdTypeArray* faceStream, vtkIdTypeArray* faceLocation);
+  static int CopyPolyhedronToFaceStream(vtkCellArray* faceArray, vtkCellArray* faceLocationArray,
+    vtkIdTypeArray* faceStream, vtkIdTypeArray* faceLocation);
 
   //====================== End Legacy Methods ==================================
 

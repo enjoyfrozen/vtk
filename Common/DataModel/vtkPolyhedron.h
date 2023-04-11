@@ -259,8 +259,7 @@ public:
    */
   int RequiresExplicitFaceRepresentation() override { return 1; }
   void SetFaces(vtkIdType* faces) override;
-  vtkTypeBool SetCellFaces(
-    vtkIdType nfaces, vtkIdType const* faceIds, vtkCellArray* faces) override;
+  int SetCellFaces(vtkIdType nfaces, vtkIdType const* faceIds, vtkCellArray* faces) override;
   vtkIdType* GetFaces() override;
   VTK_NEWINSTANCE vtkCellArray* GetCellFaces() override;
   ///@}
