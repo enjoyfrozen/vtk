@@ -489,7 +489,7 @@ vtkIdType vtkMergeCells::AddNewCellsUnstructuredGrid(vtkDataSet* set, vtkIdType*
       faceLocOff->SetTuple1(finalCellId + 1, startFace + nfaces);
       for (vtkIdType loc = startFace; loc < startFace + nfaces; ++loc)
       {
-        faceLocCon->SetTuple1(loc, loc);
+        faceLocCon->InsertTuple1(loc, loc);
       }
 
       for (vtkIdType i = 0; i < nfaces; i++)
