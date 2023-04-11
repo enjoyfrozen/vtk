@@ -3885,7 +3885,7 @@ void DeepCopyPolyhedrons(vtkUnstructuredGrid* ug, vtkUnstructuredGrid* clone,
   vtkCellArray* ugFaceLocations = ug->GetPolyhedronFaceLocations();
   vtkCellArray* ugFaces = ug->GetPolyhedronFaces();
   vtkCellArray* cloneFaceLocations = clone->GetPolyhedronFaceLocations();
-  vtkCellArray* cloneFaces = ug->GetPolyhedronFaces();
+  vtkCellArray* cloneFaces = clone->GetPolyhedronFaces();
 
   vtkIdList* cellRedirectionMap = info.OutputToInputCellIdRedirectionMap;
   vtkIdList* pointRedirectionMap = info.OutputToInputPointIdRedirectionMap;
@@ -3901,8 +3901,10 @@ void DeepCopyPolyhedrons(vtkUnstructuredGrid* ug, vtkUnstructuredGrid* clone,
     cloneFaceLocations->ConvertTo64BitStorage();
     cloneFaces->ConvertTo64BitStorage();
   }
+
   // compute storage mask
-  int mask = static_cast<int>(ugFaceLocations->IsStorage64Bit()) | (cloneFaceLocations->IsStorage64Bit() << 1);
+  int mask = static_cast<int>(ugFaceLocations->IsStorage64Bit()) | (static_cast<int>(cloneFaceLocations->IsStorage64Bit()) << 1);
+
   switch(mask)
   {
     case 0:
@@ -3937,6 +3939,40 @@ void CloneUnstructuredGrid(vtkUnstructuredGrid* ug, vtkUnstructuredGrid* clone,
   ::ClonePoints(ug, clone, info);
   ::CloneCellData(ug, clone, info);
 
+  if (!ug->GetPolyhedronFaces() && clone->GetPolyhedronFaces() && clone->GetPolyhedronFaceLocations())
+          {
+      //initialize empty polyhedron when none are present but they are required for output.
+            using ArrayType32 = vtkCellArray::ArrayType32;
+            using ArrayType64 = vtkCellArray::ArrayType64;
+            if (clone->GetPolyhedronFaceLocations()->IsStorage64Bit()){
+                auto faceLocRange = vtkArrayDownCast<ArrayType64>(clone->GetPolyhedronFaceLocations()->GetOffsetsArray());
+                for (vtkIdType pos=0; pos<ug->GetNumberOfCells()+1; ++pos){
+                    faceLocRange->SetValue(pos, 0);
+                }
+            }
+            else
+            {
+                auto faceLocRange = vtkArrayDownCast<ArrayType32>(clone->GetPolyhedronFaceLocations()->GetOffsetsArray());
+                for (vtkIdType pos=0; pos<ug->GetNumberOfCells()+1; ++pos){
+                    faceLocRange->SetValue(pos, 0);
+                }
+            }
+
+            if (clone->GetPolyhedronFaces()->IsStorage64Bit()){
+                auto faceLocRange = vtkArrayDownCast<ArrayType64>(clone->GetPolyhedronFaces()->GetOffsetsArray());
+                for (vtkIdType pos=0; pos<clone->GetPolyhedronFaces()->GetOffsetsArray()->GetNumberOfTuples(); ++pos){
+                    faceLocRange->SetValue(pos, 0);
+                }
+            }
+            else
+            {
+                auto faceLocRange = vtkArrayDownCast<ArrayType32>(clone->GetPolyhedronFaces()->GetOffsetsArray());
+                for (vtkIdType pos=0; pos<clone->GetPolyhedronFaces()->GetOffsetsArray()->GetNumberOfTuples(); ++pos){
+                    faceLocRange->SetValue(pos, 0);
+                }
+            }
+          }
+
   if (vtkIdList* redirectionMap = info.OutputToInputCellIdRedirectionMap)
   {
     ::DeepCopyCells(ug->GetCells(), clone->GetCells(), redirectionMap,
@@ -3956,12 +3992,12 @@ void CloneUnstructuredGrid(vtkUnstructuredGrid* ug, vtkUnstructuredGrid* clone,
     vtkDataArray* ugConnectivity = ugCellArray->GetConnectivityArray();
     vtkDataArray* ugOffsets = ugCellArray->GetOffsetsArray();
 
-    ugConnectivity->GetTuples(0, ugConnectivity->GetNumberOfTuples() - 1,
-        cloneCellArray->GetConnectivityArray());
+    ugConnectivity->GetTuples(0, ugConnectivity->GetNumberOfTuples() - 1, cloneCellArray->GetConnectivityArray());
     ugOffsets->GetTuples(0, ugOffsets->GetNumberOfTuples() - 1, cloneCellArray->GetOffsetsArray());
     ug->GetCellTypesArray()->GetTuples(0, ug->GetNumberOfCells() - 1, clone->GetCellTypesArray());
 
     vtkCellArray* ugFaces = ug->GetPolyhedronFaces();
+
     if (clone->GetPolyhedronFaces() && ugFaces && ugFaces->GetNumberOfCells())
     {
       vtkDataArray* ugFaceConnectivity = ug->GetPolyhedronFaces()->GetConnectivityArray();
@@ -4196,10 +4232,19 @@ void EnqueueCellsForUnstructuredData<vtkUnstructuredGrid>(const diy::Master::Pro
   cp.enqueue<vtkDataArray*>(blockId, buffer.Types);
   cp.enqueue<vtkDataArray*>(blockId, buffer.CellArray->GetOffsetsArray());
   cp.enqueue<vtkDataArray*>(blockId, buffer.CellArray->GetConnectivityArray());
-  cp.enqueue<vtkDataArray*>(blockId, buffer.Faces->GetOffsetsArray());
-  cp.enqueue<vtkDataArray*>(blockId, buffer.Faces->GetConnectivityArray());
-  cp.enqueue<vtkDataArray*>(blockId, buffer.FaceLocations->GetOffsetsArray());
-  cp.enqueue<vtkDataArray*>(blockId, buffer.FaceLocations->GetConnectivityArray());
+  if (buffer.Faces && buffer.FaceLocations){
+    cp.enqueue<vtkDataArray*>(blockId, buffer.Faces->GetOffsetsArray());
+    cp.enqueue<vtkDataArray*>(blockId, buffer.Faces->GetConnectivityArray());
+    cp.enqueue<vtkDataArray*>(blockId, buffer.FaceLocations->GetOffsetsArray());
+    cp.enqueue<vtkDataArray*>(blockId, buffer.FaceLocations->GetConnectivityArray());
+  }
+  else
+  {
+    cp.enqueue<vtkDataArray*>(blockId, vtkSmartPointer<vtkIdTypeArray>(nullptr) );
+    cp.enqueue<vtkDataArray*>(blockId, vtkSmartPointer<vtkIdTypeArray>(nullptr));
+    cp.enqueue<vtkDataArray*>(blockId, vtkSmartPointer<vtkIdTypeArray>(nullptr));
+    cp.enqueue<vtkDataArray*>(blockId, vtkSmartPointer<vtkIdTypeArray>(nullptr));
+  }
 }
 
 //----------------------------------------------------------------------------
@@ -4333,29 +4378,36 @@ void DequeueCellsForUnstructuredData<::UnstructuredGridBlockStructure>(
   using ArrayType32 = vtkCellArray::ArrayType32;
   using ArrayType64 = vtkCellArray::ArrayType64;
 
-  if (ArrayType32* offsets32 = vtkArrayDownCast<ArrayType32>(faces_offsets))
+  if (faces && faces_offsets)
   {
-    buffer.Faces->SetData(offsets32, vtkArrayDownCast<ArrayType32>(faces));
+    buffer.Faces = vtkSmartPointer<vtkCellArray>::New();
+    if (ArrayType32* offsets32 = vtkArrayDownCast<ArrayType32>(faces_offsets))
+    {
+      buffer.Faces->SetData(offsets32, vtkArrayDownCast<ArrayType32>(faces));
+    }
+    else
+    {
+      buffer.Faces->SetData(vtkArrayDownCast<ArrayType64>(faces_offsets),
+          vtkArrayDownCast<ArrayType64>(faces));
+    }
+    faces_offsets->FastDelete();
+    faces->FastDelete();
   }
-  else
-  {
-    buffer.Faces->SetData(vtkArrayDownCast<ArrayType64>(faces_offsets),
-        vtkArrayDownCast<ArrayType64>(faces));
-  }
-  faces_offsets->FastDelete();
-  faces->FastDelete();
 
-  if (ArrayType32* offsets32 = vtkArrayDownCast<ArrayType32>(faceLocations_offsets))
-  {
-    buffer.FaceLocations->SetData(offsets32, vtkArrayDownCast<ArrayType32>(faceLocations));
-  }
-  else
-  {
-    buffer.FaceLocations->SetData(vtkArrayDownCast<ArrayType64>(faceLocations_offsets),
+  if (faceLocations && faceLocations_offsets){
+    buffer.FaceLocations = vtkSmartPointer<vtkCellArray>::New();
+    if (ArrayType32* offsets32 = vtkArrayDownCast<ArrayType32>(faceLocations_offsets))
+    {
+      buffer.FaceLocations->SetData(offsets32, vtkArrayDownCast<ArrayType32>(faceLocations));
+    }
+    else
+    {
+      buffer.FaceLocations->SetData(vtkArrayDownCast<ArrayType64>(faceLocations_offsets),
         vtkArrayDownCast<ArrayType64>(faceLocations));
+    }
+    faceLocations_offsets->FastDelete();
+    faceLocations->FastDelete();
   }
-  faceLocations_offsets->FastDelete();
-  faceLocations->FastDelete();
 
   if (ArrayType32* offsets32 = vtkArrayDownCast<ArrayType32>(offsets))
   {
@@ -5643,6 +5695,29 @@ void FillReceivedGhosts(::UnstructuredGridBlock* block, int myGid,
       vtkSMPTools::For(0, faceLocations->GetNumberOfCells(), inserter);
     }
   }
+  else {
+     // Take care of polyhedron when buffer do not have them but they are needed in the end
+     // Insert empty faces
+     if (outputFaceLocations){
+        using ArrayType32 = vtkCellArray::ArrayType32;
+        using ArrayType64 = vtkCellArray::ArrayType64;
+        if (outputFaceLocations->IsStorage64Bit()){
+            auto faceLocRange = vtkArrayDownCast<ArrayType64>(outputFaceLocations->GetOffsetsArray());
+            for (vtkIdType pos=0; pos<numberOfAddedCells; ++pos)
+            {
+                faceLocRange->SetValue(info.CurrentMaxCellId+pos+1,faceLocRange->GetValue(info.CurrentMaxCellId+pos));
+            }
+        }
+        else
+        {
+            auto faceLocRange = vtkArrayDownCast<ArrayType32>(outputFaceLocations->GetOffsetsArray());
+            for (vtkIdType pos=0; pos<numberOfAddedCells; ++pos)
+            {
+                faceLocRange->SetValue(info.CurrentMaxCellId+pos+1,faceLocRange->GetValue(info.CurrentMaxCellId+pos));
+            }
+        }
+     }
+  }
 
   ::FillDuplicateCellGhostArrayForUnstructureData(block->GhostCellArray,
       info.CurrentMaxCellId, numberOfAddedCells);
@@ -5652,7 +5727,7 @@ void FillReceivedGhosts(::UnstructuredGridBlock* block, int myGid,
   info.CurrentMaxPointId += numberOfAddedPoints;
   info.CurrentMaxCellId += numberOfAddedCells;
   info.CurrentConnectivitySize += buffer.CellArray->GetConnectivityArray()->GetNumberOfTuples();
-  info.CurrentFacesSize += buffer.Faces ? buffer.Faces->GetConnectivityArray()->GetNumberOfTuples() : 0;
+  info.CurrentFacesSize += buffer.Faces ? buffer.Faces->GetConnectivityArray()->GetNumberOfTuples():0;
   info.CurrentMaxFaceId += buffer.Faces ? buffer.Faces->GetOffsetsArray()->GetNumberOfTuples()-1:0;
 }
 
