@@ -8,8 +8,8 @@ That will allow us to use a non-interleaved storage for faces. Together with usi
 
 So here's the proposed structure:
 * **Connectivity** (`vtkCellArray`): simply stores point ids for all points for each polyhedral element
-* **PolyhedronFaces** (`vtkCellArray`): each element defines a face. The indices per element directly refer to point ids.
-* **PolyhedronFaceLocations** (`vtkCellArray`): each element identifies a polyhedral cell. The indices per element reference face defined in the **PolyhedronFace** array.
+* **ElementFaces** (`vtkCellArray`): each element defines a polygonal face. The indices per element directly refer to point ids.
+* **ElementFaceLocations** (`vtkCellArray`): each element identifies a polyhedral cell. The indices per element reference face defined in the **ElementFace** array.
 
 
 Contrast this with how this information is currently stored:
@@ -20,6 +20,13 @@ Contrast this with how this information is currently stored:
 
 ### Backward compatibility
 
-To ensure a nice transition to the new storage, old API are kept.
-An internal cache with the old internal layout is used.
-Thus it may impact a bit performance.
+To ensure a nice transition to the new storage, some old API are kept.
+More precisely the method `void SetCells(vtkUnsignedCharArray* cellTypes, vtkCellArray* cells, vtkIdTypeArray* faceLocations, vtkIdTypeArray* faces);` from vtkUnstructuredGrid is deprecated but can still be used. In this case a copy of faceLocations and faces data will be done.
+Another case are the `GetFaces` and  `GetFaceLocations` methods. They are still available  but an internal cache with the old internal layout is used.
+This mean that they should be considered as read only methods and not be relied on to change internal data of vtkUnstructuredGrid.
+The caching process may impact a bit performance.
+
+### Compatibility with Conduit
+
+The new layout is much closer to how Conduit store its polyhedral cell information.
+Thus, some gain should be expected on the long run.
