@@ -14,85 +14,58 @@
 =========================================================================*/
 /**
  * @class   vtkInteractorStyleEditor
- * @brief   manipulate objects in the scene independent of each other
+ * @brief   An editor-like interaction style
  *
- * vtkInteractorStyleEditor allows the user to interact with (rotate,
- * pan, etc.) objects in the scene independent of each other.  In trackball
- * interaction, the magnitude of the mouse motion is proportional to the
- * actor motion associated with a particular mouse binding. For example,
- * small left-button motions cause small changes in the rotation of the
- * actor around its center point.
+ * vtkInteractorStyleEditor is an interactor style resembling the behaviour of
+ * many 3d editors. For example Blender.
  *
- * The mouse bindings are as follows. For a 3-button mouse, the left button
- * is for rotation, the right button for zooming, the middle button for
- * panning, and ctrl + left button for spinning.  (With fewer mouse buttons,
- * ctrl + shift + left button is for zooming, and shift + left button is for
- * panning.)
+ * The three mouse buttons are used as follows:
+ *
+ * Left :   selecting objects
+ * Middle : navigation
+ * Right :  reserved for context menu
+ *
+ * although the user can override this if required.
+ *
+ * The navigation assumes a clear vertical axis (0,0,1) that remains vertical. For
+ * many users this feels natural.
+ *
+ * This style borrows/collects many elements from exising functionality:
+ * - box select and area picker
+ * - pan
+ * - ....
+ *
+ * The only truely new routine is the camera rotation with is implemented in Rotate and
+ * is invoked via VTKIS_ROTATE
  *
  * @sa
- * vtkInteractorStyleTrackballCamera vtkInteractorStyleJoystickActor
- * vtkInteractorStyleJoystickCamera
+ * vtkInteractorStyleTrackballCamera
  */
 
 #ifndef vtkInteractorStyleEditor_h
 #define vtkInteractorStyleEditor_h
 
 #include "vtkInteractionStyleModule.h" // For export macro
-#include "vtkInteractorStyle.h"
+#include "vtkInteractorStyleTrackballCamera.h"
 
 VTK_ABI_NAMESPACE_BEGIN
 class vtkCellPicker;
 
-class VTKINTERACTIONSTYLE_EXPORT vtkInteractorStyleEditor : public vtkInteractorStyle
+class VTKINTERACTIONSTYLE_EXPORT vtkInteractorStyleEditor : public vtkInteractorStyleTrackballCamera
 {
 public:
   static vtkInteractorStyleEditor* New();
-  vtkTypeMacro(vtkInteractorStyleEditor, vtkInteractorStyle);
-  void PrintSelf(ostream& os, vtkIndent indent) override;
+  vtkTypeMacro(vtkInteractorStyleEditor, vtkInteractorStyleTrackballCamera);
+  
 
-  ///@{
-  /**
-   * Event bindings controlling the effects of pressing mouse buttons
-   * or moving the mouse.
-   */
-  void OnMouseMove() override;
-  void OnLeftButtonDown() override;
-  void OnLeftButtonUp() override;
-  void OnMiddleButtonDown() override;
-  void OnMiddleButtonUp() override;
-  void OnRightButtonDown() override;
-  void OnRightButtonUp() override;
-  ///@}
-
-  // These methods for the different interactions in different modes
-  // are overridden in subclasses to perform the correct motion. Since
-  // they might be called from OnTimer, they do not have mouse coord parameters
-  // (use interactor's GetEventPosition and GetLastEventPosition)
+  // Override the Rotate method
   void Rotate() override;
-  void Spin() override;
-  void Pan() override;
-  void Dolly() override;
-  void UniformScale() override;
+  
+protected:
 
   void RotateTurntableBy(float rxf, float ryf);
+    
 
-protected:
-  vtkInteractorStyleEditor();
-  ~vtkInteractorStyleEditor() override;
-
-  void FindPickedActor(int x, int y);
-
-  void Prop3DTransform(
-    vtkProp3D* prop3D, double* boxCenter, int NumRotation, double** rotate, double* scale);
-
-  double MotionFactor;
-
-  vtkProp3D* InteractionProp;
-  vtkCellPicker* InteractionPicker;
-
-private:
-  vtkInteractorStyleEditor(const vtkInteractorStyleEditor&) = delete;
-  void operator=(const vtkInteractorStyleEditor&) = delete;
 };
 
 VTK_ABI_NAMESPACE_END
