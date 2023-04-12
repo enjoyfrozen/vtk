@@ -673,8 +673,7 @@ void vtkEnSightWriter::WriteData()
               FaceLocations->GetCellAtId(CellId, NumberOfFaces, faceIds);
               for (vtkIdType id = 0; id < NumberOfFaces; ++id)
               {
-                int FacesIdx = faceIds[id];
-                assert(FacesIdx >= 0);
+                assert(faceIds[id] >= 0);
               }
               this->WriteIntToFile(static_cast<int>(NumberOfFaces), fd);
             }
