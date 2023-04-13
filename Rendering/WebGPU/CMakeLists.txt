@@ -96,6 +96,29 @@ elseif (VTK_USE_WIN32_OPENGL)
   endif ()
   list(APPEND classes
     vtkWin32WebGPURenderWindow)
+elseif (VTK_USE_COCOA)
+  # Add some custom overrides
+  if (NOT VTK_DEFAULT_RENDER_WINDOW_HEADLESS)
+    vtk_object_factory_declare(
+      BASE vtkRenderWindow
+      OVERRIDE vtkCocoaWebGPURenderWindow)
+    set(has_vtkRenderWindow_override 1)
+  endif ()
+  list(APPEND sources
+    vtkCocoaWebGPURenderWindow.mm
+    vtkCocoaWebGPUView.mm)
+  list(APPEND headers
+    vtkCocoaWebGPURenderWindow.h)
+  list(APPEND nowrap_headers
+    vtkCocoaWebGPUView.h)
+  # Set specified Objective-C++ flags, if any.
+  if (VTK_REQUIRED_OBJCXX_FLAGS)
+    set_source_files_properties(
+      vtkCocoaWebGPURenderWindow.mm
+      vtkCocoaWebGPUView.mm
+      PROPERTIES
+        COMPILE_FLAGS "${VTK_REQUIRED_OBJCXX_FLAGS}")
+  endif ()
 elseif (EMSCRIPTEN)
   # Add some custom overrides
   vtk_object_factory_declare(
@@ -191,9 +214,10 @@ set (intial_cpp_code
       {
         object_factory->SetEnableFlag(use_webgpu, \"vtkRenderWindow\", \"vtkXWebGPURenderWindow\")\;
         object_factory->SetEnableFlag(use_webgpu, \"vtkRenderWindow\", \"vtkWin32WebGPURenderWindow\")\;
+        object_factory->SetEnableFlag(use_webgpu, \"vtkRenderWindow\", \"vtkCocoaWebGPURenderWindow\")\;
         object_factory->SetEnableFlag(use_webgpu, \"vtkRenderWindow\", \"vtkSDL2WebGPURenderWindow\")\;
         // disable ALL opengl render window overrides.
-        object_factory->SetEnableFlag(0, \"vtkRenderWindow\", \"vtkCocoaOpenGLRenderWindow\")\;
+        object_factory->SetEnableFlag(0, \"vtkRenderWindow\", \"vtkCocoaRenderWindow\")\;
         object_factory->SetEnableFlag(0, \"vtkRenderWindow\", \"vtkWin32OpenGLRenderWindow\")\;
         object_factory->SetEnableFlag(0, \"vtkRenderWindow\", \"vtkXOpenGLRenderWindow\")\;
         object_factory->SetEnableFlag(0, \"vtkRenderWindow\", \"vtkSDL2OpenGLRenderWindow\")\;
@@ -308,14 +332,13 @@ if (VTK_USE_X)
   else()
     message(WARNING "X11::Xcursor not found; custom cursors will be ignored.")
   endif()
-  set_property(SOURCE vtkXOpenGLRenderWindow.cxx APPEND
+  set_property(SOURCE vtkXWebGPURenderWindow.cxx APPEND
     PROPERTY
       COMPILE_DEFINITIONS "VTK_HAVE_XCURSOR=$<TARGET_EXISTS:X11::Xcursor>"
   )
 elseif (VTK_USE_COCOA)
   vtk_module_link(VTK::RenderingWebGPU PUBLIC "-framework Cocoa")
 elseif (VTK_USE_WIN32_OPENGL)
-  # vtkWin32OpenGLDXRenderWindow requires D3D.
   vtk_module_find_package(PACKAGE DirectX)
   vtk_module_link(VTK::RenderingWebGPU PRIVATE DirectX::d3d11 DirectX::dxgi)
 endif ()
