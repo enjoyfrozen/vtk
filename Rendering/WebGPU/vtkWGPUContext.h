@@ -20,7 +20,7 @@
 
 VTK_ABI_NAMESPACE_BEGIN
 
-class VTKRENDERINGWEBGPU_EXPORT vtkWGPUContext
+class VTKRENDERINGWEBGPU_NO_EXPORT vtkWGPUContext
 {
 public:
   static void LogAvailableAdapters();

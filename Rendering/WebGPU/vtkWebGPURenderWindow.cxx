@@ -17,6 +17,7 @@
 #include "vtkObject.h"
 #include "vtkObjectFactory.h"
 #include "vtkRect.h"
+#include "vtkRenderTimerLog.h"
 #include "vtkTypeUInt8Array.h"
 #include "vtkUnsignedCharArray.h"
 #include "vtkWGPUContext.h"
@@ -125,7 +126,11 @@ PixelReadDescriptor GetPixelReadDesriptor(
 }
 
 //------------------------------------------------------------------------------
-vtkWebGPURenderWindow::vtkWebGPURenderWindow() = default;
+vtkWebGPURenderWindow::vtkWebGPURenderWindow()
+{
+  this->ScreenSize[0] = 0;
+  this->ScreenSize[1] = 0;
+}
 
 //------------------------------------------------------------------------------
 vtkWebGPURenderWindow::~vtkWebGPURenderWindow() = default;
@@ -173,8 +178,11 @@ void vtkWebGPURenderWindow::WGPUFinalize()
   vtkDebugMacro(<< __func__ << " WGPUInitialized=" << this->WGPUInitialized);
   this->DestroyDepthStencilTexture();
   this->DestroySwapChain();
-  this->Device.SetDeviceLostCallback(nullptr, nullptr);
-  this->Device = nullptr;
+  if (this->Device)
+  {
+    this->Device.SetDeviceLostCallback(nullptr, nullptr);
+    this->Device = nullptr;
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -357,7 +365,7 @@ void vtkWebGPURenderWindow::CreateFSQGraphicsPipeline()
       output.uv = output.position.xy * 0.5 + 0.5;
       // fip y for texture coordinate.
       output.uv.y = 1.0 - output.uv.y;
-      return output; 
+      return output;
     }
 
     struct FragmentInput {
@@ -518,6 +526,7 @@ void vtkWebGPURenderWindow::Start()
 void vtkWebGPURenderWindow::Frame()
 {
   vtkDebugMacro(<< __func__);
+  this->RenderTimer->MarkStartEvent("Encode commands and present swapchain");
   this->Superclass::Frame();
 
   this->RenderOffscreenTexture();
@@ -540,6 +549,7 @@ void vtkWebGPURenderWindow::Frame()
     this->StagingPixelData.Buffer.Destroy();
     this->StagingPixelData.Buffer = nullptr;
   }
+  this->RenderTimer->MarkEndEvent();
 
 #ifndef NDEBUG
   // This lets the implementation execute all callbacks so that validation errors are output in the
@@ -599,7 +609,8 @@ void vtkWebGPURenderWindow::ReadPixels()
   this->BufferMapReadContext.size = this->ColorAttachment.OffscreenBuffer.GetSize();
   this->BufferMapReadContext.dst = this->CachedPixelBytes;
 
-  auto onBufferMapped = [](WGPUBufferMapAsyncStatus status, void* userdata) {
+  auto onBufferMapped = [](WGPUBufferMapAsyncStatus status, void* userdata)
+  {
     auto ctx = reinterpret_cast<MappingContext*>(userdata);
     switch (status)
     {

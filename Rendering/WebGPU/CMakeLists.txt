@@ -75,9 +75,28 @@ foreach (webgpu_override IN LISTS webgpu_overrides)
     OVERRIDE "vtkWebGPU${webgpu_override}")
 endforeach ()
 
-vtk_object_factory_declare(
-  BASE vtkRenderWindow
-  OVERRIDE vtkSDL2WebGPURenderWindow)
+set(has_vtkRenderWindow_override 0)
+# Setup factory overrides and add window system specific render windows.
+if (VTK_USE_X)
+  # Add some custom overrides
+  if (NOT VTK_DEFAULT_RENDER_WINDOW_HEADLESS)
+    vtk_object_factory_declare(
+      BASE vtkRenderWindow
+      OVERRIDE vtkXWebGPURenderWindow)
+    set(has_vtkRenderWindow_override 1)
+  endif ()
+  list(APPEND classes vtkXWebGPURenderWindow)
+elseif (EMSCRIPTEN)
+  # Add some custom overrides
+  vtk_object_factory_declare(
+    BASE vtkRenderWindow
+    OVERRIDE vtkSDL2WebGPURenderWindow)
+  set(has_vtkRenderWindow_override 1)
+endif ()
+
+if (VTK_USE_SDL2)
+  list(APPEND classes vtkSDL2WebGPURenderWindow)
+endif ()
 
 set (intial_cpp_code
   "
@@ -160,6 +179,7 @@ set (intial_cpp_code
     {
       if (use_webgpu && !use_opengl)
       {
+        object_factory->SetEnableFlag(use_webgpu, \"vtkRenderWindow\", \"vtkXWebGPURenderWindow\")\;
         object_factory->SetEnableFlag(use_webgpu, \"vtkRenderWindow\", \"vtkSDL2WebGPURenderWindow\")\;
         // disable ALL opengl render window overrides.
         object_factory->SetEnableFlag(0, \"vtkRenderWindow\", \"vtkCocoaOpenGLRenderWindow\")\;
@@ -202,6 +222,7 @@ vtk_module_definitions(VTK::RenderingWebGPU
 )
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+  # By default Emscripten system enables VTK_USE_SDL2. See vtkOpenGLOptions.cmake
   vtk_module_compile_features(VTK::RenderingWebGPU
     PRIVATE
       cxx_std_14
@@ -242,7 +263,6 @@ else()
       "utils_metal.mm"
     )
   endif()
-  vtk_module_find_package(PACKAGE SDL2)
   vtk_module_find_package(PACKAGE Dawn)
   vtk_module_compile_features(VTK::RenderingWebGPU
     PUBLIC
@@ -267,4 +287,24 @@ else()
       "VTK_USE_DAWN_NATIVE"
   )
   # TODO: dawn webgpu
+endif ()
+
+if (VTK_USE_X)
+  vtk_module_find_package(PACKAGE X11)
+  vtk_module_link(VTK::RenderingWebGPU PUBLIC X11::X11)
+  if (TARGET X11::Xcursor)
+    vtk_module_link(VTK::RenderingWebGPU PRIVATE X11::Xcursor)
+  else()
+    message(WARNING "X11::Xcursor not found; custom cursors will be ignored.")
+  endif()
+  set_property(SOURCE vtkXOpenGLRenderWindow.cxx APPEND
+    PROPERTY
+      COMPILE_DEFINITIONS "VTK_HAVE_XCURSOR=$<TARGET_EXISTS:X11::Xcursor>"
+  )
+elseif (VTK_USE_COCOA)
+  vtk_module_link(VTK::RenderingWebGPU PUBLIC "-framework Cocoa")
+elseif (VTK_USE_WIN32_OPENGL)
+  # vtkWin32OpenGLDXRenderWindow requires D3D.
+  vtk_module_find_package(PACKAGE DirectX)
+  vtk_module_link(VTK::RenderingWebGPU PRIVATE DirectX::d3d11 DirectX::dxgi)
 endif ()
