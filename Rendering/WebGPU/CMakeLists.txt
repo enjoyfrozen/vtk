@@ -86,6 +86,16 @@ if (VTK_USE_X)
     set(has_vtkRenderWindow_override 1)
   endif ()
   list(APPEND classes vtkXWebGPURenderWindow)
+elseif (VTK_USE_WIN32_OPENGL)
+  # Add some custom overrides
+  if (NOT VTK_DEFAULT_RENDER_WINDOW_HEADLESS)
+    vtk_object_factory_declare(
+      BASE vtkRenderWindow
+      OVERRIDE vtkWin32WebGPURenderWindow)
+    set(has_vtkRenderWindow_override 1)
+  endif ()
+  list(APPEND classes
+    vtkWin32WebGPURenderWindow)
 elseif (EMSCRIPTEN)
   # Add some custom overrides
   vtk_object_factory_declare(
@@ -180,6 +190,7 @@ set (intial_cpp_code
       if (use_webgpu && !use_opengl)
       {
         object_factory->SetEnableFlag(use_webgpu, \"vtkRenderWindow\", \"vtkXWebGPURenderWindow\")\;
+        object_factory->SetEnableFlag(use_webgpu, \"vtkRenderWindow\", \"vtkWin32WebGPURenderWindow\")\;
         object_factory->SetEnableFlag(use_webgpu, \"vtkRenderWindow\", \"vtkSDL2WebGPURenderWindow\")\;
         // disable ALL opengl render window overrides.
         object_factory->SetEnableFlag(0, \"vtkRenderWindow\", \"vtkCocoaOpenGLRenderWindow\")\;
