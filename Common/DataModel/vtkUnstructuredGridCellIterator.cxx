@@ -163,23 +163,6 @@ void vtkUnstructuredGridCellIterator::FetchPoints()
 }
 
 //------------------------------------------------------------------------------
-// Given a pointer into a set of faces, traverse the faces and return the total
-// number of ids (including size hints) in the face set.
-namespace
-{
-inline vtkIdType FaceSetSize(const vtkIdType* begin)
-{
-  const vtkIdType* result = begin;
-  vtkIdType numFaces = *(result++);
-  while (numFaces-- > 0)
-  {
-    result += *result + 1;
-  }
-  return result - begin;
-}
-} // end anon namespace
-
-//------------------------------------------------------------------------------
 void vtkUnstructuredGridCellIterator::FetchFaces()
 {
   if (this->polyFaceLocs)
