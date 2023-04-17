@@ -605,7 +605,7 @@ int vtkPolyhedron::SetCellFaces(vtkIdType nfaces, vtkIdType const* faceIds, vtkC
 
   if (nfaces < 1 || !faceIds || !faces)
   {
-    return 1;
+    return 0;
   }
 
   this->FaceLocations->SetNumberOfValues(nfaces);
@@ -628,7 +628,7 @@ int vtkPolyhedron::SetCellFaces(vtkIdType nfaces, vtkIdType const* faceIds, vtkC
 
     faceLoc += npts + 1;
   } // for all faces selected in faceIds
-  return 0;
+  return 1;
 }
 
 //------------------------------------------------------------------------------

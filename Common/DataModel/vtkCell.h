@@ -129,7 +129,7 @@ public:
   virtual int SetCellFaces(vtkIdType vtkNotUsed(nfaces), vtkIdType const* vtkNotUsed(faceIds),
     vtkCellArray* vtkNotUsed(faces))
   {
-    return 0;
+    return 1;
   }
   virtual vtkIdType* GetFaces() { return nullptr; }
   virtual VTK_NEWINSTANCE vtkCellArray* GetCellFaces() { return nullptr; }
