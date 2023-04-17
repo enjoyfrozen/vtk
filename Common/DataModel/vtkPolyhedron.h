@@ -256,12 +256,18 @@ public:
    * The SetFaces() method is also in vtkCellArray form, except that it
    * begins with a leading count indicating the total number of faces in
    * the list.
+   * The SetCellFaces() method is convenient to define a polyhedron from an unstructured grid
+   * without any copy.
+   * The GetCellFaces() method is very similar to GetFaces() but it returns a vtkCellArray pointer
+   * with the list of faces for the polyhedron. It requires to copy data from the internals of the
+   * polyhedron and thus may be less efficient than the GetFaces() method.
    */
   int RequiresExplicitFaceRepresentation() override { return 1; }
   void SetFaces(vtkIdType* faces) override;
   int SetCellFaces(vtkIdType nfaces, vtkIdType const* faceIds, vtkCellArray* faces) override;
   vtkIdType* GetFaces() override;
   VTK_NEWINSTANCE vtkCellArray* GetCellFaces() override;
+  void GetCellFaces(vtkCellArray* faces) override;
   ///@}
 
   /**

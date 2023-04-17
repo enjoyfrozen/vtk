@@ -325,6 +325,10 @@ public:
    *
    * Cells like vtkPolyhedron require points plus a list of faces. To handle
    * vtkPolyhedron, use SetPolyhedralCells()
+   * SetPolyhedralCells requires a faces vtkCellArray that will describe
+   * the faces use by the polyhedral cells.
+   * SetPolyhedralCells also requires a faceLocations vtkCellArray to fully describe a polyhedron
+   * cell The faceLocations is a collection of face ids pointing to the faces vtkCellArray.
    */
   void SetCells(int type, vtkCellArray* cells);
   void SetCells(int* types, vtkCellArray* cells);
@@ -463,9 +467,14 @@ public:
   ///@{
   /**
    * Get pointer to faces and facelocations. Support for polyhedron cells.
+   * Use an internal cache to handle legacy layout
    */
   vtkIdTypeArray* GetFaces();
   vtkIdTypeArray* GetFaceLocations();
+  /**
+   * Get pointer to faces and facelocations for polyhedron cells.
+   * This is a direct access to internal vtkCellArray structures without any copy.
+   */
   vtkCellArray* GetPolyhedronFaces();
   vtkCellArray* GetPolyhedronFaceLocations();
   ///@}
@@ -689,10 +698,12 @@ protected:
   // updated so we can compare it to the modified time of the Types array.
   vtkMTimeType DistinctCellTypesUpdateMTime;
 
-  // Special support for polyhedra/cells with explicit face representations.
-  // The Faces class represents polygonal faces using a vtkCellArray structure.
-  // The FaceLocations store a polyhedron as a list of faces defined in Faces using a vtkCellArray
-  // structure.
+  /**
+   *  Special support for polyhedra/cells with explicit face representations.
+   * The Faces class represents polygonal faces using a vtkCellArray structure.
+   * The FaceLocations store a polyhedron as a list of faces defined in Faces using a vtkCellArray
+   * structure.
+   */
   vtkSmartPointer<vtkCellArray> ElementFaces;
   vtkSmartPointer<vtkCellArray> ElementFaceLocations;
 
@@ -705,13 +716,18 @@ protected:
     vtkIdType nfaces, const vtkIdType faces[]) override;
   void InternalReplaceCell(vtkIdType cellId, int npts, const vtkIdType pts[]) override;
 
-  // Legacy support -- stores the old-style Faces && FaceLocations
-  // Special support for polyhedra/cells with explicit face representations.
-  //
-  // The Faces class represents polygonal faces using a modified vtkCellArray
-  // structure. Each cell face list begins with the total number of faces in
-  // the cell, followed by a vtkCellArray data organization
-  // (n,i,j,k,n,i,j,k,...).
+  /**
+   *  Legacy support -- stores the old-style Faces && FaceLocations
+   * Special support for polyhedra/cells with explicit face representations.
+   *
+   * The Faces class represents polygonal faces using a modified vtkCellArray
+   * structure. Each cell face list begins with the total number of faces in
+   * the cell, followed by a vtkCellArray data organization
+   * (n,i,j,k,n,i,j,k,...).
+   *
+   * @warning The Faces and FaceLocations arrays are no longer used; this information
+   * is stored in vtkCellArrays Faces and FaceLocations. Use SetPolyhedralCells.
+   */
   VTK_DEPRECATED_IN_9_3_0("Please use version of Faces and FaceLocations relying on vtkCellArray")
   vtkSmartPointer<vtkIdTypeArray> Faces;
   VTK_DEPRECATED_IN_9_3_0("Please use version of Faces and FaceLocations relying on vtkCellArray")

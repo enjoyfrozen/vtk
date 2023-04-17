@@ -657,6 +657,20 @@ vtkCellArray* vtkPolyhedron::GetCellFaces()
   return faces;
 }
 
+void vtkPolyhedron::GetCellFaces(vtkCellArray* faces)
+{
+  if (!faces)
+    return;
+  if (!this->GlobalFaces->GetNumberOfTuples())
+  {
+    faces->Reset();
+    return;
+  }
+
+  faces->ImportLegacyFormat(
+    this->GlobalFaces->GetPointer(1), this->GlobalFaces->GetNumberOfValues() - 1);
+}
+
 //------------------------------------------------------------------------------
 int vtkPolyhedron::IntersectWithLine(const double p1[3], const double p2[3], double tol,
   double& tMin, double xMin[3], double pc[3], int& subId)

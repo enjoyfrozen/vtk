@@ -123,6 +123,9 @@ public:
    * Determine whether the cell requires explicit face representation, and
    * methods for setting and getting the faces (see vtkPolyhedron for example
    * usage of these methods).
+   * The SetCellFaces() method is mainly dedicated to define a polyhedron cell from unstructured
+   * grid without any copy. The SetFaces() method do the exact same thing but relies on an
+   * interlaced input array thus it requires a copy from internal unstructured grid layout.
    */
   virtual int RequiresExplicitFaceRepresentation() { return 0; }
   virtual void SetFaces(vtkIdType* vtkNotUsed(faces)) {}
@@ -133,6 +136,7 @@ public:
   }
   virtual vtkIdType* GetFaces() { return nullptr; }
   virtual VTK_NEWINSTANCE vtkCellArray* GetCellFaces() { return nullptr; }
+  virtual void GetCellFaces(vtkCellArray* vtkNotUsed(faces)) {}
 
   /**
    * Get the point coordinates for the cell.
