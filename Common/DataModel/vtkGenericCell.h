@@ -73,6 +73,7 @@ public:
   int SetCellFaces(vtkIdType nfaces, vtkIdType const* faceIds, vtkCellArray* faces) override;
   vtkIdType* GetFaces() override;
   VTK_NEWINSTANCE vtkCellArray* GetCellFaces() override;
+  void GetCellFaces(vtkCellArray* faces) override;
   int GetNumberOfEdges() override;
   int GetNumberOfFaces() override;
   vtkCell* GetEdge(int edgeId) override;

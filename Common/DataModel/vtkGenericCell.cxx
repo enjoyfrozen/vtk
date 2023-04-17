@@ -167,6 +167,12 @@ vtkCellArray* vtkGenericCell::GetCellFaces()
 }
 
 //------------------------------------------------------------------------------
+void vtkGenericCell::GetCellFaces(vtkCellArray* faces)
+{
+  this->Cell->GetCellFaces(faces);
+}
+
+//------------------------------------------------------------------------------
 void vtkGenericCell::Initialize()
 {
   this->Cell->Initialize();
