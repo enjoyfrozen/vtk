@@ -257,7 +257,7 @@ public:
    * begins with a leading count indicating the total number of faces in
    * the list.
    * The SetCellFaces() method is convenient to define a polyhedron from an unstructured grid
-   * without any copy.
+   * without any cache copying inside the source unstructured grid.
    * The GetCellFaces() method is very similar to GetFaces() but it returns a vtkCellArray pointer
    * with the list of faces for the polyhedron. It requires to copy data from the internals of the
    * polyhedron and thus may be less efficient than the GetFaces() method.
