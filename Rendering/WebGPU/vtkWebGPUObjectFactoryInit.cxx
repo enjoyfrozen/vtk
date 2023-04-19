@@ -73,12 +73,15 @@ for (vtkObjectFactory::GetRegisteredFactories()->InitTraversal(osit);
   {
     if (use_webgpu && !use_opengl)
     {
+      object_factory->SetEnableFlag(0, "vtkRenderWindow", "vtkCocoaWebGPURenderWindow");
+      object_factory->SetEnableFlag(0, "vtkRenderWindow", "vtkWin32WebGPURenderWindow");
+      object_factory->SetEnableFlag(0, "vtkRenderWindow", "vtkXWebGPURenderWindow");
       object_factory->SetEnableFlag(use_webgpu, "vtkRenderWindow", "vtkSDL2WebGPURenderWindow");
       // disable ALL opengl render window overrides.
-      object_factory->SetEnableFlag(0, "vtkRenderWindow", "vtkCocoaOpenGLRenderWindow");
+      object_factory->SetEnableFlag(0, "vtkRenderWindow", "vtkCocoaRenderWindow");
+      object_factory->SetEnableFlag(0, "vtkRenderWindow", "vtkSDL2OpenGLRenderWindow");
       object_factory->SetEnableFlag(0, "vtkRenderWindow", "vtkWin32OpenGLRenderWindow");
       object_factory->SetEnableFlag(0, "vtkRenderWindow", "vtkXOpenGLRenderWindow");
-      object_factory->SetEnableFlag(0, "vtkRenderWindow", "vtkSDL2OpenGLRenderWindow");
     }
   }
 }
