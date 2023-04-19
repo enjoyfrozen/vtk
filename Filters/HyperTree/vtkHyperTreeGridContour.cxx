@@ -553,7 +553,7 @@ bool vtkHyperTreeGridContour::RecursivelyPreProcessTree(vtkHyperTreeGridNonOrien
     cursor->ToParent();
   } // child
 
-  if (firstChild)
+  if(firstChild)
   {
     selected = true;
   }
