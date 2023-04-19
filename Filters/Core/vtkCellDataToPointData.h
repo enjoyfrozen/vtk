@@ -80,6 +80,23 @@ public:
     DataSetMax = 2 //!< Highest dimension cells in the data set
   };
 
+  /// Options to specify what weight cells to contribute to the cell-averaging calculation
+  enum WeightCellEnum
+  {
+    Standard = 0,  //!< Weight of each cell is specific to each point (1/numberCellsByThisPoint)
+    Quad = 4,      //!< Weight of each cell is 1/4 to each point (2D Eulerian origin grid)
+    Hexahedron = 8 //!< Weight of each cell is 1/8 to each point (3D Eulerian origin grid)
+  };
+
+  /// Options to specify what boundary condition that disables on specific points WeightCellOption
+  enum BoundaryConditionPointEnum
+  {
+    AXIS_X = 0,
+    AXIS_Y = 1,
+    AXIS_Z = 2,
+    AXIS_NONE = 3
+  };
+
   ///@{
   /**
    * Control whether the input cell data is to be passed to the output. If
@@ -95,9 +112,50 @@ public:
   /**
    * Option to specify what cells to include in the cell-averaging computation.
    * Options are all cells (All, Patch and DataSetMax). The default is All.
+   * This option is only applicable for an input representing a
+   * vtkUnstructuredGrid and vtkPolyData type mesh
    */
   vtkSetClampMacro(ContributingCellOption, int, 0, 2);
   vtkGetMacro(ContributingCellOption, int);
+  ///@}
+
+  ///@{
+  /**
+   * Option to specify what weights cells to contribute in the cell-averaging computation.
+   * Options are Standard (specific to each cell), Quad (unstructured grid based on
+   * 2D Eulerian submesh), Hexahedron (unstrucuterd grid based on 3D Eulerian submesh).
+   * The default is Standard.
+   * Using this option disables ContributingCellOption option.
+   */
+  vtkSetClampMacro(WeightCellOption, int, 0, 8);
+  vtkGetMacro(WeightCellOption, int);
+  ///@}
+
+  ///@{
+  /**
+   * Option to specify what boundary condition that disables on specific points
+   * WeightCellOption (None, AXIS_X, AXIS_Y, AXIS_Z).
+   * The default is None.
+   */
+  vtkSetClampMacro(BoundaryConditionPoint, int, 0, 3);
+  vtkGetMacro(BoundaryConditionPoint, int);
+  ///@}
+
+  ///@{
+  /**
+   * Option to set axis alignment value to be used as boundary condition point
+   * by BoundaryConditionPointOption. Default is 0.
+   */
+  vtkSetMacro(AxisAlignment, double);
+  vtkGetMacro(AxisAlignment, double);
+  ///@}
+
+  ///@{
+  /**
+   * Option to set absolute error epsilon on axis alignment value. Default is 1e-7.
+   */
+  vtkSetMacro(AbsoluteErrorEpsilonOnAxisAlignment, double);
+  vtkGetMacro(AbsoluteErrorEpsilonOnAxisAlignment, double);
   ///@}
 
   ///@{
@@ -173,8 +231,45 @@ protected:
   /**
    * Option to specify what cells to include in the computation.
    * Options are all cells (All, Patch and DataSet). The default is All.
+   * This option is only applicable for an input representing a
+   * vtkUnstructuredGrid and vtkPolyData type mesh
    */
   int ContributingCellOption;
+  ///@}
+
+  ///@{
+  /**
+   * Option to specify what weights cells to contribute in the cell-averaging computation.
+   * Options are Standard (specific to each cell), Quad (unstructured grid based on
+   * 2D Eulerian submesh), Hexahedron (unstrucuterd grid based on 3D Eulerian submesh).
+   * The default is Standard.
+   * Using this option disables ContributingCellOption option.
+   */
+  int WeightCellOption;
+  ///@}
+
+  ///@{
+  /**
+   * Option to specify what boundary condition that disables on specific points
+   * WeightCellOption (None, AXIS_X, AXIS_Y, AXIS_Z).
+   * The default is None.
+   */
+  int BoundaryConditionPoint;
+  ///@}
+
+  ///@{
+  /**
+   * Option to set axis alignment value to be used as boundary condition point
+   * by BoundaryConditionPointOption. Default is 0.
+   */
+  double AxisAlignment;
+  ///@}
+
+  ///@{
+  /**
+   * Option to set absolute error epsilon on axis alignment value. Default is 1e-7.
+   */
+  double AbsoluteErrorEpsilonOnAxisAlignment;
   ///@}
 
   /**
