@@ -26,6 +26,9 @@ Another case are the `GetFaces` and  `GetFaceLocations` methods. They are still 
 This mean that they should be considered as read only methods and not be relied on to change internal data of vtkUnstructuredGrid.
 The caching process may impact a bit performance.
 
+The `FaceConn` and `FaceLocs` internal arrays of `vtkUnstructuredGridCellIterator` are no longer available as `vtkIdTypeArray`. This may break your subclasses if you rely on them directly and not on the exposed API of `vtkUnstructuredGridCellIterator`. A solution to keep using them in subclasses is to define them directly in subclasses and handle their logic.
+
+
 ### Compatibility with Conduit
 
 The new layout is much closer to how Conduit store its polyhedral cell information.
