@@ -660,7 +660,10 @@ vtkCellArray* vtkPolyhedron::GetCellFaces()
 void vtkPolyhedron::GetCellFaces(vtkCellArray* faces)
 {
   if (!faces)
+  {
+    vtkGenericWarningMacro(<< "Unexpected nullptr provided to GetCellFaces.");
     return;
+  }
   if (!this->GlobalFaces->GetNumberOfTuples())
   {
     faces->Reset();
