@@ -23,7 +23,7 @@ Contrast this with how this information is currently stored:
 To ensure a nice transition to the new storage, some old API are kept.
 More precisely the method `void SetCells(vtkUnsignedCharArray* cellTypes, vtkCellArray* cells, vtkIdTypeArray* faceLocations, vtkIdTypeArray* faces);` from vtkUnstructuredGrid is deprecated but can still be used. In this case a copy of faceLocations and faces data will be done.
 Another case are the `GetFaces` and  `GetFaceLocations` methods. They are still available  but an internal cache with the old internal layout is used.
-This mean that they should be considered as read only methods and not be relied on to change internal data of vtkUnstructuredGrid.
+It means that they should be considered as read only methods and not be relied on to change internal data of vtkUnstructuredGrid.
 The caching process may impact a bit performance.
 
 The `FaceConn` and `FaceLocs` internal arrays of `vtkUnstructuredGridCellIterator` are no longer available as `vtkIdTypeArray`. This may break your subclasses if you rely on them directly and not on the exposed API of `vtkUnstructuredGridCellIterator`. A solution to keep using them in subclasses is to define them directly in subclasses and handle their logic.
