@@ -13,6 +13,6 @@
 #endif
 #elif defined(VTK_USE_DAWN_NATIVE)
 #include "dawn/webgpu_cpp.h"
-#endif // VTK_USE_DAWN_NATIVE
+#endif
 
 #endif // vtk_wgpu_h

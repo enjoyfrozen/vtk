@@ -5,7 +5,6 @@ set(classes
   vtkWebGPUHardwareSelector
   vtkWebGPULight
   vtkWebGPURenderWindow
-  vtkSDL2WebGPURenderWindow
   vtkWebGPUPolyDataMapper
   vtkWebGPUProperty
   vtkWebGPURenderer
@@ -140,8 +139,6 @@ vtk_object_factory_configure(
 
 list(APPEND vtk_wgpu_public_headers
   vtk_wgpu.h
-)
-list(APPEND vtk_wgpu_public_headers
   vtkWGPUContext.h
 )
 list(APPEND vtk_wgpu_priv_sources
@@ -175,28 +172,6 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
       SDL2::SDL2)
 else ()
   # WebGPU native
-  if (WIN32)
-    vtk_module_definitions(VTK::RenderingWebGPU PRIVATE
-      "VTK_DAWN_ENABLE_BACKEND_D3D12"
-    )
-  elseif (ANDROID)
-    vtk_module_definitions(VTK::RenderingWebGPU PRIVATE
-      "VTK_DAWN_ENABLE_BACKEND_VULKAN"
-    )
-  elseif (UNIX)
-    vtk_module_definitions(VTK::RenderingWebGPU PRIVATE
-      "VTK_DAWN_ENABLE_BACKEND_VULKAN"
-      "VTK_DAWN_USE_X11"
-    )
-  elseif (APPLE)
-    vtk_module_definitions(VTK::RenderingWebGPU PRIVATE
-      "VTK_DAWN_ENABLE_BACKEND_METAL"
-    )
-    vtk_module_link(VTK::RenderingWebGPU PRIVATE "-framework Metal")
-    vtk_module_sources(VTK::RenderingWebGPU PRIVATE
-      "utils_metal.mm"
-    )
-  endif()
   vtk_module_find_package(PACKAGE Dawn)
   # Must include these source files here.
   vtk_module_sources(VTK::RenderingWebGPU PRIVATE
@@ -216,7 +191,6 @@ else ()
     PUBLIC
       "VTK_USE_DAWN_NATIVE"
   )
-  # TODO: dawn webgpu
 endif ()
 
 if (VTK_USE_X)
