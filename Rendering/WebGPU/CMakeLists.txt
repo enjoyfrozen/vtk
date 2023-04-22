@@ -137,6 +137,8 @@ vtk_object_factory_configure(
   EXTRA_INCLUDES "<vtkCollection.h>" "<vtkObjectFactoryCollection.h>" "<vtkLogger.h>" "<cstdlib>"
   INITIAL_CODE_FILE "vtkWebGPUObjectFactoryInit.cxx")
 
+list(APPEND vtk_wgpu_private_headers
+)
 list(APPEND vtk_wgpu_public_headers
   vtk_wgpu.h
   vtkWGPUContext.h
@@ -172,25 +174,36 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
       SDL2::SDL2)
 else ()
   # WebGPU native
-  vtk_module_find_package(PACKAGE Dawn)
-  # Must include these source files here.
-  vtk_module_sources(VTK::RenderingWebGPU PRIVATE
-    "${DAWN_GEN_SRC_DIR}/dawn/webgpu_cpp.cpp"
-    "${DAWN_GEN_SRC_DIR}/dawn/dawn_proc.c"
-  )
-  vtk_module_link(VTK::RenderingWebGPU
-    PRIVATE
-      SDL2::SDL2
-      ${DAWN_LIBRARIES}
-  )
-  vtk_module_include(VTK::RenderingWebGPU
-    PUBLIC
-      ${DAWN_INCLUDE_DIRS}
-  )
-  vtk_module_definitions(VTK::RenderingWebGPU
-    PUBLIC
-      "VTK_USE_DAWN_NATIVE"
-  )
+  option (VTK_WEBGPU_USE_WGPU
+    "Use wgpu-native as the webgpu implementation" ON)
+  mark_as_advanced (VTK_WEBGPU_USE_WGPU)
+  if (VTK_WEBGPU_USE_WGPU)
+    vtk_module_find_package(PACKAGE WGPU)
+    vtk_module_link(VTK::RenderingWebGPU
+      PUBLIC WGPU::WGPU)
+    vtk_module_definitions(VTK::RenderingWebGPU
+      PUBLIC "VTK_USE_WGPU_NATIVE")
+  else ()
+    vtk_module_find_package(PACKAGE Dawn)
+    # Must include these source files here.
+    vtk_module_sources(VTK::RenderingWebGPU PRIVATE
+      "${DAWN_GEN_SRC_DIR}/dawn/webgpu_cpp.cpp"
+      "${DAWN_GEN_SRC_DIR}/dawn/dawn_proc.c"
+    )
+    vtk_module_link(VTK::RenderingWebGPU
+      PUBLIC
+        SDL2
+        ${DAWN_LIBRARIES}
+    )
+    vtk_module_include(VTK::RenderingWebGPU
+      PUBLIC
+        ${DAWN_INCLUDE_DIRS}
+    )
+    vtk_module_definitions(VTK::RenderingWebGPU
+      PUBLIC
+        "VTK_USE_DAWN_NATIVE"
+    )
+  endif ()
 endif ()
 
 if (VTK_USE_X)
