@@ -2775,7 +2775,6 @@ void vtkUnstructuredGrid::RemoveGhostCells()
   if (!(this->GetNumberOfPoints() >> 31))
   {
     newCells->ConvertTo32BitStorage();
-    //
     newFaceLocations->ConvertTo32BitStorage();
     newFaces->ConvertTo32BitStorage();
   }

@@ -49,8 +49,8 @@ struct ExtractedCellsT
 {
   vtkSmartPointer<vtkCellArray> Connectivity;
   vtkSmartPointer<vtkUnsignedCharArray> CellTypes;
-  vtkSmartPointer<vtkCellArray> polyFaces;
-  vtkSmartPointer<vtkCellArray> polyFaceLocations;
+  vtkSmartPointer<vtkCellArray> PolyFaces;
+  vtkSmartPointer<vtkCellArray> PolyFaceLocations;
   // vtkSmartPointer<vtkIdTypeArray> Faces;
   // vtkSmartPointer<vtkIdTypeArray> FaceLocations;
 };
@@ -321,9 +321,6 @@ void ExtractPolyhedralFaces(
   auto inFaceLocations = input->GetPolyhedronFaceLocations();
   auto inFaces = input->GetPolyhedronFaces();
 
-  // result.FaceLocations.TakeReference(vtkIdTypeArray::New());
-  // result.FaceLocations->SetNumberOfTuples(numCells);
-
   vtkNew<vtkIdTypeArray> connectivityPoly;
   vtkNew<vtkIdTypeArray> offsetsPoly;
   vtkNew<vtkIdTypeArray> connectivityPolyFaces;
@@ -396,10 +393,10 @@ void ExtractPolyhedralFaces(
     connectivityPoly->SetValue(face, face);
   }
   // Prepare return result
-  result.polyFaceLocations.TakeReference(vtkCellArray::New());
-  result.polyFaceLocations->SetData(offsetsPoly, connectivityPoly);
-  result.polyFaces.TakeReference(vtkCellArray::New());
-  result.polyFaces->SetData(offsetsPolyFaces, connectivityPolyFaces);
+  result.PolyFaceLocations.TakeReference(vtkCellArray::New());
+  result.PolyFaceLocations->SetData(offsetsPoly, connectivityPoly);
+  result.PolyFaces.TakeReference(vtkCellArray::New());
+  result.PolyFaces->SetData(offsetsPolyFaces, connectivityPolyFaces);
 }
 
 //------------------------------------------------------------------------------
@@ -711,7 +708,7 @@ int vtkExtractCells::RequestData(vtkInformation* vtkNotUsed(request),
     ::ExtractPolyhedralFaces(cells, inputUG, work);
   }
   output->SetPolyhedralCells(
-    cells.CellTypes, cells.Connectivity, cells.polyFaceLocations, cells.polyFaces);
+    cells.CellTypes, cells.Connectivity, cells.PolyFaceLocations, cells.PolyFaces);
   this->UpdateProgress(1.00);
 
   return 1;
