@@ -144,6 +144,7 @@ vtkIdType vtkHyperTreeGridGeometry::vtkInternal::insertPoint(const std::vector<d
 void vtkHyperTreeGridGeometry::vtkInternal::createNewCellAndCopyData(
   const std::vector<vtkIdType>& _outputIndexPoints, vtkIdType _inputCellIndex)
 {
+  TRACE("vtkInternal::createNewCellAndCopyData BEGIN")
   // This method creates a new 2D cell from a list of point offsets then attributes
   // to this cell the values of the fields to the cells assigned to the cell
   // as offset _inputCellIndex.
@@ -154,7 +155,7 @@ void vtkHyperTreeGridGeometry::vtkInternal::createNewCellAndCopyData(
   {
     TRACE("vtkInternal::createNewCellAndCopyData m_outputCells#"
       << outputCellIndex << " Cells##" << this->m_outputCells->GetNumberOfCells() << " Pts##"
-      << _outputIndexPoints.size() << " / Pts##" << this->m_max_id_point)
+      << _outputIndexPoints.size() << " / Pts##" << this->m_max_id_point + 1)
     for (auto pt : _outputIndexPoints)
     {
       TRACE("vtkInternal::createNewCellAndCopyData    #" << pt)
@@ -164,10 +165,13 @@ void vtkHyperTreeGridGeometry::vtkInternal::createNewCellAndCopyData(
   this->m_outputCellDataAttributes->CopyData(
     this->m_inputCellDataAttributes, _inputCellIndex, outputCellIndex);
   // Insert value original VTK cell local index on server
-  if (!m_outputOriginalVtkCellLocalIdOnServer)
+  if (m_outputOriginalVtkCellLocalIdOnServer)
   {
+    TRACE("vtkInternal::createNewCellAndCopyData m_outputOriginalVtkCellLocalIdOnServer #"
+      << outputCellIndex << " = " << _inputCellIndex)
     m_outputOriginalVtkCellLocalIdOnServer->InsertValue(outputCellIndex, _inputCellIndex);
   }
+  TRACE("vtkInternal::createNewCellAndCopyData END")
 }
 
 //----------------------------------------------------------------------------------------------
