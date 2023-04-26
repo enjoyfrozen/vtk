@@ -174,36 +174,16 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
       SDL2::SDL2)
 else ()
   # WebGPU native
-  option (VTK_WEBGPU_USE_WGPU
-    "Use wgpu-native as the webgpu implementation" ON)
-  mark_as_advanced (VTK_WEBGPU_USE_WGPU)
-  if (VTK_WEBGPU_USE_WGPU)
-    vtk_module_find_package(PACKAGE WGPU)
-    vtk_module_link(VTK::RenderingWebGPU
-      PUBLIC WGPU::WGPU)
-    vtk_module_definitions(VTK::RenderingWebGPU
-      PUBLIC "VTK_USE_WGPU_NATIVE")
+  include(vtkWebGPU)
+  vtk_module_link(VTK::RenderingWebGPU
+    PUBLIC WebGPU::WebGPU)
+  set(WGPU_CMPDEF)
+  if (VTK_WEBGPU_IMPLEMENTATION STREQUAL "dawn")
+    set(WGPU_CMPDEF "VTK_WEBGPU_USE_DAWN")
   else ()
-    vtk_module_find_package(PACKAGE Dawn)
-    # Must include these source files here.
-    vtk_module_sources(VTK::RenderingWebGPU PRIVATE
-      "${DAWN_GEN_SRC_DIR}/dawn/webgpu_cpp.cpp"
-      "${DAWN_GEN_SRC_DIR}/dawn/dawn_proc.c"
-    )
-    vtk_module_link(VTK::RenderingWebGPU
-      PUBLIC
-        SDL2
-        ${DAWN_LIBRARIES}
-    )
-    vtk_module_include(VTK::RenderingWebGPU
-      PUBLIC
-        ${DAWN_INCLUDE_DIRS}
-    )
-    vtk_module_definitions(VTK::RenderingWebGPU
-      PUBLIC
-        "VTK_USE_DAWN_NATIVE"
-    )
+    set(WGPU_CMPDEF "VTK_WEBGPU_USE_WGPU")
   endif ()
+  vtk_module_definitions(VTK::RenderingWebGPU PUBLIC ${WGPU_CMPDEF})
 endif ()
 
 if (VTK_USE_X)
