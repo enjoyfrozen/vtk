@@ -412,17 +412,9 @@ vtkIdType vtkMergeCells::AddNewCellsUnstructuredGrid(vtkDataSet* set, vtkIdType*
   facesLocationArray->GetOffsetsArray()->SetNumberOfValues(totalNumCells + 1);
   if (!firstSet && flocs)
   {
-    // TODO use a worker
     auto copycells = std::min(numCells, totalNumCells);
     facesLocationArray->GetConnectivityArray()->DeepCopy(flocs->GetConnectivityArray());
-    auto flocoff = flocs->GetOffsetsArray();
-    auto fiptroff = facesLocationArray->GetOffsetsArray();
-    for (vtkIdType idx = 0; idx < copycells + 1; ++idx)
-    {
-      vtkIdType tmp;
-      tmp = flocoff->GetTuple1(idx);
-      fiptroff->SetTuple1(idx, tmp);
-    }
+    flocs->GetOffsetsArray()->GetTuples(0, copycells, facesLocationArray->GetOffsetsArray());
   }
   else if (!firstSet)
   {
