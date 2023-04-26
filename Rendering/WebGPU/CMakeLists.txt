@@ -1,47 +1,49 @@
 set(classes
-  vtkWebGPUActor
-  vtkWebGPUCamera
-  vtkWebGPUClearPass
-  vtkWebGPUHardwareSelector
-  vtkWebGPULight
+  # vtkWebGPUActor
+  # vtkWebGPUCamera
+  # vtkWebGPUClearPass
+  # vtkWebGPUHardwareSelector
+  # vtkWebGPULight
   vtkWebGPURenderWindow
-  vtkWebGPUPolyDataMapper
-  vtkWebGPUProperty
-  vtkWebGPURenderer
-  vtkWebGPURenderPass
+  # vtkWebGPUPolyDataMapper
+  # vtkWebGPUProperty
+  # vtkWebGPURenderer
+  # vtkWebGPURenderPass
+  vtkWebGPUInstance
+  # vtkWebGPUDevice
 )
 
 set(private_classes
-  vtkWebGPUInternalsBindGroup
-  vtkWebGPUInternalsBindGroupLayout
-  vtkWebGPUInternalsBuffer
-  vtkWebGPUInternalsPipelineLayout
-  vtkWebGPUInternalsRenderPassCreateInfo
-  vtkWebGPUInternalsRenderPassDescriptor
-  vtkWebGPUInternalsRenderPipelineDescriptor
-  vtkWebGPUInternalsShaderModule
+  # vtkWebGPUInternalsBindGroup
+  # vtkWebGPUInternalsBindGroupLayout
+  # vtkWebGPUInternalsBuffer
+  # vtkWebGPUInternalsPipelineLayout
+  # vtkWebGPUInternalsRenderPassCreateInfo
+  # vtkWebGPUInternalsRenderPassDescriptor
+  # vtkWebGPUInternalsRenderPipelineDescriptor
+  # vtkWebGPUInternalsShaderModule
 )
 
 # setup factory overrides
 # NI - Not Implemented
 set(webgpu_overrides
-  Actor
-  # NI: BillboardTextActor3D
-  Camera
-  # NI: LabeledContourMapper
-  HardwareSelector
-  # NI: ImageMapper
-  # NI: ImageSliceMapper
-  # NI: Glyph3DMapper
-  # NI: HyperTreeGridMapper
-  Light
-  # NI: PointGaussianMapper
-  PolyDataMapper
-  # NI: PolyDataMapper2D
-  Property
-  # NI: ShaderProperty
-  # NI: Uniforms
-  Renderer
+  #  Actor
+  #  # NI: BillboardTextActor3D
+  #  Camera
+  #  # NI: LabeledContourMapper
+  #  HardwareSelector
+  #  # NI: ImageMapper
+  #  # NI: ImageSliceMapper
+  #  # NI: Glyph3DMapper
+  #  # NI: HyperTreeGridMapper
+  #  Light
+  #  # NI: PointGaussianMapper
+  #  PolyDataMapper
+  #  # NI: PolyDataMapper2D
+  #  Property
+  #  # NI: ShaderProperty
+  #  # NI: Uniforms
+  #  Renderer
   # NI: RenderTimerLog
   # NI: Skybox
   # NI: TextActor
@@ -141,10 +143,10 @@ list(APPEND vtk_wgpu_private_headers
 )
 list(APPEND vtk_wgpu_public_headers
   vtk_wgpu.h
-  vtkWGPUContext.h
+  # vtkWGPUContext.h
 )
 list(APPEND vtk_wgpu_priv_sources
-  vtkWGPUContext.cxx
+  # vtkWGPUContext.cxx
 )
 
 vtk_module_add_module(VTK::RenderingWebGPU

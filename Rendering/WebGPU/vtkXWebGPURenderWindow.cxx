@@ -109,15 +109,15 @@ bool vtkXWebGPURenderWindow::InitializeFromCurrentContext()
 //------------------------------------------------------------------------------------------------
 void vtkXWebGPURenderWindow::SetStereoCapableWindow(vtkTypeBool capable)
 {
-  if (!this->Device)
-  {
-    this->Superclass::SetStereoCapableWindow(capable);
-  }
-  else
-  {
-    vtkWarningMacro(<< "Requesting a StereoCapableWindow must be performed "
-                    << "before the window is realized, i.e. before a render.");
-  }
+  // if (!this->Device)
+  // {
+  //   this->Superclass::SetStereoCapableWindow(capable);
+  // }
+  // else
+  // {
+  //   vtkWarningMacro(<< "Requesting a StereoCapableWindow must be performed "
+  //                   << "before the window is realized, i.e. before a render.");
+  // }
 }
 
 //------------------------------------------------------------------------------------------------
@@ -435,14 +435,14 @@ bool vtkXWebGPURenderWindow::Initialize()
     this->WindowInitialize();
   }
 
-  if (this->WGPUInit())
-  {
-    wgpu::SurfaceDescriptorFromXlibWindow x11SurfDesc;
-    x11SurfDesc.display = this->GetDisplayId();
-    x11SurfDesc.window = this->GetWindowId();
-    this->Surface = vtkWGPUContext::CreateSurface(x11SurfDesc);
-    return true;
-  }
+  // if (this->WGPUInit())
+  // {
+  //   wgpu::SurfaceDescriptorFromXlibWindow x11SurfDesc;
+  //   x11SurfDesc.display = this->GetDisplayId();
+  //   x11SurfDesc.window = this->GetWindowId();
+  //   this->Surface = vtkWGPUContext::CreateSurface(x11SurfDesc);
+  //   return true;
+  // }
   return false;
 }
 
@@ -891,10 +891,10 @@ void vtkXWebGPURenderWindow::CloseDisplay()
 vtkTypeBool vtkXWebGPURenderWindow::IsDirect()
 {
   this->UsingHardware = 0;
-  if (this->GetDisplayId() && this->GetDevice())
-  {
-    this->UsingHardware = true;
-  }
+  // if (this->GetDisplayId() && this->GetDevice())
+  // {
+  //   this->UsingHardware = true;
+  // }
   return this->UsingHardware;
 }
 
