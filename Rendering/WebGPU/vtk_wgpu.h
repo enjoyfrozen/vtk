@@ -12,7 +12,12 @@
 #error "Emscripten 1.40.1 or higher required"
 #endif
 #elif defined(VTK_USE_DAWN_NATIVE)
-#include "dawn/webgpu_cpp.h"
+#include <webgpu/webgpu.h>
+#elif defined(VTK_USE_WGPU_NATIVE)
+#include <webgpu.h>
+#include <wgpu.h>
+// Define the common instance release API for wgpu
+#define wgpuInstanceRelease wgpuInstanceDrop
 #endif
 
 #endif // vtk_wgpu_h
