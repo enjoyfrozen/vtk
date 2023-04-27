@@ -317,7 +317,7 @@ vtkTypeBool vtkCocoaWebGPURenderWindow::GetEventPending()
 //----------------------------------------------------------------------------
 const char* vtkCocoaWebGPURenderWindow::ReportCapabilities()
 {
-  return "";
+  return this->Superclass::ReportCapabilities();
 }
 
 //----------------------------------------------------------------------------

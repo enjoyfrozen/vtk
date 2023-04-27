@@ -867,9 +867,7 @@ const char* vtkXWebGPURenderWindow::ReportCapabilities()
     return "display id not set";
   }
 
-  // TODO: Ask WebGPU to
-  // return this->Capabilities;
-  return "";
+  return this->Superclass::ReportCapabilities();
 }
 
 //------------------------------------------------------------------------------------------------

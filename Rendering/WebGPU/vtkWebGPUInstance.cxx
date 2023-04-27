@@ -262,6 +262,12 @@ const char* vtkWebGPUInstance::ReportCapabilities()
            << limits.limits.maxComputeWorkgroupsPerDimension << endl;
     }
   }
+
+  if (this->Device)
+  {
+    strm << this->Device->ReportCapabilities() << endl;
+  }
+
   delete[] this->Capabilities;
 
   size_t len = strm.str().length() + 1;

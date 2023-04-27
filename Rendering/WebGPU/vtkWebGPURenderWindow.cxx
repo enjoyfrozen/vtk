@@ -165,9 +165,9 @@ bool vtkWebGPURenderWindow::WGPUInit()
     {
       return false;
     }
+    std::cout << this->WebGPUInstance->ReportCapabilities() << std::endl;
   }
 
-  // vtkDebugMacro(<< __func__ << " WGPUInitialized=" << this->WGPUInitialized);
   // vtkWGPUContext::LogAvailableAdapters();
   // ///@{ TODO: CLEAN UP DEVICE ACQUISITION
   // // for emscripten, the glue code is expected to pre-initialize an instance, adapter and a
@@ -197,7 +197,6 @@ bool vtkWebGPURenderWindow::WGPUInit()
 //------------------------------------------------------------------------------
 void vtkWebGPURenderWindow::WGPUFinalize()
 {
-  // vtkDebugMacro(<< __func__ << " WGPUInitialized=" << this->WGPUInitialized);
   // this->DestroyDepthStencilTexture();
   // this->DestroySwapChain();
   // if (this->Device)
@@ -517,19 +516,19 @@ void vtkWebGPURenderWindow::RenderOffscreenTexture()
 //------------------------------------------------------------------------------
 void vtkWebGPURenderWindow::Start()
 {
-  //  int* size = this->GetSize();
-  //  vtkDebugMacro(<< __func__ << '(' << size[0] << ',' << size[1] << ')');
-  //  this->Size[0] = (size[0] > 0 ? size[0] : 300);
-  //  this->Size[1] = (size[1] > 0 ? size[1] : 300);
-  //
-  //  if (!this->WGPUInitialized)
-  //  {
-  //    this->WGPUInitialized = this->Initialize(); // calls WGPUInit after surface is created.
+   int* size = this->GetSize();
+   vtkDebugMacro(<< __func__ << '(' << size[0] << ',' << size[1] << ')');
+   this->Size[0] = (size[0] > 0 ? size[0] : 300);
+   this->Size[1] = (size[1] > 0 ? size[1] : 300);
+
+   if (!this->IsInitialized())
+   {
+        this->Initialize();
   //    this->CreateSwapChain();
   //    this->CreateOffscreenColorAttachments();
   //    this->CreateDepthStencilTexture();
   //    this->CreateFSQGraphicsPipeline();
-  //  }
+   }
   //  else if (this->Size[0] != this->SwapChain.Width || this->Size[1] != this->SwapChain.Height)
   //  {
   //    // Recreate if size changed
@@ -558,9 +557,9 @@ void vtkWebGPURenderWindow::Start()
 //------------------------------------------------------------------------------
 void vtkWebGPURenderWindow::Frame()
 {
-  //  vtkDebugMacro(<< __func__);
-  //  this->RenderTimer->MarkStartEvent("Encode commands and present swapchain");
-  //  this->Superclass::Frame();
+   vtkDebugMacro(<< __func__);
+   this->RenderTimer->MarkStartEvent("Encode commands and present swapchain");
+   this->Superclass::Frame();
   //
   //  this->RenderOffscreenTexture();
   //
@@ -582,7 +581,7 @@ void vtkWebGPURenderWindow::Frame()
   //    this->StagingPixelData.Buffer.Destroy();
   //    this->StagingPixelData.Buffer = nullptr;
   //  }
-  //  this->RenderTimer->MarkEndEvent();
+   this->RenderTimer->MarkEndEvent();
   //
   // #ifndef NDEBUG
   //  // This lets the implementation execute all callbacks so that validation errors are output in
@@ -628,7 +627,13 @@ void vtkWebGPURenderWindow::StereoMidpoint() {}
 //------------------------------------------------------------------------------
 const char* vtkWebGPURenderWindow::GetRenderingBackend()
 {
-  return "";
+#ifdef __EMSCRIPTEN__
+  return "Emscripten";
+#elif defined(VTK_WEBGPU_USE_DAWN)
+  return "Dawn";
+#elif defined(VTK_WEBGPU_USE_WGPU)
+  return "WGPU-Native";
+#endif
 }
 
 //------------------------------------------------------------------------------

@@ -341,9 +341,8 @@ const char* vtkWin32WebGPURenderWinodw::ReportCapabilities()
   {
     return "no device context";
   }
-  // TODO: Ask WebGPU to
-  // return this->Capabilities;
-  return "";
+
+  return this->Superclass::ReportCapabilities();
 }
 
 //-------------------------------------------------------------------------------------------------
