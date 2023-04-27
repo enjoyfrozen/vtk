@@ -18,6 +18,7 @@
 #include <wgpu.h>
 // Define the common instance release API for wgpu
 #define wgpuInstanceRelease wgpuInstanceDrop
+#define wgpuAdapterRelease wgpuAdapterDrop
 #endif
 
 #endif // vtk_wgpu_h

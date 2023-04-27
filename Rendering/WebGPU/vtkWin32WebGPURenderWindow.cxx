@@ -583,6 +583,11 @@ void vtkWin32WebGPURenderWindow::Initialize(void)
 //-------------------------------------------------------------------------------------------------
 void vtkWin32WebGPURenderWindow::Finalize(void)
 {
+  if (this->IsInitialized())
+  {
+    this->WGPUFinalize();
+  }
+
   if (this->CursorHidden)
   {
     this->ShowCursor();

@@ -152,33 +152,19 @@ void vtkWebGPURenderWindow::PrintSelf(ostream& os, vtkIndent indent)
 }
 
 //------------------------------------------------------------------------------
-void vtkWebGPURenderWindow::SetPowerPreference(int power)
-{
-  int clampedPower = (power < HIGH_POWER ? HIGH_POWER : (power > CPU ? CPU : power));
-  if (this->PowerPreference != clampedPower)
-  {
-    this->PowerPreference = clampedPower;
-    if (this->WebGPUInstance)
-    {
-      // Re-create the whole instance
-      this->WebGPUInstance->Delete();
-      this->WebGPUInstance = nullptr;
-    }
-    this->Modified();
-  }
-}
-
-//------------------------------------------------------------------------------
 bool vtkWebGPURenderWindow::WGPUInit()
 {
-  if (!this->WebGPUInstance)
+  if (!this->IsInitialized())
   {
-    this->WebGPUInstance = vtkWebGPUInstance::New();
-  }
-  this->WebGPUInstance->Create();
-  if (!this->WebGPUInstance->IsValid())
-  {
-    return false;
+    if (!this->WebGPUInstance)
+    {
+      this->WebGPUInstance = vtkWebGPUInstance::New();
+    }
+    this->WebGPUInstance->Create();
+    if (!this->WebGPUInstance->IsValid())
+    {
+      return false;
+    }
   }
 
   // vtkDebugMacro(<< __func__ << " WGPUInitialized=" << this->WGPUInitialized);
@@ -219,6 +205,12 @@ void vtkWebGPURenderWindow::WGPUFinalize()
   //   this->Device.SetDeviceLostCallback(nullptr, nullptr);
   //   this->Device = nullptr;
   // }
+}
+
+//------------------------------------------------------------------------------
+vtkTypeBool vtkWebGPURenderWindow::IsInitialized()
+{
+  return (this->WebGPUInstance && this->WebGPUInstance->IsValid());
 }
 
 //------------------------------------------------------------------------------
@@ -1172,7 +1164,11 @@ int vtkWebGPURenderWindow::SupportsOpenGL()
 //------------------------------------------------------------------------------
 const char* vtkWebGPURenderWindow::ReportCapabilities()
 {
-  // TODO: Request caps from device
+  if (this->IsInitialized())
+  {
+    return this->WebGPUInstance->ReportCapabilities();
+  }
+
   return "unknown";
 }
 

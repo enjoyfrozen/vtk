@@ -131,7 +131,7 @@ bool vtkSDL2WebGPURenderWindow::Initialize()
 //------------------------------------------------------------------------------
 void vtkSDL2WebGPURenderWindow::Finalize()
 {
-  if (this->WGPUInitialized)
+  if (this->IsInitialized())
   {
     this->WGPUFinalize();
   }

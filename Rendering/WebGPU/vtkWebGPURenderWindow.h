@@ -31,30 +31,6 @@ public:
   vtkTypeMacro(vtkWebGPURenderWindow, vtkRenderWindow);
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  enum PowerPreferences
-  {
-    HIGH_POWER = 0, // default (Discrete GPU)
-    LOW_POWER = 1, // (Integrated GPU)
-    CPU = 2
-  };
-
-  ///@{
-  /**
-   * Set/Get the power preference i.e. the device (discrete/integrated GPU, CPU) that webGPU uses
-   */
-  virtual void SetPowerPreference(int power);
-  vtkGetMacro(PowerPreference, int);
-  virtual void SetPowerPreferenceToHighPower() {
-    this->SetPowerPreference(HIGH_POWER);
-  }
-  virtual void SetPowerPreferenceToLowPower() {
-    this->SetPowerPreference(LOW_POWER);
-  }
-  virtual void SetPowerPreferenceToCPU() {
-    this->SetPowerPreference(CPU);
-  }
-  ///@}
-
   /**
    * Concrete render windows must create a platform window and initialize this->WindowId.
    * Upon success, please call WGPUInit().
@@ -211,6 +187,7 @@ protected:
 
   bool WGPUInit();
   void WGPUFinalize();
+  vtkTypeBool IsInitialized();
 
   void CreateSwapChain();
   void DestroySwapChain();
@@ -290,7 +267,6 @@ protected:
   // vtkNew<vtkTypeUInt8Array> CachedPixelBytes;
 
   int ScreenSize[2];
-  int PowerPreference = HIGH_POWER;
 
   vtkWebGPUInstance* WebGPUInstance = nullptr;
 

@@ -253,7 +253,7 @@ vtkCocoaWebGPURenderWindow::~vtkCocoaWebGPURenderWindow()
 //----------------------------------------------------------------------------
 void vtkCocoaWebGPURenderWindow::Finalize()
 {
-  if (this->WGPUInitialized)
+  if (this->IsInitialized())
   {
     this->WGPUFinalize();
   }

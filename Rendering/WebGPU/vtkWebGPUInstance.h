@@ -21,6 +21,7 @@
 #define vtkWebGPUInstance_h
 
 // VTK includes
+#include "vtkCommand.h" // for custom events
 #include "vtkObject.h"
 #include "vtkRenderingWebGPUModule.h" // for export macro
 #include "vtk_wgpu.h"                 // for webgpu
@@ -66,6 +67,42 @@ public:
   vtkGetObjectMacro(Device, vtkWebGPUDevice);
   ///@}
 
+  ///@{
+  /**
+   * Set/Get the adapter
+   */
+  virtual void SetAdapter(WGPUAdapter a);
+  WGPUAdapter GetAdapter() const;
+  ///@}
+
+  enum vtkCustomEvents
+  {
+    AdapterRequestedEvent = vtkCommand::UserEvent + 100
+  };
+
+  enum vtkPowerPreferences
+  {
+    HIGH_POWER = 0, // default (Discrete GPU)
+    LOW_POWER = 1,  // (Integrated GPU)
+    CPU = 2
+  };
+
+  ///@{
+  /**
+   * Set/Get the power preference i.e. the device (discrete/integrated GPU, CPU) that webGPU uses
+   */
+  virtual void SetPowerPreference(int power);
+  vtkGetMacro(PowerPreference, int);
+  virtual void SetPowerPreferenceToHighPower() { this->SetPowerPreference(HIGH_POWER); }
+  virtual void SetPowerPreferenceToLowPower() { this->SetPowerPreference(LOW_POWER); }
+  virtual void SetPowerPreferenceToCPU() { this->SetPowerPreference(CPU); }
+  ///@}
+
+  /**
+   * Report capabilities of the hardware
+   */
+  const char* ReportCapabilities();
+
 protected:
   vtkWebGPUInstance();
   ~vtkWebGPUInstance();
@@ -75,6 +112,12 @@ protected:
   WGPUAdapter Adapter = nullptr;
 
   vtkWebGPUDevice* Device = nullptr;
+
+  int PowerPreference = HIGH_POWER;
+  char* Capabilities = nullptr;
+
+  static void OnAdapterRequested(
+    WGPURequestAdapterStatus status, WGPUAdapter adapter, const char* message, void* self);
 
 private:
   vtkWebGPUInstance(const vtkWebGPUInstance&) = delete;

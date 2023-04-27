@@ -449,7 +449,7 @@ bool vtkXWebGPURenderWindow::Initialize()
 //------------------------------------------------------------------------------------------------
 void vtkXWebGPURenderWindow::Finalize()
 {
-  if (this->WGPUInitialized)
+  if (this->IsInitialized())
   {
     this->WGPUFinalize();
   }
