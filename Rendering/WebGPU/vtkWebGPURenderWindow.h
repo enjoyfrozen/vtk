@@ -35,7 +35,7 @@ public:
    * Concrete render windows must create a platform window and initialize this->WindowId.
    * Upon success, please call WGPUInit().
    */
-  virtual bool Initialize() = 0;
+  virtual void Initialize() = 0;
 
   /**
    * Create a not-off-screen window.

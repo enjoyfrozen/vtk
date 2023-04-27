@@ -732,7 +732,7 @@ void vtkCocoaWebGPURenderWindow::CreateAWindow()
 
 //----------------------------------------------------------------------------
 // Initialize the rendering window.
-bool vtkCocoaWebGPURenderWindow::Initialize()
+void vtkCocoaWebGPURenderWindow::Initialize()
 {
   if (!this->OnScreenInitialized)
   {
@@ -749,11 +749,9 @@ bool vtkCocoaWebGPURenderWindow::Initialize()
       {
         auto surfDesc = [(vtkCocoaWebGPUView*)webGPUView getSurfaceDescriptor];
         this->Surface = vtkWGPUContext::CreateSurface(*cocoaSurfDesc);
-        return true;
       }
     }
   }
-  return false;
 }
 
 //----------------------------------------------------------------------------

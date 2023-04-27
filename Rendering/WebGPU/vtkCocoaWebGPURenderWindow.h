@@ -77,7 +77,7 @@ public:
   /**
    * Initialize the rendering window.
    */
-  bool Initialize() override;
+  void Initialize() override;
 
   /**
    * Change the window to fill the entire screen.  This is only partially

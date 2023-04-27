@@ -427,9 +427,9 @@ void vtkXWebGPURenderWindow::WindowInitialize()
 
 //------------------------------------------------------------------------------------------------
 // Initialize the rendering window.
-bool vtkXWebGPURenderWindow::Initialize()
+void vtkXWebGPURenderWindow::Initialize()
 {
-  if (!this->WindowId && !this->DisplayId)
+  if (!this->WindowId)
   {
     // initialize the window
     this->WindowInitialize();
@@ -443,7 +443,6 @@ bool vtkXWebGPURenderWindow::Initialize()
   //   this->Surface = vtkWGPUContext::CreateSurface(x11SurfDesc);
   //   return true;
   }
-  return false;
 }
 
 //------------------------------------------------------------------------------------------------

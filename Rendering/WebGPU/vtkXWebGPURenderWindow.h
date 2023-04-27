@@ -63,7 +63,7 @@ public:
    * should be possible to call them multiple times, even changing WindowId
    * in-between.  This is what WindowRemap does.
    */
-  bool Initialize() override;
+  void Initialize() override;
 
   /**
    * "Deinitialize" the rendering window.  This will shutdown all system-specific

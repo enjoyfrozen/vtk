@@ -575,9 +575,7 @@ void vtkWin32WebGPURenderWindow::Initialize(void)
     winSurfDesc.hwnd = this->GetWindowId();
     winSurfDesc.hinstance = this->ApplicationInstance;
     this->Surface = vtkWGPUContext::CreateSurface(winSurfDesc);
-    return true;
   }
-  return false;
 }
 
 //-------------------------------------------------------------------------------------------------

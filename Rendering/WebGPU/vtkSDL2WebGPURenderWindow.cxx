@@ -95,7 +95,7 @@ void vtkSDL2WebGPURenderWindow::PrintSelf(ostream& os, vtkIndent indent)
 }
 
 //------------------------------------------------------------------------------
-bool vtkSDL2WebGPURenderWindow::Initialize()
+void vtkSDL2WebGPURenderWindow::Initialize()
 {
   int res = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER);
   if (res)
@@ -113,7 +113,6 @@ bool vtkSDL2WebGPURenderWindow::Initialize()
     wgpu::SurfaceDescriptorFromCanvasHTMLSelector htmlSurfDesc;
     htmlSurfDesc.selector = "#canvas";
     this->Surface = vtkWGPUContext::CreateSurface(htmlSurfDesc);
-    return this->Surface.Get() != nullptr;
 #else
     SDL_SysWMinfo wmInfo;
     SDL_VERSION(&wmInfo.version)
@@ -124,8 +123,6 @@ bool vtkSDL2WebGPURenderWindow::Initialize()
     }
 #endif
   }
-
-  return false;
 }
 
 //------------------------------------------------------------------------------
