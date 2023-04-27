@@ -606,8 +606,6 @@ public:
     vtkUnsignedCharArray* cellTypes, vtkIdTypeArray* cellLocations, vtkCellArray* cells);
   void SetCells(vtkUnsignedCharArray* cellTypes, vtkIdTypeArray* cellLocations, vtkCellArray* cells,
     vtkIdTypeArray* faceLocations, vtkIdTypeArray* faces);
-
-  VTK_DEPRECATED_IN_9_3_0("Please prefer to use the new SetPolyhedralCells")
   void SetCells(vtkUnsignedCharArray* cellTypes, vtkCellArray* cells, vtkIdTypeArray* faceLocations,
     vtkIdTypeArray* faces);
   ///@}
@@ -726,11 +724,9 @@ protected:
    * (n,i,j,k,n,i,j,k,...).
    *
    * @warning The Faces and FaceLocations arrays are no longer used; this information
-   * is stored in vtkCellArrays Faces and FaceLocations. Use SetPolyhedralCells.
+   * is stored in vtkCellArrays ElementFaces and ElementFaceLocations. Use SetPolyhedralCells.
    */
-  VTK_DEPRECATED_IN_9_3_0("Please use version of Faces and FaceLocations relying on vtkCellArray")
   vtkSmartPointer<vtkIdTypeArray> Faces;
-  VTK_DEPRECATED_IN_9_3_0("Please use version of Faces and FaceLocations relying on vtkCellArray")
   vtkSmartPointer<vtkIdTypeArray> FaceLocations;
 
 private:
