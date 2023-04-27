@@ -22,6 +22,8 @@
 #include "vtk_wgpu.h"                 // for webgpu
 
 VTK_ABI_NAMESPACE_BEGIN
+// Forward declarations
+class vtkWebGPUInstance;
 
 class VTKRENDERINGWEBGPU_EXPORT vtkWebGPURenderWindow : public vtkRenderWindow
 {
@@ -29,13 +31,29 @@ public:
   vtkTypeMacro(vtkWebGPURenderWindow, vtkRenderWindow);
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  // for high power preference, we shall request discrete GPU instead of integrated GPU or the CPU.
-  void SetPowerPreference(bool high = true)
+  enum PowerPreferences
   {
-    // this->PowerPreference =
-    //   high ? wgpu::PowerPreference::HighPerformance : wgpu::PowerPreference::LowPower;
-    this->Modified();
+    HIGH_POWER = 0, // default (Discrete GPU)
+    LOW_POWER = 1, // (Integrated GPU)
+    CPU = 2
+  };
+
+  ///@{
+  /**
+   * Set/Get the power preference i.e. the device (discrete/integrated GPU, CPU) that webGPU uses
+   */
+  virtual void SetPowerPreference(int power);
+  vtkGetMacro(PowerPreference, int);
+  virtual void SetPowerPreferenceToHighPower() {
+    this->SetPowerPreference(HIGH_POWER);
   }
+  virtual void SetPowerPreferenceToLowPower() {
+    this->SetPowerPreference(LOW_POWER);
+  }
+  virtual void SetPowerPreferenceToCPU() {
+    this->SetPowerPreference(CPU);
+  }
+  ///@}
 
   /**
    * Concrete render windows must create a platform window and initialize this->WindowId.
@@ -179,6 +197,14 @@ public:
 
   // wgpu::TextureFormat GetPreferredSwapChainTextureFormat();
 
+  ///@{
+  /**
+   * Set/Get the webgpu instance
+   */
+  vtkGetObjectMacro(WebGPUInstance, vtkWebGPUInstance);
+  virtual void SetWebGPUInstance(vtkWebGPUInstance*);
+  ///@}
+
 protected:
   vtkWebGPURenderWindow();
   ~vtkWebGPURenderWindow() override;
@@ -202,7 +228,7 @@ protected:
 
   // void FlushCommandBuffers(vtkTypeUInt32 count, wgpu::CommandBuffer* buffers);
 
-  bool WGPUInitialized = false;
+  // bool WGPUInitialized = false;
   // wgpu::PowerPreference PowerPreference = wgpu::PowerPreference::HighPerformance;
   // wgpu::Adapter Adapter;
   // wgpu::Device Device;
@@ -264,6 +290,9 @@ protected:
   // vtkNew<vtkTypeUInt8Array> CachedPixelBytes;
 
   int ScreenSize[2];
+  int PowerPreference = HIGH_POWER;
+
+  vtkWebGPUInstance* WebGPUInstance = nullptr;
 
 private:
   vtkWebGPURenderWindow(const vtkWebGPURenderWindow&) = delete;

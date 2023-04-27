@@ -10,7 +10,7 @@ set(classes
   # vtkWebGPURenderer
   # vtkWebGPURenderPass
   vtkWebGPUInstance
-  # vtkWebGPUDevice
+  vtkWebGPUDevice
 )
 
 set(private_classes

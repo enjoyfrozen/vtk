@@ -17,8 +17,8 @@
 #include "vtkImageData.h"
 #include "vtkRenderWindowInteractor.h"
 #include "vtkRendererCollection.h"
-#include "vtkWGPUContext.h"
-#include "vtkWebGPURenderer.h"
+// #include "vtkWGPUContext.h"
+// #include "vtkWebGPURenderer.h"
 #include "vtkXWebGPURenderWindow.h"
 
 // STL includes
@@ -435,14 +435,14 @@ bool vtkXWebGPURenderWindow::Initialize()
     this->WindowInitialize();
   }
 
-  // if (this->WGPUInit())
-  // {
+  if (this->WGPUInit())
+  {
   //   wgpu::SurfaceDescriptorFromXlibWindow x11SurfDesc;
   //   x11SurfDesc.display = this->GetDisplayId();
   //   x11SurfDesc.window = this->GetWindowId();
   //   this->Surface = vtkWGPUContext::CreateSurface(x11SurfDesc);
   //   return true;
-  // }
+  }
   return false;
 }
 
