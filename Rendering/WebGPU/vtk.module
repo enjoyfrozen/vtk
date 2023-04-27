@@ -9,6 +9,7 @@ IMPLEMENTS
 DEPENDS
   VTK::CommonCore
   VTK::RenderingCore
+  VTK::RenderingSceneGraph
 PRIVATE_DEPENDS
   VTK::CommonDataModel
   VTK::CommonSystem
