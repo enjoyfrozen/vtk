@@ -65,6 +65,30 @@ void vtkWebGPUInstance::Create()
   adapterOpts.powerPreference = WGPUPowerPreference_HighPerformance;
   wgpuInstanceRequestAdapter(
     this->Instance, &adapterOpts, &vtkWebGPUInstance::OnAdapterRequested, this);
+
+  // Here, we should wait for the adapter to be available and ready. However, the previous function
+  // `wgpuInstanceRequestAdapter` only returns when its callback has been called, i.e. this->Adapter
+  // is valid at this point unless something went wrong.
+  if (!this->Adapter)
+  {
+    vtkErrorMacro(<< "Could not request adapter");
+    return;
+  }
+
+  // Proceed with creating the device
+  if (!this->Device)
+  {
+    this->Device = vtkWebGPUDevice::New();
+  }
+  this->Device->Create(this->Adapter);
+
+  // Again, the previous function only returns when its callback has been called, i.e. the device
+  // handle should be available at this point unless something went wrong.
+  if (!this->Device->GetHandle())
+  {
+    vtkErrorMacro(<< "Could not request device");
+    return;
+  }
 }
 
 //------------------------------------------------------------------------------------------------
@@ -77,6 +101,7 @@ void vtkWebGPUInstance::Destroy()
 
   if (this->Device)
   {
+    this->Device->Destroy();
     this->Device->Delete();
     this->Device = nullptr;
   }
@@ -153,7 +178,6 @@ void vtkWebGPUInstance::OnAdapterRequested(
     if (i)
     {
       i->SetAdapter(adapter);
-      i->InvokeEvent(vtkWebGPUInstance::AdapterRequestedEvent);
     }
   }
 }
