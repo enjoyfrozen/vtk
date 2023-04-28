@@ -35,53 +35,51 @@ for (vtkObjectFactory::GetRegisteredFactories()->InitTraversal(osit);
 {
   if (object_factory->HasOverride("vtkActor"))
   {
-    object_factory->SetEnableFlag(use_webgpu, "vtkActor", "vtkWebGPUActor");
+    // object_factory->SetEnableFlag(use_webgpu, "vtkActor", "vtkWebGPUActor");
     object_factory->SetEnableFlag(use_opengl, "vtkActor", "vtkOpenGLActor");
   }
   if (object_factory->HasOverride("vtkCamera"))
   {
-    object_factory->SetEnableFlag(use_webgpu, "vtkCamera", "vtkWebGPUCamera");
+    // object_factory->SetEnableFlag(use_webgpu, "vtkCamera", "vtkWebGPUCamera");
     object_factory->SetEnableFlag(use_opengl, "vtkCamera", "vtkOpenGLCamera");
   }
   if (object_factory->HasOverride("vtkHardwareSelector"))
   {
-    object_factory->SetEnableFlag(use_webgpu, "vtkHardwareSelector", "vtkWebGPUHardwareSelector");
+    // object_factory->SetEnableFlag(use_webgpu, "vtkHardwareSelector",
+    // "vtkWebGPUHardwareSelector");
     object_factory->SetEnableFlag(use_opengl, "vtkHardwareSelector", "vtkOpenGLHardwareSelector");
   }
   if (object_factory->HasOverride("vtkLight"))
   {
-    object_factory->SetEnableFlag(use_webgpu, "vtkLight", "vtkWebGPULight");
+    // object_factory->SetEnableFlag(use_webgpu, "vtkLight", "vtkWebGPULight");
     object_factory->SetEnableFlag(use_opengl, "vtkLight", "vtkOpenGLLight");
   }
   if (object_factory->HasOverride("vtkPolyDataMapper"))
   {
-    object_factory->SetEnableFlag(use_webgpu, "vtkPolyDataMapper", "vtkWebGPUPolyDataMapper");
+    // object_factory->SetEnableFlag(use_webgpu, "vtkPolyDataMapper", "vtkWebGPUPolyDataMapper");
     object_factory->SetEnableFlag(use_opengl, "vtkPolyDataMapper", "vtkOpenGLPolyDataMapper");
     object_factory->SetEnableFlag(use_opengl, "vtkPolyDataMapper", "vtkOpenGLES30PolyDataMapper");
   }
   if (object_factory->HasOverride("vtkProperty"))
   {
-    object_factory->SetEnableFlag(use_webgpu, "vtkProperty", "vtkWebGPUProperty");
+    // object_factory->SetEnableFlag(use_webgpu, "vtkProperty", "vtkWebGPUProperty");
     object_factory->SetEnableFlag(use_opengl, "vtkProperty", "vtkOpenGLProperty");
   }
   if (object_factory->HasOverride("vtkRenderer"))
   {
-    object_factory->SetEnableFlag(use_webgpu, "vtkRenderer", "vtkWebGPURenderer");
+    // object_factory->SetEnableFlag(use_webgpu, "vtkRenderer", "vtkWebGPURenderer");
     object_factory->SetEnableFlag(use_opengl, "vtkRenderer", "vtkOpenGLRenderer");
   }
   if (object_factory->HasOverride("vtkRenderWindow"))
   {
-    if (use_webgpu && !use_opengl)
-    {
-      object_factory->SetEnableFlag(0, "vtkRenderWindow", "vtkCocoaWebGPURenderWindow");
-      object_factory->SetEnableFlag(0, "vtkRenderWindow", "vtkWin32WebGPURenderWindow");
-      object_factory->SetEnableFlag(0, "vtkRenderWindow", "vtkXWebGPURenderWindow");
-      object_factory->SetEnableFlag(use_webgpu, "vtkRenderWindow", "vtkSDL2WebGPURenderWindow");
-      // disable ALL opengl render window overrides.
-      object_factory->SetEnableFlag(0, "vtkRenderWindow", "vtkCocoaRenderWindow");
-      object_factory->SetEnableFlag(0, "vtkRenderWindow", "vtkSDL2OpenGLRenderWindow");
-      object_factory->SetEnableFlag(0, "vtkRenderWindow", "vtkWin32OpenGLRenderWindow");
-      object_factory->SetEnableFlag(0, "vtkRenderWindow", "vtkXOpenGLRenderWindow");
-    }
+    object_factory->SetEnableFlag(use_webgpu, "vtkRenderWindow", "vtkCocoaWebGPURenderWindow");
+    object_factory->SetEnableFlag(use_webgpu, "vtkRenderWindow", "vtkWin32WebGPURenderWindow");
+    object_factory->SetEnableFlag(use_webgpu, "vtkRenderWindow", "vtkXWebGPURenderWindow");
+    object_factory->SetEnableFlag(use_webgpu, "vtkRenderWindow", "vtkSDL2WebGPURenderWindow");
+    // disable ALL opengl render window overrides.
+    object_factory->SetEnableFlag(use_opengl, "vtkRenderWindow", "vtkCocoaRenderWindow");
+    object_factory->SetEnableFlag(use_opengl, "vtkRenderWindow", "vtkSDL2OpenGLRenderWindow");
+    object_factory->SetEnableFlag(use_opengl, "vtkRenderWindow", "vtkWin32OpenGLRenderWindow");
+    object_factory->SetEnableFlag(use_opengl, "vtkRenderWindow", "vtkXOpenGLRenderWindow");
   }
 }
