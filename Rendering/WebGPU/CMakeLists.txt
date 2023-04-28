@@ -11,9 +11,11 @@ set(classes
   # vtkWebGPURenderPass
   vtkWebGPUInstance
   vtkWebGPUDevice
-  vtkWebGPUForwardPass
-  vtkWebGPURendererNode
-  vtkWebGPURenderPassEncoder
+  # vtkWebGPUForwardPass
+  # vtkWebGPURendererNode
+  # vtkWebGPURenderPassEncoder
+  # vtkWebGPUViewNodeFactory
+  # vtkWebGPUWindowNode
 )
 
 set(private_classes
