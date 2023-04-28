@@ -75,7 +75,8 @@ public:
   {
     DeviceRequestedEvent = vtkCommand::UserEvent + 101,
     DeviceErrorEvent,
-    DeviceLostEvent
+    DeviceLostEvent,
+    QueueWorkDoneEvent
   };
 
   /**
@@ -97,6 +98,7 @@ protected:
     WGPURequestDeviceStatus status, WGPUDevice device, const char* message, void* self);
   static void OnDeviceError(WGPUErrorType e, const char* message, void* self);
   static void OnDeviceLost(WGPUDeviceLostReason e, const char* message, void* self);
+  static void OnSubmittedWorkDoneEvent(WGPUQueueWorkDoneStatus status, void* self);
 
 private:
   vtkWebGPUDevice(const vtkWebGPUDevice&) = delete;

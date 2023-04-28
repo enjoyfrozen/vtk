@@ -99,6 +99,12 @@ void vtkWebGPUDevice::SetHandle(WGPUDevice d)
       // Register the callbacks
       wgpuDeviceSetUncapturedErrorCallback(this->Device, &vtkWebGPUDevice::OnDeviceError, this);
       wgpuDeviceSetDeviceLostCallback(this->Device, &vtkWebGPUDevice::OnDeviceLost, this);
+      WGPUQueue workQueue = wgpuDeviceGetQueue(this->Device);
+#ifdef VTK_WEBGPU_USE_DAWN
+      wgpuQueueOnSubmittedWorkDone(workQueue, 0, &vtkWebGPUDevice::OnSubmittedWorkDoneEvent, this);
+#elif VTK_WEBGPU_USE_WGPU
+      wgpuQueueOnSubmittedWorkDone(workQueue, &vtkWebGPUDevice::OnSubmittedWorkDoneEvent, this);
+#endif
     }
     if (tempD != nullptr)
     {
@@ -198,6 +204,36 @@ void vtkWebGPUDevice::OnDeviceLost(WGPUDeviceLostReason e, const char* message, 
   }
   vtkErrorWithObjectMacro(d, << error_type << "\n\t" << message);
   d->InvokeEvent(DeviceLostEvent);
+}
+
+//-------------------------------------------------------------------------------------------------
+void vtkWebGPUDevice::OnSubmittedWorkDoneEvent(WGPUQueueWorkDoneStatus status, void* self)
+{
+  vtkWebGPUDevice* d = reinterpret_cast<vtkWebGPUDevice*>(self);
+  if (!d)
+  {
+    return;
+  }
+
+  if (status != WGPUQueueWorkDoneStatus_Success)
+  {
+    const char* status_type = "";
+    switch (status)
+    {
+      case WGPUQueueWorkDoneStatus_Error:
+        status_type = "Error";
+        break;
+      case WGPUQueueWorkDoneStatus_DeviceLost:
+        status_type = "Device lost";
+        break;
+      default:
+      case WGPUQueueWorkDoneStatus_Unknown:
+        status_type = "Unknown";
+        break;
+    }
+    vtkErrorWithObjectMacro(d, << status_type);
+  }
+  d->InvokeEvent(QueueWorkDoneEvent);
 }
 
 //-------------------------------------------------------------------------------------------------
