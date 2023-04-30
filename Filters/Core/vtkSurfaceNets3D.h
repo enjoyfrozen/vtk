@@ -414,6 +414,30 @@ public:
   vtkGetSmartPointerMacro(Smoother, vtkConstrainedSmoothingFilter);
   ///@}
 
+  ///@{
+  /**
+   * This specialized method can be invoked after the filter executes to
+   * extract labeled regions as separate vtkPolyData datasets. The input to
+   * the method is the label (i.e., region) to extract. The output,
+   * consisting of points and cells, is placed into a user-provided
+   * vtkPolyData. Two optional booleans enable special operations on the
+   * operation. The first, boundaryFaces, if enabled, only extracts faces
+   * that are on the boundary of the region (i.e., are adjacent to the
+   * background). By default boundaryFaces is off. The second, cleanPoints,
+   * only outputs points that are used by the regions' cells. This means
+   * that points are renumbered and the output cells connectivity modified to
+   * reflect this renumbering, and a new vtkPoints is created. This cleaning
+   * operation takes extra time. By default, cleanPoints is off, so that the
+   * points are the same (via reference counting) as the filters output
+   * points (saving memory and cleaning costs). Note that if an invalid label
+   * id is specified, or SurfaceNets produced no output for the specified
+   * region, the regionData may be empty (i.e., contain no cells).
+   */
+  ///@}
+  void ExtractRegion(vtkIdType labelId, vtkPolyData *regionData,
+                     bool boundaryFaces=false, bool cleanPoints=false);
+
+
   // The following code is used to control what is produced for output.
 
   /**
@@ -427,7 +451,7 @@ public:
    * except that only mesh polygons that are on the boundary are produced
    * (i.e., only polygons that border the background region) - thus no
    * interior polygons are produced. OUTPUT_STYLE_SELECTED is used to extract
-   * faces bounding selected regions.
+   * all the faces bounding selected regions.
    *
    */
   enum OutputType
@@ -558,6 +582,9 @@ protected:
 
   // Support triangulation strategy
   int TriangulationStrategy;
+
+  // Support ExtractRegion()
+  vtkPolyData* SNOutput;
 
 private:
   vtkSurfaceNets3D(const vtkSurfaceNets3D&) = delete;

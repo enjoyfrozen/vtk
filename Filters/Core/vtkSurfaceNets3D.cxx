@@ -853,21 +853,6 @@ struct SurfaceNets
     } // operator()
   };  // GenerateQuadsImpl
 
-  // Finalize the quads array: after all the quads are inserted,
-  // the last offset has to be added to complete the offsets array.
-  struct FinalizeQuadsOffsetsImpl
-  {
-    template <typename CellStateT>
-    void operator()(CellStateT& state, vtkIdType numQuads)
-    {
-      using ValueType = typename CellStateT::ValueType;
-      auto* offsets = state.GetOffsets();
-      auto offsetRange = vtk::DataArrayValueRange<1>(offsets);
-      auto offsetIter = offsetRange.begin() + numQuads;
-      *offsetIter = static_cast<ValueType>(4 * numQuads);
-    }
-  };
-
   // Produce the smoothing stencils for this voxel cell.
   struct GenerateStencilImpl
   {
@@ -1005,6 +990,21 @@ struct SurfaceNets
   void GenerateOutput(vtkIdType row, vtkIdType slice); // PASS 4
 
 }; // SurfaceNets
+
+// Finalize a cells array: after all the cells are inserted,
+// the last offset has to be added to complete the offsets array.
+struct FinalizeCellsImpl
+{
+  template <typename CellStateT>
+  void operator()(CellStateT& state, vtkIdType numCells, int cellSize)
+  {
+    using ValueType = typename CellStateT::ValueType;
+    auto* offsets = state.GetOffsets();
+    auto offsetRange = vtk::DataArrayValueRange<1>(offsets);
+    auto offsetIter = offsetRange.begin() + numCells;
+    *offsetIter = static_cast<ValueType>(numCells * cellSize);
+  }
+}; // FinalizeCellsImpl
 
 // Initialize the smoothing stencil cases. There are 64 possible stencil face
 // cases, for each case, the number of active stencil edges, and then 0/1
@@ -1459,7 +1459,7 @@ void SurfaceNets<T>::ConfigureOutput(
 
     // Boundaries, a set of quads contained in vtkCellArray
     newQuads->ResizeExact(numOutQuads, 4 * numOutQuads);
-    newQuads->Visit(FinalizeQuadsOffsetsImpl{}, numOutQuads);
+    newQuads->Visit(FinalizeCellsImpl{}, numOutQuads, 4);
     this->NewQuads = newQuads;
 
     // Scalars, which are of type T and 2-components
@@ -1867,17 +1867,28 @@ struct ConvertToTrisImpl
   }
 };
 
-// Complete the cell array offsets.
-struct FinalizeMeshConversionImpl
+// Helper functions to extract cells from the output SurfaceNets and
+// copy them to another cell array.
+struct ExtractRegionImpl
 {
   template <typename CellStateT>
-  void operator()(CellStateT& state, vtkIdType numCells, vtkIdType connSize)
+  void operator()(CellStateT& state, vtkIdType cellId, vtkIdType cellSize, const vtkIdType* pts)
   {
     using ValueType = typename CellStateT::ValueType;
     auto* offsets = state.GetOffsets();
+    auto* conn = state.GetConnectivity();
+
     auto offsetRange = vtk::DataArrayValueRange<1>(offsets);
-    auto offsetIter = offsetRange.begin() + numCells;
-    *offsetIter = static_cast<ValueType>(connSize);
+    auto offsetItr = offsetRange.begin() + cellId;
+    auto connRange = vtk::DataArrayValueRange<1>(conn);
+    auto connItr = connRange.begin() + (cellId * cellSize);
+
+    // Copy the cell
+    *offsetItr++ = static_cast<ValueType>(cellSize * cellId);
+    for ( int i=0; i < cellSize; ++i)
+    {
+      *connItr++ = pts[i];
+    }
   }
 };
 
@@ -1929,7 +1940,6 @@ struct TransformMesh
   vtkSmartPointer<vtkCellArray> OutputMesh;
   int TriStrategy;
   vtkIdType NumOutputCells;
-  vtkIdType OutputConnSize;
 
   // Each thread has a cell array iterator to avoid constant allocation.
   vtkSMPThreadLocalObject<vtkIdList> TLIdList;
@@ -1940,7 +1950,6 @@ struct TransformMesh
     , OutputMesh(nullptr)
     , TriStrategy(triStrategy)
     , NumOutputCells(0)
-    , OutputConnSize(0)
   {
   }
 
@@ -2003,11 +2012,7 @@ struct TransformMesh
     } // over this batch of cells
   }
 
-  void Reduce()
-  {
-    this->OutputMesh->Visit(
-      FinalizeMeshConversionImpl{}, this->NumOutputCells, this->OutputConnSize);
-  }
+  void Reduce() {}
 }; // TransformMesh
 
 // Transform quad mesh to triangles. Also transform the cell data associated with the
@@ -2019,10 +2024,9 @@ struct TransformMeshToTris : public TransformMesh
     : TransformMesh(pts, qMesh, triStrategy)
   {
     this->NumOutputCells = 2 * qMesh->GetNumberOfCells();
-    this->OutputConnSize = 6 * qMesh->GetNumberOfCells();
-
     this->OutputMesh = vtkSmartPointer<vtkCellArray>::New();
-    this->OutputMesh->ResizeExact(this->NumOutputCells, this->OutputConnSize);
+    this->OutputMesh->ResizeExact(this->NumOutputCells, 6 * this->NumOutputCells);
+    this->OutputMesh->Visit(FinalizeCellsImpl{}, this->NumOutputCells, 6);
   }
   void Initialize() { this->TransformMesh::Initialize(); }
   void Reduce() { this->TransformMesh::Reduce(); }
@@ -2098,21 +2102,6 @@ struct CopyCellsImpl
   } // operator()
 };  // CopyCellsImpl
 
-// Finalize the copying of cells. The last offset has to be added to complete
-// the offsets array.
-struct FinalizeCopyCellsImpl
-{
-  template <typename CellStateT>
-  void operator()(CellStateT& state, vtkIdType numCells, int cellSize)
-  {
-    using ValueType = typename CellStateT::ValueType;
-    auto* offsets = state.GetOffsets();
-    auto offsetRange = vtk::DataArrayValueRange<1>(offsets);
-    auto offsetIter = offsetRange.begin() + numCells;
-    *offsetIter = static_cast<ValueType>(cellSize * numCells);
-  }
-};
-
 // Select polys for output: either on the boundary, or specified labels.
 // Boundary faces are those used by just one region. Faces surrounding (a)
 // specified region(s)/label(s) may also be extracted.
@@ -2187,7 +2176,7 @@ struct SelectWorker
     vtkCellArray* newCells = output->GetPolys();
     vtkNew<vtkCellArray> outCells;
     outCells->ResizeExact(numOutCells, cellSize * numOutCells);
-    outCells->Visit(FinalizeCopyCellsImpl{}, numOutCells, cellSize);
+    outCells->Visit(FinalizeCellsImpl{}, numOutCells, cellSize);
     vtkSMPThreadLocalObject<vtkIdList> tlIdList;
     vtkSMPTools::For(0, numCells,
       [newCells, &selectedCells, &outCells, cellSize, &tlIdList](
@@ -2236,6 +2225,101 @@ struct SelectWorker
   } // operator()
 };  // SelectWorker
 
+
+// Extract the specified region and place it into the provided polydata. Just extract
+// points and cells. This is a two part process: first count the number of cells to
+// extract, and then write the cells to the supplied vtkPolyData.
+struct ExtractWorker
+{
+  template <typename ST>
+  void operator()(
+    ST* boundaryLabels, vtkPolyData* SNOutput, vtkIdType labelId, vtkPolyData *regionData,
+    bool boundaryFaces, bool cleanPoints, vtkSurfaceNets3D* self)
+  {
+    // Extract information from the current output. The current output cells
+    // may either be triangles or quads, so the cell size is either 3 or 4,
+    // respectively.
+    using ValueType = vtk::GetAPIType<ST>;
+    vtkCellArray* inCells = SNOutput->GetPolys();
+    vtkIdType numCells = inCells->GetNumberOfCells();
+    int cellSize = static_cast<int>(inCells->GetCellSize(0)); //all cells the same size
+    static constexpr vtkIdType batchSize = 250000;
+    vtkIdType numBatches = std::ceil(static_cast<double>(numCells)/batchSize);
+
+    // Keep track of cell counts in each batch in the vector.
+    std::vector<vtkIdType> cellCounts(numBatches,0);
+    ValueType label = static_cast<ValueType>(labelId);
+    ValueType backgroundLabel = static_cast<ValueType>(self->GetBackgroundLabel());
+
+    // Count the cells in each batch
+    vtkSMPTools::For(0, numBatches, [&](vtkIdType bNum, vtkIdType endBNum) {
+      const auto inTuples = vtk::DataArrayTupleRange<2>(boundaryLabels);
+      for (; bNum < endBNum; ++bNum)
+      {
+        vtkIdType cellId = bNum * batchSize;
+        vtkIdType endCellId = cellId + batchSize;
+        endCellId = (endCellId > numCells ? numCells : endCellId);
+        for (; cellId < endCellId; ++cellId)
+        {
+          const auto inTuple = inTuples[cellId];
+          if ( (!boundaryFaces && (inTuple[0] == label || inTuple[1] == label)) ||
+               (boundaryFaces && (inTuple[0] == label && inTuple[1] == backgroundLabel)) )
+          {
+            cellCounts[bNum]++;
+          }
+        } // for all cells in this batch
+      }   // for all batches
+    });   // end lambda
+
+    // Perform a prefix sum in preparation for allocating memory and writing
+    // output cells.
+    vtkIdType numBatchCells, numOutCells = 0;
+    for (vtkIdType bNum=0; bNum < numBatches; ++ bNum)
+    {
+      numBatchCells = cellCounts[bNum];
+      cellCounts[bNum] = numOutCells;
+      numOutCells += numBatchCells;
+    }
+
+    // Allocate output, and copy cells if something found
+    if ( numOutCells <= 0 )
+    {
+      return;
+    }
+
+    vtkCellArray* newCells = regionData->GetPolys();
+    newCells->ResizeExact(numOutCells, cellSize * numOutCells);
+    newCells->Visit(FinalizeCellsImpl{}, numOutCells, cellSize);
+
+    // Traverse all batches, writing cells to the correct spot.
+    vtkSMPThreadLocalObject<vtkIdList> tlCellPointIds;
+    vtkSMPTools::For(0, numBatches, [&](vtkIdType bNum, vtkIdType endBNum) {
+      const auto inTuples = vtk::DataArrayTupleRange<2>(boundaryLabels);
+      auto cellPointIds = tlCellPointIds.Local();
+      vtkIdType npts;
+      const vtkIdType* pts;
+      for (; bNum < endBNum; ++bNum)
+      {
+        vtkIdType cellId = bNum * batchSize;
+        vtkIdType endCellId = cellId + batchSize;
+        endCellId = (endCellId > numCells ? numCells : endCellId);
+        vtkIdType newCellId = cellCounts[bNum];
+        for (; cellId < endCellId; ++cellId)
+        {
+          const auto inTuple = inTuples[cellId];
+          if ( (!boundaryFaces && (inTuple[0] == label || inTuple[1] == label)) ||
+               (boundaryFaces && (inTuple[0] == label && inTuple[1] == backgroundLabel)) )
+          {
+            inCells->GetCellAtId(cellId, npts, pts, cellPointIds);
+            newCells->Visit(ExtractRegionImpl{}, newCellId++, cellSize, pts);
+          } // if produce cell
+        }   // for all cells in this batch
+      }     // for all batches
+    });     // end lambda
+
+  } // operator()
+}; // ExtractWorker
+
 } // anonymous namespace
 
 //============================================================================
@@ -2263,6 +2347,7 @@ vtkSurfaceNets3D::vtkSurfaceNets3D()
   this->DataCaching = true;
   this->GeometryCache = vtkSmartPointer<vtkPolyData>::New();
   this->StencilsCache = vtkSmartPointer<vtkCellArray>::New();
+  this->SNOutput = nullptr;
 
   // by default process active point scalars
   this->SetInputArrayToProcess(
@@ -2283,6 +2368,38 @@ vtkMTimeType vtkSurfaceNets3D::GetMTime()
   mTime2 = this->Smoother->GetMTime();
 
   return (mTime2 > mTime ? mTime2 : mTime);
+}
+
+
+//------------------------------------------------------------------------------
+void vtkSurfaceNets3D::
+ExtractRegion(vtkIdType labelId, vtkPolyData *regionData,
+              bool boundaryFaces, bool cleanPoints)
+{
+  // Begin by creating empty cells and initializing the output polydata.
+  vtkPolyData* output = this->SNOutput;
+  if ( !output )
+  {
+    vtkErrorMacro("ExtractRegion() only available after filter execution.");
+    return;
+  }
+
+  vtkNew<vtkCellArray> regionCells;
+  regionData->SetPoints(output->GetPoints()); // may be replaced later if cleanPoints is on
+  regionData->SetPolys(regionCells);
+  if ( output->GetNumberOfCells() < 1 )
+  {
+    return; // empty output because empty input
+  }
+
+  // Dispatch on type to extract the region.
+  vtkDataArray* boundaryLabels = output->GetCellData()->GetArray("BoundaryLabels");
+  using ExtractDispatch = vtkArrayDispatch::DispatchByValueType<vtkArrayDispatch::AllTypes>;
+  ExtractWorker extractWorker;
+  ExtractDispatch::Execute(boundaryLabels, extractWorker, this->SNOutput, labelId,
+                           regionData, boundaryFaces, cleanPoints, this);
+
+  vtkDebugMacro("Extracted region: " << labelId);
 }
 
 //------------------------------------------------------------------------------
@@ -2340,6 +2457,7 @@ int vtkSurfaceNets3D::RequestData(vtkInformation* vtkNotUsed(request),
   // Get the input and output
   vtkImageData* input = vtkImageData::SafeDownCast(inInfo->Get(vtkDataObject::DATA_OBJECT()));
   vtkPolyData* output = vtkPolyData::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
+  this->SNOutput = output; // may be used by ExtractRegion()
 
   // We'll be creating boundary labels cell data
   vtkSmartPointer<vtkDataArray> newScalars;
