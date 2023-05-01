@@ -88,7 +88,7 @@ snets2.GetSmoother().SetNumberOfIterations(0)
 snets2.GetSmoother().SetRelaxationFactor(0.2)
 snets2.GetSmoother().SetConstraintDistance(0.25)
 snets2.SetOutputMeshTypeToTriangles()
-snets2.SetOutputStyleToBoundary()
+snets2.BoundaryFacesOn()
 
 timer.StartTimer()
 snets2.Update()

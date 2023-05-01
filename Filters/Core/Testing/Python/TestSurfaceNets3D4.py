@@ -9,7 +9,7 @@ math = vtk.vtkMath()
 # Test the ExtractRegion and related methods
 
 # Set the size of the test
-dim = 512
+dim = 128
 numBlobs = 36
 
 # Generate some random colors
@@ -139,9 +139,9 @@ ren2.AddActor(outlineActor)
 ren2.SetActiveCamera(ren1.GetActiveCamera())
 
 # Extract all regions
-for i in range(0,numBlobs) :
+for i in range(1,numBlobs) :
     snets.ExtractRegion(i,region)
-    snets.ExtractRegion(i,bRegion,1)
+    snets.ExtractRegion(i,bRegion,0,1)
     c = lut.GetTableValue(i)
     actor.GetProperty().SetColor(c[0],c[1],c[2])
     actor2.GetProperty().SetColor(c[0],c[1],c[2])

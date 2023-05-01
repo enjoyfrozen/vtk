@@ -82,13 +82,16 @@
  * side of the polygons composing the output vtkPolyData. (This can be used
  * for advanced operations like extracting shared/contacting boundaries
  * between two objects. The name of this cell data array is
- * "BoundaryLabels".)
+ * "BoundaryLabels".) This cell data is also referred to as the adjacency
+ * 2-tuple.
  *
  * Note also that the content of the filter's output can be controlled by
  * specifying the OutputStyle.  This produces different output which
  * may better serve a particular workflow. For example, it is possible
- * to produce just exterior boundary faces, or extract selected objects/
- * labeled regions from the surface net.
+ * to produce just exterior boundary faces, or extract selected
+ * labeled regions from the surface net. Also, in extraction mode, the
+ * filter can produce separate vtkPolyData per each region (which are
+ * placed into the second vtkPartionedDataSet output).
  *
  * Implementation note: For performance reasons, this filter is internally
  * implemented quite differently than described in the literature.  The main
@@ -148,7 +151,7 @@
  * @sa
  * vtkSurfaceNets2D vtkDiscreteMarchingCubes vtkDiscreteFlyingEdges3D
  * vtkConstrainedSmoothingFilter vtkFlyingEdges3D vtkWindowedSincPolyDataFilter
- * vtkPackLabels
+ * vtkPackLabels vtkLabelMapLookup
  */
 
 #ifndef vtkSurfaceNets3D_h
@@ -334,7 +337,10 @@ public:
   /**
    * Indicate whether smoothing should be enabled. By default, after the
    * surface net is extracted, smoothing occurs using the built-in smoother.
-   * To disable smoothing, invoke SmoothingOff().
+   * To disable smoothing, invoke SmoothingOff(). In some workflows, it is
+   * advantageous to disable smoothing, extract separate regions, and then
+   * use a separate smoother (like vtkConstrainedSmoothingFilter or
+   * vtkWindowedSincPolyDataFilter).
    */
   vtkSetMacro(Smoothing, bool);
   vtkGetMacro(Smoothing, bool);
@@ -414,6 +420,89 @@ public:
   vtkGetSmartPointerMacro(Smoother, vtkConstrainedSmoothingFilter);
   ///@}
 
+  // The following code is used to control what is produced for output.
+
+  /**
+   * This enum is used to control the production of the filter output.
+   * Different output styles are used to transform the data so they can be
+   * used in different workflows, providing tradeoffs between speed, memory,
+   * and auxiliary information. By default (OUTPUT_STYLE_DEFAULT) the filter
+   * produces a mesh with shared points and faces (i.e., points and faces are
+   * not duplicated). OUTPUT_STYLE_SELECTED is used to extract all the faces
+   * bounding the selected regions. The extraction options will output each
+   * region in a separate vtkPolyData, which are placed into a
+   * vtkPartionedDataSet filter output. OUTPUT_STYLE_EXTRACT_SELECTED
+   * extracts the selected labels. OUTPUT_STYLE_EXTRACT_ALL extracts all
+   * labels.
+   */
+  enum OutputType
+  {
+    OUTPUT_STYLE_DEFAULT = 0,
+    OUTPUT_STYLE_SELECTED,
+    OUTPUT_STYLE_EXTRACT_SELECTED, // will produce multiple outputs
+    OUTPUT_STYLE_EXTRACT_ALL       // will produce multiple outputs
+  };
+
+  ///@{
+  /**
+   * Specify the form (i.e., the style) of the output. Different styles are
+   * meant to support different workflows. See the OutputType enum
+   * description for more information. Note that OUTPUT_STYLE_DEFAULT
+   * and OUTPUT_STYLE_SELECTED cause the filter to produce a single vtkPolyData
+   * output, while OUTPUT_STYLE_EXTRACT_* will cause the filter to produce a
+   * vtkPartionedDataSet as output (which contains separate vtkPolyData for each
+   * separate region). The OutputStyle can be further modified by the data
+   * members SelectedLabelsList, BoundaryFaces, and CleanPoints.
+   */
+  vtkSetClampMacro(OutputStyle, int, OUTPUT_STYLE_DEFAULT, OUTPUT_STYLE_EXTRACT_ALL);
+  vtkGetMacro(OutputStyle, int);
+  void SetOutputStyleToDefault() { this->SetOutputStyle(OUTPUT_STYLE_DEFAULT); }
+  void SetOutputStyleToSelected() { this->SetOutputStyle(OUTPUT_STYLE_SELECTED); }
+  void SetOutputStyleToExtractSelected() { this->SetOutputStyle(OUTPUT_STYLE_EXTRACT_SELECTED); }
+  void SetOutputStyleToExtractAll() { this->SetOutputStyle(OUTPUT_STYLE_EXTRACT_ALL); }
+  ///@}
+
+  ///@{
+  /**
+   * When the OutputStyle is set to OUTPUT_STYLE_SELECTED or
+   * OUTPUT_STYLE_EXTRACT_SELECTED, these methods are used to specify the
+   * labeled regions to output.
+   */
+  void InitializeSelectedLabelsList();
+  void AddSelectedLabel(double label);
+  void DeleteSelectedLabel(double label);
+  vtkIdType GetNumberOfSelectedLabels();
+  double GetSelectedLabel(vtkIdType ithLabel);
+  ///@}
+
+  ///@{
+  /**
+   * Indicate whether only boundary faces should be output. A boundary face is an
+   * output cell (quad or triangle) that borders the background region. (An interior
+   * face is an output cell that borders two non-background regions.) By default, all
+   * faces, both interior and exterior, are extracted (i.e., BoundaryFaces is
+   * off). This affects all OutputStyle options.
+   */
+  vtkSetMacro(BoundaryFaces,bool);
+  vtkGetMacro(BoundaryFaces,bool);
+  vtkBooleanMacro(BoundaryFaces,bool);
+  ///@}
+
+  ///@{
+  /**
+   * Indicate whether the output points should be cleaned, i.e., points not
+   * used by any output cells are deleted, and the remaining points and cells
+   * are renumbered. (This option has no effect if OUTPUT_STYLE_DEFAULT is
+   * selected since in this case all points are used.) This operation may
+   * significantly impact both performance and memory. By default,
+   * CleanPoints is off.  This affects all OutputStyle options except for
+   * OUTPUT_STYLE_DEFAULT.
+   */
+  vtkSetMacro(CleanPoints,bool);
+  vtkGetMacro(CleanPoints,bool);
+  vtkBooleanMacro(CleanPoints,bool);
+  ///@}
+
   ///@{
   /**
    * This specialized method can be invoked after the filter executes to
@@ -431,67 +520,14 @@ public:
    * points are the same (via reference counting) as the filters output
    * points (saving memory and cleaning costs). Note that if an invalid label
    * id is specified, or SurfaceNets produced no output for the specified
-   * region, the regionData may be empty (i.e., contain no cells).
+   * region, the regionData may be empty (i.e., contain no cells). The method
+   * is an alternative to specifying output style, and does not cause the
+   * filter reexecute.
    */
   ///@}
   void ExtractRegion(vtkIdType labelId, vtkPolyData *regionData,
                      bool boundaryFaces=false, bool cleanPoints=false);
 
-
-  // The following code is used to control what is produced for output.
-
-  /**
-   * This enum is used to control the production of the filter output.
-   * Different output styles are used to transform the data so they can be
-   * used in different workflows, providing tradeoffs between speed, memory,
-   * and auxiliary information. By default (OUTPUT_STYLE_DEFAULT) the filter
-   * produces a mesh with shared points (i.e., points are not duplicated),
-   * and all mesh polygons, both interior and exterior, are
-   * produced. OUTPUT_STYLE_BOUNDARY is similar to OUTPUT_STYLE_DEFAULT
-   * except that only mesh polygons that are on the boundary are produced
-   * (i.e., only polygons that border the background region) - thus no
-   * interior polygons are produced. OUTPUT_STYLE_SELECTED is used to extract
-   * all the faces bounding selected regions.
-   *
-   */
-  enum OutputType
-  {
-    OUTPUT_STYLE_DEFAULT = 0,
-    OUTPUT_STYLE_BOUNDARY,
-    OUTPUT_STYLE_SELECTED
-  };
-
-  ///@{
-  /**
-   * Specify the form (i.e., the style) of the output. Different styles are
-   * meant to support different workflows. OUTPUT_STYLE_DEFAULT provides the
-   * basic information defining the output surface net. OUTPUT_STYLE_BOUNDARY
-   * produces much smaller output since the interior polygon faces are not
-   * produced.  Finally, OUTPUT_STYLE_SELECTED enables the user to extract a
-   * subset of the labeled regions. This is useful because the smoothing
-   * operation will occur across all the specified input regions, meaning
-   * that the selected regions do not change shape due to changes in the
-   * specified input regions. You must specify the selected regions (i.e.,
-   * labels) to output.
-   */
-  vtkSetClampMacro(OutputStyle, int, OUTPUT_STYLE_DEFAULT, OUTPUT_STYLE_SELECTED);
-  vtkGetMacro(OutputStyle, int);
-  void SetOutputStyleToDefault() { this->SetOutputStyle(OUTPUT_STYLE_DEFAULT); }
-  void SetOutputStyleToBoundary() { this->SetOutputStyle(OUTPUT_STYLE_BOUNDARY); }
-  void SetOutputStyleToSelected() { this->SetOutputStyle(OUTPUT_STYLE_SELECTED); }
-  ///@}
-
-  ///@{
-  /**
-   * When the OutputStyle is set to OUTPUT_STYLE_SELECTED, these methods are
-   * used to specify the labeled regions to output.
-   */
-  void InitializeSelectedLabelsList();
-  void AddSelectedLabel(double label);
-  void DeleteSelectedLabel(double label);
-  vtkIdType GetNumberOfSelectedLabels();
-  double GetSelectedLabel(vtkIdType ithLabel);
-  ///@}
 
   /**
    * This enum is used to control how quadrilaterals are triangulated.
@@ -579,6 +615,8 @@ protected:
   int OutputStyle;
   std::vector<double> SelectedLabels;
   vtkTimeStamp SelectedLabelsTime;
+  bool BoundaryFaces;
+  bool CleanPoints;
 
   // Support triangulation strategy
   int TriangulationStrategy;

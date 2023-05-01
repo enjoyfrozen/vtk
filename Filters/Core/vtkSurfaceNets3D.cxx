@@ -420,7 +420,7 @@ struct SurfaceNets
   T* Scalars;                // input image scalars
   float* NewPts;             // output points
   vtkCellArray* NewQuads;    // output quad polygons
-  T* NewScalars;             // output 2-component cell scalars if requested
+  T* NewScalars;             // output 2-component adjacency cell tuples if requested
   vtkCellArray* NewStencils; // output smoothing stencils
 
   // Internal variable to handle label processing.
@@ -2025,8 +2025,8 @@ struct TransformMeshToTris : public TransformMesh
   {
     this->NumOutputCells = 2 * qMesh->GetNumberOfCells();
     this->OutputMesh = vtkSmartPointer<vtkCellArray>::New();
-    this->OutputMesh->ResizeExact(this->NumOutputCells, 6 * this->NumOutputCells);
-    this->OutputMesh->Visit(FinalizeCellsImpl{}, this->NumOutputCells, 6);
+    this->OutputMesh->ResizeExact(this->NumOutputCells, 3 * this->NumOutputCells);
+    this->OutputMesh->Visit(FinalizeCellsImpl{}, this->NumOutputCells, 3);
   }
   void Initialize() { this->TransformMesh::Initialize(); }
   void Reduce() { this->TransformMesh::Reduce(); }
@@ -2102,14 +2102,13 @@ struct CopyCellsImpl
   } // operator()
 };  // CopyCellsImpl
 
-// Select polys for output: either on the boundary, or specified labels.
-// Boundary faces are those used by just one region. Faces surrounding (a)
-// specified region(s)/label(s) may also be extracted.
+// Select cells for output based on specified labels. Also, the BoundaryFaces
+// setting affects what is extracted.
 struct SelectWorker
 {
   template <typename ST>
   void operator()(
-    ST* newScalars, vtkPolyData* output, int outputStyle, vtkSurfaceNets3D* self, int cellSize)
+    ST* newScalars, vtkPolyData* output, vtkSurfaceNets3D* self, int cellSize)
   {
     // Extract information from the current output. The current output cells
     // may either be triangles or quads, so the cell size is either 3 or 4,
@@ -2121,35 +2120,31 @@ struct SelectWorker
     // then the input cell is not copied to the output.
     std::vector<vtkIdType> selectedCells(numCells);
 
-    // If extracting the boundary of selected regions, then need to
-    // set up a fast lookup with vtkLabelMapLookup.
-    vtkLabelMapLookup<ValueType>* lMap = nullptr;
-    if (outputStyle == vtkSurfaceNets3D::OUTPUT_STYLE_SELECTED)
+    // Need to set up a fast lookup with vtkLabelMapLookup.
+    std::vector<double> labels;
+    labels.reserve(static_cast<size_t>(self->GetNumberOfSelectedLabels()));
+    for (auto i = 0; i < self->GetNumberOfSelectedLabels(); ++i)
     {
-      std::vector<double> labels;
-      labels.reserve(static_cast<size_t>(self->GetNumberOfSelectedLabels()));
-      for (auto i = 0; i < self->GetNumberOfSelectedLabels(); ++i)
-      {
-        labels.push_back(self->GetSelectedLabel(i));
-      }
-      lMap = vtkLabelMapLookup<ValueType>::CreateLabelLookup(
-        labels.data(), self->GetNumberOfSelectedLabels());
+      labels.push_back(self->GetSelectedLabel(i));
     }
+    vtkLabelMapLookup<ValueType>* lMap = vtkLabelMapLookup<ValueType>::
+      CreateLabelLookup(labels.data(), self->GetNumberOfSelectedLabels());
+    ValueType backgroundLabel = static_cast<ValueType>(self->GetBackgroundLabel());
+    bool boundaryFaces = self->GetBoundaryFaces();
 
-    // Traverse all existing cells and mark those satisfying outputStyle
-    // criterion for extraction.
+    // Traverse all existing cells and mark those satisfying criterion for
+    // extraction.
     vtkSMPTools::For(0, numCells,
-      [&newScalars, outputStyle, &selectedCells, self, lMap](
-        vtkIdType cellId, vtkIdType endCellId) {
+      [backgroundLabel, boundaryFaces, &newScalars, &selectedCells, lMap](
+      vtkIdType cellId, vtkIdType endCellId) {
         const auto inTuples = vtk::DataArrayTupleRange<2>(newScalars);
-        ValueType backgroundLabel = static_cast<ValueType>(self->GetBackgroundLabel());
         for (; cellId < endCellId; ++cellId)
         {
           const auto inTuple = inTuples[cellId];
-          if ((outputStyle == vtkSurfaceNets3D::OUTPUT_STYLE_BOUNDARY &&
-                inTuple[1] == backgroundLabel) ||
-            (outputStyle == vtkSurfaceNets3D::OUTPUT_STYLE_SELECTED &&
-              (lMap->IsLabelValue(inTuple[0]) || lMap->IsLabelValue(inTuple[1]))))
+          if ( (boundaryFaces && (lMap->IsLabelValue(inTuple[0]) &&
+                                  inTuple[1] == backgroundLabel)) ||
+               (!boundaryFaces && (lMap->IsLabelValue(inTuple[0]) ||
+                                   lMap->IsLabelValue(inTuple[1]))) )
           {
             selectedCells[cellId] = 1;
           }
@@ -2320,6 +2315,95 @@ struct ExtractWorker
   } // operator()
 }; // ExtractWorker
 
+// Given an input vtkPolyData, eliminate unused points and renumber the cell
+// array. The method will replace the vtkPoints array, and modify the
+// vtkCellArray (points are renumbered). The method is threaded.
+void CleanPolyDataPoints(vtkPolyData* pdata)
+{
+  if ( !pdata || !pdata->GetPoints() || pdata->GetNumberOfCells() < 1 )
+  {
+    return;
+  }
+  vtkIdType numPts = pdata->GetNumberOfPoints();
+  vtkIdType numCells = pdata->GetNumberOfCells();
+  vtkPoints* inPts = pdata->GetPoints();
+  vtkCellArray* inCells = pdata->GetPolys();
+
+  // Need to mark points that are used.
+  std::atomic<unsigned char>* ptUses = new std::atomic<unsigned char>[numPts]();
+  vtkSMPThreadLocalObject<vtkIdList> tlCellPointIds;
+  vtkSMPTools::For(0, numCells, [&](vtkIdType cellId, vtkIdType endCellId) {
+    auto cellPointIds = tlCellPointIds.Local();
+    vtkIdType npts, ptIdx;
+    const vtkIdType* pts;
+    for (; cellId < endCellId; ++cellId)
+    {
+      inCells->GetCellAtId(cellId, npts, pts, cellPointIds);
+      for (ptIdx = 0; ptIdx < npts; ++ptIdx)
+      {
+        // memory_order_relaxed is safe here, since we're not using the atomics for
+        // synchronization.
+        ptUses[pts[ptIdx]].store(1, std::memory_order_relaxed);
+      }
+    }
+  }); // end lambda
+
+  // Count the number of points used and then renumber them.
+  std::vector<vtkIdType> ptMap(numPts);
+  vtkIdType numNewPts = 0;
+  for (vtkIdType pId = 0; pId < numPts; ++pId)
+  {
+    if ( ptUses[pId] > 0 )
+    {
+      ptMap[pId] = numNewPts++;
+    }
+    else
+    {
+      ptMap[pId] = (-1);
+    }
+  }
+  delete [] ptUses;
+
+  // Allocate points and copy over.
+  vtkNew<vtkPoints> outPts;
+  outPts->SetDataTypeToFloat();
+  outPts->SetNumberOfPoints(numNewPts);
+  pdata->SetPoints(outPts);
+  float* inPtsPtr = static_cast<vtkFloatArray*>(inPts->GetData())->GetPointer(0);
+  float* outPtsPtr = static_cast<vtkFloatArray*>(outPts->GetData())->GetPointer(0);
+  vtkSMPTools::For(0, numPts, [&](vtkIdType pId, vtkIdType endPId) {
+    for (; pId < endPId; ++pId)
+    {
+      if ( ptMap[pId] >= 0 )
+      {
+        float* xIn = inPtsPtr + 3*pId;
+        float* xOut = outPtsPtr + 3*ptMap[pId];
+        xOut[0] = xIn[0];
+        xOut[1] = xIn[1];
+        xOut[2] = xIn[2];
+      }
+    }
+  }); // end lambda
+
+  // Now renumber the cells in place.
+  vtkSMPTools::For(0, numCells, [&](vtkIdType cellId, vtkIdType endCellId) {
+    auto cellPointIds = tlCellPointIds.Local();
+    vtkIdType npts, ptIdx, newPts[4];
+    const vtkIdType* pts;
+    for (; cellId < endCellId; ++cellId)
+    {
+      inCells->GetCellAtId(cellId, npts, pts, cellPointIds);
+      for (vtkIdType i=0; i < npts; ++i)
+      {
+        newPts[i] = ptMap[pts[i]];
+      }
+      inCells->ReplaceCellAtId(cellId, npts, newPts);
+    }
+  }); // end lambda
+
+}; // CleanPolyDataPoints
+
+
 } // anonymous namespace
 
 //============================================================================
@@ -2341,6 +2425,8 @@ vtkSurfaceNets3D::vtkSurfaceNets3D()
   this->ConstraintScale = 2.0;
 
   this->OutputStyle = OUTPUT_STYLE_DEFAULT;
+  this->BoundaryFaces = false;
+  this->CleanPoints = false;
 
   this->TriangulationStrategy = TRIANGULATION_MIN_EDGE;
 
@@ -2399,6 +2485,11 @@ ExtractRegion(vtkIdType labelId, vtkPolyData *regionData,
   ExtractDispatch::Execute(boundaryLabels, extractWorker, this->SNOutput, labelId,
                            regionData, boundaryFaces, cleanPoints, this);
 
+  // If cleaning is requested, do so at this time.
+  if (cleanPoints)
+  {
+    CleanPolyDataPoints(regionData);
+  }
   vtkDebugMacro("Extracted region: " << labelId);
 }
 
@@ -2578,16 +2669,19 @@ int vtkSurfaceNets3D::RequestData(vtkInformation* vtkNotUsed(request),
   }
 
   // If the output style is other than default, then extra works needs
-  // to be done to extract a portion of the output (e.g., boundary faces,
-  // or faces associated with a specified region). This modifies the number
-  // of output cells, and the associated cell data.
-  if (this->OutputStyle != OUTPUT_STYLE_DEFAULT)
+  // to be done to extract the output.
+  if (this->OutputStyle == OUTPUT_STYLE_SELECTED)
   {
     using SelectDispatch = vtkArrayDispatch::DispatchByValueType<vtkArrayDispatch::AllTypes>;
     SelectWorker selectWorker;
-    SelectDispatch::Execute(output->GetCellData()->GetArray("BoundaryLabels"), selectWorker, output,
-      this->OutputStyle, this, cellSize);
+    SelectDispatch::Execute(output->GetCellData()->GetArray("BoundaryLabels"), selectWorker,
+      output, this, cellSize);
     vtkLog(INFO, "Selected: " << output->GetNumberOfCells() << " cells");
+  }
+  else if (this->OutputStyle == OUTPUT_STYLE_EXTRACT_SELECTED ||
+           this->OutputStyle == OUTPUT_STYLE_EXTRACT_ALL )
+  { // Create a second vtkPartionedDataSet output
+
   }
 
   // Flush the cache if caching is disabled.
@@ -2646,6 +2740,8 @@ void vtkSurfaceNets3D::PrintSelf(ostream& os, vtkIndent indent)
 
   os << indent << "Output Style: " << this->OutputStyle << endl;
   os << indent << "Number of Selected Labels: " << this->SelectedLabels.size() << endl;
+  os << indent << "Boundary Faces: " << (this->BoundaryFaces ? "On\n" : "Off\n");
+  os << indent << "CleanPoints: " << (this->CleanPoints ? "On\n" : "Off\n");
 
   os << indent << "Triangulation Strategy: " << this->TriangulationStrategy << endl;
 

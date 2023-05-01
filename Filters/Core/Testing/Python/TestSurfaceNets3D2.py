@@ -123,7 +123,7 @@ snets2.GetSmoother().SetRelaxationFactor(0.5)
 snets2.GetSmoother().SetConstraintDistance(1)
 snets2.SetOutputMeshTypeToQuads()
 snets2.SetOutputMeshTypeToTriangles()
-snets2.SetOutputStyleToBoundary()
+snets2.BoundaryFacesOff()
 
 timer = vtk.vtkTimerLog()
 timer.StartTimer()
