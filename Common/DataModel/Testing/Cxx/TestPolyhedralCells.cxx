@@ -148,6 +148,10 @@ int TestPolyhedralCells(int argc, char* argv[])
             << "[-5, 5, -5, 5, -10, 10]. It has " << polyhedron->GetNumberOfEdges() << " edges and "
             << polyhedron->GetNumberOfFaces() << " faces." << std::endl;
 
+  std::cout << "Testing polyhedron deepcopy is a cube of with bounds "
+            << "[-5, 5, -5, 5, -10, 10]. It has " << polyhedron_copy->GetNumberOfEdges()
+            << " edges and " << polyhedron_copy->GetNumberOfFaces() << " faces." << std::endl;
+
   double p1[3] = { -100, 0, 0 };
   double p2[3] = { 100, 0, 0 };
   double tol = 0.001;
