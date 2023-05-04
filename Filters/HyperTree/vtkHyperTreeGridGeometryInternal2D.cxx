@@ -486,7 +486,7 @@ void vtkHyperTreeGridGeometry::vtkInternal2D::buildCellPoints()
 void vtkHyperTreeGridGeometry::vtkInternal2D::processLeafCellWithInterface(
   vtkIdType _inputCellIndex)
 {
-  if (!this->extractCellInterface(_inputCellIndex))
+  if (!this->extractCellInterface(_inputCellIndex, false))
   { // case type >= 2, pure cell
     this->processLeafCellWithoutInterface(_inputCellIndex);
     return;

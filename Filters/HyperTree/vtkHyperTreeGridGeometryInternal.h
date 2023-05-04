@@ -129,7 +129,7 @@ protected:
   bool isMaskedOrGhosted(vtkIdType _global_node_index) const;
 
   //----------------------------------------------------------------------------------------------
-  bool extractCellInterface(vtkIdType _inputCellIndex);
+  bool extractCellInterface(vtkIdType _inputCellIndex, bool _with_inversion = true);
 
   //----------------------------------------------------------------------------------------------
   // pour savoir si la cellule voisine est pure ou non

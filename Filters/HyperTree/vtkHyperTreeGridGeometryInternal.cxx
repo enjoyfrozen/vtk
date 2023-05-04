@@ -192,7 +192,8 @@ bool vtkHyperTreeGridGeometry::vtkInternal::isMaskedOrGhosted(vtkIdType _global_
 }
 
 //----------------------------------------------------------------------------------------------
-bool vtkHyperTreeGridGeometry::vtkInternal::extractCellInterface(vtkIdType _inputCellIndex)
+bool vtkHyperTreeGridGeometry::vtkInternal::extractCellInterface(
+  vtkIdType _inputCellIndex, bool _with_inversion)
 {
   // This method determines if the cell with the _inputCellIndex offset cell is a mixed cell
   // and if so, its characteristics.
@@ -274,7 +275,7 @@ bool vtkHyperTreeGridGeometry::vtkInternal::extractCellInterface(vtkIdType _inpu
     TRACE("extractCellInterface mixed cell type# 0")
     double dD = this->m_cell_intercepts[1] - this->m_cell_intercepts[0];
     TRACE("extractCellInterface d2-d1# " << dD)
-    if (dD >= 0)
+    if (!_with_inversion || dD >= 0)
     {
       TRACE("extractCellInterface dD valide")
     }
