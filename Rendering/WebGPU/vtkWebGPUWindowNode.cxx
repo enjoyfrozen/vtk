@@ -17,8 +17,13 @@
 #include "vtkWebGPUWindowNode.h"
 
 #include "vtkObjectFactory.h"
+#include "vtkWebGPUInstance.h"
+#include "vtkWebGPURenderWindow.h"
 
 VTK_ABI_NAMESPACE_BEGIN
+//-------------------------------------------------------------------------------------------------
+vtkCxxSetObjectMacro(vtkWebGPUWindowNode, Instance, vtkWebGPUInstance);
+
 //-------------------------------------------------------------------------------------------------
 vtkStandardNewMacro(vtkWebGPUWindowNode);
 
@@ -33,4 +38,25 @@ void vtkWebGPUWindowNode::PrintSelf(ostream& os, vtkIndent indent)
 {
   // os << indent << " = " << this-> << endl;
 }
+
+//------------------------------------------------------------------------------------------------
+void vtkWebGPUWindowNode::SetRenderable(vtkObject* obj)
+{
+  if (this->Renderable == obj)
+  {
+    return;
+  }
+
+  vtkWebGPURenderWindow* renWin = vtkWebGPURenderWindow::SafeDownCast(obj);
+  if (!renWin)
+  {
+    vtkErrorMacro(<< "Renderable must be of type vtkWebGPURenderWindow or its subclass."
+                  << "Instead, found " << obj->GetClassName());
+    return;
+  }
+}
+
+//------------------------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------------------------
 VTK_ABI_NAMESPACE_END
