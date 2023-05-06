@@ -497,7 +497,7 @@ struct SurfaceNets
   // The first pass is used to classify the x-edges of the dyads.
   // Threading integration via SMPTools; this method supports the
   // processing of a single x-edge,
-  void ClassifyXEdges(T* inPtr, vtkIdType row, vtkLabelMapLookup<T>* lMap); // PASS 1
+  void ClassifyXEdges(T* inPtr, vtkIdType row, vtkLabelMapLookup<T,double>* lMap); // PASS 1
 
   // The second pass is used to classify the y-edges of the dyads.
   // This method supports the processing of a x-row of squares.
@@ -580,7 +580,7 @@ const unsigned char SurfaceNets<T>::StencilCases[16][5] = {
 // associated with a pixel are processed: the padded / partial dyads are treated
 // as special cases.
 template <typename T>
-void SurfaceNets<T>::ClassifyXEdges(T* inPtr, vtkIdType row, vtkLabelMapLookup<T>* lMap)
+void SurfaceNets<T>::ClassifyXEdges(T* inPtr, vtkIdType row, vtkLabelMapLookup<T,double>* lMap)
 {
   T s0, s1 = (*inPtr); // s1 first pixel in row
   bool isLV0, isLV1 = lMap->IsLabelValue(s1);
@@ -949,16 +949,16 @@ struct NetsWorker
     SurfaceNets<T>* Algo;
     // The label map lookup caches information, so to avoid race conditions,
     // an instance per thread must be created.
-    vtkSMPThreadLocal<vtkLabelMapLookup<T>*> LMap;
+    vtkSMPThreadLocal<vtkLabelMapLookup<T,double>*> LMap;
     Pass1(SurfaceNets<T>* algo) { this->Algo = algo; }
     void Initialize()
     {
       this->LMap.Local() =
-        vtkLabelMapLookup<T>::CreateLabelLookup(Algo->LabelValues, Algo->NumLabels);
+        vtkLabelMapLookup<T,double>::CreateLabelLookup(Algo->LabelValues, Algo->NumLabels);
     }
     void operator()(vtkIdType row, vtkIdType end)
     {
-      vtkLabelMapLookup<T>* lMap = this->LMap.Local();
+      vtkLabelMapLookup<T,double>* lMap = this->LMap.Local();
       T* rowPtr = this->Algo->Scalars + (row - 1) * this->Algo->Inc1;
       for (; row < end; ++row)
       {
@@ -1127,7 +1127,7 @@ struct NetsWorker
     // This algorithm executes just once no matter how many contour/label
     // values, requiring a fast lookup as to whether a data/pixel value is a
     // contour value, or should be considered part of the background. In
-    // Pass1, instances of vtkLabelMapLookup<T> are created (per thread)
+    // Pass1, instances of vtkLabelMapLookup<T,TSet> are created (per thread)
     // which performs the fast label lookup.
     algo.NumLabels = self->GetNumberOfLabels();
     algo.LabelValues = self->GetValues();

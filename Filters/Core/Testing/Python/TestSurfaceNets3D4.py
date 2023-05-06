@@ -91,7 +91,7 @@ snets.Update()
 
 # Blobs are extracted into this
 region = vtk.vtkPolyData()
-bRegion = vtk.vtkPolyData()
+partition = vtk.vtkPartitionedDataSet()
 
 mapper = vtk.vtkPolyDataMapper()
 mapper.SetInputData(region)
@@ -99,8 +99,8 @@ mapper.SetInputData(region)
 actor = vtk.vtkActor()
 actor.SetMapper(mapper)
 
-mapper2 = vtk.vtkPolyDataMapper()
-mapper2.SetInputData(bRegion)
+mapper2 = vtk.vtkCompositePolyDataMapper2()
+mapper2.SetInputDataObject(partition)
 
 actor2 = vtk.vtkActor()
 actor2.SetMapper(mapper2)
@@ -139,12 +139,11 @@ ren2.AddActor(outlineActor)
 ren2.SetActiveCamera(ren1.GetActiveCamera())
 
 # Extract all regions
-for i in range(1,numBlobs) :
-    snets.ExtractRegion(i,region)
-    snets.ExtractRegion(i,bRegion,0,1)
-    c = lut.GetTableValue(i)
-    actor.GetProperty().SetColor(c[0],c[1],c[2])
-    actor2.GetProperty().SetColor(c[0],c[1],c[2])
-    renWin.Render()
+snets.ExtractRegion(12,region)
+print("Extract Region: ", region.GetNumberOfPoints(), " points, ", region.GetNumberOfCells(), " cells.")
 
+labels = [12,2,3,4,5,6,7,8,9,10,1,11,13,36]
+snets.ExtractRegions(len(labels),labels,partition,1,1)
+
+renWin.Render()
 iren.Start()

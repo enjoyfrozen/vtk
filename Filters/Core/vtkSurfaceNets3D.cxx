@@ -25,6 +25,7 @@
 #include "vtkLabelMapLookup.h"
 #include "vtkLogger.h"
 #include "vtkObjectFactory.h"
+#include "vtkPartitionedDataSet.h"
 #include "vtkPolyData.h"
 #include "vtkSMPThreadLocalObject.h"
 #include "vtkSMPTools.h"
@@ -971,7 +972,7 @@ struct SurfaceNets
   // Threading integration via SMPTools; this method processes a
   // single x-edge.
   void ClassifyXEdges(
-    T* inPtr, vtkIdType row, vtkIdType slice, vtkLabelMapLookup<T>* lMap); // PASS 1
+    T* inPtr, vtkIdType row, vtkIdType slice, vtkLabelMapLookup<T,double>* lMap); // PASS 1
 
   // The second pass is used to classify the y- and z-edges of the triads.
   // This method processes an x-row of voxels.
@@ -1167,7 +1168,7 @@ void SurfaceNets<T>::GenerateEdgeStencils(int optLevel)
 // processed.
 template <typename T>
 void SurfaceNets<T>::ClassifyXEdges(
-  T* inPtr, vtkIdType row, vtkIdType slice, vtkLabelMapLookup<T>* lMap)
+  T* inPtr, vtkIdType row, vtkIdType slice, vtkLabelMapLookup<T,double>* lMap)
 {
   T s0, s1 = (*inPtr); // s1 is the first voxel value in the current row
   bool isLV0, isLV1 = lMap->IsLabelValue(s1);
@@ -1577,16 +1578,16 @@ struct NetsWorker
     SurfaceNets<T>* Algo;
     // The label map lookup caches information, so to avoid race conditions,
     // an instance per thread must be created.
-    vtkSMPThreadLocal<vtkLabelMapLookup<T>*> LMap;
+    vtkSMPThreadLocal<vtkLabelMapLookup<T,double>*> LMap;
     Pass1(SurfaceNets<T>* algo) { this->Algo = algo; }
     void Initialize()
     {
       this->LMap.Local() =
-        vtkLabelMapLookup<T>::CreateLabelLookup(Algo->LabelValues, Algo->NumLabels);
+        vtkLabelMapLookup<T,double>::CreateLabelLookup(Algo->LabelValues, Algo->NumLabels);
     }
     void operator()(vtkIdType slice, vtkIdType endSlice)
     {
-      vtkLabelMapLookup<T>* lMap = this->LMap.Local();
+      vtkLabelMapLookup<T,double>* lMap = this->LMap.Local();
       T *rowPtr, *slicePtr = this->Algo->Scalars + (slice - 1) * this->Algo->Inc2;
 
       // Process slice-by-slice. Note that the bottom and top slices are not
@@ -1771,7 +1772,7 @@ struct NetsWorker
     // This algorithm executes just once no matter how many contour/label
     // values, requiring a fast lookup as to whether a data/voxel value is a
     // contour value, or should be considered part of the background. In
-    // Pass1, instances of vtkLabelMapLookup<T> are created (per thread)
+    // Pass1, instances of vtkLabelMapLookup<T,TSet> are created (per thread)
     // which performs the fast label lookup.
     algo.NumLabels = self->GetNumberOfLabels();
     algo.LabelValues = self->GetValues();
@@ -2127,7 +2128,7 @@ struct SelectWorker
     {
       labels.push_back(self->GetSelectedLabel(i));
     }
-    vtkLabelMapLookup<ValueType>* lMap = vtkLabelMapLookup<ValueType>::
+    vtkLabelMapLookup<ValueType,double>* lMap = vtkLabelMapLookup<ValueType,double>::
       CreateLabelLookup(labels.data(), self->GetNumberOfSelectedLabels());
     ValueType backgroundLabel = static_cast<ValueType>(self->GetBackgroundLabel());
     bool boundaryFaces = self->GetBoundaryFaces();
@@ -2216,20 +2217,142 @@ struct SelectWorker
     // Now update the filter output with the new cells, and new cell data.
     output->SetPolys(outCells);
     output->GetCellData()->AddArray(outScalars);
-
   } // operator()
 };  // SelectWorker
 
+// A 2D matrix keeps track of output information when extracting regions. The
+// ith column corresponds to label id. The jth row corresponds to batches,
+// i.e., the number of cells in each batch.
+using CountMatrix = std::vector<std::vector<vtkIdType>>;
 
-// Extract the specified region and place it into the provided polydata. Just extract
-// points and cells. This is a two part process: first count the number of cells to
-// extract, and then write the cells to the supplied vtkPolyData.
-struct ExtractWorker
+// Functor for extracting regions from the SurfaceNets mesh. It runs in two
+// modes: first it counts the cells to extract (for each label/region); then
+// after allocation, it actually extracts the cells and places them into each
+// regions' vtkCellArray (and hence associated vtkPolyData).
+template <typename ST>
+struct ExtractRegionsFunctor
+{
+  using ValueType = vtk::GetAPIType<ST>;
+  vtkIdType NumInCells;
+  vtkCellArray *InCells;
+  vtkIdType CellSize;
+  vtkIdType NumLabels;
+  vtkIdType *Labels;
+  vtkCellArray** OutCellArrays;
+  vtkIdType BatchSize;
+  CountMatrix& CellCounts;
+  ST* BoundaryLabels;
+  ValueType BackgroundLabel;
+  bool BoundaryFaces;
+  bool Counting;
+
+  // Used as temporary / scratch variable
+  vtkSMPThreadLocalObject<vtkIdList> CellPointIds;
+  // Label map is not thread safe due to caching
+  vtkSMPThreadLocal<vtkLabelMapLookup<ValueType,vtkIdType>*> LMap;
+
+  ExtractRegionsFunctor(vtkIdType numInCells, vtkCellArray* inCells,
+    vtkIdType cellSize, vtkIdType numLabels, vtkIdType* labels,
+    vtkCellArray** outCellArrays, vtkIdType batchSize, CountMatrix& cellCounts,
+    ST* boundaryLabels, ValueType backgroundLabel, bool boundaryFaces) :
+      NumInCells(numInCells), InCells(inCells), CellSize(cellSize),
+      NumLabels(numLabels), Labels(labels), OutCellArrays(outCellArrays),
+      BatchSize(batchSize), CellCounts(cellCounts), BoundaryLabels(boundaryLabels),
+      BackgroundLabel(backgroundLabel), BoundaryFaces(boundaryFaces), Counting(true)
+  {
+  }
+
+  void Initialize()
+  {
+    this->LMap.Local() =
+      vtkLabelMapLookup<ValueType,vtkIdType>::CreateLabelLookup(this->Labels, this->NumLabels);
+  }
+
+  void operator()(vtkIdType batchNum, vtkIdType endBatchNum)
+  {
+    auto cellPointIds = this->CellPointIds.Local();
+    vtkLabelMapLookup<ValueType,vtkIdType>* lMap = this->LMap.Local();
+    vtkIdType cellSize = this->CellSize;
+    vtkIdType npts;
+    const vtkIdType* pts;
+    bool boundaryFaces = this->BoundaryFaces;
+    ValueType backgroundLabel = this->BackgroundLabel;
+    vtkCellArray* inCells = this->InCells;
+    vtkCellArray** cellArrays = this->OutCellArrays;
+    const auto inTuples = vtk::DataArrayTupleRange<2>(this->BoundaryLabels);
+    CountMatrix& cellCounts = this->CellCounts;
+
+    for (; batchNum < endBatchNum; ++batchNum)
+    {
+      vtkIdType cellId = batchNum * this->BatchSize;
+      vtkIdType endCellId = cellId + this->BatchSize;
+      endCellId = (endCellId > this->NumInCells ? this->NumInCells : endCellId);
+      vtkIdType lID0, lID1;
+      for (; cellId < endCellId; ++cellId)
+      {
+        const auto inTuple = inTuples[cellId];
+        bool tuple0 = (!boundaryFaces || inTuple[1] == backgroundLabel) &&
+          lMap->IsLabelValue(inTuple[0],lID0);
+        bool tuple1 = !boundaryFaces && lMap->IsLabelValue(inTuple[1],lID1);
+
+        if ( tuple0 || tuple1 )
+        {
+          if ( this->Counting ) // counting the number of cells
+          {
+            if (tuple0)
+            {
+              cellCounts[lID0][batchNum]++;
+            }
+            if (tuple1)
+            {
+              cellCounts[lID1][batchNum]++;
+            }
+          }
+          else // inserting cells
+          {
+            inCells->GetCellAtId(cellId, npts, pts, cellPointIds);
+            if (tuple0)
+            {
+              cellArrays[lID0]->Visit(ExtractRegionImpl{}, cellCounts[lID0][batchNum]++, cellSize, pts);
+            }
+            if (tuple1)
+            {
+              cellArrays[lID1]->Visit(ExtractRegionImpl{}, cellCounts[lID1][batchNum]++, cellSize, pts);
+            }
+          } // inserting cells
+        }   // if cell to be counted or inserted
+      }     // for all cells in this batch
+    }       // for all batches
+  }         // operator()
+
+  void Reduce()
+  {
+    // Delete all of the label map lookups
+    if ( !this->Counting )
+    {
+      for (auto lmItr = this->LMap.begin(); lmItr != this->LMap.end(); ++lmItr)
+      {
+        delete *lmItr;
+      } // over all threads
+    }
+  }
+}; // ExtractRegionsFunctor
+
+
+// Extract the specified regions and place them into the provided partitioned
+// data set. Just extract points and cells for each polydata composing the
+// partitioned dataset. For each region, this is a two part process: first
+// count the number of cells to extract, and then write the cells to the
+// supplied vtkPolyData/vtkCellArray. This processes all cells in all regions
+// simultaneously. Note this algorithm makes only two passes over the output
+// SurfaceNets mesh, no matter the number of labeled regions in the SurfaceNet.
+struct ExtractRegionsWorker
 {
   template <typename ST>
   void operator()(
-    ST* boundaryLabels, vtkPolyData* SNOutput, vtkIdType labelId, vtkPolyData *regionData,
-    bool boundaryFaces, bool cleanPoints, vtkSurfaceNets3D* self)
+    ST* boundaryLabels, vtkPolyData* SNOutput, vtkIdType numLabels,
+    vtkIdType *labels, vtkPartitionedDataSet* dataSets, bool boundaryFaces,
+    bool cleanPoints, vtkSurfaceNets3D* self)
   {
     // Extract information from the current output. The current output cells
     // may either be triangles or quads, so the cell size is either 3 or 4,
@@ -2238,82 +2361,55 @@ struct ExtractWorker
     vtkCellArray* inCells = SNOutput->GetPolys();
     vtkIdType numCells = inCells->GetNumberOfCells();
     int cellSize = static_cast<int>(inCells->GetCellSize(0)); //all cells the same size
+
+    // Cells are processed in large batches.
     static constexpr vtkIdType batchSize = 250000;
     vtkIdType numBatches = std::ceil(static_cast<double>(numCells)/batchSize);
 
-    // Keep track of cell counts in each batch in the vector.
-    std::vector<vtkIdType> cellCounts(numBatches,0);
-    ValueType label = static_cast<ValueType>(labelId);
+    // Create a 2D matrix. The ith column corresponds to label id. The jth row corresponds
+    // to batches, i.e., the number of cells in each batch. We also have to initialize the
+    // matrix values to 0.
+    CountMatrix cellCounts(numLabels,std::vector<vtkIdType>(numBatches,0));
     ValueType backgroundLabel = static_cast<ValueType>(self->GetBackgroundLabel());
 
-    // Count the cells in each batch
-    vtkSMPTools::For(0, numBatches, [&](vtkIdType bNum, vtkIdType endBNum) {
-      const auto inTuples = vtk::DataArrayTupleRange<2>(boundaryLabels);
-      for (; bNum < endBNum; ++bNum)
-      {
-        vtkIdType cellId = bNum * batchSize;
-        vtkIdType endCellId = cellId + batchSize;
-        endCellId = (endCellId > numCells ? numCells : endCellId);
-        for (; cellId < endCellId; ++cellId)
-        {
-          const auto inTuple = inTuples[cellId];
-          if ( (!boundaryFaces && (inTuple[0] == label || inTuple[1] == label)) ||
-               (boundaryFaces && (inTuple[0] == label && inTuple[1] == backgroundLabel)) )
-          {
-            cellCounts[bNum]++;
-          }
-        } // for all cells in this batch
-      }   // for all batches
-    });   // end lambda
-
-    // Perform a prefix sum in preparation for allocating memory and writing
-    // output cells.
-    vtkIdType numBatchCells, numOutCells = 0;
-    for (vtkIdType bNum=0; bNum < numBatches; ++ bNum)
+    // Access the output cell arrays.
+    std::vector<vtkCellArray*> cellArrays(numLabels);
+    for ( vtkIdType labelId = 0; labelId < numLabels; ++labelId )
     {
-      numBatchCells = cellCounts[bNum];
-      cellCounts[bNum] = numOutCells;
-      numOutCells += numBatchCells;
+      cellArrays[labelId] = vtkPolyData::SafeDownCast(dataSets->GetPartition(labelId))->GetPolys();
     }
 
-    // Allocate output, and copy cells if something found
-    if ( numOutCells <= 0 )
-    {
-      return;
-    }
+    // Create the functor to count the number of cells to be extracted.
+    ExtractRegionsFunctor<ST> extract(numCells,inCells,cellSize,numLabels,labels,
+      cellArrays.data(),batchSize,cellCounts,boundaryLabels,backgroundLabel,boundaryFaces);
+    extract.Counting = true;
+    vtkSMPTools::For(0, numBatches, extract);
 
-    vtkCellArray* newCells = regionData->GetPolys();
-    newCells->ResizeExact(numOutCells, cellSize * numOutCells);
-    newCells->Visit(FinalizeCellsImpl{}, numOutCells, cellSize);
-
-    // Traverse all batches, writing cells to the correct spot.
-    vtkSMPThreadLocalObject<vtkIdList> tlCellPointIds;
-    vtkSMPTools::For(0, numBatches, [&](vtkIdType bNum, vtkIdType endBNum) {
-      const auto inTuples = vtk::DataArrayTupleRange<2>(boundaryLabels);
-      auto cellPointIds = tlCellPointIds.Local();
-      vtkIdType npts;
-      const vtkIdType* pts;
-      for (; bNum < endBNum; ++bNum)
+    // Perform a prefix sum across all labels in preparation for allocating
+    // memory foe each output cell array and writing output cells.
+    vtkSMPTools::For(0, numLabels, [&](vtkIdType lId, vtkIdType endLId) {
+      for ( ; lId < endLId; ++lId)
       {
-        vtkIdType cellId = bNum * batchSize;
-        vtkIdType endCellId = cellId + batchSize;
-        endCellId = (endCellId > numCells ? numCells : endCellId);
-        vtkIdType newCellId = cellCounts[bNum];
-        for (; cellId < endCellId; ++cellId)
+        vtkIdType numBatchCells, numOutCells = 0;
+        for (vtkIdType bNum=0; bNum < numBatches; ++ bNum)
         {
-          const auto inTuple = inTuples[cellId];
-          if ( (!boundaryFaces && (inTuple[0] == label || inTuple[1] == label)) ||
-               (boundaryFaces && (inTuple[0] == label && inTuple[1] == backgroundLabel)) )
-          {
-            inCells->GetCellAtId(cellId, npts, pts, cellPointIds);
-            newCells->Visit(ExtractRegionImpl{}, newCellId++, cellSize, pts);
-          } // if produce cell
-        }   // for all cells in this batch
-      }     // for all batches
-    });     // end lambda
+          numBatchCells = cellCounts[lId][bNum];
+          cellCounts[lId][bNum] = numOutCells;
+          numOutCells += numBatchCells;
+        }
+        // Now allocate cell arrays
+        cellArrays[lId]->ResizeExact(numOutCells, cellSize * numOutCells);
+        cellArrays[lId]->Visit(FinalizeCellsImpl{}, numOutCells, cellSize);
+      } // for each label id
+    });
+
+    // Now copy cells to the appropriate output cell array. Traverse all
+    // batches, writing cells to the correct spot.
+    extract.Counting = false; // enter insert cells mode
+    vtkSMPTools::For(0, numBatches, extract);
 
   } // operator()
-}; // ExtractWorker
+}; // ExtractRegionsWorker
 
 // Given an input vtkPolyData, eliminate unused points and renumber the cell
 // array. The method will replace the vtkPoints array, and modify the
@@ -2458,6 +2554,8 @@ vtkMTimeType vtkSurfaceNets3D::GetMTime()
 
 
 //------------------------------------------------------------------------------
+// Extract a single region from the SurfaceNet. Place the result into the
+// user-provided vtkPolyData.
 void vtkSurfaceNets3D::
 ExtractRegion(vtkIdType labelId, vtkPolyData *regionData,
               bool boundaryFaces, bool cleanPoints)
@@ -2478,20 +2576,81 @@ ExtractRegion(vtkIdType labelId, vtkPolyData *regionData,
     return; // empty output because empty input
   }
 
+  // Need a placeholder vtkPartitionedDataSet
+  vtkNew<vtkPartitionedDataSet> dataSets;
+  dataSets->SetNumberOfPartitions(1);
+  dataSets->SetPartition(0,regionData);
+  std::vector<vtkIdType> labels = {labelId};
+
   // Dispatch on type to extract the region.
   vtkDataArray* boundaryLabels = output->GetCellData()->GetArray("BoundaryLabels");
   using ExtractDispatch = vtkArrayDispatch::DispatchByValueType<vtkArrayDispatch::AllTypes>;
-  ExtractWorker extractWorker;
-  ExtractDispatch::Execute(boundaryLabels, extractWorker, this->SNOutput, labelId,
-                           regionData, boundaryFaces, cleanPoints, this);
+  ExtractRegionsWorker extractWorker;
+  ExtractDispatch::Execute(boundaryLabels, extractWorker, this->SNOutput, 1,
+                           labels.data(), dataSets, boundaryFaces, cleanPoints, this);
 
   // If cleaning is requested, do so at this time.
   if (cleanPoints)
   {
     CleanPolyDataPoints(regionData);
   }
+
   vtkDebugMacro("Extracted region: " << labelId);
 }
+
+//------------------------------------------------------------------------------
+// Extract multiple regions from the SurfaceNet. Place the result into the
+// user-provided vtkPartionedDataSet.
+void vtkSurfaceNets3D::
+ExtractRegions(vtkIdType numLabels, vtkIdType *labels,
+               vtkPartitionedDataSet *dataSets,
+               bool boundaryFaces, bool cleanPoints)
+{
+  // Begin by creating empty cells and initializing the output polydata.
+  vtkPolyData* output = this->SNOutput;
+  if ( !output )
+  {
+    vtkErrorMacro("ExtractRegions() only available after filter execution.");
+    return;
+  }
+
+  // Initialize the partitioned dataset
+  dataSets->SetNumberOfPartitions(0); // wipes anything that is there
+  if ( numLabels < 1 )
+  {
+    vtkErrorMacro("ExtractRegions() requires at least one label.");
+    return;
+  }
+  dataSets->SetNumberOfPartitions(numLabels);
+
+  // Now construct vtkPolyData and vtkCellArrays for each labeled region.
+  for ( vtkIdType labelId=0; labelId < numLabels; ++labelId )
+  {
+    vtkNew<vtkPolyData> pd;
+    vtkNew<vtkCellArray> ca;
+    pd->SetPoints(output->GetPoints());
+    pd->SetPolys(ca);
+    dataSets->SetPartition(labelId, pd);
+  }
+
+  // Dispatch to the extraction method.
+  vtkDataArray* boundaryLabels = output->GetCellData()->GetArray("BoundaryLabels");
+  using ExtractDispatch = vtkArrayDispatch::DispatchByValueType<vtkArrayDispatch::AllTypes>;
+  ExtractRegionsWorker extractWorker;
+  ExtractDispatch::Execute(boundaryLabels, extractWorker, this->SNOutput, numLabels,
+                           labels, dataSets, boundaryFaces, cleanPoints, this);
+
+  // Clean points if requested.
+  if (cleanPoints)
+  {
+    for ( vtkIdType labelId=0; labelId < numLabels; ++labelId )
+    {
+      vtkPolyData* pd = vtkPolyData::SafeDownCast(dataSets->GetPartition(labelId));
+      CleanPolyDataPoints(pd);
+    }
+  }
+
+} // ExtractRegions
 
 //------------------------------------------------------------------------------
 // Selected labels are used to output regions/labels if the OutputStyle is

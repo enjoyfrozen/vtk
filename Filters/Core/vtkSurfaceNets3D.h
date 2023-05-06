@@ -168,6 +168,7 @@
 VTK_ABI_NAMESPACE_BEGIN
 
 class vtkImageData;
+class vtkPartitionedDataSet;
 
 class VTKFILTERSCORE_EXPORT vtkSurfaceNets3D : public vtkPolyDataAlgorithm
 {
@@ -503,7 +504,6 @@ public:
   vtkBooleanMacro(CleanPoints,bool);
   ///@}
 
-  ///@{
   /**
    * This specialized method can be invoked after the filter executes to
    * extract labeled regions as separate vtkPolyData datasets. The input to
@@ -522,11 +522,26 @@ public:
    * id is specified, or SurfaceNets produced no output for the specified
    * region, the regionData may be empty (i.e., contain no cells). The method
    * is an alternative to specifying output style, and does not cause the
-   * filter reexecute.
+   * filter to reexecute.
    */
-  ///@}
   void ExtractRegion(vtkIdType labelId, vtkPolyData *regionData,
                      bool boundaryFaces=false, bool cleanPoints=false);
+
+
+  /**
+   * This specialized method can be invoked after the filter executes to
+   * extract a set of labeled regions as separate vtkPolyData datasets. The
+   * input to the method is a list of labels (i.e., regions) to extract:
+   * specify the number of labels numLables, and an array of labels. The
+   * output consists of multiple vtkPolyData (one for each of the numLabels
+   * input labels), where the vtkPolyData is added to a user-provided
+   * vtkPartitionedDataSet. See the documentation for ExtractRegion() for
+   * more information. Note this method can produce a lot of data very fast,
+   * one polydata for each label in the label set is created.
+   */
+  void ExtractRegions(vtkIdType numLabels, vtkIdType* labels,
+                      vtkPartitionedDataSet *regions,
+                      bool boundaryFaces=false, bool cleanPoints=false);
 
 
   /**
