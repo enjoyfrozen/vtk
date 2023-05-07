@@ -78,32 +78,56 @@ orientation = [
 ]
 blobImage.SetDirectionMatrix(orientation)
 
-# Extract labeled blobs with no smoothing
-snets = vtk.vtkSurfaceNets3D()
-snets.SetInputData(blobImage)
-snets.GenerateLabels(numBlobs, 1, numBlobs)
-snets.SetConstraintScale(1.5)
-snets.GetSmoother().SetNumberOfIterations(0)
-snets.GetSmoother().SetRelaxationFactor(0.5)
-snets.SetOutputMeshTypeToQuads()
-snets.SetOutputMeshTypeToTriangles()
-snets.Update()
+# Extract single region
+snets1 = vtk.vtkSurfaceNets3D()
+snets1.SetInputData(blobImage)
+snets1.GenerateLabels(numBlobs, 1, numBlobs)
+snets1.SetConstraintScale(1.5)
+snets1.GetSmoother().SetNumberOfIterations(0)
+snets1.GetSmoother().SetRelaxationFactor(0.5)
+snets1.SetOutputMeshTypeToTriangles()
+snets1.SetOutputStyleToExtractSelected()
+snets1.AddSelectedLabel(12)
+snets1.Update()
 
-# Blobs are extracted into this
-region = vtk.vtkPolyData()
-partition = vtk.vtkPartitionedDataSet()
+mapper1 = vtk.vtkCompositePolyDataMapper2()
+mapper1.SetInputConnection(snets1.GetOutputPort(1))
 
-mapper = vtk.vtkPolyDataMapper()
-mapper.SetInputData(region)
+actor1 = vtk.vtkActor()
+actor1.SetMapper(mapper1)
 
-actor = vtk.vtkActor()
-actor.SetMapper(mapper)
+# Extract multiple regions
+snets2 = vtk.vtkSurfaceNets3D()
+snets2.SetInputData(blobImage)
+snets2.GenerateLabels(numBlobs, 1, numBlobs)
+snets2.SetConstraintScale(1.5)
+snets2.GetSmoother().SetNumberOfIterations(0)
+snets2.GetSmoother().SetRelaxationFactor(0.5)
+snets2.SetOutputMeshTypeToTriangles()
+snets2.SetOutputStyleToExtractAll()
+snets2.Update()
 
 mapper2 = vtk.vtkCompositePolyDataMapper2()
-mapper2.SetInputDataObject(partition)
+mapper2.SetInputConnection(snets2.GetOutputPort(1))
 
 actor2 = vtk.vtkActor()
 actor2.SetMapper(mapper2)
+
+# Regions are extracted into these
+region = vtk.vtkPolyData()
+partition = vtk.vtkPartitionedDataSet()
+
+mapper3 = vtk.vtkPolyDataMapper()
+mapper3.SetInputData(region)
+
+actor3 = vtk.vtkActor()
+actor3.SetMapper(mapper3)
+
+mapper4 = vtk.vtkCompositePolyDataMapper2()
+mapper4.SetInputDataObject(partition)
+
+actor4 = vtk.vtkActor()
+actor4.SetMapper(mapper4)
 
 # Put an outline around it
 outline = vtk.vtkImageDataOutlineFilter()
@@ -119,31 +143,47 @@ outlineActor.GetProperty().SetColor(1,1,1)
 # Create the RenderWindow, Renderer and both Actors
 #
 ren1 = vtk.vtkRenderer()
-ren1.SetViewport(0,0,0.5,1)
+ren1.SetViewport(0,0,0.5,0.5)
 ren2 = vtk.vtkRenderer()
-ren2.SetViewport(0.5,0,1,1)
+ren2.SetViewport(0.5,0,1,0.5)
+ren3 = vtk.vtkRenderer()
+ren3.SetViewport(0,0.5,0.5,1)
+ren4 = vtk.vtkRenderer()
+ren4.SetViewport(0.5,0.5,1,1)
+
 renWin = vtk.vtkRenderWindow()
-renWin.SetSize(400,200)
+renWin.SetSize(400,400)
 renWin.AddRenderer(ren1)
 renWin.AddRenderer(ren2)
+renWin.AddRenderer(ren3)
+renWin.AddRenderer(ren4)
 
 iren = vtk.vtkRenderWindowInteractor()
 iren.SetRenderWindow(renWin)
 
-ren1.AddActor(actor)
+ren1.AddActor(actor1)
 ren1.AddActor(outlineActor)
 ren1.ResetCamera()
+ren1.GetActiveCamera().Zoom(1.25)
 
 ren2.AddActor(actor2)
 ren2.AddActor(outlineActor)
 ren2.SetActiveCamera(ren1.GetActiveCamera())
 
+ren3.AddActor(actor3)
+ren3.AddActor(outlineActor)
+ren3.SetActiveCamera(ren1.GetActiveCamera())
+
+ren4.AddActor(actor4)
+ren4.AddActor(outlineActor)
+ren4.SetActiveCamera(ren1.GetActiveCamera())
+
 # Extract all regions
-snets.ExtractRegion(12,region)
+snets1.ExtractRegion(12,region)
 print("Extract Region: ", region.GetNumberOfPoints(), " points, ", region.GetNumberOfCells(), " cells.")
 
 labels = [12,2,3,4,5,6,7,8,9,10,1,11,13,36]
-snets.ExtractRegions(len(labels),labels,partition,1,1)
+snets2.ExtractRegions(len(labels),labels,partition,1,1)
 
 renWin.Render()
 iren.Start()

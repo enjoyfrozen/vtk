@@ -2534,6 +2534,9 @@ vtkSurfaceNets3D::vtkSurfaceNets3D()
   // by default process active point scalars
   this->SetInputArrayToProcess(
     0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, vtkDataSetAttributes::SCALARS);
+
+  // This may have two outputs if extraction is requested.
+  this->SetNumberOfOutputPorts(2);
 }
 
 //------------------------------------------------------------------------------
@@ -2615,7 +2618,6 @@ ExtractRegions(vtkIdType numLabels, vtkIdType *labels,
   }
 
   // Initialize the partitioned dataset
-  dataSets->SetNumberOfPartitions(0); // wipes anything that is there
   if ( numLabels < 1 )
   {
     vtkErrorMacro("ExtractRegions() requires at least one label.");
@@ -2703,11 +2705,13 @@ int vtkSurfaceNets3D::RequestData(vtkInformation* vtkNotUsed(request),
   // Get the information objects
   vtkInformation* inInfo = inputVector[0]->GetInformationObject(0);
   vtkInformation* outInfo = outputVector->GetInformationObject(0);
+  vtkInformation* outInfo2 = outputVector->GetInformationObject(1);
 
   // Get the input and output
   vtkImageData* input = vtkImageData::SafeDownCast(inInfo->Get(vtkDataObject::DATA_OBJECT()));
   vtkPolyData* output = vtkPolyData::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
   this->SNOutput = output; // may be used by ExtractRegion()
+  vtkPartitionedDataSet* pds = vtkPartitionedDataSet::SafeDownCast(outInfo2->Get(vtkDataObject::DATA_OBJECT()));
 
   // We'll be creating boundary labels cell data
   vtkSmartPointer<vtkDataArray> newScalars;
@@ -2837,10 +2841,25 @@ int vtkSurfaceNets3D::RequestData(vtkInformation* vtkNotUsed(request),
       output, this, cellSize);
     vtkLog(INFO, "Selected: " << output->GetNumberOfCells() << " cells");
   }
-  else if (this->OutputStyle == OUTPUT_STYLE_EXTRACT_SELECTED ||
-           this->OutputStyle == OUTPUT_STYLE_EXTRACT_ALL )
-  { // Create a second vtkPartionedDataSet output
+  else if (pds && (this->OutputStyle == OUTPUT_STYLE_EXTRACT_SELECTED ||
+                   this->OutputStyle == OUTPUT_STYLE_EXTRACT_ALL) )
+  {
+    // Create a second vtkPartionedDataSet output
+    vtkIdType numLabels = this->GetNumberOfLabels();
+    const double* labelValues = this->GetValues();
+    std::vector<vtkIdType> extLabels;
+    if ( this->OutputStyle == OUTPUT_STYLE_EXTRACT_ALL )
+    {
+      extLabels.insert(extLabels.end(), labelValues, labelValues+numLabels);
+    }
+    else
+    {
+      extLabels.insert(extLabels.end(), this->SelectedLabels.begin(),
+                       this->SelectedLabels.end());
+    }
 
+    this->ExtractRegions(extLabels.size(), extLabels.data(), pds, this->BoundaryFaces,
+                         this->CleanPoints);
   }
 
   // Flush the cache if caching is disabled.
@@ -2876,6 +2895,23 @@ int vtkSurfaceNets3D::FillInputPortInformation(int, vtkInformation* info)
 {
   info->Set(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "vtkImageData");
   return 1;
+}
+
+//------------------------------------------------------------------------------
+int vtkSurfaceNets3D::FillOutputPortInformation(int port, vtkInformation* info)
+{
+  if (port == 1)
+  {
+    info->Set(vtkDataObject::DATA_TYPE_NAME(), "vtkPartitionedDataSet");
+    return 1;
+  }
+  else
+  {
+    info->Set(vtkDataObject::DATA_TYPE_NAME(), "vtkPolyData");
+    return 1;
+  }
+
+  return 0;
 }
 
 //------------------------------------------------------------------------------

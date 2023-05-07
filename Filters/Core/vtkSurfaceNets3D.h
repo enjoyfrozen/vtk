@@ -601,6 +601,7 @@ protected:
   // Support visualization pipeline operations.
   int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
   int FillInputPortInformation(int port, vtkInformation* info) override;
+  int FillOutputPortInformation(int port, vtkInformation* info) override;
 
   // Support the contouring operation.
   vtkSmartPointer<vtkContourValues> Labels;
