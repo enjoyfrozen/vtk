@@ -20,17 +20,42 @@
 ** test that the data is aggregated down to two processes. It uses a simple
 ** point count to verify results.
 */
+#include "vtkCellData.h"
 #include "vtkDIYAggregateDataSetFilter.h"
-#include "vtkDataSet.h"
 #include "vtkIdentityTransform.h"
+#include "vtkImageData.h"
 #include "vtkMPICommunicator.h"
 #include "vtkMPIController.h"
 #include "vtkNew.h"
 #include "vtkPointSet.h"
 #include "vtkRTAnalyticSource.h"
 #include "vtkTransformFilter.h"
+#include "vtkTrivialProducer.h"
+#include "vtkUnsignedCharArray.h"
 
 #include <vtk_mpi.h>
+
+namespace
+{
+// we're really just looking for a DUPLICATECELL
+bool HasGhostCell(vtkDataSet* grid)
+{
+  vtkUnsignedCharArray* ghostArray = vtkUnsignedCharArray::SafeDownCast(
+    grid->GetCellData()->GetArray(vtkDataSetAttributes::GhostArrayName()));
+  if (ghostArray == nullptr)
+  {
+    return false;
+  }
+  for (vtkIdType i = 0; i < ghostArray->GetNumberOfTuples(); i++)
+  {
+    if (ghostArray->GetValue(i) == vtkDataSetAttributes::DUPLICATECELL)
+    {
+      return true;
+    }
+  }
+  return false;
+}
+} // end anonymous namespace
 
 int DIYAggregateDataSet(int argc, char* argv[])
 {
@@ -128,6 +153,44 @@ int DIYAggregateDataSet(int argc, char* argv[])
   aggregate2->Delete();
   transform->Delete();
   wavelet2->Delete();
+
+  // Now we test that ghost cell information is handled properly after aggregation.
+  // Create and execute pipeline
+  vtkNew<vtkRTAnalyticSource> wavelet3;
+  wavelet->UpdatePiece(me, numProcs, 1); // 1 is to make sure we have ghost levels
+
+  int wholeExtent[6];
+  wavelet3->GetWholeExtent(wholeExtent);
+  vtkImageData* imageData = vtkImageData::SafeDownCast(wavelet3->GetOutputDataObject(0));
+
+  // check that we have ghost cells now
+  if (HasGhostCell(imageData) == false)
+  {
+    vtkGenericWarningMacro("Trying to create a dataset with ghost cells but failed");
+    contr->Finalize();
+    contr->Delete();
+    return EXIT_FAILURE;
+  }
+  vtkTrivialProducer* producer = vtkTrivialProducer::New();
+  producer->SetOutput(imageData);
+  producer->SetWholeExtent(wholeExtent);
+
+  vtkDIYAggregateDataSetFilter* aggregate3 = vtkDIYAggregateDataSetFilter::New();
+
+  aggregate3->SetInputConnection(producer->GetOutputPort());
+  aggregate3->SetNumberOfTargetProcesses(2);
+
+  aggregate3->UpdatePiece(me, numProcs, 0);
+  imageData = vtkImageData::SafeDownCast(aggregate3->GetOutputDataObject(0));
+
+  // check that we do not have ghost cells now
+  if (HasGhostCell(imageData) == true)
+  {
+    vtkGenericWarningMacro("Should not have any ghost cells but they exist");
+    retVal = EXIT_FAILURE;
+  }
+
+  aggregate3->Delete();
 
   contr->Finalize();
   contr->Delete();
