@@ -103,10 +103,14 @@ int vtkRandomHyperTreeGridSource::RequestData(
                      vtkDoubleArray* array, vtkIdType numPoints, double minBound, double maxBound) {
     array->SetNumberOfComponents(1);
     array->SetNumberOfTuples(numPoints);
-    double step = (maxBound - minBound) / static_cast<double>(numPoints - 1);
-    for (int i = 0; i < numPoints; ++i)
-    {
-      array->SetTypedComponent(i, 0, minBound + step * i);
+    if (numPoints == 1) {
+        array->SetTypedComponent(0, 0, minBound);    
+    } else {
+      double step = (maxBound - minBound) / static_cast<double>(numPoints - 1);
+      for (int i = 0; i < numPoints; ++i)
+      {
+        array->SetTypedComponent(i, 0, minBound + step * i);
+      }
     }
   };
 
@@ -131,6 +135,11 @@ int vtkRandomHyperTreeGridSource::RequestData(
     vtkNew<vtkDoubleArray> coords;
     fillArray(coords, this->Dimensions[2], this->OutputBounds[4], this->OutputBounds[5]);
     htg->SetZCoordinates(coords);
+    
+    std::cerr << "coords ##" << coords->GetNumberOfTuples() << std::endl;
+    for (int i = 0; i<coords->GetNumberOfTuples(); ++i) {
+        std::cerr << "   #" << i << " " << coords->GetValue(i) << std::endl;
+    }
   }
 
   vtkNew<vtkDoubleArray> levels;
@@ -139,11 +148,11 @@ int vtkRandomHyperTreeGridSource::RequestData(
   this->Levels = levels;
 
   vtkIdType treeOffset = 0;
-  for (int i = updateExtent[0]; i < updateExtent[1]; ++i)
+  for (int i = updateExtent[0]; (i == updateExtent[1] && updateExtent[0] == updateExtent[1]) || i < updateExtent[1]; ++i)
   {
-    for (int j = updateExtent[2]; j < updateExtent[3]; ++j)
+    for (int j = updateExtent[2]; (j == updateExtent[3] && updateExtent[2] == updateExtent[3]) || j < updateExtent[3]; ++j)
     {
-      for (int k = updateExtent[4]; k < updateExtent[5]; ++k)
+      for (int k = updateExtent[4]; (k == updateExtent[5] && updateExtent[4] == updateExtent[5]) || k < updateExtent[5]; ++k)
       {
         vtkIdType treeId;
         htg->GetIndexFromLevelZeroCoordinates(treeId, static_cast<unsigned int>(i),

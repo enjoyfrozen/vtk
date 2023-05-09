@@ -29,7 +29,7 @@
  * @par Thanks:
  * This class was written by Guenole Harel and Jacques-Bernard Lekien 2014
  * This class was revised by Philippe Pebay, 2016
- * This class was modified by Jacques-Bernard Lekien, 2018
+ * This class was modified by Jacques-Bernard Lekien, 2018-23
  * This work was supported by Commissariat a l'Energie Atomique
  * CEA, DAM, DIF, F-91297 Arpajon, France.
  */
@@ -49,14 +49,15 @@ class vtkCellData;
 class vtkContourHelper;
 class vtkDataArray;
 class vtkHyperTreeGrid;
+class vtkHyperTreeGridNonOrientedCursor;
+class vtkHyperTreeGridNonOrientedMooreSuperCursor;
 class vtkIdList;
 class vtkIncrementalPointLocator;
 class vtkLine;
 class vtkPixel;
 class vtkUnsignedCharArray;
+class vtkCell;
 class vtkVoxel;
-class vtkHyperTreeGridNonOrientedCursor;
-class vtkHyperTreeGridNonOrientedMooreSuperCursor;
 
 class VTKFILTERSHYPERTREE_EXPORT vtkHyperTreeGridContour : public vtkHyperTreeGridAlgorithm
 {
@@ -114,7 +115,24 @@ protected:
   int ProcessTrees(vtkHyperTreeGrid*, vtkDataObject*) override;
 
   /**
-   * Recursively decide whether a cell is intersected by a contour
+   * Recursively decide whether a cell is:
+   *
+   * Case SelectedCells=0. CellSigns=1.
+   * - either a LEAF cell whose value is GREATER the defined value of the contour;
+   * - either a COARSE cell of which ALL the values of CHILD cells are GREATER
+   *   at the defined value of the contour;
+   *
+   * Case SelectedCells=0. CellSigns=0.
+   * - either a LEAF cell whose value is LOWER the defined value of the contour;
+   * - either a COARSE cell of which ALL the values of CHILD cells are LOWER
+   *   at the defined value of the contour;
+   *
+   * Case SelectedCells=1. CellSigns=ignored.
+   * - NEVER concerns a LEAF cell;
+   * - a COARSE cell of with:
+   *   - at least one child cell with a LOWER value;
+   *   - at least one child cell with a GREATER value;
+   *   at the defined value of the contour.
    */
   bool RecursivelyPreProcessTree(vtkHyperTreeGridNonOrientedCursor*);
 
@@ -122,6 +140,12 @@ protected:
    * Recursively descend into tree down to leaves
    */
   void RecursivelyProcessTree(vtkHyperTreeGridNonOrientedMooreSuperCursor*);
+
+  /**
+   * Compute contour for one cell
+   */
+  void ComputeCell(vtkHyperTreeGridNonOrientedMooreSuperCursor*, vtkIdType, double*, vtkCell*,
+    const std::vector<vtkIdType>&);
 
   /**
    * Storage for contour values.
@@ -154,11 +178,6 @@ protected:
   vtkVoxel* Voxel;
   vtkIdList* Leaves;
   ///@}
-
-  /**
-   * Storage for signs relative to current contour value
-   */
-  std::vector<bool> Signs;
 
   /**
    * Keep track of current index in output polydata
