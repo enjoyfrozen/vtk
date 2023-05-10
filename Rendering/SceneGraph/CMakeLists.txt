@@ -5,6 +5,7 @@ set(classes
   vtkMapperNode
   vtkPolyDataMapperNode
   vtkRendererNode
+  vtkSceneGraphRenderPass
   vtkViewNode
   vtkViewNodeFactory
   vtkVolumeMapperNode
