@@ -171,7 +171,8 @@ public:
     }
 
     // Not in the cache, check the vector
-    for ( labelId=0; labelId < this->Map.size(); ++labelId )
+    vtkIdType size = static_cast<vtkIdType>(this->Map.size());
+    for ( labelId=0; labelId < size; ++labelId )
     {
       if ( label == this->Map[labelId] )
       {

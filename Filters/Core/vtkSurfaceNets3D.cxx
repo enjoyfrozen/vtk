@@ -2352,7 +2352,7 @@ struct ExtractRegionsWorker
   void operator()(
     ST* boundaryLabels, vtkPolyData* SNOutput, vtkIdType numLabels,
     vtkIdType *labels, vtkPartitionedDataSet* dataSets, bool boundaryFaces,
-    bool cleanPoints, vtkSurfaceNets3D* self)
+    vtkSurfaceNets3D* self)
   {
     // Extract information from the current output. The current output cells
     // may either be triangles or quads, so the cell size is either 3 or 4,
@@ -2484,7 +2484,7 @@ void CleanPolyDataPoints(vtkPolyData* pdata)
   // Now renumber the cells in place.
   vtkSMPTools::For(0, numCells, [&](vtkIdType cellId, vtkIdType endCellId) {
     auto cellPointIds = tlCellPointIds.Local();
-    vtkIdType npts, ptIdx, newPts[4];
+    vtkIdType npts, newPts[4];
     const vtkIdType* pts;
     for (; cellId < endCellId; ++cellId)
     {
@@ -2590,7 +2590,7 @@ ExtractRegion(vtkIdType labelId, vtkPolyData *regionData,
   using ExtractDispatch = vtkArrayDispatch::DispatchByValueType<vtkArrayDispatch::AllTypes>;
   ExtractRegionsWorker extractWorker;
   ExtractDispatch::Execute(boundaryLabels, extractWorker, this->SNOutput, 1,
-                           labels.data(), dataSets, boundaryFaces, cleanPoints, this);
+                           labels.data(), dataSets, boundaryFaces, this);
 
   // If cleaning is requested, do so at this time.
   if (cleanPoints)
@@ -2640,7 +2640,7 @@ ExtractRegions(vtkIdType numLabels, vtkIdType *labels,
   using ExtractDispatch = vtkArrayDispatch::DispatchByValueType<vtkArrayDispatch::AllTypes>;
   ExtractRegionsWorker extractWorker;
   ExtractDispatch::Execute(boundaryLabels, extractWorker, this->SNOutput, numLabels,
-                           labels, dataSets, boundaryFaces, cleanPoints, this);
+                           labels, dataSets, boundaryFaces, this);
 
   // Clean points if requested.
   if (cleanPoints)
