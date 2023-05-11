@@ -2287,7 +2287,7 @@ struct ExtractRegionsFunctor
       vtkIdType cellId = batchNum * this->BatchSize;
       vtkIdType endCellId = cellId + this->BatchSize;
       endCellId = (endCellId > this->NumInCells ? this->NumInCells : endCellId);
-      vtkIdType lID0, lID1;
+      vtkIdType lID0=0, lID1=0;
       for (; cellId < endCellId; ++cellId)
       {
         const auto inTuple = inTuples[cellId];
@@ -2910,8 +2910,6 @@ int vtkSurfaceNets3D::FillOutputPortInformation(int port, vtkInformation* info)
     info->Set(vtkDataObject::DATA_TYPE_NAME(), "vtkPolyData");
     return 1;
   }
-
-  return 0;
 }
 
 //------------------------------------------------------------------------------
