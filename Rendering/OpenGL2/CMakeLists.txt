@@ -223,7 +223,7 @@ set(opengl_overrides
   Texture)
 
 include(vtkOpenGLOptions)
-if (VTK_OPENGL_USE_GLES)
+if (VTK_OPENGL_USE_GLES OR VTK_APPLE_IOS) # TODO: probably needs to be fixed elsewhere
   # Add custom overrides
   set(opengles_overrides
     PolyDataMapper
