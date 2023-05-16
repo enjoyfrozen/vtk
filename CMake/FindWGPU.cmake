@@ -18,7 +18,7 @@ This module will set the following variables in your project:
 ``WGPU_FOUND``
   true if wgpu headers and libraries were found
 ``WGPU_INCLUDE_DIR``
-the directory containing wgpu-native headers (webgpu.h and wgpu.h)
+  the directory containing wgpu-native headers (webgpu.h and wgpu.h)
 ``WGPU_INCLUDE_DIRS``
   list of the include directories needed to use wgpu
 ``WGPU_LIBRARY``
@@ -33,8 +33,8 @@ the directory containing wgpu-native headers (webgpu.h and wgpu.h)
   the wgpu patch version
 
 This module reads hints about search locations from variables:
- ``ENV WGPU_ROOT`` or just ``WGPU_ROOT`` - root directory of tbb installation
- ``ENV WGPU_BUILD_PREFIX`` - specifies the build prefix for user built tbb
+ ``ENV WGPU_ROOT`` or just ``WGPU_ROOT`` - root directory of wgpu installation
+ ``ENV WGPU_BUILD_PREFIX`` - specifies the build prefix for user built wgpu
                         libraries. Should be specified with ``ENV WGPU_ROOT``
                         and optionally...
  ``ENV WGPU_BUILD_DIR`` - if build directory is different than
@@ -46,28 +46,34 @@ Cache variables
 The following cache variables may also be set:
 
 ``WGPU_INCLUDE_DIR``
-  the directory containing wgpu-native headers
+  the directory containing wgpu-native headers (wgpu.h and webgpu.h)
 ``WGPU_LIBRARY``
-  path to the wgpu-native library
+  path to the wgpu-native library (wgpu-native.dll/libwgpu-native.so)
 #]=======================================================================]
 
 # ===============================================
 # See if we have env vars to help us find wgpu
 # ===============================================
 set(ENV_WGPU_ROOT $ENV{WGPU_ROOT})
+if(WGPU_ROOT AND NOT ENV_WGPU_ROOT)
+  set(ENV_WGPU_ROOT ${WGPU_ROOT})
+endif()
 if(ENV_WGPU_ROOT)
   string(REGEX REPLACE "\\\\" "/" ENV_WGPU_ROOT ${ENV_WGPU_ROOT})
 endif()
 
 # initialize search paths
-set(WGPU_PREFIX_PATH ${WGPU_ROOT} ${ENV_WGPU_ROOT})
-set(WGPU_INC_SEARCH_PATH ${WGPU_ROOT} ${ENV_WGPU_ROOT})
-set(WGPU_LIB_SEARCH_PATH ${WGPU_ROOT} ${ENV_WGPU_ROOT})
+set(WGPU_PREFIX_PATH ${ENV_WGPU_ROOT})
+set(WGPU_INC_SEARCH_PATH ${ENV_WGPU_ROOT})
+set(WGPU_LIB_SEARCH_PATH ${ENV_WGPU_ROOT})
 
 # If user built from sources
 set(WGPU_BUILD_PREFIX $ENV{WGPU_BUILD_PREFIX})
+set(ENV_WGPU_BUILD_DIR $ENV{WGPU_BUILD_DIR})
+if(WGPU_BUILD_DIR AND NOT ENV_WGPU_BUILD_DIR)
+  set(ENV_WGPU_BUILD_DIR ${WGPU_BUILD_DIR})
+endif()
 if(WGPU_BUILD_PREFIX AND ENV_WGPU_ROOT)
-  set(ENV_WGPU_BUILD_DIR $ENV{WGPU_BUILD_DIR})
   if(ENV_WGPU_BUILD_DIR)
     string(REGEX REPLACE "\\\\" "/" ENV_WGPU_BUILD_DIR ${ENV_WGPU_BUILD_DIR})
   else()
@@ -83,10 +89,12 @@ endif()
 find_library(
   WGPU_LIBRARY
   NAMES wgpu_native
+  DOC "Path to wgpu_native library"
   PATHS ${WGPU_LIB_SEARCH_PATH})
 find_path(
   WGPU_INCLUDE_DIR
   NAMES wgpu.h
+  DOC "Path to generated wgpu.h"
   PATHS ${WGPU_INC_SEARCH_PATH})
 
 if(NOT WGPU_VERSION)
