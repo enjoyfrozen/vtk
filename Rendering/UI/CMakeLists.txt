@@ -13,8 +13,11 @@ if (VTK_USE_X)
     vtk_object_factory_declare(
       BASE vtkRenderWindowInteractor
       OVERRIDE vtkXRenderWindowInteractor)
+    vtk_object_factory_declare(
+      BASE vtkHardwareWindow
+      OVERRIDE vtkXlibHardwareWindow)
   endif ()
-  list(APPEND classes vtkXRenderWindowInteractor)
+  list(APPEND classes vtkXlibHardwareWindow vtkXRenderWindowInteractor)
 elseif (WIN32)
   # Add some custom overrides
   if (NOT VTK_DEFAULT_RENDER_WINDOW_HEADLESS)
@@ -78,74 +81,82 @@ if (VTK_USE_SDL2 OR CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
     BASE vtkRenderWindowInteractor
     OVERRIDE vtkSDL2RenderWindowInteractor)
   list(APPEND classes vtkSDL2RenderWindowInteractor)
-  set (intial_cpp_code
-    "
-    // defaults
-    #ifdef __EMSCRIPTEN__
-    int use_platform = 0\;
-    int use_sdl2 = 1\;
-    #else
-    int use_platform = 1\;
-    int use_sdl2 = 0\;
-    #endif
-    // Query the enviromental for backend to use.
-    if(const char* p = std::getenv(\"VTK_WINDOW_BACKEND\"))
-    {
-      const std::string backend(p)\;
-      if(backend == \"PLATFORM\")
-      {
-        use_sdl2 = 0\;
-        use_platform = 1\;
-      }
-      else if(backend == \"SDL2\")
-      {
-        #ifndef VTK_ENABLE_SDL2
-        vtkLogF(ERROR,\"SDL2 backend requested but the SDL2 backend was not compiled\")\;
-        #else
-        use_sdl2 = 1\;
-        use_platform = 0\;
-        #endif
-      }
-      else
-      {
-        vtkLogF(ERROR,\"Unknown backend '%p', using default platform native window\",backend.c_str())\;
-      }
-    }
-      // register the factory before modyfing the overrrides so it is found below
-    vtkRenderingUIObjectFactory* renderingUIFactory = vtkRenderingUIObjectFactory::New()\;
-    if (renderingUIFactory)
-    {
-      // vtkObjectFactory keeps a reference to the factory,
-      vtkObjectFactory::RegisterFactory(renderingUIFactory)\;
-      renderingUIFactory->Delete()\;
-    }
-    vtkObjectFactory* object_factory\;
-    vtkCollectionSimpleIterator osit\;
-    for (vtkObjectFactory::GetRegisteredFactories()->InitTraversal(osit)\;
-        (object_factory = vtkObjectFactory::GetRegisteredFactories()->GetNextObjectFactory(osit))\;)
-    {
-      if (object_factory->HasOverride(\"vtkRenderWindowInteractor\"))
-      {
-        if (use_sdl2 && !use_platform)
-        {
-          object_factory->SetEnableFlag(use_sdl2, \"vtkRenderWindowInteractor\", \"vtkSDL2RenderWindowInteractor\")\;
-          // disable ALL other interactor overrides.
-          object_factory->SetEnableFlag(0, \"vtkRenderWindowInteractor\", \"vtkGenericRenderWindowInteractor\")\;
-          object_factory->SetEnableFlag(0, \"vtkRenderWindowInteractor\", \"vtkCocoaRenderWindowInteractor\")\;
-          object_factory->SetEnableFlag(0, \"vtkRenderWindowInteractor\", \"vtkWin32RenderWindowInteractor\")\;
-          object_factory->SetEnableFlag(0, \"vtkRenderWindowInteractor\", \"vtkXRenderWindowInteractor\")\;
-        }
-      }
-    }"
-  )
+#   set (intial_cpp_code
+#     "
+#     // defaults
+#     #ifdef __EMSCRIPTEN__
+#     int use_platform = 0\;
+#     int use_sdl2 = 1\;
+#     #else
+#     int use_platform = 1\;
+#     int use_sdl2 = 0\;
+#     #endif
+#     // Query the enviromental for backend to use.
+#     if(const char* p = std::getenv(\"VTK_WINDOW_BACKEND\"))
+#     {
+#       const std::string backend(p)\;
+#       if(backend == \"PLATFORM\")
+#       {
+#         use_sdl2 = 0\;
+#         use_platform = 1\;
+#       }
+#       else if(backend == \"SDL2\")
+#       {
+#         #ifndef VTK_ENABLE_SDL2
+#         vtkLogF(ERROR,\"SDL2 backend requested but the SDL2 backend was not compiled\")\;
+#         #else
+#         use_sdl2 = 1\;
+#         use_platform = 0\;
+#         #endif
+#       }
+#       else
+#       {
+#         vtkLogF(ERROR,\"Unknown backend '%p', using default platform native window\",backend.c_str())\;
+#       }
+#     }
+#       // register the factory before modyfing the overrrides so it is found below
+#     vtkRenderingUIObjectFactory* renderingUIFactory = vtkRenderingUIObjectFactory::New()\;
+#     if (renderingUIFactory)
+#     {
+#       // vtkObjectFactory keeps a reference to the factory,
+#       vtkObjectFactory::RegisterFactory(renderingUIFactory)\;
+#       renderingUIFactory->Delete()\;
+#     }
+#     vtkObjectFactory* object_factory\;
+#     vtkCollectionSimpleIterator osit\;
+#     for (vtkObjectFactory::GetRegisteredFactories()->InitTraversal(osit)\;
+#         (object_factory = vtkObjectFactory::GetRegisteredFactories()->GetNextObjectFactory(osit))\;)
+#     {
+#       if (object_factory->HasOverride(\"vtkRenderWindowInteractor\"))
+#       {
+#         if (use_sdl2 && !use_platform)
+#         {
+#           object_factory->SetEnableFlag(use_sdl2, \"vtkRenderWindowInteractor\", \"vtkSDL2RenderWindowInteractor\")\;
+#           // disable ALL other interactor overrides.
+#           object_factory->SetEnableFlag(0, \"vtkRenderWindowInteractor\", \"vtkGenericRenderWindowInteractor\")\;
+#           object_factory->SetEnableFlag(0, \"vtkRenderWindowInteractor\", \"vtkCocoaRenderWindowInteractor\")\;
+#           object_factory->SetEnableFlag(0, \"vtkRenderWindowInteractor\", \"vtkWin32RenderWindowInteractor\")\;
+#           object_factory->SetEnableFlag(0, \"vtkRenderWindowInteractor\", \"vtkXRenderWindowInteractor\")\;
+#         }
+#       }
+#     }"
+#   )
 endif()
 
 vtk_object_factory_configure(
   SOURCE_FILE vtk_object_factory_source
   HEADER_FILE vtk_object_factory_header
   EXPORT_MACRO "VTKRENDERINGUI_EXPORT"
-  EXTRA_INCLUDES "<vtkCollection.h>" "<vtkObjectFactoryCollection.h>" "<vtkLogger.h>" "<cstdlib>"
-  INITIAL_CODE ${intial_cpp_code})
+#   EXTRA_INCLUDES "<vtkCollection.h>" "<vtkObjectFactoryCollection.h>" "<vtkLogger.h>" "<cstdlib>"
+#   INITIAL_CODE ${intial_cpp_code}
+)
+
+# Configure the module specific settings into a module configured header.
+configure_file(
+  "${CMAKE_CURRENT_SOURCE_DIR}/vtkRenderingUIConfigure.h.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/vtkRenderingUIConfigure.h"
+)
+list(APPEND headers "${CMAKE_CURRENT_BINARY_DIR}/vtkRenderingUIConfigure.h")
 
 vtk_module_add_module(VTK::RenderingUI
   CLASSES ${classes}
@@ -170,6 +181,15 @@ if (VTK_USE_X)
   vtk_module_link(VTK::RenderingUI
     PUBLIC
       X11::X11)
+  if (TARGET X11::Xcursor)
+    vtk_module_link(VTK::RenderingUI PRIVATE X11::Xcursor)
+  else()
+    message(WARNING "X11::Xcursor not found; custom cursors will be ignored.")
+  endif()
+  set_property(SOURCE vtkXlibHardwareWindow.cxx APPEND
+    PROPERTY
+      COMPILE_DEFINITIONS "VTK_HAVE_XCURSOR=$<TARGET_EXISTS:X11::Xcursor>"
+  )
 elseif (VTK_USE_COCOA)
   vtk_module_link(VTK::RenderingUI PUBLIC "-framework Cocoa")
 endif ()

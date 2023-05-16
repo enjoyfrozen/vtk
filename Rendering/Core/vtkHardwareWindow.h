@@ -50,7 +50,7 @@ protected:
   vtkHardwareWindow();
   ~vtkHardwareWindow() override;
 
-  bool Borders;
+  vtkTypeBool Borders;
 
 private:
   vtkHardwareWindow(const vtkHardwareWindow&) = delete;
