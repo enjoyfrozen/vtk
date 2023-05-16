@@ -26,6 +26,7 @@
 
 VTK_ABI_NAMESPACE_BEGIN
 // Forward declarations
+class vtkWebGPUOpaquePass;
 
 class VTKRENDERINGWEBGPU_EXPORT vtkWebGPUForwardPass : public vtkSceneGraphRenderPass
 {
@@ -70,6 +71,8 @@ protected:
   unsigned int OpaqueActorCount = 0;
   unsigned int TranslucentActorCount = 0;
   unsigned int VolumeCount = 0;
+
+  vtkWebGPUOpaquePass* OpaquePass = nullptr;
 
 private:
   vtkWebGPUForwardPass(const vtkWebGPUForwardPass&) = delete;

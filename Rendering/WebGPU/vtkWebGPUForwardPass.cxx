@@ -18,6 +18,7 @@
 #include "vtkObjectFactory.h"
 #include "vtkRenderWindow.h"
 #include "vtkRenderer.h"
+#include "vtkWebGPUOpaquePass.h"
 #include "vtkWebGPURendererNode.h"
 #include "vtkWebGPUViewNode.h"
 #include "vtkWebGPUWindowNode.h"
@@ -27,10 +28,17 @@ VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkWebGPUForwardPass);
 
 //-------------------------------------------------------------------------------------------------
-vtkWebGPUForwardPass::vtkWebGPUForwardPass() {}
+vtkWebGPUForwardPass::vtkWebGPUForwardPass()
+{
+  this->OpaquePass = vtkWebGPUOpaquePass::New();
+}
 
 //-------------------------------------------------------------------------------------------------
-vtkWebGPUForwardPass::~vtkWebGPUForwardPass() {}
+vtkWebGPUForwardPass::~vtkWebGPUForwardPass()
+{
+  this->OpaquePass->Delete();
+  this->OpaquePass = nullptr;
+}
 
 //-------------------------------------------------------------------------------------------------
 void vtkWebGPUForwardPass::PrintSelf(ostream& os, vtkIndent indent)
@@ -39,6 +47,16 @@ void vtkWebGPUForwardPass::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "OpaqueActorCount = " << this->OpaqueActorCount << endl;
   os << indent << "TranslucentActorCount = " << this->TranslucentActorCount << endl;
   os << indent << "VolumeCount = " << this->VolumeCount << endl;
+  os << indent << "OpaquePass: ";
+  if (this->OpaquePass)
+  {
+    os << endl;
+    this->OpaquePass->PrintSelf(os, indent.GetNextIndent());
+  }
+  else
+  {
+    os << "(null)" << endl;
+  }
 }
 
 //-------------------------------------------------------------------------------------------------
