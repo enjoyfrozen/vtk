@@ -28,9 +28,10 @@
 VTK_ABI_NAMESPACE_BEGIN
 // Forward declarations
 class vtkHardwareWindow;
-class vtkRenderWindowInteractor;
-class vtkWebGPUInstance;
 class vtkRenderPassCollection;
+class vtkRenderWindowInteractor;
+class vtkSceneGraphRenderPass;
+class vtkWebGPUInstance;
 
 class VTKRENDERINGWEBGPU_EXPORT vtkWebGPUWindowNode : public vtkWindowNode
 {
@@ -88,6 +89,15 @@ public:
    * Scene graph render pass API
    */
   virtual void AddRenderPass(vtkSceneGraphRenderPass* pass);
+  vtkGetObjectMacro(RenderPasses, vtkRenderPassCollection);
+  ///@}
+
+  /**
+   * Build pass
+   * Initialize webgpu
+   * Setup hardware window
+   */
+  void Build(bool prepass) override;
 
 protected:
   vtkWebGPUWindowNode();
@@ -98,6 +108,16 @@ protected:
   vtkRenderWindowInteractor* Interactor = nullptr;
   vtkHardwareWindow* HardwareWindow = nullptr;
   vtkRenderPassCollection* RenderPasses = nullptr;
+
+  std::atomic<int> NextSize[2];
+  int Size[2];
+
+  // API to check whether we are initialized
+  vtkTypeBool IsInitialized();
+
+  // Internals
+  class vtkInternal;
+  vtkInternal* Internal = nullptr;
 
 private:
   vtkWebGPUWindowNode(const vtkWebGPUWindowNode&) = delete;

@@ -20,8 +20,18 @@
 #include "vtkObjectFactory.h"
 #include "vtkRenderPassCollection.h"
 #include "vtkRenderWindowInteractor.h"
+#include "vtkRenderingUIConfigure.h"
+#include "vtkWebGPUForwardPass.h"
 #include "vtkWebGPUInstance.h"
 #include "vtkWebGPURenderWindow.h"
+
+#include "vtk_wgpu.h"
+
+#if defined(__WIN32__)
+#include "vtkWin32HardwareWindow.h"
+#elif defined(VTK_USE_X)
+#include "vtkXlibHardwareWindow.h"
+#endif
 
 VTK_ABI_NAMESPACE_BEGIN
 //-------------------------------------------------------------------------------------------------
@@ -33,16 +43,37 @@ vtkCxxSetObjectMacro(vtkWebGPUWindowNode, HardwareWindow, vtkHardwareWindow);
 vtkStandardNewMacro(vtkWebGPUWindowNode);
 
 //-------------------------------------------------------------------------------------------------
+class vtkWebGPUWindowNode::vtkInternal
+{
+public:
+  WGPUSurface Surface;
+};
+
+//-------------------------------------------------------------------------------------------------
 vtkWebGPUWindowNode::vtkWebGPUWindowNode()
 {
+  this->Internal = new vtkInternal();
+
   this->RenderPasses = vtkRenderPassCollection::New();
+  // Create the forward rendering pass
+  vtkWebGPUForwardPass* fwPass = vtkWebGPUForwardPass::New();
+  this->RenderPasses->AddItem(fwPass);
+  fwPass->Delete();
 }
 
 //-------------------------------------------------------------------------------------------------
 vtkWebGPUWindowNode::~vtkWebGPUWindowNode()
 {
+  if (this->Instance)
+  {
+    this->Instance->Delete();
+    this->Instance = nullptr;
+  }
   this->RenderPasses->Delete();
   this->RenderPasses = nullptr;
+
+  delete this->Internal;
+  this->Internal = nullptr;
 }
 
 //------------------------------------------------------------------------------------------------
@@ -109,7 +140,118 @@ void vtkWebGPUWindowNode::SetRenderable(vtkObject* obj)
 }
 
 //------------------------------------------------------------------------------------------------
-void vtkWebGPUWindowNode::TraverseAllPasses() {}
+void vtkWebGPUWindowNode::AddRenderPass(vtkSceneGraphRenderPass* pass)
+{
+  this->RenderPasses->AddItem(pass);
+}
+
+//------------------------------------------------------------------------------------------------
+void vtkWebGPUWindowNode::TraverseAllPasses()
+{
+  // Traverse the scenegraph via the registered render passes
+  if (this->RenderPasses)
+  {
+    vtkCollectionSimpleIterator iter;
+    this->RenderPasses->InitTraversal(iter);
+    vtkRenderPass* rp = nullptr;
+    while ((rp = this->RenderPasses->GetNextRenderPass(iter)))
+    {
+      vtkSceneGraphRenderPass* scPass = vtkSceneGraphRenderPass::SafeDownCast(rp);
+      if (scPass)
+      {
+        scPass->Traverse(this, nullptr);
+      }
+    }
+  }
+}
+
+//------------------------------------------------------------------------------
+vtkTypeBool vtkWebGPUWindowNode::IsInitialized()
+{
+  return (this->GetInstance() && this->GetInstance()->IsValid());
+}
+
+//------------------------------------------------------------------------------------------------
+void vtkWebGPUWindowNode::Build(bool prepass)
+{
+  if (prepass)
+  {
+    // Initialize webgpu
+    if (!this->IsInitialized())
+    {
+      if (!this->Instance)
+      {
+        this->Instance = vtkWebGPUInstance::New();
+      }
+      this->Instance->Create();
+      if (!this->Instance->IsValid())
+      {
+        vtkErrorMacro(<< "Could not create a valid webgpu instance");
+        return;
+      }
+      std::cout << this->Instance->ReportCapabilities() << std::endl;
+    }
+
+    vtkWindow* w = vtkWindow::SafeDownCast(this->Renderable);
+    // Create a surface and hardware window, if not available
+    if (!this->Internal->Surface)
+    {
+      auto rwsize = w->GetSize();
+      this->NextSize[0] = rwsize[0] ? rwsize[0] : 300;
+      this->NextSize[1] = rwsize[1] ? rwsize[1] : 300;
+      w->SetSize(this->NextSize[0], this->NextSize[1]);
+
+      // instantiate a hardware window, if needed.
+      if (!this->HardwareWindow)
+      {
+        this->HardwareWindow = vtkHardwareWindow::New();
+        this->HardwareWindow->SetSize(this->NextSize[0], this->NextSize[1]);
+        this->HardwareWindow->Create();
+      }
+      this->HardwareWindow->SetSize(this->NextSize[0], this->NextSize[1]);
+
+      // Set properties on interactor if set
+      if (this->Interactor)
+      {
+        this->Interactor->SetHardwareWindow(this->HardwareWindow);
+      }
+      WGPUSurfaceDescriptor surfaceDesc;
+#if defined(__EMSCRIPTEN__)
+      // render into canvas elememnt
+      WGPUSurfaceDescriptorFromCanvasHTMLSelector htmlSurfDesc;
+      htmlSurfDesc.chain = (const WGPUChainedStruct){
+        .sType = WGPUSType_SurfaceDescriptorFromCanvasHTMLSelector,
+      };
+      htmlSurfDesc.selector = "#canvas";
+      surfaceDesc.nextInChain = htmlSurfDesc;
+#elif defined(_WIN32)
+      vtkWin32HardwareWindow* win32Window =
+        vtkWin32HardwareWindow::SafeDownCast(this->HardwareWindow);
+      WGPUSurfaceDescriptorFromWindowsHWND winSurfDesc;
+      winSurfDesc.chain = (const WGPUChainedStruct){
+        .sType = WGPUSType_SurfaceDescriptorFromWindowsHWND,
+      };
+      winSurfDesc.hwnd = win32Window->GetWindowId();
+      winSurfDesc.hinstance = win32Window->GetApplicationInstance();
+      surfaceDesc.nextInChain = winSurfDesc;
+// #elif defined(__APPLE__)
+#elif defined(VTK_USE_X)
+      vtkXlibHardwareWindow* xWindow = vtkXlibHardwareWindow::SafeDownCast(this->HardwareWindow);
+      WGPUSurfaceDescriptorFromXlibWindow xSurfDesc;
+      xSurfDesc.chain = (const WGPUChainedStruct){
+        .sType = WGPUSType_SurfaceDescriptorFromXlibWindow,
+      };
+      xSurfDesc.display = xWindow->GetDisplayId();
+      xSurfDesc.window = xWindow->GetWindowId();
+// #elif defined(VTK_USE_WAYLAND)
+#else
+#error "No compositing system available."
+#endif
+    }
+
+    this->Superclass::Build(prepass);
+  }
+}
 
 //------------------------------------------------------------------------------------------------
 VTK_ABI_NAMESPACE_END
