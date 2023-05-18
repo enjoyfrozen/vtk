@@ -35,9 +35,17 @@ elseif (VTK_USE_COCOA)
     vtk_object_factory_declare(
       BASE vtkRenderWindowInteractor
       OVERRIDE vtkCocoaRenderWindowInteractor)
+    vtk_object_factory_declare(
+      BASE vtkHardwareWindow
+      OVERRIDE vtkCocoaHardwareWindow)
   endif ()
-  list(APPEND sources vtkCocoaRenderWindowInteractor.mm)
+  list(APPEND sources
+    vtkCocoaHardwareView.mm
+    vtkCocoaHardwareWindow.mm 
+    vtkCocoaRenderWindowInteractor.mm)
   list(APPEND headers
+    vtkCocoaHardwareView.h
+    vtkCocoaHardwareWindow.h 
     vtkCocoaRenderWindowInteractor.h)
   list(APPEND nowrap_headers
     vtkCocoaMacOSXSDKCompatibility.h)
@@ -80,7 +88,12 @@ if (VTK_USE_SDL2 OR CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
   vtk_object_factory_declare(
     BASE vtkRenderWindowInteractor
     OVERRIDE vtkSDL2RenderWindowInteractor)
-  list(APPEND classes vtkSDL2RenderWindowInteractor)
+  vtk_object_factory_declare(
+    BASE vtkHardwareWindow
+    OVERRIDE vtkSDL2HardwareWindow)
+  list(APPEND classes 
+    vtkSDL2HardwareWindow
+    vtkSDL2RenderWindowInteractor)
 #   set (intial_cpp_code
 #     "
 #     // defaults

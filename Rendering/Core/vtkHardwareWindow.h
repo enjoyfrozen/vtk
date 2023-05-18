@@ -29,10 +29,14 @@
 #ifndef vtkHardwareWindow_h
 #define vtkHardwareWindow_h
 
-#include "vtkRenderingCoreModule.h" // For export macro
+#include "vtkRenderWindowInteractor.h" // For ivar
+#include "vtkRenderingCoreModule.h"    // For export macro
+#include "vtkWeakPointer.h"            // For weak pointer
 #include "vtkWindow.h"
 
 VTK_ABI_NAMESPACE_BEGIN
+// Forward declarations
+
 class VTKRENDERINGCORE_EXPORT vtkHardwareWindow : public vtkWindow
 {
 public:
@@ -46,11 +50,24 @@ public:
   // destroy the window (not the instance)
   virtual void Destroy(){};
 
+  ///@{
+  /**
+   * Set/Get the interactor associated with this window
+   */
+  virtual void SetInteractor(vtkRenderWindowInteractor*);
+  vtkGetObjectMacro(Interactor, vtkRenderWindowInteractor);
+  ///@}
+
+  /**
+   * Set the interactor to the window
+   */
+
 protected:
   vtkHardwareWindow();
   ~vtkHardwareWindow() override;
 
   vtkTypeBool Borders;
+  vtkWeakPointer<vtkRenderWindowInteractor> Interactor = nullptr;
 
 private:
   vtkHardwareWindow(const vtkHardwareWindow&) = delete;

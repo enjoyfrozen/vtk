@@ -23,8 +23,12 @@
 #include "vtkHardwareWindow.h"
 #include "vtkRenderingUIModule.h" // For export macro
 
-#include <X11/Xlib.h> // Needed for X types used in the public interface
+#include <X11/Xlib.h>  // Needed for X types used in the public interface
 #include <X11/Xutil.h> // Needed for X types used in the public interface
+
+VTK_ABI_NAMESPACE_BEGIN
+// Forward declarations
+class vtkImageData;
 
 class VTKRENDERINGUI_EXPORT vtkXlibHardwareWindow : public vtkHardwareWindow
 {
@@ -54,10 +58,13 @@ public:
    */
   Window GetWindowId();
 
+  ///@{
   /**
    * Set this RenderWindow's X window id to a pre-existing window.
    */
   void SetWindowId(Window);
+  void SetWindowId(void*) override;
+  ///@}
 
   void Create() override;
   void Destroy() override;
@@ -68,7 +75,6 @@ public:
    * to help interface vtkWindow to native windowing systems.
    */
   void SetDisplayId(void*) override;
-  void SetWindowId(void*) override;
   void SetParentId(void*) override;
   void* GetGenericDisplayId() override;
   void* GetGenericWindowId() override;
@@ -114,6 +120,22 @@ public:
    */
   void SetCurrentCursor(int) override;
 
+  /**
+   * Set name of window.
+   */
+  void SetWindowName(const char*) override;
+
+  /**
+   * For window manager that supports it, set the icon displayed
+   * in the taskbar and the title bar.
+   */
+  void SetIcon(vtkImageData* img) override;
+
+  /**
+   * Set this RenderWindow's X window id to a pre-existing window.
+   */
+  void SetWindowInfo(const char* info) override;
+
 protected:
   vtkXlibHardwareWindow();
   ~vtkXlibHardwareWindow() override;
@@ -150,4 +172,5 @@ private:
   void operator=(const vtkXlibHardwareWindow&) = delete;
 };
 
-#endif
+VTK_ABI_NAMESPACE_END
+#endif // vtkXlibHardwareWindow_h

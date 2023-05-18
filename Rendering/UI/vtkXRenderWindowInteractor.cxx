@@ -27,6 +27,7 @@
 #include "vtkActor.h"
 #include "vtkCallbackCommand.h"
 #include "vtkCommand.h"
+#include "vtkHardwareWindow.h"
 #include "vtkInteractorStyle.h"
 #include "vtkObjectFactory.h"
 #include "vtkRenderWindow.h"
@@ -391,7 +392,14 @@ void vtkXRenderWindowInteractor::Initialize()
   ren->Start();
   ren->End();
 
-  this->WindowId = reinterpret_cast<Window>(ren->GetGenericWindowId());
+  if (this->GetHardwareWindow())
+  {
+    this->WindowId = reinterpret_cast<Window>(this->GetHardwareWindow()->GetGenericWindowId());
+  }
+  else
+  {
+    this->WindowId = reinterpret_cast<Window>(ren->GetGenericWindowId());
+  }
 
   XWindowAttributes attribs;
   //  Find the current window size

@@ -16,7 +16,7 @@
 
 #include "vtkObjectFactory.h"
 
-//------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 VTK_ABI_NAMESPACE_BEGIN
 vtkObjectFactoryNewMacro(vtkHardwareWindow);
 
@@ -31,14 +31,30 @@ vtkHardwareWindow::vtkHardwareWindow()
 #endif
 }
 
-//------------------------------------------------------------------------------
-vtkHardwareWindow::~vtkHardwareWindow() = default;
+//-------------------------------------------------------------------------------------------------
+vtkHardwareWindow::~vtkHardwareWindow()
+{
+  this->SetInteractor(nullptr);
+}
 
-//------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 void vtkHardwareWindow::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 
   os << indent << "Borders: " << this->Borders << "\n";
 }
+
+//------------------------------------------------------------------------------
+// Set the interactor that will work with this hardware window.
+void vtkHardwareWindow::SetInteractor(vtkRenderWindowInteractor* rwi)
+{
+  this->Interactor = rwi;
+  if (this->Interactor->GetHardwareWindow() != this)
+  {
+    this->Interactor->SetHardwareWindow(this);
+  }
+}
+
+//------------------------------------------------------------------------------
 VTK_ABI_NAMESPACE_END

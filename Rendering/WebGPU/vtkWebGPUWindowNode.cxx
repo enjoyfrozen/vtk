@@ -29,6 +29,8 @@
 
 #if defined(__WIN32__)
 #include "vtkWin32HardwareWindow.h"
+#elif defined(__APPLE__)
+#include "vtkCocoaHardwareWindow.h"
 #elif defined(VTK_USE_X)
 #include "vtkXlibHardwareWindow.h"
 #endif
@@ -137,6 +139,7 @@ void vtkWebGPUWindowNode::SetRenderable(vtkObject* obj)
                   << "Instead, found " << obj->GetClassName());
     return;
   }
+  this->Superclass::SetRenderable(obj);
 }
 
 //------------------------------------------------------------------------------------------------
@@ -218,32 +221,48 @@ void vtkWebGPUWindowNode::Build(bool prepass)
       WGPUSurfaceDescriptor surfaceDesc;
 #if defined(__EMSCRIPTEN__)
       // render into canvas elememnt
-      WGPUSurfaceDescriptorFromCanvasHTMLSelector htmlSurfDesc;
+      WGPUSurfaceDescriptorFromCanvasHTMLSelector htmlSurfDesc = {};
       htmlSurfDesc.chain = (const WGPUChainedStruct){
         .sType = WGPUSType_SurfaceDescriptorFromCanvasHTMLSelector,
       };
       htmlSurfDesc.selector = "#canvas";
-      surfaceDesc.nextInChain = htmlSurfDesc;
+      surfaceDesc.nextInChain = (const WGPUChainedStruct*)&(htmlSurfDesc);
 #elif defined(_WIN32)
       vtkWin32HardwareWindow* win32Window =
         vtkWin32HardwareWindow::SafeDownCast(this->HardwareWindow);
-      WGPUSurfaceDescriptorFromWindowsHWND winSurfDesc;
+      WGPUSurfaceDescriptorFromWindowsHWND winSurfDesc = {};
       winSurfDesc.chain = (const WGPUChainedStruct){
         .sType = WGPUSType_SurfaceDescriptorFromWindowsHWND,
       };
       winSurfDesc.hwnd = win32Window->GetWindowId();
       winSurfDesc.hinstance = win32Window->GetApplicationInstance();
-      surfaceDesc.nextInChain = winSurfDesc;
-// #elif defined(__APPLE__)
+      surfaceDesc.nextInChain = (const WGPUChainedStruct*)&(winSurfDesc);
+#elif defined(__APPLE__)
+      vtkCocoaHardwareWindow* cocoaWindow = vtkCocoaHardwareWindow::SafeDownCast(this->HardwareWindow);
+      WGPUSurfaceDescriptorFromMetalLayer cocoaSurfDesc = {};
+      cocoaSurfDesc.chain = (const WGPUChainedStruct){
+        .sType = WGPUSType_SurfaceDescriptorFromMetalLayer,
+      };
+      cocoaSurfDesc.layer = cocoaWindow->GetViewLayer();
+      surfaceDesc.nextInChain = (const WGPUChainedStruct*)&(cocoaSurfDesc);
 #elif defined(VTK_USE_X)
       vtkXlibHardwareWindow* xWindow = vtkXlibHardwareWindow::SafeDownCast(this->HardwareWindow);
-      WGPUSurfaceDescriptorFromXlibWindow xSurfDesc;
+      WGPUSurfaceDescriptorFromXlibWindow xSurfDesc = {};
       xSurfDesc.chain = (const WGPUChainedStruct){
         .sType = WGPUSType_SurfaceDescriptorFromXlibWindow,
       };
       xSurfDesc.display = xWindow->GetDisplayId();
       xSurfDesc.window = xWindow->GetWindowId();
+      surfaceDesc.nextInChain = (const WGPUChainedStruct*)&(xSurfDesc);
 // #elif defined(VTK_USE_WAYLAND)
+#elif defined(VTK_USE_SDL2)
+      vtkSDL2HardwareWindow* sdl2Window = vtkSDL2HardwareWindow::SafeDownCast(this->HardwareWindow);
+      SDL_SysWMinfo wmInfo;
+      SDL_VERSION(&wmInfo.version)
+      if (!SDL_GetWindowWMInfo(sdl2Window->GetWindowId(), &wmInfo))
+      {
+        vtkErrorMacro(<< "Invalid SDL2 hardware window");
+      }
 #else
 #error "No compositing system available."
 #endif

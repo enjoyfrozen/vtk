@@ -14,9 +14,10 @@
 =========================================================================*/
 // vtk includes
 #include "vtkXlibHardwareWindow.h"
+#include "vtkImageData.h"
 #include "vtkObjectFactory.h"
-#include "vtksys/SystemTools.hxx"
 #include "vtkRenderWindow.h"
+#include "vtksys/SystemTools.hxx"
 
 // STL includes
 #include <assert.h>
@@ -28,6 +29,8 @@
 #include <X11/Xcursor/Xcursor.h>
 #endif
 
+VTK_ABI_NAMESPACE_BEGIN
+//-------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
 template <int EventType>
 int XEventTypeEquals(Display*, XEvent* event, XPointer winptr)
@@ -98,6 +101,20 @@ Window vtkXlibHardwareWindow::GetWindowId()
 void vtkXlibHardwareWindow::SetDisplayId(void* arg)
 {
   this->DisplayId = (Display*)(arg);
+}
+
+//------------------------------------------------------------------------------------------------
+// Set this HardwareWindow's X window id to a pre-existing window.
+void vtkXlibHardwareWindow::SetWindowId(Window arg)
+{
+  vtkDebugMacro(<< "Setting WindowId to " << reinterpret_cast<void*>(arg) << "\n");
+  this->WindowId = arg;
+
+  if (this->CursorHidden)
+  {
+    this->CursorHidden = 0;
+    this->HideCursor();
+  }
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -238,7 +255,8 @@ void vtkXlibHardwareWindow::Create()
     XMapWindow(this->DisplayId, this->WindowId);
     XSync(this->DisplayId, False);
     XEvent e;
-    XIfEvent(this->DisplayId, &e, XEventTypeEquals<MapNotify>, nullptr);
+    XIfEvent(this->DisplayId, &e, XEventTypeEquals<MapNotify>,
+      reinterpret_cast<XPointer>(&this->WindowId));
     XGetWindowAttributes(this->DisplayId, this->WindowId, &winattr);
     // if the specified window size is bigger than the screen size,
     // we have to reset the window size to the screen size
@@ -363,7 +381,8 @@ void vtkXlibHardwareWindow::SetSize(int x, int y)
         if (attribs.width != x || attribs.height != y)
         {
           XEvent e;
-          XIfEvent(this->DisplayId, &e, XEventTypeEquals<ConfigureNotify>, nullptr);
+          XIfEvent(this->DisplayId, &e, XEventTypeEquals<ConfigureNotify>,
+            reinterpret_cast<XPointer>(&this->WindowId));
         }
       }
     }
@@ -598,6 +617,104 @@ void vtkXlibHardwareWindow::SetCurrentCursor(int shape)
 #endif
       break;
   }
+}
+
+//------------------------------------------------------------------------------------------------
+void vtkXlibHardwareWindow::SetWindowName(const char* cname)
+{
+  char* name = new char[strlen(cname) + 1];
+  strcpy(name, cname);
+  XTextProperty win_name_text_prop;
+
+  this->Superclass::SetWindowName(name);
+
+  if (this->WindowId)
+  {
+    if (XStringListToTextProperty(&name, 1, &win_name_text_prop) == 0)
+    {
+      XFree(win_name_text_prop.value);
+      vtkWarningMacro(<< "Can't rename window");
+      delete[] name;
+      return;
+    }
+
+    XSetWMName(this->DisplayId, this->WindowId, &win_name_text_prop);
+    XSetWMIconName(this->DisplayId, this->WindowId, &win_name_text_prop);
+    XFree(win_name_text_prop.value);
+  }
+  delete[] name;
+}
+
+//------------------------------------------------------------------------------------------------
+void vtkXlibHardwareWindow::SetIcon(vtkImageData* img)
+{
+  int dim[3];
+  img->GetDimensions(dim);
+
+  int nbComp = img->GetNumberOfScalarComponents();
+
+  if (img->GetScalarType() != VTK_UNSIGNED_CHAR || dim[2] != 1 || nbComp < 3 || nbComp > 4)
+  {
+    vtkErrorMacro(
+      "Icon image should be 2D, have 3 or 4 components, and its type must be unsigned char.");
+    return;
+  }
+
+  unsigned char* imgScalars = static_cast<unsigned char*>(img->GetScalarPointer());
+
+  std::vector<unsigned long> pixels(2 + dim[0] * dim[1]);
+  pixels[0] = dim[0];
+  pixels[1] = dim[1];
+
+  // Convert vtkImageData buffer to X icon.
+  // We need to flip Y and use ARGB 32-bits encoded convention
+  for (int col = 0; col < dim[1]; col++)
+  {
+    for (int line = 0; line < dim[0]; line++)
+    {
+      unsigned char* inPixel = imgScalars + nbComp * ((dim[0] - col - 1) * dim[1] + line); // flip Y
+      unsigned long* outPixel = pixels.data() + col * dim[1] + line + 2;
+      if (nbComp == 4)
+      {
+        *outPixel = nbComp == 4 ? inPixel[3] : 0xff;
+      }
+      *outPixel = (*outPixel << 8) + inPixel[0];
+      *outPixel = (*outPixel << 8) + inPixel[1];
+      *outPixel = (*outPixel << 8) + inPixel[2];
+    }
+  }
+
+  Atom iconAtom = XInternAtom(this->DisplayId, "_NET_WM_ICON", False);
+  Atom typeAtom = XInternAtom(this->DisplayId, "CARDINAL", False);
+  XChangeProperty(this->DisplayId, this->WindowId, iconAtom, typeAtom, 32, PropModeReplace,
+    reinterpret_cast<unsigned char*>(pixels.data()), pixels.size());
+}
+
+//------------------------------------------------------------------------------------------------
+// Set this HardwareWindow's X window id to a pre-existing window.
+void vtkXlibHardwareWindow::SetWindowInfo(const char* info)
+{
+  int tmp;
+
+  // get the default display connection
+  if (!this->DisplayId)
+  {
+    this->DisplayId = XOpenDisplay(static_cast<char*>(nullptr));
+    if (this->DisplayId == nullptr)
+    {
+      vtkErrorMacro(<< "bad X server connection. DISPLAY=" << vtksys::SystemTools::GetEnv("DISPLAY")
+                    << ". Aborting.\n");
+      abort();
+    }
+    else
+    {
+      this->OwnDisplay = 1;
+    }
+  }
+
+  sscanf(info, "%i", &tmp);
+
+  this->SetWindowId(static_cast<Window>(tmp));
 }
 
 //-------------------------------------------------------------------------------------------------
