@@ -31,35 +31,6 @@ set(private_classes
   # vtkWebGPUInternalsShaderModule
 )
 
-# setup factory overrides
-# NI - Not Implemented
-set(webgpu_overrides
-  RenderWindow
-  #  Actor
-  #  # NI: BillboardTextActor3D
-  #  Camera
-  #  # NI: LabeledContourMapper
-  #  HardwareSelector
-  #  # NI: ImageMapper
-  #  # NI: ImageSliceMapper
-  #  # NI: Glyph3DMapper
-  #  # NI: HyperTreeGridMapper
-  #  Light
-  #  # NI: PointGaussianMapper
-  #  PolyDataMapper
-  #  # NI: PolyDataMapper2D
-  #  Property
-  #  # NI: ShaderProperty
-  #  # NI: Uniforms
-  #  Renderer
-  # NI: RenderTimerLog
-  # NI: Skybox
-  # NI: TextActor
-  # NI: TextActor3D
-  # NI: TextMapper
-  # NI: Texture
-)
-
 unset(wgsl_shader_sources)
 unset(wgsl_shader_headers)
 set(shader_files
@@ -78,58 +49,10 @@ foreach (file IN LISTS shader_files)
     "${header}")
 endforeach ()
 
-foreach (webgpu_override IN LISTS webgpu_overrides)
-  vtk_object_factory_declare(
-    BASE "vtk${webgpu_override}"
-    OVERRIDE "vtkWebGPU${webgpu_override}")
-endforeach ()
-
-# set(has_vtkRenderWindow_override 0)
-# # Setup factory overrides and add window system specific render windows.
-# if (VTK_USE_X)
-#   # Add some custom overrides
-#   if (NOT VTK_DEFAULT_RENDER_WINDOW_HEADLESS)
-#     set(has_vtkRenderWindow_override 1)
-#   endif ()
-# elseif (VTK_USE_WIN32_OPENGL)
-#   # Add some custom overrides
-#   if (NOT VTK_DEFAULT_RENDER_WINDOW_HEADLESS)
-#     set(has_vtkRenderWindow_override 1)
-#   endif ()
-# elseif (VTK_USE_COCOA)
-#   # Add some custom overrides
-#   if (NOT VTK_DEFAULT_RENDER_WINDOW_HEADLESS)
-#     vtk_object_factory_declare(
-#       BASE vtkRenderWindow
-#       OVERRIDE vtkCocoaWebGPURenderWindow)
-#     set(has_vtkRenderWindow_override 1)
-#   endif ()
-#   list(APPEND sources
-#     vtkCocoaWebGPURenderWindow.mm
-#     vtkCocoaWebGPUView.mm)
-#   list(APPEND headers
-#     vtkCocoaWebGPURenderWindow.h)
-#   list(APPEND nowrap_headers
-#     vtkCocoaWebGPUView.h)
-#   # Set specified Objective-C++ flags, if any.
-#   if (VTK_REQUIRED_OBJCXX_FLAGS)
-#     set_source_files_properties(
-#       vtkCocoaWebGPURenderWindow.mm
-#       vtkCocoaWebGPUView.mm
-#       PROPERTIES
-#         COMPILE_FLAGS "${VTK_REQUIRED_OBJCXX_FLAGS}")
-#   endif ()
-# elseif (EMSCRIPTEN)
-#   # Add some custom overrides
-#   vtk_object_factory_declare(
-#     BASE vtkRenderWindow
-#     OVERRIDE vtkSDL2WebGPURenderWindow)
-#   set(has_vtkRenderWindow_override 1)
-# endif ()
-
-# if (VTK_USE_SDL2)
-#   list(APPEND classes vtkSDL2WebGPURenderWindow)
-# endif ()
+vtk_object_factory_declare(
+  BASE "vtkRenderWindow"
+  OVERRIDE "vtkWebGPURenderWindow"
+)
 
 vtk_object_factory_configure(
   SOURCE_FILE vtk_object_factory_source
@@ -142,10 +65,8 @@ list(APPEND vtk_wgpu_private_headers
 )
 list(APPEND vtk_wgpu_public_headers
   vtk_wgpu.h
-  # vtkWGPUContext.h
 )
 list(APPEND vtk_wgpu_priv_sources
-  # vtkWGPUContext.cxx
 )
 
 vtk_module_add_module(VTK::RenderingWebGPU
@@ -186,22 +107,3 @@ else ()
   endif ()
   vtk_module_definitions(VTK::RenderingWebGPU PUBLIC ${WGPU_CMPDEF})
 endif ()
-
-# if (VTK_USE_X)
-#   vtk_module_find_package(PACKAGE X11)
-#   vtk_module_link(VTK::RenderingWebGPU PUBLIC X11::X11)
-#   if (TARGET X11::Xcursor)
-#     vtk_module_link(VTK::RenderingWebGPU PRIVATE X11::Xcursor)
-#   else()
-#     message(WARNING "X11::Xcursor not found; custom cursors will be ignored.")
-#   endif()
-#   set_property(SOURCE vtkXWebGPURenderWindow.cxx APPEND
-#     PROPERTY
-#       COMPILE_DEFINITIONS "VTK_HAVE_XCURSOR=$<TARGET_EXISTS:X11::Xcursor>"
-#   )
-# elseif (VTK_USE_COCOA)
-#   vtk_module_link(VTK::RenderingWebGPU PUBLIC "-framework Cocoa")
-# elseif (VTK_USE_WIN32_OPENGL)
-#   vtk_module_find_package(PACKAGE DirectX)
-#   vtk_module_link(VTK::RenderingWebGPU PRIVATE DirectX::d3d11 DirectX::dxgi)
-# endif ()
