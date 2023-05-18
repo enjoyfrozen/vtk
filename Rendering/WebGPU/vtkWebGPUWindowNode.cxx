@@ -24,6 +24,7 @@
 #include "vtkWebGPUForwardPass.h"
 #include "vtkWebGPUInstance.h"
 #include "vtkWebGPURenderWindow.h"
+#include "vtkWebGPUViewNodeFactory.h"
 
 #include "vtk_wgpu.h"
 
@@ -55,6 +56,11 @@ public:
 vtkWebGPUWindowNode::vtkWebGPUWindowNode()
 {
   this->Internal = new vtkInternal();
+
+  // Create the view node factory
+  vtkWebGPUViewNodeFactory* fac = vtkWebGPUViewNodeFactory::New();
+  this->SetMyFactory(fac);
+  fac->Delete();
 
   this->RenderPasses = vtkRenderPassCollection::New();
   // Create the forward rendering pass
@@ -238,7 +244,8 @@ void vtkWebGPUWindowNode::Build(bool prepass)
       winSurfDesc.hinstance = win32Window->GetApplicationInstance();
       surfaceDesc.nextInChain = (const WGPUChainedStruct*)&(winSurfDesc);
 #elif defined(__APPLE__)
-      vtkCocoaHardwareWindow* cocoaWindow = vtkCocoaHardwareWindow::SafeDownCast(this->HardwareWindow);
+      vtkCocoaHardwareWindow* cocoaWindow =
+        vtkCocoaHardwareWindow::SafeDownCast(this->HardwareWindow);
       WGPUSurfaceDescriptorFromMetalLayer cocoaSurfDesc = {};
       cocoaSurfDesc.chain = (const WGPUChainedStruct){
         .sType = WGPUSType_SurfaceDescriptorFromMetalLayer,

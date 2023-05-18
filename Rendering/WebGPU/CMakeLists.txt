@@ -9,7 +9,7 @@ set(classes
   # vtkWebGPURenderPass
   # vtkWebGPURenderPassEncoder
   # vtkWebGPURenderer
-  # vtkWebGPUViewNodeFactory
+  vtkWebGPUViewNodeFactory
   vtkWebGPUDevice
   vtkWebGPUForwardPass
   vtkWebGPUInstance
