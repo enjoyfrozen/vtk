@@ -217,7 +217,7 @@ void vtkWebGPUWindowNode::Build(bool prepass)
         this->HardwareWindow->SetSize(this->NextSize[0], this->NextSize[1]);
         this->HardwareWindow->Create();
       }
-      this->HardwareWindow->SetSize(this->NextSize[0], this->NextSize[1]);
+      // this->HardwareWindow->SetSize(this->NextSize[0], this->NextSize[1]);
 
       // Set properties on interactor if set
       if (this->Interactor)

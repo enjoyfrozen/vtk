@@ -372,7 +372,15 @@ void vtkXRenderWindowInteractor::Initialize()
   this->Initialized = 1;
   ren = this->RenderWindow;
 
-  this->DisplayId = static_cast<Display*>(ren->GetGenericDisplayId());
+  if (this->GetHardwareWindow())
+  {
+    this->DisplayId = static_cast<Display*>(this->GetHardwareWindow()->GetGenericDisplayId());
+    std::cout << this->DisplayId << std::endl;
+  }
+  else
+  {
+    this->DisplayId = static_cast<Display*>(ren->GetGenericDisplayId());
+  }
   if (!this->DisplayId)
   {
     vtkDebugMacro("opening display");

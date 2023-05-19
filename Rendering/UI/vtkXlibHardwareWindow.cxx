@@ -52,6 +52,7 @@ vtkXlibHardwareWindow::vtkXlibHardwareWindow()
   this->WindowId = static_cast<Window>(0);
   this->ColorMap = static_cast<Colormap>(0);
   this->OwnWindow = 0;
+  this->FullScreen = false;
 
   this->XCCrosshair = 0;
   this->XCArrow = 0;
@@ -139,7 +140,7 @@ void vtkXlibHardwareWindow::SetParentId(void* arg)
 //-------------------------------------------------------------------------------------------------
 void* vtkXlibHardwareWindow::GetGenericDisplayId()
 {
-  return this->DisplayId;
+  return reinterpret_cast<void*>(this->DisplayId);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -362,75 +363,134 @@ void vtkXlibHardwareWindow::Destroy()
 }
 
 //-------------------------------------------------------------------------------------------------
-void vtkXlibHardwareWindow::SetSize(int x, int y)
+// Specify the size of the rendering window.
+void vtkXlibHardwareWindow::SetSize(int width, int height)
 {
-  static bool resizing = false;
-  if ((this->Size[0] != x) || (this->Size[1] != y))
+  if ((this->Size[0] != width) || (this->Size[1] != height))
   {
-    this->Superclass::SetSize(x, y);
+    this->Superclass::SetSize(width, height);
 
-    if (!this->UseOffScreenBuffers)
+    if (this->WindowId)
     {
-      if (this->WindowId)
+      if (this->Interactor)
       {
-        XResizeWindow(this->DisplayId, this->WindowId, static_cast<unsigned int>(x),
-          static_cast<unsigned int>(y));
-        XSync(this->DisplayId, False);
-        XWindowAttributes attribs;
-        XGetWindowAttributes(this->DisplayId, this->WindowId, &attribs);
-        if (attribs.width != x || attribs.height != y)
+        this->Interactor->SetSize(width, height);
+      }
+
+      // get baseline serial number for X requests generated from XResizeWindow
+      unsigned long serial = NextRequest(this->DisplayId);
+
+      // request a new window size from the X server
+      XResizeWindow(this->DisplayId, this->WindowId, static_cast<unsigned int>(width),
+        static_cast<unsigned int>(height));
+
+      // flush output queue and wait for X server to processes the request
+      XSync(this->DisplayId, False);
+
+      // The documentation for XResizeWindow includes this important note:
+      //
+      //   If the override-redirect flag of the window is False and some
+      //   other client has selected SubstructureRedirectMask on the parent,
+      //   the X server generates a ConfigureRequest event, and no further
+      //   processing is performed.
+      //
+      // What this means, essentially, is that if this window is a top-level
+      // window, then it's the window manager (the "other client") that is
+      // responsible for changing this window's size.  So when we call
+      // XResizeWindow() on a top-level window, then instead of resizing
+      // the window immediately, the X server informs the window manager,
+      // and then the window manager sets our new size (usually it will be
+      // the size we asked for).  We receive a ConfigureNotify event when
+      // our new size has been set.
+
+      // check our override-redirect flag
+      XWindowAttributes attrs;
+      XGetWindowAttributes(this->DisplayId, this->WindowId, &attrs);
+      if (!attrs.override_redirect && this->ParentId)
+      {
+        // check if parent has SubstructureRedirectMask
+        XWindowAttributes parentAttrs;
+        XGetWindowAttributes(this->DisplayId, this->ParentId, &parentAttrs);
+        if ((parentAttrs.all_event_masks & SubstructureRedirectMask) == SubstructureRedirectMask)
         {
+          // set the wait timeout to be 2 seconds from now
+          double maxtime = 2.0 + vtksys::SystemTools::GetTime();
+          // look for a ConfigureNotify that came *after* XResizeWindow
           XEvent e;
-          XIfEvent(this->DisplayId, &e, XEventTypeEquals<ConfigureNotify>,
-            reinterpret_cast<XPointer>(&this->WindowId));
+          while (!XCheckIfEvent(this->DisplayId, &e, XEventTypeEquals<ConfigureNotify>,
+                   reinterpret_cast<XPointer>(&this->WindowId)) ||
+            e.xconfigure.serial < serial)
+          {
+            // wait for 10 milliseconds and try again until time runs out
+            vtksys::SystemTools::Delay(10);
+            if (vtksys::SystemTools::GetTime() > maxtime)
+            {
+              vtkWarningMacro(<< "Timeout while waiting for response to XResizeWindow.");
+              break;
+            }
+          }
         }
       }
     }
+    this->Modified();
   }
 }
 
-//-------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------
+// Move the window to a new position on the display.
 void vtkXlibHardwareWindow::SetPosition(int x, int y)
 {
-  static bool resizing = false;
-
-  if ((this->Position[0] != x) || (this->Position[1] != y))
+  // if we aren't mapped then just set the ivars
+  if (!this->WindowId)
   {
-    this->Modified();
+    if ((this->Position[0] != x) || (this->Position[1] != y))
+    {
+      this->Modified();
+    }
     this->Position[0] = x;
     this->Position[1] = y;
-    if (this->WindowId)
-    {
-      XMoveWindow(this->DisplayId, this->WindowId, x, y);
-      XSync(this->DisplayId, False);
-    }
+    return;
   }
+
+  XMoveWindow(this->DisplayId, this->WindowId, x, y);
+  XSync(this->DisplayId, False);
 }
 
 //-------------------------------------------------------------------------------------------------
 XVisualInfo* vtkXlibHardwareWindow::GetDesiredVisualInfo()
 {
-  static XVisualInfo visual;
+  static XVisualInfo vinfo;
   if (!this->OpenDisplay())
   {
     return nullptr;
   }
+
+  int screenId = XDefaultScreen(this->DisplayId);
+  int nitems = 0;
+  XVisualInfo vinfo_template;
+  vinfo_template.screen = screenId;
+  XVisualInfo* v = XGetVisualInfo(this->DisplayId, VisualScreenMask, &vinfo_template, &nitems);
+
   bool haveVisual = false;
   // Accept either a TrueColor or DirectColor visual at any multiple-of-8 depth.
   for (int depth = 32; depth > 0 && !haveVisual; depth -= 8)
   {
-    if (XMatchVisualInfo(this->DisplayId, /*screen*/ 0, depth, /*class*/ TrueColor, &visual))
+    if (XMatchVisualInfo(this->DisplayId, screenId, depth, /*class*/ TrueColor, &vinfo))
     {
       haveVisual = true;
       break;
     }
-    if (XMatchVisualInfo(this->DisplayId, /*screen*/ 0, depth, /*class*/ DirectColor, &visual))
+    if (XMatchVisualInfo(this->DisplayId, screenId, depth, /*class*/ DirectColor, &vinfo))
     {
       haveVisual = true;
       break;
     }
   }
-  return haveVisual ? &visual : nullptr;
+  if (v)
+  {
+    XFree(v);
+  }
+  return haveVisual ? &vinfo : nullptr;
 }
 
 //-------------------------------------------------------------------------------------------------
