@@ -17,13 +17,18 @@
 
 #include "vtkObjectFactory.h"
 #include "vtkWebGPUDevice.h"
+#include "vtkSmartPointer.h"
 
 // STL includes
 #include <sstream>
 #include <vector>
+#include <mutex>
 
 VTK_ABI_NAMESPACE_BEGIN
 //-------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
+std::mutex WebGPUInstanceLock; // XXX(c++17): use a `shared_mutex`
+vtkSmartPointer<vtkWebGPUInstance> vtkWebGPUInstanceGlobalInstance;
 vtkStandardNewMacro(vtkWebGPUInstance);
 
 //-------------------------------------------------------------------------------------------------
@@ -289,4 +294,54 @@ void vtkWebGPUInstance::SetPowerPreference(int power)
   }
 }
 
+//------------------------------------------------------------------------------------------------
+WGPUCommandEncoder vtkWebGPUInstance::GetCommandEncoder()
+{
+  if (!this->IsValid())
+  {
+    return nullptr;
+  }
+  if (!this->CommandEncoder)
+  {
+    WGPUCommandEncoderDescriptor desc = {};
+    desc.nextInChain = nullptr;
+    desc.label = "VTKWebGPU Command Encoder";
+    this->CommandEncoder = wgpuDeviceCreateCommandEncoder(this->Device->GetHandle(), &desc);
+  }
+  return this->CommandEncoder;
+}
+
+//------------------------------------------------------------------------------------------------
+vtkWebGPUInstance* vtkWebGPUInstance::GetInstance()
+{
+  // Check if we have an instance already.
+  {
+    std::unique_lock<std::mutex> lock(WebGPUInstanceLock);
+    // std::shared_lock lock(InstanceLock); // XXX(c++17)
+    (void)lock;
+
+    if (vtkWebGPUInstanceGlobalInstance)
+    {
+      return vtkWebGPUInstanceGlobalInstance;
+    }
+  }
+
+  {
+    std::unique_lock<std::mutex> lock(WebGPUInstanceLock);
+    (void)lock;
+
+    // Another thread may have raced us here; if it already exists, use it.
+    if (vtkWebGPUInstanceGlobalInstance)
+    {
+      return vtkWebGPUInstanceGlobalInstance;
+    }
+
+    vtkWebGPUInstanceGlobalInstance = vtkSmartPointer<vtkWebGPUInstance>::New();
+  }
+
+  // return the instance
+  return vtkWebGPUInstanceGlobalInstance;
+}
+
+//------------------------------------------------------------------------------------------------
 VTK_ABI_NAMESPACE_END

@@ -38,7 +38,6 @@
 
 VTK_ABI_NAMESPACE_BEGIN
 //-------------------------------------------------------------------------------------------------
-vtkCxxSetObjectMacro(vtkWebGPUWindowNode, Instance, vtkWebGPUInstance);
 vtkCxxSetObjectMacro(vtkWebGPUWindowNode, Interactor, vtkRenderWindowInteractor);
 vtkCxxSetObjectMacro(vtkWebGPUWindowNode, HardwareWindow, vtkHardwareWindow);
 
@@ -72,11 +71,6 @@ vtkWebGPUWindowNode::vtkWebGPUWindowNode()
 //-------------------------------------------------------------------------------------------------
 vtkWebGPUWindowNode::~vtkWebGPUWindowNode()
 {
-  if (this->Instance)
-  {
-    this->Instance->Delete();
-    this->Instance = nullptr;
-  }
   this->RenderPasses->Delete();
   this->RenderPasses = nullptr;
 
@@ -88,16 +82,6 @@ vtkWebGPUWindowNode::~vtkWebGPUWindowNode()
 void vtkWebGPUWindowNode::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
-  os << indent << "WebGPUInstance:";
-  if (this->Instance)
-  {
-    os << endl;
-    this->Instance->PrintSelf(os, indent.GetNextIndent());
-  }
-  else
-  {
-    os << " (null)" << endl;
-  }
   os << indent << "Interactor:";
   if (this->Interactor)
   {
@@ -177,7 +161,8 @@ void vtkWebGPUWindowNode::TraverseAllPasses()
 //------------------------------------------------------------------------------
 vtkTypeBool vtkWebGPUWindowNode::IsInitialized()
 {
-  return (this->GetInstance() && this->GetInstance()->IsValid());
+  vtkWebGPUInstance* i = vtkWebGPUInstance::GetInstance();
+  return (i && i->IsValid());
 }
 
 //------------------------------------------------------------------------------------------------
@@ -188,17 +173,14 @@ void vtkWebGPUWindowNode::Build(bool prepass)
     // Initialize webgpu
     if (!this->IsInitialized())
     {
-      if (!this->Instance)
-      {
-        this->Instance = vtkWebGPUInstance::New();
-      }
-      this->Instance->Create();
-      if (!this->Instance->IsValid())
+      vtkWebGPUInstance* inst = vtkWebGPUInstance::GetInstance();
+      inst->Create();
+      if (!inst->IsValid())
       {
         vtkErrorMacro(<< "Could not create a valid webgpu instance");
         return;
       }
-      std::cout << this->Instance->ReportCapabilities() << std::endl;
+      std::cout << inst->ReportCapabilities() << std::endl;
     }
 
     vtkWindow* w = vtkWindow::SafeDownCast(this->Renderable);

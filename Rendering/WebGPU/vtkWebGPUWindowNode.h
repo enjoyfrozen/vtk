@@ -31,7 +31,6 @@ class vtkHardwareWindow;
 class vtkRenderPassCollection;
 class vtkRenderWindowInteractor;
 class vtkSceneGraphRenderPass;
-class vtkWebGPUInstance;
 
 class VTKRENDERINGWEBGPU_EXPORT vtkWebGPUWindowNode : public vtkWindowNode
 {
@@ -47,14 +46,6 @@ public:
    */
   vtkTypeMacro(vtkWebGPUWindowNode, vtkWindowNode);
   void PrintSelf(ostream& os, vtkIndent indent) override;
-  ///@}
-
-  ///@{
-  /**
-   * Set/Get the webgpu instance
-   */
-  virtual void SetInstance(vtkWebGPUInstance*);
-  vtkGetObjectMacro(Instance, vtkWebGPUInstance);
   ///@}
 
   /**
@@ -104,7 +95,6 @@ protected:
   ~vtkWebGPUWindowNode();
 
   // Helper members
-  vtkWebGPUInstance* Instance = nullptr;
   vtkRenderWindowInteractor* Interactor = nullptr;
   vtkHardwareWindow* HardwareWindow = nullptr;
   vtkRenderPassCollection* RenderPasses = nullptr;
@@ -115,11 +105,11 @@ protected:
   // API to check whether we are initialized
   vtkTypeBool IsInitialized();
 
+private:
   // Internals
   class vtkInternal;
   vtkInternal* Internal = nullptr;
 
-private:
   vtkWebGPUWindowNode(const vtkWebGPUWindowNode&) = delete;
   void operator=(const vtkWebGPUWindowNode) = delete;
 };

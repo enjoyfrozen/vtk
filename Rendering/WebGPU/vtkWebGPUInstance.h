@@ -103,6 +103,16 @@ public:
    */
   const char* ReportCapabilities();
 
+  /**
+   * Get the command encoder
+   */
+  WGPUCommandEncoder GetCommandEncoder();
+
+  /**
+   * Get a singleton instance
+   */
+  static vtkWebGPUInstance* GetInstance();
+
 protected:
   vtkWebGPUInstance();
   ~vtkWebGPUInstance();
@@ -112,6 +122,7 @@ protected:
   WGPUAdapter Adapter = nullptr;
 
   vtkWebGPUDevice* Device = nullptr;
+  WGPUCommandEncoder CommandEncoder = nullptr;
 
   int PowerPreference = HIGH_POWER;
   char* Capabilities = nullptr;
