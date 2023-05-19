@@ -377,13 +377,21 @@ void vtkXMLHyperTreeGridReader::ReadXMLData()
     dimensions[1] = 1;
     dimensions[2] = 1;
   }
+  bool existInterfaceNormalsName = false;
   if ((name = ePrimary->GetAttribute("InterfaceNormalsName")))
   {
     output->SetInterfaceNormalsName(name);
+    existInterfaceNormalsName = true;
   }
+  bool existInterfaceInterceptsName = false;
   if ((name = ePrimary->GetAttribute("InterfaceInterceptsName")))
   {
     output->SetInterfaceInterceptsName(name);
+    existInterfaceInterceptsName = true;
+  }
+  if (existInterfaceNormalsName && existInterfaceInterceptsName)
+  {
+    output->SetHasInterface(true);
   }
   if (!ePrimary->GetScalarAttribute("NumberOfVertices", this->NumberOfPoints))
   {
