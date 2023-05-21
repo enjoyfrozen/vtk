@@ -59,18 +59,42 @@ public:
    */
   void Build(bool prepass) override;
 
+  /**
+   * Opaque pass
+   */
+  virtual void OpaquePass(bool prepass);
+
+  /**
+   * Setup the viewport and scissor rect for a render pass
+   */
+  virtual void ScissorAndViewport(vtkWebGPURenderPassEncoder*);
+
+  /**
+   * Clear pass
+   */
+  virtual void Clear();
+
+  /**
+   * WebGPU follows the DirecX/Metal coordinate system where the origin is the top left corner.
+   * Use this method to get the webgpu origin from the VTK default origin (bottom-left corner).
+   */
+  virtual void GetYInvertedTiledSizeAndOrigin(
+    int* width, int* height, int* topLeftX, int* topLeftY);
+
 protected:
   vtkWebGPURendererNode();
   ~vtkWebGPURendererNode();
 
   // Helper members
-  vtkWebGPURenderPassEncoder* RenderEncoder;
-  vtkCamera* Camera;
+  vtkWebGPURenderPassEncoder* RenderEncoder = nullptr;
+  vtkCamera* Camera = nullptr;
+  double StabilizedCenter[3] = { 0, 0, 0 };
+  double RecenterThreshold = 20.0;
 
   /**
    * Update lights for the renderer
    */
-  virtual void UpdateLights();
+  virtual int UpdateLights();
 
   /**
    * This method is designed to help with floating point

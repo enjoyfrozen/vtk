@@ -17,6 +17,7 @@ set(classes
   vtkWebGPUCommandEncoder
   vtkWebGPURenderWindow
   vtkWebGPURendererNode
+  vtkWebGPUCameraNode
   vtkWebGPUTexture
   vtkWebGPUTextureView
   vtkWebGPUViewNode
