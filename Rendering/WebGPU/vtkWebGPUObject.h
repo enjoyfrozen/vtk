@@ -1,7 +1,7 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    vtkWebGPUViewNode.h
+  Module:    vtkWebGPUObject.h
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.
@@ -13,63 +13,56 @@
 
 =========================================================================*/
 /**
- * @class vtkWebGPUViewNode
- * @brief Abstract base for webgpu view nodes
+ * @class vtkWebGPUObject
+ * @brief An object class for the webgpu backend
+ *
  */
 
-#ifndef vtkWebGPUViewNode_h
-#define vtkWebGPUViewNode_h
+#ifndef vtkWebGPUObject_h
+#define vtkWebGPUObject_h
 
-// vtk includes
+// VTK includes
+#include "vtkObject.h"
 #include "vtkRenderingWebGPUModule.h" // for export macro
-#include "vtkViewNode.h"
 
 VTK_ABI_NAMESPACE_BEGIN
 // Forward declarations
 
-class VTKRENDERINGWEBGPU_EXPORT vtkWebGPUViewNode : public vtkViewNode
+class VTKRENDERINGWEBGPU_EXPORT vtkWebGPUObject : public vtkObject
 {
 public:
-  /**
-   * Instantiate the class.
-   */
-  static vtkWebGPUViewNode* New();
-
   ///@{
   /**
    * Standard methods for the VTK class.
    */
-  vtkTypeMacro(vtkWebGPUViewNode, vtkViewNode);
+  vtkTypeMacro(vtkWebGPUObject, vtkObject);
   void PrintSelf(ostream& os, vtkIndent indent) override;
   ///@}
 
-  enum WebGPU_Operations
-  {
-    query = vtkViewNode::invalidate + 1,
-    opaquePass
-  };
+  ///@{
+  /**
+   * Set/Get the label
+   */
+  vtkSetStringMacro(Label);
+  vtkGetStringMacro(Label);
+  ///@}
 
   /**
-   * Query pass
+   * Returns the webgpu object.
+   * Must be implemented by each sub-class.
    */
-  virtual void Query(bool /* prepass */) {}
-
-  /**
-   * Opaque pass
-   */
-  virtual void OpaquePass(bool /* prepass */) {}
+  virtual void* GetHandle() = 0;
 
 protected:
-  vtkWebGPUViewNode();
-  ~vtkWebGPUViewNode();
+  vtkWebGPUObject();
+  ~vtkWebGPUObject();
 
   // Helper members
-  void Apply(int operation, bool prepass) override;
+  char* Label = nullptr;
 
 private:
-  vtkWebGPUViewNode(const vtkWebGPUViewNode&) = delete;
-  void operator=(const vtkWebGPUViewNode) = delete;
+  vtkWebGPUObject(const vtkWebGPUObject&) = delete;
 };
 
 VTK_ABI_NAMESPACE_END
-#endif // vtkWebGPUViewNode_h
+#endif // vtkWebGPUObject_h

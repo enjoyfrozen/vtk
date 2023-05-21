@@ -7,16 +7,19 @@ set(classes
   # vtkWebGPUPolyDataMapper
   # vtkWebGPUProperty
   # vtkWebGPURenderPass
-  # vtkWebGPURenderPassEncoder
   # vtkWebGPURenderer
-  vtkWebGPUViewNodeFactory
   vtkWebGPUDevice
   vtkWebGPUForwardPass
   vtkWebGPUInstance
+  vtkWebGPUObject
   vtkWebGPUOpaquePass
+  vtkWebGPURenderPassEncoder
   vtkWebGPURenderWindow
   vtkWebGPURendererNode
+  vtkWebGPUTexture
+  vtkWebGPUTextureView
   vtkWebGPUViewNode
+  vtkWebGPUViewNodeFactory
   vtkWebGPUWindowNode
 )
 

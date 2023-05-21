@@ -29,6 +29,9 @@ Copyright and License information
 
 VTK_ABI_NAMESPACE_BEGIN
 // Forward declarations
+class vtkWebGPURenderPassEncoder;
+class vtkWebGPUTexture;
+class vtkWebGPUTextureView;
 
 class VTKRENDERINGWEBGPU_EXPORT vtkWebGPUOpaquePass : public vtkSceneGraphRenderPass
 {
@@ -56,6 +59,11 @@ protected:
   ~vtkWebGPUOpaquePass();
 
   // Helper members
+  vtkWebGPURenderPassEncoder* RenderEncoder = nullptr;
+  vtkWebGPUTexture* ColorTexture = nullptr;
+  vtkWebGPUTextureView* ColorTextureView = nullptr;
+  vtkWebGPUTexture* DepthTexture = nullptr;
+  vtkWebGPUTextureView* DepthTextureView = nullptr;
 
 private:
   vtkWebGPUOpaquePass(const vtkWebGPUOpaquePass&) = delete;

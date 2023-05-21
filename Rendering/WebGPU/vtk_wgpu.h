@@ -17,9 +17,12 @@
 #include <webgpu.h>
 #include <wgpu.h>
 // Define the common instance release API for wgpu
-#define wgpuInstanceRelease wgpuInstanceDrop
 #define wgpuAdapterRelease wgpuAdapterDrop
 #define wgpuDeviceRelease wgpuDeviceDrop
+#define wgpuInstanceRelease wgpuInstanceDrop
+#define wgpuRenderPassEncoderRelease wgpuRenderPassEncoderDrop
+#define wgpuTextureRelease wgpuTextureDrop
+#define wgpuTextureViewRelease wgpuTextureViewDrop
 #endif
 
 #endif // vtk_wgpu_h

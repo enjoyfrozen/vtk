@@ -42,6 +42,9 @@ void vtkWebGPUViewNode::Apply(int operation, bool prepass)
     case vtkWebGPUViewNode::query:
       this->Query(prepass);
       break;
+    case vtkWebGPUViewNode::opaquePass:
+      this->OpaquePass(prepass);
+      break;
     default:
       this->Superclass::Apply(operation, prepass);
       break;

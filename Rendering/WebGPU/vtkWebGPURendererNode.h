@@ -27,6 +27,7 @@
 
 VTK_ABI_NAMESPACE_BEGIN
 // Forward declarations
+class vtkWebGPURenderPassEncoder;
 
 class VTKRENDERINGWEBGPU_EXPORT vtkWebGPURendererNode : public vtkRendererNode
 {
@@ -44,11 +45,20 @@ public:
   void PrintSelf(ostream& os, vtkIndent indent) override;
   ///@}
 
+  ///@{
+  /**
+   * Set/Get the render pass encoder
+   */
+  virtual void SetRenderEncoder(vtkWebGPURenderPassEncoder*);
+  vtkGetObjectMacro(RenderEncoder, vtkWebGPURenderPassEncoder);
+  ///@}
+
 protected:
   vtkWebGPURendererNode();
   ~vtkWebGPURendererNode();
 
   // Helper members
+  vtkWebGPURenderPassEncoder* RenderEncoder;
 
 private:
   vtkWebGPURendererNode(const vtkWebGPURendererNode&) = delete;

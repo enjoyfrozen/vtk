@@ -76,6 +76,9 @@ void vtkWebGPUForwardPass::Traverse(vtkViewNode* vn, vtkRenderPass* parent)
   // Build pass - Gathers the information on scenegraph nodes and assigns renderables
   vn->Traverse(vtkViewNode::build);
 
+  // Synchronize pass
+  vn->Traverse(vtkViewNode::synchronize);
+
   // Query pass - accumulate types of actors
   int numLayers = vtkRenderWindow::SafeDownCast(wn->GetRenderable())->GetNumberOfLayers();
   // iterate over renderers
@@ -99,6 +102,7 @@ void vtkWebGPUForwardPass::Traverse(vtkViewNode* vn, vtkRenderPass* parent)
         renNode->Traverse(vtkWebGPUViewNode::query);
 
         // Opaque pass - draw opaque actors
+        this->OpaquePass->Traverse(renNode, this);
         // Translucent pass - translucent actors
         // Volume pass - volumes
         // Final pass - Blit the result into the swap chain

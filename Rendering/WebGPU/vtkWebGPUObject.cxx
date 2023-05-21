@@ -1,7 +1,7 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    vtkWebGPURendererNode.cxx
+  Module:    vtkWebGPUObject.cxx
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.
@@ -13,26 +13,25 @@
 
 =========================================================================*/
 // vtk includes
-#include "vtkWebGPURendererNode.h"
+#include "vtkWebGPUObject.h"
+
 #include "vtkObjectFactory.h"
-#include "vtkWebGPURenderPassEncoder.h"
 
 VTK_ABI_NAMESPACE_BEGIN
 //-------------------------------------------------------------------------------------------------
-vtkStandardNewMacro(vtkWebGPURendererNode);
-vtkCxxSetObjectMacro(vtkWebGPURendererNode, RenderEncoder, vtkWebGPURenderPassEncoder);
+vtkWebGPUObject::vtkWebGPUObject() = default;
 
 //-------------------------------------------------------------------------------------------------
-vtkWebGPURendererNode::vtkWebGPURendererNode() {}
+vtkWebGPUObject::~vtkWebGPUObject()
+{
+  delete[] this->Label;
+}
 
 //-------------------------------------------------------------------------------------------------
-vtkWebGPURendererNode::~vtkWebGPURendererNode() {}
-
-//-------------------------------------------------------------------------------------------------
-void vtkWebGPURendererNode::PrintSelf(ostream& os, vtkIndent indent)
+void vtkWebGPUObject::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
-  // os << indent << " = " << this-> << endl;
+  os << indent << "Label = " << (this->Label ? this->Label : "(null)") << endl;
 }
 
 //-------------------------------------------------------------------------------------------------
