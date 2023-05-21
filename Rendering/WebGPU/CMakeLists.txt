@@ -14,6 +14,7 @@ set(classes
   vtkWebGPUObject
   vtkWebGPUOpaquePass
   vtkWebGPURenderPassEncoder
+  vtkWebGPUCommandEncoder
   vtkWebGPURenderWindow
   vtkWebGPURendererNode
   vtkWebGPUTexture

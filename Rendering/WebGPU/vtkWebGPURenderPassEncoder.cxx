@@ -15,6 +15,8 @@
 // vtk includes
 #include "vtkWebGPURenderPassEncoder.h"
 #include "vtkObjectFactory.h"
+#include "vtkWebGPUCommandEncoder.h"
+#include "vtkWebGPUInstance.h"
 #include "vtkWebGPUTextureView.h"
 #include "vtk_wgpu.h"
 
@@ -23,11 +25,18 @@ VTK_ABI_NAMESPACE_BEGIN
 class vtkWebGPURenderPassEncoder::vtkInternal
 {
 public:
-  WGPURenderPassEncoder Encoder;
+  vtkInternal();
+  WGPURenderPassEncoder Encoder = nullptr;
   WGPURenderPassDescriptor Descriptor = {};
   std::vector<WGPURenderPassColorAttachment> ColorAttachments;
   WGPURenderPassDepthStencilAttachment DepthAttachment;
 };
+
+//-------------------------------------------------------------------------------------------------
+vtkWebGPURenderPassEncoder::vtkInternal::vtkInternal()
+{
+  this->Descriptor.nextInChain = nullptr;
+}
 
 //-------------------------------------------------------------------------------------------------
 vtkStandardNewMacro(vtkWebGPURenderPassEncoder);
@@ -72,12 +81,20 @@ void vtkWebGPURenderPassEncoder::PrintSelf(ostream& os, vtkIndent indent)
 }
 
 //-------------------------------------------------------------------------------------------------
-void vtkWebGPURenderPassEncoder::Begin(WGPUCommandEncoder enc)
+void vtkWebGPURenderPassEncoder::Begin()
 {
+  vtkWebGPUInstance* inst = vtkWebGPUInstance::GetInstance();
+  if (!inst->IsValid())
+  {
+    return;
+  }
   this->Internal->Descriptor.nextInChain = nullptr;
   this->Internal->Descriptor.timestampWriteCount = 0;
   this->Internal->Descriptor.timestampWrites = nullptr;
-  this->Internal->Encoder = wgpuCommandEncoderBeginRenderPass(enc, &this->Internal->Descriptor);
+  this->Internal->Descriptor.label = this->Label;
+  this->Internal->Encoder = wgpuCommandEncoderBeginRenderPass(
+    static_cast<WGPUCommandEncoder>(inst->GetCommandEncoder()->GetHandle()),
+    &this->Internal->Descriptor);
   if (this->Label)
   {
     wgpuRenderPassEncoderPushDebugGroup(this->Internal->Encoder, this->Label);

@@ -28,6 +28,7 @@
 
 VTK_ABI_NAMESPACE_BEGIN
 // Forward declarations
+class vtkWebGPUCommandEncoder;
 class vtkWebGPUDevice;
 
 class VTKRENDERINGWEBGPU_EXPORT vtkWebGPUInstance : public vtkObject
@@ -104,9 +105,9 @@ public:
   const char* ReportCapabilities();
 
   /**
-   * Get the command encoder
+   * Convenience function to get the device command encoder
    */
-  WGPUCommandEncoder GetCommandEncoder();
+  vtkWebGPUCommandEncoder* GetCommandEncoder();
 
   /**
    * Get a singleton instance
@@ -122,7 +123,6 @@ protected:
   WGPUAdapter Adapter = nullptr;
 
   vtkWebGPUDevice* Device = nullptr;
-  WGPUCommandEncoder CommandEncoder = nullptr;
 
   int PowerPreference = HIGH_POWER;
   char* Capabilities = nullptr;

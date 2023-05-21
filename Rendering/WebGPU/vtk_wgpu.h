@@ -18,6 +18,7 @@
 #include <wgpu.h>
 // Define the common instance release API for wgpu
 #define wgpuAdapterRelease wgpuAdapterDrop
+#define wgpuCommandEncoderRelease wgpuCommandEncoderDrop
 #define wgpuDeviceRelease wgpuDeviceDrop
 #define wgpuInstanceRelease wgpuInstanceDrop
 #define wgpuRenderPassEncoderRelease wgpuRenderPassEncoderDrop

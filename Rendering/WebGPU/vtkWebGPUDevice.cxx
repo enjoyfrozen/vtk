@@ -14,8 +14,8 @@
 =========================================================================*/
 
 #include "vtkWebGPUDevice.h"
-
 #include "vtkObjectFactory.h"
+#include "vtkWebGPUCommandEncoder.h"
 
 // STL includes
 #include <sstream>
@@ -78,6 +78,11 @@ void vtkWebGPUDevice::Create(WGPUAdapter a)
 //-------------------------------------------------------------------------------------------------
 void vtkWebGPUDevice::Destroy()
 {
+  if (this->CommandEncoder)
+  {
+    this->CommandEncoder->Delete();
+    this->CommandEncoder = nullptr;
+  }
   if (this->Device)
   {
     wgpuDeviceRelease(this->Device);
@@ -309,6 +314,17 @@ const char* vtkWebGPUDevice::ReportCapabilities()
   strncpy(this->Capabilities, strm.str().c_str(), len);
 
   return this->Capabilities;
+}
+
+//-------------------------------------------------------------------------------------------------
+vtkWebGPUCommandEncoder* vtkWebGPUDevice::GetCommandEncoder()
+{
+  if (this->GetHandle() && !this->CommandEncoder)
+  {
+    this->CommandEncoder = vtkWebGPUCommandEncoder::New();
+    this->CommandEncoder->Create();
+  }
+  return this->CommandEncoder;
 }
 
 //-------------------------------------------------------------------------------------------------

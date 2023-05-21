@@ -29,6 +29,7 @@
 
 VTK_ABI_NAMESPACE_BEGIN
 // Forward declarations
+class vtkWebGPUCommandEncoder;
 
 class VTKRENDERINGWEBGPU_EXPORT vtkWebGPUDevice : public vtkObject
 {
@@ -84,6 +85,11 @@ public:
    */
   const char* ReportCapabilities();
 
+  /**
+   * Get the comamnd encoder
+   */
+  virtual vtkWebGPUCommandEncoder* GetCommandEncoder();
+
 protected:
   vtkWebGPUDevice();
   ~vtkWebGPUDevice();
@@ -92,6 +98,7 @@ protected:
   WGPUDevice Device = nullptr;
   char* Label = nullptr;
   char* Capabilities = nullptr;
+  vtkWebGPUCommandEncoder* CommandEncoder = nullptr;
 
   // Callbacks
   static void OnDeviceRequested(

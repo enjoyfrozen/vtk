@@ -16,13 +16,14 @@
 #include "vtkWebGPUInstance.h"
 
 #include "vtkObjectFactory.h"
-#include "vtkWebGPUDevice.h"
 #include "vtkSmartPointer.h"
+#include "vtkWebGPUCommandEncoder.h"
+#include "vtkWebGPUDevice.h"
 
 // STL includes
+#include <mutex>
 #include <sstream>
 #include <vector>
-#include <mutex>
 
 VTK_ABI_NAMESPACE_BEGIN
 //-------------------------------------------------------------------------------------------------
@@ -124,7 +125,7 @@ void vtkWebGPUInstance::Destroy()
 //------------------------------------------------------------------------------------------------
 bool vtkWebGPUInstance::IsValid()
 {
-  return (this->Instance != nullptr);
+  return ((this->Instance != nullptr) && (this->Device->GetHandle() != nullptr));
 }
 
 //------------------------------------------------------------------------------------------------
@@ -295,20 +296,13 @@ void vtkWebGPUInstance::SetPowerPreference(int power)
 }
 
 //------------------------------------------------------------------------------------------------
-WGPUCommandEncoder vtkWebGPUInstance::GetCommandEncoder()
+vtkWebGPUCommandEncoder* vtkWebGPUInstance::GetCommandEncoder()
 {
   if (!this->IsValid())
   {
     return nullptr;
   }
-  if (!this->CommandEncoder)
-  {
-    WGPUCommandEncoderDescriptor desc = {};
-    desc.nextInChain = nullptr;
-    desc.label = "VTKWebGPU Command Encoder";
-    this->CommandEncoder = wgpuDeviceCreateCommandEncoder(this->Device->GetHandle(), &desc);
-  }
-  return this->CommandEncoder;
+  return this->GetDevice()->GetCommandEncoder();
 }
 
 //------------------------------------------------------------------------------------------------

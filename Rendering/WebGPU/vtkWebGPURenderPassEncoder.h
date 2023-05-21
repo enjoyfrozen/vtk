@@ -32,8 +32,6 @@ VTK_ABI_NAMESPACE_BEGIN
 // Forward declarations
 class vtkWebGPUTextureView;
 struct WGPURenderPassDescriptor;
-struct WGPUCommandEncoderImpl;
-typedef WGPUCommandEncoderImpl* WGPUCommandEncoder;
 
 class VTKRENDERINGWEBGPU_EXPORT vtkWebGPURenderPassEncoder : public vtkWebGPUObject
 {
@@ -61,8 +59,14 @@ public:
    */
   WGPURenderPassDescriptor& GetDescriptor();
 
-  void Begin(WGPUCommandEncoder enc);
+  ///@{
+  /**
+   * Begin/end the render pass.
+   * Requires a valid webgpu instance.
+   */
+  void Begin();
   void End();
+  ///@}
 
   ///@{
   /**
