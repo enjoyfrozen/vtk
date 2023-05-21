@@ -28,6 +28,7 @@
 VTK_ABI_NAMESPACE_BEGIN
 // Forward declarations
 class vtkWebGPURenderPassEncoder;
+class vtkCamera;
 
 class VTKRENDERINGWEBGPU_EXPORT vtkWebGPURendererNode : public vtkRendererNode
 {
@@ -53,12 +54,53 @@ public:
   vtkGetObjectMacro(RenderEncoder, vtkWebGPURenderPassEncoder);
   ///@}
 
+  /**
+   * Build pass
+   */
+  void Build(bool prepass) override;
+
 protected:
   vtkWebGPURendererNode();
   ~vtkWebGPURendererNode();
 
   // Helper members
   vtkWebGPURenderPassEncoder* RenderEncoder;
+  vtkCamera* Camera;
+
+  /**
+   * Update lights for the renderer
+   */
+  virtual void UpdateLights();
+
+  /**
+   * This method is designed to help with floating point
+   * issues when rendering datasets that push the limits of
+   * resolutions on float.
+   *
+   * One of the most common cases is when the dataset is located far
+   * away from the origin relative to the clipping range we are looking
+   * at. For that case we want to perform the floating point sensitive
+   * multiplications on the CPU in double. To this end we want the
+   * vertex rendering ops to look something like
+   *
+   * Compute shifted points and load those into the VBO
+   * pointCoordsSC = WorldToStabilizedMatrix * pointCoords;
+   *
+   * In the vertex shader do the following
+   * positionVC = StabilizedToDeviceMatrix * ModelToStabilizedMatrix*vertexIn;
+   *
+   * We use two matrices because it is expensive to change the
+   * WorldToStabilized matrix as we have to reupload all pointCoords
+   * So that matrix (MCSCMatrix) is fairly static, the Stabilized to
+   * Device matrix is the one that gets updated every time the camera
+   * changes.
+   *
+   * The basic idea is that we should translate the data so that
+   * when the center of the view frustum moves a lot
+   * we recenter it. The center of the view frustum is roughly
+   * camPos + dirOfProj*(far + near)*0.5
+   */
+  void UpdateStabilizedMatrix();
 
 private:
   vtkWebGPURendererNode(const vtkWebGPURendererNode&) = delete;

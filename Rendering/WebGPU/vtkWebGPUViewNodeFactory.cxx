@@ -19,6 +19,7 @@
 
 // #include "vtkWebGPUActorNode.h"
 // #include "vtkWebGPUPolyDataMapperNode.h"
+#include "vtkWebGPUCameraNode.h"
 #include "vtkWebGPURendererNode.h"
 
 VTK_ABI_NAMESPACE_BEGIN
@@ -28,6 +29,12 @@ namespace vtkwgpu
 vtkViewNode* ren_maker()
 {
   vtkWebGPURendererNode* vn = vtkWebGPURendererNode::New();
+  return vn;
+}
+
+vtkViewNode* cam_maker()
+{
+  vtkWebGPUCameraNode* vn = vtkWebGPUCameraNode::New();
   return vn;
 }
 
@@ -53,6 +60,7 @@ vtkWebGPUViewNodeFactory::vtkWebGPUViewNodeFactory()
 {
   // see vtkRenderWindow::GetRenderLibrary
   this->RegisterOverride("vtkRenderer", vtkwgpu::ren_maker);
+  this->RegisterOverride("vtkCamera", vtkwgpu::cam_maker);
   // this->RegisterOverride("vtkActor", vtkwgpu::act_maker);
   // this->RegisterOverride("vtkPolyDataMapper", vtkwgpu::pd_maker);
 }
