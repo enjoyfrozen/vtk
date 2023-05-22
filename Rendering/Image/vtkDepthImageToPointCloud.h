@@ -112,9 +112,9 @@ public:
    * plane. These typically are points that are part of the clipped foreground. By
    * default this is disabled.
    */
-  vtkSetMacro(CullNearPoints, bool);
-  vtkGetMacro(CullNearPoints, bool);
-  vtkBooleanMacro(CullNearPoints, bool);
+  vtkSetMacro(CullNearPoints, vtkTypeBool);
+  vtkGetMacro(CullNearPoints, vtkTypeBool);
+  vtkBooleanMacro(CullNearPoints, vtkTypeBool);
   ///@}
 
   ///@{
@@ -123,9 +123,9 @@ public:
    * plane. These typically are points that are part of the background. By
    * default this is enabled.
    */
-  vtkSetMacro(CullFarPoints, bool);
-  vtkGetMacro(CullFarPoints, bool);
-  vtkBooleanMacro(CullFarPoints, bool);
+  vtkSetMacro(CullFarPoints, vtkTypeBool);
+  vtkGetMacro(CullFarPoints, vtkTypeBool);
+  vtkBooleanMacro(CullFarPoints, vtkTypeBool);
   ///@}
 
   ///@{
@@ -134,9 +134,9 @@ public:
    * point cloud (assuming that the scalar values are available on
    * input). By default this is enabled.
    */
-  vtkSetMacro(ProduceColorScalars, bool);
-  vtkGetMacro(ProduceColorScalars, bool);
-  vtkBooleanMacro(ProduceColorScalars, bool);
+  vtkSetMacro(ProduceColorScalars, vtkTypeBool);
+  vtkGetMacro(ProduceColorScalars, vtkTypeBool);
+  vtkBooleanMacro(ProduceColorScalars, vtkTypeBool);
   ///@}
 
   ///@{
@@ -146,9 +146,9 @@ public:
    * defined in order to execute properly. For example some mappers will
    * only render points if the vertex cells are defined.
    */
-  vtkSetMacro(ProduceVertexCellArray, bool);
-  vtkGetMacro(ProduceVertexCellArray, bool);
-  vtkBooleanMacro(ProduceVertexCellArray, bool);
+  vtkSetMacro(ProduceVertexCellArray, vtkTypeBool);
+  vtkGetMacro(ProduceVertexCellArray, vtkTypeBool);
+  vtkBooleanMacro(ProduceVertexCellArray, vtkTypeBool);
   ///@}
 
   ///@{
@@ -166,10 +166,10 @@ protected:
   ~vtkDepthImageToPointCloud() override;
 
   vtkCamera* Camera;
-  bool CullNearPoints;
-  bool CullFarPoints;
-  bool ProduceColorScalars;
-  bool ProduceVertexCellArray;
+  vtkTypeBool CullNearPoints;
+  vtkTypeBool CullFarPoints;
+  vtkTypeBool ProduceColorScalars;
+  vtkTypeBool ProduceVertexCellArray;
   int OutputPointsPrecision;
 
   int RequestInformation(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
