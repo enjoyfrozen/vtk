@@ -84,5 +84,18 @@ int TestDepthImageToPointCloud(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 
   int retval = !(xRange > 4.0 && yRange > 4.0 && zRange > 0.0);
 
+  // Now test using View coordinates
+  depthImageToPointCloud->SetOutputCoordinateSystem(vtkDepthImageToPointCloud::View);
+  depthImageToPointCloud->Update();
+
+  pointCloud = depthImageToPointCloud->GetOutput();
+  pointCloud->GetBounds(bounds);
+
+  xRange = bounds[1] - bounds[0];
+  yRange = bounds[3] - bounds[2];
+  zRange = bounds[5] - bounds[4];
+
+  retval = retval & !(xRange < 1.0 && yRange < 1.0 && zRange > 0.0);
+
   return retval;
 }

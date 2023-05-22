@@ -45,6 +45,11 @@
  * generated points to be located at the center of the image pixels
  * rather the in the lower left corner.
  *
+ * The option OutputCoordinateSystem can be used for selecting that
+ * the output positions should be given in either, the View coordinate
+ * system, the Pose coordinate system (relative to the camera) or in
+ * World coordinate (default).
+ *
  * @warning
  * For the camera to transform the image depths into a point cloud, this
  * filter makes assumptions about the origin of the depth image (and
@@ -59,6 +64,9 @@
  * the upper right pixel as well). This half pixel difference can cause
  * transformation issues. (The code is commented appropriately.) To remedy this, the
  * CenterPointsAtPixels can be enabled.
+ *
+ * Plese not that when using this filter in a pipeline, you need to
+ * explicit call render on the render window(s).
  *
  * @warning
  * This class has been threaded with vtkSMPTools. Using TBB or other
@@ -169,6 +177,27 @@ public:
 
   ///@{
   /**
+   * Set the output coordinate system to be either View coordinates,
+   * Pose coordinates or World coordinates (default)
+   */
+
+  enum OutputCoordinateSystemType : int
+  {
+    View = 0,
+    Pose = 1,
+    World = 2
+  };
+
+  vtkSetClampMacro(OutputCoordinateSystem, int, View, World);
+  vtkGetMacro(OutputCoordinateSystem, int);
+  void SetOutputCoordinateSystemToView() { this->SetOutputCoordinateSystem(View); }
+  void SetOutputCoordinateSystemToPose() { this->SetOutputCoordinateSystem(Pose); }
+  void SetOutputCoordinateSystemToWorld() { this->SetOutputCoordinateSystem(World); }
+  const char* GetOutputCoordinateSystemAsString();
+  ///@}
+
+  ///@{
+  /**
    * Set the desired precision for the output points.
    * See vtkAlgorithm::DesiredOutputPrecision for the available choices.
    * The default is double precision.
@@ -187,6 +216,7 @@ protected:
   vtkTypeBool ProduceColorScalars;
   vtkTypeBool ProduceVertexCellArray;
   vtkTypeBool CenterPointsAtPixels;
+  int OutputCoordinateSystem;
   int OutputPointsPrecision;
 
   int RequestInformation(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
