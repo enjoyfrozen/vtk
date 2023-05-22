@@ -41,6 +41,10 @@
  * clipping planes. This may better simulate the generation of a scanned
  * object point cloud.
  *
+ * The option CenterPointsAtPixels can be used for forcing the
+ * generated points to be located at the center of the image pixels
+ * rather the in the lower left corner.
+ *
  * @warning
  * For the camera to transform the image depths into a point cloud, this
  * filter makes assumptions about the origin of the depth image (and
@@ -53,7 +57,8 @@
  * are at the center of the pixel versus the lower-left corner of the pixel
  * will make slight differences in how pixels are transformed. (Similarly for
  * the upper right pixel as well). This half pixel difference can cause
- * transformation issues. (The code is commented appropriately.)
+ * transformation issues. (The code is commented appropriately.) To remedy this, the
+ * CenterPointsAtPixels can be enabled.
  *
  * @warning
  * This class has been threaded with vtkSMPTools. Using TBB or other
@@ -153,6 +158,17 @@ public:
 
   ///@{
   /**
+   * Center points at pixel. When enabled, an offset is added of 0.5
+   * pixels such that points are added using the image value at the
+   * center of the pixels rather than in the lower left corner.
+   */
+  vtkSetMacro(CenterPointsAtPixels, vtkTypeBool);
+  vtkGetMacro(CenterPointsAtPixels, vtkTypeBool);
+  vtkBooleanMacro(CenterPointsAtPixels, vtkTypeBool);
+  ///@}
+
+  ///@{
+  /**
    * Set the desired precision for the output points.
    * See vtkAlgorithm::DesiredOutputPrecision for the available choices.
    * The default is double precision.
@@ -170,6 +186,7 @@ protected:
   vtkTypeBool CullFarPoints;
   vtkTypeBool ProduceColorScalars;
   vtkTypeBool ProduceVertexCellArray;
+  vtkTypeBool CenterPointsAtPixels;
   int OutputPointsPrecision;
 
   int RequestInformation(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
