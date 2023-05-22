@@ -1,5 +1,6 @@
 vtk_add_test_cxx(vtkRenderingImageCxxTests tests
   TestCellPickerImage.cxx
+  TestDepthImageToPointCloud.cxx, NO_VALID
   TestImageSliceMapperAlpha.cxx
   TestImageResliceMapperAlpha.cxx
   TestImageSliceMapperBackground.cxx
