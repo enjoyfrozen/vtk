@@ -1,4 +1,18 @@
-#include "vtkTestUtilities.h"
+/*=========================================================================
+
+  Program:   Visualization Toolkit
+  Module:    TestImageResliceMapperAlpha.cxx
+
+  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+  All rights reserved.
+  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
+
+     This software is distributed WITHOUT ANY WARRANTY; without even
+     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+     PURPOSE.  See the above copyright notice for more information.
+
+=========================================================================*/
+// Test vtkDepthImageToPointCloud using a scene containing a sphere.
 
 #include "vtkCamera.h"
 #include "vtkDepthImageToPointCloud.h"
@@ -6,30 +20,23 @@
 #include "vtkRenderWindow.h"
 #include "vtkRenderer.h"
 #include "vtkSphereSource.h"
+#include "vtkTestUtilities.h"
 #include "vtkWindowToImageFilter.h"
 
 int TestDepthImageToPointCloud(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 {
-  // Simple test for rendering a sphere and converting it to a point cloud
   const int width = 300, height = 300;
   const double radius = 3.0;
 
-  // Create renderers and windows for offscreen rendering
-  vtkNew<vtkRenderWindow> renWinColors;
-  renWinColors->SetSize(width, height);
-  renWinColors->SetOffScreenRendering(true);
+  // Create renderer and render window for offscreen rendering. A render window
+  // has both a ZBuffer and an RGBA buffer, so one window is sufficient.
+  vtkNew<vtkRenderWindow> renderWindow;
+  renderWindow->SetSize(width, height);
+  renderWindow->SetOffScreenRendering(true);
 
-  vtkNew<vtkRenderWindow> renWinDepth;
-  renWinDepth->SetSize(width, height);
-  renWinDepth->SetOffScreenRendering(true);
+  vtkNew<vtkRenderer> renderer;
+  renderWindow->AddRenderer(renderer);
 
-  vtkNew<vtkRenderer> rendererColor;
-  vtkNew<vtkRenderer> rendererDepth;
-
-  renWinColors->AddRenderer(rendererColor);
-  renWinDepth->AddRenderer(rendererDepth);
-
-  // Create sphere with fixed radius
   vtkNew<vtkSphereSource> sphereSource;
   sphereSource->SetCenter(0, 0, 5.0);
   sphereSource->SetRadius(radius);
@@ -41,35 +48,33 @@ int TestDepthImageToPointCloud(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
   vtkNew<vtkActor> sphereActor;
   sphereActor->SetMapper(mapper);
 
-  // Add actor to the renderers
-  rendererColor->AddActor(sphereActor);
-  rendererDepth->AddActor(sphereActor);
+  renderer->AddActor(sphereActor);
 
-  // Enable parallel projection and share the camera between the renderers
-  rendererColor->GetActiveCamera()->SetParallelProjection(true);
-  rendererColor->ResetCamera();
-  rendererDepth->SetActiveCamera(rendererColor->GetActiveCamera());
-
-  // Render into offscreen windows
-  renWinDepth->Render();
-  renWinColors->Render();
+  // Use parallel projection - then we can easily deduce the
+  // dimensions of the output
+  renderer->GetActiveCamera()->SetParallelProjection(true);
+  renderer->ResetCamera();
 
   // Establish window-to-image filters
-  vtkNew<vtkWindowToImageFilter> w2iColors;
-  w2iColors->SetInput(renWinColors);
-  w2iColors->SetInputBufferTypeToRGBA();
-  w2iColors->Update();
+  vtkNew<vtkWindowToImageFilter> windowToImageColors;
+  windowToImageColors->SetInput(renderWindow);
+  windowToImageColors->SetInputBufferTypeToRGBA();
 
-  vtkNew<vtkWindowToImageFilter> w2iDepth;
-  w2iDepth->SetInput(renWinDepth);
-  w2iDepth->SetInputBufferTypeToZBuffer();
-  w2iDepth->Update();
+  vtkNew<vtkWindowToImageFilter> windowToImageDepth;
+  windowToImageDepth->SetInput(renderWindow);
+  windowToImageDepth->SetInputBufferTypeToZBuffer();
+
+  // Render into offscreen windows
+  renderWindow->Render();
+
+  windowToImageColors->Update();
+  windowToImageDepth->Update();
 
   // Create depth image to point cloud instance
   vtkNew<vtkDepthImageToPointCloud> depthImageToPointCloud;
-  depthImageToPointCloud->SetInputConnection(0, w2iDepth->GetOutputPort());
-  depthImageToPointCloud->SetInputConnection(1, w2iColors->GetOutputPort());
-  depthImageToPointCloud->SetCamera(rendererColor->GetActiveCamera());
+  depthImageToPointCloud->SetInputConnection(0, windowToImageDepth->GetOutputPort());
+  depthImageToPointCloud->SetInputConnection(1, windowToImageColors->GetOutputPort());
+  depthImageToPointCloud->SetCamera(renderer->GetActiveCamera());
   depthImageToPointCloud->Update();
 
   // Get the output point cloud
@@ -82,7 +87,9 @@ int TestDepthImageToPointCloud(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
   double yRange = bounds[3] - bounds[2];
   double zRange = bounds[5] - bounds[4];
 
-  int retval = !(xRange > 4.0 && yRange > 4.0 && zRange > 0.0);
+  // Even for a sphere with few facets, the extent should be larger than this
+  bool success = true;
+  success &= (xRange > 4.0 && yRange > 4.0 && zRange > 0.0);
 
   // Now test using View coordinates
   depthImageToPointCloud->SetOutputCoordinateSystem(vtkDepthImageToPointCloud::View);
@@ -95,7 +102,8 @@ int TestDepthImageToPointCloud(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
   yRange = bounds[3] - bounds[2];
   zRange = bounds[5] - bounds[4];
 
-  retval = retval & !(xRange < 1.0 && yRange < 1.0 && zRange > 0.0);
+  // Using view-corodinates, we must stay within [-1, 1]x[-1, 1]x[-1,1]
+  success &= (xRange < 2.0 && yRange < 2.0 && zRange > 0.0);
 
-  return retval;
+  return success ? EXIT_SUCCESS : EXIT_FAILURE;
 }
