@@ -47,8 +47,12 @@
 #define vtkScalarsToColors_h
 
 #include "vtkCommonCoreModule.h" // For export macro
+#include "vtkDeprecation.h"      // for VTK_DEPRECATED_IN_9_3_0
 #include "vtkObject.h"
-#include "vtkVariant.h" // Set/get annotation methods require variants.
+#include "vtkSmartPointer.h" // for vtkSmartPointer
+#include "vtkVariant.h"      // Set/get annotation methods require variants.
+
+#include <memory> // for std::unique_ptr
 
 VTK_ABI_NAMESPACE_BEGIN
 class vtkAbstractArray;
@@ -286,8 +290,8 @@ public:
    * of the arrays.
    */
   virtual void SetAnnotations(vtkAbstractArray* values, vtkStringArray* annotations);
-  vtkGetObjectMacro(AnnotatedValues, vtkAbstractArray);
-  vtkGetObjectMacro(Annotations, vtkStringArray);
+  vtkAbstractArray* GetAnnotatedValues();
+  vtkStringArray* GetAnnotations();
   ///@}
 
   /**
@@ -325,14 +329,16 @@ public:
   /**
    * Return the index of the given value in the list of annotated values (or -1 if not present).
    */
-  vtkIdType GetAnnotatedValueIndex(vtkVariant val);
+  vtkIdType GetAnnotatedValueIndex(const vtkVariant& val);
 
   /**
-   * Look up an index into the array of annotations given a
-   * value. Does no pointer checks. Returns -1 when \p val not
-   * present.
+   * @deprecated Use vtkScalarsToColors::GetAnnotatedValueIndex instead
    */
-  vtkIdType GetAnnotatedValueIndexInternal(const vtkVariant& val);
+  VTK_DEPRECATED_IN_9_3_0("Please use vtkScalarsToColors::GetAnnotatedValueIndex instead.")
+  vtkIdType GetAnnotatedValueIndexInternal(const vtkVariant& val)
+  {
+    return this->GetAnnotatedValueIndex(val);
+  }
 
   /**
    * Get the "indexed color" assigned to an index.
@@ -426,23 +432,16 @@ protected:
     int numberOfComponents, int vectorSize);
 
   /**
-   * Allocate annotation arrays if needed, then return the index of
-   * the given \a value or -1 if not present.
+   * @deprecated Use vtkScalarsToColors::GetAnnotatedValueIndex instead.
    */
-  virtual vtkIdType CheckForAnnotatedValue(vtkVariant value);
+  VTK_DEPRECATED_IN_9_3_0("Please use vtkScalarsToColors::GetAnnotatedValueIndex instead.")
+  virtual vtkIdType CheckForAnnotatedValue(vtkVariant value)
+  {
+    return this->GetAnnotatedValueIndex(value);
+  }
 
-  /**
-   * Update the map from annotated values to indices in the array of
-   * annotations.
-   */
-  virtual void UpdateAnnotatedValueMap();
-
-  // Annotations of specific values.
-  vtkAbstractArray* AnnotatedValues;
-  vtkStringArray* Annotations;
-
-  class vtkInternalAnnotatedValueList;
-  vtkInternalAnnotatedValueList* AnnotatedValueList;
+  VTK_DEPRECATED_IN_9_3_0("Not needed anymore. Please remove use.")
+  virtual void UpdateAnnotatedValueMap() {}
 
   vtkTypeBool IndexedLookup;
 
@@ -461,6 +460,9 @@ protected:
 private:
   double RGB[3];
   double InputRange[2];
+
+  class vtkAnnotations;
+  std::unique_ptr<vtkAnnotations> Annotations;
 
   vtkScalarsToColors(const vtkScalarsToColors&) = delete;
   void operator=(const vtkScalarsToColors&) = delete;
