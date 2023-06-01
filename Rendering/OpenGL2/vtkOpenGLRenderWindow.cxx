@@ -2467,18 +2467,7 @@ int vtkOpenGLRenderWindow::CreateFramebuffers(int width, int height)
   assert("pre: positive_width" && width > 0);
   assert("pre: positive_height" && height > 0);
 
-#if defined(__APPLE__)
-  // make sure requested multisamples is OK with platform
-  // APPLE Intel systems seem to have buggy multisampled
-  // framebuffer blits etc that cause issues
-  if (this->MultiSamples > 0)
-  {
-    if (this->GetState()->GetVendor().find("Intel") != std::string::npos)
-    {
-      this->MultiSamples = 0;
-    }
-  }
-#endif
+  ForceSampleCountToZeroSpecialCase();
 
   if (this->LastMultiSamples != this->MultiSamples)
   {
@@ -2609,6 +2598,30 @@ void vtkOpenGLRenderWindow::RestoreGLState()
     // Unuse active shader program
     this->GetShaderCache()->ReleaseCurrentShader();
     vtkOpenGLRenderUtilities::MarkDebugEvent("Restored OpenGL State");
+  }
+}
+
+void vtkOpenGLRenderWindow::ForceSampleCountToZeroSpecialCase()
+{
+  // Make sure requested multisamples is OK with platform
+  // APPLE Intel systems seem to have buggy multisampled,framebuffer blits etc that cause issues
+  // Same issue in case this is not __APPLE__ build but running windows via virtual machine on mac
+  // Using windows parallels with display adapter "Parallels Display Adapter (WDDM)"
+
+  bool isApple = false;
+
+#if defined(__APPLE__)
+  isApple = true;
+#endif
+
+  const std::string GraphicCardVendor = this->GetState()->GetVendor();
+
+  bool isForceZeroNeeded = ((GraphicCardVendor.find("intel") != std::string::npos) && isApple) ||
+    (GraphicCardVendor.find("parallels") != std::string::npos);
+
+  if (isForceZeroNeeded)
+  {
+    this->MultiSamples = 0;
   }
 }
 

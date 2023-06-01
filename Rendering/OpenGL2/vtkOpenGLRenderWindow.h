@@ -536,6 +536,11 @@ protected:
    */
   void RestoreGLState();
 
+  /**
+   * Fix Multisample anti-aliasing (MSAA) sample count, in special cases where its not supported.
+   */
+  void ForceSampleCountToZeroSpecialCase();
+
   std::map<std::string, int> GLStateIntegers;
 
   /**
