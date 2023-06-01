@@ -186,6 +186,8 @@
         # Needed to work with OpenMPI
         OMPI_ALLOW_RUN_AS_ROOT: 1
         OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
+        # don't use shared memory, just use TCP and self
+        # OMPI_MCA_btl: "tcp,self"
         MODULES: mpi/openmpi-x86_64
 
 .el7_mindeps_python_qt5:
@@ -232,7 +234,7 @@
 .fedora39_mpi_offscreen_osmesa_python:
     extends:
         - .fedora39
-        - .fedora_mpich_addon
+        - .fedora_openmpi_addon
 
     variables:
         CMAKE_CONFIGURATION: fedora39_mpi_offscreen_osmesa_python
@@ -241,7 +243,7 @@
 .fedora39_mpi_offscreen_osmesa_python_ext_vtk:
     extends:
         - .fedora39
-        - .fedora_mpich_addon
+        - .fedora_openmpi_addon
 
     variables:
         CMAKE_CONFIGURATION: fedora39_mpi_offscreen_osmesa_python_ext_vtk
