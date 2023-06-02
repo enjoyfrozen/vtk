@@ -15,17 +15,24 @@
 
 #include "vtkColorSeries.h"
 #include "vtkDoubleArray.h"
+#include "vtkIntArray.h"
+#include "vtkLogger.h"
 #include "vtkLookupTable.h"
+#include "vtkNew.h"
+#include "vtkSmartPointer.h"
+#include "vtkStringArray.h"
 #include "vtkUnsignedCharArray.h"
 
-#include <iomanip>
-#include <iostream>
 #include <map>
+#include <numeric>
+#include <random>
 #include <sstream>
 #include <string>
 
 #include <cstdio> // For EXIT_SUCCESS
 
+namespace
+{
 //------------------------------------------------------------------------------
 //! Get a hexadecimal string of the RGBA colors.
 std::string RGBAToHexString(const unsigned char* rgba)
@@ -38,11 +45,52 @@ std::string RGBAToHexString(const unsigned char* rgba)
   return os.str();
 }
 
+bool vtkTest(const std::string& val, const unsigned char* rgba, const std::string& expectedColor)
+{
+  auto v = "0x" + RGBAToHexString(rgba);
+  if (expectedColor != v)
+  {
+    vtkLog(ERROR, "For data '" << val << "', got " << v << ", expected " << expectedColor);
+    return false;
+  }
+  return true;
+}
+
+bool DoPerformanceTest(vtkLookupTable* lut, int numAnnotations, vtkIdType numScalars)
+{
+  lut->ResetAnnotations();
+  vtkNew<vtkIntArray> values;
+  vtkNew<vtkStringArray> labels;
+  values->SetNumberOfTuples(numAnnotations);
+  labels->SetNumberOfTuples(numAnnotations);
+  for (int cc = 0; cc < numAnnotations; ++cc)
+  {
+    values->SetValue(cc, cc);
+    labels->SetValue(cc, "annotation_" + std::to_string(cc));
+  }
+  lut->SetAnnotations(values, labels);
+
+  vtkNew<vtkDoubleArray> data;
+  data->SetNumberOfTuples(numScalars);
+
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<> dis(0, numAnnotations - 1);
+  std::generate_n(data->GetPointer(0), numScalars, [&]() { return dis(gen); });
+
+  {
+    vtkLogScopeF(INFO, "MapScalars");
+    auto color = vtk::TakeSmartPointer(lut->MapScalars(data, VTK_RGBA, 0));
+    return color != nullptr;
+  }
+}
+}
+
 int TestCategoricalColors(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 {
   bool res = true;
   // Create the LUT and add some annotations.
-  vtkLookupTable* lut = vtkLookupTable::New();
+  vtkNew<vtkLookupTable> lut;
   lut->SetAnnotation(0., "Zero");
   lut->SetAnnotation(.5, "Half");
   lut->SetAnnotation(1., "Ichi");
@@ -57,13 +105,13 @@ int TestCategoricalColors(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
   lut->SetAnnotation(9, "Kyuu");
   lut->RemoveAnnotation(2.);
 
-  vtkColorSeries* palettes = vtkColorSeries::New();
+  vtkNew<vtkColorSeries> palettes;
 #if 0
   vtkIdType numSchemes = palettes->GetNumberOfColorSchemes();
   for (vtkIdType i = 0; i < numSchemes; ++ i)
   {
     palettes->SetColorScheme(i);
-    std::cout << i << ": " << palettes->GetColorSchemeName() << std::endl;
+    vtkLogF(INFO, "%lld: %s", i, palettes->GetColorSchemeName().c_str());
   }
 #endif
   palettes->SetColorSchemeByName("Brewer Qualitative Accent");
@@ -78,24 +126,12 @@ int TestCategoricalColors(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
   expectedColors[0.5] = "0xbeaed4ff";
   expectedColors[-999] = "0x800000ff"; // NaN
 
-  const unsigned char* rgba = lut->MapValue(0.);
-  std::string v = "0x" + RGBAToHexString(rgba);
-  if (expectedColors[0] != v)
-  {
-    std::cout << "Fail for " << std::setw(3) << std::left << 0 << ": got: " << v
-              << " expected: " << expectedColors[0] << std::endl;
-    res &= false;
-  }
-  rgba = lut->MapValue(3.);
-  v = "0x" + RGBAToHexString(rgba);
-  if (expectedColors[3] != v)
-  {
-    std::cout << "Fail for " << std::setw(3) << std::left << 3 << ": got: " << v
-              << " expected: " << expectedColors[3] << std::endl;
-    res &= false;
-  }
+  res = vtkTest("0.", lut->MapValue(0.), expectedColors[0]) && res;
+  res = vtkTest("3.", lut->MapValue(3.), expectedColors[3]) && res;
+  res = vtkTest("9.", lut->MapValue(9.), expectedColors[9]) && res;
+  res = vtkTest("9", lut->MapValue(9), expectedColors[9]) && res;
 
-  vtkDoubleArray* data = vtkDoubleArray::New();
+  vtkNew<vtkDoubleArray> data;
   data->InsertNextValue(0.);
   data->InsertNextValue(9.);
   data->InsertNextValue(1.);
@@ -103,32 +139,24 @@ int TestCategoricalColors(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
   data->InsertNextValue(3.);
   data->InsertNextValue(.5);
 
-  vtkUnsignedCharArray* color = lut->MapScalars(data, VTK_RGBA, 0);
-  unsigned char* cval;
+  auto color = vtk::TakeSmartPointer(lut->MapScalars(data, VTK_RGBA, 0));
   for (vtkIdType i = 0; i < color->GetNumberOfTuples(); ++i)
   {
-    cval = color->GetPointer(i * 4);
-    v = "0x" + RGBAToHexString(cval);
-    if (expectedColors[data->GetTuple1(i)] != v)
-    {
-      std::cout << "Fail for " << std::setw(3) << std::left << data->GetTuple1(i) << ": got: " << v
-                << " expected: " << expectedColors[data->GetTuple1(i)] << std::endl;
-      res &= false;
-    }
+    double value = data->GetTuple1(i);
+    res = vtkTest(std::to_string(value), color->GetPointer(i * 4), expectedColors[value]) && res;
   }
-  cval = lut->GetNanColorAsUnsignedChars();
-  v = "0x" + RGBAToHexString(cval);
-  if (expectedColors[-999] != v)
+
+  res = vtkTest("NanColor", lut->GetNanColorAsUnsignedChars(), expectedColors[-999]) && res;
+
   {
-    std::cout << "Fail for "
-              << "NaN: got: " << v << " expected: " << expectedColors[-999] << std::endl;
-    res &= false;
+    vtkLogScopeF(INFO, "With Indexed Lookup");
+    res = DoPerformanceTest(lut, 256, 100000000) && res;
   }
 
-  color->Delete();
-  data->Delete();
-  lut->Delete();
-  palettes->Delete();
-
-  return (res) ? EXIT_SUCCESS : EXIT_FAILURE;
+  {
+    vtkLogScopeF(INFO, "Without Indexed Lookup");
+    lut->IndexedLookupOff();
+    res = DoPerformanceTest(lut, 256, 100000000) && res;
+  }
+  return res ? EXIT_SUCCESS : EXIT_FAILURE;
 }
