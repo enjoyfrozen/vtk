@@ -19,10 +19,13 @@
 #include "vtkMath.h"
 #include "vtkMathConfigure.h"
 #include "vtkObjectFactory.h"
+#include "vtkSMPTools.h"
 #include "vtkStringArray.h"
 #include "vtkVariantArray.h"
 
 #include <cassert>
+#include <map>
+#include <set>
 
 VTK_ABI_NAMESPACE_BEGIN
 const vtkIdType vtkLookupTable::REPEATED_LAST_COLOR_INDEX = 0;
@@ -1079,7 +1082,16 @@ void vtkLookupTableIndexedMapData(vtkLookupTable* self, const T* input, unsigned
   unsigned char nanColor[4];
   vtkLookupTable::GetColorAsUnsignedChars(self->GetNanColor(), nanColor);
 
-  vtkVariant vin;
+  std::set<T> uniqueValues;
+  std::copy(input, input + length, std::inserter(uniqueValues, uniqueValues.end()));
+
+  std::map<T, vtkIdType> valueToIndex;
+  std::transform(uniqueValues.begin(), uniqueValues.end(),
+    std::inserter(valueToIndex, valueToIndex.end()), [self, numColors](const T& value) {
+      return std::make_pair(value, self->GetAnnotatedValueIndex(value) % numColors);
+    });
+  uniqueValues.clear();
+
   double alpha = self->GetAlpha();
   if (alpha >= 1.0) // no blending required
   {
@@ -1087,8 +1099,7 @@ void vtkLookupTableIndexedMapData(vtkLookupTable* self, const T* input, unsigned
     {
       while (--i >= 0)
       {
-        vin = *input;
-        vtkIdType idx = self->GetAnnotatedValueIndex(vin) % numColors;
+        const auto& idx = valueToIndex.at(*input);
         cptr = idx < 0 ? nanColor : self->GetPointer(idx);
 
         memcpy(output, cptr, 4);
@@ -1100,8 +1111,7 @@ void vtkLookupTableIndexedMapData(vtkLookupTable* self, const T* input, unsigned
     {
       while (--i >= 0)
       {
-        vin = *input;
-        vtkIdType idx = self->GetAnnotatedValueIndex(vin) % numColors;
+        const auto& idx = valueToIndex.at(*input);
         cptr = idx < 0 ? nanColor : self->GetPointer(idx);
 
         memcpy(output, cptr, 3);
@@ -1113,8 +1123,7 @@ void vtkLookupTableIndexedMapData(vtkLookupTable* self, const T* input, unsigned
     {
       while (--i >= 0)
       {
-        vin = *input;
-        vtkIdType idx = self->GetAnnotatedValueIndex(vin) % numColors;
+        const auto& idx = valueToIndex.at(*input);
         cptr = idx < 0 ? nanColor : self->GetPointer(idx);
         output[0] =
           static_cast<unsigned char>(cptr[0] * 0.30 + cptr[1] * 0.59 + cptr[2] * 0.11 + 0.5);
@@ -1127,8 +1136,7 @@ void vtkLookupTableIndexedMapData(vtkLookupTable* self, const T* input, unsigned
     {
       while (--i >= 0)
       {
-        vin = *input;
-        vtkIdType idx = self->GetAnnotatedValueIndex(vin) % numColors;
+        const auto& idx = valueToIndex.at(*input);
         cptr = idx < 0 ? nanColor : self->GetPointer(idx);
         *output++ =
           static_cast<unsigned char>(cptr[0] * 0.30 + cptr[1] * 0.59 + cptr[2] * 0.11 + 0.5);
@@ -1143,8 +1151,7 @@ void vtkLookupTableIndexedMapData(vtkLookupTable* self, const T* input, unsigned
     {
       while (--i >= 0)
       {
-        vin = *input;
-        vtkIdType idx = self->GetAnnotatedValueIndex(vin) % numColors;
+        const auto& idx = valueToIndex.at(*input);
         cptr = idx < 0 ? nanColor : self->GetPointer(idx);
         memcpy(output, cptr, 3);
         output[3] = static_cast<unsigned char>(cptr[3] * alpha + 0.5);
@@ -1156,8 +1163,7 @@ void vtkLookupTableIndexedMapData(vtkLookupTable* self, const T* input, unsigned
     {
       while (--i >= 0)
       {
-        vin = *input;
-        vtkIdType idx = self->GetAnnotatedValueIndex(vin) % numColors;
+        const auto& idx = valueToIndex.at(*input);
         cptr = idx < 0 ? nanColor : self->GetPointer(idx);
         memcpy(output, cptr, 3);
         input += inIncr;
@@ -1168,8 +1174,7 @@ void vtkLookupTableIndexedMapData(vtkLookupTable* self, const T* input, unsigned
     {
       while (--i >= 0)
       {
-        vin = *input;
-        vtkIdType idx = self->GetAnnotatedValueIndex(vin) % numColors;
+        const auto& idx = valueToIndex.at(*input);
         cptr = idx < 0 ? nanColor : self->GetPointer(idx);
         output[0] =
           static_cast<unsigned char>(cptr[0] * 0.30 + cptr[1] * 0.59 + cptr[2] * 0.11 + 0.5);
@@ -1182,8 +1187,7 @@ void vtkLookupTableIndexedMapData(vtkLookupTable* self, const T* input, unsigned
     {
       while (--i >= 0)
       {
-        vin = *input;
-        vtkIdType idx = self->GetAnnotatedValueIndex(vin) % numColors;
+        const auto& idx = valueToIndex.at(*input);
         cptr = idx < 0 ? nanColor : self->GetPointer(idx);
         *output++ =
           static_cast<unsigned char>(cptr[0] * 0.30 + cptr[1] * 0.59 + cptr[2] * 0.11 + 0.5);
