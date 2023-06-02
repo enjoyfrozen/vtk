@@ -6,11 +6,11 @@ GROUPS
   Rendering
 IMPLEMENTS
   VTK::RenderingCore
-CONDITION
-  VTK_ENABLE_WEBGPU
 DEPENDS
   VTK::CommonCore
   VTK::RenderingCore
+  VTK::RenderingSceneGraph
+  VTK::RenderingUI
 PRIVATE_DEPENDS
   VTK::CommonDataModel
   VTK::CommonSystem

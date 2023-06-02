@@ -28,12 +28,12 @@
 #define vtkRenderPassCollection_h
 
 #include "vtkCollection.h"
-#include "vtkRenderingOpenGL2Module.h" // For export macro
+#include "vtkRenderingCoreModule.h" // For export macro
 
 VTK_ABI_NAMESPACE_BEGIN
 class vtkRenderPass;
 
-class VTKRENDERINGOPENGL2_EXPORT vtkRenderPassCollection : public vtkCollection
+class VTKRENDERINGCORE_EXPORT vtkRenderPassCollection : public vtkCollection
 {
 public:
   static vtkRenderPassCollection* New();

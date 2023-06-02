@@ -285,6 +285,10 @@ void vtkCocoaRenderWindowInteractor::Enable()
   // Set the RenderWindow's interactor so that when the vtkCocoaGLView tries
   // to handle events from the OS it will either handle them or ignore them
   this->GetRenderWindow()->SetInteractor(this);
+  if (this->GetHardwareWindow())
+  {
+    this->GetHardwareWindow()->SetInteractor(this);
+  }
 
 #ifdef VTK_USE_TDX
   if (this->UseTDx)
@@ -316,6 +320,10 @@ void vtkCocoaRenderWindowInteractor::Disable()
   // Set the RenderWindow's interactor so that when the vtkCocoaGLView tries
   // to handle events from the OS it will either handle them or ignore them
   this->GetRenderWindow()->SetInteractor(nullptr);
+  if (this->GetHardwareWindow())
+  {
+    this->GetHardwareWindow()->SetInteractor(nullptr);
+  }
 
   this->Enabled = 0;
   this->Modified();

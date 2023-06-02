@@ -124,6 +124,7 @@ set(vtk_cmake_module_files
   FindTHEORA.cmake
   Findutf8cpp.cmake
   FindCGNS.cmake
+  FindWGPU.cmake
   FindzSpace.cmake
   FindzSpaceCompat.cmake
 

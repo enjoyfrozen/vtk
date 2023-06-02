@@ -42,6 +42,8 @@ vtkWindow::vtkWindow()
   this->TileSize[1] = 0;
   this->TileScale[0] = 1;
   this->TileScale[1] = 1;
+  this->CurrentCursor = VTK_CURSOR_DEFAULT;
+  this->CursorFileName = nullptr;
 }
 
 //------------------------------------------------------------------------------
@@ -49,6 +51,7 @@ vtkWindow::vtkWindow()
 vtkWindow::~vtkWindow()
 {
   this->SetWindowName(nullptr);
+  this->SetCursorFileName(nullptr);
 }
 
 //------------------------------------------------------------------------------
@@ -138,5 +141,6 @@ void vtkWindow::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "TileScale: (" << this->TileScale[0] << ", " << this->TileScale[1] << ")\n";
   os << indent << "TileViewport: (" << this->TileViewport[0] << ", " << this->TileViewport[1]
      << ", " << this->TileViewport[2] << ", " << this->TileViewport[3] << ")\n";
+  os << indent << "Current Cursor: " << this->CurrentCursor << "\n";
 }
 VTK_ABI_NAMESPACE_END

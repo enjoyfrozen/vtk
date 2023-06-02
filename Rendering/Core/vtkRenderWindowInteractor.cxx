@@ -65,7 +65,6 @@ static int vtkTimerId = 1;
 
 //------------------------------------------------------------------------------
 vtkCxxSetObjectMacro(vtkRenderWindowInteractor, Picker, vtkAbstractPicker);
-vtkCxxSetObjectMacro(vtkRenderWindowInteractor, HardwareWindow, vtkHardwareWindow);
 
 //------------------------------------------------------------------------------
 // Construct object so that light follows camera motion.
@@ -246,6 +245,29 @@ void vtkRenderWindowInteractor::SetRenderWindow(vtkRenderWindow* aren)
         this->RenderWindow->SetInteractor(this);
       }
     }
+  }
+}
+
+//------------------------------------------------------------------------------
+void vtkRenderWindowInteractor::SetHardwareWindow(vtkHardwareWindow* win)
+{
+  if (this->HardwareWindow != win)
+  {
+    vtkHardwareWindow* temp = this->HardwareWindow;
+    this->HardwareWindow = win;
+    if (this->HardwareWindow != nullptr)
+    {
+      this->HardwareWindow->Register(this);
+      if (this->HardwareWindow->GetInteractor() != this)
+      {
+        this->HardwareWindow->SetInteractor(this);
+      }
+    }
+    if (temp != nullptr)
+    {
+      temp->UnRegister(this);
+    }
+    this->Modified();
   }
 }
 

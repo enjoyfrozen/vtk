@@ -1,85 +1,104 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    vtkHardwareWindow.cxx
+  Module:    vtkWin32HardwareWindow.cxx
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.
   See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
 
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
+  This software is distributed WITHOUT ANY WARRANTY; without even
+  the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+  PURPOSE.  See the above copyright notice for more information.
 
 =========================================================================*/
 #include "vtkWin32HardwareWindow.h"
-
+#include "vtkImageData.h"
+#include "vtkObjectFactory.h"
 #include <assert.h>
 
-#include "vtkObjectFactory.h"
-
-//============================================================================
+//=================================================================================================
 VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkWin32HardwareWindow);
 
-//------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 vtkWin32HardwareWindow::vtkWin32HardwareWindow()
-  : ApplicationInstance(0)
-  , ParentId(0)
-  , WindowId(0)
 {
+  this->ApplicationInstance = nullptr;
+  this->WindowId = 0;
+  this->ParentId = 0;
+  this->CursorHidden = 0;
 }
 
-//------------------------------------------------------------------------------
-vtkWin32HardwareWindow::~vtkWin32HardwareWindow() {}
+//-------------------------------------------------------------------------------------------------
+vtkWin32HardwareWindow::~vtkWin32HardwareWindow()
+{
+  if (this->WindowId)
+  {
+    this->Destroy();
+  }
+  if (this->CursorHidden)
+  {
+    this->ShowCursor();
+  }
+}
 
-//------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 void vtkWin32HardwareWindow::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
+  os << indent << "Window Id: " << this->WindowId << "\n";
 }
 
+//-------------------------------------------------------------------------------------------------
 HINSTANCE vtkWin32HardwareWindow::GetApplicationInstance()
 {
   return this->ApplicationInstance;
 }
 
+//-------------------------------------------------------------------------------------------------
 HWND vtkWin32HardwareWindow::GetWindowId()
 {
   return this->WindowId;
 }
 
+//-------------------------------------------------------------------------------------------------
 void vtkWin32HardwareWindow::SetDisplayId(void* arg)
 {
   this->ApplicationInstance = (HINSTANCE)(arg);
 }
 
+//-------------------------------------------------------------------------------------------------
 void vtkWin32HardwareWindow::SetWindowId(void* arg)
 {
   this->WindowId = (HWND)(arg);
 }
 
+//-------------------------------------------------------------------------------------------------
 void vtkWin32HardwareWindow::SetParentId(void* arg)
 {
   this->ParentId = (HWND)(arg);
 }
 
+//-------------------------------------------------------------------------------------------------
 void* vtkWin32HardwareWindow::GetGenericDisplayId()
 {
   return this->ApplicationInstance;
 }
 
+//-------------------------------------------------------------------------------------------------
 void* vtkWin32HardwareWindow::GetGenericWindowId()
 {
   return this->WindowId;
 }
 
+//-------------------------------------------------------------------------------------------------
 void* vtkWin32HardwareWindow::GetGenericParentId()
 {
   return this->ParentId;
 }
 
-//------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 namespace
 {
 void AdjustWindowRectForBorders(
@@ -101,6 +120,7 @@ void AdjustWindowRectForBorders(
 }
 }
 
+//-------------------------------------------------------------------------------------------------
 void vtkWin32HardwareWindow::Create()
 {
   // get the application instance if we don't have one already
@@ -144,11 +164,12 @@ void vtkWin32HardwareWindow::Create()
     int height = ((this->Size[1] > 0) ? this->Size[1] : 300);
     int width = ((this->Size[0] > 0) ? this->Size[0] : 300);
 
+    std::wstring wname = vtksys::Encoding::ToWide(this->WindowName);
     /* create window */
     if (this->ParentId)
     {
       this->WindowId =
-        CreateWindowA("vtkVulkan", "VTK - Vulkan", WS_CHILD | WS_CLIPCHILDREN /*| WS_CLIPSIBLINGS*/,
+        CreateWindowA(L"vtkWebGPU", wname.c_str(), WS_CHILD | WS_CLIPCHILDREN /*| WS_CLIPSIBLINGS*/,
           x, y, width, height, this->ParentId, nullptr, this->ApplicationInstance, nullptr);
     }
     else
@@ -164,7 +185,7 @@ void vtkWin32HardwareWindow::Create()
       }
       RECT r;
       AdjustWindowRectForBorders(0, style, x, y, width, height, r);
-      this->WindowId = CreateWindowA("vtkOpenGL", "VTK - Vulkan", style, x, y, r.right - r.left,
+      this->WindowId = CreateWindowA(L"vtkWebGPU", wname.c_str(), style, x, y, r.right - r.left,
         r.bottom - r.top, nullptr, nullptr, this->ApplicationInstance, nullptr);
     }
 
@@ -185,13 +206,14 @@ void vtkWin32HardwareWindow::Create()
   }
 }
 
+//-------------------------------------------------------------------------------------------------
 void vtkWin32HardwareWindow::Destroy()
 {
   ::DestroyWindow(this->WindowId); // windows api
   this->WindowId = 0;
 }
 
-// ----------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 void vtkWin32HardwareWindow::SetSize(int x, int y)
 {
   static bool resizing = false;
@@ -224,6 +246,7 @@ void vtkWin32HardwareWindow::SetSize(int x, int y)
   }
 }
 
+//-------------------------------------------------------------------------------------------------
 void vtkWin32HardwareWindow::SetPosition(int x, int y)
 {
   static bool resizing = false;
@@ -245,4 +268,180 @@ void vtkWin32HardwareWindow::SetPosition(int x, int y)
     }
   }
 }
+
+//-------------------------------------------------------------------------------------------------
+void vtkWin32HardwareWindow::HideCursor()
+{
+  if (this->CursorHidden)
+  {
+    return;
+  }
+  this->CursorHidden = 1;
+
+  ::ShowCursor(!this->CursorHidden);
+}
+
+//-------------------------------------------------------------------------------------------------
+void vtkWin32HardwareWindow::ShowCursor()
+{
+  if (!this->CursorHidden)
+  {
+    return;
+  }
+  this->CursorHidden = 0;
+
+  ::ShowCursor(!this->CursorHidden);
+}
+
+//-------------------------------------------------------------------------------------------------
+void vtkWin32HardwareWindow::SetCursorPosition(int x, int y)
+{
+  const int* size = this->GetSize();
+
+  POINT point;
+  point.x = x;
+  point.y = size[1] - y - 1;
+
+  if (ClientToScreen(this->WindowId, &point))
+  {
+    SetCursorPos(point.x, point.y);
+  }
+}
+
+//-------------------------------------------------------------------------------------------------
+void vtkWin32HardwareWindow::SetCurrentCursor(int shape)
+{
+  if (this->InvokeEvent(vtkCommand::CursorChangedEvent, &shape))
+  {
+    return;
+  }
+  this->Superclass::SetCurrentCursor(shape);
+  LPCTSTR cursorName = 0;
+  switch (shape)
+  {
+    case VTK_CURSOR_DEFAULT:
+    case VTK_CURSOR_ARROW:
+      cursorName = IDC_ARROW;
+      break;
+    case VTK_CURSOR_SIZENE:
+    case VTK_CURSOR_SIZESW:
+      cursorName = IDC_SIZENESW;
+      break;
+    case VTK_CURSOR_SIZENW:
+    case VTK_CURSOR_SIZESE:
+      cursorName = IDC_SIZENWSE;
+      break;
+    case VTK_CURSOR_SIZENS:
+      cursorName = IDC_SIZENS;
+      break;
+    case VTK_CURSOR_SIZEWE:
+      cursorName = IDC_SIZEWE;
+      break;
+    case VTK_CURSOR_SIZEALL:
+      cursorName = IDC_SIZEALL;
+      break;
+    case VTK_CURSOR_HAND:
+#if (WINVER >= 0x0500)
+      cursorName = IDC_HAND;
+#else
+      cursorName = IDC_ARROW;
+#endif
+      break;
+    case VTK_CURSOR_CROSSHAIR:
+      cursorName = IDC_CROSS;
+      break;
+    case VTK_CURSOR_CUSTOM:
+      cursorName = static_cast<LPCTSTR>(this->GetCursorFileName());
+      break;
+    default:
+      cursorName = 0;
+      break;
+  }
+
+  if (cursorName)
+  {
+    UINT fuLoad = LR_SHARED | LR_DEFAULTSIZE;
+    if (shape == VTK_CURSOR_CUSTOM)
+    {
+      fuLoad |= LR_LOADFROMFILE;
+    }
+    HANDLE cursor = LoadImage(0, cursorName, IMAGE_CURSOR, 0, 0, fuLoad);
+    if (!cursor)
+    {
+      vtkErrorMacro("failed to load requested cursor shape " << GetLastError());
+    }
+    else
+    {
+      SetCursor((HCURSOR)cursor);
+      DestroyCursor((HCURSOR)cursor);
+    }
+  }
+}
+
+//-------------------------------------------------------------------------------------------------
+void vtkWin32HardwareWindow::SetWindowName(const char* _arg)
+{
+  vtkWindow::SetWindowName(_arg);
+  if (this->WindowId)
+  {
+    std::wstring wname = vtksys::Encoding::ToWide(this->WindowName);
+    SetWindowTextW(this->WindowId, wname.c_str());
+  }
+}
+
+//-------------------------------------------------------------------------------------------------
+void vtkWin32HardwareWindow::SetIcon(vtkImageData* img)
+{
+  int dim[3];
+  img->GetDimensions(dim);
+
+  int nbComp = img->GetNumberOfScalarComponents();
+
+  if (img->GetScalarType() != VTK_UNSIGNED_CHAR || dim[2] != 1 || nbComp < 3 || nbComp > 4)
+  {
+    vtkErrorMacro(
+      "Icon image should be 2D, have 3 or 4 components, and its type must be unsigned char.");
+    return;
+  }
+
+  unsigned char* imgScalars = static_cast<unsigned char*>(img->GetScalarPointer());
+
+  std::vector<unsigned char> pixels(nbComp * dim[0] * dim[1]);
+
+  // Convert vtkImageData buffer to HBITMAP.
+  // We need to flip Y and swap R and B channel
+  for (int col = 0; col < dim[1]; col++)
+  {
+    for (int line = 0; line < dim[0]; line++)
+    {
+      unsigned char* inPixel = imgScalars + nbComp * ((dim[0] - col - 1) * dim[1] + line); // flip Y
+      unsigned char* outPixel = pixels.data() + nbComp * (col * dim[1] + line);
+      outPixel[0] = inPixel[2]; // swap R and B channel
+      outPixel[1] = inPixel[1];
+      outPixel[2] = inPixel[0]; // swap R and B channel
+      outPixel[3] = inPixel[3];
+    }
+  }
+
+  HBITMAP bmp = CreateBitmap(dim[0], dim[1], 1, nbComp * 8, pixels.data());
+
+  HDC dc = GetDC(NULL);
+  HBITMAP bmpMask = CreateCompatibleBitmap(dc, dim[0], dim[1]);
+
+  ICONINFO ii;
+  ii.fIcon = TRUE;
+  ii.hbmMask = bmpMask;
+  ii.hbmColor = bmp;
+
+  HICON icon = CreateIconIndirect(&ii);
+
+  SendMessage(this->WindowId, WM_SETICON, ICON_BIG, (LPARAM)icon);
+
+  DeleteObject(bmpMask);
+  DeleteObject(bmp);
+  DestroyIcon(icon);
+  ReleaseDC(NULL, dc);
+}
+
+//-------------------------------------------------------------------------------------------------
 VTK_ABI_NAMESPACE_END

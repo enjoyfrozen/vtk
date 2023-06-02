@@ -72,19 +72,6 @@ class vtkUnsignedCharArray;
 #define VTK_STEREO_FAKE 10
 #define VTK_STEREO_EMULATE 11
 
-#define VTK_CURSOR_DEFAULT 0
-#define VTK_CURSOR_ARROW 1
-#define VTK_CURSOR_SIZENE 2
-#define VTK_CURSOR_SIZENW 3
-#define VTK_CURSOR_SIZESW 4
-#define VTK_CURSOR_SIZESE 5
-#define VTK_CURSOR_SIZENS 6
-#define VTK_CURSOR_SIZEWE 7
-#define VTK_CURSOR_SIZEALL 8
-#define VTK_CURSOR_HAND 9
-#define VTK_CURSOR_CROSSHAIR 10
-#define VTK_CURSOR_CUSTOM 11
-
 class VTKRENDERINGCORE_EXPORT vtkRenderWindow : public vtkWindow
 {
 public:
@@ -194,35 +181,6 @@ public:
    * X Windows or MS Windows.
    */
   virtual vtkRenderWindowInteractor* MakeRenderWindowInteractor();
-
-  ///@{
-  /**
-   * Hide or Show the mouse cursor, it is nice to be able to hide the
-   * default cursor if you want VTK to display a 3D cursor instead.
-   * Set cursor position in window (note that (0,0) is the lower left
-   * corner).
-   */
-  virtual void HideCursor() {}
-  virtual void ShowCursor() {}
-  virtual void SetCursorPosition(int, int) {}
-  ///@}
-
-  ///@{
-  /**
-   * Change the shape of the cursor.
-   */
-  vtkSetMacro(CurrentCursor, int);
-  vtkGetMacro(CurrentCursor, int);
-  ///@}
-
-  ///@{
-  /**
-   * Set/Get the full path to the custom cursor.
-   * This is used when the current cursor is set to VTK_CURSOR_CUSTOM.
-   */
-  vtkSetFilePathMacro(CursorFileName);
-  vtkGetFilePathMacro(CursorFileName);
-  ///@}
 
   ///@{
   /**
@@ -766,7 +724,6 @@ protected:
   int InRender;
   int NeverRendered;
   int NumberOfLayers;
-  int CurrentCursor;
   float AnaglyphColorSaturation;
   int AnaglyphColorMask[2];
   int MultiSamples;
@@ -775,7 +732,6 @@ protected:
   int DeviceIndex;
 
   bool UseSRGBColorSpace;
-  char* CursorFileName;
 
   /**
    * The universal time since the last abort check occurred.
