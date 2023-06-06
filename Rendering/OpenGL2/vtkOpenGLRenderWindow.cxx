@@ -2467,7 +2467,10 @@ int vtkOpenGLRenderWindow::CreateFramebuffers(int width, int height)
   assert("pre: positive_width" && width > 0);
   assert("pre: positive_height" && height > 0);
 
-  ForceSampleCountToZeroSpecialCase();
+  if (this->MultiSamples > 0)
+  {
+    ForceSampleCountToZeroSpecialCase();
+  }
 
   if (this->LastMultiSamples != this->MultiSamples)
   {
