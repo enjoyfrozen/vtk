@@ -213,6 +213,16 @@ mark_as_advanced(VTK_ENABLE_CATALYST)
 option(VTK_GENERATE_SPDX "Generate SPDX file for each module (Experimental)." OFF)
 mark_as_advanced(VTK_GENERATE_SPDX)
 
+if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+  set(VTK_WASM_ARCHITECTURE "WASM32" CACHE STRING "Target wasm architecture type")
+  set_property(CACHE VTK_WASM_ARCHITECTURE PROPERTY
+    STRINGS
+      WASM32
+      WASM64
+      WASM32_64
+  )
+endif ()
+
 include(vtkEncodeString)
 
 # Set up our directory structure for output libraries and binaries
@@ -245,6 +255,13 @@ if (VTK_WRAP_JAVA)
 else ()
   list(APPEND vtk_rejected_modules
     VTK::Java)
+endif ()
+if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten" AND VTK_ENABLE_WRAPPING)
+  list(APPEND vtk_requested_modules
+    VTK::WrappingJavaScript)
+else ()
+  list(APPEND vtk_rejected_modules
+    VTK::WrappingJavaScript)
 endif ()
 set("_vtk_module_reason_VTK::Java"
   "via `VTK_WRAP_JAVA`")
@@ -617,6 +634,33 @@ if (VTK_WRAP_JAVA)
   enable_language(Java)
 
   add_subdirectory(Wrapping/Java)
+endif ()
+
+if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten" AND VTK_ENABLE_WRAPPING)
+  include (vtkModuleWrapJavaScript)
+  set(VTK_WASM_DEBUGINFO "DEBUG_NATIVE" CACHE STRING "Extent of debug information in webassembly binaries")
+  set_property(CACHE VTK_WASM_DEBUGINFO PROPERTY
+    STRINGS
+      NONE              # -g0
+      READABLE_JS       # -g1
+      PROFILE           # -g2
+      DEBUG_NATIVE      # -g3
+    )
+  set(VTK_WASM_OPTIMIZATION "NO_OPTIMIZATION" CACHE STRING "Optimization knobs for the webassembly binaries")
+  set_property(CACHE VTK_WASM_OPTIMIZATION PROPERTY
+    STRINGS
+      NO_OPTIMIZATION       # -O0
+      LITTLE                # -O1
+      MORE                  # -O2
+      BEST                  # -O3
+      SMALL                 # -Os
+      SMALLEST              # -Oz
+      SMALLEST_WITH_CLOSURE # -Oz --closure 1
+    )
+  vtk_module_wrap_javascript(
+    MODULES         ${vtk_modules}
+    WRAPPED_MODULES vtk_javascript_wrapped_modules
+    UTILITY_TARGET  "VTK::vtkbuild")
 endif ()
 
 if (VTK_BUILD_TESTING)
