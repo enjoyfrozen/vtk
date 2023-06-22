@@ -18,12 +18,16 @@
 #include <wgpu.h>
 // Define the common instance release API for wgpu
 #define wgpuAdapterRelease wgpuAdapterDrop
+#define wgpuBindGroupRelease wgpuBindGroupDrop
+#define wgpuBindGroupLayoutRelease wgpuBindGroupLayoutDrop
 #define wgpuCommandEncoderRelease wgpuCommandEncoderDrop
 #define wgpuDeviceRelease wgpuDeviceDrop
 #define wgpuInstanceRelease wgpuInstanceDrop
 #define wgpuRenderPassEncoderRelease wgpuRenderPassEncoderDrop
 #define wgpuTextureRelease wgpuTextureDrop
 #define wgpuTextureViewRelease wgpuTextureViewDrop
+#define wgpuPipelineLayoutRelease wgpuPipelineLayoutDrop
+#define wgpuRenderPipelineRelease wgpuRenderPipelineDrop
 #endif
 
 #endif // vtk_wgpu_h

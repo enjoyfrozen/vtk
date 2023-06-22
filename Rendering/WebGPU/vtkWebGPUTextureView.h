@@ -17,19 +17,18 @@
  * @brief Convenience class for managing texture views in webgpu
  *
  */
-
 #ifndef vtkWebGPUTextureView_h
 #define vtkWebGPUTextureView_h
 
 // VTK includes
 #include "vtkRenderingWebGPUModule.h" // for export macro
-#include "vtkWebGPUObject.h"
+#include "vtkWebGPUBindableObject.h"
 
 VTK_ABI_NAMESPACE_BEGIN
 // Forward declarations
 class vtkWebGPUTexture;
 
-class VTKRENDERINGWEBGPU_EXPORT vtkWebGPUTextureView : public vtkWebGPUObject
+class VTKRENDERINGWEBGPU_EXPORT vtkWebGPUTextureView : public vtkWebGPUBindableObject
 {
 public:
   /**
@@ -41,7 +40,7 @@ public:
   /**
    * Standard methods for the VTK class.
    */
-  vtkTypeMacro(vtkWebGPUTextureView, vtkWebGPUObject);
+  vtkTypeMacro(vtkWebGPUTextureView, vtkWebGPUBindableObject);
   void PrintSelf(ostream& os, vtkIndent indent) override;
   ///@}
 
@@ -89,6 +88,16 @@ public:
    * Get access to the handle
    */
   void* GetHandle() override;
+
+  /**
+   * Get the bind group entry
+   */
+  void* GetBindGroupEntry() override;
+
+  /**
+   * Get the bind group layout entry
+   */
+  void* GetBindGroupLayoutEntry() override;
 
 protected:
   vtkWebGPUTextureView();

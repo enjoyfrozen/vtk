@@ -12,16 +12,14 @@
   PURPOSE.  See the above copyright notice for more information.
 
 =========================================================================*/
-/*=============================================================================
-Copyright and License information
-=============================================================================*/
-
 // vtk includes
 #include "vtkWebGPUTextureView.h"
+
 #include "vtkObjectFactory.h"
 #include "vtkWebGPUDevice.h"
 #include "vtkWebGPUInstance.h"
 #include "vtkWebGPUTexture.h"
+#include "vtkWebGPUType.h"
 #include "vtk_wgpu.h"
 
 VTK_ABI_NAMESPACE_BEGIN
@@ -34,7 +32,22 @@ class vtkWebGPUTextureView::vtkInternal
 {
 public:
   WGPUTextureView TextureView;
+  WGPUBindGroupLayoutEntry BindGroupLayoutEntry = {};
+  WGPUTextureBindingLayout TextureBindingLayout = {};
+  WGPUBindGroupEntry BindGroupEntry = {};
+  vtkInternal();
 };
+
+//-------------------------------------------------------------------------------------------------
+vtkWebGPUTextureView::vtkInternal::vtkInternal()
+{
+  this->BindGroupLayoutEntry.visibility = WGPUShaderStage_Vertex | WGPUShaderStage_Fragment;
+  this->TextureBindingLayout.nextInChain = nullptr;
+  this->TextureBindingLayout.sampleType = WGPUTextureSampleType_Float;
+  this->TextureBindingLayout.viewDimension = WGPUTextureViewDimension_2D;
+  this->BindGroupLayoutEntry.texture = this->TextureBindingLayout;
+  this->BindGroupEntry.nextInChain = nullptr;
+}
 
 //-------------------------------------------------------------------------------------------------
 vtkWebGPUTextureView::vtkWebGPUTextureView()
@@ -98,8 +111,16 @@ void vtkWebGPUTextureView::Create()
       break;
   }
 
+  // Update the bindgroup layout entry
+  this->Internal->TextureBindingLayout.viewDimension = desc.dimension;
+  bool ok = true;
+  this->Internal->TextureBindingLayout.sampleType =
+    vtkWebGPUType::GetTextureSampleTypeFromFormat(this->Texture->GetFormat(), ok);
+  this->Internal->BindGroupLayoutEntry.texture = this->Internal->TextureBindingLayout;
+
   // All set, create the view
   this->Internal->TextureView = wgpuTextureCreateView(textureHandle, &desc);
+  this->BindGroupTime.Modified();
   this->Modified();
 }
 
@@ -118,6 +139,30 @@ void vtkWebGPUTextureView::Destroy()
 void* vtkWebGPUTextureView::GetHandle()
 {
   return reinterpret_cast<void*>(this->Internal->TextureView);
+}
+
+//-------------------------------------------------------------------------------------------------
+void* vtkWebGPUTextureView::GetBindGroupEntry()
+{
+  if (!this->Texture)
+  {
+    vtkErrorMacro(<< "No bind group entry without texture");
+    return nullptr;
+  }
+
+  if (!this->GetHandle())
+  {
+    this->Create();
+  }
+  // reset the texture handle in case it has changed.
+  this->Internal->BindGroupEntry.textureView = this->Internal->TextureView;
+  return reinterpret_cast<void*>(&this->Internal->BindGroupEntry);
+}
+
+//-------------------------------------------------------------------------------------------------
+void* vtkWebGPUTextureView::GetBindGroupLayoutEntry()
+{
+  return reinterpret_cast<void*>(&this->Internal->BindGroupLayoutEntry);
 }
 
 //-------------------------------------------------------------------------------------------------

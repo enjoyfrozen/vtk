@@ -1,25 +1,22 @@
 set(classes
-  # vtkWebGPUActor
-  # vtkWebGPUCamera
-  # vtkWebGPUClearPass
-  # vtkWebGPUHardwareSelector
-  # vtkWebGPULight
-  # vtkWebGPUPolyDataMapper
-  # vtkWebGPUProperty
-  # vtkWebGPURenderPass
-  # vtkWebGPURenderer
+  vtkWebGPUBindGroup
+  vtkWebGPUBindableObject
+  vtkWebGPUCameraNode
+  vtkWebGPUCommandEncoder
   vtkWebGPUDevice
   vtkWebGPUForwardPass
   vtkWebGPUInstance
   vtkWebGPUObject
   vtkWebGPUOpaquePass
+  vtkWebGPUPipeline
+  vtkWebGPUPipeline
   vtkWebGPURenderPassEncoder
-  vtkWebGPUCommandEncoder
+  vtkWebGPURenderPipeline
   vtkWebGPURenderWindow
   vtkWebGPURendererNode
-  vtkWebGPUCameraNode
   vtkWebGPUTexture
   vtkWebGPUTextureView
+  vtkWebGPUType
   vtkWebGPUViewNode
   vtkWebGPUViewNodeFactory
   vtkWebGPUWindowNode
@@ -32,7 +29,6 @@ set(private_classes
   # vtkWebGPUInternalsPipelineLayout
   # vtkWebGPUInternalsRenderPassCreateInfo
   # vtkWebGPUInternalsRenderPassDescriptor
-  # vtkWebGPUInternalsRenderPipelineDescriptor
   # vtkWebGPUInternalsShaderModule
 )
 
