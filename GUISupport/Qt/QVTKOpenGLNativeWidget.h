@@ -86,11 +86,6 @@
  * rendering. `paintGL` simply passes on the result rendered by the most render
  * vtkRenderWindow::Render to Qt windowing system for composing on-screen.
  *
- * There may still be occasions when we may have to render in `paint` for
- * example if the window was resized or Qt had to recreate the OpenGL context.
- * In those cases, `QVTKOpenGLNativeWidget::paintGL` can request a render by calling
- * `QVTKOpenGLNativeWidget::renderVTK`.
- *
  * @section Caveats
  * QVTKOpenGLNativeWidget does not support stereo,
  * please use QVTKOpenGLStereoWidget if you need support for stereo rendering
