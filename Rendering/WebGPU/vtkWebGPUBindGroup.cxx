@@ -55,6 +55,7 @@ vtkWebGPUBindGroup::vtkWebGPUBindGroup()
 vtkWebGPUBindGroup::~vtkWebGPUBindGroup()
 {
   this->Destroy();
+  this->Bindables.clear();
   if (this->Internal)
   {
     delete this->Internal;
@@ -158,6 +159,12 @@ void vtkWebGPUBindGroup::SetBindables(std::vector<vtkWebGPUBindableObject*> b)
   this->Bindables.clear();
   this->Bindables = b;
   this->Modified();
+}
+
+//-------------------------------------------------------------------------------------------------
+std::vector<vtkWebGPUBindableObject*> vtkWebGPUBindGroup::GetBindables()
+{
+  return this->Bindables;
 }
 
 //-------------------------------------------------------------------------------------------------
