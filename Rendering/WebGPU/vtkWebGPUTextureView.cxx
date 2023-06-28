@@ -18,6 +18,7 @@
 #include "vtkObjectFactory.h"
 #include "vtkWebGPUDevice.h"
 #include "vtkWebGPUInstance.h"
+#include "vtkWebGPUSampler.h"
 #include "vtkWebGPUTexture.h"
 #include "vtkWebGPUType.h"
 #include "vtk_wgpu.h"
@@ -26,6 +27,7 @@ VTK_ABI_NAMESPACE_BEGIN
 //-------------------------------------------------------------------------------------------------
 vtkStandardNewMacro(vtkWebGPUTextureView);
 vtkCxxSetObjectMacro(vtkWebGPUTextureView, Texture, vtkWebGPUTexture);
+vtkCxxSetObjectMacro(vtkWebGPUTextureView, Sampler, vtkWebGPUSampler);
 
 //-------------------------------------------------------------------------------------------------
 class vtkWebGPUTextureView::vtkInternal
@@ -41,11 +43,13 @@ public:
 //-------------------------------------------------------------------------------------------------
 vtkWebGPUTextureView::vtkInternal::vtkInternal()
 {
-  this->BindGroupLayoutEntry.visibility = WGPUShaderStage_Vertex | WGPUShaderStage_Fragment;
   this->TextureBindingLayout.nextInChain = nullptr;
   this->TextureBindingLayout.sampleType = WGPUTextureSampleType_Float;
   this->TextureBindingLayout.viewDimension = WGPUTextureViewDimension_2D;
+
+  this->BindGroupLayoutEntry.visibility = WGPUShaderStage_Vertex | WGPUShaderStage_Fragment;
   this->BindGroupLayoutEntry.texture = this->TextureBindingLayout;
+
   this->BindGroupEntry.nextInChain = nullptr;
 }
 
@@ -61,6 +65,7 @@ vtkWebGPUTextureView::~vtkWebGPUTextureView()
 {
   this->Destroy();
   this->SetTexture(nullptr);
+  this->SetSampler(nullptr);
   if (this->Internal)
   {
     delete this->Internal;
@@ -156,6 +161,15 @@ void* vtkWebGPUTextureView::GetBindGroupEntry()
   }
   // reset the texture handle in case it has changed.
   this->Internal->BindGroupEntry.textureView = this->Internal->TextureView;
+  if (this->Sampler)
+  {
+    if (!this->Sampler->GetHandle())
+    {
+      this->Sampler->Create();
+    }
+    this->Internal->BindGroupEntry.sampler =
+      reinterpret_cast<WGPUSampler>(this->Sampler->GetHandle());
+  }
   return reinterpret_cast<void*>(&this->Internal->BindGroupEntry);
 }
 

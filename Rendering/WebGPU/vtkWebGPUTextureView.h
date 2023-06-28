@@ -26,6 +26,7 @@
 
 VTK_ABI_NAMESPACE_BEGIN
 // Forward declarations
+class vtkWebGPUSampler;
 class vtkWebGPUTexture;
 
 class VTKRENDERINGWEBGPU_EXPORT vtkWebGPUTextureView : public vtkWebGPUBindableObject
@@ -99,6 +100,13 @@ public:
    */
   void* GetBindGroupLayoutEntry() override;
 
+  ///@{
+  /**
+   * Set/Get the texture sampler
+   */
+  virtual void SetSampler(vtkWebGPUSampler* s);
+  vtkGetObjectMacro(Sampler, vtkWebGPUSampler);
+
 protected:
   vtkWebGPUTextureView();
   ~vtkWebGPUTextureView();
@@ -107,6 +115,7 @@ protected:
   vtkWebGPUTexture* Texture = nullptr;
   uint32_t Format = 0;
   int Dimension = TEXTUREVIEW_2D;
+  vtkWebGPUSampler* Sampler = nullptr;
 
 private:
   // Internals
