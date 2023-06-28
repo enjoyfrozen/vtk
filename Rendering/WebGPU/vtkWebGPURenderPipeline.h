@@ -25,10 +25,12 @@
 // vtk includes
 #include "vtkRenderingWebGPUModule.h" // for export macro
 #include "vtkWebGPUPipeline.h"
+#include "vtkWebGPUType.h" // for topology
 
 VTK_ABI_NAMESPACE_BEGIN
 // Forward declarations
 struct WGPURenderPipelineDescriptor;
+struct WGPUVertexState;
 
 class VTKRENDERINGWEBGPU_EXPORT vtkWebGPURenderPipeline : public vtkWebGPUPipeline
 {
@@ -68,11 +70,28 @@ public:
    */
   WGPURenderPipelineDescriptor* GetDescriptor();
 
+  ///@(
+  /**
+   * Set/Get the primitive topology
+   */
+  vtkSetClampMacro(
+    Topology, int, vtkWebGPUType::PointList, vtkWebGPUType::NumberOfPrimitiveTopologies);
+  vtkGetMacro(Topology, int);
+  ///@}
+
+  /**
+   * Set/Get the vertex state
+   */
+  virtual void SetVertexState(WGPUVertexState& state);
+  virtual WGPUVertexState& GetVertexState();
+  ///@}
+
 protected:
   vtkWebGPURenderPipeline();
   ~vtkWebGPURenderPipeline();
 
   // Helper members
+  int Topology = vtkWebGPUType::TriangleList;
 
 private:
   class vtkInternal;

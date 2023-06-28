@@ -24,8 +24,12 @@
 #include "vtkRenderingWebGPUModule.h" // for export macro
 #include "vtkWebGPUObject.h"
 
+// STL include
+#include <vector> // For layouts
+
 VTK_ABI_NAMESPACE_BEGIN
 // Forward declarations
+class vtkWebGPUBindGroup;
 
 class VTKRENDERINGWEBGPU_EXPORT vtkWebGPUPipeline : public vtkWebGPUObject
 {
@@ -54,6 +58,23 @@ public:
    * Get access to the pipeline layout
    */
   void* GetPipelineLayout();
+
+  /**
+   * Add a bind group to the internal vector of bindgroups
+   * The index of the group is used as the group index when adding the bind group to the render pass
+   * encoder.
+   */
+  virtual void AddBindGroup(vtkWebGPUBindGroup*);
+
+  /**
+   * Get the bind group layout from group index
+   */
+  virtual void* GetBindGroupLayout(vtkTypeUInt32 idx);
+
+  /**
+   * Get the group index for a bind group (via label)
+   */
+  virtual vtkTypeUInt32 GetBindGroupIndex(std::string label);
 
 protected:
   vtkWebGPUPipeline();

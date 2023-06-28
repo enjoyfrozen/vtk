@@ -30,6 +30,7 @@ class vtkWebGPURenderPipeline::vtkInternal
 public:
   WGPURenderPipelineDescriptor Descriptor = {};
   WGPURenderPipeline Pipeline;
+  WGPUVertexState VertexState = {};
   vtkInternal();
 };
 
@@ -89,8 +90,11 @@ void vtkWebGPURenderPipeline::Create()
     return;
   }
 
-  // Do not set anything on the descriptor.
-  // It should have been configured at this point.
+  WGPURenderPipelineDescriptor desc = this->Internal->Descriptor;
+  desc.label = this->GetLabel();
+  desc.primitive.topology = static_cast<WGPUPrimitiveTopology>(this->Topology);
+  desc.vertex = this->Internal->VertexState;
+
   this->Internal->Pipeline =
     wgpuDeviceCreateRenderPipeline(device->GetHandle(), &this->Internal->Descriptor);
   this->Modified();
@@ -118,6 +122,18 @@ void* vtkWebGPURenderPipeline::GetHandle()
 WGPURenderPipelineDescriptor* vtkWebGPURenderPipeline::GetDescriptor()
 {
   return &this->Internal->Descriptor;
+}
+
+//-------------------------------------------------------------------------------------------------
+void vtkWebGPURenderPipeline::SetVertexState(WGPUVertexState& state)
+{
+  this->Internal->VertexState = state;
+}
+
+//-------------------------------------------------------------------------------------------------
+WGPUVertexState& vtkWebGPURenderPipeline::GetVertexState()
+{
+  return this->Internal->VertexState;
 }
 
 //-------------------------------------------------------------------------------------------------
