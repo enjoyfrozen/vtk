@@ -20,9 +20,15 @@
 #include "vtkMath.h"
 #include "vtkObjectFactory.h"
 #include "vtkRenderer.h"
+#include "vtkWebGPUBindGroup.h"
 #include "vtkWebGPURenderPassEncoder.h"
+#include "vtkWebGPUStorageBuffer.h"
+#include "vtkWebGPUUniformBuffer.h"
 #include "vtkWindowNode.h"
 #include "vtk_wgpu.h"
+
+// STL includes
+#include <vector>
 
 VTK_ABI_NAMESPACE_BEGIN
 //-------------------------------------------------------------------------------------------------
@@ -30,7 +36,18 @@ vtkStandardNewMacro(vtkWebGPURendererNode);
 vtkCxxSetObjectMacro(vtkWebGPURendererNode, RenderEncoder, vtkWebGPURenderPassEncoder);
 
 //-------------------------------------------------------------------------------------------------
-vtkWebGPURendererNode::vtkWebGPURendererNode() {}
+vtkWebGPURendererNode::vtkWebGPURendererNode()
+{
+  this->UBO = vtkWebGPUUniformBuffer::New();
+  this->UBO->SetLabel("RendererUBO");
+  this->SSBO = vtkWebGPUStorageBuffer::New();
+  this->SSBO->SetLabel("RendererLightSSBO");
+  std::vector<vtkWebGPUBindableObject*> bindables(2);
+  bindables.at(0) = this->UBO;
+  bindables.at(1) = this->SSBO;
+  this->BindGroup = vtkWebGPUBindGroup::New();
+  this->BindGroup->SetBindables(bindables);
+}
 
 //-------------------------------------------------------------------------------------------------
 vtkWebGPURendererNode::~vtkWebGPURendererNode()

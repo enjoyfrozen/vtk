@@ -27,8 +27,11 @@
 
 VTK_ABI_NAMESPACE_BEGIN
 // Forward declarations
-class vtkWebGPURenderPassEncoder;
 class vtkCamera;
+class vtkWebGPUBindGroup;
+class vtkWebGPURenderPassEncoder;
+class vtkWebGPUStorageBuffer;
+class vtkWebGPUUniformBuffer;
 
 class VTKRENDERINGWEBGPU_EXPORT vtkWebGPURendererNode : public vtkRendererNode
 {
@@ -81,6 +84,11 @@ public:
   virtual void GetYInvertedTiledSizeAndOrigin(
     int* width, int* height, int* topLeftX, int* topLeftY);
 
+  /**
+   * Get access to the bind group
+   */
+  vtkGetObjectMacro(BindGroup, vtkWebGPUBindGroup);
+
 protected:
   vtkWebGPURendererNode();
   ~vtkWebGPURendererNode();
@@ -90,6 +98,9 @@ protected:
   vtkCamera* Camera = nullptr;
   double StabilizedCenter[3] = { 0, 0, 0 };
   double RecenterThreshold = 20.0;
+  vtkWebGPUBindGroup* BindGroup = nullptr;
+  vtkWebGPUUniformBuffer* UBO = nullptr;
+  vtkWebGPUStorageBuffer* SSBO = nullptr;
 
   /**
    * Update lights for the renderer
