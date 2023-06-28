@@ -21,15 +21,20 @@
 #ifndef vtkWebGPUDevice_h
 #define vtkWebGPUDevice_h
 
-// VTK includes
+// vtk includes
 #include "vtkCommand.h" // for custom events
 #include "vtkObject.h"
 #include "vtkRenderingWebGPUModule.h" // for export macro
 #include "vtk_wgpu.h"                 // for webgpu
 
+// STL includes
+#include <map>
+#include <string>
+
 VTK_ABI_NAMESPACE_BEGIN
 // Forward declarations
 class vtkWebGPUCommandEncoder;
+class vtkWebGPUPipeline;
 
 class VTKRENDERINGWEBGPU_EXPORT vtkWebGPUDevice : public vtkObject
 {
@@ -90,6 +95,17 @@ public:
    */
   virtual vtkWebGPUCommandEncoder* GetCommandEncoder();
 
+  /**
+   * Initialize and cache a pipeline with the device
+   */
+  virtual void CreatePipeline(std::string pHash, vtkWebGPUPipeline*);
+
+  /**
+   * Given the pipeline hash, get the associated pipeline.
+   * Retuns nullptr if none found.
+   */
+  vtkWebGPUPipeline* GetPipeline(std::string pipelineHash);
+
 protected:
   vtkWebGPUDevice();
   ~vtkWebGPUDevice();
@@ -99,6 +115,7 @@ protected:
   char* Label = nullptr;
   char* Capabilities = nullptr;
   vtkWebGPUCommandEncoder* CommandEncoder = nullptr;
+  std::map<std::string, vtkWebGPUPipeline*> Pipelines;
 
   // Callbacks
   static void OnDeviceRequested(

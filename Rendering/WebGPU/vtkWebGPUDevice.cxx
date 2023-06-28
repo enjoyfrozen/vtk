@@ -16,6 +16,7 @@
 #include "vtkWebGPUDevice.h"
 #include "vtkObjectFactory.h"
 #include "vtkWebGPUCommandEncoder.h"
+#include "vtkWebGPUPipeline.h"
 
 // STL includes
 #include <sstream>
@@ -35,6 +36,8 @@ vtkWebGPUDevice::vtkWebGPUDevice()
 vtkWebGPUDevice::~vtkWebGPUDevice()
 {
   this->Destroy();
+
+  this->Pipelines.clear();
 
   delete[] this->Capabilities;
   this->Capabilities = nullptr;
@@ -328,5 +331,22 @@ vtkWebGPUCommandEncoder* vtkWebGPUDevice::GetCommandEncoder()
 }
 
 //-------------------------------------------------------------------------------------------------
+void vtkWebGPUDevice::CreatePipeline(std::string pHash, vtkWebGPUPipeline* pipeline)
+{
+  if (!pipeline || pHash.empty())
+  {
+    return;
+  }
+  pipeline->SetLabel(pHash.c_str());
+  pipeline->Create();
+  this->Pipelines[pHash] = pipeline;
+}
 
+//-------------------------------------------------------------------------------------------------
+vtkWebGPUPipeline* vtkWebGPUDevice::GetPipeline(std::string pHash)
+{
+  return this->Pipelines[pHash];
+}
+
+//-------------------------------------------------------------------------------------------------
 VTK_ABI_NAMESPACE_END
