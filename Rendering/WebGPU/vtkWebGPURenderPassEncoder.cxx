@@ -17,6 +17,7 @@
 #include "vtkObjectFactory.h"
 #include "vtkWebGPUCommandEncoder.h"
 #include "vtkWebGPUInstance.h"
+#include "vtkWebGPURenderPipeline.h"
 #include "vtkWebGPUTextureView.h"
 #include "vtk_wgpu.h"
 
@@ -183,6 +184,49 @@ void vtkWebGPURenderPassEncoder::AttachTextureViews()
   this->Internal->DepthAttachment.stencilStoreOp = static_cast<WGPUStoreOp>(this->StencilStoreOp);
   this->Internal->DepthAttachment.stencilClearValue = this->ClearStencil;
   this->Internal->Descriptor.depthStencilAttachment = &this->Internal->DepthAttachment;
+}
+
+//-------------------------------------------------------------------------------------------------
+void vtkWebGPURenderPassEncoder::SetPipeline(vtkWebGPUPipeline* pl)
+{
+  if (this->Pipeline == pl)
+  {
+    return;
+  }
+
+  vtkWebGPURenderPipeline* pipeline = vtkWebGPURenderPipeline::SafeDownCast(pl);
+
+  if (!this->Internal->Encoder)
+  {
+    vtkErrorMacro(<< "Set pipeline on the encoder after calling Begin.");
+    return;
+  }
+
+  WGPURenderPipeline* plHandle = reinterpret_cast<WGPURenderPipeline*>(pipeline->GetHandle());
+  if (!plHandle)
+  {
+    vtkErrorMacro(<< "Could not get pipeline handle.");
+    return;
+  }
+  wgpuRenderPassEncoderSetPipeline(this->Internal->Encoder, *plHandle);
+
+  // Check attachments state
+  WGPURenderPipelineDescriptor* desc = pipeline->GetDescriptor();
+  if (this->GetNumberOfColorTextureViews() != desc->fragment->targetCount)
+  {
+    vtkWarningMacro(<< "Color attachment counts on pipeline = "
+                    << this->GetNumberOfColorTextureViews() << " while encoder has "
+                    << desc->fragment->targetCount);
+  }
+
+  // Check depth buffer
+  if (!this->Internal->DepthAttachment.view != !desc->depthStencil)
+  {
+    vtkWarningMacro(<< "Mismatched depth texture attachments between pipeline and encoder.");
+  }
+
+  // Forward to superclass
+  this->Superclass::SetPipeline(pl);
 }
 
 //-------------------------------------------------------------------------------------------------

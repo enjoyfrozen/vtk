@@ -23,17 +23,18 @@
 
 // vtk includes
 #include "vtkRenderingWebGPUModule.h" // for export macro
-#include "vtkWebGPUObject.h"
+#include "vtkWebGPUEncoder.h"
 
 // STL includes
 #include <vector>
 
 VTK_ABI_NAMESPACE_BEGIN
 // Forward declarations
+class vtkWebGPURenderPipeline;
 class vtkWebGPUTextureView;
 struct WGPURenderPassDescriptor;
 
-class VTKRENDERINGWEBGPU_EXPORT vtkWebGPURenderPassEncoder : public vtkWebGPUObject
+class VTKRENDERINGWEBGPU_EXPORT vtkWebGPURenderPassEncoder : public vtkWebGPUEncoder
 {
 public:
   /**
@@ -45,7 +46,7 @@ public:
   /**
    * Standard methods for the VTK class.
    */
-  vtkTypeMacro(vtkWebGPURenderPassEncoder, vtkWebGPUObject);
+  vtkTypeMacro(vtkWebGPURenderPassEncoder, vtkWebGPUEncoder);
   void PrintSelf(ostream& os, vtkIndent indent) override;
   ///@}
 
@@ -64,8 +65,8 @@ public:
    * Begin/end the render pass.
    * Requires a valid webgpu instance.
    */
-  void Begin();
-  void End();
+  void Begin() override;
+  void End() override;
   ///@}
 
   ///@{
@@ -127,6 +128,11 @@ public:
   vtkGetMacro(ClearStencil, uint32_t);
   ///@}
 
+  /**
+   * Set the render pipeline
+   */
+  virtual void SetPipeline(vtkWebGPUPipeline*) override;
+
 protected:
   vtkWebGPURenderPassEncoder();
   ~vtkWebGPURenderPassEncoder();
@@ -135,13 +141,13 @@ protected:
   std::vector<vtkWebGPUTextureView*> ColorTextureViews;
   vtkWebGPUTextureView* DepthTextureView = nullptr;
 
-  int ColorLoadOp = 2; // Load
+  int ColorLoadOp = 2;  // Load
   int ColorStoreOp = 1; // Store
-  double ClearColor[4] = {0.0, 0.0, 0.0, 0.0};
-  int DepthLoadOp = 1; // Clear
+  double ClearColor[4] = { 0.0, 0.0, 0.0, 0.0 };
+  int DepthLoadOp = 1;  // Clear
   int DepthStoreOp = 1; // Store
   double ClearDepth = 1.0;
-  int StencilLoadOp = 1; // Clear
+  int StencilLoadOp = 1;  // Clear
   int StencilStoreOp = 1; // Store
   uint32_t ClearStencil = 0;
 
