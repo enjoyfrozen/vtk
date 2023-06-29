@@ -26,11 +26,13 @@
 #include "vtkWebGPUEncoder.h"
 
 // STL includes
+#include <map>
 #include <vector>
 
 VTK_ABI_NAMESPACE_BEGIN
 // Forward declarations
-class vtkWebGPURenderPipeline;
+class vtkWebGPUMapperNode;
+class vtkWebGPUPipeline;
 class vtkWebGPUTextureView;
 struct WGPURenderPassDescriptor;
 
@@ -66,6 +68,7 @@ public:
    * Requires a valid webgpu instance.
    */
   void Begin() override;
+  void Draw();
   void End() override;
   ///@}
 
@@ -133,6 +136,11 @@ public:
    */
   virtual void SetPipeline(vtkWebGPUPipeline*) override;
 
+  /**
+   * Register a pair of pipeline and drawing mapper to the encoder
+   */
+  virtual void RegisterPipelineMapper(vtkWebGPUPipeline*, vtkWebGPUMapperNode*);
+
 protected:
   vtkWebGPURenderPassEncoder();
   ~vtkWebGPURenderPassEncoder();
@@ -150,6 +158,12 @@ protected:
   int StencilLoadOp = 1;  // Clear
   int StencilStoreOp = 1; // Store
   uint32_t ClearStencil = 0;
+
+  /**
+   * Map of pipelines to mappers that draw in the current pass
+   * This map is cleared at the beginning of each pass i.e. in Begin().
+   */
+  std::map<vtkWebGPUPipeline*, std::vector<vtkWebGPUMapperNode*>> DrawingMappers;
 
 private:
   class vtkInternal;

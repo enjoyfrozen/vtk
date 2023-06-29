@@ -17,6 +17,7 @@
 #include "vtkObjectFactory.h"
 #include "vtkWebGPUCommandEncoder.h"
 #include "vtkWebGPUInstance.h"
+#include "vtkWebGPUMapperNode.h"
 #include "vtkWebGPURenderPipeline.h"
 #include "vtkWebGPUTextureView.h"
 #include "vtk_wgpu.h"
@@ -89,6 +90,9 @@ void vtkWebGPURenderPassEncoder::Begin()
   {
     return;
   }
+  // Clear the drawing pipelines
+  this->DrawingMappers.clear();
+
   this->Internal->Descriptor.nextInChain = nullptr;
   this->Internal->Descriptor.timestampWriteCount = 0;
   this->Internal->Descriptor.timestampWrites = nullptr;
@@ -103,8 +107,42 @@ void vtkWebGPURenderPassEncoder::Begin()
 }
 
 //-------------------------------------------------------------------------------------------------
+void vtkWebGPURenderPassEncoder::Draw()
+{
+  if (!this->Internal->Encoder)
+  {
+    vtkErrorMacro(<< "No encoder present. Call Begin() before Draw()");
+    return;
+  }
+
+  // Iterate over the drawing mappers and draw
+  for (const auto& it : this->DrawingMappers)
+  {
+    vtkWebGPURenderPipeline* rp = vtkWebGPURenderPipeline::SafeDownCast(it.first);
+    if (!rp)
+    {
+      continue;
+    }
+    // Bind the pipeline
+    this->SetPipeline(rp);
+    // Now iterate over all the mappers
+    for (vtkWebGPUMapperNode* mapper : it.second)
+    {
+      // Ensure that the render pass encoder is updated on the mapper
+      mapper->SetRenderPassEncoder(this);
+      // Draw
+      mapper->Draw();
+    }
+  }
+}
+
+//-------------------------------------------------------------------------------------------------
 void vtkWebGPURenderPassEncoder::End()
 {
+  if (!this->Internal->Encoder)
+  {
+    return;
+  }
   if (this->Label)
   {
     wgpuRenderPassEncoderPopDebugGroup(this->Internal->Encoder);
@@ -227,6 +265,21 @@ void vtkWebGPURenderPassEncoder::SetPipeline(vtkWebGPUPipeline* pl)
 
   // Forward to superclass
   this->Superclass::SetPipeline(pl);
+}
+
+//-------------------------------------------------------------------------------------------------
+void vtkWebGPURenderPassEncoder::RegisterPipelineMapper(
+  vtkWebGPUPipeline* pl, vtkWebGPUMapperNode* mapper)
+{
+  if (this->DrawingMappers.find(pl) != this->DrawingMappers.end())
+  {
+    // If the pipeline is already added, just add the new mapper
+    this->DrawingMappers[pl].push_back(mapper);
+    return;
+  }
+  std::vector<vtkWebGPUMapperNode*> mappers(1);
+  mappers[0] = mapper;
+  this->DrawingMappers[pl] = mappers;
 }
 
 //-------------------------------------------------------------------------------------------------
