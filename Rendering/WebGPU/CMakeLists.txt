@@ -25,8 +25,6 @@ set(classes
 set(private_classes
   # vtkWebGPUInternalsBindGroup
   # vtkWebGPUInternalsBindGroupLayout
-  # vtkWebGPUInternalsBuffer
-  # vtkWebGPUInternalsPipelineLayout
   # vtkWebGPUInternalsRenderPassCreateInfo
   # vtkWebGPUInternalsRenderPassDescriptor
   # vtkWebGPUInternalsShaderModule
