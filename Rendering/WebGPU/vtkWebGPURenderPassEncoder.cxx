@@ -15,6 +15,7 @@
 // vtk includes
 #include "vtkWebGPURenderPassEncoder.h"
 #include "vtkObjectFactory.h"
+#include "vtkWebGPUBindGroup.h"
 #include "vtkWebGPUCommandEncoder.h"
 #include "vtkWebGPUInstance.h"
 #include "vtkWebGPUMapperNode.h"
@@ -107,7 +108,7 @@ void vtkWebGPURenderPassEncoder::Begin()
 }
 
 //-------------------------------------------------------------------------------------------------
-void vtkWebGPURenderPassEncoder::Draw()
+void vtkWebGPURenderPassEncoder::DrawMappers()
 {
   if (!this->Internal->Encoder)
   {
@@ -134,6 +135,32 @@ void vtkWebGPURenderPassEncoder::Draw()
       mapper->Draw();
     }
   }
+}
+
+//-------------------------------------------------------------------------------------------------
+void vtkWebGPURenderPassEncoder::Draw(vtkTypeUInt32 numVertices, vtkTypeUInt32 numInstances,
+  vtkTypeUInt32 firstVertex, vtkTypeUInt32 firstInstance)
+{
+  vtkWebGPUInstance* inst = vtkWebGPUInstance::GetInstance();
+  if (!inst->IsValid() || !this->Internal->Encoder)
+  {
+    return;
+  }
+  wgpuRenderPassEncoderDraw(
+    this->Internal->Encoder, numVertices, numInstances, firstVertex, firstInstance);
+}
+
+//-------------------------------------------------------------------------------------------------
+void vtkWebGPURenderPassEncoder::DrawIndexed(vtkTypeUInt32 numIndices, vtkTypeUInt32 numInstances,
+  vtkTypeUInt32 firstIndex, vtkTypeUInt32 baseVertex, vtkTypeUInt32 firstInstance)
+{
+  vtkWebGPUInstance* inst = vtkWebGPUInstance::GetInstance();
+  if (!inst->IsValid() || !this->Internal->Encoder)
+  {
+    return;
+  }
+  wgpuRenderPassEncoderDrawIndexed(
+    this->Internal->Encoder, numIndices, numInstances, firstIndex, baseVertex, firstInstance);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -280,6 +307,41 @@ void vtkWebGPURenderPassEncoder::RegisterPipelineMapper(
   std::vector<vtkWebGPUMapperNode*> mappers(1);
   mappers[0] = mapper;
   this->DrawingMappers[pl] = mappers;
+}
+
+//-------------------------------------------------------------------------------------------------
+void vtkWebGPURenderPassEncoder::ActivateBindGroup(vtkWebGPUBindGroup* bg)
+{
+  if (!bg)
+  {
+    return;
+  }
+  auto pl = vtkWebGPURenderPipeline::SafeDownCast(this->GetPipeline());
+  if (!pl)
+  {
+    vtkErrorMacro(<< "No pipeline bound");
+    return;
+  }
+  if (!this->Internal->Encoder)
+  {
+    vtkErrorMacro(<< "No encoder present. Call Begin() before ActivateBindGroup()");
+    return;
+  }
+  auto bgHandle = reinterpret_cast<WGPUBindGroup>(bg->GetHandle());
+  auto idx = pl->GetBindGroupIndex(bg->GetLabel());
+  // TODO: dynamic offsets
+  wgpuRenderPassEncoderSetBindGroup(this->Internal->Encoder, idx, bgHandle, 0, 0);
+
+  auto bgl1 = reinterpret_cast<WGPUBindGroupLayout>(bg->GetBindGroupLayout());
+  auto plHandle = reinterpret_cast<WGPURenderPipeline>(pl->GetHandle());
+  auto bgl2 = wgpuRenderPipelineGetBindGroupLayout(plHandle, idx);
+
+  if (bgl1 != bgl2)
+  {
+    vtkErrorMacro(<< "Mismatched bind group between render pass encoder and pipeline "
+                  << this->Pipeline->GetLabel());
+    return;
+  }
 }
 
 //-------------------------------------------------------------------------------------------------

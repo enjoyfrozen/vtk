@@ -89,6 +89,11 @@ public:
    */
   vtkGetObjectMacro(BindGroup, vtkWebGPUBindGroup);
 
+  /**
+   * Activate this renderer's bind group
+   */
+  virtual void ActivateBindGroup();
+
 protected:
   vtkWebGPURendererNode();
   ~vtkWebGPURendererNode();

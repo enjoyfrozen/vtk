@@ -214,4 +214,14 @@ void vtkWebGPURendererNode::Clear()
 }
 
 //-------------------------------------------------------------------------------------------------
+void vtkWebGPURendererNode::ActivateBindGroup()
+{
+  if (!this->RenderEncoder)
+  {
+    return;
+  }
+  this->RenderEncoder->ActivateBindGroup(this->BindGroup);
+}
+
+//-------------------------------------------------------------------------------------------------
 VTK_ABI_NAMESPACE_END

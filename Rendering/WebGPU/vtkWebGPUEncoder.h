@@ -28,6 +28,7 @@
 VTK_ABI_NAMESPACE_BEGIN
 // Forward declarations
 class vtkWebGPUPipeline;
+class vtkWebGPUBindGroup;
 
 class VTKRENDERINGWEBGPU_EXPORT vtkWebGPUEncoder : public vtkWebGPUObject
 {
@@ -60,6 +61,11 @@ public:
   virtual void Begin() = 0;
   virtual void End() = 0;
   ///@}
+
+  /**
+   * Set the bind group on the encoder
+   */
+  virtual void ActivateBindGroup(vtkWebGPUBindGroup*) = 0;
 
 protected:
   vtkWebGPUEncoder();

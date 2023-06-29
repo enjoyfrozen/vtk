@@ -31,6 +31,7 @@
 
 VTK_ABI_NAMESPACE_BEGIN
 // Forward declarations
+class vtkWebGPUBindGroup;
 class vtkWebGPUMapperNode;
 class vtkWebGPUPipeline;
 class vtkWebGPUTextureView;
@@ -68,7 +69,6 @@ public:
    * Requires a valid webgpu instance.
    */
   void Begin() override;
-  void Draw();
   void End() override;
   ///@}
 
@@ -140,6 +140,34 @@ public:
    * Register a pair of pipeline and drawing mapper to the encoder
    */
   virtual void RegisterPipelineMapper(vtkWebGPUPipeline*, vtkWebGPUMapperNode*);
+
+  /**
+   * Set the bind group on the encoder
+   */
+  void ActivateBindGroup(vtkWebGPUBindGroup*) override;
+
+  /**
+   * Start the draw process.
+   * Iterate over the various drawing mappers, set the render pipeline and draw.
+   * This method should be called to by the scenegraph passes that render using this encoder.
+   */
+  virtual void DrawMappers();
+
+  /**
+   * Main draw call
+   * Draws the vertices
+   * Usually called by individual mapper nodes.
+   */
+  virtual void Draw(vtkTypeUInt32 numVertices, vtkTypeUInt32 numInstances,
+    vtkTypeUInt32 firstVertex, vtkTypeUInt32 firstInstance);
+
+  /**
+   * Main draw call for index buffers
+   * Draws the vertices along with index buffers
+   * Usually called by individual mapper nodes
+   */
+  virtual void DrawIndexed(vtkTypeUInt32 numIndices, vtkTypeUInt32 numInstances,
+    vtkTypeUInt32 firstIndex, vtkTypeUInt32 baseVertex, vtkTypeUInt32 firstInstance);
 
 protected:
   vtkWebGPURenderPassEncoder();
