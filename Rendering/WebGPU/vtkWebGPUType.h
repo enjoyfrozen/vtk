@@ -53,6 +53,16 @@ public:
   static WGPUTextureSampleType GetTextureSampleTypeFromFormat(uint32_t, bool& ok);
   ///@}
 
+  enum PrimitiveTopologies
+  {
+    PointList = 0x00000000,
+    LineList = 0x00000001,
+    LineStrip = 0x00000002,
+    TriangleList = 0x00000003,
+    TriangleStrip = 0x00000004,
+    NumberOfPrimitiveTopologies = 0x7FFFFFFF
+  };
+
 protected:
   vtkWebGPUType();
   ~vtkWebGPUType();

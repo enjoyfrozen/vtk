@@ -1,22 +1,26 @@
 set(classes
   vtkWebGPUBindGroup
   vtkWebGPUBindableObject
+  vtkWebGPUBuffer
   vtkWebGPUCameraNode
   vtkWebGPUCommandEncoder
   vtkWebGPUDevice
+  vtkWebGPUEncoder
   vtkWebGPUForwardPass
   vtkWebGPUInstance
   vtkWebGPUObject
   vtkWebGPUOpaquePass
   vtkWebGPUPipeline
-  vtkWebGPUPipeline
   vtkWebGPURenderPassEncoder
   vtkWebGPURenderPipeline
   vtkWebGPURenderWindow
   vtkWebGPURendererNode
+  vtkWebGPUSampler
+  vtkWebGPUStorageBuffer
   vtkWebGPUTexture
   vtkWebGPUTextureView
   vtkWebGPUType
+  vtkWebGPUUniformBuffer
   vtkWebGPUViewNode
   vtkWebGPUViewNodeFactory
   vtkWebGPUWindowNode
