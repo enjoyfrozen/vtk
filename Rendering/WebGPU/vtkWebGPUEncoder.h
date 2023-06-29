@@ -33,11 +33,6 @@ class vtkWebGPUBindGroup;
 class VTKRENDERINGWEBGPU_EXPORT vtkWebGPUEncoder : public vtkWebGPUObject
 {
 public:
-  /**
-   * Instantiate the class.
-   */
-  static vtkWebGPUEncoder* New();
-
   ///@{
   /**
    * Standard methods for the VTK class.
