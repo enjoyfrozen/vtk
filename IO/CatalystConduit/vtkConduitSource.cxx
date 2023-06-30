@@ -32,7 +32,9 @@
 #include "vtkInformationVector.h"
 #include "vtkIntArray.h"
 #include "vtkLogger.h"
+#if VTK_MODULE_ENABLE_VTK_ParallelMPI
 #include "vtkMPIController.h"
+#endif
 #include "vtkMultiBlockDataSet.h"
 #include "vtkNew.h"
 #include "vtkObjectFactory.h"
@@ -783,15 +785,20 @@ bool GetAMRMesh(vtkOverlappingAMR* amr, const conduit_cpp::Node& node)
 {
   const int default_refinement_ratio = 2;
 
+#if VTK_MODULE_ENABLE_VTK_ParallelMPI
   vtkMPIController* ctrlr = vtkMPIController::SafeDownCast(vtkMPIController::GetGlobalController());
+#endif
 
   int nprocs = 1;
   int rank = 0;
+
+#if VTK_MODULE_ENABLE_VTK_ParallelMPI
   if (ctrlr && ctrlr->GetNumberOfProcesses() > 1)
   {
     nprocs = ctrlr->GetNumberOfProcesses();
     rank = ctrlr->GetLocalProcessId();
   }
+#endif
 
   // pre-allocate the levels
   const auto leaves_on_node = node.number_of_children();
@@ -993,8 +1000,11 @@ bool GetAMRMesh(vtkOverlappingAMR* amr, const conduit_cpp::Node& node)
       amr->SetAMRBox(level, id, box);
     }
   }
-
+#if VTK_MODULE_ENABLE_VTK_ParallelMPI
   vtkParallelAMRUtilities::BlankCells(amr, ctrlr);
+#else
+  vtkAMRUtilities::BlankCells(amr);
+#endif
   return true;
 }
 
