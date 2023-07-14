@@ -227,7 +227,7 @@ void vtkDiscretizableColorTransferFunction::Build()
   // annotations map. That's a bug in the implementation of
   // vtkScalarsToColors::SetAnnotations(..,..);
   this->LookupTable->SetAnnotations(nullptr, nullptr);
-  this->LookupTable->SetAnnotations(this->AnnotatedValues, this->Annotations);
+  this->LookupTable->SetAnnotations(this->GetAnnotatedValues(), this->GetAnnotations());
 
   if (this->IndexedLookup)
   {

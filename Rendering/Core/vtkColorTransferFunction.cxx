@@ -735,7 +735,7 @@ void vtkColorTransferFunction::GetColor(double x, double rgb[3])
   {
     int numNodes = this->GetSize();
     vtkVariant xv(x);
-    vtkIdType idx = this->GetAnnotatedValueIndexInternal(xv);
+    vtkIdType idx = this->GetAnnotatedValueIndex(xv);
     if (idx < 0 || numNodes == 0)
     {
       this->GetNanColor(rgb);
@@ -1640,7 +1640,7 @@ void vtkColorTransferFunctionIndexedMapData(vtkColorTransferFunction* self, T* i
       while (--i >= 0)
       {
         vin = *input;
-        vtkIdType idx = self->GetAnnotatedValueIndexInternal(vin);
+        vtkIdType idx = self->GetAnnotatedValueIndex(vin);
         if (idx < 0 || numNodes == 0)
           self->GetNanColor(&nodeVal[1]);
         else
@@ -1659,7 +1659,7 @@ void vtkColorTransferFunctionIndexedMapData(vtkColorTransferFunction* self, T* i
       while (--i >= 0)
       {
         vin = *input;
-        vtkIdType idx = self->GetAnnotatedValueIndexInternal(vin);
+        vtkIdType idx = self->GetAnnotatedValueIndex(vin);
         if (idx < 0 || numNodes == 0)
           self->GetNanColor(&nodeVal[1]);
         else
@@ -1677,7 +1677,7 @@ void vtkColorTransferFunctionIndexedMapData(vtkColorTransferFunction* self, T* i
       while (--i >= 0)
       {
         vin = *input;
-        vtkIdType idx = self->GetAnnotatedValueIndexInternal(vin);
+        vtkIdType idx = self->GetAnnotatedValueIndex(vin);
         if (idx < 0 || numNodes == 0)
           self->GetNanColor(&nodeVal[1]);
         else
@@ -1694,7 +1694,7 @@ void vtkColorTransferFunctionIndexedMapData(vtkColorTransferFunction* self, T* i
       while (--i >= 0)
       {
         vin = *input;
-        vtkIdType idx = self->GetAnnotatedValueIndexInternal(vin);
+        vtkIdType idx = self->GetAnnotatedValueIndex(vin);
         if (idx < 0 || numNodes == 0)
           self->GetNanColor(&nodeVal[1]);
         else
@@ -1713,7 +1713,7 @@ void vtkColorTransferFunctionIndexedMapData(vtkColorTransferFunction* self, T* i
       while (--i >= 0)
       {
         vin = *input;
-        vtkIdType idx = self->GetAnnotatedValueIndexInternal(vin);
+        vtkIdType idx = self->GetAnnotatedValueIndex(vin);
         if (idx < 0 || numNodes == 0)
         {
           self->GetNanColor(&nodeVal[1]);
@@ -1734,7 +1734,7 @@ void vtkColorTransferFunctionIndexedMapData(vtkColorTransferFunction* self, T* i
       while (--i >= 0)
       {
         vin = *input;
-        vtkIdType idx = self->GetAnnotatedValueIndexInternal(vin);
+        vtkIdType idx = self->GetAnnotatedValueIndex(vin);
         if (idx < 0 || numNodes == 0)
           self->GetNanColor(&nodeVal[1]);
         else
@@ -1751,7 +1751,7 @@ void vtkColorTransferFunctionIndexedMapData(vtkColorTransferFunction* self, T* i
       while (--i >= 0)
       {
         vin = *input;
-        vtkIdType idx = self->GetAnnotatedValueIndexInternal(vin);
+        vtkIdType idx = self->GetAnnotatedValueIndex(vin);
         if (idx < 0 || numNodes == 0)
         {
           self->GetNanColor(&nodeVal[1]);
@@ -1771,7 +1771,7 @@ void vtkColorTransferFunctionIndexedMapData(vtkColorTransferFunction* self, T* i
       while (--i >= 0)
       {
         vin = *input;
-        vtkIdType idx = self->GetAnnotatedValueIndexInternal(vin);
+        vtkIdType idx = self->GetAnnotatedValueIndex(vin);
         if (idx < 0 || numNodes == 0)
           self->GetNanColor(&nodeVal[1]);
         else

@@ -19,10 +19,13 @@
 #include "vtkMath.h"
 #include "vtkMathConfigure.h"
 #include "vtkObjectFactory.h"
+#include "vtkSMPTools.h"
 #include "vtkStringArray.h"
 #include "vtkVariantArray.h"
 
 #include <cassert>
+#include <map>
+#include <set>
 
 VTK_ABI_NAMESPACE_BEGIN
 const vtkIdType vtkLookupTable::REPEATED_LAST_COLOR_INDEX = 0;
@@ -1072,67 +1075,70 @@ template <class T>
 void vtkLookupTableIndexedMapData(vtkLookupTable* self, const T* input, unsigned char* output,
   int length, int inIncr, int outFormat)
 {
-  int i = length;
-  unsigned char* cptr;
+  const auto numColors = std::max(vtkIdType(1), self->GetNumberOfColors());
 
   unsigned char nanColor[4];
   vtkLookupTable::GetColorAsUnsignedChars(self->GetNanColor(), nanColor);
 
-  vtkVariant vin;
+  std::set<T> uniqueValues;
+  std::copy(input, input + length, std::inserter(uniqueValues, uniqueValues.end()));
+
+  std::map<T, vtkIdType> valueToIndex;
+  std::transform(uniqueValues.begin(), uniqueValues.end(),
+    std::inserter(valueToIndex, valueToIndex.end()), [self, numColors](const T& value) {
+      return std::make_pair(value, self->GetAnnotatedValueIndex(value) % numColors);
+    });
+  uniqueValues.clear();
+
   double alpha = self->GetAlpha();
   if (alpha >= 1.0) // no blending required
   {
     if (outFormat == VTK_RGBA)
     {
-      while (--i >= 0)
-      {
-        vin = *input;
-        vtkIdType idx = self->GetAnnotatedValueIndexInternal(vin);
-        cptr = idx < 0 ? nanColor : self->GetPointer(idx);
-
-        memcpy(output, cptr, 4);
-        input += inIncr;
-        output += 4;
-      }
+      vtkSMPTools::For(0, length, [&](vtkIdType start, vtkIdType end) {
+        for (vtkIdType i = start; i < end; ++i)
+        {
+          const auto& idx = valueToIndex.at(input[i * inIncr]);
+          const unsigned char* cptr = idx < 0 ? nanColor : self->GetPointer(idx);
+          std::copy_n(cptr, 4, output + 4 * i);
+        }
+      });
     }
     else if (outFormat == VTK_RGB)
     {
-      while (--i >= 0)
-      {
-        vin = *input;
-        vtkIdType idx = self->GetAnnotatedValueIndexInternal(vin);
-        cptr = idx < 0 ? nanColor : self->GetPointer(idx);
-
-        memcpy(output, cptr, 3);
-        input += inIncr;
-        output += 3;
-      }
+      vtkSMPTools::For(0, length, [&](vtkIdType start, vtkIdType end) {
+        for (vtkIdType i = start; i < end; ++i)
+        {
+          const auto& idx = valueToIndex.at(input[i * inIncr]);
+          const unsigned char* cptr = idx < 0 ? nanColor : self->GetPointer(idx);
+          std::copy_n(cptr, 3, output + 3 * i);
+        }
+      });
     }
     else if (outFormat == VTK_LUMINANCE_ALPHA)
     {
-      while (--i >= 0)
-      {
-        vin = *input;
-        vtkIdType idx = self->GetAnnotatedValueIndexInternal(vin);
-        cptr = idx < 0 ? nanColor : self->GetPointer(idx);
-        output[0] =
-          static_cast<unsigned char>(cptr[0] * 0.30 + cptr[1] * 0.59 + cptr[2] * 0.11 + 0.5);
-        output[1] = cptr[3];
-        input += inIncr;
-        output += 2;
-      }
+      vtkSMPTools::For(0, length, [&](vtkIdType start, vtkIdType end) {
+        for (vtkIdType i = start; i < end; ++i)
+        {
+          const auto& idx = valueToIndex.at(input[i * inIncr]);
+          const unsigned char* cptr = idx < 0 ? nanColor : self->GetPointer(idx);
+          output[2 * i] =
+            static_cast<unsigned char>(cptr[0] * 0.30 + cptr[1] * 0.59 + cptr[2] * 0.11 + 0.5);
+          output[2 * i + 1] = cptr[3];
+        }
+      });
     }
     else // outFormat == VTK_LUMINANCE
     {
-      while (--i >= 0)
-      {
-        vin = *input;
-        vtkIdType idx = self->GetAnnotatedValueIndexInternal(vin);
-        cptr = idx < 0 ? nanColor : self->GetPointer(idx);
-        *output++ =
-          static_cast<unsigned char>(cptr[0] * 0.30 + cptr[1] * 0.59 + cptr[2] * 0.11 + 0.5);
-        input += inIncr;
-      }
+      vtkSMPTools::For(0, length, [&](vtkIdType start, vtkIdType end) {
+        for (vtkIdType i = start; i < end; ++i)
+        {
+          const auto& idx = valueToIndex.at(input[i * inIncr]);
+          const unsigned char* cptr = idx < 0 ? nanColor : self->GetPointer(idx);
+          output[i] =
+            static_cast<unsigned char>(cptr[0] * 0.30 + cptr[1] * 0.59 + cptr[2] * 0.11 + 0.5);
+        }
+      });
     }
   } // if blending not needed
 
@@ -1140,54 +1146,51 @@ void vtkLookupTableIndexedMapData(vtkLookupTable* self, const T* input, unsigned
   {
     if (outFormat == VTK_RGBA)
     {
-      while (--i >= 0)
-      {
-        vin = *input;
-        vtkIdType idx = self->GetAnnotatedValueIndexInternal(vin);
-        cptr = idx < 0 ? nanColor : self->GetPointer(idx);
-        memcpy(output, cptr, 3);
-        output[3] = static_cast<unsigned char>(cptr[3] * alpha + 0.5);
-        input += inIncr;
-        output += 4;
-      }
+      vtkSMPTools::For(0, length, [&](vtkIdType start, vtkIdType end) {
+        for (vtkIdType i = start; i < end; ++i)
+        {
+          const auto& idx = valueToIndex.at(input[i * inIncr]);
+          const unsigned char* cptr = idx < 0 ? nanColor : self->GetPointer(idx);
+          std::copy_n(cptr, 3, output + 4 * i);
+          output[4 * i + 3] = static_cast<unsigned char>(cptr[3] * alpha + 0.5);
+        }
+      });
     }
     else if (outFormat == VTK_RGB)
     {
-      while (--i >= 0)
-      {
-        vin = *input;
-        vtkIdType idx = self->GetAnnotatedValueIndexInternal(vin);
-        cptr = idx < 0 ? nanColor : self->GetPointer(idx);
-        memcpy(output, cptr, 3);
-        input += inIncr;
-        output += 3;
-      }
+      vtkSMPTools::For(0, length, [&](vtkIdType start, vtkIdType end) {
+        for (vtkIdType i = start; i < end; ++i)
+        {
+          const auto& idx = valueToIndex.at(input[i * inIncr]);
+          const unsigned char* cptr = idx < 0 ? nanColor : self->GetPointer(idx);
+          std::copy_n(cptr, 3, output + 3 * i);
+        }
+      });
     }
     else if (outFormat == VTK_LUMINANCE_ALPHA)
     {
-      while (--i >= 0)
-      {
-        vin = *input;
-        vtkIdType idx = self->GetAnnotatedValueIndexInternal(vin);
-        cptr = idx < 0 ? nanColor : self->GetPointer(idx);
-        output[0] =
-          static_cast<unsigned char>(cptr[0] * 0.30 + cptr[1] * 0.59 + cptr[2] * 0.11 + 0.5);
-        output[1] = static_cast<unsigned char>(cptr[3] * alpha + 0.5);
-        input += inIncr;
-        output += 2;
-      }
+      vtkSMPTools::For(0, length, [&](vtkIdType start, vtkIdType end) {
+        for (vtkIdType i = start; i < end; ++i)
+        {
+          const auto& idx = valueToIndex.at(input[i * inIncr]);
+          const unsigned char* cptr = idx < 0 ? nanColor : self->GetPointer(idx);
+          output[2 * i] =
+            static_cast<unsigned char>(cptr[0] * 0.30 + cptr[1] * 0.59 + cptr[2] * 0.11 + 0.5);
+          output[2 * i + 1] = static_cast<unsigned char>(cptr[3] * alpha + 0.5);
+        }
+      });
     }
     else // outFormat == VTK_LUMINANCE
     {
-      while (--i >= 0)
-      {
-        vin = *input;
-        vtkIdType idx = self->GetAnnotatedValueIndexInternal(vin);
-        cptr = idx < 0 ? nanColor : self->GetPointer(idx);
-        *output++ =
-          static_cast<unsigned char>(cptr[0] * 0.30 + cptr[1] * 0.59 + cptr[2] * 0.11 + 0.5);
-        input += inIncr;
-      }
+      vtkSMPTools::For(0, length, [&](vtkIdType start, vtkIdType end) {
+        for (vtkIdType i = start; i < end; ++i)
+        {
+          const auto& idx = valueToIndex.at(input[i * inIncr]);
+          const unsigned char* cptr = idx < 0 ? nanColor : self->GetPointer(idx);
+          output[i] =
+            static_cast<unsigned char>(cptr[0] * 0.30 + cptr[1] * 0.59 + cptr[2] * 0.11 + 0.5);
+        }
+      });
     }
   } // alpha blending
 }
