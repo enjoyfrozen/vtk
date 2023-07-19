@@ -1,8 +1,14 @@
-vtk_module_third_party_internal(
-  HEADER_ONLY
-  LICENSE_FILES "vtkdiy2/LICENSE.txt"
-                "vtkdiy2/LEGAL.txt"
-  VERSION       "3.5.0")
+vtk_module_third_party(
+  INTERNAL
+    HEADER_ONLY
+    LICENSE_FILES "vtkdiy2/LICENSE.txt"
+                  "vtkdiy2/LEGAL.txt"
+    VERSION       "3.5.0"
+    STANDARD_INCLUDE_DIRS
+  EXTERNAL
+    PACKAGE diy CONFIG_MODE
+    TARGETS DIY::diy
+    STANDARD_INCLUDE_DIRS)
 
 if (TARGET VTK::mpi)
   vtk_module_link(VTK::diy2
