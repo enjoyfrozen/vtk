@@ -48,7 +48,19 @@ public:
 
   ///@{
   /**
-   * vtkConduitSource supports single 'mesh' and multiple 'mesh' (aka 'multimesh') protocols.
+   * vtkConduitSource supports single 'mesh' and multiple 'mesh' (aka 'multimesh')
+   * as well as AMR mesh (aka 'amrmesh') protocols.
+   * Set this to true if the source is handling amrmesh (default is false).
+   */
+  vtkSetMacro(UseAMRMeshProtocol, bool);
+  vtkGetMacro(UseAMRMeshProtocol, bool);
+  vtkBooleanMacro(UseAMRMeshProtocol, bool);
+  ///@}
+
+  ///@{
+  /**
+   * vtkConduitSource supports single 'mesh' and multiple 'mesh' (aka 'multimesh')
+   * as well as AMR mesh (aka 'amrmesh') protocols.
    * Set this to true if the source is handling multimesh (default is false).
    */
   vtkSetMacro(UseMultiMeshProtocol, bool);
@@ -108,6 +120,7 @@ private:
 
   class vtkInternals;
   std::unique_ptr<vtkInternals> Internals;
+  bool UseAMRMeshProtocol;
   bool UseMultiMeshProtocol;
   bool OutputMultiBlock;
 };
