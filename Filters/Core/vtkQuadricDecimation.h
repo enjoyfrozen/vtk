@@ -273,6 +273,12 @@ protected:
    */
   void GetAttributeComponents();
 
+  /**
+   * Pop edge ID from EdgeCosts with not nan cost and assign its cost to input parameter.
+   * Return the edge ID.
+   */
+  vtkIdType PopEdgeId(double& cost);
+
   double TargetReduction;
   double ActualReduction;
   vtkTypeBool AttributeErrorMetric;

@@ -355,7 +355,7 @@ int vtkQuadricDecimation::RequestData(vtkInformation* vtkNotUsed(request),
   // Okay collapse edges until desired reduction is reached
   this->ActualReduction = 0.0;
   this->NumberOfEdgeCollapses = 0;
-  edgeId = this->EdgeCosts->Pop(0, cost);
+  edgeId = this->PopEdgeId(cost);
 
   bool abort = false;
   while (
@@ -380,7 +380,7 @@ int vtkQuadricDecimation::RequestData(vtkInformation* vtkNotUsed(request),
       // when it is recomputed it will be reconsidered
       this->EdgeCosts->Insert(VTK_DOUBLE_MAX, edgeId);
 
-      edgeId = this->EdgeCosts->Pop(0, cost);
+      edgeId = this->PopEdgeId(cost);
       continue;
     }
 
@@ -398,7 +398,7 @@ int vtkQuadricDecimation::RequestData(vtkInformation* vtkNotUsed(request),
     // Update the output triangles.
     numDeletedTris += this->CollapseEdge(endPtIds[0], endPtIds[1]);
     this->ActualReduction = (double)numDeletedTris / numTris;
-    edgeId = this->EdgeCosts->Pop(0, cost);
+    edgeId = this->PopEdgeId(cost);
   }
 
   vtkDebugMacro(<< "Number Of Edge Collapses: " << this->NumberOfEdgeCollapses
@@ -453,6 +453,19 @@ int vtkQuadricDecimation::RequestData(vtkInformation* vtkNotUsed(request),
   }
 
   return 1;
+}
+
+//------------------------------------------------------------------------------
+vtkIdType vtkQuadricDecimation::PopEdgeId(double& cost) {
+  vtkIdType edgeId = -1;
+  while (this->EdgeCosts->GetNumberOfItems() > 0)
+  {
+    edgeId = this->EdgeCosts->Pop(0, cost);
+    // cost should not be nan
+    if (!std::isnan(cost))
+      break;
+  }
+  return edgeId;
 }
 
 //------------------------------------------------------------------------------
@@ -1283,13 +1296,14 @@ int vtkQuadricDecimation::CollapseEdge(vtkIdType pt0Id, vtkIdType pt1Id)
   {
     cellId = this->CollapseCellIds->GetId(i);
     this->Mesh->GetCellPoints(cellId, npts, pts);
-    for (j = 0; j < 3; j++)
+    for (j = 0; j < npts; j++)
     {
       if (pts[j] == pt1Id)
       {
         this->Mesh->RemoveCellReference(cellId);
         this->Mesh->DeleteCell(cellId);
         numDeleted++;
+        break;
       }
     }
   }
