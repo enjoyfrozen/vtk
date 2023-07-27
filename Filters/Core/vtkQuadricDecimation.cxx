@@ -456,7 +456,8 @@ int vtkQuadricDecimation::RequestData(vtkInformation* vtkNotUsed(request),
 }
 
 //------------------------------------------------------------------------------
-vtkIdType vtkQuadricDecimation::PopEdgeId(double& cost) {
+vtkIdType vtkQuadricDecimation::PopEdgeId(double& cost)
+{
   vtkIdType edgeId = -1;
   while (this->EdgeCosts->GetNumberOfItems() > 0)
   {
