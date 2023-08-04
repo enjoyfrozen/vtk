@@ -2,8 +2,12 @@
 // SPDX-License-Identifier: BSD-3-Clause
 #include "vtkOpenGLBufferObject.h"
 #include "vtkObjectFactory.h"
+#include "vtkProfiler.h"
 
 #include "vtk_glew.h"
+
+// must be included after vtk_glew because tracy/TracyOpenGL.h defines gl symbols
+#include "vtkOpenGLRealtimeFrameProfiler.h"
 
 VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkOpenGLBufferObject);
@@ -242,6 +246,7 @@ bool vtkOpenGLBufferObject::GenerateBuffer(vtkOpenGLBufferObject::ObjectType obj
 bool vtkOpenGLBufferObject::UploadInternal(
   const void* buffer, size_t size, vtkOpenGLBufferObject::ObjectType objectType)
 {
+  vtkProfileScoped;
   this->Allocate(size, objectType, this->GetUsage());
   return this->UploadRangeInternal(buffer, 0, size, objectType);
 }
@@ -250,6 +255,7 @@ bool vtkOpenGLBufferObject::UploadInternal(
 bool vtkOpenGLBufferObject::UploadRangeInternal(
   const void* buffer, ptrdiff_t offset, ptrdiff_t size, ObjectType objectType)
 {
+  vtkProfileScoped;
   const bool generated = this->GenerateBuffer(objectType);
   if (!generated)
   {
@@ -262,6 +268,8 @@ bool vtkOpenGLBufferObject::UploadRangeInternal(
                 << "(offset: " << offset << ", size: " << size << ")");
   glBufferSubData(
     this->Internal->Type, static_cast<GLintptr>(offset), static_cast<GLsizeiptr>(size), buffer);
+  vtkProfileOpenGLGPUZone("glBufferData");
+  glBufferData(this->Internal->Type, size, static_cast<const GLvoid*>(buffer), GL_STATIC_DRAW);
   this->Dirty = false;
   return true;
 }

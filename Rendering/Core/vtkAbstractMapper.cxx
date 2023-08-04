@@ -10,6 +10,7 @@
 #include "vtkPlaneCollection.h"
 #include "vtkPlanes.h"
 #include "vtkPointData.h"
+#include "vtkProfiler.h"
 #include "vtkTimerLog.h"
 #include "vtkUnsignedCharArray.h"
 
@@ -40,6 +41,7 @@ vtkAbstractMapper::~vtkAbstractMapper()
 // Override Modifiedtime as we have added Clipping planes
 vtkMTimeType vtkAbstractMapper::GetMTime()
 {
+  vtkProfileScoped;
   vtkMTimeType mTime = this->Superclass::GetMTime();
   vtkMTimeType clipMTime;
 
@@ -108,6 +110,8 @@ void vtkAbstractMapper::SetClippingPlanes(vtkPlanes* planes)
 vtkUnsignedCharArray* vtkAbstractMapper::GetGhostArray(
   vtkDataSet* input, int scalarMode, unsigned char& ghostsToSkip)
 {
+  vtkProfileScoped;
+  vtkProfileScopedTag("vtkAbstractMapper");
   switch (scalarMode)
   {
     case VTK_SCALAR_MODE_DEFAULT:
@@ -141,6 +145,8 @@ vtkUnsignedCharArray* vtkAbstractMapper::GetGhostArray(
 vtkDataArray* vtkAbstractMapper::GetScalars(vtkDataSet* input, int scalarMode, int arrayAccessMode,
   int arrayId, const char* arrayName, int& cellFlag)
 {
+  vtkProfileScoped;
+  vtkProfileScopedTag("vtkAbstractMapper");
   vtkAbstractArray* abstractScalars = vtkAbstractMapper::GetAbstractScalars(
     input, scalarMode, arrayAccessMode, arrayId, arrayName, cellFlag);
   vtkDataArray* scalars = vtkArrayDownCast<vtkDataArray>(abstractScalars);
@@ -151,6 +157,8 @@ vtkDataArray* vtkAbstractMapper::GetScalars(vtkDataSet* input, int scalarMode, i
 vtkAbstractArray* vtkAbstractMapper::GetAbstractScalars(vtkDataSet* input, int scalarMode,
   int arrayAccessMode, int arrayId, const char* arrayName, int& cellFlag)
 {
+  vtkProfileScoped;
+  vtkProfileScopedTag("vtkAbstractMapper");
   vtkAbstractArray* scalars = nullptr;
   vtkPointData* pd;
   vtkCellData* cd;

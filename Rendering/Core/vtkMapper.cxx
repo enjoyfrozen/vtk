@@ -19,6 +19,7 @@
 #include "vtkMath.h"
 #include "vtkPointData.h"
 #include "vtkPolyData.h"
+#include "vtkProfiler.h"
 #include "vtkSelection.h"
 #include "vtkUnsignedCharArray.h"
 #include "vtkVariantArray.h"
@@ -102,6 +103,7 @@ vtkMapper::~vtkMapper()
 // (Xmin,Xmax,Ymin,Ymax,Zmin,Zmax).
 double* vtkMapper::GetBounds()
 {
+  vtkProfileScoped;
   if (!this->Static)
   {
     this->Update();
@@ -125,6 +127,7 @@ double* vtkMapper::GetBounds()
 
 vtkDataSet* vtkMapper::GetInput()
 {
+  vtkProfileScoped;
   if (this->GetNumberOfInputConnections(0) < 1)
   {
     return nullptr;
@@ -201,6 +204,8 @@ void vtkMapper::GetRelativeCoincidentTopologyPolygonOffsetParameters(double& fac
 
 void vtkMapper::GetCoincidentTopologyPolygonOffsetParameters(double& factor, double& units)
 {
+  vtkProfileScoped;
+
   factor =
     vtkMapperGlobalResolveCoincidentTopologyPolygonOffsetFactor + this->CoincidentPolygonFactor;
   units =
@@ -295,6 +300,7 @@ int vtkMapper::GetResolveCoincidentTopologyPolygonOffsetFaces()
 // then this object is modified as well.
 vtkMTimeType vtkMapper::GetMTime()
 {
+  vtkProfileScoped;
   // vtkMTimeType mTime=this->MTime.GetMTime();
   vtkMTimeType mTime = vtkAbstractMapper::GetMTime();
   vtkMTimeType lutMTime;
@@ -310,6 +316,7 @@ vtkMTimeType vtkMapper::GetMTime()
 
 void vtkMapper::ShallowCopy(vtkAbstractMapper* mapper)
 {
+  vtkProfileScoped;
   vtkMapper* m = vtkMapper::SafeDownCast(mapper);
   if (m != nullptr)
   {
@@ -350,6 +357,7 @@ void vtkMapper::ShallowCopy(vtkAbstractMapper* mapper)
 // to the return value
 vtkUnsignedCharArray* vtkMapper::MapScalars(double alpha)
 {
+  vtkProfileScoped;
   vtkDataSet* input = this->GetInput();
   int cellFlag; // not used
   return this->MapScalars(input, alpha, cellFlag);
@@ -359,6 +367,7 @@ vtkUnsignedCharArray* vtkMapper::MapScalars(double alpha)
 // to the return value
 vtkUnsignedCharArray* vtkMapper::MapScalars(double alpha, int& cellFlag)
 {
+  vtkProfileScoped;
   vtkDataSet* input = this->GetInput();
   return this->MapScalars(input, alpha, cellFlag);
 }
@@ -372,6 +381,7 @@ vtkUnsignedCharArray* vtkMapper::MapScalars(double alpha, int& cellFlag)
 // be handled if required.
 int vtkMapper::CanUseTextureMapForColoring(vtkDataObject* input)
 {
+  vtkProfileScoped;
   if (!this->InterpolateScalarsBeforeMapping)
   {
     return 0; // user doesn't want us to use texture maps at all.
@@ -416,6 +426,7 @@ int vtkMapper::CanUseTextureMapForColoring(vtkDataObject* input)
 
 vtkUnsignedCharArray* vtkMapper::MapScalars(vtkDataSet* input, double alpha)
 {
+  vtkProfileScoped;
   int cellFlag = 0;
   return this->MapScalars(input, alpha, cellFlag);
 }
@@ -424,6 +435,7 @@ vtkUnsignedCharArray* vtkMapper::MapScalars(vtkDataSet* input, double alpha)
 // to the return value
 vtkUnsignedCharArray* vtkMapper::MapScalars(vtkDataSet* input, double alpha, int& cellFlag)
 {
+  vtkProfileScoped;
   vtkAbstractArray* scalars = vtkAbstractMapper::GetAbstractScalars(
     input, this->ScalarMode, this->ArrayAccessMode, this->ArrayId, this->ArrayName, cellFlag);
 
@@ -600,6 +612,8 @@ vtkScalarsToColors* vtkMapper::GetLookupTable()
 
 void vtkMapper::CreateDefaultLookupTable()
 {
+  vtkProfileScoped;
+
   if (this->LookupTable)
   {
     this->LookupTable->UnRegister(this);
@@ -685,6 +699,7 @@ const char* vtkMapper::GetScalarModeAsString()
 //------------------------------------------------------------------------------
 bool vtkMapper::HasOpaqueGeometry()
 {
+  vtkProfileScoped;
   // by default we only return true for Opaque or Translucent
   // not both.
   return !this->HasTranslucentPolygonalGeometry();
@@ -693,6 +708,7 @@ bool vtkMapper::HasOpaqueGeometry()
 //------------------------------------------------------------------------------
 bool vtkMapper::HasTranslucentPolygonalGeometry()
 {
+  vtkProfileScoped;
   // scalar visibility?
   int cellFlag = 0;
   vtkDataSet* input = this->GetInput();
@@ -778,6 +794,7 @@ void CreateColorTextureCoordinates(T* input, float* output, vtkIdType numScalars
   int component, double* range, const double* table_range, int tableNumberOfColors,
   bool use_log_scale)
 {
+  vtkProfileScoped;
   // We have to change the range used for computing texture
   // coordinates slightly to accommodate the special above- and
   // below-range colors that are the first and last texels,
@@ -890,6 +907,7 @@ vtkSmartPointer<vtkImageData> vtkMapper::BuildColorTextureImage(
 // this->ColorTexture are set.
 void vtkMapper::MapScalarsToTexture(vtkAbstractArray* scalars, double alpha)
 {
+  vtkProfileScoped;
   double range[2];
   range[0] = this->LookupTable->GetRange()[0];
   range[1] = this->LookupTable->GetRange()[1];

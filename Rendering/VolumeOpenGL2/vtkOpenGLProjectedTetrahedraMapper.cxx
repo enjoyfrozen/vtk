@@ -22,6 +22,7 @@
 #include "vtkOpenGLError.h"
 #include "vtkOpenGLFramebufferObject.h"
 #include "vtkOpenGLIndexBufferObject.h"
+#include "vtkOpenGLRealtimeFrameProfiler.h"
 #include "vtkOpenGLRenderUtilities.h"
 #include "vtkOpenGLRenderWindow.h"
 #include "vtkOpenGLShaderCache.h"
@@ -29,6 +30,7 @@
 #include "vtkOpenGLVertexArrayObject.h"
 #include "vtkOpenGLVertexBufferObject.h"
 #include "vtkPointData.h"
+#include "vtkProfiler.h"
 #include "vtkRenderer.h"
 #include "vtkShaderProgram.h"
 #include "vtkSmartPointer.h"
@@ -171,6 +173,7 @@ void vtkOpenGLProjectedTetrahedraMapper::Initialize(vtkRenderer* renderer)
 //------------------------------------------------------------------------------
 bool vtkOpenGLProjectedTetrahedraMapper::AllocateFOResources(vtkRenderer* r)
 {
+  vtkProfileScoped;
   vtkOpenGLClearErrorMacro();
   scoped_annotate annotator("PTM::AllocateFOResources");
 
@@ -270,6 +273,7 @@ void vtkOpenGLProjectedTetrahedraMapper::ReleaseGraphicsResources(vtkWindow* win
 //------------------------------------------------------------------------------
 void vtkOpenGLProjectedTetrahedraMapper::Render(vtkRenderer* renderer, vtkVolume* volume)
 {
+  vtkProfileScoped;
   vtkOpenGLClearErrorMacro();
   scoped_annotate annotator("PTM::Render");
 
@@ -469,6 +473,7 @@ float vtkOpenGLProjectedTetrahedraMapper::GetCorrectedDepth(float x, float y, fl
 void vtkOpenGLProjectedTetrahedraMapper::ProjectTetrahedra(
   vtkRenderer* renderer, vtkVolume* volume, vtkOpenGLRenderWindow* window)
 {
+  vtkProfileScoped;
   vtkOpenGLClearErrorMacro();
   scoped_annotate annotator("PTM::ProjectTetrahedra");
 
@@ -1062,6 +1067,7 @@ void vtkOpenGLProjectedTetrahedraMapper::ProjectTetrahedra(
     // Avoid underflow in numPts-1 calculation
     if (numPts > 0)
     {
+      vtkProfileOpenGLGPUZone("glDrawRangeElements");
       glDrawRangeElements(GL_TRIANGLES, 0, static_cast<GLuint>(numPts - 1),
         static_cast<GLsizei>(this->Tris.IBO->IndexCount), GL_UNSIGNED_INT, nullptr);
     }

@@ -59,10 +59,12 @@
 
 #include "vtkPBRFunctions.h"
 // Bring in our fragment lit shader symbols.
+#include "vtkOpenGLRealtimeFrameProfiler.h"
 #include "vtkPolyDataEdgesGS.h"
 #include "vtkPolyDataFS.h"
 #include "vtkPolyDataVS.h"
 #include "vtkPolyDataWideLineGS.h"
+#include "vtkProfiler.h"
 
 #include <algorithm>
 #include <sstream>
@@ -242,6 +244,7 @@ void vtkOpenGLPolyDataMapper::ReleaseGraphicsResources(vtkWindow* win)
 //------------------------------------------------------------------------------
 vtkPolyDataMapper::MapperHashType vtkOpenGLPolyDataMapper::GenerateHash(vtkPolyData* polydata)
 {
+  vtkProfileScoped;
   int cellFlag = 0;
   vtkAbstractArray* scalars = this->GetAbstractScalars(
     polydata, this->ScalarMode, this->ArrayAccessMode, this->ArrayId, this->ArrayName, cellFlag);
@@ -288,6 +291,7 @@ vtkPolyDataMapper::MapperHashType vtkOpenGLPolyDataMapper::GenerateHash(vtkPolyD
 void vtkOpenGLPolyDataMapper::BuildShaders(
   std::map<vtkShader::Type, vtkShader*> shaders, vtkRenderer* ren, vtkActor* actor)
 {
+  vtkProfileScoped;
   this->GetShaderTemplate(shaders, ren, actor);
 
   // user specified pre replacements
@@ -322,6 +326,7 @@ void vtkOpenGLPolyDataMapper::BuildShaders(
 //------------------------------------------------------------------------------
 bool vtkOpenGLPolyDataMapper::HaveWideLines(vtkRenderer* ren, vtkActor* actor)
 {
+  vtkProfileScoped;
   vtkHardwareSelector* selector = ren->GetSelector();
   if (selector && selector->GetFieldAssociation() == vtkDataObject::FIELD_ASSOCIATION_POINTS)
   {
@@ -346,6 +351,7 @@ bool vtkOpenGLPolyDataMapper::HaveWideLines(vtkRenderer* ren, vtkActor* actor)
 //------------------------------------------------------------------------------
 bool vtkOpenGLPolyDataMapper::DrawingEdges(vtkRenderer*, vtkActor* actor)
 {
+  vtkProfileScoped;
   if (this->PointPicking)
   {
     return false;
@@ -2424,6 +2430,7 @@ void vtkOpenGLPolyDataMapper::ReplaceShaderDepth(
 void vtkOpenGLPolyDataMapper::ReplaceShaderValues(
   std::map<vtkShader::Type, vtkShader*> shaders, vtkRenderer* ren, vtkActor* actor)
 {
+  vtkProfileScoped;
   this->ReplaceShaderRenderPass(shaders, ren, actor, true);
   this->ReplaceShaderCustomUniforms(shaders, actor);
   this->ReplaceShaderColor(shaders, ren, actor);
@@ -2476,6 +2483,7 @@ bool vtkOpenGLPolyDataMapper::DrawingTubes(vtkOpenGLHelper& cellBO, vtkActor* ac
 bool vtkOpenGLPolyDataMapper::GetNeedToRebuildShaders(
   vtkOpenGLHelper& cellBO, vtkRenderer* ren, vtkActor* actor)
 {
+  vtkProfileScoped;
   int lightComplexity = 0;
   int numberOfLights = 0;
 
@@ -2594,6 +2602,7 @@ bool vtkOpenGLPolyDataMapper::GetNeedToRebuildShaders(
 void vtkOpenGLPolyDataMapper::UpdateShaders(
   vtkOpenGLHelper& cellBO, vtkRenderer* ren, vtkActor* actor)
 {
+  vtkProfileScoped;
   vtkOpenGLRenderWindow* renWin = vtkOpenGLRenderWindow::SafeDownCast(ren->GetRenderWindow());
 
   cellBO.VAO->Bind();
@@ -2673,6 +2682,7 @@ void vtkOpenGLPolyDataMapper::UpdateShaders(
 //------------------------------------------------------------------------------
 void vtkOpenGLPolyDataMapper::SetCustomUniforms(vtkOpenGLHelper& cellBO, vtkActor* actor)
 {
+  vtkProfileScoped;
   vtkShaderProperty* sp = actor->GetShaderProperty();
   auto vu = static_cast<vtkOpenGLUniforms*>(sp->GetVertexCustomUniforms());
   vu->SetUniforms(cellBO.Program);
@@ -2686,7 +2696,7 @@ void vtkOpenGLPolyDataMapper::SetCustomUniforms(vtkOpenGLHelper& cellBO, vtkActo
 void vtkOpenGLPolyDataMapper::SetMapperShaderParameters(
   vtkOpenGLHelper& cellBO, vtkRenderer* ren, vtkActor* actor)
 {
-
+  vtkProfileScoped;
   // Now to update the VAO too, if necessary.
   cellBO.Program->SetUniformi("PrimitiveIDOffset", this->PrimitiveIDOffset);
 
@@ -2890,6 +2900,7 @@ void vtkOpenGLPolyDataMapper::SetMapperShaderParameters(
 void vtkOpenGLPolyDataMapper::SetLightingShaderParameters(
   vtkOpenGLHelper& cellBO, vtkRenderer* ren, vtkActor*)
 {
+  vtkProfileScoped;
   // for unlit there are no lighting parameters
   if (this->PrimitiveInfo[&cellBO].LastLightComplexity < 1)
   {
@@ -2934,6 +2945,7 @@ void vtkOpenGLPolyDataMapper::SetLightingShaderParameters(
 void vtkOpenGLPolyDataMapper::SetCameraShaderParameters(
   vtkOpenGLHelper& cellBO, vtkRenderer* ren, vtkActor* actor)
 {
+  vtkProfileScoped;
   vtkShaderProgram* program = cellBO.Program;
 
   vtkOpenGLCamera* cam = (vtkOpenGLCamera*)(ren->GetActiveCamera());
@@ -3103,6 +3115,7 @@ void vtkOpenGLPolyDataMapper::SetCameraShaderParameters(
 void vtkOpenGLPolyDataMapper::SetPropertyShaderParameters(
   vtkOpenGLHelper& cellBO, vtkRenderer*, vtkActor* actor)
 {
+  vtkProfileScoped;
   vtkShaderProgram* program = cellBO.Program;
 
   vtkProperty* ppty = actor->GetProperty();
@@ -3239,6 +3252,7 @@ int getPickState(vtkRenderer* ren)
 void vtkOpenGLPolyDataMapper::GetCoincidentParameters(
   vtkRenderer* ren, vtkActor* actor, float& factor, float& offset)
 {
+  vtkProfileScoped;
   // 1. ResolveCoincidentTopology is On and non zero for this primitive
   // type
   factor = 0.0;
@@ -3300,6 +3314,7 @@ void vtkOpenGLPolyDataMapper::GetCoincidentParameters(
 //------------------------------------------------------------------------------
 void vtkOpenGLPolyDataMapper::UpdateMaximumPointCellIds(vtkRenderer* ren, vtkActor* actor)
 {
+  vtkProfileScoped;
   vtkHardwareSelector* selector = ren->GetSelector();
 
   // our maximum point id is the is the index of the max of
@@ -3360,6 +3375,7 @@ void vtkOpenGLPolyDataMapper::UpdateMaximumPointCellIds(vtkRenderer* ren, vtkAct
 //------------------------------------------------------------------------------
 void vtkOpenGLPolyDataMapper::RenderPieceStart(vtkRenderer* ren, vtkActor* actor)
 {
+  vtkProfileScoped;
   // render points for point picking in a special way
   // all cell types should be rendered as points
   vtkHardwareSelector* selector = ren->GetSelector();
@@ -3451,6 +3467,7 @@ void vtkOpenGLPolyDataMapper::RenderPieceStart(vtkRenderer* ren, vtkActor* actor
 //------------------------------------------------------------------------------
 void vtkOpenGLPolyDataMapper::RenderPieceDraw(vtkRenderer* ren, vtkActor* actor)
 {
+  vtkProfileScoped;
   int representation = actor->GetProperty()->GetRepresentation();
 
   vtkOpenGLRenderWindow* renWin = static_cast<vtkOpenGLRenderWindow*>(ren->GetRenderWindow());
@@ -3493,6 +3510,7 @@ void vtkOpenGLPolyDataMapper::RenderPieceDraw(vtkRenderer* ren, vtkActor* actor)
       }
 
       this->Primitives[i].IBO->Bind();
+      vtkProfileOpenGLGPUZone("glDrawRangeElements");
       glDrawRangeElements(mode, 0, static_cast<GLuint>(numVerts - 1),
         static_cast<GLsizei>(this->Primitives[i].IBO->IndexCount), GL_UNSIGNED_INT, nullptr);
       this->Primitives[i].IBO->Release();
@@ -3517,6 +3535,7 @@ void vtkOpenGLPolyDataMapper::RenderPieceDraw(vtkRenderer* ren, vtkActor* actor)
       this->UpdateShaders(this->SelectionPrimitives[i], ren, actor);
 
       this->SelectionPrimitives[i].IBO->Bind();
+      vtkProfileOpenGLGPUZone("glDrawRangeElements");
       glDrawRangeElements(mode, 0, static_cast<GLuint>(numVerts - 1),
         static_cast<GLsizei>(this->SelectionPrimitives[i].IBO->IndexCount), GL_UNSIGNED_INT,
         nullptr);
@@ -3528,6 +3547,7 @@ void vtkOpenGLPolyDataMapper::RenderPieceDraw(vtkRenderer* ren, vtkActor* actor)
 //------------------------------------------------------------------------------
 void vtkOpenGLPolyDataMapper::RenderPieceFinish(vtkRenderer* ren, vtkActor*)
 {
+  vtkProfileScoped;
 #ifdef GL_PROGRAM_POINT_SIZE
   if (this->UseProgramPointSize)
   {
@@ -3592,6 +3612,7 @@ void vtkOpenGLPolyDataMapper::RenderPieceFinish(vtkRenderer* ren, vtkActor*)
 //------------------------------------------------------------------------------
 void vtkOpenGLPolyDataMapper::RenderPiece(vtkRenderer* ren, vtkActor* actor)
 {
+  vtkProfileScoped;
   // Make sure that we have been properly initialized.
   if (ren->GetRenderWindow()->CheckAbortStatus())
   {
@@ -3631,6 +3652,7 @@ void vtkOpenGLPolyDataMapper::RenderPiece(vtkRenderer* ren, vtkActor* actor)
 //------------------------------------------------------------------------------
 void vtkOpenGLPolyDataMapper::UpdateCameraShiftScale(vtkRenderer* ren, vtkActor* actor)
 {
+  vtkProfileScoped;
   if (this->PauseShiftScale)
   {
     return;
@@ -3668,6 +3690,7 @@ void vtkOpenGLPolyDataMapper::UpdateCameraShiftScale(vtkRenderer* ren, vtkActor*
 //------------------------------------------------------------------------------
 void vtkOpenGLPolyDataMapper::ComputeBounds()
 {
+  vtkProfileScoped;
   if (!this->GetInput())
   {
     vtkMath::UninitializeBounds(this->Bounds);
@@ -3679,6 +3702,7 @@ void vtkOpenGLPolyDataMapper::ComputeBounds()
 //------------------------------------------------------------------------------
 void vtkOpenGLPolyDataMapper::UpdateBufferObjects(vtkRenderer* ren, vtkActor* act)
 {
+  vtkProfileScoped;
   // Rebuild buffers if needed
   if (this->GetNeedToRebuildBufferObjects(ren, act))
   {
@@ -3712,6 +3736,7 @@ void vtkOpenGLPolyDataMapper::UpdateBufferObjects(vtkRenderer* ren, vtkActor* ac
 bool vtkOpenGLPolyDataMapper::GetNeedToRebuildBufferObjects(
   vtkRenderer* vtkNotUsed(ren), vtkActor* act)
 {
+  vtkProfileScoped;
   // we use a state vector instead of just mtime because
   // we do not want to check the actor's mtime.  Actor
   // changes mtime every time it's position changes. But
@@ -3742,6 +3767,7 @@ void vtkOpenGLPolyDataMapper::AppendCellTextures(vtkRenderer* /*ren*/, vtkActor*
   vtkCellArray* prims[4], int representation, std::vector<unsigned char>& newColors,
   std::vector<float>& newNorms, vtkPolyData* poly, vtkOpenGLCellToVTKCellMap* ccmap)
 {
+  vtkProfileScoped;
   vtkPoints* points = poly->GetPoints();
 
   if (this->HaveCellScalars || this->HaveCellNormals)
@@ -3804,6 +3830,7 @@ void vtkOpenGLPolyDataMapper::AppendCellTextures(vtkRenderer* /*ren*/, vtkActor*
 void vtkOpenGLPolyDataMapper::BuildCellTextures(
   vtkRenderer* ren, vtkActor* actor, vtkCellArray* prims[4], int representation)
 {
+  vtkProfileScoped;
   // create the cell scalar array adjusted for ogl Cells
   std::vector<unsigned char> newColors;
   std::vector<float> newNorms;
@@ -3864,6 +3891,7 @@ void vtkOpenGLPolyDataMapper::BuildCellTextures(
 //------------------------------------------------------------------------------
 void vtkOpenGLPolyDataMapper::BuildBufferObjects(vtkRenderer* ren, vtkActor* act)
 {
+  vtkProfileScoped;
   vtkPolyData* poly = this->CurrentInput;
 
   if (poly == nullptr)
@@ -4021,6 +4049,7 @@ void vtkOpenGLPolyDataMapper::BuildBufferObjects(vtkRenderer* ren, vtkActor* act
 //-------------------------------------------------------------------------
 void vtkOpenGLPolyDataMapper::BuildIBO(vtkRenderer* ren, vtkActor* act, vtkPolyData* poly)
 {
+  vtkProfileScoped;
   vtkCellArray* prims[4];
   prims[0] = poly->GetVerts();
   prims[1] = poly->GetLines();
@@ -4139,6 +4168,7 @@ void vtkOpenGLPolyDataMapper::BuildIBO(vtkRenderer* ren, vtkActor* act, vtkPolyD
 void vtkOpenGLPolyDataMapper::AddPointIdsToSelectionPrimitives(vtkPolyData* poly,
   const char* arrayName, unsigned int processId, unsigned int compositeIndex, vtkIdType selectedId)
 {
+  vtkProfileScoped;
   // point selection
   auto addPointId = [this](vtkIdType id) {
     for (vtkIdType p = vtkOpenGLPolyDataMapper::PrimitiveStart;
@@ -4168,6 +4198,7 @@ void vtkOpenGLPolyDataMapper::AddPointIdsToSelectionPrimitives(vtkPolyData* poly
 void vtkOpenGLPolyDataMapper::AddCellIdsToSelectionPrimitives(vtkPolyData* poly,
   const char* arrayName, unsigned int processId, unsigned int compositeIndex, vtkIdType selectedId)
 {
+  vtkProfileScoped;
 
   auto addCellId = [this, poly](vtkIdType id) {
     vtkIdType npts;
@@ -4219,6 +4250,7 @@ void vtkOpenGLPolyDataMapper::AddCellIdsToSelectionPrimitives(vtkPolyData* poly,
 void vtkOpenGLPolyDataMapper::BuildSelectionIBO(
   vtkPolyData* poly, std::vector<unsigned int> (&indices)[4], vtkIdType offset)
 {
+  vtkProfileScoped;
   // We need to construct primitives based on a vtkSelection.
   // These primitives are filtered based on composite index and process index.
   for (int i = 0; i < 4; i++)
@@ -4333,6 +4365,7 @@ void vtkOpenGLPolyDataMapper::BuildSelectionIBO(
 void vtkOpenGLPolyDataMapper::BuildSelectionCache(
   const char* arrayName, bool selectingPoints, vtkPolyData* poly)
 {
+  vtkProfileScoped;
   if (arrayName &&
     (this->SelectionCacheForPoints != selectingPoints || this->SelectionCacheName != arrayName ||
       this->SelectionCacheTime < poly->GetMTime() || poly != this->SelectionPolyData))
@@ -4374,6 +4407,7 @@ void vtkOpenGLPolyDataMapper::BuildSelectionCache(
 //------------------------------------------------------------------------------
 void vtkOpenGLPolyDataMapper::ShallowCopy(vtkAbstractMapper* mapper)
 {
+  vtkProfileScoped;
   vtkOpenGLPolyDataMapper* m = vtkOpenGLPolyDataMapper::SafeDownCast(mapper);
   if (m != nullptr)
   {
@@ -4506,6 +4540,7 @@ void vtkOpenGLPolyDataMapper::PrintSelf(ostream& os, vtkIndent indent)
 void vtkOpenGLPolyDataMapper::ProcessSelectorPixelBuffers(
   vtkHardwareSelector* sel, std::vector<unsigned int>& pixeloffsets, vtkProp* prop)
 {
+  vtkProfileScoped;
   vtkPolyData* poly = this->CurrentInput;
 
   if (!this->PopulateSelectionSettings || !poly)

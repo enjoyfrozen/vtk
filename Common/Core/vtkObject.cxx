@@ -19,16 +19,18 @@ static vtkTypeBool vtkObjectGlobalWarningDisplay = 1;
 
 //------------------------------------------------------------------------------
 // avoid dll boundary problems
-#ifdef _WIN32
+#if defined(_WIN32) || VTK_ENABLE_PROFILER
 void* vtkObject::operator new(size_t nSize)
 {
   void* p = malloc(nSize);
+  vtkProfileAlloc(p, nSize);
   return p;
 }
 
 //------------------------------------------------------------------------------
 void vtkObject::operator delete(void* p)
 {
+  vtkProfileFree(p);
   free(p);
 }
 #endif

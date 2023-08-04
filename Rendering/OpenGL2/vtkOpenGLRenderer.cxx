@@ -32,6 +32,7 @@
 #include "vtkPoints.h"
 #include "vtkPolyData.h"
 #include "vtkPolyDataMapper2D.h"
+#include "vtkProfiler.h"
 #include "vtkRenderPass.h"
 #include "vtkRenderState.h"
 #include "vtkRenderTimerLog.h"
@@ -85,6 +86,7 @@ vtkOpenGLRenderer::vtkOpenGLRenderer()
 // Ask lights to load themselves into graphics pipeline.
 int vtkOpenGLRenderer::UpdateLights()
 {
+  vtkProfileScoped;
   // consider the lighting complexity to determine which case applies
   // simple headlight, Light Kit, the whole feature set of VTK
   vtkLightCollection* lc = this->GetLights();
@@ -223,6 +225,7 @@ int vtkOpenGLRenderer::GetDepthPeelingHigherLayer()
 // Concrete open gl render method.
 void vtkOpenGLRenderer::DeviceRender()
 {
+  vtkProfileScoped;
   vtkTimerLog::MarkStartEvent("OpenGL Dev Render");
 
   bool computeIBLTextures =
@@ -315,6 +318,7 @@ void vtkOpenGLRenderer::DeviceRender()
 // visualization network to update.
 int vtkOpenGLRenderer::UpdateGeometry(vtkFrameBufferObjectBase* fbo)
 {
+  vtkProfileScoped;
   vtkRenderTimerLog* timer = this->GetRenderWindow()->GetRenderTimer();
   VTK_SCOPED_RENDER_EVENT("vtkOpenGLRenderer::UpdateGeometry", timer);
 
@@ -458,6 +462,7 @@ int vtkOpenGLRenderer::UpdateGeometry(vtkFrameBufferObjectBase* fbo)
 //------------------------------------------------------------------------------
 vtkTexture* vtkOpenGLRenderer::GetCurrentTexturedBackground()
 {
+  vtkProfileScoped;
   if (!this->GetRenderWindow()->GetStereoRender() && this->BackgroundTexture)
   {
     return this->BackgroundTexture;
@@ -480,6 +485,7 @@ vtkTexture* vtkOpenGLRenderer::GetCurrentTexturedBackground()
 //------------------------------------------------------------------------------
 void vtkOpenGLRenderer::DeviceRenderOpaqueGeometry(vtkFrameBufferObjectBase* fbo)
 {
+  vtkProfileScoped;
   // Do we need hidden line removal?
   bool useHLR = this->UseHiddenLineRemoval &&
     vtkHiddenLineRemovalPass::WireframePropsExist(this->PropArray, this->PropArrayCount);
@@ -528,6 +534,7 @@ void vtkOpenGLRenderer::DeviceRenderOpaqueGeometry(vtkFrameBufferObjectBase* fbo
 // override this method.
 void vtkOpenGLRenderer::DeviceRenderTranslucentPolygonalGeometry(vtkFrameBufferObjectBase* fbo)
 {
+  vtkProfileScoped;
   vtkOpenGLClearErrorMacro();
 
   vtkOpenGLRenderWindow* context = vtkOpenGLRenderWindow::SafeDownCast(this->RenderWindow);
@@ -634,6 +641,7 @@ void vtkOpenGLRenderer::PrintSelf(ostream& os, vtkIndent indent)
 
 void vtkOpenGLRenderer::Clear()
 {
+  vtkProfileScoped;
   vtkOpenGLClearErrorMacro();
 
   GLbitfield clear_mask = 0;

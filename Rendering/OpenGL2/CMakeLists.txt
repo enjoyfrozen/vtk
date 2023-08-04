@@ -29,6 +29,7 @@ set(classes
   vtkOpaquePass
   vtkOpenGLActor
   vtkOpenGLArrayTextureBufferAdapter
+  vtkOpenGLAsyncFrameRecorder
   vtkOpenGLBatchedPolyDataMapper
   vtkOpenGLBillboardTextActor3D
   vtkOpenGLBufferObject
@@ -117,6 +118,7 @@ set(headers
 set(nowrap_headers
   vtkCompositeMapperHelper2.h
   vtkOpenGLPointGaussianMapperHelper.h
+  vtkOpenGLRealtimeFrameProfiler.h
   vtkOpenGLShaderDeclaration.h
 )
 
@@ -224,6 +226,7 @@ list(APPEND private_headers "${BlueNoiseTexture64x64_header}")
 # setup factory overrides
 set(opengl_overrides
   Actor
+  AsyncFrameRecorder
   CompositePolyDataMapperDelegator
   BillboardTextActor3D
   Camera

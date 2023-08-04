@@ -16,6 +16,7 @@
 #include "vtkOpenGLError.h"
 #include "vtkOpenGLIndexBufferObject.h"
 #include "vtkOpenGLPolyDataMapper.h"
+#include "vtkOpenGLRealtimeFrameProfiler.h"
 #include "vtkOpenGLRenderWindow.h"
 #include "vtkOpenGLRenderer.h"
 #include "vtkOpenGLResourceFreeCallback.h"
@@ -27,6 +28,7 @@
 #include "vtkOpenGLVertexBufferObjectGroup.h"
 #include "vtkPointData.h"
 #include "vtkPolyData.h"
+#include "vtkProfiler.h"
 #include "vtkProperty.h"
 #include "vtkProperty2D.h"
 #include "vtkShaderProgram.h"
@@ -118,6 +120,7 @@ void vtkOpenGLPolyDataMapper2D::ReleaseGraphicsResources(vtkWindow* win)
 bool vtkOpenGLPolyDataMapper2D::GetNeedToRebuildShaders(
   vtkOpenGLHelper& cellBO, vtkViewport* vtkNotUsed(viewport), vtkActor2D* actor)
 {
+  vtkProfileScoped;
   // has something changed that would require us to recreate the shader?
   // candidates are
   // property modified (representation interpolation and lighting)
@@ -138,6 +141,7 @@ bool vtkOpenGLPolyDataMapper2D::GetNeedToRebuildShaders(
 void vtkOpenGLPolyDataMapper2D::BuildShaders(std::string& VSSource, std::string& FSSource,
   std::string& GSSource, vtkViewport* viewport, vtkActor2D* actor)
 {
+  vtkProfileScoped;
   VSSource = vtkPolyData2DVS;
   FSSource = vtkPolyData2DFS;
   if (this->HaveWideLines(viewport, actor))
@@ -234,6 +238,7 @@ void vtkOpenGLPolyDataMapper2D::BuildShaders(std::string& VSSource, std::string&
 void vtkOpenGLPolyDataMapper2D::UpdateShaders(
   vtkOpenGLHelper& cellBO, vtkViewport* viewport, vtkActor2D* actor)
 {
+  vtkProfileScoped;
   vtkOpenGLRenderWindow* renWin = vtkOpenGLRenderWindow::SafeDownCast(viewport->GetVTKWindow());
 
   cellBO.VAO->Bind();
@@ -272,6 +277,7 @@ void vtkOpenGLPolyDataMapper2D::UpdateShaders(
 void vtkOpenGLPolyDataMapper2D::SetMapperShaderParameters(
   vtkOpenGLHelper& cellBO, vtkViewport* viewport, vtkActor2D* actor)
 {
+  vtkProfileScoped;
   // Now to update the VAO too, if necessary.
   if (this->VBOUpdateTime > cellBO.AttributeUpdateTime ||
     cellBO.ShaderSourceTime > cellBO.AttributeUpdateTime)
@@ -322,6 +328,7 @@ void vtkOpenGLPolyDataMapper2D::SetMapperShaderParameters(
 void vtkOpenGLPolyDataMapper2D::SetPropertyShaderParameters(
   vtkOpenGLHelper& cellBO, vtkViewport*, vtkActor2D* actor)
 {
+  vtkProfileScoped;
   if (!this->Colors || !this->Colors->GetNumberOfComponents())
   {
     vtkShaderProgram* program = cellBO.Program;
@@ -340,6 +347,7 @@ void vtkOpenGLPolyDataMapper2D::SetPropertyShaderParameters(
 void vtkOpenGLPolyDataMapper2D::ReplaceShaderPicking(
   std::string& fssource, vtkRenderer*, vtkActor2D*)
 {
+  vtkProfileScoped;
   vtkShaderProgram::Substitute(fssource, "//VTK::Picking::Dec", "uniform vec3 mapperIndex;");
   vtkShaderProgram::Substitute(
     fssource, "//VTK::Picking::Impl", "gl_FragData[0] = vec4(mapperIndex,1.0);\n");
@@ -349,6 +357,7 @@ void vtkOpenGLPolyDataMapper2D::ReplaceShaderPicking(
 void vtkOpenGLPolyDataMapper2D::SetCameraShaderParameters(
   vtkOpenGLHelper& cellBO, vtkViewport* viewport, vtkActor2D* actor)
 {
+  vtkProfileScoped;
   vtkShaderProgram* program = cellBO.Program;
 
   if (!program)
@@ -433,6 +442,7 @@ void vtkOpenGLPolyDataMapper2D::SetCameraShaderParameters(
 //------------------------------------------------------------------------------
 void vtkOpenGLPolyDataMapper2D::UpdateVBO(vtkActor2D* act, vtkViewport* viewport)
 {
+  vtkProfileScoped;
   vtkPolyData* poly = this->GetInput();
   if (poly == nullptr)
   {
@@ -563,6 +573,7 @@ bool vtkOpenGLPolyDataMapper2D::HaveWideLines(vtkViewport* ren, vtkActor2D* acto
 
 void vtkOpenGLPolyDataMapper2D::RenderOverlay(vtkViewport* viewport, vtkActor2D* actor)
 {
+  vtkProfileScoped;
   vtkOpenGLClearErrorMacro();
   vtkPolyData* input = this->GetInput();
 
@@ -645,6 +656,7 @@ void vtkOpenGLPolyDataMapper2D::RenderOverlay(vtkViewport* viewport, vtkActor2D*
     // Set the PointSize
     ostate->vtkglPointSize(actor->GetProperty()->GetPointSize());
     this->Points.IBO->Bind();
+    vtkProfileOpenGLGPUZone("glDrawRangeElements");
     glDrawRangeElements(GL_POINTS, 0, static_cast<GLuint>(numVerts - 1),
       static_cast<GLsizei>(this->Points.IBO->IndexCount), GL_UNSIGNED_INT, nullptr);
     this->Points.IBO->Release();
@@ -663,6 +675,7 @@ void vtkOpenGLPolyDataMapper2D::RenderOverlay(vtkViewport* viewport, vtkActor2D*
         ostate->vtkglLineWidth(actor->GetProperty()->GetLineWidth());
       }
       this->Lines.IBO->Bind();
+      vtkProfileOpenGLGPUZone("glDrawRangeElements");
       glDrawRangeElements(GL_LINES, 0, static_cast<GLuint>(numVerts - 1),
         static_cast<GLsizei>(this->Lines.IBO->IndexCount), GL_UNSIGNED_INT, nullptr);
       this->Lines.IBO->Release();
@@ -678,6 +691,7 @@ void vtkOpenGLPolyDataMapper2D::RenderOverlay(vtkViewport* viewport, vtkActor2D*
     {
       this->Tris.Program->SetUniformi("PrimitiveIDOffset", this->PrimitiveIDOffset);
       this->Tris.IBO->Bind();
+      vtkProfileOpenGLGPUZone("glDrawRangeElements");
       glDrawRangeElements(GL_TRIANGLES, 0, static_cast<GLuint>(numVerts - 1),
         static_cast<GLsizei>(this->Tris.IBO->IndexCount), GL_UNSIGNED_INT, nullptr);
       this->Tris.IBO->Release();
@@ -692,6 +706,7 @@ void vtkOpenGLPolyDataMapper2D::RenderOverlay(vtkViewport* viewport, vtkActor2D*
     {
       this->TriStrips.Program->SetUniformi("PrimitiveIDOffset", this->PrimitiveIDOffset);
       this->TriStrips.IBO->Bind();
+      vtkProfileOpenGLGPUZone("glDrawRangeElements");
       glDrawRangeElements(GL_TRIANGLES, 0, static_cast<GLuint>(numVerts - 1),
         static_cast<GLsizei>(this->TriStrips.IBO->IndexCount), GL_UNSIGNED_INT, nullptr);
       this->TriStrips.IBO->Release();

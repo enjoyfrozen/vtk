@@ -4,6 +4,7 @@
 
 #include "vtkCellArray.h"
 #include "vtkPoints.h"
+#include "vtkProfiler.h"
 #include "vtkProperty.h"
 
 //------------------------------------------------------------------------------
@@ -34,6 +35,7 @@ void vtkOpenGLCellToVTKCellMap::PrintSelf(ostream& os, vtkIndent indent)
 
 void vtkOpenGLCellToVTKCellMap::SetStartOffset(vtkIdType start)
 {
+  vtkProfileScoped;
   if (this->StartOffset == start)
   {
     return;
@@ -51,6 +53,7 @@ void vtkOpenGLCellToVTKCellMap::SetStartOffset(vtkIdType start)
 void vtkOpenGLCellToVTKCellMap::BuildPrimitiveOffsetsIfNeeded(
   vtkCellArray* prims[4], int representation, vtkPoints* points)
 {
+  vtkProfileScoped;
   // if the users created a full cell cell map AND it is still valid then
   // the values will be computed as part of that and we should use them
   if (!this->CellCellMap.empty())
@@ -129,6 +132,7 @@ void vtkOpenGLCellToVTKCellMap::BuildPrimitiveOffsetsIfNeeded(
 void vtkOpenGLCellToVTKCellMap::BuildCellSupportArrays(
   vtkCellArray* prims[4], int representation, vtkPoints* points)
 {
+  vtkProfileScoped;
   // need an array to track what points to orig points
   size_t minSize = prims[0]->GetNumberOfCells() + prims[1]->GetNumberOfCells() +
     prims[2]->GetNumberOfCells() + prims[3]->GetNumberOfCells();
@@ -265,6 +269,7 @@ void vtkOpenGLCellToVTKCellMap::BuildCellSupportArrays(
 
 void vtkOpenGLCellToVTKCellMap::Update(vtkCellArray** prims, int representation, vtkPoints* points)
 {
+  vtkProfileScoped;
   this->TempState.Clear();
   this->TempState.Append(prims[0]->GetNumberOfCells() ? prims[0]->GetMTime() : 0, "verts");
   this->TempState.Append(prims[1]->GetNumberOfCells() ? prims[1]->GetMTime() : 0, "lines");

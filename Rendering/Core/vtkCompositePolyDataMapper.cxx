@@ -28,6 +28,7 @@
 #include "vtkPointData.h"
 #include "vtkPolyData.h"
 #include "vtkPolyDataMapper.h"
+#include "vtkProfiler.h"
 #include "vtkProperty.h"
 #include "vtkRenderWindow.h"
 #include "vtkRenderer.h"
@@ -116,6 +117,7 @@ vtkExecutive* vtkCompositePolyDataMapper::CreateDefaultExecutive()
 // Looks at each DataSet and finds the union of all the bounds
 void vtkCompositePolyDataMapper::ComputeBounds()
 {
+  vtkProfileScoped;
   vtkDataObjectTree* input = vtkDataObjectTree::SafeDownCast(this->GetInputDataObject(0, 0));
 
   // If we don't have hierarchical data, test to see if we have
@@ -141,6 +143,7 @@ void vtkCompositePolyDataMapper::ComputeBounds()
 //------------------------------------------------------------------------------
 double* vtkCompositePolyDataMapper::GetBounds()
 {
+  vtkProfileScoped;
   if (!this->GetExecutive()->GetInputData(0, 0))
   {
     vtkMath::UninitializeBounds(this->Bounds);
@@ -170,6 +173,7 @@ double* vtkCompositePolyDataMapper::GetBounds()
 //------------------------------------------------------------------------------
 void vtkCompositePolyDataMapper::ShallowCopy(vtkAbstractMapper* mapper)
 {
+  vtkProfileScoped;
   vtkCompositePolyDataMapper* cpdm = vtkCompositePolyDataMapper::SafeDownCast(mapper);
   if (cpdm != nullptr)
   {
@@ -243,6 +247,7 @@ void vtkCompositePolyDataMapper::PrintSelf(ostream& os, vtkIndent indent)
 //------------------------------------------------------------------------------
 vtkCompositePolyDataMapperDelegator* vtkCompositePolyDataMapper::CreateADelegator()
 {
+  vtkProfileScoped;
   auto delegator = vtkCompositePolyDataMapperDelegator::New();
   return delegator;
 }
@@ -250,6 +255,7 @@ vtkCompositePolyDataMapperDelegator* vtkCompositePolyDataMapper::CreateADelegato
 //------------------------------------------------------------------------------
 vtkDataObjectTreeIterator* vtkCompositePolyDataMapper::MakeAnIterator(vtkCompositeDataSet* dataset)
 {
+  vtkProfileScoped;
   auto iter = vtkDataObjectTreeIterator::New();
   iter->SetDataSet(dataset);
   iter->SkipEmptyNodesOn();
@@ -269,6 +275,7 @@ bool vtkCompositePolyDataMapper::HasOpaqueGeometry()
 // look at children
 bool vtkCompositePolyDataMapper::HasTranslucentPolygonalGeometry()
 {
+  vtkProfileScoped;
   // Make sure that we have been properly initialized.
   if (this->GetInputAlgorithm() == nullptr)
   {
@@ -316,6 +323,7 @@ bool vtkCompositePolyDataMapper::HasTranslucentPolygonalGeometry()
 //------------------------------------------------------------------------------
 void vtkCompositePolyDataMapper::Render(vtkRenderer* renderer, vtkActor* actor)
 {
+  vtkProfileScoped;
   auto& internals = (*this->Internals);
   internals.RenderedList.clear();
   // Make sure that we have been properly initialized.
@@ -464,6 +472,7 @@ void vtkCompositePolyDataMapper::Render(vtkRenderer* renderer, vtkActor* actor)
 vtkCompositePolyDataMapper::MapperHashType vtkCompositePolyDataMapper::InsertPolyData(
   vtkPolyData* polydata, const unsigned int& flatIndex)
 {
+  vtkProfileScoped;
   if (polydata == nullptr)
   {
     vtkDebugMacro(<< "DataObject at flatIndex=" << flatIndex
@@ -506,6 +515,7 @@ vtkCompositePolyDataMapper::MapperHashType vtkCompositePolyDataMapper::InsertPol
 void vtkCompositePolyDataMapper::BuildRenderValues(
   vtkRenderer* renderer, vtkActor* actor, vtkDataObject* dobj, unsigned int& flatIndex)
 {
+  vtkProfileScoped;
   auto& internals = (*this->Internals);
   // Push overridden attributes onto the stack.
   // Keep track of attributes that were pushed so that they can be popped after they're applied to
@@ -801,6 +811,7 @@ void vtkCompositePolyDataMapper::BuildRenderValues(
 bool vtkCompositePolyDataMapper::RecursiveHasTranslucentGeometry(
   vtkDataObject* dobj, unsigned int& flat_index)
 {
+  vtkProfileScoped;
   vtkCompositeDataDisplayAttributes* cda = this->GetCompositeDataDisplayAttributes();
   bool overrides_opacity = (cda && cda->HasBlockOpacity(dobj));
   if (overrides_opacity)
@@ -927,6 +938,7 @@ bool vtkCompositePolyDataMapper::RecursiveHasTranslucentGeometry(
 //------------------------------------------------------------------------------
 vtkPolyDataMapper::MapperHashType vtkCompositePolyDataMapper::GenerateHash(vtkPolyData* polydata)
 {
+  vtkProfileScoped;
   return this->PrototypeMapper->GenerateHash(polydata);
 }
 
@@ -1556,6 +1568,7 @@ std::vector<vtkPolyData*> vtkCompositePolyDataMapper::GetRenderedList()
 void vtkCompositePolyDataMapper::ProcessSelectorPixelBuffers(
   vtkHardwareSelector* sel, std::vector<unsigned int>& pixeloffsets, vtkProp* prop)
 {
+  vtkProfileScoped;
   const auto& internals = (*this->Internals);
   // forward to helper
   for (auto& item : internals.BatchedDelegators)
@@ -1567,6 +1580,7 @@ void vtkCompositePolyDataMapper::ProcessSelectorPixelBuffers(
 //-----------------------------------------------------------------------------
 vtkMTimeType vtkCompositePolyDataMapper::GetMTime()
 {
+  vtkProfileScoped;
   if (this->CompositeAttributes)
   {
     return std::max(this->Superclass::GetMTime(), this->CompositeAttributes->GetMTime());

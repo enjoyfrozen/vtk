@@ -13,6 +13,7 @@
 #include "vtkOpenGLCellToVTKCellMap.h"
 #include "vtkOpenGLCompositePolyDataMapperDelegator.h"
 #include "vtkOpenGLIndexBufferObject.h"
+#include "vtkOpenGLRealtimeFrameProfiler.h"
 #include "vtkOpenGLRenderWindow.h"
 #include "vtkOpenGLState.h"
 #include "vtkOpenGLTexture.h"
@@ -20,6 +21,7 @@
 #include "vtkOpenGLVertexBufferObjectGroup.h"
 #include "vtkPointData.h"
 #include "vtkPolyData.h"
+#include "vtkProfiler.h"
 #include "vtkProperty.h"
 #include "vtkRenderWindow.h"
 #include "vtkRenderer.h"
@@ -145,6 +147,7 @@ void vtkOpenGLBatchedPolyDataMapper::SetParent(vtkCompositePolyDataMapper* paren
 //------------------------------------------------------------------------------
 void vtkOpenGLBatchedPolyDataMapper::RenderPiece(vtkRenderer* renderer, vtkActor* actor)
 {
+  vtkProfileScoped;
   // Make sure that we have been properly initialized.
   if (renderer->GetRenderWindow()->CheckAbortStatus())
   {
@@ -198,6 +201,7 @@ void vtkOpenGLBatchedPolyDataMapper::ClearUnmarkedBatchElements()
 //------------------------------------------------------------------------------
 void vtkOpenGLBatchedPolyDataMapper::RenderPieceDraw(vtkRenderer* renderer, vtkActor* actor)
 {
+  vtkProfileScoped;
   int representation = actor->GetProperty()->GetRepresentation();
 
   // render points for point picking in a special way
@@ -255,6 +259,7 @@ void vtkOpenGLBatchedPolyDataMapper::RenderPieceDraw(vtkRenderer* renderer, vtkA
 void vtkOpenGLBatchedPolyDataMapper::ProcessSelectorPixelBuffers(
   vtkHardwareSelector* sel, std::vector<unsigned int>& pixeloffsets, vtkProp* prop)
 {
+  vtkProfileScoped;
   if (!this->PopulateSelectionSettings)
   {
     return;
@@ -322,6 +327,7 @@ void vtkOpenGLBatchedPolyDataMapper::ProcessSelectorPixelBuffers(
 void vtkOpenGLBatchedPolyDataMapper::ProcessCompositePixelBuffers(vtkHardwareSelector* sel,
   vtkProp* prop, GLBatchElement* glBatchElement, std::vector<unsigned int>& mypixels)
 {
+  vtkProfileScoped;
   auto& batchElement = glBatchElement->Parent;
   vtkPolyData* poly = batchElement.PolyData;
 
@@ -596,6 +602,7 @@ void vtkOpenGLBatchedPolyDataMapper::ProcessCompositePixelBuffers(vtkHardwareSel
 //------------------------------------------------------------------------------
 void vtkOpenGLBatchedPolyDataMapper::UpdateCameraShiftScale(vtkRenderer* renderer, vtkActor* actor)
 {
+  vtkProfileScoped;
   if (this->PauseShiftScale)
   {
     return;
@@ -625,6 +632,7 @@ void vtkOpenGLBatchedPolyDataMapper::UpdateCameraShiftScale(vtkRenderer* rendere
 void vtkOpenGLBatchedPolyDataMapper::DrawIBO(vtkRenderer* renderer, vtkActor* actor, int primType,
   vtkOpenGLHelper& CellBO, GLenum mode, int pointSize)
 {
+  vtkProfileScoped;
   if (CellBO.IBO->IndexCount)
   {
     vtkOpenGLRenderWindow* renWin =
@@ -690,7 +698,7 @@ void vtkOpenGLBatchedPolyDataMapper::DrawIBO(vtkRenderer* renderer, vtkActor* ac
         unsigned int count = this->DrawingSelection
           ? static_cast<unsigned int>(CellBO.IBO->IndexCount)
           : glBatchElement->NextIndex[primType] - glBatchElement->StartIndex[primType];
-
+        vtkProfileOpenGLGPUZone("glDrawRangeElements");
         glDrawRangeElements(mode, static_cast<GLuint>(glBatchElement->StartVertex),
           static_cast<GLuint>(glBatchElement->NextVertex > 0 ? glBatchElement->NextVertex - 1 : 0),
           count, GL_UNSIGNED_INT,
@@ -705,6 +713,7 @@ void vtkOpenGLBatchedPolyDataMapper::DrawIBO(vtkRenderer* renderer, vtkActor* ac
 void vtkOpenGLBatchedPolyDataMapper::SetShaderValues(
   vtkShaderProgram* prog, GLBatchElement* glBatchElement, size_t primOffset)
 {
+  vtkProfileScoped;
   if (this->PrimIDUsed)
   {
     prog->SetUniformi("PrimitiveIDOffset", static_cast<int>(primOffset));
@@ -805,6 +814,7 @@ void vtkOpenGLBatchedPolyDataMapper::SetShaderValues(
 void vtkOpenGLBatchedPolyDataMapper::UpdateShaders(
   vtkOpenGLHelper& cellBO, vtkRenderer* renderer, vtkActor* actor)
 {
+  vtkProfileScoped;
   this->Superclass::UpdateShaders(cellBO, renderer, actor);
   if (cellBO.Program && this->Parent)
   {
@@ -817,6 +827,7 @@ void vtkOpenGLBatchedPolyDataMapper::UpdateShaders(
 void vtkOpenGLBatchedPolyDataMapper::ReplaceShaderColor(
   std::map<vtkShader::Type, vtkShader*> shaders, vtkRenderer* renderer, vtkActor* actor)
 {
+  vtkProfileScoped;
   if (!this->CurrentSelector)
   {
     std::string FSSource = shaders[vtkShader::Fragment]->GetSource();
@@ -842,6 +853,7 @@ void vtkOpenGLBatchedPolyDataMapper::ReplaceShaderColor(
 //------------------------------------------------------------------------------
 bool vtkOpenGLBatchedPolyDataMapper::GetNeedToRebuildBufferObjects(vtkRenderer*, vtkActor* actor)
 {
+  vtkProfileScoped;
   // Same as vtkOpenGLPolyDataMapper::GetNeedToRebuildBufferObjects(), but
   // we need to check all inputs, not just this->CurrentInput
   this->TempState.Clear();
@@ -866,6 +878,7 @@ bool vtkOpenGLBatchedPolyDataMapper::GetNeedToRebuildBufferObjects(vtkRenderer*,
 //------------------------------------------------------------------------------
 void vtkOpenGLBatchedPolyDataMapper::BuildBufferObjects(vtkRenderer* renderer, vtkActor* actor)
 {
+  vtkProfileScoped;
   // render using the composite data attributes
 
   // create the cell scalar array adjusted for ogl Cells
@@ -1072,6 +1085,7 @@ void vtkOpenGLBatchedPolyDataMapper::AppendOneBufferObject(vtkRenderer* renderer
   GLBatchElement* glBatchElement, vtkIdType& vertexOffset, std::vector<unsigned char>& newColors,
   std::vector<float>& newNorms)
 {
+  vtkProfileScoped;
   auto& batchElement = glBatchElement->Parent;
   vtkPolyData* poly = batchElement.PolyData;
 
@@ -1313,6 +1327,7 @@ void vtkOpenGLBatchedPolyDataMapper::AppendOneBufferObject(vtkRenderer* renderer
 void vtkOpenGLBatchedPolyDataMapper::BuildSelectionIBO(
   vtkPolyData*, std::vector<unsigned int> (&indices)[4], vtkIdType)
 {
+  vtkProfileScoped;
   for (auto& iter : this->VTKPolyDataToGLBatchElement)
   {
     auto glBatchElement = iter.second.get();
@@ -1331,6 +1346,7 @@ void vtkOpenGLBatchedPolyDataMapper::BuildSelectionIBO(
 // be handled if required.
 int vtkOpenGLBatchedPolyDataMapper::CanUseTextureMapForColoring(vtkDataObject*)
 {
+  vtkProfileScoped;
 
   if (!this->InterpolateScalarsBeforeMapping)
   {
