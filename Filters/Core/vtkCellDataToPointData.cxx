@@ -139,7 +139,7 @@ struct Spread
   template <typename SrcArrayT, typename DstArrayT>
   void operator()(SrcArrayT* const srcarray, DstArrayT* const dstarray, vtkDataSet* const src,
     vtkUnsignedIntArray* const num, vtkIdType ncells, vtkIdType npoints, vtkIdType ncomps,
-    int highestCellDimension, int contributingCellOption, vtkCellDataToPointData* filter) const
+    int highestCellDimension, vtkCellDataToPointData* filter) const
   {
     // Both arrays will have the same value type:
     using T = vtk::GetAPIType<SrcArrayT>;
@@ -152,7 +152,7 @@ struct Spread
     vtkIdType checkAbortInterval;
 
     // accumulate
-    if (contributingCellOption != vtkCellDataToPointData::Patch)
+    if (filter->GetContributingCellOption() != vtkCellDataToPointData::Patch)
     {
       vtkNew<vtkIdList> pointIds;
       checkAbortInterval = std::min(ncells / 10 + 1, (vtkIdType)1000);
@@ -313,7 +313,7 @@ public:
 
       vtkIdType numCells = cellIds->GetNumberOfIds();
 
-      if (numCells > 0)
+      if (numCells > 0 && numCells <= 8)
       {
         double weight = 1.0 / numCells;
         for (vtkIdType cellId = 0; cellId < numCells; cellId++)
@@ -324,6 +324,7 @@ public:
       }
       else
       {
+        // TODO Log debug mode numCells > 8
         outPD->NullData(ptId);
       }
     }
@@ -338,6 +339,9 @@ vtkCellDataToPointData::vtkCellDataToPointData()
 {
   this->PassCellData = false;
   this->ContributingCellOption = vtkCellDataToPointData::All;
+  this->WeightCellOption = vtkCellDataToPointData::Standard;
+  this->BoundaryConditionPoint = vtkCellDataToPointData::AXIS_NONE;
+  this->AxisAlignment = 0.;
   this->ProcessAllArrays = true;
   this->PieceInvariant = true;
   this->Implementation = new Internals();
@@ -410,12 +414,18 @@ int vtkCellDataToPointData::RequestData(
 
   vtkDebugMacro(<< "Mapping cell data to point data");
 
-  // Special traversal algorithm for unstructured data such as vtkPolyData
-  // and vtkUnstructuredGrid.
-  if (input->IsA("vtkUnstructuredGrid") || input->IsA("vtkPolyData"))
+  if (this->WeightCellOption == vtkCellDataToPointData::Standard)
   {
-    return this->RequestDataForUnstructuredData(nullptr, inputVector, outputVector);
+    // Special traversal algorithm for unstructured data such as vtkPolyData
+    // and vtkUnstructuredGrid.
+    if (input->IsA("vtkUnstructuredGrid") || input->IsA("vtkPolyData"))
+    {
+      return this->RequestDataForUnstructuredData(nullptr, inputVector, outputVector);
+    }
   }
+  // Not special traversal algorithm for unstructured data such as vtkPolyData
+  // and vtkUnstructuredGrid when this mesh build on regular structured grid.
+  // (2D Quad or 3D Hexahedron)
 
   // First, copy the input to the output as a starting point
   output->CopyStructure(input);
@@ -512,6 +522,7 @@ void vtkCellDataToPointData::PrintSelf(ostream& os, vtkIndent indent)
 
   os << indent << "PassCellData: " << (this->PassCellData ? "On\n" : "Off\n");
   os << indent << "ContributingCellOption: " << this->ContributingCellOption << endl;
+  os << indent << "WeightCellOption: " << this->WeightCellOption << endl;
   os << indent << "PieceInvariant: " << (this->PieceInvariant ? "On\n" : "Off\n");
 }
 
@@ -697,10 +708,10 @@ int vtkCellDataToPointData::RequestDataForUnstructuredData(
       Spread worker;
       using Dispatcher = vtkArrayDispatch::Dispatch2SameValueType;
       if (!Dispatcher::Execute(srcarray, dstarray, worker, input, num, numberOfCells,
-            numberOfPoints, ncomps, highestCellDimension, this->ContributingCellOption, this))
+            numberOfPoints, ncomps, highestCellDimension, this))
       { // fallback for unknown arrays:
         worker(srcarray, dstarray, input, num, numberOfCells, numberOfPoints, ncomps,
-          highestCellDimension, this->ContributingCellOption, this);
+          highestCellDimension, this);
       }
     }
   };
@@ -751,6 +762,16 @@ int vtkCellDataToPointData::InterpolatePointData(vtkDataSet* input, vtkDataSet* 
   outPD->InterpolateAllocate(processedCellData, numberOfPoints);
 
   double weights[VTK_MAX_CELLS_PER_POINT];
+  double weightsStandard[VTK_MAX_CELLS_PER_POINT];
+
+  if (this->WeightCellOption != vtkCellDataToPointData::Standard)
+  {
+    double weight = 1.0 / this->WeightCellOption;
+    for (vtkIdType cellId = 0; cellId < VTK_MAX_CELLS_PER_POINT; cellId++)
+    {
+      weights[cellId] = weight;
+    }
+  }
 
   bool abort = false;
   vtkIdType progressInterval = numberOfPoints / 20 + 1;
@@ -765,17 +786,41 @@ int vtkCellDataToPointData::InterpolatePointData(vtkDataSet* input, vtkDataSet* 
     input->GetPointCells(ptId, cellIds);
     vtkIdType numCells = cellIds->GetNumberOfIds();
 
-    if (numCells > 0 && numCells < VTK_MAX_CELLS_PER_POINT)
+    bool boundaryCondition = true;
+    if (this->WeightCellOption != vtkCellDataToPointData::Standard)
+    {
+      if (this->BoundaryConditionPoint == vtkCellDataToPointData::AXIS_NONE)
+      {
+        boundaryCondition = false;
+      }
+      else
+      {
+        double x[3];
+        input->GetPoint(ptId, x);
+        if (std::fabs(x[this->BoundaryConditionPoint] - this->AxisAlignment) >=
+          this->AbsoluteErrorEpsilonOnAxisAlignment)
+        {
+          boundaryCondition = false;
+        }
+      }
+    }
+
+    if (!boundaryCondition)
+    {
+      outPD->InterpolatePoint(processedCellData, ptId, cellIds, weights);
+    }
+    else if (numCells > 0 && numCells <= VTK_MAX_CELLS_PER_POINT)
     {
       double weight = 1.0 / numCells;
       for (vtkIdType cellId = 0; cellId < numCells; cellId++)
       {
-        weights[cellId] = weight;
+        weightsStandard[cellId] = weight;
       }
-      outPD->InterpolatePoint(processedCellData, ptId, cellIds, weights);
+      outPD->InterpolatePoint(processedCellData, ptId, cellIds, weightsStandard);
     }
     else
     {
+      // TODO Log debug mode numCells > VTK_MAX_CELLS_PER_POINT
       outPD->NullData(ptId);
     }
   }
