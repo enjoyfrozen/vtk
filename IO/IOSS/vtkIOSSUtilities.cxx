@@ -357,6 +357,7 @@ int GetCellType(const Ioss::ElementTopology* topology)
         case 10:
         case 11:
           return VTK_QUADRATIC_TETRA;
+        case 14:
         case 15:
           return VTK_LAGRANGE_TETRAHEDRON;
         case 8:
