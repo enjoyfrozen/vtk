@@ -1,68 +1,30 @@
 # Rules for where jobs can run
-
-.run_automatically:
+.ci_rules:
     rules:
-        - if: '$CI_MERGE_REQUEST_ID'
+      # rules for merge requests:
+          # automatic jobs run at once
+        - if: '$CI_MERGE_REQUEST_ID && $IS_AUTOMATIC == "true"'
           when: on_success
-        - if: '$CI_PROJECT_PATH == "vtk/vtk"'
-          when: on_success
-        - when: never
-
-.run_scheduled:
-    rules:
-        - if: '$CI_MERGE_REQUEST_ID'
+          # manual and scheduled jobs wait for user action
+        - if: '$CI_MERGE_REQUEST_ID && ($IS_MANUAL == "true" || $IS_SCHEDULED == "true")'
           when: manual
-        - if: '$CI_COMMIT_TAG && $CI_PROJECT_PATH == "vtk/vtk"'
+          # merge request should not add the following jobs
+        - if: '$CI_MERGE_REQUEST_ID && ($IS_MERGED_ONLY == "true" || $IS_WEEKLY_UPLOAD == "true" || $IS_TAG == "true")'
+          when: never
+      # branches with a tag
+        - if: '$CI_COMMIT_TAG && $CI_PROJECT_PATH == "vtk/vtk" && ($IS_SCHEDULED == "true" || $IS_RELEASE == "true" || $IS_WEEKLY_UPLOAD == "true" || $IS_TAG == "true")'
           when: on_success
-        - if: '$CI_PIPELINE_SOURCE == "schedule" && $CI_PROJECT_PATH == "vtk/vtk"'
+       # rules for jobs triggered from this project
+        - if: '$CI_PROJECT_PATH == "vtk/vtk" && ($RUN_AUTOMATICALLY == "true" || $IS_MERGED_ONLY == "true")'
           when: on_success
-        - when: never
-
-.run_manually:
-    rules:
-        - if: '$CI_MERGE_REQUEST_ID'
-          when: manual
-        - if: '$CI_PROJECT_PATH == "vtk/vtk" && $CI_PIPELINE_SOURCE == "schedule"'
-          when: on_success
-        - if: '$CI_PROJECT_PATH == "vtk/vtk"'
+        - if: '$CI_PROJECT_PATH == "vtk/vtk" && $IS_MANUAL == "true"'
           when: delayed
           start_in: 30 minutes
-        - when: never
-
-.merged_only:
-    rules:
-        - if: '$CI_MERGE_REQUEST_ID'
-          when: never
-        - if: '$CI_PROJECT_PATH == "vtk/vtk"'
+       # jobs triggered by scheduled a run
+        - if: '$CI_PIPELINE_SOURCE == "schedule" && $CI_PROJECT_PATH == "vtk/vtk" && ($IS_MANUAL == "true" || $IS_SCHEDULED == "true")'
           when: on_success
-        - when: never
-
-.release_only:
-    rules:
-      - if: '$CI_COMMIT_TAG && $CI_PROJECT_PATH == "vtk/vtk"'
-        when: on_success
-      - when: never
-
-.upload_only:
-    rules:
-      - if: '$RSYNC_UPLOAD_ENABLE == "true"'
-        when: on_success
-      - when: never
-
-.weekly_upload_only:
-    rules:
-        - if: '$CI_MERGE_REQUEST_ID'
-          when: never
-        - if: '$CI_PROJECT_PATH == "vtk/vtk" && $CI_COMMIT_TAG'
+        - if: '$RSYNC_UPLOAD_ENABLE == "true"'
           when: on_success
         - if: '$PYPI_WEEKLY_UPLOAD == "true"'
-          when: on_success
-        - when: never
-
-.tag_only:
-    rules:
-        - if: '$CI_MERGE_REQUEST_ID'
-          when: never
-        - if: '$CI_PROJECT_PATH == "vtk/vtk" && $CI_COMMIT_TAG'
           when: on_success
         - when: never
