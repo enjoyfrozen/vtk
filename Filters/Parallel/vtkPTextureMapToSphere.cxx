@@ -52,6 +52,8 @@ void vtkPTextureMapToSphere::ComputeCenter(vtkDataSet* dataSet)
     this->Center[0] = in[1] / in[0];
     this->Center[1] = in[2] / in[0];
     this->Center[2] = in[3] / in[0];
+    this->Controller->Barrier();
+    this->CheckAbort();
   }
   else
   {

@@ -44,7 +44,7 @@ public:
    * Intended to be called in vtkOutlineCornerFilter::RequestData and in
    * vtkOutlineFilter::RequestData.
    */
-  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*);
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*, vtkAlgorithm*);
 
   /**
    * Set the controller to be used.
@@ -82,6 +82,7 @@ private:
 
   bool IsCornerSource = false;
   double CornerFactor = 0.2;
+  vtkAlgorithm* ContainerAlgorithm;
 };
 
 VTK_ABI_NAMESPACE_END

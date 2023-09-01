@@ -69,6 +69,9 @@ int vtkPExtractExodusGlobalTemporalVariables::RequestData(
       this->SetContinuationState(false, 0);
     }
   }
+  this->Controller->Barrier();
+  this->CheckAbort();
+
   return retval;
 }
 

@@ -39,6 +39,7 @@ int vtkPSphereSource::RequestData(vtkInformation* vtkNotUsed(request),
   vtkPolyData* output = vtkPolyData::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
   int piece = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER());
   int numPieces = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES());
+  bool abort = false;
 
   // I want to modify the ivars resolution start theta and end theta,
   // so I will make local copies of them.  THese might be able to be merged
@@ -134,12 +135,18 @@ int vtkPSphereSource::RequestData(vtkInformation* vtkNotUsed(request),
   jEnd = (this->EndPhi >= 180.0 ? this->PhiResolution - 1 : this->PhiResolution);
 
   // Create intermediate points
-  for (i = 0; i < localThetaResolution; i++)
+  for (i = 0; i < localThetaResolution && !abort; i++)
   {
+
     theta = localStartTheta * vtkMath::Pi() / 180.0 + i * deltaTheta;
 
     for (j = jStart; j < jEnd; j++)
     {
+      abort = this->CheckAbort();
+      if (abort)
+      {
+        break;
+      }
       phi = startPhi + j * deltaPhi;
       radius = this->Radius * sin((double)phi);
       n[0] = radius * cos((double)theta);
@@ -171,8 +178,13 @@ int vtkPSphereSource::RequestData(vtkInformation* vtkNotUsed(request),
 
   if (this->StartPhi <= 0.0) // around north pole
   {
-    for (i = 0; i < localThetaResolution; i++)
+    for (i = 0; i < localThetaResolution && !abort; i++)
     {
+      abort = this->CheckAbort();
+      if (abort)
+      {
+        break;
+      }
       pts[0] = phiResolution * i + numPoles;
       pts[1] = (phiResolution * (i + 1) % base) + numPoles;
       pts[2] = 0;
@@ -184,8 +196,13 @@ int vtkPSphereSource::RequestData(vtkInformation* vtkNotUsed(request),
   {
     numOffset = phiResolution - 1 + numPoles;
 
-    for (i = 0; i < localThetaResolution; i++)
+    for (i = 0; i < localThetaResolution && !abort; i++)
     {
+      abort = this->CheckAbort();
+      if (abort)
+      {
+        break;
+      }
       pts[0] = phiResolution * i + numOffset;
       pts[2] = ((phiResolution * (i + 1)) % base) + numOffset;
       pts[1] = numPoles - 1;
@@ -194,10 +211,15 @@ int vtkPSphereSource::RequestData(vtkInformation* vtkNotUsed(request),
   }
 
   // bands in-between poles
-  for (i = 0; i < localThetaResolution; i++)
+  for (i = 0; i < localThetaResolution && !abort; i++)
   {
     for (j = 0; j < (phiResolution - 1); j++)
     {
+      abort = this->CheckAbort();
+      if (abort)
+      {
+        break;
+      }
       pts[0] = phiResolution * i + j + numPoles;
       pts[1] = pts[0] + 1;
       pts[2] = ((phiResolution * (i + 1) + j) % base) + numPoles + 1;

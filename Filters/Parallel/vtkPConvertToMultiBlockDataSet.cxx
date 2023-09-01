@@ -59,6 +59,10 @@ int vtkPConvertToMultiBlockDataSet::RequestData(
   std::vector<unsigned int> piece_counts(count);
   for (unsigned int cc = 0; cc < count; ++cc)
   {
+    if (this->CheckAbort())
+    {
+      break;
+    }
     piece_counts[cc] = clone->GetPartitionedDataSet(cc)
       ? clone->GetPartitionedDataSet(cc)->GetNumberOfPartitions()
       : 0;
@@ -70,6 +74,10 @@ int vtkPConvertToMultiBlockDataSet::RequestData(
 
   for (unsigned int cc = 0; cc < count; ++cc)
   {
+    if (this->CheckAbort())
+    {
+      break;
+    }
     if (result[cc] > 0)
     {
       if (clone->GetPartitionedDataSet(cc) == nullptr)
@@ -79,6 +87,9 @@ int vtkPConvertToMultiBlockDataSet::RequestData(
       clone->GetPartitionedDataSet(cc)->SetNumberOfPartitions(result[cc]);
     }
   }
+  this->Controller->Barrier();
+  this->CheckAbort();
+
   return this->Execute(clone, output) ? 1 : 0;
 }
 

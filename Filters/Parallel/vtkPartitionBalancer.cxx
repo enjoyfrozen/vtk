@@ -105,6 +105,12 @@ int vtkPartitionBalancer::RequestData(
     return 0;
   }
 
+  if (this->Controller)
+  {
+    this->Controller->Barrier();
+  }
+  this->CheckAbort();
+
   return 1;
 }
 

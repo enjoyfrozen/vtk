@@ -170,6 +170,10 @@ int vtkExtractPolyDataPiece::RequestData(vtkInformation* vtkNotUsed(request),
   // Filter the cells
   for (cellId = 0; cellId < input->GetNumberOfCells(); cellId++)
   {
+    if (this->CheckAbort())
+    {
+      break;
+    }
     if (cellTags->GetValue(cellId) != -1) // satisfied thresholding
     {
       if (cellGhostLevels)
@@ -215,6 +219,10 @@ int vtkExtractPolyDataPiece::RequestData(vtkInformation* vtkNotUsed(request),
   vtkIdType idx;
   for (idx = 0; idx < input->GetNumberOfPoints(); ++idx)
   {
+    if (this->CheckAbort())
+    {
+      break;
+    }
     if (pointOwnership->GetId(idx) == -1)
     {
       ++count;
@@ -223,6 +231,10 @@ int vtkExtractPolyDataPiece::RequestData(vtkInformation* vtkNotUsed(request),
   vtkIdType count2 = 0;
   for (idx = 0; idx < input->GetNumberOfPoints(); ++idx)
   {
+    if (this->CheckAbort())
+    {
+      break;
+    }
     if (pointOwnership->GetId(idx) == -1)
     {
       if ((count2 * numPieces / count) == piece)

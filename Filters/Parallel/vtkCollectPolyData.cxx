@@ -117,6 +117,7 @@ int vtkCollectPolyData::RequestData(vtkInformation* vtkNotUsed(request),
     pd->CopyStructure(input);
     pd->GetPointData()->PassData(input->GetPointData());
     pd->GetCellData()->PassData(input->GetCellData());
+    append->SetContainerAlgorithm(this);
     append->AddInputData(pd);
     pd->Delete();
     for (idx = 1; idx < numProcs; ++idx)
@@ -149,6 +150,9 @@ int vtkCollectPolyData::RequestData(vtkInformation* vtkNotUsed(request),
     append->Delete();
     append = nullptr;
   }
+
+  this->Controller->Barrier();
+  this->CheckAbort();
 
   return 1;
 }

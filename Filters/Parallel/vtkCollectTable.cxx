@@ -105,14 +105,16 @@ int vtkCollectTable::RequestData(vtkInformation* vtkNotUsed(request),
   {
     vtkTable* wholeTable = vtkTable::New();
     wholeTable->ShallowCopy(input);
+    bool abort = false;
 
     for (idx = 1; idx < numProcs; ++idx)
     {
+      abort = this->CheckAbort();
       vtkTable* curTable = vtkTable::New();
       this->Controller->Receive(curTable, idx, 121767);
       vtkIdType numRows = curTable->GetNumberOfRows();
       vtkIdType numCols = curTable->GetNumberOfColumns();
-      for (vtkIdType i = 0; i < numRows; i++)
+      for (vtkIdType i = 0; i < numRows && !abort; i++)
       {
         vtkIdType curRow = wholeTable->InsertNextBlankRow();
         for (vtkIdType j = 0; j < numCols; j++)
@@ -137,6 +139,9 @@ int vtkCollectTable::RequestData(vtkInformation* vtkNotUsed(request),
   {
     this->Controller->Send(input, 0, 121767);
   }
+
+  this->Controller->Barrier();
+  this->CheckAbort();
 
   return 1;
 }

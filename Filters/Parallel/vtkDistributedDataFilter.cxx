@@ -269,9 +269,12 @@ int vtkDistributedDataFilter::RequestData(vtkInformation* vtkNotUsed(request),
     vtkNew<vtkAppendFilter> converter;
     converter->SetInputData(input);
     converter->MergePointsOff();
+    converter->SetContainerAlgorithm(this);
     converter->Update();
     outputUG->ShallowCopy(converter->GetOutput());
   }
+
+  this->CheckAbort();
 
   return 1;
 }

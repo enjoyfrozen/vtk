@@ -65,6 +65,9 @@ int vtkTransmitPolyDataPiece::RequestData(vtkInformation* vtkNotUsed(request),
     this->SatelliteExecute(procId, output, outInfo);
   }
 
+  this->Controller->Barrier();
+  this->CheckAbort();
+
   return 1;
 }
 

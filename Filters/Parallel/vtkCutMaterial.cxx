@@ -94,6 +94,7 @@ int vtkCutMaterial::RequestData(vtkInformation* vtkNotUsed(request),
   thresh->SetThresholdFunction(vtkThreshold::THRESHOLD_BETWEEN);
   thresh->SetLowerThreshold(this->Material - 0.5);
   thresh->SetUpperThreshold(this->Material + 0.5);
+  thresh->SetContainerAlgorithm(this);
   thresh->Update();
 
   const double* bds = thresh->GetOutput()->GetBounds();
@@ -111,6 +112,7 @@ int vtkCutMaterial::RequestData(vtkInformation* vtkNotUsed(request),
   cutter->SetInputConnection(thresh->GetOutputPort());
   cutter->SetCutFunction(this->PlaneFunction);
   cutter->SetValue(0, 0.0);
+  cutter->SetContainerAlgorithm(this);
   cutter->Update();
 
   output->CopyStructure(cutter->GetOutput());

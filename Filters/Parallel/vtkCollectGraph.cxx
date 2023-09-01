@@ -214,9 +214,11 @@ int vtkCollectGraph::RequestData(vtkInformation* vtkNotUsed(request),
 
     // Edge iterator.
     vtkSmartPointer<vtkEdgeListIterator> edges = vtkSmartPointer<vtkEdgeListIterator>::New();
+    bool abort = false;
 
     for (idx = 0; idx < numProcs; ++idx)
     {
+      abort = this->CheckAbort();
       vtkGraph* curGraph;
       if (idx == 0)
       {
@@ -322,7 +324,7 @@ int vtkCollectGraph::RequestData(vtkInformation* vtkNotUsed(request),
       vtkIntArray* edgeGhostLevelsArr = vtkArrayDownCast<vtkIntArray>(
         curGraph->GetEdgeData()->GetAbstractArray(vtkDataSetAttributes::GhostArrayName()));
       curGraph->GetEdges(edges);
-      while (edges->HasNext())
+      while (edges->HasNext() && !abort)
       {
         vtkEdgeType e = edges->Next();
         if (edgeGhostLevelsArr == nullptr || edgeGhostLevelsArr->GetValue(e.Id) == 0)
@@ -360,6 +362,9 @@ int vtkCollectGraph::RequestData(vtkInformation* vtkNotUsed(request),
   {
     this->Controller->Send(input, 0, 121767);
   }
+
+  this->Controller->Barrier();
+  this->CheckAbort();
 
   return 1;
 }

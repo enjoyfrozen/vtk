@@ -244,12 +244,16 @@ int vtkExtractCTHPart::RequestData(vtkInformation* vtkNotUsed(request),
   if (!this->ComputeGlobalBounds(inputCD))
   {
     vtkErrorMacro("Failed to compute global bounds.");
+    this->Controller->Barrier();
+    this->CheckAbort();
     return 0;
   }
 
   if (!this->Internals->GlobalInputBounds.IsValid())
   {
     // empty input, do nothing.
+    this->Controller->Barrier();
+    this->CheckAbort();
     return 1;
   }
 
@@ -258,6 +262,10 @@ int vtkExtractCTHPart::RequestData(vtkInformation* vtkNotUsed(request),
          this->Internals->VolumeArrayNames.begin();
        iter != this->Internals->VolumeArrayNames.end(); ++iter, ++array_index)
   {
+    if (this->CheckAbort())
+    {
+      break;
+    }
     // this loop is doing the 1/(num-arrays)'th work for the entire task.
     ScaledProgress sp(array_index * 1.0 / this->Internals->VolumeArrayNames.size(),
       1.0 / this->Internals->VolumeArrayNames.size(), this);
@@ -293,6 +301,9 @@ int vtkExtractCTHPart::RequestData(vtkInformation* vtkNotUsed(request),
     }
     vtkGarbageCollector::DeferredCollectionPop();
   }
+
+  this->Controller->Barrier();
+  this->CheckAbort();
   return 1;
 }
 

@@ -67,7 +67,8 @@ void vtkPOutlineFilterInternals::SetIsCornerSource(bool value)
 
 //------------------------------------------------------------------------------
 int vtkPOutlineFilterInternals::RequestData(vtkInformation* vtkNotUsed(request),
-  vtkInformationVector** inputVector, vtkInformationVector* outputVector)
+  vtkInformationVector** inputVector, vtkInformationVector* outputVector,
+  vtkAlgorithm* containerAlgorithm)
 {
   vtkDataObject* input = vtkDataObject::GetData(inputVector[0], 0);
   vtkPolyData* output = vtkPolyData::GetData(outputVector, 0);
@@ -83,6 +84,8 @@ int vtkPOutlineFilterInternals::RequestData(vtkInformation* vtkNotUsed(request),
     vtkGenericWarningMacro("Missing Controller.");
     return 0;
   }
+
+  this->ContainerAlgorithm = containerAlgorithm;
 
   vtkOverlappingAMR* oamr = vtkOverlappingAMR::SafeDownCast(input);
   if (oamr)
@@ -174,6 +177,8 @@ int vtkPOutlineFilterInternals::RequestData(vtkDataObjectTree* input, vtkPolyDat
     if (this->Controller->GetLocalProcessId() > 0)
     {
       // only root node will produce the output.
+      this->Controller->Barrier();
+      this->ContainerAlgorithm->CheckAbort();
       return 1;
     }
   }
@@ -184,9 +189,12 @@ int vtkPOutlineFilterInternals::RequestData(vtkDataObjectTree* input, vtkPolyDat
   {
     appender->AddInputData(this->GenerateOutlineGeometry(&boundsList[i]));
   }
-
+  appender->SetContainerAlgorithm(this->ContainerAlgorithm);
   appender->Update();
   output->ShallowCopy(appender->GetOutput());
+
+  this->Controller->Barrier();
+  this->ContainerAlgorithm->CheckAbort();
   return 1;
 }
 
@@ -200,12 +208,18 @@ int vtkPOutlineFilterInternals::RequestData(vtkOverlappingAMR* input, vtkPolyDat
   if (procid != 0)
   {
     // we only generate output on the root node.
+    this->Controller->Barrier();
+    this->ContainerAlgorithm->CheckAbort();
     return 1;
   }
 
   vtkNew<vtkAppendPolyData> appender;
   for (unsigned int level = 0; level < input->GetNumberOfLevels(); ++level)
   {
+    if (this->ContainerAlgorithm->CheckAbort())
+    {
+      break;
+    }
     unsigned int num_datasets = input->GetNumberOfDataSets(level);
     for (unsigned int dataIdx = 0; dataIdx < num_datasets; ++dataIdx)
     {
@@ -215,8 +229,12 @@ int vtkPOutlineFilterInternals::RequestData(vtkOverlappingAMR* input, vtkPolyDat
     }
   }
 
+  appender->SetContainerAlgorithm(this->ContainerAlgorithm);
   appender->Update();
   output->ShallowCopy(appender->GetOutput());
+
+  this->Controller->Barrier();
+  this->ContainerAlgorithm->CheckAbort();
   return 1;
 }
 
@@ -242,8 +260,12 @@ int vtkPOutlineFilterInternals::RequestData(vtkUniformGridAMR* input, vtkPolyDat
     }
   }
 
+  appender->SetContainerAlgorithm(this->ContainerAlgorithm);
   appender->Update();
   output->ShallowCopy(appender->GetOutput());
+
+  this->Controller->Barrier();
+  this->ContainerAlgorithm->CheckAbort();
   return 1;
 }
 
@@ -261,12 +283,16 @@ int vtkPOutlineFilterInternals::RequestData(vtkDataSet* input, vtkPolyData* outp
     if (procid > 0)
     {
       // Satellite node
+      this->Controller->Barrier();
+      this->ContainerAlgorithm->CheckAbort();
       return 1;
     }
     memcpy(bounds, reduced_bounds, 6 * sizeof(double));
   }
 
   output->ShallowCopy(this->GenerateOutlineGeometry(bounds));
+  this->Controller->Barrier();
+  this->ContainerAlgorithm->CheckAbort();
   return 1;
 }
 
@@ -285,12 +311,17 @@ int vtkPOutlineFilterInternals::RequestData(vtkGraph* input, vtkPolyData* output
     if (procid > 0)
     {
       // Satellite node
+      this->Controller->Barrier();
+      this->ContainerAlgorithm->CheckAbort();
       return 1;
     }
     memcpy(bounds, reduced_bounds, 6 * sizeof(double));
   }
 
   output->ShallowCopy(this->GenerateOutlineGeometry(bounds));
+
+  this->Controller->Barrier();
+  this->ContainerAlgorithm->CheckAbort();
   return 1;
 }
 
