@@ -14,7 +14,8 @@ set(private_headers_core)
 set(private_templates_core)
 
 # ADIOS2 Core Image Reader
-set(classes_core vtkADIOS2CoreImageReader)
+set(classes_core vtkADIOS2CoreImageReader
+                 vtkADIOS2DataArrayWriter)
 set(private_classes_core Core/vtkADIOS2CoreArraySelection)
 set(private_headers_core Core/vtkADIOS2CoreTypeTraits.h)
 set(private_templates_core)
