@@ -6052,7 +6052,7 @@ bool vtkFoamBoundaries::update(const vtkFoamDict& dict)
       patch.type_ = vtkFoamPatch::PHYSICAL;
       nBoundaryFaces += patch.size_;
     }
-    else if (patchTypeName == "processor" || patchTypeName == "processorCyclic")
+    else if (patchTypeName == "processor" || patchTypeName == "processorCyclic" || patchTypeName == "nonConformalProcessorCyclic")
     {
       patch.type_ = vtkFoamPatch::PROCESSOR;
       nBoundaryFaces += patch.size_;
