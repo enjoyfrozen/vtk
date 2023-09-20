@@ -409,7 +409,7 @@ struct BucketList2D : public vtkBucketList2D
     double radius, const double x[3], double inputDataLength, double& dist2);
   void FindClosestNPoints(int N, const double x[3], vtkIdList* result);
   double FindNPointsInAnnulus(int N, const double x[3], vtkIdList* result,
-                              vtkDoubleArray* radii2, double minDist2=(-0.1), bool sort=true);
+                              vtkDoubleArray* radii2, double minDist2=(-0.1));
   void FindPointsWithinRadius(double R, const double x[3], vtkIdList* result);
   int IntersectWithLine(double a0[3], double a1[3], double tol, double& t, double lineX[3],
     double ptX[3], vtkIdType& ptId);
@@ -1082,17 +1082,17 @@ FOUND_N:
 }
 
 //------------------------------------------------------------------------------
-// This algorithm works by grabbing the first N points it finds (using an
-// expanding wave across nearby bins so this initial set of points is
-// reasonably close to the query point). This operation also determines a
-// maximum maxDist2 defining the radius of the initial nearby set around the query
-// point. Then, resuming the traversal after grabbing this initial initial
-// set / N points, all remaining points whose dist2 <= maxDist2 are added to
-// the results list.  Finally, a single sort operation is performed if
-// requested.
+// This algorithm works by grabbing the first N points it finds, defining a
+// maxDist2 for the N points. Then using this circumcircle, checks neighboring
+// bins and adds additional points within maxDist2. A sort is performed, and
+// then >=N points are returned (unless N > number of points in the dataset).
+// Note: typically more than N points are returned since either: 1) since
+// additional points may be the same distance as the Nth point; 2) the algorithm
+// finds more than N points during processing; typically it's more efficient to
+// include them.
 template <typename TIds> double BucketList2D<TIds>::
 FindNPointsInAnnulus(int N, const double x[3], vtkIdList* result,
-                     vtkDoubleArray* radii2, double minDist2, bool sort)
+                     vtkDoubleArray* radii2, double minDist2)
 {
   // Clear out any previous results
   result->Reset();
@@ -1101,11 +1101,15 @@ FindNPointsInAnnulus(int N, const double x[3], vtkIdList* result,
     radii2->Reset();
   }
 
-  //  Find the bucket the point is in.
-  int ij[2];
+  // Find the bucket the point is in. Set the initial bucket range.
+  int ij[2], ijMin[2], ijMax[2];
   this->GetBucketIndices(x, ij);
+  ijMin[0] = ij[0]; ijMin[1] = ij[1];
+  ijMax[0] = ij[0]; ijMax[1] = ij[1];
 
-  // Find N points in initial set
+  // First find N points in an initial point candidate set and add them. Then
+  // add any points in neighboring buckets to ensure coverage of all possible
+  // candidate points.
   int level=0;
   NeighborBuckets2D buckets;
   double d2, maxDist2=0.0;
@@ -1115,13 +1119,35 @@ FindNPointsInAnnulus(int N, const double x[3], vtkIdList* result,
   vtkIdType ptId, cno, numIds;
   int i, j, *nei;
   const LocatorTuple<TIds>* ids;
+  bool done=false, cropping=false;
 
-  this->GetBucketNeighbors(&buckets, ij, this->Divisions, level);
-  while (buckets.GetNumberOfNeighbors() && count < N)
+  // Expand out from current bucket, adding candidate points that lie within
+  // the requested annulus. We first need N samples, and then expand
+  // beyond to find other points that might be closer than the original N
+  // samples.
+  // TODO: Buckets may lie completely within the annulus minimum radius, in
+  // which case skipping such buckets would save time. This doesn't happen
+  // that often (e.g., supporting vtkVoronoi2D), but should be added at some
+  // point.
+  while (!done)
   {
+    done = true;
+    this->GetBucketNeighbors(&buckets, ij, this->Divisions, level);
     for (i = 0; i < buckets.GetNumberOfNeighbors(); i++)
     {
+      // Retrieve current candidate bucket to work on
       nei = buckets.GetPoint(i);
+
+      // Crop out candidate bucket if necessary. The cropping footprint
+      // is determined from the maxDist2 found from the first N samples.
+      if ( cropping && (nei[0] < ijMin[0] || nei[0] > ijMax[0] ||
+                        nei[1] < ijMin[1] || nei[1] > ijMax[1]) )
+      {
+        continue;
+      }
+
+      // We are doing something
+      done = false;
       cno = nei[0] + nei[1] * this->xD;
 
       if ((numIds = this->GetNumberOfIds(cno)) > 0)
@@ -1132,67 +1158,46 @@ FindNPointsInAnnulus(int N, const double x[3], vtkIdList* result,
           ptId = ids[j].PtId;
           this->DataSet->GetPoint(ptId, pt);
           d2 = vtkMath::Distance2BetweenPoints(x, pt);
-          if ( d2 > minDist2 )
+          if ( d2 > minDist2 && (count < N || d2 <= maxDist2 ) )
           {
-            maxDist2 = ( d2 > maxDist2 ? d2 : maxDist2 );
-            ++count;
-          }
-        } // for all points in this bucker
+            res.emplace_back(IdTuple(ptId,d2));
+            if ( d2 > maxDist2 && count < N )
+            {
+              // Track the max dis2 from the first N samples
+              maxDist2 = d2;
+            }
+            // If N samples have been found, the traversal changes
+            // based on the maxDist2.
+            if ( ++count >= N && !cropping )
+            {
+              cropping = true;
+              double R = sqrt(maxDist2);
+              // Determine the range of indices in each direction based on radius R.
+              // These will be used to crop the previous bucket neighbor traversal.
+              double xMin[2], xMax[2];
+              xMin[0] = x[0] - R;
+              xMin[1] = x[1] - R;
+              xMax[0] = x[0] + R;
+              xMax[1] = x[1] + R;
+              this->GetBucketIndices(xMin, ijMin);
+              this->GetBucketIndices(xMax, ijMax);
+            } // setup cropping
+          } // if insert candidate point
+        } // for all points in this bucket
       } // if points exist in this bucket
     } // for each bucket in this level
     level++;
-    this->GetBucketNeighbors(&buckets, ij, this->Divisions, level);
-  } // while looking for an initial set of N points
+  } // while expanding across all buckets
 
-  // Now populate the set of points. Using the maxDist2, gather all points
-  // within the annulus (minDist2 < p_d2 <= maxDist2). It's likely that the
-  // number of points returned is >N.
-  double R = sqrt(maxDist2);
-  // Determine the range of indices in each direction based on radius R.
-  double xMin[2], xMax[2];
-  xMin[0] = x[0] - R;
-  xMin[1] = x[1] - R;
-  xMax[0] = x[0] + R;
-  xMax[1] = x[1] + R;
+  // We have a set of candiate points, sort them.
+  std::sort(res.begin(), res.end());
 
-  // Find the rectangular footprint in the locator
-  int ijMin[2], ijMax[2];
-  this->GetBucketIndices(xMin, ijMin);
-  this->GetBucketIndices(xMax, ijMax);
+  // Extract N values. Note that if there are less than N points then we just
+  // copy what we have into the output arrays. If there are more than N
+  // points, we return them all (often more than was requested) as this is
+  // typically the most efficient.
 
-  // Add points within the footprint and the annulus (minDist2,maxDist2]
-  int ii, jOffset;
-  for (j = ijMin[1]; j <= ijMax[1]; ++j)
-  {
-    jOffset = j * this->xD;
-    for (i = ijMin[0]; i <= ijMax[0]; ++i)
-    {
-      cno = i + jOffset;
-
-      if ((numIds = this->GetNumberOfIds(cno)) > 0)
-      {
-        ids = this->GetIds(cno);
-        for (ii = 0; ii < numIds; ii++)
-        {
-          ptId = ids[ii].PtId;
-          this->DataSet->GetPoint(ptId, pt);
-          d2 = vtkMath::Distance2BetweenPoints(x, pt);
-          if (d2 > minDist2 && d2 <= maxDist2)
-          {
-            res.emplace_back(IdTuple(ptId,d2));
-          }
-        } // for all points in bucket
-      }   // if points in bucket
-    }     // i-footprint
-  }       // j-footprint
-
-  // Sort if requested
-  if ( sort )
-  {
-    std::sort(res.begin(), res.end());
-  }
-
-  // Fill in the IdList
+  // Fill in the point ids
   result->SetNumberOfIds(res.size());
   for (i=0; i < res.size(); ++i)
   {
@@ -1208,6 +1213,7 @@ FindNPointsInAnnulus(int N, const double x[3], vtkIdList* result,
     }
   }
 
+  // Return the outer ring of the annulus.
   return maxDist2;
 }
 
@@ -2051,7 +2057,7 @@ void vtkStaticPointLocator2D::FindClosestNPoints(int N, const double x[3], vtkId
 //------------------------------------------------------------------------------
 double vtkStaticPointLocator2D::
 FindNPointsInAnnulus(int N, const double x[3], vtkIdList* result,
-                     vtkDoubleArray *radii2, double minDist2, bool sort)
+                     vtkDoubleArray *radii2, double minDist2)
 {
   this->BuildLocator(); // will subdivide if modified; otherwise returns
   if (!this->Buckets)
@@ -2062,12 +2068,12 @@ FindNPointsInAnnulus(int N, const double x[3], vtkIdList* result,
   if (this->LargeIds)
   {
     return static_cast<BucketList2D<vtkIdType>*>(this->Buckets)->
-      FindNPointsInAnnulus(N, x, result, radii2, minDist2, sort);
+      FindNPointsInAnnulus(N, x, result, radii2, minDist2);
   }
   else
   {
     return static_cast<BucketList2D<int>*>(this->Buckets)->
-      FindNPointsInAnnulus(N, x, result, radii2, minDist2, sort);
+      FindNPointsInAnnulus(N, x, result, radii2, minDist2);
   }
 }
 

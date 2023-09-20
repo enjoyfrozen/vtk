@@ -16,7 +16,6 @@
 #include "vtkPolyData.h"
 #include "vtkSMPThreadLocalObject.h"
 #include "vtkSMPTools.h"
-#include "vtkSphericalPointIterator.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
 #include "vtkTransform.h"
 
@@ -77,11 +76,6 @@ struct VTile
   int Divisions[2];                 // locator binning dimensions
   double H[2];                      // locator spacing
 
-  // The spherical point iterator, operating in conjunction with the locator,
-  // visits points close to the tile generating point.  This is a key concept
-  // of the algorithm.
-  vtkSmartPointer<vtkSphericalPointIterator> PIter;
-
   // Instantiate with initial values. Typically tiles consist of 5 to 6
   // vertices. Preallocate for performance.
   VTile()
@@ -98,9 +92,6 @@ struct VTile
     this->Bounds[2] = this->Bounds[3] = 0.0;
     this->Divisions[0] = this->Divisions[1] = 0;
     this->H[0] = this->H[1] = 0.0;
-    this->PIter = vtkSmartPointer<vtkSphericalPointIterator>::New();
-    this->PIter->SetAxes(vtkSphericalPointIterator::XY_CW_AXES,8);
-    this->PIter->SetSortTypeToNone();
   }
 
   // Create an initial tile with a generating point - the resulting tile is
@@ -236,7 +227,7 @@ struct VTile
   // Compute the bounding Voronoi flower circumcircle (i.e., contains all
   // petals of the Voronoi flower).  Returns the radius**2 of the bounding
   // flower circumcircle.
-  double ComputeFlowerCircumcircle()
+  double ComputeCircumFlower()
   {
     double r2, r2Max=VTK_FLOAT_MIN;
     VertexRingIterator tPtr;
@@ -250,6 +241,30 @@ struct VTile
     }
 
     return (4.0 * r2Max);
+  }
+
+  // Determine whether the provided point is within the Voronoi flower
+  // error metric. Return true if it is; false otherwise.
+  bool InFlower(const double p[3])
+  {
+    // Check against the flower petals
+    VertexRingIterator tPtr;
+    for (tPtr = this->Verts.begin(); tPtr != this->Verts.end(); ++tPtr)
+    {
+      double fr2 = (tPtr->X[0] - this->TileX[0]) * (tPtr->X[0] - this->TileX[0]) +
+        (tPtr->X[1] - this->TileX[1]) * (tPtr->X[1] - this->TileX[1]);
+
+      double r2 = (tPtr->X[0] - p[0]) * (tPtr->X[0] - p[0]) +
+        (tPtr->X[1] - p[1]) * (tPtr->X[1] - p[1]);
+
+      if ( r2 <= fr2 )
+      {
+        return true;
+      }
+    }
+
+    // Point not in the flower
+    return false;
   }
 
   // Clip the convex tile with a 2D half-space line. Return whether there was
@@ -316,54 +331,71 @@ struct VTile
   // Generate a Voronoi tile by iterative clipping of the tile with nearby
   // points.  Termination of the clipping process occurs when the neighboring
   // points become "far enough" away from the generating point (i.e., the
-  // Voronoi error metric is satisfied).
+  // Voronoi Flower error metric is satisfied).
   bool BuildTile(vtkIdList* pIds, vtkDoubleArray *radii2, const double* pts,
                  double tol, vtkIdType maxClips)
   {
+    // Ensure there are clips to be performed.
+    if ( maxClips <= 0 )
+    {
+      return true;
+    }
+
     const double* v;
     vtkIdType ptId, numClips = 0, numClipAttempts = 0;
     vtkIdType prevNumClips, numPts = this->NPts;
-    vtkSphericalPointIterator *piter = this->PIter;
 
-    // Use the spherical point iterator to visit points surrounding the generating
-    // point. Use an empirically determined initial number of surrounding points.
-    // Later, additional points will be added to ensure that the Voronoi flower
-    // error metric is covered. Note: any tol>=0 will prevent the retrieval of
-    // a coincident point. The return points are radially sorted.
+    // Request neighboring points around the generating point in annular
+    // rings. The rings are defined by an inner and outer radius
+    // (min,max]. The requested points fall within the annulus, with their
+    // radius r:(min<r<=max). The neighboring points are used to perform
+    // half-space clipping of the Voronoi tile. (The original tile around the
+    // generating point is defined from the bounding box of the domain.) The
+    // Voronoi Flower and CircumFlower error metrics are used to terminate
+    // the clipping process. The Flower is the set of all Flower Petals
+    // (i.e., Delaunay circumcircles) centered at the Voronoi Tile
+    // vertices. The CircumFlower is the circle that bounds all petals, i.e.,
+    // Voronoi Flower.
     constexpr int QUERY_SIZE = 6;
-    double r2 = this->Locator->FindNPointsInAnnulus(QUERY_SIZE, this->TileX, pIds, nullptr, tol, true);
-    piter->Initialize(this->TileX, pIds);
+    double R2 = VTK_FLOAT_MAX;
+    double annulusMin2 = 0.0;
+    double annulusMax2 = this->Locator->FindNPointsInAnnulus(QUERY_SIZE, this->TileX, pIds, radii2, annulusMin2);
+    vtkIdType numPtIds, *pIdsPtr;
+    double *radii2Ptr;
 
-    for ( piter->GoToFirstPoint();
-          ! piter->IsDoneWithTraversal() && numClips < maxClips;
-          piter->GoToNextPoint() )
+    // Now add additional points until they are outside of the Voronoi
+    // flower. For speed, we use the bounding Voronoi circumcircle to
+    // determine whether points are outside of the flower. Note that in the
+    // while() loop below, if the number of points pIds<=0, then all points
+    // have been exhausted and the loop is exited.
+    while ( (numPtIds = pIds->GetNumberOfIds()) > 0 && annulusMin2 <= R2 && numClips < maxClips )
     {
-      ptId = piter->GetCurrentPoint();
-      v = pts + 3 * ptId;
-      numClips += this->ClipTile(ptId, v, tol);
-      numClipAttempts++;
-    }
-
-    // Now add additional points until they are outside of the Voronoi flower. For
-    // speed, we use the bounding Voronoi circumcircle to determine whether points
-    // are outside of the flower.
-    double R2 = this->ComputeFlowerCircumcircle();
-    while ( r2 <= R2 && numClips < maxClips )
-    {
-      r2 = this->Locator->FindNPointsInAnnulus(QUERY_SIZE, this->TileX, pIds, nullptr, r2, true);
-      piter->Initialize(this->TileX, pIds);
-
-      for ( piter->GoToFirstPoint();
-            ! piter->IsDoneWithTraversal() && numClips < maxClips;
-            piter->GoToNextPoint() )
+      pIdsPtr = pIds->GetPointer(0);
+      radii2Ptr = radii2->GetPointer(0);
+      for ( vtkIdType i=0; i < numPtIds && numClips < maxClips; ++i )
       {
         numClipAttempts++;
-        ptId = piter->GetCurrentPoint();
+        ptId = pIdsPtr[i];
         v = pts + 3 * ptId;
-        numClips += this->ClipTile(ptId, v, tol);
-      } // process these points in annulus
-      R2 = this->ComputeFlowerCircumcircle();
-    } // while points still in Voronoi flower
+        if ( radii2Ptr[i] <= R2 && this->InFlower(v) &&
+             this->ClipTile(ptId, v, tol) )
+        {
+          R2 = this->ComputeCircumFlower();
+          numClips++;
+        }
+      } // process all points in requested annulus
+
+      // See if circumflower radius is less then radius of annulus request; if so, the
+      // Voronoi tile has been formed.
+      if ( R2 < annulusMax2 )
+      {
+        break;
+      }
+
+      // Grab the next ring / annulus of points
+      annulusMin2 = annulusMax2;
+      annulusMax2 = this->Locator->FindNPointsInAnnulus(QUERY_SIZE, this->TileX, pIds, radii2, annulusMin2);
+    } // while points still in Voronoi circumflower
 
     return true;
   }
@@ -465,6 +497,9 @@ struct VoronoiTiles
   std::vector<Spoke> Spokes; //Spokes / edges with classification
   vtkCellArray *DelTris; //If requested, triangles are placed here for Delaunay
 
+  // Used for controlling filter abort
+  vtkVoronoi2D* Filter;
+
   // Storage local to each thread. We don't want to allocate working arrays
   // on every thread invocation. Thread local storage saves lots of
   // new/delete (e.g. the PIds).
@@ -473,7 +508,8 @@ struct VoronoiTiles
   vtkSMPThreadLocal<LocalDataType> LocalData;
 
   VoronoiTiles(vtkIdType npts, double* points, vtkStaticPointLocator2D* loc, double padding,
-    double tol, vtkPolyData* output, int scalarMode, vtkPolyData *delOutput, vtkIdType maxClips)
+               double tol, vtkPolyData* output, int scalarMode, vtkPolyData *delOutput, vtkIdType maxClips,
+               vtkVoronoi2D* filter)
     : Points(points)
     , NPts(npts)
     , Locator(loc)
@@ -484,10 +520,12 @@ struct VoronoiTiles
     , MaxSides(0)
     , NumSpokes(0)
     , DelTris(nullptr)
+    , Filter(filter)
+
   {
     // Tiles and associated points are filled in later in Reduce()
     this->NewPoints = output->GetPoints();
-    this->NumPts.resize(this->NPts,0);
+    this->NumPts.resize(this->NPts,0); //initialized to zero
     this->Tiles = output->GetPolys();
 
     // Output scalars may be produced if desired
@@ -541,7 +579,6 @@ struct VoronoiTiles
     localData.Tile.Bounds[3] = this->Bounds[3];
     localData.Tile.H[0] = this->H[0];
     localData.Tile.H[1] = this->H[1];
-    localData.Tile.PIter->SetDataSet(this->Locator->GetDataSet());
   }
 
   void operator()(vtkIdType ptId, vtkIdType endPtId)
@@ -580,7 +617,8 @@ struct VoronoiTiles
 
       // If tile is successfully built, copy the convex tile polygon and
       // points it to thread local storage.
-      int maxClips = ( this->MaxClips < this->NPts ? this->MaxClips : (this->NPts-1) );
+      int maxClips = ( this->MaxClips < this->NPts ? this->MaxClips :
+                       (this->NPts > 1 ? (this->NPts-1) : 0) );
       if (tile.BuildTile(pIds, radii2, this->Points, this->Tol, maxClips))
       {
         // Now accumulate the tile / convex polygon in this thread
@@ -658,7 +696,7 @@ struct VoronoiTiles
     vtkNew<vtkIdTypeArray> connectivity;
     connectivity->SetNumberOfTuples(connSize);
     vtkIdType *connectivityPtr = connectivity->GetPointer(0);
-    std::vector<vtkIdType>::iterator cItr, cEnd;
+    std::vector<vtkIdType>::iterator cItr;
     this->Tiles->SetData(offsets, connectivity);
 
     // If scalars requested, allocate them
@@ -671,6 +709,8 @@ struct VoronoiTiles
 
     // Produce the primary (Voronoi) output. Traverse each tile and
     // copy local data into the filter output.
+    totalPoints = 0;
+    offset = 0;
     vtkIdType threadId=0;
     for ( ldItr=this->LocalData.begin(); ldItr != ldEnd; ++ldItr )
     {
@@ -685,9 +725,22 @@ struct VoronoiTiles
 
       // Copy tiles into cell array: define the offsets and connectivity
       // arrays.  Use the more efficient vtkCellArray::SetData() method.
+      cItr = (*ldItr).LocalTiles.begin();
+      pEnd = (*ldItr).LocalPtIds.end();
+      for ( pItr = (*ldItr).LocalPtIds.begin(); pItr != pEnd; )
+      {
+        // Offsets
+        *offsetsPtr++ = offset;
+        vtkIdType nPts = this->NumPts[*pItr++];
+        offset += nPts;
+        // Connectivity
+        for (vtkIdType i=0; i < nPts; ++i)
+        {
+          *connectivityPtr++ = totalPoints + *cItr++;
+        }
+      }
 
-
-      // Copy scalars if requested
+      // Copy cell scalars if requested
       if ( scalars != nullptr )
       {
         // If requested, thread id
@@ -719,7 +772,11 @@ struct VoronoiTiles
         }
       }//Produce scalars
       threadId++;
+      totalPoints += (*ldItr).NumberOfPoints;
     }//for each thread
+
+    // Terminate offset array
+    *offsetsPtr = offset;
 
     // Composite the Delaunay info if requested. For each input generation
     // point, create a "wheel" of circumferentially ordered edge spokes. The
@@ -770,7 +827,7 @@ struct VoronoiTiles
   static int Execute(vtkStaticPointLocator2D *loc, vtkIdType numPts, double *points,
                      double padding, double tol, vtkPolyData *output, int sMode,
                      vtkPolyData *delOutput, vtkIdType pointOfInterest, vtkIdType maxClips,
-                     int &maxSides);
+                     int &maxSides, vtkVoronoi2D* filter);
 }; // VoronoiTiles
 
 // Gather spokes into a wheel. Define some basic operators.
@@ -861,9 +918,9 @@ struct Delaunay
   // Edge classification via SMPTools. Each wheel with center wheelId is
   // processed, spokes/edges (wheelId,ptId) with (wheelId<ptId) are
   // classified according to simple topological rules. (Ensuring that wheelId
-  // is minimum elimates duplicate work.) The end result is a edge graph
-  // (represented by classified wheel and spoke edge data structure) which
-  // can be triangulated.
+  // is minimum (whellId<ptId) elimates repeating edge classification
+  // process.) The end result is a edge graph (represented by classified
+  // wheel and spoke edge data structure) which can be triangulated.
   struct ClassifyEdges
   {
     VoronoiTiles *VT;
@@ -1085,7 +1142,7 @@ struct Delaunay
   // (corresponding to degneracies in the Delaunay triangulation) require a
   // bit more work. Note that only loops (wheelId,ptId0,ptId1,...) are
   // processed when (wheelId<ptId0,ptId1,...). (Ensuring that wheelId is
-  // minimum elimates duplicate work.)
+  // minimum elimates duplicate work (i.e., processing loops multiple times.)
   struct GenerateTriangles
   {
     VoronoiTiles *VT;
@@ -1158,10 +1215,10 @@ int VoronoiTiles::
 Execute(vtkStaticPointLocator2D *loc, vtkIdType numPts, double *points,
         double padding, double tol, vtkPolyData *output, int sMode,
         vtkPolyData *delOutput, vtkIdType pointOfInterest, vtkIdType maxClips,
-        int &maxSides)
+        int &maxSides, vtkVoronoi2D* filter)
 {
   // Generate the Voronoi tessellation
-  VoronoiTiles vt(numPts, points, loc, padding, tol, output, sMode, delOutput, maxClips);
+  VoronoiTiles vt(numPts, points, loc, padding, tol, output, sMode, delOutput, maxClips, filter);
 
   // Either full blown tessellation or just local to a point
   if ( pointOfInterest < 0 || pointOfInterest >= numPts)
@@ -1192,14 +1249,14 @@ Execute(vtkStaticPointLocator2D *loc, vtkIdType numPts, double *points,
 // Construct object
 vtkVoronoi2D::vtkVoronoi2D()
 {
+  this->OutputType = VORONOI; // Voronoi tessellation placed in output 0
+  this->GenerateScalars = NONE;
   this->Padding = 0.01;
   this->Tolerance = FLT_EPSILON;
   this->Locator = vtkSmartPointer<vtkStaticPointLocator2D>::New();
   this->Locator->SetNumberOfPointsPerBucket(2);
   this->Transform = nullptr;
-  this->GenerateScalars = NONE;
   this->ProjectionPlaneMode = XY_PLANE;
-  this->GenerateDelaunayTriangulation = false;
   this->PointOfInterest = (-1);
   this->MaximumNumberOfTileClips = VTK_ID_MAX;
   this->GenerateVoronoiFlower = false;
@@ -1304,7 +1361,8 @@ int vtkVoronoi2D::RequestData(vtkInformation* vtkNotUsed(request),
 
   // Optional second output (Delaunay triangulation)
   vtkPolyData *delOutput = nullptr;
-  if ( this->GenerateDelaunayTriangulation )
+  if ( this->OutputType == DELAUNAY ||
+       this->OutputType == VORONOI_AND_DELAUNAY )
   {
     vtkInformation *outInfo2 = outputVector->GetInformationObject(1);
     delOutput = vtkPolyData::SafeDownCast(
@@ -1316,26 +1374,28 @@ int vtkVoronoi2D::RequestData(vtkInformation* vtkNotUsed(request),
 
   // Process the points to generate Voronoi tiles and optional
   // Delaunay triangulation.
-  double* inPtr = static_cast<double*>(tPoints->GetVoidPointer(0));
+  double* inPtr = static_cast<vtkDoubleArray*>(tPoints->GetData())->GetPointer(0);
   this->NumberOfThreadsUsed = VoronoiTiles::
     Execute(this->Locator, numPts, inPtr, padding, tol, output,
             this->GenerateScalars, delOutput, this->PointOfInterest,
-            this->MaximumNumberOfTileClips, this->MaximumNumberOfSides);
+            this->MaximumNumberOfTileClips, this->MaximumNumberOfSides,
+            this);
 
   vtkDebugMacro(<< "Produced " << output->GetNumberOfCells() << " tiles and "
                 << output->GetNumberOfPoints() << " points");
 
-  if ( this->GenerateDelaunayTriangulation )
+  if ( delOutput )
   {
-    vtkDebugMacro(<<"Produced " << delOutput->GetNumberOfCells() << " triangles and "
+    vtkDebugMacro(<<"Produced Delaunay triangulation with "
+                  << delOutput->GetNumberOfCells() << " triangles and "
                   << delOutput->GetNumberOfPoints() << " points");
   }
-  // If requested, generate in the second output a representation of the
+  // If requested, generate in the third output a representation of the
   // Voronoi flower error metric for the PointOfInterest.
   if (!this->CheckAbort() && this->GenerateVoronoiFlower && this->PointOfInterest >= 0 &&
     this->PointOfInterest < numPts)
   {
-    // Get the second and third outputs
+    // Get the optional third and fourth outputs
     vtkInformation* outInfo3 = outputVector->GetInformationObject(2);
     vtkPolyData* output3 = vtkPolyData::SafeDownCast(outInfo3->Get(vtkDataObject::DATA_OBJECT()));
 
@@ -1380,7 +1440,7 @@ int vtkVoronoi2D::RequestData(vtkInformation* vtkNotUsed(request),
     // Now update the vtkSpheres implicit function, and create a third output
     // that has the PointOfInterested-associated tile, with scalar values at
     // each point which are the radii of the error circles (and when taken
-    // together form the Voronoi flower).
+    // together form the Voronoi Flower).
     vtkInformation* outInfo4 = outputVector->GetInformationObject(3);
     vtkPolyData* output4 = vtkPolyData::SafeDownCast(outInfo4->Get(vtkDataObject::DATA_OBJECT()));
 
@@ -1429,12 +1489,13 @@ void vtkVoronoi2D::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 
+  os << indent << "Output Type: " << this->OutputType << "\n";
+  os << indent << "Generate Scalars: " << this->GenerateScalars << "\n";
   os << indent << "Padding: " << this->Padding << "\n";
   os << indent << "Tolerance: " << this->Tolerance << "\n";
   os << indent << "Locator: " << this->Locator << "\n";
   os << indent << "Projection Plane Mode: " << this->ProjectionPlaneMode << "\n";
   os << indent << "Transform: " << (this->Transform ? "specified" : "none") << "\n";
-  os << indent << "Generate Scalars: " << this->GenerateScalars << "\n";
   os << indent << "Point Of Interest: " << this->PointOfInterest << "\n";
   os << indent << "Maximum Number Of Tile Clips: " << this->MaximumNumberOfTileClips << "\n";
   os << indent << "Generate Voronoi Flower: " << (this->GenerateVoronoiFlower ? "On\n" : "Off\n");

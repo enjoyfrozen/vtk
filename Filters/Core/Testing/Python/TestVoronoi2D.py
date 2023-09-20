@@ -24,7 +24,7 @@ VTK_DATA_ROOT = vtkGetDataRoot()
 
 # Control problem size and set debugging parameters
 NPts = 1
-#NPts = 1000000
+NPts = 1000000
 MaxTileClips = 10000
 PointsPerBucket = 2
 GenerateFlower = 1
@@ -72,7 +72,7 @@ ptMapper.SetScaleFactor(0.0)
 ptActor = vtkActor()
 ptActor.SetMapper(ptMapper)
 ptActor.GetProperty().SetColor(0,0,0)
-ptActor.GetProperty().SetPointSize(2)
+ptActor.GetProperty().SetPointSize(3)
 
 # Tessellate them
 #

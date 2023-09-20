@@ -5,7 +5,10 @@ from vtkmodules.vtkCommonCore import (
 )
 from vtkmodules.vtkCommonDataModel import vtkPolyData
 from vtkmodules.vtkCommonSystem import vtkTimerLog
-from vtkmodules.vtkFiltersCore import vtkVoronoi2D
+from vtkmodules.vtkFiltersCore import (
+    vtkVoronoi2D,
+    vtkStaticCleanPolyData,
+)
 from vtkmodules.vtkFiltersSources import vtkSphereSource
 from vtkmodules.vtkRenderingCore import (
     vtkActor,
@@ -63,10 +66,10 @@ def KuzminFn(NPts,points):
         points.SetPoint(i, px*r, py*r, 0.0)
 
 # Control problem size and set debugging parameters
-NPts = 1000
+NPts = 100
 #NPts = 100000
 #NPts = 1000000
-MaxTileClips = NPts
+MaxTileClips = 100
 PointsPerBucket = 2
 GenerateFlower = 1
 PointOfInterest = -1
@@ -82,7 +85,7 @@ iren.SetRenderWindow(renWin)
 
 # create some points and display them
 mode = 'uniform'
-# mode = 'lissajous'
+mode = 'lissajous'
 # mode = 'quarterDisk'
 # mode = 'Kuzmin'
 
@@ -108,6 +111,13 @@ elif mode == 'Kuzmin':
 
 profile = vtkPolyData()
 profile.SetPoints(points)
+print("Processing number of points: {0}".format(NPts))
+
+clean = vtkStaticCleanPolyData()
+clean.SetInputData(profile)
+clean.RemoveUnusedPointsOff()
+clean.Update()
+print("After cleaning, number of points: {0}".format(clean.GetOutput().GetNumberOfPoints()))
 
 ptMapper = vtkPointGaussianMapper()
 ptMapper.SetInputData(profile)
@@ -117,7 +127,7 @@ ptMapper.SetScaleFactor(0.0)
 ptActor = vtkActor()
 ptActor.SetMapper(ptMapper)
 ptActor.GetProperty().SetColor(0,0,0)
-ptActor.GetProperty().SetPointSize(2)
+ptActor.GetProperty().SetPointSize(3)
 
 # Tessellate them
 #
@@ -137,7 +147,6 @@ timer.StartTimer()
 voronoi.Update()
 timer.StopTimer()
 time = timer.GetElapsedTime()
-print("Number of points processed: {0}".format(NPts))
 print("   Time to generate Voronoi tessellation: {0}".format(time))
 print("   Number of threads used: {0}".format(voronoi.GetNumberOfThreadsUsed()))
 

@@ -140,15 +140,14 @@ public:
    * do so, and 2) *all* points of distance maxDist2 are returned. The method
    * returns the maximum distance squared (maxDist2) of the points, the point
    * ids in the vtkIdList result, and the point's r**2 from x in radii2.
-   * Optionally, the points can be sorted by distance from the query point
-   * (sorted from closest to farthest).  This method is thread safe if
+   * Note that the returned points are sorted by distance from the query
+   * point (sorted from closest to farthest).  This method is thread safe if
    * BuildLocator() is directly or indirectly called from a single thread
-   * first. Finally, a powerful feature of this method in that it's possible
-   * to identify disjoint sets of points within nested annuli.
+   * first. Finally, note that a powerful feature of this method in that it's
+   * possible to identify disjoint sets of points within nested annuli.
    */
   double FindNPointsInAnnulus(int N, const double x[3], vtkIdList* result,
-                              vtkDoubleArray* radii2=nullptr, double minDist2=(-0.1),
-                              bool sort=true);
+                              vtkDoubleArray* radii2=nullptr, double minDist2=(-0.1));
 
   /**
    * Find all points within a specified radius R of position x.
