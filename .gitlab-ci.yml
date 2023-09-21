@@ -45,7 +45,9 @@ el7-mindeps-python-qt5:build:
         - .cmake_build_linux
         - .linux_builder_tags
         - .cmake_build_artifacts
-        - .run_manually
+        - .ci_rules
+    variables:
+        IS_MANUAL: "true"
 
 # Disable testing for now. Even with a modern Mesa and the llvmpipe backend,
 # modern enough OpenGL is just not working in CI. Rather than disabling just
@@ -56,7 +58,9 @@ el7-mindeps-python-qt5:build:
 #         - .cmake_test_linux
 #         - .linux_tester_tags
 #         - .cmake_test_artifacts
-#         - .run_automatically
+#         - .ci_rules
+#    variables:
+#        IS_AUTOMATIC: "true"
 #     dependencies:
 #         - el7-mindeps-python-qt5:build
 #     needs:
@@ -68,7 +72,9 @@ el8-python:build:
         - .cmake_build_linux
         - .linux_builder_tags
         - .cmake_build_artifacts
-        - .run_manually
+        - .ci_rules
+    variables:
+        IS_MANUAL: "true"
 
 el8-python:test:
     extends:
@@ -76,7 +82,9 @@ el8-python:test:
         - .cmake_test_linux
         - .linux_tester_tags
         - .cmake_test_artifacts
-        - .run_automatically
+        - .ci_rules
+    variables:
+        IS_AUTOMATIC: "true"
     dependencies:
         - el8-python:build
     needs:
@@ -88,7 +96,9 @@ fedora34-mpi-renderless:build:
         - .cmake_build_linux
         - .linux_builder_tags
         - .cmake_build_artifacts
-        - .run_manually
+        - .ci_rules
+    variables:
+        IS_MANUAL: "true"
 
 fedora34-mpi-renderless:test:
     extends:
@@ -96,7 +106,9 @@ fedora34-mpi-renderless:test:
         - .cmake_test_linux
         - .linux_builder_tags
         - .cmake_test_artifacts
-        - .run_automatically
+        - .ci_rules
+    variables:
+        IS_AUTOMATIC: "true"
     dependencies:
         - fedora34-mpi-renderless:build
     needs:
@@ -108,7 +120,9 @@ vtk:fedora34-mpi-renderless:test-ext:
         - .cmake_test_external_linux
         - .linux_builder_tags
         - .cmake_junit_artifacts
-        - .run_automatically
+        - .ci_rules
+    variables:
+        IS_AUTOMATIC: "true"
     dependencies:
         - fedora34-mpi-renderless:test
     needs:
@@ -120,9 +134,10 @@ fedora34-cuda-mpi:build:
         - .cmake_build_linux
         - .cmake_build_artifacts
         - .linux_cuda_builder_tags
-        - .run_manually
+        - .ci_rules
     variables:
         CTEST_MAX_PARALLELISM: 4
+        IS_MANUAL: "true"
     timeout: 8 hours
 
 fedora34-cuda-mpi:test:
@@ -131,13 +146,14 @@ fedora34-cuda-mpi:test:
         - .cmake_test_linux
         - .cmake_test_artifacts
         - .linux_cuda_tester_tags
-        - .run_automatically
+        - .ci_rules
     dependencies:
         - fedora34-cuda-mpi:build
     needs:
         - fedora34-cuda-mpi:build
     variables:
         CTEST_MAX_PARALLELISM: 8
+        IS_AUTOMATIC: "true"
     timeout: 2 hours
 
 vtk:fedora34-cuda-mpi:test-ext:
@@ -146,13 +162,14 @@ vtk:fedora34-cuda-mpi:test-ext:
         - .cmake_test_external_linux
         - .cmake_tidy_artifacts
         - .linux_cuda_tester_tags
-        - .run_automatically
+        - .ci_rules
     dependencies:
         - fedora34-cuda-mpi:test
     needs:
         - fedora34-cuda-mpi:test
     variables:
         CTEST_MAX_PARALLELISM: 8
+        IS_AUTOMATIC: "true"
     timeout: 150 minutes
 
 fedora34-mpi-offscreen-osmesa-python:build:
@@ -161,7 +178,10 @@ fedora34-mpi-offscreen-osmesa-python:build:
         - .cmake_build_linux
         - .linux_builder_tags
         - .cmake_build_artifacts
-        - .run_manually
+        - .ci_rules
+    variables:
+        IS_MANUAL: "true"
+
 
 fedora34-mpi-offscreen-osmesa-python:test:
     extends:
@@ -169,7 +189,9 @@ fedora34-mpi-offscreen-osmesa-python:test:
         - .cmake_test_linux
         - .linux_builder_tags
         - .cmake_test_artifacts
-        - .run_automatically
+        - .ci_rules
+    variables:
+        IS_AUTOMATIC: "true"
     dependencies:
         - fedora34-mpi-offscreen-osmesa-python:build
     needs:
@@ -181,7 +203,9 @@ vtk:fedora34-mpi-offscreen-osmesa-python:test-ext:
         - .cmake_test_external_linux
         - .linux_builder_tags
         - .cmake_junit_artifacts
-        - .run_automatically
+        - .ci_rules
+    variables:
+        IS_AUTOMATIC: "true"
     dependencies:
         - fedora34-mpi-offscreen-osmesa-python:test
     needs:
@@ -194,7 +218,9 @@ fedora34-mpi-ospray-python-qt-tbb:build:
         - .cmake_build_linux
         - .linux_fast_builder_tags
         - .cmake_build_artifacts
-        - .run_manually
+        - .ci_rules
+    variables:
+        IS_MANUAL: "true"
     timeout: 90 minutes
 
 fedora34-mpi-ospray-python-qt-tbb:test:
@@ -203,7 +229,9 @@ fedora34-mpi-ospray-python-qt-tbb:test:
         - .cmake_test_linux
         - .linux_fast_tester_tags
         - .cmake_test_artifacts
-        - .run_automatically
+        - .ci_rules
+    variables:
+        IS_AUTOMATIC: "true"
     dependencies:
         - fedora34-mpi-ospray-python-qt-tbb:build
     needs:
@@ -215,7 +243,9 @@ fedora34-mpi-ospray-python-qt-tbb:test:
 #         - .cmake_build_linux
 #         - .linux_builder_tags
 #         - .cmake_build_artifacts
-#         - .run_manually
+#         - .ci_rules
+#     variables:
+#         IS_MANUAL: "true"
 #     # The Java build extends the build time considerably.
 #     timeout: 2 hours
 
@@ -225,7 +255,9 @@ fedora34-mpi-ospray-python-qt-tbb:test:
 #         - .cmake_test_linux
 #         - .linux_tester_tags
 #         - .cmake_test_artifacts
-#         - .run_automatically
+#         - .ci_rules
+#    variables:
+#        IS_AUTOMATIC: "true"
 #     dependencies:
 #         - fedora34-java-mpi-qt-tbb:build
 #     needs:
@@ -237,7 +269,9 @@ fedora34-mpi-python-qt-tbb:build:
         - .cmake_build_linux
         - .linux_builder_tags
         - .cmake_build_artifacts
-        - .run_manually
+        - .ci_rules
+    variables:
+        IS_MANUAL: "true"
     timeout: 90 minutes
 
 fedora34-mpi-python-qt-tbb:test:
@@ -246,7 +280,9 @@ fedora34-mpi-python-qt-tbb:test:
         - .cmake_test_linux
         - .linux_tester_tags
         - .cmake_test_artifacts
-        - .run_automatically
+        - .ci_rules
+    variables:
+        IS_AUTOMATIC: "true"
     dependencies:
         - fedora34-mpi-python-qt-tbb:build
     needs:
@@ -258,7 +294,9 @@ vtk:fedora34-mpi-python-qt-tbb:test-ext:
         - .cmake_test_external_linux
         - .linux_tester_tags
         - .cmake_junit_artifacts
-        - .run_automatically
+        - .ci_rules
+    variables:
+        IS_AUTOMATIC: "true"
     dependencies:
         - fedora34-mpi-python-qt-tbb:test
     needs:
@@ -272,7 +310,9 @@ fedora34-mpi-python-qt-stdthread:test:
         - .cmake_test_linux
         - .linux_tester_tags
         - .cmake_test_artifacts
-        - .run_automatically
+        - .ci_rules
+    variables:
+        IS_AUTOMATIC: "true"
     dependencies:
         - fedora34-mpi-python-qt-tbb:build
     needs:
@@ -284,7 +324,9 @@ fedora34-mpi-python-vtkmoverride:build:
         - .cmake_build_linux
         - .linux_builder_tags
         - .cmake_build_artifacts
-        - .run_manually
+        - .ci_rules
+    variables:
+        IS_MANUAL: "true"
     timeout: 90 minutes
 
 fedora34-mpi-python-vtkmoverride:test:
@@ -293,7 +335,9 @@ fedora34-mpi-python-vtkmoverride:test:
         - .cmake_test_linux
         - .linux_tester_tags
         - .cmake_test_artifacts
-        - .run_automatically
+        - .ci_rules
+    variables:
+        IS_AUTOMATIC: "true"
     dependencies:
         - fedora34-mpi-python-vtkmoverride:build
     needs:
@@ -306,7 +350,9 @@ webassembly:build:
         - .cmake_build_linux
         - .linux_builder_tags
         - .cmake_build_artifacts
-        - .run_manually
+        - .ci_rules
+    variables:
+        IS_MANUAL: "true"
 
 ## Python wheel builds
 
@@ -316,7 +362,9 @@ wheel-linux-python36-x86_64:build:
         - .cmake_build_wheel_linux
         - .linux_builder_tags
         - .cmake_wheel_artifacts
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
 
 # XXX(rust): This build ends up needing a Rust compiler to compile the
 # `cryptography` package.
@@ -325,7 +373,9 @@ wheel-linux-python36-x86_64:build:
 #         - .wheel_linux36_x86_64
 #         - .cmake_test_wheel_linux
 #         - .linux_builder_tags
-#         - .merged_only
+#         - .ci_rules
+#    variables:
+#        IS_MERGED_ONLY: "true"
 #     dependencies:
 #         - wheel-linux-python36-x86_64:build
 #     needs:
@@ -338,7 +388,9 @@ wheel-linux-python36-x86_64:build:
 #         - .wheel_linux36_x86_64
 #         - .cmake_test_wheel_linux_x11
 #         - .linux_tester_tags
-#         - .merged_only
+#         - .ci_rules
+#    variables:
+#        IS_MERGED_ONLY: "true"
 #     dependencies:
 #         - wheel-linux-python36-x86_64:build
 #     needs:
@@ -350,7 +402,9 @@ wheel-linux-python36-x86_64-osmesa:build:
         - .cmake_build_wheel_linux
         - .linux_builder_tags
         - .cmake_wheel_artifacts
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
 
 # XXX(rust): This build ends up needing a Rust compiler to compile the
 # `cryptography` package.
@@ -359,7 +413,9 @@ wheel-linux-python36-x86_64-osmesa:build:
 #         - .wheel_linux36_x86_64_osmesa
 #         - .cmake_test_wheel_linux
 #         - .linux_builder_tags
-#         - .merged_only
+#         - .ci_rules
+#    variables:
+#        IS_MERGED_ONLY: "true"
 #     dependencies:
 #         - wheel-linux-python36-x86_64-osmesa:build
 #     needs:
@@ -372,7 +428,9 @@ wheel-linux-python36-x86_64-osmesa:build:
 #         - .wheel_linux36_x86_64_osmesa
 #         - .cmake_test_wheel_linux_x11
 #         - .linux_builder_tags
-#         - .merged_only
+#         - .ci_rules
+#    variables:
+#        IS_MERGED_ONLY: "true"
 #     dependencies:
 #         - wheel-linux-python36-x86_64-osmesa:build
 #     needs:
@@ -384,14 +442,18 @@ wheel-linux-python37-x86_64:build:
         - .cmake_build_wheel_linux
         - .linux_builder_tags
         - .cmake_wheel_artifacts
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
 
 wheel-linux-python37-x86_64:test:
     extends:
         - .wheel_linux37_x86_64
         - .cmake_test_wheel_linux
         - .linux_builder_tags
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
     dependencies:
         - wheel-linux-python37-x86_64:build
     needs:
@@ -402,7 +464,9 @@ wheel-linux-python37-x86_64:test-x11:
         - .wheel_linux37_x86_64
         - .cmake_test_wheel_linux_x11
         - .linux_tester_tags
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
     dependencies:
         - wheel-linux-python37-x86_64:build
     needs:
@@ -414,14 +478,18 @@ wheel-linux-python37-x86_64-osmesa:build:
         - .cmake_build_wheel_linux
         - .linux_builder_tags
         - .cmake_wheel_artifacts
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
 
 wheel-linux-python37-x86_64-osmesa:test:
     extends:
         - .wheel_linux37_x86_64_osmesa
         - .cmake_test_wheel_linux
         - .linux_builder_tags
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
     dependencies:
         - wheel-linux-python37-x86_64-osmesa:build
     needs:
@@ -432,7 +500,9 @@ wheel-linux-python37-x86_64-osmesa:test-x11:
         - .wheel_linux37_x86_64_osmesa
         - .cmake_test_wheel_linux_x11
         - .linux_builder_tags
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
     dependencies:
         - wheel-linux-python37-x86_64-osmesa:build
     needs:
@@ -444,14 +514,18 @@ wheel-linux-python38-x86_64:build:
         - .cmake_build_wheel_linux
         - .linux_builder_tags
         - .cmake_wheel_artifacts
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
 
 wheel-linux-python38-x86_64:test:
     extends:
         - .wheel_linux38_x86_64
         - .cmake_test_wheel_linux
         - .linux_builder_tags
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
     dependencies:
         - wheel-linux-python38-x86_64:build
     needs:
@@ -462,7 +536,9 @@ wheel-linux-python38-x86_64:test-x11:
         - .wheel_linux38_x86_64
         - .cmake_test_wheel_linux_x11
         - .linux_tester_tags
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
     dependencies:
         - wheel-linux-python38-x86_64:build
     needs:
@@ -474,14 +550,18 @@ wheel-linux-python38-x86_64-osmesa:build:
         - .cmake_build_wheel_linux
         - .linux_builder_tags
         - .cmake_wheel_artifacts
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
 
 wheel-linux-python38-x86_64-osmesa:test:
     extends:
         - .wheel_linux38_x86_64_osmesa
         - .cmake_test_wheel_linux
         - .linux_builder_tags
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
     dependencies:
         - wheel-linux-python38-x86_64-osmesa:build
     needs:
@@ -492,7 +572,9 @@ wheel-linux-python38-x86_64-osmesa:test-x11:
         - .wheel_linux38_x86_64_osmesa
         - .cmake_test_wheel_linux_x11
         - .linux_builder_tags
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
     dependencies:
         - wheel-linux-python38-x86_64-osmesa:build
     needs:
@@ -504,14 +586,18 @@ wheel-linux-python39-x86_64:build:
         - .cmake_build_wheel_linux
         - .linux_builder_tags
         - .cmake_wheel_artifacts
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
 
 wheel-linux-python39-x86_64:test:
     extends:
         - .wheel_linux39_x86_64
         - .cmake_test_wheel_linux
         - .linux_builder_tags
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
     dependencies:
         - wheel-linux-python39-x86_64:build
     needs:
@@ -522,7 +608,9 @@ wheel-linux-python39-x86_64:test-x11:
         - .wheel_linux39_x86_64
         - .cmake_test_wheel_linux_x11
         - .linux_tester_tags
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
     dependencies:
         - wheel-linux-python39-x86_64:build
     needs:
@@ -534,14 +622,18 @@ wheel-linux-python39-x86_64-osmesa:build:
         - .cmake_build_wheel_linux
         - .linux_builder_tags
         - .cmake_wheel_artifacts
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
 
 wheel-linux-python39-x86_64-osmesa:test:
     extends:
         - .wheel_linux39_x86_64_osmesa
         - .cmake_test_wheel_linux
         - .linux_builder_tags
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
     dependencies:
         - wheel-linux-python39-x86_64-osmesa:build
     needs:
@@ -552,7 +644,9 @@ wheel-linux-python39-x86_64-osmesa:test-x11:
         - .wheel_linux39_x86_64_osmesa
         - .cmake_test_wheel_linux_x11
         - .linux_builder_tags
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
     dependencies:
         - wheel-linux-python39-x86_64-osmesa:build
     needs:
@@ -564,14 +658,18 @@ wheel-linux-python310-x86_64:build:
         - .cmake_build_wheel_linux
         - .linux_builder_tags
         - .cmake_wheel_artifacts
-        - .run_manually
+        - .ci_rules
+    variables:
+        IS_MANUAL: "true"
 
 wheel-linux-python310-x86_64:test:
     extends:
         - .wheel_linux310_x86_64
         - .cmake_test_wheel_linux
         - .linux_builder_tags
-        - .run_automatically
+        - .ci_rules
+    variables:
+        IS_AUTOMATIC: "true"
     dependencies:
         - wheel-linux-python310-x86_64:build
     needs:
@@ -582,7 +680,9 @@ wheel-linux-python310-x86_64:test-x11:
         - .wheel_linux310_x86_64
         - .cmake_test_wheel_linux_x11
         - .linux_tester_tags
-        - .run_automatically
+        - .ci_rules
+    variables:
+        IS_AUTOMATIC: "true"
     dependencies:
         - wheel-linux-python310-x86_64:build
     needs:
@@ -594,14 +694,18 @@ wheel-linux-python310-x86_64-osmesa:build:
         - .cmake_build_wheel_linux
         - .linux_builder_tags
         - .cmake_wheel_artifacts
-        - .run_manually
+        - .ci_rules
+    variables:
+        IS_MANUAL: "true"
 
 wheel-linux-python310-x86_64-osmesa:test:
     extends:
         - .wheel_linux310_x86_64_osmesa
         - .cmake_test_wheel_linux
         - .linux_builder_tags
-        - .run_automatically
+        - .ci_rules
+    variables:
+        IS_AUTOMATIC: "true"
     dependencies:
         - wheel-linux-python310-x86_64-osmesa:build
     needs:
@@ -612,7 +716,9 @@ wheel-linux-python310-x86_64-osmesa:test-x11:
         - .wheel_linux310_x86_64_osmesa
         - .cmake_test_wheel_linux_x11
         - .linux_builder_tags
-        - .run_automatically
+        - .ci_rules
+    variables:
+        IS_AUTOMATIC: "true"
     dependencies:
         - wheel-linux-python310-x86_64-osmesa:build
     needs:
@@ -624,14 +730,18 @@ wheel-linux-python311-x86_64:build:
         - .cmake_build_wheel_linux
         - .linux_builder_tags
         - .cmake_wheel_artifacts
-        - .run_manually
+        - .ci_rules
+    variables:
+        IS_MANUAL: "true"
 
 wheel-linux-python311-x86_64:test:
     extends:
         - .wheel_linux311_x86_64
         - .cmake_test_wheel_linux
         - .linux_builder_tags
-        - .run_automatically
+        - .ci_rules
+    variables:
+        IS_AUTOMATIC: "true"
     dependencies:
         - wheel-linux-python311-x86_64:build
     needs:
@@ -642,7 +752,9 @@ wheel-linux-python311-x86_64:test-x11:
         - .wheel_linux311_x86_64
         - .cmake_test_wheel_linux_x11
         - .linux_tester_tags
-        - .run_automatically
+        - .ci_rules
+    variables:
+        IS_AUTOMATIC: "true"
     dependencies:
         - wheel-linux-python311-x86_64:build
     needs:
@@ -654,14 +766,18 @@ wheel-linux-python311-x86_64-osmesa:build:
         - .cmake_build_wheel_linux
         - .linux_builder_tags
         - .cmake_wheel_artifacts
-        - .run_manually
+        - .ci_rules
+    variables:
+        IS_MANUAL: "true"
 
 wheel-linux-python311-x86_64-osmesa:test:
     extends:
         - .wheel_linux311_x86_64_osmesa
         - .cmake_test_wheel_linux
         - .linux_builder_tags
-        - .run_automatically
+        - .ci_rules
+    variables:
+        IS_AUTOMATIC: "true"
     dependencies:
         - wheel-linux-python311-x86_64-osmesa:build
     needs:
@@ -672,7 +788,9 @@ wheel-linux-python311-x86_64-osmesa:test-x11:
         - .wheel_linux311_x86_64_osmesa
         - .cmake_test_wheel_linux_x11
         - .linux_builder_tags
-        - .run_automatically
+        - .ci_rules
+    variables:
+        IS_AUTOMATIC: "true"
     dependencies:
         - wheel-linux-python311-x86_64-osmesa:build
     needs:
@@ -681,7 +799,9 @@ wheel-linux-python311-x86_64-osmesa:test-x11:
 wheel:pypi:upload:
     extends:
         - .pypi_upload
-        - .tag_only
+        - .ci_rules
+    variables:
+        IS_TAG_ONLY: "true"
     dependencies:
         - wheel-linux-python36-x86_64:build
         - wheel-linux-python37-x86_64:build
@@ -757,7 +877,9 @@ wheel:pypi:upload:
 wheel:vtk:upload:
     extends:
         - .pypi_vtk_upload
-        - .weekly_upload_only
+        - .ci_rules
+    variables:
+        IS_WEEKLY_UPLOAD: "true"
     dependencies:
         - wheel-linux-python36-x86_64:build
         - wheel-linux-python36-x86_64-osmesa:build
@@ -875,7 +997,7 @@ wheel:vtk:upload:
 wheel-sdk:upload:
     extends:
         - .rsync_upload_wheel_sdk
-        - .weekly_upload_only
+        - .ci_rules
     dependencies:
         - wheel-linux-python36-x86_64:build
         - wheel-linux-python36-x86_64-osmesa:build
@@ -986,6 +1108,7 @@ wheel-sdk:upload:
     variables:
         RSYNC_SOURCE: build/*-wheel-sdk-*.tar.xz
         RSYNC_DESTINATION: wheel-sdks/
+        IS_WEEKLY_UPLOAD: "true"
 
 ## Static analysis builds
 
@@ -995,7 +1118,9 @@ fedora34-tidy:build:
         - .cmake_build_linux
         - .linux_fast_builder_tags
         - .cmake_tidy_artifacts
-        - .run_manually
+        - .ci_rules
+    variables:
+        IS_MANUAL: "true"
     # Use fast builder tag as tidy can takes a very long time on slow machine
     # Move it to the test stage so that the build stage can be required to be
     # green. `clang-tidy` just takes too long to require for every MR prior to
@@ -1016,7 +1141,9 @@ fedora34-tidy:build:
 #         - .cmake_build_linux
 #         - .linux_builder_tags
 #         - .cmake_build_artifacts
-#         - .run_manually
+#         - .ci_rules
+#    variables:
+#        IS_MANUAL: "true"
 #
 # fedora34-asan:test:
 #     extends:
@@ -1024,7 +1151,9 @@ fedora34-tidy:build:
 #         - .cmake_memcheck_linux
 #         - .linux_tester_priv_tags
 #         - .cmake_test_artifacts
-#         - .run_automatically
+#         - .ci_rules
+#    variables:
+#        IS_AUTOMATIC: "true"
 #     dependencies:
 #         - fedora34-asan:build
 #     needs:
@@ -1036,7 +1165,9 @@ fedora34-tidy:build:
 #         - .cmake_build_linux
 #         - .linux_builder_tags
 #         - .cmake_build_artifacts
-#         - .run_manually
+#         - .ci_rules
+#    variables:
+#        IS_MANUAL: "true"
 #
 # fedora34-tsan:test:
 #     extends:
@@ -1044,7 +1175,9 @@ fedora34-tidy:build:
 #         - .cmake_memcheck_linux
 #         - .linux_tester_priv_tags
 #         - .cmake_test_artifacts
-#         - .run_automatically
+#         - .ci_rules
+#    variables:
+#        IS_AUTOMATIC: "true"
 #     dependencies:
 #         - fedora34-tsan:build
 #     needs:
@@ -1056,7 +1189,9 @@ fedora34-tidy:build:
 #         - .cmake_build_linux
 #         - .linux_builder_tags
 #         - .cmake_build_artifacts
-#         - .run_manually
+#         - .ci_rules
+#    variables:
+#        IS_MANUAL: "true"
 #
 # fedora34-ubsan:test:
 #     extends:
@@ -1064,7 +1199,9 @@ fedora34-tidy:build:
 #         - .cmake_memcheck_linux
 #         - .linux_tester_priv_tags
 #         - .cmake_test_artifacts
-#         - .run_automatically
+#         - .ci_rules
+#    variables:
+#        IS_AUTOMATIC: "true"
 #     dependencies:
 #         - fedora34-ubsan:build
 #     needs:
@@ -1078,12 +1215,14 @@ documentation:build:
         - .cmake_build_linux
         - .linux_builder_tags
         - .cmake_doxygen_artifacts
-        - .run_manually
+        - .ci_rules
+    variables:
+        IS_MANUAL: "true"
 
 documentation:upload:
     extends:
         - .rsync_upload_docs
-        - .upload_only
+        - .ci_rules
     dependencies:
         - documentation:build
     needs:
@@ -1096,13 +1235,17 @@ source:build:
     extends:
         - .cmake_source_tarballs
         - .cmake_release_artifacts
-        - .tag_only
+        - .ci_rules
+    variables:
+        IS_TAG_ONLY: "true"
 
 documentation:release-prep:
     extends:
         - .cmake_doc_tarball
         - .cmake_release_artifacts
-        - .tag_only
+        - .ci_rules
+    variables:
+        IS_TAG_ONLY: "true"
     dependencies:
         - documentation:build
     needs:
@@ -1111,7 +1254,7 @@ documentation:release-prep:
 release-artifacts:upload:
     extends:
         - .rsync_upload_release_artifacts
-        - .release_only
+        - .ci_rules
     dependencies:
         - source:build
         - documentation:release-prep
@@ -1227,6 +1370,7 @@ release-artifacts:upload:
         - wheel-windows-python311-x86_64-osmesa:test
     variables:
         RSYNC_SOURCE: release/
+        IS_RELEASE: "true"
 
 # macOS
 
@@ -1236,7 +1380,9 @@ macos-arm64-kits-python-qt:build:
         - .cmake_build_macos
         - .macos_arm64_builder_tags
         - .cmake_build_artifacts
-        - .run_manually
+        - .ci_rules
+    variables:
+        IS_MANUAL: "true"
 
 macos-arm64-kits-python-qt:test:
     extends:
@@ -1244,7 +1390,9 @@ macos-arm64-kits-python-qt:test:
         - .cmake_test_macos
         - .macos_arm64_builder_tags
         - .cmake_test_artifacts
-        - .run_automatically
+        - .ci_rules
+    variables:
+        IS_AUTOMATIC: "true"
     dependencies:
         - macos-arm64-kits-python-qt:build
     needs:
@@ -1256,7 +1404,9 @@ macos-x86_64-kits-python-qt:build:
         - .cmake_build_macos
         - .macos_builder_tags
         - .cmake_build_artifacts
-        - .run_manually
+        - .ci_rules
+    variables:
+        IS_MANUAL: "true"
     # Some of the macOS runners are not very powerful.
     timeout: 150 minutes
 
@@ -1266,7 +1416,9 @@ macos-x86_64-kits-python-qt:test:
         - .cmake_test_macos
         - .macos_builder_tags
         - .cmake_test_artifacts
-        - .run_automatically
+        - .ci_rules
+    variables:
+        IS_AUTOMATIC: "true"
     dependencies:
         - macos-x86_64-kits-python-qt:build
     needs:
@@ -1281,7 +1433,9 @@ macos-x86_64-kits-python-qt-stdthread:test:
         - .cmake_test_macos
         - .macos_builder_tags
         - .cmake_test_artifacts
-        - .run_automatically
+        - .ci_rules
+    variables:
+        IS_AUTOMATIC: "true"
     dependencies:
         - macos-x86_64-kits-python-qt:build
     needs:
@@ -1302,7 +1456,9 @@ macos-x86_64-kits-python-qt-stdthread:test:
 #         - .cmake_test_external_macos
 #         - .macos_ext_builder_tags
 #         - .cmake_junit_artifacts
-#         - .run_automatically
+#         - .ci_rules
+#    variables:
+#        IS_AUTOMATIC: "true"
 #     dependencies:
 #         - macos-x86_64-kits-python-qt:test
 #     needs:
@@ -1316,7 +1472,9 @@ wheel-macos-python36-x86_64:build:
         - .cmake_build_wheel_macos
         - .macos_wheel_builder_tags
         - .cmake_wheel_artifacts
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
     timeout: 90 minutes
 
 wheel-macos-python36-x86_64:test:
@@ -1324,7 +1482,9 @@ wheel-macos-python36-x86_64:test:
         - .wheel_macos36_x86_64
         - .cmake_test_wheel_macos
         - .macos_wheel_builder_tags
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
     dependencies:
         - wheel-macos-python36-x86_64:build
     needs:
@@ -1336,7 +1496,9 @@ wheel-macos-python37-x86_64:build:
         - .cmake_build_wheel_macos
         - .macos_wheel_builder_tags
         - .cmake_wheel_artifacts
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
     timeout: 90 minutes
 
 wheel-macos-python37-x86_64:test:
@@ -1344,7 +1506,9 @@ wheel-macos-python37-x86_64:test:
         - .wheel_macos37_x86_64
         - .cmake_test_wheel_macos
         - .macos_wheel_builder_tags
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
     dependencies:
         - wheel-macos-python37-x86_64:build
     needs:
@@ -1356,7 +1520,9 @@ wheel-macos-python38-x86_64:build:
         - .cmake_build_wheel_macos
         - .macos_wheel_builder_tags
         - .cmake_wheel_artifacts
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
     timeout: 90 minutes
 
 wheel-macos-python38-x86_64:test:
@@ -1364,7 +1530,9 @@ wheel-macos-python38-x86_64:test:
         - .wheel_macos38_x86_64
         - .cmake_test_wheel_macos
         - .macos_wheel_builder_tags
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
     dependencies:
         - wheel-macos-python38-x86_64:build
     needs:
@@ -1376,14 +1544,18 @@ wheel-macos-python39-arm64:build:
         - .cmake_build_wheel_macos
         - .macos_arm64_wheel_builder_tags
         - .cmake_wheel_artifacts
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
 
 wheel-macos-python39-arm64:test:
     extends:
         - .wheel_macos39_arm64
         - .cmake_test_wheel_macos
         - .macos_arm64_wheel_builder_tags
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
     dependencies:
         - wheel-macos-python39-arm64:build
     needs:
@@ -1395,7 +1567,9 @@ wheel-macos-python39-x86_64:build:
         - .cmake_build_wheel_macos
         - .macos_wheel_builder_tags
         - .cmake_wheel_artifacts
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
     timeout: 90 minutes
 
 wheel-macos-python39-x86_64:test:
@@ -1403,7 +1577,9 @@ wheel-macos-python39-x86_64:test:
         - .wheel_macos39_x86_64
         - .cmake_test_wheel_macos
         - .macos_wheel_builder_tags
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
     dependencies:
         - wheel-macos-python39-x86_64:build
     needs:
@@ -1415,14 +1591,18 @@ wheel-macos-python310-arm64:build:
         - .cmake_build_wheel_macos
         - .macos_arm64_wheel_builder_tags
         - .cmake_wheel_artifacts
-        - .run_manually
+        - .ci_rules
+    variables:
+        IS_MANUAL: "true"
 
 wheel-macos-python310-arm64:test:
     extends:
         - .wheel_macos310_arm64
         - .cmake_test_wheel_macos
         - .macos_arm64_wheel_builder_tags
-        - .run_automatically
+        - .ci_rules
+    variables:
+        IS_AUTOMATIC: "true"
     dependencies:
         - wheel-macos-python310-arm64:build
     needs:
@@ -1434,7 +1614,9 @@ wheel-macos-python310-x86_64:build:
         - .cmake_build_wheel_macos
         - .macos_wheel_builder_tags
         - .cmake_wheel_artifacts
-        - .run_manually
+        - .ci_rules
+    variables:
+        IS_MANUAL: "true"
     timeout: 90 minutes
 
 wheel-macos-python310-x86_64:test:
@@ -1442,7 +1624,9 @@ wheel-macos-python310-x86_64:test:
         - .wheel_macos310_x86_64
         - .cmake_test_wheel_macos
         - .macos_wheel_builder_tags
-        - .run_automatically
+        - .ci_rules
+    variables:
+        IS_AUTOMATIC: "true"
     dependencies:
         - wheel-macos-python310-x86_64:build
     needs:
@@ -1454,14 +1638,18 @@ wheel-macos-python311-arm64:build:
         - .cmake_build_wheel_macos
         - .macos_arm64_wheel_builder_tags
         - .cmake_wheel_artifacts
-        - .run_manually
+        - .ci_rules
+    variables:
+        IS_MANUAL: "true"
 
 wheel-macos-python311-arm64:test:
     extends:
         - .wheel_macos311_arm64
         - .cmake_test_wheel_macos
         - .macos_arm64_wheel_builder_tags
-        - .run_automatically
+        - .ci_rules
+    variables:
+        IS_AUTOMATIC: "true"
     dependencies:
         - wheel-macos-python311-arm64:build
     needs:
@@ -1473,7 +1661,9 @@ wheel-macos-python311-x86_64:build:
         - .cmake_build_wheel_macos
         - .macos_wheel_builder_tags
         - .cmake_wheel_artifacts
-        - .run_manually
+        - .ci_rules
+    variables:
+        IS_MANUAL: "true"
     timeout: 90 minutes
 
 wheel-macos-python311-x86_64:test:
@@ -1481,7 +1671,9 @@ wheel-macos-python311-x86_64:test:
         - .wheel_macos311_x86_64
         - .cmake_test_wheel_macos
         - .macos_wheel_builder_tags
-        - .run_automatically
+        - .ci_rules
+    variables:
+        IS_AUTOMATIC: "true"
     dependencies:
         - wheel-macos-python311-x86_64:build
     needs:
@@ -1495,7 +1687,9 @@ windows-vs2022-kits-mpi-python-qt:build:
         - .cmake_build_windows
         - .windows_builder_tags
         - .cmake_build_artifacts
-        - .run_manually
+        - .ci_rules
+    variables:
+        IS_MANUAL: "true"
     timeout: 180 minutes
 
 windows-vs2022-kits-mpi-python-qt:test:
@@ -1504,7 +1698,9 @@ windows-vs2022-kits-mpi-python-qt:test:
         - .cmake_test_windows
         - .windows_tester_tags
         - .cmake_test_artifacts
-        - .run_automatically
+        - .ci_rules
+    variables:
+        IS_AUTOMATIC: "true"
     dependencies:
         - windows-vs2022-kits-mpi-python-qt:build
     needs:
@@ -1518,7 +1714,9 @@ windows-vs2022-kits-mpi-python-qt-stdthread:test:
         - .cmake_test_windows
         - .windows_tester_tags
         - .cmake_test_artifacts
-        - .run_automatically
+        - .ci_rules
+    variables:
+        IS_AUTOMATIC: "true"
     dependencies:
         - windows-vs2022-kits-mpi-python-qt:build
     needs:
@@ -1539,7 +1737,9 @@ windows-vs2022-kits-mpi-python-qt-stdthread:test:
 #         - .cmake_test_external_windows
 #         - .windows_ext_builder_tags
 #         - .cmake_junit_artifacts
-#         - .run_automatically
+#         - .ci_rules
+#    variables:
+#        IS_AUTOMATIC: "true"
 #     dependencies:
 #         - windows-vs2022-kits-mpi-python-qt:test
 #     needs:
@@ -1551,7 +1751,9 @@ windows-vs2022-mpi-python-qt:build:
         - .cmake_build_windows
         - .windows_builder_tags
         - .cmake_build_artifacts
-        - .run_manually
+        - .ci_rules
+    variables:
+        IS_MANUAL: "true"
     timeout: 180 minutes
 
 windows-vs2022-mpi-python-qt:test:
@@ -1560,7 +1762,9 @@ windows-vs2022-mpi-python-qt:test:
         - .cmake_test_windows
         - .windows_tester_tags
         - .cmake_test_artifacts
-        - .run_automatically
+        - .ci_rules
+    variables:
+        IS_AUTOMATIC: "true"
     dependencies:
         - windows-vs2022-mpi-python-qt:build
     needs:
@@ -1572,7 +1776,9 @@ windows-vs2022-mpi-python-qt-static:build:
         - .cmake_build_windows
         - .windows_builder_tags
         - .cmake_build_artifacts
-        - .run_manually
+        - .ci_rules
+    variables:
+        IS_MANUAL: "true"
     timeout: 180 minutes
 
 windows-vs2022-mpi-python-qt-static:test:
@@ -1581,7 +1787,9 @@ windows-vs2022-mpi-python-qt-static:test:
         - .cmake_test_windows
         - .windows_tester_tags
         - .cmake_test_artifacts
-        - .run_automatically
+        - .ci_rules
+    variables:
+        IS_AUTOMATIC: "true"
     dependencies:
         - windows-vs2022-mpi-python-qt-static:build
     needs:
@@ -1595,7 +1803,9 @@ wheel-windows-python36-x86_64:build:
         - .cmake_build_wheel_windows
         - .windows_wheel_builder_tags
         - .cmake_wheel_artifacts
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
     timeout: 180 minutes
 
 # XXX(rust): This build ends up needing a Rust compiler to compile the
@@ -1605,7 +1815,9 @@ wheel-windows-python36-x86_64:build:
 #         - .wheel_windows36_x86_64
 #         - .cmake_test_wheel_windows
 #         - .windows_wheel_builder_tags
-#         - .merged_only
+#         - .ci_rules
+#    variables:
+#        IS_MERGED_ONLY: "true"
 #     dependencies:
 #         - wheel-windows-python36-x86_64:build
 #     needs:
@@ -1617,7 +1829,9 @@ wheel-windows-python36-x86_64-osmesa:build:
         - .cmake_build_wheel_windows
         - .windows_wheel_builder_tags
         - .cmake_wheel_artifacts
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
     timeout: 180 minutes
 
 # XXX(rust): This build ends up needing a Rust compiler to compile the
@@ -1627,7 +1841,9 @@ wheel-windows-python36-x86_64-osmesa:build:
 #         - .wheel_windows36_x86_64_osmesa
 #         - .cmake_test_wheel_windows
 #         - .windows_wheel_builder_tags
-#         - .merged_only
+#         - .ci_rules
+#    variables:
+#        IS_MERGED_ONLY: "true"
 #     dependencies:
 #         - wheel-windows-python36-x86_64-osmesa:build
 #     needs:
@@ -1639,14 +1855,18 @@ wheel-windows-python37-x86_64:build:
         - .cmake_build_wheel_windows
         - .windows_wheel_builder_tags
         - .cmake_wheel_artifacts
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
 
 wheel-windows-python37-x86_64:test:
     extends:
         - .wheel_windows37_x86_64
         - .cmake_test_wheel_windows
         - .windows_wheel_builder_tags
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
     dependencies:
         - wheel-windows-python37-x86_64:build
     needs:
@@ -1658,14 +1878,18 @@ wheel-windows-python37-x86_64-osmesa:build:
         - .cmake_build_wheel_windows
         - .windows_wheel_builder_tags
         - .cmake_wheel_artifacts
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
 
 wheel-windows-python37-x86_64-osmesa:test:
     extends:
         - .wheel_windows37_x86_64_osmesa
         - .cmake_test_wheel_windows
         - .windows_wheel_builder_tags
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
     dependencies:
         - wheel-windows-python37-x86_64-osmesa:build
     needs:
@@ -1677,14 +1901,18 @@ wheel-windows-python38-x86_64:build:
         - .cmake_build_wheel_windows
         - .windows_wheel_builder_tags
         - .cmake_wheel_artifacts
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
 
 wheel-windows-python38-x86_64:test:
     extends:
         - .wheel_windows38_x86_64
         - .cmake_test_wheel_windows
         - .windows_wheel_builder_tags
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
     dependencies:
         - wheel-windows-python38-x86_64:build
     needs:
@@ -1696,14 +1924,18 @@ wheel-windows-python38-x86_64-osmesa:build:
         - .cmake_build_wheel_windows
         - .windows_wheel_builder_tags
         - .cmake_wheel_artifacts
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
 
 wheel-windows-python38-x86_64-osmesa:test:
     extends:
         - .wheel_windows38_x86_64_osmesa
         - .cmake_test_wheel_windows
         - .windows_wheel_builder_tags
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
     dependencies:
         - wheel-windows-python38-x86_64-osmesa:build
     needs:
@@ -1715,14 +1947,18 @@ wheel-windows-python39-x86_64:build:
         - .cmake_build_wheel_windows
         - .windows_wheel_builder_tags
         - .cmake_wheel_artifacts
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
 
 wheel-windows-python39-x86_64:test:
     extends:
         - .wheel_windows39_x86_64
         - .cmake_test_wheel_windows
         - .windows_wheel_builder_tags
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
     dependencies:
         - wheel-windows-python39-x86_64:build
     needs:
@@ -1734,14 +1970,18 @@ wheel-windows-python39-x86_64-osmesa:build:
         - .cmake_build_wheel_windows
         - .windows_wheel_builder_tags
         - .cmake_wheel_artifacts
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
 
 wheel-windows-python39-x86_64-osmesa:test:
     extends:
         - .wheel_windows39_x86_64_osmesa
         - .cmake_test_wheel_windows
         - .windows_wheel_builder_tags
-        - .merged_only
+        - .ci_rules
+    variables:
+        IS_MERGED_ONLY: "true"
     dependencies:
         - wheel-windows-python39-x86_64-osmesa:build
     needs:
@@ -1753,14 +1993,18 @@ wheel-windows-python310-x86_64:build:
         - .cmake_build_wheel_windows
         - .windows_wheel_builder_tags
         - .cmake_wheel_artifacts
-        - .run_manually
+        - .ci_rules
+    variables:
+        IS_MANUAL: "true"
 
 wheel-windows-python310-x86_64:test:
     extends:
         - .wheel_windows310_x86_64
         - .cmake_test_wheel_windows
         - .windows_wheel_builder_tags
-        - .run_automatically
+        - .ci_rules
+    variables:
+        IS_AUTOMATIC: "true"
     dependencies:
         - wheel-windows-python310-x86_64:build
     needs:
@@ -1772,14 +2016,18 @@ wheel-windows-python310-x86_64-osmesa:build:
         - .cmake_build_wheel_windows
         - .windows_wheel_builder_tags
         - .cmake_wheel_artifacts
-        - .run_manually
+        - .ci_rules
+    variables:
+        IS_MANUAL: "true"
 
 wheel-windows-python310-x86_64-osmesa:test:
     extends:
         - .wheel_windows310_x86_64_osmesa
         - .cmake_test_wheel_windows
         - .windows_wheel_builder_tags
-        - .run_automatically
+        - .ci_rules
+    variables:
+        IS_AUTOMATIC: "true"
     dependencies:
         - wheel-windows-python310-x86_64-osmesa:build
     needs:
@@ -1791,14 +2039,18 @@ wheel-windows-python311-x86_64:build:
         - .cmake_build_wheel_windows
         - .windows_wheel_builder_tags
         - .cmake_wheel_artifacts
-        - .run_manually
+        - .ci_rules
+    variables:
+        IS_MANUAL: "true"
 
 wheel-windows-python311-x86_64:test:
     extends:
         - .wheel_windows311_x86_64
         - .cmake_test_wheel_windows
         - .windows_wheel_builder_tags
-        - .run_automatically
+        - .ci_rules
+    variables:
+        IS_AUTOMATIC: "true"
     dependencies:
         - wheel-windows-python311-x86_64:build
     needs:
@@ -1810,14 +2062,18 @@ wheel-windows-python311-x86_64-osmesa:build:
         - .cmake_build_wheel_windows
         - .windows_wheel_builder_tags
         - .cmake_wheel_artifacts
-        - .run_manually
+        - .ci_rules
+    variables:
+        IS_MANUAL: "true"
 
 wheel-windows-python311-x86_64-osmesa:test:
     extends:
         - .wheel_windows311_x86_64_osmesa
         - .cmake_test_wheel_windows
         - .windows_wheel_builder_tags
-        - .run_automatically
+        - .ci_rules
+    variables:
+        IS_AUTOMATIC: "true"
     dependencies:
         - wheel-windows-python311-x86_64-osmesa:build
     needs:
