@@ -11,6 +11,7 @@ __pycache__/
 
 # Exclude some Xcode stuff.
 xcuserdata
+xcshareddata
 project.xcworkspace
 
 # Exclude VSCode settings and configuration folder
