@@ -43,14 +43,13 @@ int main(int argc, char* argv[])
   // We will read three files and collect them together in one
   // multi-block dataset. I broke the combustor dataset into
   // three pieces and wrote them out separately.
-  int i;
   vtkXMLStructuredGridReader* reader = vtkXMLStructuredGridReader::New();
 
   // vtkMultiBlockDataSet represents multi-block datasets. See
   // the class documentation for more information.
   vtkMultiBlockDataSet* mb = vtkMultiBlockDataSet::New();
 
-  for (i = 0; i < 3; i++)
+  for (unsigned int i = 0; i < 3; i++)
   {
     // Here we load the three separate files (each containing
     // a structured grid dataset)
