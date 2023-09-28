@@ -61,7 +61,6 @@ int main(int argc, char* argv[])
     // This will read the file and the output of the reader will be
     // a valid structured grid data.
     reader->Update();
-    delete[] cfname;
 
     // We create a copy to avoid adding the same data three
     // times (the output object of the reader does not change
