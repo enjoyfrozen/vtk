@@ -42,6 +42,8 @@
 #include "vtksys/Encoding.hxx"
 #include "vtksys/FStream.hxx"
 
+#undef NDEBUG
+#include <cassert>
 #include <algorithm>
 #include <cctype>
 #include <fstream>
@@ -1905,6 +1907,7 @@ void vtkFLUENTCFFReader::PopulateHexahedronCell(int i)
   //  Look for opposite face of hexahedron
   for (int j = 1; j < 6; j++)
   {
+    assert(j < this->Cells[i].faces.size());
     int flag = 0;
     for (int k = 0; k < 4; k++)
     {
