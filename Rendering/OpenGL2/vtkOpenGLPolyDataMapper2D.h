@@ -19,6 +19,7 @@
 #include "vtkOpenGLHelper.h" // used for ivars
 #include "vtkPolyDataMapper2D.h"
 #include "vtkRenderingOpenGL2Module.h" // For export macro
+#include "vtkShader.h"                 // for methods
 #include <map>                         //for used data arrays & vbos
 #include <string>                      // For API.
 #include <vector>                      //for ivars
@@ -69,11 +70,24 @@ protected:
   /**
    * Build the shader source code
    */
-  virtual void BuildShaders(std::string& VertexCode, std::string& fragmentCode,
-    std::string& geometryCode, vtkViewport* ren, vtkActor2D* act);
+  virtual void BuildShaders(
+    std::map<vtkShader::Type, vtkShader*> shaders, vtkViewport* ren, vtkActor2D* act);
 
   /**
-   * Determine what shader to use and compile/link it
+   * Create the basic shaders before replacement
+   */
+  virtual void GetShaderTemplate(
+    std::map<vtkShader::Type, vtkShader*> shaders, vtkViewport* viewport, vtkActor2D* act);
+
+  /**
+   * Perform string replacements on the shader templates
+   */
+  virtual void ReplaceShaderValues(
+    std::map<vtkShader::Type, vtkShader*> shaders, vtkViewport* viewport, vtkActor2D* act);
+
+  /**
+   * Make sure appropriate shaders are defined, compiled and bound.  This method
+   * orchestrates the process, much of the work is done in other methods
    */
   virtual void UpdateShaders(vtkOpenGLHelper& cellBO, vtkViewport* viewport, vtkActor2D* act);
 
@@ -97,7 +111,14 @@ protected:
    * Perform string replacements on the shader templates, called from
    * ReplaceShaderValues
    */
-  virtual void ReplaceShaderPicking(std::string& fssource, vtkRenderer* ren, vtkActor2D* act);
+  virtual void ReplaceShaderColor(
+    std::map<vtkShader::Type, vtkShader*> shaders, vtkRenderer* ren, vtkActor2D* act);
+  virtual void ReplaceShaderTCoord(
+    std::map<vtkShader::Type, vtkShader*> shaders, vtkRenderer* ren, vtkActor2D* act);
+  virtual void ReplaceShaderPrimID(
+    std::map<vtkShader::Type, vtkShader*> shaders, vtkRenderer* ren, vtkActor2D* act);
+  virtual void ReplaceShaderPicking(
+    std::map<vtkShader::Type, vtkShader*> shaders, vtkRenderer* ren, vtkActor2D* act);
 
   /**
    * Update the scene when necessary.
