@@ -148,7 +148,7 @@ public:
    *
    * For other IntersectWithLine signatures, see vtkAbstractCellLocator.
    */
-  int IntersectWithLine(const double a0[3], const double a1[3], double tol, double& t, double x[3],
+  int IntersectWithLine(const double p1[3], const double p2[3], double tol, double& t, double x[3],
     double pcoords[3], int& subId, vtkIdType& cellId, vtkGenericCell* cell) override;
 
   /**

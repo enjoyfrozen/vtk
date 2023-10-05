@@ -114,13 +114,13 @@ public:
    * a closed surface, and the intersection points that are returned in
    * 'points' alternate between entrance points and exit points.
    * The return value of the function is 0 if no intersections were found,
-   * -1 if point 'a0' lies inside the closed surface, or +1 if point 'a0'
+   * -1 if point 'p1' lies inside the closed surface, or +1 if point 'p1'
    * lies outside the closed surface.
    * Either 'points' or 'cellIds' can be set to nullptr if you don't want
    * to receive that information.
    */
-  int IntersectWithLine(
-    const double a0[3], const double a1[3], vtkPoints* points, vtkIdList* cellIds) override;
+  int IntersectWithLine(const double p1[3], const double p2[3], double tol, vtkPoints* points,
+    vtkIdList* cellIds, vtkGenericCell* cell) override;
 
   /**
    * Compute an OBB from the list of points given. Return the corner point
@@ -150,18 +150,19 @@ public:
    * Returns true if nodeB and nodeA are disjoint after optional
    * transformation of nodeB with matrix XformBtoA
    */
-  int DisjointOBBNodes(vtkOBBNode* nodeA, vtkOBBNode* nodeB, vtkMatrix4x4* XformBtoA);
+  int DisjointOBBNodes(
+    vtkOBBNode* nodeA, vtkOBBNode* nodeB, vtkMatrix4x4* XformBtoA, double tol = 0);
 
   /**
    * Returns true if line intersects node.
    */
-  int LineIntersectsNode(vtkOBBNode* pA, const double b0[3], const double b1[3]);
+  int LineIntersectsNode(vtkOBBNode* pA, const double b0[3], const double b1[3], double tol = 0);
 
   /**
    * Returns true if triangle (optionally transformed) intersects node.
    */
-  int TriangleIntersectsNode(
-    vtkOBBNode* pA, double p0[3], double p1[3], double p2[3], vtkMatrix4x4* XformBtoA);
+  int TriangleIntersectsNode(vtkOBBNode* pA, double p0[3], double p1[3], double p2[3],
+    vtkMatrix4x4* XformBtoA, double tol = 0);
 
   /**
    * For each intersecting leaf node pair, call function.
@@ -169,7 +170,7 @@ public:
    */
   int IntersectWithOBBTree(vtkOBBTree* OBBTreeB, vtkMatrix4x4* XformBtoA,
     int (*function)(vtkOBBNode* nodeA, vtkOBBNode* nodeB, vtkMatrix4x4* Xform, void* arg),
-    void* data_arg);
+    void* data_arg, double tol = 0);
 
   ///@{
   /**

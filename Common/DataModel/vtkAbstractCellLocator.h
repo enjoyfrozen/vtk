@@ -134,18 +134,14 @@ public:
 
   /**
    * Take the passed line segment and intersect it with the data set.
-   * The return value of the function is 0 if no intersections were found,
-   * -1 if point 'a0' lies inside the closed surface, or +1 if point 'a0'
-   * lies outside the closed surface. This method assumes that the data set
-   * is a vtkPolyData that describes a closed surface, and the intersection
-   * points that are returned in 'points' alternate between entrance points and exit points.
+   * The return value of the function is 0 if no intersections were found.
+   * For each intersection with a cell, the points and cellIds have the relevant information
+   * added sorted by t. If points or cellIds are nullptr pointers, then no information is
+   * generated for that list.
    *
-   * Either 'points' or 'cellIds' can be set to nullptr if you don't want
-   * to receive that information.
+   * This function is the same as the one below, but with a tolerance of 0.0.
    *
-   * This method is only implemented in vtkOBBTree.
-   *
-   * THIS FUNCTION IS THREAD SAFE.
+   * THIS FUNCTION IS NOT THREAD SAFE.
    */
   virtual int IntersectWithLine(
     const double p1[3], const double p2[3], vtkPoints* points, vtkIdList* cellIds);
