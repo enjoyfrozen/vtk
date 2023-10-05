@@ -514,7 +514,7 @@ vtkIdType vtkLinearTransformCellLocator::FindCell(
 }
 
 //------------------------------------------------------------------------------
-bool vtkLinearTransformCellLocator::InsideCellBounds(double x[3], vtkIdType cellId)
+bool vtkLinearTransformCellLocator::InsideCellBounds(double x[3], vtkIdType cellId, double tol)
 {
   if (!this->CellLocator)
   {
@@ -523,6 +523,6 @@ bool vtkLinearTransformCellLocator::InsideCellBounds(double x[3], vtkIdType cell
   this->BuildLocator();
   double xTransform[3];
   this->InverseTransform->InternalTransformPoint(x, xTransform);
-  return this->CellLocator->InsideCellBounds(xTransform, cellId);
+  return this->CellLocator->InsideCellBounds(xTransform, cellId, tol);
 }
 VTK_ABI_NAMESPACE_END

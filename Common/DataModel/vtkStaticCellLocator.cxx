@@ -280,7 +280,7 @@ struct vtkCellProcessor
     double x[3], double pcoords[3], int& subId, vtkIdType& cellId, vtkGenericCell* cell) = 0;
   virtual int IntersectWithLine(const double p1[3], const double p2[3], double tol,
     vtkPoints* points, vtkIdList* cellIds, vtkGenericCell* cell) = 0;
-  virtual bool InsideCellBounds(const double x[3], vtkIdType cellId) = 0;
+  virtual bool InsideCellBounds(const double x[3], vtkIdType cellId, double tol = 0) = 0;
   virtual vtkIdType FindClosestPointWithinRadius(const double x[3], double radius,
     double closestPoint[3], vtkGenericCell* cell, vtkIdType& cellId, int& subId, double& dist2,
     int& inside) = 0;
@@ -360,7 +360,7 @@ struct CellProcessor : public vtkCellProcessor
     double pcoords[3], int& subId, vtkIdType& cellId, vtkGenericCell* cell) override;
   int IntersectWithLine(const double p1[3], const double p2[3], double tol, vtkPoints* points,
     vtkIdList* cellIds, vtkGenericCell* cell) override;
-  bool InsideCellBounds(const double x[3], vtkIdType cellId) override;
+  bool InsideCellBounds(const double x[3], vtkIdType cellId, double tol = 0) override;
   vtkIdType FindClosestPointWithinRadius(const double x[3], double radius, double closestPoint[3],
     vtkGenericCell* cell, vtkIdType& cellId, int& subId, double& dist2, int& inside) override;
   int IsEmpty(vtkIdType binId) override
@@ -1311,9 +1311,9 @@ int CellProcessor<T>::IntersectWithLine(const double p1[3], const double p2[3], 
 
 //------------------------------------------------------------------------------
 template <typename T>
-bool CellProcessor<T>::InsideCellBounds(const double x[3], vtkIdType cellId)
+bool CellProcessor<T>::InsideCellBounds(const double x[3], vtkIdType cellId, double tol)
 {
-  return CellProcessor::IsInBounds(this->CellBounds + 6 * cellId, x);
+  return CellProcessor::IsInBounds(this->CellBounds + 6 * cellId, x, tol);
 }
 } // anonymous namespace
 
@@ -1435,9 +1435,9 @@ int vtkStaticCellLocator::IntersectWithLine(const double p1[3], const double p2[
 }
 
 //------------------------------------------------------------------------------
-bool vtkStaticCellLocator::InsideCellBounds(double x[3], vtkIdType cellId)
+bool vtkStaticCellLocator::InsideCellBounds(double x[3], vtkIdType cellId, double tol)
 {
-  return this->Processor->InsideCellBounds(x, cellId);
+  return this->Processor->InsideCellBounds(x, cellId, tol);
 }
 
 //------------------------------------------------------------------------------
