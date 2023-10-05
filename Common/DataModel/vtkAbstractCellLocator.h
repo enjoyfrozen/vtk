@@ -296,8 +296,8 @@ public:
    * THIS FUNCTION IS THREAD SAFE.
    */
   virtual vtkIdType FindCell(
-    double x[3], double tol2, vtkGenericCell* GenCell, double pcoords[3], double* weights);
-  virtual vtkIdType FindCell(double x[3], double tol2, vtkGenericCell* GenCell, int& subId,
+    double x[3], double tol, vtkGenericCell* GenCell, double pcoords[3], double* weights);
+  virtual vtkIdType FindCell(double x[3], double tol, vtkGenericCell* GenCell, int& subId,
     double pcoords[3], double* weights);
   ///@}
 

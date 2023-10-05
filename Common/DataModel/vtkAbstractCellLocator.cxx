@@ -229,15 +229,15 @@ vtkIdType vtkAbstractCellLocator::FindCell(double x[3])
 
 //------------------------------------------------------------------------------
 vtkIdType vtkAbstractCellLocator::FindCell(
-  double x[3], double tol2, vtkGenericCell* GenCell, double pcoords[3], double* weights)
+  double x[3], double tol, vtkGenericCell* GenCell, double pcoords[3], double* weights)
 {
   int subId;
-  return this->FindCell(x, tol2, GenCell, subId, pcoords, weights);
+  return this->FindCell(x, tol, GenCell, subId, pcoords, weights);
 }
 
 //------------------------------------------------------------------------------
 vtkIdType vtkAbstractCellLocator::FindCell(
-  double x[3], double tol2, vtkGenericCell* GenCell, int& subId, double pcoords[3], double* weights)
+  double x[3], double tol, vtkGenericCell* GenCell, int& subId, double pcoords[3], double* weights)
 {
   vtkIdType returnVal = -1;
   //
@@ -251,7 +251,7 @@ vtkIdType vtkAbstractCellLocator::FindCell(
   //
   if (this->DataSet)
   {
-    returnVal = this->DataSet->FindCell(x, nullptr, GenCell, 0, tol2, subId, pcoords, weights);
+    returnVal = this->DataSet->FindCell(x, nullptr, GenCell, 0, tol, subId, pcoords, weights);
   }
   return returnVal;
 }

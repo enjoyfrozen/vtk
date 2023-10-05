@@ -923,7 +923,7 @@ int vtkModifiedBSPTree::IntersectWithLine(const double p1[3], const double p2[3]
 
 //------------------------------------------------------------------------------
 vtkIdType vtkModifiedBSPTree::FindCell(
-  double x[3], double, vtkGenericCell* cell, int& subId, double pcoords[3], double* weights)
+  double x[3], double tol, vtkGenericCell* cell, int& subId, double pcoords[3], double* weights)
 {
   this->BuildLocator();
   if (this->mRoot == nullptr)
@@ -931,7 +931,7 @@ vtkIdType vtkModifiedBSPTree::FindCell(
     return -1;
   }
   // check if x outside of bounds
-  if (!vtkAbstractCellLocator::IsInBounds(this->mRoot->Bounds, x))
+  if (!vtkAbstractCellLocator::IsInBounds(this->mRoot->Bounds, x, tol))
   {
     return -1;
   }
@@ -965,7 +965,7 @@ vtkIdType vtkModifiedBSPTree::FindCell(
       for (int i = 0; i < node->num_cells; i++)
       {
         cellId = node->sorted_cell_lists[0][i];
-        if (vtkAbstractCellLocator::InsideCellBounds(x, cellId))
+        if (vtkAbstractCellLocator::InsideCellBounds(x, cellId, tol))
         {
           this->DataSet->GetCell(cellId, cell);
           if (cell->EvaluatePosition(x, closestPoint, subId, pcoords, dist2, weights) == 1)

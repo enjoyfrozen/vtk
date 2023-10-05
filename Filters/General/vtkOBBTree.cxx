@@ -68,7 +68,6 @@ vtkOBBTree::vtkOBBTree()
   this->DataSet = nullptr;
   this->Level = 0;
   this->MaxLevel = 12;
-  this->Tolerance = 0.01;
   this->Tree = nullptr;
   this->PointsList = nullptr;
   this->InsertedPoints = nullptr;
@@ -614,7 +613,7 @@ static inline int vtkOBBTreeLineIntersectsTriangle(const double p1[3], const dou
 //------------------------------------------------------------------------------
 // just check whether a point lies inside or outside the DataSet,
 // assuming that the data is a closed vtkPolyData surface.
-int vtkOBBTree::InsideOrOutside(const double point[3])
+int vtkOBBTree::InsideOrOutside(const double point[3], double tol)
 {
   // no points!
   // shoot a ray that is guaranteed to hit one of the cells and use
@@ -666,7 +665,7 @@ int vtkOBBTree::InsideOrOutside(const double point[3])
       {
         dotProd = -dotProd;
       }
-      if (dotProd >= this->Tolerance + 1e-6)
+      if (dotProd >= tol + 1e-6)
       {
         return this->IntersectWithLine(point, x, nullptr, nullptr);
       }

@@ -23,7 +23,6 @@
  *
  * @warning
  * vtkOBBTree utilizes the following parent class parameters:
- * - Tolerance                   (default 0.01)
  * - Level                       (default 4)
  * - MaxLevel                    (default 12)
  * - NumberOfCellsPerNode        (default 32)
@@ -31,6 +30,7 @@
  * - UseExistingSearchStructure  (default false)
  *
  * vtkOBBTree does NOT utilize the following parameters:
+ * - Tolerance
  * - Automatic
  * - CacheCellBounds
  *
@@ -55,6 +55,7 @@
 #define vtkOBBTree_h
 
 #include "vtkAbstractCellLocator.h"
+#include "vtkDeprecation.h"          // For VTK_DEPRECATED_IN_9_3_0
 #include "vtkFiltersGeneralModule.h" // For export macro
 
 VTK_ABI_NAMESPACE_BEGIN
@@ -142,9 +143,9 @@ public:
   /**
    * Determine whether a point is inside or outside the data used to build
    * this OBB tree.  The data must be a closed surface vtkPolyData data set.
-   * The return value is +1 if outside, -1 if inside, and 0 if undecided.
+   * The return value is +1 if inside, -1 if outside, and 0 if undecided.
    */
-  int InsideOrOutside(const double point[3]);
+  int InsideOrOutside(const double point[3], double tol = 0);
 
   /**
    * Returns true if nodeB and nodeA are disjoint after optional

@@ -1098,8 +1098,8 @@ double vtkCellLocator::Distance2ToBounds(const double x[3], double bounds[6])
 }
 
 //------------------------------------------------------------------------------
-vtkIdType vtkCellLocator::FindCell(double x[3], double vtkNotUsed(tol2), vtkGenericCell* cell,
-  int& subId, double pcoords[3], double* weights)
+vtkIdType vtkCellLocator::FindCell(
+  double x[3], double tol, vtkGenericCell* cell, int& subId, double pcoords[3], double* weights)
 {
   this->BuildLocator();
   if (this->Tree == nullptr)
@@ -1107,7 +1107,7 @@ vtkIdType vtkCellLocator::FindCell(double x[3], double vtkNotUsed(tol2), vtkGene
     return -1;
   }
   // check if x outside of bounds
-  if (!vtkAbstractCellLocator::IsInBounds(this->Bounds, x))
+  if (!vtkAbstractCellLocator::IsInBounds(this->Bounds, x, tol))
   {
     return -1;
   }
@@ -1134,7 +1134,7 @@ vtkIdType vtkCellLocator::FindCell(double x[3], double vtkNotUsed(tol2), vtkGene
       cellId = cellIds->GetId(idx);
       // check whether we could be close enough to the cell by
       // testing the cell bounds
-      if (this->InsideCellBounds(x, cellId))
+      if (this->InsideCellBounds(x, cellId, tol))
       {
         this->DataSet->GetCell(cellId, cell);
         if (cell->EvaluatePosition(x, nullptr, subId, pcoords, dist2, weights) == 1)

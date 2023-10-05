@@ -56,8 +56,8 @@ struct vtkCellTree
   virtual ~vtkCellTree() = default;
 
   // Satisfy cell locator API
-  virtual vtkIdType FindCell(
-    double pos[3], vtkGenericCell* cell, int& subId, double pcoords[3], double* weights) = 0;
+  virtual vtkIdType FindCell(double pos[3], double tol, vtkGenericCell* cell, int& subId,
+    double pcoords[3], double* weights) = 0;
   virtual void FindCellsWithinBounds(double* bbox, vtkIdList* cells) = 0;
   virtual int IntersectWithLine(const double p1[3], const double p2[3], double tol, double& t,
     double x[3], double pcoords[3], int& subId, vtkIdType& cellId, vtkGenericCell* cell) = 0;
@@ -204,8 +204,8 @@ struct CellTree : public vtkCellTree
     CellTreeNode<T>*& nearNode, TCellTreeNode*& parent, TCellTreeNode*& farNode, int& mustCheck);
 
   // Methods to satisfy vtkCellProcessor virtual API
-  vtkIdType FindCell(
-    double pos[3], vtkGenericCell* cell, int& subId, double pcoords[3], double* weights) override;
+  vtkIdType FindCell(double pos[3], double tol, vtkGenericCell* cell, int& subId, double pcoords[3],
+    double* weights) override;
   void FindCellsWithinBounds(double* bbox, vtkIdList* cells) override;
   int IntersectWithLine(const double p1[3], const double p2[3], double tol, double& t, double x[3],
     double pcoords[3], int& subId, vtkIdType& cellId, vtkGenericCell* cell) override;
@@ -661,10 +661,10 @@ public:
 //------------------------------------------------------------------------------
 template <typename T>
 vtkIdType CellTree<T>::FindCell(
-  double* pos, vtkGenericCell* cell, int& subId, double* pcoords, double* weights)
+  double* pos, double tol, vtkGenericCell* cell, int& subId, double* pcoords, double* weights)
 {
   // check if pos outside of bounds
-  if (!this->Locator->IsInBounds(this->DataBBox, pos))
+  if (!this->Locator->IsInBounds(this->DataBBox, pos, tol))
   {
     return -1;
   }
@@ -679,7 +679,7 @@ vtkIdType CellTree<T>::FindCell(
 
     for (; begin != end; ++begin)
     {
-      if (this->Locator->InsideCellBounds(pos, *begin))
+      if (this->Locator->InsideCellBounds(pos, *begin, tol))
       {
         this->DataSet->GetCell(*begin, cell);
         if (cell->EvaluatePosition(pos, nullptr, subId, pcoords, dist2, weights) == 1)
@@ -1358,14 +1358,14 @@ void vtkCellTreeLocator::BuildLocatorInternal()
 
 //------------------------------------------------------------------------------
 vtkIdType vtkCellTreeLocator::FindCell(
-  double pos[3], double, vtkGenericCell* cell, int& subId, double pcoords[3], double* weights)
+  double pos[3], double tol, vtkGenericCell* cell, int& subId, double pcoords[3], double* weights)
 {
   this->BuildLocator();
   if (!this->Tree)
   {
     return -1;
   }
-  return this->Tree->FindCell(pos, cell, subId, pcoords, weights);
+  return this->Tree->FindCell(pos, tol, cell, subId, pcoords, weights);
 }
 
 //------------------------------------------------------------------------------
