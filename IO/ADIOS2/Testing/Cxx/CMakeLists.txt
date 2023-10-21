@@ -10,8 +10,10 @@ if (TARGET VTK::ParallelMPI)
   vtk_add_test_mpi(vtkIOADIOS2CxxTests-MPI mpiTests TESTING_DATA
     TestADIOS2BPReaderMPISingleTimeStep.cxx
     TestADIOS2BPReaderMPIMultiTimeSteps3D.cxx,NO_VALID
-    TestADIOS2BPReaderMPIMultiTimeSteps2D.cxx)
+    TestADIOS2BPReaderMPIMultiTimeSteps2D.cxx,
+    TestADIOS2DataArrayWriter.cxx,NO_VALID)
   vtk_test_cxx_executable(vtkIOADIOS2CxxTests-MPI mpiTests)
+  target_link_libraries(vtkIOADIOS2CxxTests-MPI PUBLIC adios2::adios2)
 
   # VTX tests
   set(TestIOADIOS2VTX_VTI3DRendering_NUMPROCS 2)
@@ -24,9 +26,11 @@ else ()
   vtk_add_test_cxx(vtkIOADIOS2CxxTests tests TESTING_DATA
     TestADIOS2BPReaderSingleTimeStep.cxx
     TestADIOS2BPReaderMultiTimeSteps3D.cxx
-    TestADIOS2BPReaderMultiTimeSteps2D.cxx)
+    TestADIOS2BPReaderMultiTimeSteps2D.cxx
+    TestADIOS2DataArrayWriter.cxx,NO_VALID)
 
   vtk_test_cxx_executable(vtkIOADIOS2CxxTests tests)
+  target_link_libraries(vtkIOADIOS2CxxTests PUBLIC adios2::adios2)
 endif ()
 
 # VTX tests
