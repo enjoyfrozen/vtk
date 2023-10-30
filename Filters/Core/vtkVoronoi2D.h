@@ -152,6 +152,17 @@ public:
 
   ///@{
   /**
+   * Enable the validation and repair of the Voronoi tesselation (which also
+   * affects the Delaunay triangulation if requested). Enabling validation
+   * increases computation time. By default, validation is off.
+   */
+  vtkSetMacro(Validate, vtkTypeBool);
+  vtkGetMacro(Validate, vtkTypeBool);
+  vtkBooleanMacro(Validate, vtkTypeBool);
+  ///@}
+
+  ///@{
+  /**
    * Specify a padding for the bounding box of the points. A >0 padding is
    * necessary in order to create valid Voronoi tiles on the boundary of the
    * tessellation. The padding is specified as a fraction of the diagonal
@@ -285,17 +296,6 @@ public:
   vtkGetObjectMacro(Spheres, vtkSpheres);
   ///@}
 
-  //@{
-  /**
-   * Specify a numerical tolerance for merging nearly coincident points. The
-   * tolerance is a fraction of the length of the diagonal of the locator
-   * bins. This is used to ignore input points that are within tolerance of
-   * one another, thereby avoiding numerical issues.
-   */
-  vtkSetClampMacro(Tolerance,double,0.0,1.0);
-  vtkGetMacro(Tolerance,double);
-  //@}
-
   /**
    *  Return the maximum number of sides across all Voronoi tiles. This is
    *  valid only after algorithm execution.
@@ -318,9 +318,9 @@ protected:
   ~vtkVoronoi2D() override = default;
 
   int OutputType;
+  vtkTypeBool Validate;
   int GenerateScalars;
   double Padding;
-  double Tolerance;
   int ProjectionPlaneMode; // selects the plane in 3D where the tessellation will be computed
   vtkSmartPointer<vtkStaticPointLocator2D> Locator;
   vtkSmartPointer<vtkAbstractTransform> Transform;
