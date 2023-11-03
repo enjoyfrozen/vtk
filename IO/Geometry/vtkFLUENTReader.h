@@ -226,11 +226,6 @@ protected:
   intVector* SubSectionIds;
   intVector* SubSectionSize;
 
-  stringVector* ScalarVariableNames;
-  intVector* ScalarSubSectionIds;
-  stringVector* VectorVariableNames;
-  intVector* VectorSubSectionIds;
-
   vtkTypeBool SwapBytes;
   int GridDimension;
   int DataPass;
