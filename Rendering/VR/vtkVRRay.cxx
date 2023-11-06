@@ -114,6 +114,11 @@ void vtkVRRay::Render(vtkOpenGLRenderWindow* win, vtkMatrix4x4* poseMatrix)
     this->Loaded = true;
   }
 
+  if (!this->Show)
+  {
+    return;
+  }
+
   // Render ray
   win->GetState()->vtkglDepthMask(GL_TRUE);
   win->GetShaderCache()->ReadyShaderProgram(this->RayHelper.Program);

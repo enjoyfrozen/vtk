@@ -296,7 +296,7 @@ void vtkOpenXRRenderWindow::RenderModels()
     }
 
     // if we have a model and it is visible
-    if (pRenderModel && pRenderModel->GetVisibility())
+    if (pRenderModel)
     {
       XrPosef* handPose = iren->GetHandPose(hand);
       if (handPose)

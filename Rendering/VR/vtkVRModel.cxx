@@ -111,15 +111,6 @@ void vtkVRModel::Render(vtkOpenGLRenderWindow* win, vtkMatrix4x4* modelToPhysica
 
   if (this->Loaded)
   {
-    // render the model
-    win->GetState()->vtkglDepthMask(GL_TRUE);
-    win->GetShaderCache()->ReadyShaderProgram(this->ModelHelper.Program);
-    this->ModelHelper.VAO->Bind();
-    this->ModelHelper.IBO->Bind();
-
-    this->TextureObject->Activate();
-    this->ModelHelper.Program->SetUniformi("diffuse", this->TextureObject->GetTextureUnit());
-
     vtkRenderer* ren = static_cast<vtkRenderer*>(win->GetRenderers()->GetItemAsObject(0));
     if (ren)
     {
@@ -134,19 +125,40 @@ void vtkVRModel::Render(vtkOpenGLRenderWindow* win, vtkMatrix4x4* modelToPhysica
 
       // transpose to send down to OpenGL
       this->ModelToProjectionMatrix->Transpose();
-      this->ModelHelper.Program->SetUniformMatrix("matrix", this->ModelToProjectionMatrix);
     }
 
-    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(this->ModelHelper.IBO->IndexCount),
-      GL_UNSIGNED_SHORT, nullptr);
-    this->TextureObject->Deactivate();
-
-    // Draw ray
-    if (this->Ray->GetShow())
+    if (this->Visibility)
     {
-      this->Ray->Render(win, this->ModelToProjectionMatrix);
+      // render the model
+      win->GetState()->vtkglDepthMask(GL_TRUE);
+      win->GetShaderCache()->ReadyShaderProgram(this->ModelHelper.Program);
+      this->ModelHelper.VAO->Bind();
+      this->ModelHelper.IBO->Bind();
+      this->TextureObject->Activate();
+      this->ModelHelper.Program->SetUniformi("diffuse", this->TextureObject->GetTextureUnit());
+      this->ModelHelper.Program->SetUniformMatrix("matrix", this->ModelToProjectionMatrix);
+
+      glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(this->ModelHelper.IBO->IndexCount),
+        GL_UNSIGNED_SHORT, nullptr);
+
+      this->TextureObject->Deactivate();
     }
+
+    this->Ray->Render(win, this->ModelToProjectionMatrix);
   }
+}
+
+//------------------------------------------------------------------------------
+void vtkVRModel::SetVisibility(bool v)
+{
+  this->SetVisibility(v, v);
+}
+
+//------------------------------------------------------------------------------
+void vtkVRModel::SetVisibility(bool model, bool ray)
+{
+  this->Visibility = model;
+  this->SetShowRay(ray);
 }
 
 //------------------------------------------------------------------------------
