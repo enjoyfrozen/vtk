@@ -672,17 +672,17 @@ struct VoronoiTiles
     this->MaxSides = 0;
     vtkSMPThreadLocal<LocalDataType>::iterator ldItr;
     vtkSMPThreadLocal<LocalDataType>::iterator ldEnd = this->LocalData.end();
-    for ( ldItr=this->LocalData.begin(); ldItr != ldEnd; ++ldItr )
+    for ( auto& localData : this->LocalData)
     {
-      totalTiles += (*ldItr).NumberOfTiles;
-      connSize += static_cast<vtkIdType>((*ldItr).LocalTiles.size());
-      totalPoints += (*ldItr).NumberOfPoints;
-      this->NumSpokes += (*ldItr).LocalSpokes.size();
-      (*ldItr).Offset = offset;
+      totalTiles += localData.NumberOfTiles;
+      connSize += static_cast<vtkIdType>(localData.LocalTiles.size());
+      totalPoints += localData.NumberOfPoints;
+      this->NumSpokes += localData.LocalSpokes.size();
+      localData.Offset = offset;
       offset = totalPoints;
       this->NumThreadsUsed++;
-      this->MaxSides = ( (*ldItr).MaxSides > this->MaxSides ?
-                         (*ldItr).MaxSides : this->MaxSides);
+      this->MaxSides = ( localData.MaxSides > this->MaxSides ?
+                         localData.MaxSides : this->MaxSides);
     } // loop over local thread output
 
     // If Voronoi output is requested, produce the output convex polygons
@@ -726,11 +726,11 @@ struct VoronoiTiles
       totalPoints = 0;
       offset = 0;
       vtkIdType threadId=0;
-      for ( ldItr=this->LocalData.begin(); ldItr != ldEnd; ++ldItr )
+      for ( auto& localData : this->LocalData)
       {
         // Copy all the points from this thread
-        tvEnd = (*ldItr).LocalPoints.end();
-        for ( tvItr = (*ldItr).LocalPoints.begin(); tvItr != tvEnd; ++tvItr )
+        tvEnd = localData.LocalPoints.end();
+        for ( tvItr = localData.LocalPoints.begin(); tvItr != tvEnd; ++tvItr )
         {
           *pts++ = (*tvItr).X;
           *pts++ = (*tvItr).Y;
@@ -739,9 +739,9 @@ struct VoronoiTiles
 
         // Copy tiles into cell array: define the offsets and connectivity
         // arrays.  Use the more efficient vtkCellArray::SetData() method.
-        cItr = (*ldItr).LocalTiles.begin();
-        pEnd = (*ldItr).LocalPtIds.end();
-        for ( pItr = (*ldItr).LocalPtIds.begin(); pItr != pEnd; )
+        cItr = localData.LocalTiles.begin();
+        pEnd = localData.LocalPtIds.end();
+        for ( pItr = localData.LocalPtIds.begin(); pItr != pEnd; )
         {
           // Offsets
           *offsetsPtr++ = offset;
@@ -760,7 +760,7 @@ struct VoronoiTiles
           // If requested, thread id
           if ( this->ScalarMode == vtkVoronoi2D::THREAD_IDS )
           {
-            std::size_t j, nCells = (*ldItr).NumberOfTiles;
+            std::size_t j, nCells = localData.NumberOfTiles;
             for (j=0; j < nCells; ++j)
             {
               *scalars++ = threadId;
@@ -769,8 +769,8 @@ struct VoronoiTiles
           // the generating point id
           else if ( this->ScalarMode == vtkVoronoi2D::POINT_IDS )
           {
-            pEnd = (*ldItr).LocalPtIds.end();
-            for ( pItr = (*ldItr).LocalPtIds.begin(); pItr != pEnd; )
+            pEnd = localData.LocalPtIds.end();
+            for ( pItr = localData.LocalPtIds.begin(); pItr != pEnd; )
             {
               *scalars++ = *pItr++;
             }
@@ -778,8 +778,8 @@ struct VoronoiTiles
           // the number of sides of the voronoi tile
           else //if ( this->ScalarMode == vtkVoronoi2D::NUMBER_SIDES )
           {
-            pEnd = (*ldItr).LocalPtIds.end();
-            for ( pItr = (*ldItr).LocalPtIds.begin(); pItr != pEnd; )
+            pEnd = localData.LocalPtIds.end();
+            for ( pItr = localData.LocalPtIds.begin(); pItr != pEnd; )
             {
               *scalars++ = this->NumPts[*pItr++];
             }
@@ -787,7 +787,7 @@ struct VoronoiTiles
         }//Produce scalars
 
         threadId++;
-        totalPoints += (*ldItr).NumberOfPoints;
+        totalPoints += localData.NumberOfPoints;
       }//for each thread
 
       // Terminate offset array
@@ -821,11 +821,11 @@ struct VoronoiTiles
       }
 
       // Now copy the spokes into the right spot
-      for ( ldItr=this->LocalData.begin(); ldItr != ldEnd; ++ldItr )
+      for ( auto& localData : this->LocalData)
       {
-        pItr = (*ldItr).LocalPtIds.begin();
-        spEnd = (*ldItr).LocalSpokes.end();
-        for ( spItr = (*ldItr).LocalSpokes.begin(); spItr != spEnd; )
+        pItr = localData.LocalPtIds.begin();
+        spEnd = localData.LocalSpokes.end();
+        for ( spItr = localData.LocalSpokes.begin(); spItr != spEnd; )
         {
           ptId = *pItr++;
           numSpokes = this->NumPts[ptId];

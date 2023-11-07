@@ -24,7 +24,7 @@ VTK_DATA_ROOT = vtkGetDataRoot()
 
 # Control problem size and set debugging parameters
 NPts = 1
-NPts = 1000000
+NPts = 5000000
 MaxTileClips = 10000
 PointsPerBucket = 2
 GenerateFlower = 1
@@ -85,6 +85,7 @@ voronoi.SetPointOfInterest(PointOfInterest)
 voronoi.SetMaximumNumberOfTileClips(MaxTileClips)
 voronoi.GetLocator().SetNumberOfPointsPerBucket(PointsPerBucket)
 voronoi.SetGenerateVoronoiFlower(GenerateFlower)
+voronoi.SetPadding(0.001)
 
 # Time execution
 timer = vtkTimerLog()

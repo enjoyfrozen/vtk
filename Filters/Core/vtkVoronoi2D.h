@@ -30,7 +30,7 @@
  * non-rigid, non-invertible, etc.
  *
  * This filter is a reference implementation written with simplicity in
- * mind. Additional methods are available for debugging / instructional
+ * mind. The filter also provides methods for debugging / instructional
  * purposes. This includes producing a single Voronoi tile under various
  * stages of creation, as well as the Voronoi flower, related to the error
  * metric for point insertion / half-space clipping.
@@ -38,8 +38,8 @@
  * Publications are in preparation to describe the algorithm. A brief summary
  * is as follows. In parallel, each (generating) input point is associated
  * with an initial Voronoi tile, which is simply the bounding box of the
- * point set. A locator is then used to identify nearby points: each neighbor
- * in turn generates a clipping line positioned halfway between the
+ * point set. A spatial locator is then used to identify nearby points: each
+ * neighbor in turn generates a clipping line positioned halfway between the
  * generating point and the neighboring point, and orthogonal to the line
  * connecting them. Clips are readily performed by evaluating the vertices of
  * the convex Voronoi tile as being on either side (inside,outside) of the
@@ -65,22 +65,31 @@
  * interest along with scalar values corresponding to the error radii at each
  * Voronoi tile vertex point.
  *
+ * This filter can be used to tessellate different regions with convex
+ * polygons (i.e., Voronoi tiles), or create holes in Voronoi tessellations,
+ * using a supplemental input single-component, scalar data array (the region
+ * ids array). The size of the region ids array must match the number of
+ * input points. In this array, a value of "0" means the tile associated with
+ * point 0 is considered "outside" and so is not produced on
+ * output. Otherwise, any non-zero region indicates which region a particular
+ * tile belongs to.
+ *
  * @warning
  * Coincident input points will likely produce an invalid tessellation. This
  * is because the Voronoi tessellation requires unique input points. Use a
- * cleaning filter (like vtkStaticCleanPolyData) to remove duplicates if
- * necessary.
+ * cleaning filter (like vtkStaticCleanPolyData/vtkCleanPolyData) to remove
+ * duplicates if necessary.
  *
  * @warning
  * This algorithm is a novel approach which implements embarrassingly
  * parallel algorithms for both the Voronoi tessellation and the generation
- * of the dual Delaunay triangulation. At the core of the algorithm a locator
- * is used to determine points close to a specified position (the Voronoi
- * tile generating point). Points are requested in increasing, disjoint
- * annular rings.  Currently, a vtkStaticPointLocator2D is used because it is
- * both threaded (its constructed) and supports thread-safe queries. While
- * other locators could be used in principal (and may be added in the
- * future), they must support thread-safe operations and annular point
+ * of the dual Delaunay triangulation. At the core of the algorithm is the
+ * use of a spatial locator to determine points close to a specified position
+ * (the Voronoi tile generating point). Points are requested in increasing,
+ * disjoint annular rings.  Currently, a vtkStaticPointLocator2D is used
+ * because it is both threaded (its construction) and supports thread-safe
+ * queries. While other locators could be used in principal (and may be added
+ * in the future), they must support thread-safe operations and annular point
  * requests.
  *
  * @warning
@@ -137,7 +146,7 @@ public:
    * computes an internal representation of the Voronoi tessellation. However
    * if disabled, then the cost of memory and execution is reduced by not
    * actually instantiating the Voronoi polygonal mesh. This can be useful
-   * for example if only the Delaunay Triangulation is desired. By default,
+   * for example if only the Delaunay triangulation is desired. By default,
    * the filter only produces the Voronoi tessellation. If specified, the
    * Delaunay triangulation is computed by extracting the dual of the
    * Voronoi tessellation. (Note that the extraction process includes some
@@ -168,30 +177,44 @@ public:
    * tessellation. The padding is specified as a fraction of the diagonal
    * length of the bounding box of the points.
    */
-  vtkSetClampMacro(Padding, double, 0.001, 0.25);
+  vtkSetClampMacro(Padding, double, 0.0001, 0.25);
   vtkGetMacro(Padding, double);
   ///@}
 
+  /**
+   * The following enums are used to control the production of scalar data
+   * associated with each Voronoi tile. (Scalar data is only possible when
+   * VORONOI output type is requested.) By default (NONE) no scalar data is
+   * produced.  Otherwise scalars corresponding to point ids (POINT_IDS),
+   * region ids (REGION_IDS), the number of sides for each Voronoi tile
+   * (NUMBER_SIDES), or the thread id producing the tile (THREAD_IDS) is also
+   * possible. Note that REGION_IDS are only possible when a
+   * single-component, point data array is provided on input. Also note that
+   * the THREAD_IDS scalars will likey vary bewtween threaded executions.
+   */
   enum GenerateScalarsStrategy
   {
     NONE=0,
     POINT_IDS=1,
-    NUMBER_SIDES=2,
-    THREAD_IDS=3
+    REGION_IDS=2,
+    NUMBER_SIDES=3,
+    THREAD_IDS=4
   };
 
   ///@{
   /**
    * Indicate whether to create a scalar array as part of the Voronoi
-   * output (if requested). Point ids, the number of sides of each Voronoi
-   * polygon, or execution thread ids may be output. By default no scalars
-   * are generated. Note that different algorithm executions likely generate
-   * different thread ids as execution order is unpredictable.
+   * output (if Voronoi output is requested). Point ids, region ids, the
+   * number of sides of each Voronoi polygon, or execution thread ids may be
+   * output. By default no scalars are generated. Note that different
+   * algorithm executions likely generate different thread ids as execution
+   * order is unpredictable.
    */
   vtkSetClampMacro(GenerateScalars, int, NONE, THREAD_IDS);
   vtkGetMacro(GenerateScalars, int);
   void SetGenerateScalarsToNone() { this->SetGenerateScalars(NONE); }
   void SetGenerateScalarsToPointIds() { this->SetGenerateScalars(POINT_IDS); }
+  void SetGenerateScalarsToRegionIds() { this->SetGenerateScalars(REGION_IDS); }
   void SetGenerateScalarsToNumberOfSides()
     { this->SetGenerateScalars(NUMBER_SIDES); }
   void SetGenerateScalarsToThreadIds()
