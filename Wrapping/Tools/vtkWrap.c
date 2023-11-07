@@ -783,7 +783,7 @@ void vtkWrap_FindNewInstanceMethods(ClassInfo* data, const HierarchyInfo* hinfo)
       {
         /* get the command-line options */
         options = vtkParse_GetCommandLineOptions();
-        fprintf(stderr, "Warning: %s without VTK_NEWINSTANCE hint in %s\n", theFunc->Name,
+        fprintf(stderr, "warning: %s without VTK_NEWINSTANCE hint in %s\n", theFunc->Name,
           options->InputFileName);
         theFunc->ReturnValue->Attributes |= VTK_PARSE_NEWINSTANCE;
         /* Do not finalize `options` here; we're just peeking at global state
@@ -1312,8 +1312,9 @@ char* vtkWrap_TemplateArg(const char* name)
   return arg;
 }
 
-void vtkWrap_WarnEmpty(const OptionInfo* options)
+void vtkWrap_WarnEmpty(void)
 {
+  const OptionInfo* options = vtkParse_GetCommandLineOptions();
   if (options->WarningFlags.Empty)
   {
     fprintf(stderr, "warning: did not wrap anything from %s [-Wempty]\n", options->InputFileName);

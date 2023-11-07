@@ -991,7 +991,7 @@ int VTK_PARSE_MAIN(int argc, char* argv[])
   {
     WriteDummyClass(fp, data, options->OutputFileName);
     fclose(fp);
-    vtkWrap_WarnEmpty(options);
+    vtkWrap_WarnEmpty();
     return vtkParse_FinalizeMain(0);
   }
 
@@ -999,7 +999,7 @@ int VTK_PARSE_MAIN(int argc, char* argv[])
   {
     WriteDummyClass(fp, data, options->OutputFileName);
     fclose(fp);
-    vtkWrap_WarnEmpty(options);
+    vtkWrap_WarnEmpty();
     return vtkParse_FinalizeMain(0);
   }
 
@@ -1009,7 +1009,7 @@ int VTK_PARSE_MAIN(int argc, char* argv[])
     {
       WriteDummyClass(fp, data, options->OutputFileName);
       fclose(fp);
-      vtkWrap_WarnEmpty(options);
+      vtkWrap_WarnEmpty();
       return vtkParse_FinalizeMain(0);
     }
   }
@@ -1020,7 +1020,7 @@ int VTK_PARSE_MAIN(int argc, char* argv[])
     {
       WriteDummyClass(fp, data, options->OutputFileName);
       fclose(fp);
-      vtkWrap_WarnEmpty(options);
+      vtkWrap_WarnEmpty();
       return vtkParse_FinalizeMain(0);
     }
 
