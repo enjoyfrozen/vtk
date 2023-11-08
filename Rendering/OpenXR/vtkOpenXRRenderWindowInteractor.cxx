@@ -334,6 +334,18 @@ XrPosef* vtkOpenXRRenderWindowInteractor::GetHandPose(uint32_t hand)
 }
 
 //------------------------------------------------------------------------------
+XrPosef* vtkOpenXRRenderWindowInteractor::GetHandPoseGrip(uint32_t hand)
+{
+  if (this->MapActionStruct_Name.count("handposegrip") == 0)
+  {
+    return nullptr;
+  }
+
+  ActionData* adHandPose = this->MapActionStruct_Name["handposegrip"];
+  return &(adHandPose->ActionStruct.PoseLocations[hand].pose);
+}
+
+//------------------------------------------------------------------------------
 void vtkOpenXRRenderWindowInteractor::HandleAction(
   const ActionData& actionData, const int hand, vtkEventDataDevice3D* ed)
 {

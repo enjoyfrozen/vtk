@@ -41,6 +41,7 @@ public:
    * does not exist in the map.
    */
   XrPosef* GetHandPose(uint32_t hand);
+  XrPosef* GetHandPoseGrip(uint32_t hand);
 
   ///@{
   /**
