@@ -295,6 +295,13 @@ extern "C"
    */
   VTKWRAPPINGTOOLS_EXPORT void vtkWrap_WarnEmpty(void);
 
+  /**
+   * Emit a warning with suggested hint for method.
+   *
+   * Depends on the warning flag being requested.
+   */
+  VTKWRAPPINGTOOLS_EXPORT void vtkWrap_WarnHint(const char* meth, const char* hint);
+
 #ifdef __cplusplus
 }
 #endif

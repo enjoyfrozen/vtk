@@ -61,6 +61,8 @@ static void parse_print_help(FILE* fp, const char* cmd, int multi)
     "  -undef            do not predefine platform macros\n"
     "  -Wempty           warn when nothing is wrapped\n"
     "  -Wno-empty        do not warn when nothing is wrapped\n"
+    "  -Whint            warn when hint is missing\n"
+    "  -Wno-hint         do not warn when hint is missing\n"
     "  @<file>           read arguments from a file\n",
     parse_exename(cmd));
 
@@ -278,6 +280,7 @@ static int parse_check_options(int argc, char* argv[], int multi)
   options.DumpMacros = 0;
   options.DependencyFileName = NULL;
   options.WarningFlags.Empty = 0;
+  options.WarningFlags.Hint = 0;
 
   for (i = 1; i < argc; i++)
   {
@@ -317,6 +320,14 @@ static int parse_check_options(int argc, char* argv[], int multi)
     else if (strcmp(argv[i], "-Wno-empty") == 0)
     {
       options.WarningFlags.Empty = 0;
+    }
+    else if (strcmp(argv[i], "-Whint") == 0)
+    {
+      options.WarningFlags.Hint = 1;
+    }
+    else if (strcmp(argv[i], "-Wno-hint") == 0)
+    {
+      options.WarningFlags.Hint = 0;
     }
     else if (strcmp(argv[i], "-MF") == 0)
     {
