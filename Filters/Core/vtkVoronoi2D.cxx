@@ -442,8 +442,11 @@ struct Spoke
   Spoke() : Id(-1), Classification(VALID) {}
   Spoke(vtkIdType id) : Id(id), Classification(VALID) {}
 };
+
 // Typedefs related to edge spoke structure
-using SpokerIterator = std::vector<Spoke>::iterator;
+using WheelType = std::vector<vtkIdType>;
+using SpokeType = std::vector<Spoke>;
+using SpokerIterator = SpokeType::iterator;
 
 // Track local data on a per-thread basis. In the Reduce() method this
 // information will be used to composite the data from each thread into a
@@ -454,24 +457,189 @@ struct LocalDataType
   vtkIdType NumberOfPoints;
   int MaxSides;
   std::vector<vtkIdType> LocalPtIds; //generating point for each tile
-  std::vector<vtkIdType> LocalTiles; //vertex indices for each tile
-  std::vector<TileVertex> LocalPoints; //x-y coordinates for each tile point
-  std::vector<Spoke> LocalSpokes;  //connecting edges/spokes for each tile
-  VTile Tile;
-  vtkIdType Offset;
+  std::vector<TileVertex> LocalPoints; //x-y coordinates for each tile vertex
+  SpokeType LocalSpokes;  //connecting edges/spokes for each tile
+  VTile Tile; //computational tile
+  vtkIdType PtOffset; //keep track of the point offsets in this thread
+  vtkIdType TileOffset; //keep track of the cell offsets in this thread
+  vtkIdType ThreadId; //assign a thread id [0,NumThreadsUsed)
 
   LocalDataType()
     : NumberOfTiles(0)
     , NumberOfPoints(0)
     , MaxSides(0)
-    , Offset(0)
+    , PtOffset(0)
+    , TileOffset(0)
   {
     this->LocalPtIds.reserve(2048);
-    this->LocalTiles.reserve(2048);
     this->LocalPoints.reserve(2048);
     this->LocalSpokes.reserve(2048);
   }
 };
+
+// Map thread local data to id. Keep track of the number of connections
+// to a particular point (i.e., the number of spokes).
+using ThreadMapType = std::vector<LocalDataType*>;
+using PointCountType = std::vector<vtkIdType>;
+
+// Functor used to generate the filter's Voronoi output. The threading is
+// across the n threads used to compute the Voronoi tiles. So this is
+// effectively a parallel copy to the output polydata.
+struct ProduceVoronoiOutput
+{
+  const ThreadMapType& ThreadMap;
+  const PointCountType& NumPts;
+  double *Pts;
+  double Z;
+  vtkIdType *Conn;
+  vtkIdType *Offsets;
+  vtkIdType *Scalars;
+  int ScalarMode;
+  vtkDataArray *RegionIds;
+
+  ProduceVoronoiOutput(ThreadMapType &threadMap, PointCountType& npts,
+                       double *pts, double z,
+                       vtkIdType *conn, vtkIdType *offsets,
+                       vtkIdType *scalars, int scalarMode, vtkDataArray *regionIds)
+    : ThreadMap(threadMap)
+    , NumPts(npts)
+    , Pts(pts)
+    , Z(z)
+    , Conn(conn)
+    , Offsets(offsets)
+    , Scalars(scalars)
+    , ScalarMode(scalarMode)
+    , RegionIds(regionIds)
+  {
+  }
+
+  void operator()(vtkIdType threadId, vtkIdType endThreadId)
+  {
+    // Produce the primary (Voronoi) output. Traverse each tile and
+    // copy local data into the filter output.
+    for ( ; threadId < endThreadId; ++threadId )
+    {
+      LocalDataType& localData = *(this->ThreadMap[threadId]);
+      vtkIdType ptOffset = localData.PtOffset;
+      vtkIdType tileOffset = localData.TileOffset;
+
+      // Copy all the points from this thread into the output points array.
+      double *pts = this->Pts + 3*ptOffset;
+      for ( auto& tvItr : localData.LocalPoints )
+      {
+        *pts++ = tvItr.X;
+        *pts++ = tvItr.Y;
+        *pts++ = this->Z;
+      }
+
+      // Generate the cell array using the more efficient
+      // vtkCellArray::SetData() method. Start by generating the
+      // connectivity, writing into the output connectivity array.
+      vtkIdType ptId = ptOffset;
+      vtkIdType *connPtr = this->Conn + ptOffset;
+      std::generate(connPtr,connPtr+localData.NumberOfPoints, [&] {return ptId++;});
+
+      // Now generate cell offsets.
+      vtkIdType offset = ptOffset;
+      vtkIdType *offsetPtr = this->Offsets + tileOffset;
+      for ( auto& pItr : localData.LocalPtIds )
+      {
+        *offsetPtr++ = offset;
+        vtkIdType nPts = this->NumPts[pItr];
+        offset += nPts;
+      }
+
+      // Copy cell scalars if requested
+      if ( this->Scalars != nullptr )
+      {
+        vtkIdType *scalars = this->Scalars + tileOffset;
+        // If requested, thread id
+        if ( this->ScalarMode == vtkVoronoi2D::THREAD_IDS )
+        {
+          std::size_t j, nCells = localData.NumberOfTiles;
+          for (j=0; j < nCells; ++j)
+          {
+            *scalars++ = threadId;
+          }
+        }
+        // the generating point id
+        else if ( this->ScalarMode == vtkVoronoi2D::POINT_IDS )
+        {
+          for ( auto& pItr : localData.LocalPtIds )
+          {
+            *scalars++ = pItr;
+          }
+        }
+        // Region ids for output tiles
+        else if ( this->ScalarMode == vtkVoronoi2D::REGION_IDS && this->RegionIds )
+        {
+          for ( auto& pItr : localData.LocalPtIds )
+          {
+            *scalars++ = this->RegionIds->GetComponent(pItr,0);
+          }
+        }
+        // the number of sides of the voronoi tile
+        else //if ( this->ScalarMode == vtkVoronoi2D::NUMBER_SIDES )
+        {
+          for ( auto& pItr : localData.LocalPtIds )
+          {
+            *scalars++ = this->NumPts[pItr];
+          }
+        }
+      }//Produce scalars
+    }//for each thread in this batch
+  }
+
+}; // ProduceVoronoiOutput
+
+// Functor used to generate the filter's Delaunay structures. The threading
+// is across the n threads used to compute the Voronoi tiles. So this is
+// effectively a parallel generation of the wheels/spokes data structure.
+struct ProduceDelaunayWheels
+{
+  const ThreadMapType& ThreadMap;
+  const PointCountType& NumPts;
+  WheelType& Wheels;
+  SpokeType& Spokes;
+
+  ProduceDelaunayWheels(ThreadMapType &threadMap, PointCountType& npts,
+                        WheelType& wheels, SpokeType& spokes)
+    : ThreadMap(threadMap)
+    , NumPts(npts)
+    , Wheels(wheels)
+    , Spokes(spokes)
+  {
+  }
+
+  void operator()(vtkIdType threadId, vtkIdType endThreadId)
+  {
+    Spoke *spokes;
+    vtkIdType i, numSpokes, ptId;
+    std::vector<vtkIdType>::iterator pItr;
+    std::vector<Spoke>::iterator spItr, spEnd;
+
+    // Now copy the spokes into the right spot
+    for ( ; threadId < endThreadId; ++threadId )
+    {
+      LocalDataType& localData = *(this->ThreadMap[threadId]);
+      pItr = localData.LocalPtIds.begin();
+      spEnd = localData.LocalSpokes.end();
+      for ( spItr = localData.LocalSpokes.begin(); spItr != spEnd; )
+      {
+        ptId = *pItr++;
+        numSpokes = this->NumPts[ptId];
+        spokes = this->Spokes.data() + this->Wheels[ptId];
+
+        for ( i=0; i < numSpokes; ++i, ++spItr, ++spokes)
+        {
+          spokes->Id = spItr->Id;
+          spokes->Classification = spItr->Classification;
+        }
+      }//within this local thread data
+    }//across all threads in this batch
+  }
+
+}; // ProduceDelaunayWheels
 
 // The threaded core of the algorithm. This could be templated over point
 // type, but due to numerical sensitivity we'll just do double for now.
@@ -479,6 +647,7 @@ struct VoronoiTiles
 {
   const double *Points; //Input points
   vtkIdType NPts; //The number of input (Voronoi generation) points
+  vtkDataArray *RegionIds; // Optional region ids to control tessellation
   vtkStaticPointLocator2D *Locator; // Used to (quickly) find nearby points
   double PaddedBounds[4]; //the expanded domain over which Voronoi is calculated
   double Bounds[4]; //locator bounds
@@ -486,7 +655,7 @@ struct VoronoiTiles
   double H[2]; //Locator bin spacing
   double BucketRadius; //The circle radius enclosing a locator bin
   vtkPoints *NewPoints;//New Voronoi points generated
-  std::vector<vtkIdType> NumPts; //Array of (number of points) for each tile
+  PointCountType NumPts; //Array of (number of points) for each tile
   vtkCellArray *Tiles; //Actual output convex polygons
   int ScalarMode;//How to compute scalars
   vtkIdTypeArray *Scalars; //Scalars if requested
@@ -496,9 +665,9 @@ struct VoronoiTiles
   // This are used to create the spokes and wheels graph used to validate
   // the tessllation and produce a Delaunay triangulation.
   int MaxSides; //Maximum number of sides found in a generated Voronoi tile
-  std::vector<vtkIdType> Wheels; //Wheel/spokes data structure: offset array to spokes
+  WheelType Wheels; //Wheel/spokes data structure: offset array to spokes
   vtkIdType NumSpokes; //Total number of edges / spokes
-  std::vector<Spoke> Spokes; //Spokes / edges with classification
+  SpokeType Spokes; //Spokes / edges with classification
   vtkCellArray *DelTris; //If requested, triangles are placed here for Delaunay
 
   // Used for controlling filter abort
@@ -511,11 +680,12 @@ struct VoronoiTiles
   vtkSMPThreadLocalObject<vtkDoubleArray> Radii2;
   vtkSMPThreadLocal<LocalDataType> LocalData;
 
-  VoronoiTiles(vtkIdType npts, double* points, vtkStaticPointLocator2D* loc, double padding,
-               vtkPolyData* output, int scalarMode, vtkPolyData *delOutput, vtkIdType maxClips,
-               vtkVoronoi2D* filter)
+  VoronoiTiles(vtkIdType npts, double* points, vtkDataArray* regionIds, vtkStaticPointLocator2D* loc,
+               double padding, vtkPolyData* output, int scalarMode, vtkPolyData *delOutput,
+               vtkIdType maxClips, vtkVoronoi2D* filter)
     : Points(points)
     , NPts(npts)
+    , RegionIds(regionIds)
     , Locator(loc)
     , ScalarMode(scalarMode)
     , MaxClips(maxClips)
@@ -586,6 +756,7 @@ struct VoronoiTiles
 
   void operator()(vtkIdType ptId, vtkIdType endPtId)
   {
+    vtkDataArray *regionIds = this->RegionIds;
     vtkIdList*& pIds = this->PIds.Local();
     vtkDoubleArray*& radii2 = this->Radii2.Local();
     LocalDataType& localData = this->LocalData.Local();
@@ -593,9 +764,8 @@ struct VoronoiTiles
     vtkIdType& numPoints = localData.NumberOfPoints;
     int &maxSides = localData.MaxSides;
     std::vector<vtkIdType>& lPtIds = localData.LocalPtIds;
-    std::vector<vtkIdType>& lTiles = localData.LocalTiles;
     std::vector<TileVertex>& lPoints = localData.LocalPoints;
-    std::vector<Spoke>& lSpokes = localData.LocalSpokes;
+    SpokeType& lSpokes = localData.LocalSpokes;
     VTile& tile = localData.Tile;
     const double* x = this->Points + 3 * ptId;
     bool isFirst = vtkSMPTools::GetSingleThread();
@@ -615,6 +785,12 @@ struct VoronoiTiles
         }
       }
 
+      // If an outside region, we do not need to process this tile.
+      if ( regionIds && regionIds->GetComponent(ptId,0) == 0 )
+      {
+        continue;
+      }
+
       // Initialize the Voronoi tile
       tile.Initialize(ptId, x);
 
@@ -625,15 +801,16 @@ struct VoronoiTiles
       if (tile.BuildTile(pIds, radii2, this->Points, maxClips))
       {
         // Now accumulate the tile / convex polygon in this thread
-        lPtIds.emplace_back(ptId);
+        lPtIds.emplace_back(ptId); // the generating point id
         vtkIdType i, nPts = static_cast<vtkIdType>(tile.Verts.size());
         this->NumPts[ptId] = nPts;
         maxSides = (nPts > maxSides ? nPts : maxSides);
 
-        // Now accumulate the tile indices and points for this Voronoi tile
+        // Now accumulate the tile points for this Voronoi tile. Note that
+        // the connectivity is not needed, since no points are shared between
+        // tiles. So the connectivity is implicitly ordered.
         for (i = 0; i < nPts; ++i)
         {
-          lTiles.emplace_back((i+numPoints));
           lPoints.emplace_back(TileVertex(tile.Verts[i].X[0],tile.Verts[i].X[1]));
         }
 
@@ -655,52 +832,46 @@ struct VoronoiTiles
 
   void Reduce()
   {
-    // Count the total number of cells and connectivity storage required,
-    // plus the number of points and optionally the number of spokes. Keep
-    // track of the point id offset to update the cell connectivity list. This
-    // will create the Voronoi output and/or Delaunay output.
-    // TODO: Parallelize the copying of thread output into the Voronoi and
-    // Delaunay output. Basically create an indexing array so that the
-    // output of each local thread is written to a prescriped position in the
-    // filter's output.
-    vtkIdType totalTiles = 0;
-    vtkIdType connSize = 0;
+    // Count the total number of points and tiles, plus optionally the number
+    // of spokes. For each thread local data, keep track of the point id and
+    // tile id offsets to update the cell connectivity list. This will be
+    // used later to create the Voronoi output and/or Delaunay output.
     vtkIdType totalPoints = 0;
-    vtkIdType offset = totalPoints;
+    vtkIdType totalTiles = 0;
     this->NumThreadsUsed = 0;
     this->NumSpokes = 0;
     this->MaxSides = 0;
-    vtkSMPThreadLocal<LocalDataType>::iterator ldItr;
-    vtkSMPThreadLocal<LocalDataType>::iterator ldEnd = this->LocalData.end();
+
+    // This vector maps the local thread information via a thread id
+    // with (0 <= threadId < NumThreadsUsed).
+    ThreadMapType threadMap;
+
+    // Gather information along with a prefix sum of some information
+    // across all the threads.
     for ( auto& localData : this->LocalData)
     {
-      totalTiles += localData.NumberOfTiles;
-      connSize += static_cast<vtkIdType>(localData.LocalTiles.size());
+      localData.PtOffset = totalPoints;
+      localData.TileOffset = totalTiles;
       totalPoints += localData.NumberOfPoints;
+      totalTiles += localData.NumberOfTiles;
+      threadMap.push_back(&localData);
       this->NumSpokes += localData.LocalSpokes.size();
-      localData.Offset = offset;
-      offset = totalPoints;
       this->NumThreadsUsed++;
       this->MaxSides = ( localData.MaxSides > this->MaxSides ?
                          localData.MaxSides : this->MaxSides);
     } // loop over local thread output
 
     // If Voronoi output is requested, produce the output convex polygons
-    // and associated points.
+    // (tiles) and associated points.
     int outputType = this->Filter->GetOutputType();
     if ( outputType == vtkVoronoi2D::VORONOI ||
          outputType == vtkVoronoi2D::VORONOI_AND_DELAUNAY )
     {
-      // Now copy the data: points and cell connectivity. Points are placed in
-      // the x-y plane. Cell connectivities must be updated with new point
-      // offsets to reference the correct global point id. Note that the order
-      // of the points and cells is somewhat random depending on when the
-      // various threads process the input data.
+      // Now copy the data into the global filter output. Points are placed in
+      // the x-y plane.
       const double z = this->Points[2];
       this->NewPoints->SetNumberOfPoints(totalPoints);
       double *pts = static_cast<vtkDoubleArray*>(this->NewPoints->GetData())->GetPointer(0);
-      std::vector<TileVertex>::iterator tvItr, tvEnd;
-      std::vector<vtkIdType>::iterator pItr, pEnd;
 
       // Structures for cell definitions. Directly create the offsets
       // and connectivity for efficiency.
@@ -708,9 +879,8 @@ struct VoronoiTiles
       offsets->SetNumberOfTuples(totalTiles+1);
       vtkIdType *offsetsPtr = offsets->GetPointer(0);
       vtkNew<vtkIdTypeArray> connectivity;
-      connectivity->SetNumberOfTuples(connSize);
+      connectivity->SetNumberOfTuples(totalPoints);
       vtkIdType *connectivityPtr = connectivity->GetPointer(0);
-      std::vector<vtkIdType>::iterator cItr;
       this->Tiles->SetData(offsets, connectivity);
 
       // If scalars requested, allocate them
@@ -721,77 +891,14 @@ struct VoronoiTiles
         scalars = this->Scalars->GetPointer(0);
       }
 
-      // Produce the primary (Voronoi) output. Traverse each tile and
-      // copy local data into the filter output.
-      totalPoints = 0;
-      offset = 0;
-      vtkIdType threadId=0;
-      for ( auto& localData : this->LocalData)
-      {
-        // Copy all the points from this thread
-        tvEnd = localData.LocalPoints.end();
-        for ( tvItr = localData.LocalPoints.begin(); tvItr != tvEnd; ++tvItr )
-        {
-          *pts++ = (*tvItr).X;
-          *pts++ = (*tvItr).Y;
-          *pts++ = z;
-        }
+      // Parallel copy the Voronoi-related local thread data (points, cells,
+      // scalars) into the filter output.
+      ProduceVoronoiOutput vorOutput(threadMap,this->NumPts,pts,z,connectivityPtr,
+                                     offsetsPtr,scalars,this->ScalarMode,this->RegionIds);
+      vtkSMPTools::For(0,this->NumThreadsUsed, vorOutput);
 
-        // Copy tiles into cell array: define the offsets and connectivity
-        // arrays.  Use the more efficient vtkCellArray::SetData() method.
-        cItr = localData.LocalTiles.begin();
-        pEnd = localData.LocalPtIds.end();
-        for ( pItr = localData.LocalPtIds.begin(); pItr != pEnd; )
-        {
-          // Offsets
-          *offsetsPtr++ = offset;
-          vtkIdType nPts = this->NumPts[*pItr++];
-          offset += nPts;
-          // Connectivity
-          for (vtkIdType i=0; i < nPts; ++i)
-          {
-            *connectivityPtr++ = totalPoints + *cItr++;
-          }
-        }
-
-        // Copy cell scalars if requested
-        if ( scalars != nullptr )
-        {
-          // If requested, thread id
-          if ( this->ScalarMode == vtkVoronoi2D::THREAD_IDS )
-          {
-            std::size_t j, nCells = localData.NumberOfTiles;
-            for (j=0; j < nCells; ++j)
-            {
-              *scalars++ = threadId;
-            }
-          }
-          // the generating point id
-          else if ( this->ScalarMode == vtkVoronoi2D::POINT_IDS )
-          {
-            pEnd = localData.LocalPtIds.end();
-            for ( pItr = localData.LocalPtIds.begin(); pItr != pEnd; )
-            {
-              *scalars++ = *pItr++;
-            }
-          }
-          // the number of sides of the voronoi tile
-          else //if ( this->ScalarMode == vtkVoronoi2D::NUMBER_SIDES )
-          {
-            pEnd = localData.LocalPtIds.end();
-            for ( pItr = localData.LocalPtIds.begin(); pItr != pEnd; )
-            {
-              *scalars++ = this->NumPts[*pItr++];
-            }
-          }
-        }//Produce scalars
-
-        threadId++;
-        totalPoints += localData.NumberOfPoints;
-      }//for each thread
-
-      // Terminate offset array
-      *offsetsPtr = offset;
+      // Terminate the offset array
+      offsetsPtr[totalTiles] = totalPoints;
     } // If Voronoi tiles output desired
 
     // Composite the Delaunay info if requested. For each input generation
@@ -807,9 +914,7 @@ struct VoronoiTiles
       this->Wheels.resize(this->NPts);
       this->Spokes.resize(this->NumSpokes);
       Spoke *spokes;
-      vtkIdType i, numSpokes, offset, ptId;
-      std::vector<vtkIdType>::iterator pItr;
-      std::vector<Spoke>::iterator spItr, spEnd;
+      vtkIdType i, offset;
 
       // Perform a prefix sum in preparation to copy the spokes into an
       // ordered (by ptId) grouping of spokes.
@@ -820,30 +925,15 @@ struct VoronoiTiles
         offset += this->NumPts[i];
       }
 
-      // Now copy the spokes into the right spot
-      for ( auto& localData : this->LocalData)
-      {
-        pItr = localData.LocalPtIds.begin();
-        spEnd = localData.LocalSpokes.end();
-        for ( spItr = localData.LocalSpokes.begin(); spItr != spEnd; )
-        {
-          ptId = *pItr++;
-          numSpokes = this->NumPts[ptId];
-          spokes = this->Spokes.data() + this->Wheels[ptId];
-
-          for ( i=0; i < numSpokes; ++i, ++spItr, ++spokes)
-          {
-            spokes->Id = spItr->Id;
-            spokes->Classification = spItr->Classification;
-          }
-        }//within this local thread data
-      }//across all threads
+      // Parallel build the Delaunay-related (wheels and spokes) structure.
+      ProduceDelaunayWheels delWheels(threadMap,this->NumPts,this->Wheels,this->Spokes);
+      vtkSMPTools::For(0,this->NumThreadsUsed, delWheels);
     }//if Delaunay output desired
   }
 
   // A factory method to conveniently instantiate and execute the algorithm.
   static int Execute(vtkStaticPointLocator2D *loc, vtkIdType numPts, double *points,
-                     double padding, vtkPolyData *output, int sMode,
+                     vtkDataArray *regionIds, double padding, vtkPolyData *output, int sMode,
                      vtkPolyData *delOutput, vtkIdType pointOfInterest, vtkIdType maxClips,
                      int &maxSides, vtkVoronoi2D* filter);
 
@@ -1173,7 +1263,7 @@ struct Delaunay
             }
           } // over all spokes in the current wheel
         } // if triangles are generated in this wheel
-      } // over allwheels
+      } // over all wheels
     }
   }; // GenerateTriangles
 
@@ -1229,12 +1319,13 @@ struct Delaunay
 // the Voronoi and Delaunay algorithms.
 int VoronoiTiles::
 Execute(vtkStaticPointLocator2D *loc, vtkIdType numPts, double *points,
-        double padding, vtkPolyData *output, int sMode,
+        vtkDataArray *regionIds, double padding, vtkPolyData *output, int sMode,
         vtkPolyData *delOutput, vtkIdType pointOfInterest, vtkIdType maxClips,
         int &maxSides, vtkVoronoi2D* filter)
 {
   // Generate the Voronoi tessellation
-  VoronoiTiles vt(numPts, points, loc, padding, output, sMode, delOutput, maxClips, filter);
+  VoronoiTiles vt(numPts, points, regionIds, loc, padding,
+                  output, sMode, delOutput, maxClips, filter);
 
   // Either full blown tessellation or just local to a point
   if ( pointOfInterest < 0 || pointOfInterest >= numPts)
@@ -1283,6 +1374,10 @@ vtkVoronoi2D::vtkVoronoi2D()
   // Optional outputs 2-4 for 2) Delaunay triangulation, 3) Voronoi flower,
   // and 4) Voronoi tile at point of interest
   this->SetNumberOfOutputPorts(4);
+
+  // By default process active point scalars to obtain region ids
+  this->SetInputArrayToProcess(
+    0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, vtkDataSetAttributes::SCALARS);
 }
 
 //------------------------------------------------------------------------------
@@ -1393,11 +1488,22 @@ int vtkVoronoi2D::RequestData(vtkInformation* vtkNotUsed(request),
     delOutput->SetPolys(delTris);
   }
 
+  // If region ids are provided, use these to control the Voronoi tessellation.
+  vtkDataArray* regionIds = this->GetInputArrayToProcess(0, inputVector);
+  if ( regionIds )
+  {
+    if ( regionIds->GetNumberOfComponents() > 1 )
+    {
+      vtkErrorMacro("Region Ids must have 1 component");
+      regionIds = nullptr;
+    }
+  }
+
   // Process the points to generate Voronoi tiles and optional
   // Delaunay triangulation.
   double* inPtr = static_cast<vtkDoubleArray*>(tPoints->GetData())->GetPointer(0);
   this->NumberOfThreadsUsed = VoronoiTiles::
-    Execute(this->Locator, numPts, inPtr, padding, output,
+    Execute(this->Locator, numPts, inPtr, regionIds, padding, output,
             this->GenerateScalars, delOutput, this->PointOfInterest,
             this->MaximumNumberOfTileClips, this->MaximumNumberOfSides,
             this);
