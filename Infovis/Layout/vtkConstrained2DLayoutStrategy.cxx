@@ -137,7 +137,7 @@ void vtkConstrained2DLayoutStrategy::GenerateGaussianSplat(vtkImageData* splat, 
 // Set the graph that will be laid out
 void vtkConstrained2DLayoutStrategy::Initialize()
 {
-  vtkMath::RandomSeed(this->RandomSeed);
+  this->Rng->SetSeed(this->RandomSeed);
 
   // Set up some quick access variables
   vtkPoints* pts = this->Graph->GetPoints();
@@ -192,8 +192,8 @@ void vtkConstrained2DLayoutStrategy::Initialize()
   // Jitter x and y, skip z
   for (vtkIdType i = 0; i < numVertices * 3; i += 3)
   {
-    rawPointData[i] += this->RestDistance * (vtkMath::Random() - .5);
-    rawPointData[i + 1] += this->RestDistance * (vtkMath::Random() - .5);
+    rawPointData[i] += this->RestDistance * (this->Rng->GetNextValue() - .5);
+    rawPointData[i + 1] += this->RestDistance * (this->Rng->GetNextValue() - .5);
   }
 
   // Get the weight array
@@ -509,8 +509,8 @@ void vtkConstrained2DLayoutStrategy::ResolveCoincidentVertices()
         collisionOps++;
 
         // Move
-        rawPointData[rawIndex] += jumpDistance * (vtkMath::Random() - .5);
-        rawPointData[rawIndex + 1] += jumpDistance * (vtkMath::Random() - .5);
+        rawPointData[rawIndex] += jumpDistance * (this->Rng->GetNextValue() - .5);
+        rawPointData[rawIndex + 1] += jumpDistance * (this->Rng->GetNextValue() - .5);
 
         // Test
         indexX = static_cast<int>(

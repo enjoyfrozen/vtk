@@ -1,8 +1,4 @@
 #!/usr/bin/env python
-from vtkmodules.vtkCommonCore import (
-    vtkCommand,
-    vtkMath,
-)
 from vtkmodules.vtkCommonDataModel import vtkPiecewiseFunction
 from vtkmodules.vtkFiltersGeneral import vtkBrownianPoints
 from vtkmodules.vtkFiltersSources import vtkSphereSource
@@ -18,12 +14,6 @@ import vtkmodules.vtkInteractionStyle
 import vtkmodules.vtkRenderingFreeType
 import vtkmodules.vtkRenderingOpenGL2
 
-def SetRandomSeed(caller, eventId):
-    #print "Restart random number generator"
-    raMath = vtkMath()
-    raMath.RandomSeed(6)
-
-
 def SphereActor(lut, interpolateBeforeMapping):
     ss = vtkSphereSource()
     if interpolateBeforeMapping:
@@ -31,7 +21,6 @@ def SphereActor(lut, interpolateBeforeMapping):
 
     bp = vtkBrownianPoints()
     bp.SetInputConnection(ss.GetOutputPort())
-    bp.AddObserver (vtkCommand.EndEvent, SetRandomSeed)
 
     pm = vtkPolyDataMapper()
     pm.SetInputConnection(bp.GetOutputPort())
@@ -76,9 +65,6 @@ renWin.AddRenderer(ren)
 
 iren = vtkRenderWindowInteractor()
 iren.SetRenderWindow(renWin)
-
-# Force a starting random value
-SetRandomSeed(0, 0)
 
 lut = ColorTransferFunction()
 ren.AddActor(SphereActor (lut, 0))

@@ -7,7 +7,8 @@
 #include "vtkIdTypeArray.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
-#include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 #include "vtkObjectFactory.h"
 #include "vtkPointData.h"
 #include "vtkPointSet.h"
@@ -125,9 +126,11 @@ int vtkAssignCoordinates::RequestData(vtkInformation* vtkNotUsed(request),
     double rx, ry, rz;
     if (Jitter)
     {
-      rx = vtkMath::Random() - .5;
-      ry = vtkMath::Random() - .5;
-      rz = vtkMath::Random() - .5;
+      static vtkNew<vtkMinimalStandardRandomSequence> rand;
+
+      rx = rand->GetNextValue() - .5;
+      ry = rand->GetNextValue() - .5;
+      rz = rand->GetNextValue() - .5;
       rx *= .02;
       ry *= .02;
       rz *= .02;

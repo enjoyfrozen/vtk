@@ -3,7 +3,8 @@
 
 #include "vtkTimePointUtility.h"
 
-#include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 #include "vtkSmartPointer.h"
 
 #include <sstream>
@@ -16,13 +17,14 @@ static void TestPrintSelf();
 int TestTimePointUtility(int, char*[])
 {
   int testResult = EXIT_SUCCESS;
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
 
   // Test some randomw dates
   for (int n = 0; n < 10000; ++n)
   {
-    int y = static_cast<int>(vtkMath::Random(1.0, 2020.0));
-    int d = static_cast<int>(vtkMath::Random(1.0, 27.0));
-    int m = static_cast<int>(vtkMath::Random(1.0, 12.0));
+    int y = static_cast<int>(rand->GetNextRangeValue(1.0, 2020.0));
+    int d = static_cast<int>(rand->GetNextRangeValue(1.0, 27.0));
+    int m = static_cast<int>(rand->GetNextRangeValue(1.0, 12.0));
 
     // There is no year 0
     if (y == 0)

@@ -3,7 +3,8 @@
 #include "vtkDoubleArray.h"
 #include "vtkFieldData.h"
 #include "vtkIntArray.h"
-#include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 #include "vtkSortFieldData.h"
 #include "vtkStringArray.h"
 #include "vtkVariantArray.h"
@@ -15,6 +16,8 @@
 // orders all of the arrays based on the sort indices.
 int TestSortFieldData(int, char*[])
 {
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   // Create the arrays
   vtkIntArray* iArray = vtkIntArray::New();
   iArray->SetName("Int Array");
@@ -45,11 +48,11 @@ int TestSortFieldData(int, char*[])
   {
     iArray->SetComponent(i, 0, i);
     iArray->SetComponent(permute[i], 1, i);
-    iArray->SetComponent(i, 2, static_cast<int>(vtkMath::Random(0, 100)));
+    iArray->SetComponent(i, 2, static_cast<int>(rand->GetNextRangeValue(0, 100)));
     ostr.str(""); // clear it out
     ostr << i;
     sArray->SetValue(permute[i], ostr.str());
-    dArray->SetComponent(i, 0, static_cast<double>(vtkMath::Random(-1, 1)));
+    dArray->SetComponent(i, 0, static_cast<double>(rand->GetNextRangeValue(-1, 1)));
     dArray->SetComponent(permute[i], 1, static_cast<double>(i));
     vArray->SetValue(permute[i], vtkVariant(ostr.str()));
   }

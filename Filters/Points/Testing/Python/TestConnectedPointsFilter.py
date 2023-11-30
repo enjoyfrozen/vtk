@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from vtkmodules.vtkCommonCore import (
     vtkFloatArray,
-    vtkMath,
+    vtkMinimalStandardRandomSequence,
     vtkPoints,
 )
 from vtkmodules.vtkCommonDataModel import vtkPolyData
@@ -24,8 +24,8 @@ VTK_DATA_ROOT = vtkGetDataRoot()
 
 # Parameters for debugging
 NPts = 5000
-math = vtkMath()
-math.RandomSeed(31415)
+rand = vtkMinimalStandardRandomSequence()
+rand.SetSeed(31415)
 
 # create point cloud. A bunch of random points plus some outliers
 # over the six faces of the bounding box
@@ -44,9 +44,9 @@ normals.SetName("normals")
 # Create separate nearly planar regions in the (-10,10, -10,10, -2,2) space. Note one region is larger
 # to create a largest region.
 for i in range(0,NPts):
-    x = math.Random(-8.5,0)
-    y = math.Random(-8.5,-1)
-    points.SetPoint(i,x,y,math.Random(-1.45,-1.4))
+    x = rand.GetNextRangeValue(-8.5,0)
+    y = rand.GetNextRangeValue(-8.5,-1)
+    points.SetPoint(i,x,y,rand.GetNextRangeValue(-1.45,-1.4))
     if x < -4.25:
         scalars.SetValue(i,0)
     else:
@@ -57,19 +57,19 @@ for i in range(0,NPts):
         normals.SetTuple3(i, 0,0,-1)
 
 for i in range(NPts,2*NPts):
-    points.SetPoint(i,math.Random(-2.5,1.5),math.Random(2.5,7.5),math.Random(-0.1,0.1))
-    scalars.SetValue(i,math.Random(1,2))
+    points.SetPoint(i,rand.GetNextRangeValue(-2.5,1.5),rand.GetNextRangeValue(2.5,7.5),rand.GetNextRangeValue(-0.1,0.1))
+    scalars.SetValue(i,rand.GetNextRangeValue(1,2))
     normals.SetTuple3(i, 0,0,1)
 
 for i in range(2*NPts,3*NPts):
-    points.SetPoint(i,math.Random(5,9.5),math.Random(-2.5,2.5),math.Random(1.74,1.75))
-    scalars.SetValue(i,math.Random(2,3))
+    points.SetPoint(i,rand.GetNextRangeValue(5,9.5),rand.GetNextRangeValue(-2.5,2.5),rand.GetNextRangeValue(1.74,1.75))
+    scalars.SetValue(i,rand.GetNextRangeValue(2,3))
     normals.SetTuple3(i, 0,0,1)
 
 # Largest region
 for i in range(3*NPts,4*NPts+3):
-    points.SetPoint(i,math.Random(-2,2),math.Random(-2,2),math.Random(0.74,0.75))
-    scalars.SetValue(i,math.Random(3,4))
+    points.SetPoint(i,rand.GetNextRangeValue(-2,2),rand.GetNextRangeValue(-2,2),rand.GetNextRangeValue(0.74,0.75))
+    scalars.SetValue(i,rand.GetNextRangeValue(3,4))
     normals.SetTuple3(i, 0,0,1)
 
 polydata = vtkPolyData()

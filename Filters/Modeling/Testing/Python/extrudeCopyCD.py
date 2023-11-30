@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from vtkmodules.vtkCommonCore import (
-    vtkMath,
+    vtkMinimalStandardRandomSequence,
     vtkUnsignedCharArray,
 )
 from vtkmodules.vtkCommonTransforms import vtkTransform
@@ -43,16 +43,16 @@ model = app.GetOutput()
 extrude = vtkLinearExtrusionFilter()
 extrude.SetInputData(model)
 # create random cell scalars for the model before extrusion.
-rn = vtkMath()
-rn.RandomSeed(1230)
+rand = vtkMinimalStandardRandomSequence()
+rand.SetSeed(1230)
 cellColors = vtkUnsignedCharArray()
 cellColors.SetNumberOfComponents(3)
 cellColors.SetNumberOfTuples(model.GetNumberOfCells())
 i = 0
 while i < model.GetNumberOfCells():
-    cellColors.InsertComponent(i,0,rn.Random(100,255))
-    cellColors.InsertComponent(i,1,rn.Random(100,255))
-    cellColors.InsertComponent(i,2,rn.Random(100,255))
+    cellColors.InsertComponent(i,0,rand.GetNextRangeValue(100,255))
+    cellColors.InsertComponent(i,1,rand.GetNextRangeValue(100,255))
+    cellColors.InsertComponent(i,2,rand.GetNextRangeValue(100,255))
     i = i + 1
 
 model.GetCellData().SetScalars(cellColors)

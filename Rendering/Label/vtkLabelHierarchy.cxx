@@ -16,6 +16,8 @@
 #include "vtkLabelHierarchyIterator.h"
 #include "vtkLabelHierarchyPrivate.h"
 #include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 #include "vtkObjectFactory.h"
 #include "vtkPlanes.h"
 #include "vtkPointData.h"
@@ -2280,9 +2282,13 @@ static size_t compute_number_to_promote(int t, size_t L, int d, size_t max)
   double n = static_cast<double>(t) * (tdl - 1.) / tdl / static_cast<double>(tdm);
   size_t nr = static_cast<size_t>(floor(n)); // truncate...
   double rem = n - nr;
+
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+  rand->SetSeed(static_cast<int>(time(nullptr)));
+
   if (rem > 0.)
   {
-    if (vtkMath::Random() <= rem)
+    if (rand->GetNextValue() <= rem)
       ++nr; // ... and round up some percentage of the time proportional to the remainder.
   }
   return nr > max ? max : nr;

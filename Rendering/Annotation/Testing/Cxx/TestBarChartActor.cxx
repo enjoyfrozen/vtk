@@ -7,7 +7,8 @@
 #include "vtkFloatArray.h"
 #include "vtkIdList.h"
 #include "vtkLegendBoxActor.h"
-#include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 #include "vtkPoints.h"
 #include "vtkPolyData.h"
 #include "vtkProperty2D.h"
@@ -26,9 +27,11 @@ int TestBarChartActor(int argc, char* argv[])
   vtkFloatArray* bitter = vtkFloatArray::New();
   bitter->SetNumberOfTuples(numTuples);
 
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   for (int i = 0; i < numTuples; i++)
   {
-    bitter->SetTuple1(i, vtkMath::Random(7, 100));
+    bitter->SetTuple1(i, rand->GetNextRangeValue(7, 100));
   }
 
   vtkDataObject* dobj = vtkDataObject::New();
@@ -43,9 +46,9 @@ int TestBarChartActor(int argc, char* argv[])
   actor->GetLegendActor()->SetNumberOfEntries(numTuples);
   for (int i = 0; i < numTuples; i++)
   {
-    double red = vtkMath::Random(0, 1);
-    double green = vtkMath::Random(0, 1);
-    double blue = vtkMath::Random(0, 1);
+    double red = rand->GetNextRangeValue(0, 1);
+    double green = rand->GetNextRangeValue(0, 1);
+    double blue = rand->GetNextRangeValue(0, 1);
     actor->SetBarColor(i, red, green, blue);
   }
   actor->SetBarLabel(0, "oil");

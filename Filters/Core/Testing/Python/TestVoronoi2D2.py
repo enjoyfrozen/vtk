@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from vtkmodules.vtkCommonCore import (
-    vtkMath,
+    vtkMinimalStandardRandomSequence,
     vtkPoints,
 )
 from vtkmodules.vtkCommonDataModel import vtkPolyData
@@ -24,10 +24,10 @@ from vtkmodules.util.misc import vtkGetDataRoot
 VTK_DATA_ROOT = vtkGetDataRoot()
 
 def uniformFn(NPts,points):
-    math = vtkMath()
-    math.RandomSeed(27183)
+    rand = vtkMinimalStandardRandomSequence()
+    rand.SetSeed(27183)
     for i in range(0,NPts):
-        points.SetPoint(i,math.Random(0,1),math.Random(0,1),0.0)
+        points.SetPoint(i,rand.GetNextRangeValue(0,1),rand.GetNextRangeValue(0,1),0.0)
 
 def lissajousFn(A, B, a, b, delta, npts, noise):
     import numpy as np
@@ -97,8 +97,9 @@ elif mode == 'lissajous':
         points.SetPoint(i, lf[0][i], lf[1][i], 0.0)
     # Add in some background noise? For numerical studies...
     # i = 0
+    # rand = vtk.vtkMinimalStandardRandomSequence()
     # while i < NPts/5:
-    #     points.InsertNextPoint(math.Random(-1,1),math.Random(-1,1),0.0)
+    #     points.InsertNextPoint(rand.GetNextRangeValue(-1,1),rand.GetNextRangeValue(-1,1),0.0)
     #     i = i + 1
     # print('Points ', points.GetNumberOfPoints())
 elif mode == 'quarterDisk':

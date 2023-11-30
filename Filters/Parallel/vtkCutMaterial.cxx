@@ -8,6 +8,8 @@
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
 #include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 #include "vtkObjectFactory.h"
 #include "vtkPlane.h"
 #include "vtkPointData.h"
@@ -142,9 +144,11 @@ void vtkCutMaterial::ComputeNormal()
   // Rare singularity
   while (mag == 0.0)
   {
-    tmp[0] = vtkMath::Random();
-    tmp[1] = vtkMath::Random();
-    tmp[2] = vtkMath::Random();
+    static vtkNew<vtkMinimalStandardRandomSequence> rand;
+
+    tmp[0] = rand->GetNextValue();
+    tmp[1] = rand->GetNextValue();
+    tmp[2] = rand->GetNextValue();
     vtkMath::Cross(tmp, this->UpVector, this->Normal);
     mag = vtkMath::Normalize(this->Normal);
   }

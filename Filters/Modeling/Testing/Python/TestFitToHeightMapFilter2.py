@@ -2,7 +2,7 @@
 from vtkmodules.vtkCommonCore import (
     vtkFloatArray,
     vtkLookupTable,
-    vtkMath,
+    vtkMinimalStandardRandomSequence,
 )
 from vtkmodules.vtkCommonDataModel import vtkImageData
 from vtkmodules.vtkFiltersCore import vtkTriangleFilter
@@ -54,12 +54,12 @@ image.SetDimensions(iDim,jDim,1)
 image.SetSpacing(1,1,1)
 image.SetOrigin(0,0,0)
 
-math = vtkMath()
-math.RandomSeed(31415)
+rand = vtkMinimalStandardRandomSequence()
+rand.SetSeed(31415)
 heights = vtkFloatArray()
 heights.SetNumberOfTuples(imgSize)
 for i in range(0,imgSize):
-    heights.SetTuple1(i,math.Random(0,1))
+    heights.SetTuple1(i,rand.GetNextRangeValue(0,1))
 
 image.GetPointData().SetScalars(heights)
 

@@ -5,12 +5,13 @@
 // Thanks to Philippe Pebay and David Thompson from Sandia National Laboratories
 // for implementing this test.
 
+#include "vtkBoxMuellerRandomSequence.h"
 #include "vtkDataObjectCollection.h"
 #include "vtkDataSetAttributes.h"
 #include "vtkDescriptiveStatistics.h"
 #include "vtkDoubleArray.h"
 #include "vtkLogger.h"
-#include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
 #include "vtkMultiBlockDataSet.h"
 #include "vtkNew.h"
 #include "vtkStringArray.h"
@@ -701,15 +702,19 @@ int TestDescriptiveStatistics(int, char*[])
   datasetLaplace->SetName("Standard Laplace");
 
   // Seed random number generator
-  vtkMath::RandomSeed(static_cast<int>(vtkTimerLog::GetUniversalTime()));
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+  rand->SetSeed(static_cast<int>(vtkTimerLog::GetUniversalTime()));
+
+  vtkNew<vtkBoxMuellerRandomSequence> grand;
+  grand->SetUniformSequence(rand);
 
   for (int i = 0; i < nVals; ++i)
   {
-    datasetNormal->InsertNextValue(vtkMath::Gaussian());
-    datasetUniform->InsertNextValue(vtkMath::Random());
-    datasetLogNormal->InsertNextValue(exp(vtkMath::Gaussian()));
-    datasetExponential->InsertNextValue(-log(vtkMath::Random()));
-    double u = vtkMath::Random() - .5;
+    datasetNormal->InsertNextValue(grand->GetNextValue());
+    datasetUniform->InsertNextValue(rand->GetNextValue());
+    datasetLogNormal->InsertNextValue(exp(grand->GetNextValue()));
+    datasetExponential->InsertNextValue(-log(rand->GetNextValue()));
+    double u = rand->GetNextValue() - .5;
     datasetLaplace->InsertNextValue((u < 0. ? 1. : -1.) * log(1. - 2. * fabs(u)));
   }
 

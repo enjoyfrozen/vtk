@@ -15,6 +15,8 @@ At last, vtkMergeCells is tested with a tolerance bigger than the perturbation's
 #include "vtkCellData.h"
 #include "vtkHexahedron.h"
 #include "vtkMergeCells.h"
+#include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 #include "vtkUnstructuredGrid.h"
 #include <cstdlib>
 
@@ -53,7 +55,8 @@ int TestMergeCells(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
   // of a VTK_HEXAHEDRON cell
   double amplitudePerturbation = 1.0e-13;
   // Use always the same seed
-  vtkMath::RandomSeed(8775070);
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+  rand->SetSeed(8775070);
   // Origin of the first hexa
   double origin0[3] = { 0.0, 0.0, 0.0 };
   // Length of the edges of the hexa
@@ -70,8 +73,8 @@ int TestMergeCells(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
     hexa1->GetPoints()->GetPoint(i, pointPosition);
     for (int j = 0; j < 3; j++)
     {
-      int randomSign = vtkMath::Random(-1, 1) >= 0 ? 1 : -1;
-      double randomPerturbation = vtkMath::Random(0.5, 0.7) * amplitudePerturbation;
+      int randomSign = rand->GetNextRangeValue(-1, 1) >= 0 ? 1 : -1;
+      double randomPerturbation = rand->GetNextRangeValue(0.5, 0.7) * amplitudePerturbation;
       pointPosition[j] += randomSign * randomPerturbation;
     }
     hexa1->GetPoints()->SetPoint(i, pointPosition);

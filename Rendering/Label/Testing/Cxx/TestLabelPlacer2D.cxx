@@ -8,7 +8,8 @@
 #include "vtkLabelPlacer.h"
 #include "vtkLabelSizeCalculator.h"
 #include "vtkLabeledDataMapper.h"
-#include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 #include "vtkPointData.h"
 #include "vtkPointSetToLabelHierarchy.h"
 #include "vtkPoints.h"
@@ -2375,6 +2376,8 @@ int TestLabelPlacer2D(int argc, char* argv[])
 {
   vtkIdType i;
 
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   vtkRenderer* rr = vtkRenderer::New();
   vtkRenderWindow* rw = vtkRenderWindow::New();
   vtkRenderWindowInteractor* ri = vtkRenderWindowInteractor::New();
@@ -2401,10 +2404,10 @@ int TestLabelPlacer2D(int argc, char* argv[])
     labelText->SetValue(i, vtkTextLabelList[i % vtkTextLabelListLength]);
     priorities->SetValue(i, i);
 #ifdef GENERATE_TEST_POINTS
-    double x = vtkMath::Random(), y = vtkMath::Random();
+    double x = rand->GetNextValue(), y = rand->GetNextValue();
     cout << "   " << x << ", " << y << ",\n";
     pts->SetPoint(i, x, y, -1.); // 2-D
-    // pts->SetPoint( i, vtkMath::Random(), vtkMath::Random(), vtkMath::Random() ); // 3-D
+    // pts->SetPoint( i, rand->GetNextValue(), rand->GetNextValue(), rand->GetNextValue() ); // 3-D
 #else  // GENERATE_TEST_POINTS
     if (i % vtkTextLabelListLength == 0)
     {

@@ -8,7 +8,6 @@
 #include "vtkDelaunay3D.h"
 #include "vtkFloatArray.h"
 #include "vtkImageData.h"
-#include "vtkMath.h"
 #include "vtkNew.h"
 #include "vtkPiecewiseFunction.h"
 #include "vtkPointData.h"
@@ -45,7 +44,6 @@ int TestProbeFilterImageInput(int argc, char* argv[])
 
   // create an unstructured grid by generating a point cloud and
   // applying Delaunay triangulation on it.
-  vtkMath::RandomSeed(0); // vtkPointSource internally uses vtkMath::Random()
   vtkNew<vtkPointSource> pointSource;
   pointSource->SetCenter(center);
   pointSource->SetRadius(center[0]);

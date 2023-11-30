@@ -6,6 +6,8 @@
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
 #include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 #include "vtkObjectFactory.h"
 #include "vtkPoints.h"
 #include "vtkPolyData.h"
@@ -14,12 +16,13 @@
 #include <cfloat>
 #include <cmath>
 
+static vtkNew<vtkMinimalStandardRandomSequence> rng;
+
 VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkPointSource);
 
 //------------------------------------------------------------------------------
-// Specify a random sequence, or use the non-threadsafe one in vtkMath by
-// default.
+// Specify a random sequence, or use a non-threadsafe copy by default.
 vtkCxxSetObjectMacro(vtkPointSource, RandomSequence, vtkRandomSequence);
 
 //------------------------------------------------------------------------------
@@ -145,7 +148,7 @@ double vtkPointSource::Random()
 {
   if (!this->RandomSequence)
   {
-    return vtkMath::Random();
+    return rng->GetNextValue();
   }
 
   return this->RandomSequence->GetNextValue();

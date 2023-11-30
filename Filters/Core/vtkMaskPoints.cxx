@@ -8,8 +8,8 @@
 #include "vtkDataSet.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
-#include "vtkMath.h"
 #include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 #include "vtkObjectFactory.h"
 #include "vtkOctreePointLocator.h"
 #include "vtkPointData.h"
@@ -344,6 +344,8 @@ double vtkMaskPoints::GetLocalAreaFactor(double localArea, int np)
 int vtkMaskPoints::RequestData(vtkInformation* vtkNotUsed(request),
   vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
+  static vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   // get the info objects
   vtkInformation* inInfo = inputVector[0]->GetInformationObject(0);
   vtkInformation* outInfo = outputVector->GetInformationObject(0);
@@ -443,7 +445,7 @@ int vtkMaskPoints::RequestData(vtkInformation* vtkNotUsed(request),
         }
 
         for (vtkIdType ptId = this->Offset; (ptId < numPts) && (id < localMaxPts) && !abort;
-             ptId += (1 + static_cast<int>(static_cast<double>(vtkMath::Random()) * cap)))
+             ptId += (1 + static_cast<int>(static_cast<double>(rand->GetNextValue()) * cap)))
         {
           input->GetPoint(ptId, x);
           id = newPts->InsertNextPoint(x);

@@ -28,7 +28,8 @@
 #include "vtkCamera.h"
 #include "vtkCommand.h"
 #include "vtkInteractorStyleMultiTouchCamera.h"
-#include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 #include "vtkParametricFunctionSource.h"
 #include "vtkPoints.h"
 #include "vtkPolyDataMapper.h"
@@ -117,12 +118,13 @@
   // The spline needs points
   vtkSmartPointer<vtkParametricSpline> spline = vtkSmartPointer<vtkParametricSpline>::New();
   vtkSmartPointer<vtkPoints> inputPoints = vtkSmartPointer<vtkPoints>::New();
-  vtkMath::RandomSeed(8775070);
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+  rand->SetSeed(8775070);
   for (int p = 0; p < 10; p++)
   {
-    double x = vtkMath::Random(0.0, 1.0);
-    double y = vtkMath::Random(0.0, 1.0);
-    double z = vtkMath::Random(0.0, 1.0);
+    double x = rand->GetNextRangeValue(0.0, 1.0);
+    double y = rand->GetNextRangeValue(0.0, 1.0);
+    double z = rand->GetNextRangeValue(0.0, 1.0);
     inputPoints->InsertNextPoint(x, y, z);
   }
   spline->SetPoints(inputPoints);

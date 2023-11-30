@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from vtkmodules.vtkCommonCore import (
-    vtkMath,
+    vtkMinimalStandardRandomSequence,
     vtkPoints,
 )
 from vtkmodules.vtkCommonDataModel import vtkPolyData
@@ -25,8 +25,8 @@ VTK_DATA_ROOT = vtkGetDataRoot()
 
 # Parameters for debugging
 NPts = 100 #Keep test small
-math = vtkMath()
-math.RandomSeed(31415)
+rand = vtkMinimalStandardRandomSequence()
+rand.SetSeed(31415)
 res = 50
 
 polyData = vtkPolyData()
@@ -34,7 +34,7 @@ pts = vtkPoints()
 pts.SetDataTypeToFloat()
 pts.SetNumberOfPoints(NPts)
 for i in range(0,NPts):
-    pts.SetPoint(i,math.Random(-1,1),math.Random(-1,1),math.Random(-1,1))
+    pts.SetPoint(i,rand.GetNextRangeValue(-1,1),rand.GetNextRangeValue(-1,1),rand.GetNextRangeValue(-1,1))
 polyData.SetPoints(pts);
 
 # Generate signed distance function and contour it

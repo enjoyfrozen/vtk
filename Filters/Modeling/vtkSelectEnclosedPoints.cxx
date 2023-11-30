@@ -13,6 +13,8 @@
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
 #include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 #include "vtkObjectFactory.h"
 #include "vtkPointData.h"
 #include "vtkPolyData.h"
@@ -376,9 +378,11 @@ int vtkSelectEnclosedPoints::IsInsideSurface(double x[3], vtkPolyData* surface, 
     {
       if (seq == nullptr) // in serial mode
       {
-        ray[0] = vtkMath::Random(-1.0, 1.0);
-        ray[1] = vtkMath::Random(-1.0, 1.0);
-        ray[2] = vtkMath::Random(-1.0, 1.0);
+        static vtkNew<vtkMinimalStandardRandomSequence> rand;
+
+        ray[0] = rand->GetNextRangeValue(-1.0, 1.0);
+        ray[1] = rand->GetNextRangeValue(-1.0, 1.0);
+        ray[2] = rand->GetNextRangeValue(-1.0, 1.0);
       }
       else // threading, have to scale sequence -1<=x<=1
       {

@@ -9,13 +9,17 @@
 #include "vtkImageDataToPointSet.h"
 #include "vtkIntArray.h"
 #include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
 #include "vtkMultiBlockDataSet.h"
 #include "vtkMultiThreshold.h"
+#include "vtkNew.h"
 #include "vtkPointData.h"
 #include "vtkSmartPointer.h"
 #include "vtkStructuredGrid.h"
 #include "vtkTestErrorObserver.h"
 #include "vtkUnstructuredGrid.h"
+
+static vtkNew<vtkMinimalStandardRandomSequence> rng;
 
 static void TestPrint();
 static int TestErrorsAndWarnings();
@@ -74,7 +78,7 @@ void CreateStructuredGrid(vtkSmartPointer<vtkStructuredGrid>& sg, int numCols, i
       int* pixel = static_cast<int*>(image->GetScalarPointer(i, j, 0));
       vec[0] = 0.0;
       vec[1] = 0.0;
-      vec[2] = vtkMath::Random(-10.0, 10.0);
+      vec[2] = rng->GetNextRangeValue(-10.0, 10.0);
       vectors->SetTuple(pointNo, vec);
       *pixel = pointNo++;
     }

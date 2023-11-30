@@ -4,7 +4,8 @@
 #include "vtkConstantArray.h"
 #include "vtkDoubleArray.h"
 #include "vtkIntArray.h"
-#include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 #include "vtkStringArray.h"
 #include "vtkTable.h"
 #include "vtkVariantArray.h"
@@ -15,6 +16,8 @@
 const int size = 100;
 const double prob = 1.0 - 1.0 / size;
 const double highProb = 1.0 - 1.0 / (size * size);
+
+static vtkNew<vtkMinimalStandardRandomSequence> rng;
 
 void CheckEqual(
   vtkTable* table, std::vector<std::vector<double>>& stdTable, const std::string& info)
@@ -56,7 +59,7 @@ void CheckEqual(
   for (int j = 0; j < table->GetNumberOfColumns(); j++)
   {
     vtkAbstractArray* arr;
-    if (vtkMath::Random() < 0.5)
+    if (rng->GetNextValue() < 0.5)
     {
       arr = table->GetColumn(j);
     }
@@ -121,13 +124,13 @@ void FillTable(vtkTable* table, std::vector<std::vector<double>>& stdTable)
   cout << "Creating columns." << endl;
   vtkIdType columnId = 0;
   bool noColumns = true;
-  while (noColumns || vtkMath::Random() < prob)
+  while (noColumns || rng->GetNextValue() < prob)
   {
     noColumns = false;
 
     stdTable.emplace_back();
 
-    double r = vtkMath::Random();
+    double r = rng->GetNextValue();
     vtkVariant name(columnId);
     vtkAbstractArray* arr;
     if (r < 0.25)
@@ -243,7 +246,7 @@ void InsertEmptyRows(vtkTable* table, std::vector<std::vector<double>>& stdTable
 {
   cout << "Inserting empty rows." << endl;
   bool noRows = true;
-  while (noRows || vtkMath::Random() < prob)
+  while (noRows || rng->GetNextValue() < prob)
   {
     noRows = false;
     table->InsertNextBlankRow();
@@ -258,7 +261,7 @@ void InsertEmptyRows(vtkTable* table, std::vector<std::vector<double>>& stdTable
 void InsertFullRows(vtkTable* table, std::vector<std::vector<double>>& stdTable)
 {
   cout << "Inserting full rows." << endl;
-  while (vtkMath::Random() < prob)
+  while (rng->GetNextValue() < prob)
   {
     vtkVariantArray* rowArray = vtkVariantArray::New();
     for (vtkIdType j = 0; j < table->GetNumberOfColumns(); j++)
@@ -276,17 +279,17 @@ void RandomizeValues(vtkTable* table, std::vector<std::vector<double>>& stdTable
 {
   cout << "Performing all kinds of inserts." << endl;
   int id = 0;
-  while (vtkMath::Random() < highProb)
+  while (rng->GetNextValue() < highProb)
   {
-    vtkIdType row = static_cast<vtkIdType>(vtkMath::Random(0, table->GetNumberOfRows()));
-    vtkIdType col = static_cast<vtkIdType>(vtkMath::Random(0, table->GetNumberOfColumns()));
+    vtkIdType row = static_cast<vtkIdType>(rng->GetNextRangeValue(0, table->GetNumberOfRows()));
+    vtkIdType col = static_cast<vtkIdType>(rng->GetNextRangeValue(0, table->GetNumberOfColumns()));
     vtkVariant v;
-    if (vtkMath::Random() < 0.25)
+    if (rng->GetNextValue() < 0.25)
     {
       vtkVariant temp(id);
       v = vtkVariant(temp.ToString());
     }
-    else if (vtkMath::Random() < 0.5)
+    else if (rng->GetNextValue() < 0.5)
     {
       v = vtkVariant(id);
     }
@@ -295,7 +298,7 @@ void RandomizeValues(vtkTable* table, std::vector<std::vector<double>>& stdTable
       v = vtkVariant(static_cast<double>(id));
     }
 
-    if (vtkMath::Random() < 0.5)
+    if (rng->GetNextValue() < 0.5)
     {
       table->SetValue(row, col, v);
     }
@@ -316,7 +319,7 @@ void RemoveHalfOfRows(vtkTable* table, std::vector<std::vector<double>>& stdTabl
   int numRowsToRemove = table->GetNumberOfRows() / 2;
   for (int i = 0; i < numRowsToRemove; i++)
   {
-    vtkIdType row = static_cast<vtkIdType>(vtkMath::Random(0, table->GetNumberOfRows()));
+    vtkIdType row = static_cast<vtkIdType>(rng->GetNextRangeValue(0, table->GetNumberOfRows()));
     cout << "Removing row " << row << " from vtkTable with " << table->GetNumberOfRows() << " rows"
          << endl;
     table->RemoveRow(row);
@@ -344,8 +347,8 @@ void RemoveHalfOfColumns(vtkTable* table, std::vector<std::vector<double>>& stdT
   int numColsToRemove = table->GetNumberOfColumns() / 2;
   for (int i = 0; i < numColsToRemove; i++)
   {
-    vtkIdType col = static_cast<vtkIdType>(vtkMath::Random(0, table->GetNumberOfColumns()));
-    if (vtkMath::Random() < 0.5)
+    vtkIdType col = static_cast<vtkIdType>(rng->GetNextRangeValue(0, table->GetNumberOfColumns()));
+    if (rng->GetNextValue() < 0.5)
     {
       table->RemoveColumn(col);
     }
@@ -366,7 +369,7 @@ int TestTable(int, char*[])
 
   long seed = time(nullptr);
   cout << "Seed: " << seed << endl;
-  vtkMath::RandomSeed(seed);
+  rng->SetSeed(seed);
 
   // Make a table and a parallel vector of vectors containing the same data
   vtkNew<vtkTable> table;

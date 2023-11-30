@@ -8,7 +8,8 @@
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
 #include "vtkIntArray.h"
-#include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 #include "vtkObjectFactory.h"
 #include "vtkPointData.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
@@ -97,8 +98,9 @@ vtkIntArray* vtkPieceScalars::MakePieceScalars(int piece, vtkIdType num)
 //------------------------------------------------------------------------------
 vtkFloatArray* vtkPieceScalars::MakeRandomScalars(int piece, vtkIdType num)
 {
-  vtkMath::RandomSeed(piece);
-  float randomValue = static_cast<float>(vtkMath::Random());
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+  rand->SetSeed(piece);
+  float randomValue = static_cast<float>(rand->GetNextValue());
 
   vtkFloatArray* pieceColors = vtkFloatArray::New();
   pieceColors->SetNumberOfTuples(num);

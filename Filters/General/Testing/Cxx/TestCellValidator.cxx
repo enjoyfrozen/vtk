@@ -59,8 +59,9 @@
 #include "vtkBezierWedge.h"
 
 #include "vtkCellArray.h"
-#include "vtkMath.h"
 #include "vtkMathUtilities.h"
+#include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 #include "vtkPoints.h"
 #include "vtkUnstructuredGrid.h"
 
@@ -74,6 +75,8 @@
 #include <sstream>
 #include <string>
 #include <vector>
+
+static vtkNew<vtkMinimalStandardRandomSequence> rng;
 
 static vtkSmartPointer<vtkEmptyCell> MakeEmptyCell();
 static vtkSmartPointer<vtkVertex> MakeVertex();
@@ -616,9 +619,9 @@ vtkSmartPointer<vtkQuadraticHexahedron> MakeQuadraticHexahedron()
   for (int i = 0; i < aHexahedron->GetNumberOfPoints(); ++i)
   {
     aHexahedron->GetPointIds()->SetId(i, i);
-    aHexahedron->GetPoints()->SetPoint(i, *(pcoords + 3 * i) + vtkMath::Random(-.1, .1),
-      *(pcoords + 3 * i + 1) + vtkMath::Random(-.1, .1),
-      *(pcoords + 3 * i + 2) + vtkMath::Random(-.1, .1));
+    aHexahedron->GetPoints()->SetPoint(i, *(pcoords + 3 * i) + rng->GetNextRangeValue(-.1, .1),
+      *(pcoords + 3 * i + 1) + rng->GetNextRangeValue(-.1, .1),
+      *(pcoords + 3 * i + 2) + rng->GetNextRangeValue(-.1, .1));
   }
 
   return aHexahedron;
@@ -632,9 +635,9 @@ vtkSmartPointer<vtkBiQuadraticQuadraticHexahedron> MakeBiQuadraticQuadraticHexah
   for (int i = 0; i < aHexahedron->GetNumberOfPoints(); ++i)
   {
     aHexahedron->GetPointIds()->SetId(i, i);
-    aHexahedron->GetPoints()->SetPoint(i, *(pcoords + 3 * i) + vtkMath::Random(-.1, .1),
-      *(pcoords + 3 * i + 1) + vtkMath::Random(-.1, .1),
-      *(pcoords + 3 * i + 2) + vtkMath::Random(-.1, .1));
+    aHexahedron->GetPoints()->SetPoint(i, *(pcoords + 3 * i) + rng->GetNextRangeValue(-.1, .1),
+      *(pcoords + 3 * i + 1) + rng->GetNextRangeValue(-.1, .1),
+      *(pcoords + 3 * i + 2) + rng->GetNextRangeValue(-.1, .1));
   }
 
   return aHexahedron;
@@ -648,9 +651,9 @@ vtkSmartPointer<vtkTriQuadraticHexahedron> MakeTriQuadraticHexahedron()
   for (int i = 0; i < aHexahedron->GetNumberOfPoints(); ++i)
   {
     aHexahedron->GetPointIds()->SetId(i, i);
-    aHexahedron->GetPoints()->SetPoint(i, *(pcoords + 3 * i) + vtkMath::Random(-.1, .1),
-      *(pcoords + 3 * i + 1) + vtkMath::Random(-.1, .1),
-      *(pcoords + 3 * i + 2) + vtkMath::Random(-.1, .1));
+    aHexahedron->GetPoints()->SetPoint(i, *(pcoords + 3 * i) + rng->GetNextRangeValue(-.1, .1),
+      *(pcoords + 3 * i + 1) + rng->GetNextRangeValue(-.1, .1),
+      *(pcoords + 3 * i + 2) + rng->GetNextRangeValue(-.1, .1));
   }
 
   return aHexahedron;
@@ -722,8 +725,8 @@ vtkSmartPointer<vtkQuadraticQuad> MakeQuadraticQuad()
   for (int i = 0; i < 8; ++i)
   {
     aQuad->GetPointIds()->SetId(i, i);
-    aQuad->GetPoints()->SetPoint(i, *(pcoords + 3 * i) + vtkMath::Random(-.1, .1),
-      *(pcoords + 3 * i + 1) + vtkMath::Random(-.1, .1), *(pcoords + 3 * i + 2));
+    aQuad->GetPoints()->SetPoint(i, *(pcoords + 3 * i) + rng->GetNextRangeValue(-.1, .1),
+      *(pcoords + 3 * i + 1) + rng->GetNextRangeValue(-.1, .1), *(pcoords + 3 * i + 2));
   }
 
   return aQuad;
@@ -737,9 +740,9 @@ vtkSmartPointer<vtkQuadraticTetra> MakeQuadraticTetra()
   for (int i = 0; i < 10; ++i)
   {
     aTetra->GetPointIds()->SetId(i, i);
-    aTetra->GetPoints()->SetPoint(i, *(pcoords + 3 * i) + vtkMath::Random(-.1, .1),
-      *(pcoords + 3 * i + 1) + vtkMath::Random(-.1, .1),
-      *(pcoords + 3 * i + 2) + vtkMath::Random(-.1, .1));
+    aTetra->GetPoints()->SetPoint(i, *(pcoords + 3 * i) + rng->GetNextRangeValue(-.1, .1),
+      *(pcoords + 3 * i + 1) + rng->GetNextRangeValue(-.1, .1),
+      *(pcoords + 3 * i + 2) + rng->GetNextRangeValue(-.1, .1));
   }
 
   return aTetra;
@@ -783,8 +786,8 @@ vtkSmartPointer<vtkBiQuadraticQuad> MakeBiQuadraticQuad()
   for (int i = 0; i < aQuad->GetNumberOfPoints(); ++i)
   {
     aQuad->GetPointIds()->SetId(i, i);
-    aQuad->GetPoints()->SetPoint(i, *(pcoords + 3 * i) + vtkMath::Random(-.1, .1),
-      *(pcoords + 3 * i + 1) + vtkMath::Random(-.1, .1), *(pcoords + 3 * i + 2));
+    aQuad->GetPoints()->SetPoint(i, *(pcoords + 3 * i) + rng->GetNextRangeValue(-.1, .1),
+      *(pcoords + 3 * i + 1) + rng->GetNextRangeValue(-.1, .1), *(pcoords + 3 * i + 2));
   }
 
   return aQuad;

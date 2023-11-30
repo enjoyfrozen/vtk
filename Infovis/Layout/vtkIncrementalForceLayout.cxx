@@ -7,6 +7,8 @@
 #include "vtkFloatArray.h"
 #include "vtkGraph.h"
 #include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 #include "vtkObjectFactory.h"
 #include "vtkPoints.h"
 #include "vtkSmartPointer.h"
@@ -149,6 +151,8 @@ void Quad::InsertChild(vtkVector2f& p, vtkIdType vert, float x1, float y1, float
 
 void Quad::ForceAccumulate(float alpha, float charge)
 {
+  static vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   float cx = 0.0f;
   float cy = 0.0f;
   this->Charge = 0.0f;
@@ -172,8 +176,8 @@ void Quad::ForceAccumulate(float alpha, float charge)
     // Jitter internal nodes that are coincident
     if (!this->Leaf)
     {
-      this->Point.SetX(this->Point.GetX() + static_cast<float>(vtkMath::Random()) - 0.5f);
-      this->Point.SetY(this->Point.GetY() + static_cast<float>(vtkMath::Random()) - 0.5f);
+      this->Point.SetX(this->Point.GetX() + static_cast<float>(rand->GetNextValue()) - 0.5f);
+      this->Point.SetY(this->Point.GetY() + static_cast<float>(rand->GetNextValue()) - 0.5f);
     }
     float k = alpha * charge;
     this->PointCharge = k;

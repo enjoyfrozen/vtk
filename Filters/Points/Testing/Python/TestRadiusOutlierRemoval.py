@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from vtkmodules.vtkCommonCore import vtkMath
 from vtkmodules.vtkCommonDataModel import vtkStaticPointLocator
 from vtkmodules.vtkCommonSystem import vtkTimerLog
 from vtkmodules.vtkFiltersModeling import vtkOutlineFilter
@@ -25,8 +24,6 @@ VTK_DATA_ROOT = vtkGetDataRoot()
 
 # Parameters for debugging
 NPts = 10000
-math = vtkMath()
-math.RandomSeed(31415)
 
 # create pipeline
 #

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from vtkmodules.vtkCommonCore import vtkMath
 from vtkmodules.vtkFiltersCore import (
     vtkPolyDataNormals,
     vtkTensorGlyph,
@@ -32,10 +31,6 @@ renWin.AddRenderer(ren1)
 renWin.SetMultiSamples(0)
 iren = vtkRenderWindowInteractor()
 iren.SetRenderWindow(renWin)
-
-# Force a starting random value
-raMath = vtkMath()
-raMath.RandomSeed(6)
 
 # Generate random attributes on a plane
 #

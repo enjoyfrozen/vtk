@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from vtkmodules.vtkCommonCore import vtkMath
 from vtkmodules.vtkCommonDataModel import (
     vtkPlane,
     vtkSphere,
@@ -35,8 +34,6 @@ res = 100
 
 # Parameters for debugging
 NPts = 1000000
-math = vtkMath()
-math.RandomSeed(31415)
 
 # create pipeline
 #

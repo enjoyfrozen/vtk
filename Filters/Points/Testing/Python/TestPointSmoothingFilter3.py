@@ -3,7 +3,7 @@
 
 from vtkmodules.vtkCommonCore import (
     vtkFloatArray,
-    vtkMath,
+    vtkMinimalStandardRandomSequence,
     vtkPoints,
 )
 from vtkmodules.vtkCommonDataModel import (
@@ -36,8 +36,8 @@ VTK_DATA_ROOT = vtkGetDataRoot()
 
 # Control test resolution
 NPts = 1500
-math = vtkMath()
-math.RandomSeed(31415)
+rand = vtk.vtkMinimalStandardRandomSequence()
+rand.SetSeed(31415)
 
 # Controls the plane normal and view plane normal
 normal = [0,0,1]
@@ -57,12 +57,12 @@ tensors.SetNumberOfComponents(6)
 tensors.SetNumberOfTuples(NPts)
 
 for i in range(0,NPts):
-    pts.SetPoint(i,math.Random(-1,1),math.Random(-1,1),0.0)
+    pts.SetPoint(i,rand.GetNextRangeValue(-1,1),rand.GetNextRangeValue(-1,1),0.0)
     conn = [i]
     verts.InsertNextCell(1,conn)
-    scalars.SetTuple1(i, math.Random(2,5))
-    tensors.SetTuple6(i, math.Random(1,3),math.Random(-1,1),math.Random(-1,1),
-                      math.Random(1,3),math.Random(-1,1),1)
+    scalars.SetTuple1(i, rand.GetNextRangeValue(2,5))
+    tensors.SetTuple6(i, rand.GetNextRangeValue(1,3),rand.GetNextRangeValue(-1,1),rand.GetNextRangeValue(-1,1),
+                      rand.GetNextRangeValue(1,3),rand.GetNextRangeValue(-1,1),1)
 
 pdata = vtkPolyData()
 pdata.SetPoints(pts)

@@ -5,7 +5,8 @@
 #include "vtkFloatArray.h"
 #include "vtkIdList.h"
 #include "vtkIntArray.h"
-#include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 #include "vtkSortDataArray.h"
 #include "vtkStringArray.h"
 #include "vtkTimerLog.h"
@@ -22,6 +23,8 @@ int TestSortDataArray(int, char*[])
   vtkTimerLog* timer = vtkTimerLog::New();
   int retVal = 0;
 
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   //---------------------------------------------------------------------------
   // Sort data array
   cout << "Building array----------" << endl;
@@ -30,7 +33,7 @@ int TestSortDataArray(int, char*[])
   keys->SetNumberOfTuples(ARRAY_SIZE);
   for (i = 0; i < ARRAY_SIZE; i++)
   {
-    keys->SetComponent(i, 0, static_cast<int>(vtkMath::Random(0, ARRAY_SIZE * 4)));
+    keys->SetComponent(i, 0, static_cast<int>(rand->GetNextRangeValue(0, ARRAY_SIZE * 4)));
   }
 
   cout << "Sorting array" << endl;
@@ -76,7 +79,7 @@ int TestSortDataArray(int, char*[])
   ids->SetNumberOfIds(ARRAY_SIZE);
   for (i = 0; i < ARRAY_SIZE; i++)
   {
-    ids->SetId(i, static_cast<vtkIdType>(vtkMath::Random(0, ARRAY_SIZE * 4)));
+    ids->SetId(i, static_cast<vtkIdType>(rand->GetNextRangeValue(0, ARRAY_SIZE * 4)));
   }
 
   cout << "Sorting ids" << endl;
@@ -103,7 +106,7 @@ int TestSortDataArray(int, char*[])
   ids->SetNumberOfIds(ARRAY_SIZE);
   for (i = 0; i < ARRAY_SIZE; i++)
   {
-    ids->SetId(i, static_cast<vtkIdType>(vtkMath::Random(0, ARRAY_SIZE * 4)));
+    ids->SetId(i, static_cast<vtkIdType>(rand->GetNextRangeValue(0, ARRAY_SIZE * 4)));
   }
 
   cout << "Sorting ids" << endl;
@@ -132,9 +135,9 @@ int TestSortDataArray(int, char*[])
   values->SetNumberOfTuples(ARRAY_SIZE);
   for (i = 0; i < ARRAY_SIZE; i++)
   {
-    keys->SetComponent(i, 0, static_cast<int>(vtkMath::Random(0, ARRAY_SIZE * 4)));
+    keys->SetComponent(i, 0, static_cast<int>(rand->GetNextRangeValue(0, ARRAY_SIZE * 4)));
     values->SetComponent(i, 0, i);
-    values->SetComponent(i, 1, static_cast<int>(vtkMath::Random(0, ARRAY_SIZE * 4)));
+    values->SetComponent(i, 1, static_cast<int>(rand->GetNextRangeValue(0, ARRAY_SIZE * 4)));
   }
   vtkIntArray* saveKeys = vtkIntArray::New();
   saveKeys->DeepCopy(keys);
@@ -212,7 +215,7 @@ int TestSortDataArray(int, char*[])
   for (i = 0; i < ARRAY_SIZE; i++)
   {
     fvalues->SetComponent(i, 0, i);
-    fvalues->SetComponent(i, 1, static_cast<float>(vtkMath::Random(0, ARRAY_SIZE * 4)));
+    fvalues->SetComponent(i, 1, static_cast<float>(rand->GetNextRangeValue(0, ARRAY_SIZE * 4)));
     fvalues->SetComponent(i, 2, i);
   }
   vtkFloatArray* saveFValues = vtkFloatArray::New();
@@ -252,7 +255,7 @@ int TestSortDataArray(int, char*[])
   for (i = 0; i < ARRAY_SIZE; ++i)
   {
     ostr.str(""); // clear it out
-    ostr << static_cast<int>(vtkMath::Random(0, ARRAY_SIZE * 4));
+    ostr << static_cast<int>(rand->GetNextRangeValue(0, ARRAY_SIZE * 4));
     sarray->SetValue(i, ostr.str());
   }
 

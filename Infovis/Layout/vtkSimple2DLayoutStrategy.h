@@ -20,7 +20,9 @@
 #define vtkSimple2DLayoutStrategy_h
 
 #include "vtkGraphLayoutStrategy.h"
-#include "vtkInfovisLayoutModule.h" // For export macro
+#include "vtkInfovisLayoutModule.h"           // For export macro
+#include "vtkMinimalStandardRandomSequence.h" // for ivars
+#include "vtkNew.h"                           // for ivars
 
 VTK_ABI_NAMESPACE_BEGIN
 class vtkFloatArray;
@@ -157,6 +159,8 @@ private:
   vtkFloatArray* RepulsionArray;
   vtkFloatArray* AttractionArray;
   vtkLayoutEdge* EdgeArray;
+
+  vtkNew<vtkMinimalStandardRandomSequence> Rng;
 
   int RandomSeed;
   int IterationsPerLayout;

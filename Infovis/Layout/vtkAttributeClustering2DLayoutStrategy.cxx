@@ -204,7 +204,7 @@ void vtkAttributeClustering2DLayoutStrategy::Initialize()
     return;
   }
 
-  vtkMath::RandomSeed(this->RandomSeed);
+  this->Rng->SetSeed(this->RandomSeed);
 
   // Set up some quick access variables
   vtkPoints* pts = this->Graph->GetPoints();
@@ -254,8 +254,8 @@ void vtkAttributeClustering2DLayoutStrategy::Initialize()
   // Jitter x and y, skip z
   for (vtkIdType i = 0; i < numVertices * 3; i += 3)
   {
-    rawPointData[i] += this->RestDistance * (vtkMath::Random() - .5);
-    rawPointData[i + 1] += this->RestDistance * (vtkMath::Random() - .5);
+    rawPointData[i] += this->RestDistance * (this->Rng->GetNextValue() - .5);
+    rawPointData[i + 1] += this->RestDistance * (this->Rng->GetNextValue() - .5);
   }
 
   this->Implementation->Edges.clear();
@@ -602,8 +602,8 @@ void vtkAttributeClustering2DLayoutStrategy::ResolveCoincidentVertices()
         collisionOps++;
 
         // Move
-        rawPointData[rawIndex] += jumpDistanceX * (vtkMath::Random() - .5);
-        rawPointData[rawIndex + 1] += jumpDistanceY * (vtkMath::Random() - .5);
+        rawPointData[rawIndex] += jumpDistanceX * (this->Rng->GetNextValue() - .5);
+        rawPointData[rawIndex + 1] += jumpDistanceY * (this->Rng->GetNextValue() - .5);
 
         // Test
         indexX = static_cast<int>((rawPointData[rawIndex] - paddedBounds[0]) /

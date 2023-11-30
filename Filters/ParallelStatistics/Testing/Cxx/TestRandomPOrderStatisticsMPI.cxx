@@ -9,11 +9,14 @@
 #include "vtkOrderStatistics.h"
 #include "vtkPOrderStatistics.h"
 
+#include "vtkBoxMuellerRandomSequence.h"
 #include "vtkIdTypeArray.h"
 #include "vtkIntArray.h"
 #include "vtkMPIController.h"
 #include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
 #include "vtkMultiBlockDataSet.h"
+#include "vtkNew.h"
 #include "vtkStringArray.h"
 #include "vtkTable.h"
 #include "vtkTimerLog.h"
@@ -51,7 +54,11 @@ void RandomOrderStatistics(vtkMultiProcessController* controller, void* arg)
   int myRank = com->GetLocalProcessId();
 
   // Seed random number generator
-  vtkMath::RandomSeed(static_cast<int>(vtkTimerLog::GetUniversalTime()) * (myRank + 1));
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+  rand->SetSeed(static_cast<int>(vtkTimerLog::GetUniversalTime()) * (myRank + 1));
+
+  vtkNew<vtkBoxMuellerRandomSequence> grand;
+  grand->SetUniformSequence(rand);
 
   // Generate an input table that contains samples of:
   // 1. A truncated Gaussian pseudo-random variable (vtkIntArray)
@@ -90,10 +97,17 @@ void RandomOrderStatistics(vtkMultiProcessController* controller, void* arg)
   // Initial current variable index
   int idx = 0;
 
+  vtkNew<vtkBoxMuellerRandomSequence> gauss_rand_seq;
+  vtkNew<vtkMinimalStandardRandomSequence> rand_seq;
+
+  // Seed random number generators
+  gauss_rand_seq->SetSeed(static_cast<int>(vtkTimerLog::GetUniversalTime()) * (myRank + 1));
+  rand_seq->SetSeed(static_cast<int>(vtkTimerLog::GetUniversalTime()) * (myRank + 1));
+
   // Store first integer value
   if (!args->skipInt)
   {
-    v[idx] = static_cast<int>(std::round(vtkMath::Gaussian() * args->stdev));
+    v[idx] = static_cast<int>(std::round(grand->GetNextValue() * args->stdev));
     intArray->InsertNextValue(v[idx]);
     ++idx;
   }
@@ -101,7 +115,7 @@ void RandomOrderStatistics(vtkMultiProcessController* controller, void* arg)
   // Store first string value
   if (!args->skipString)
   {
-    v[idx] = 96 + vtkMath::Ceil(vtkMath::Random() * 26);
+    v[idx] = 96 + vtkMath::Ceil(rand->GetNextValue() * 26);
     char c = static_cast<char>(v[idx]);
     std::string s(&c, 1);
     strArray->InsertNextValue(s);
@@ -123,7 +137,7 @@ void RandomOrderStatistics(vtkMultiProcessController* controller, void* arg)
     // Store current integer value
     if (!args->skipInt)
     {
-      v[idx] = static_cast<int>(std::round(vtkMath::Gaussian() * args->stdev));
+      v[idx] = static_cast<int>(std::round(grand->GetNextValue() * args->stdev));
       intArray->InsertNextValue(v[idx]);
       ++idx;
     }
@@ -131,7 +145,7 @@ void RandomOrderStatistics(vtkMultiProcessController* controller, void* arg)
     // Store current string value
     if (!args->skipString)
     {
-      v[idx] = 96 + vtkMath::Ceil(vtkMath::Random() * 26);
+      v[idx] = 96 + vtkMath::Ceil(rand->GetNextValue() * 26);
       char c = static_cast<char>(v[idx]);
       std::string s(&c, 1);
       strArray->InsertNextValue(s);

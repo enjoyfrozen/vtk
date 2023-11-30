@@ -16,7 +16,8 @@
 #include "vtkLabelPlacer.h"
 #include "vtkLabelSizeCalculator.h"
 #include "vtkLabeledDataMapper.h"
-#include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 #include "vtkPointData.h"
 #include "vtkPointSet.h"
 #include "vtkPointSetToLabelHierarchy.h"
@@ -86,11 +87,13 @@ int TestLabelPlacerCoincidentPoints(int argc, char* argv[])
 
   // renderer->GetActiveCamera()->ParallelProjectionOn();
 
-  vtkMath::RandomSeed(5678);
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+  rand->SetSeed(5678);
 
   for (i = 0; i < 29; i++)
   {
-    // points->InsertPoint( i, vtkMath::Random(-1.0, 1.0), vtkMath::Random(-1.0, 1.0), 0. );
+    // points->InsertPoint( i, rand->GetNextRangeValue(-1.0, 1.0),
+    // rand->GetNextRangeValue(-1.0, 1.0), 0. );
     points->InsertPoint(i, 0.0, 0.0, 0.0);
   }
   points->InsertPoint(29, 2.2, 2.2, 0.0);

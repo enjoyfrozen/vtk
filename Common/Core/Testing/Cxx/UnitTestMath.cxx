@@ -1,6 +1,9 @@
 // SPDX-FileCopyrightText: Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
 // SPDX-License-Identifier: BSD-3-Clause
 
+// Hide VTK_DEPRECATED_IN_9_1_0() warnings for this class.
+#define VTK_DEPRECATION_LEVEL 0
+
 //
 // Note if you fix this test to fill in all the empty tests
 // then remove the cppcheck suppression in VTKcppcheckSuppressions.txt
@@ -9,6 +12,8 @@
 #include "vtkIntArray.h"
 #include "vtkMath.h"
 #include "vtkMathUtilities.h"
+#include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 #include "vtkSmartPointer.h"
 #include "vtkType.h"
 #include "vtkUnsignedCharArray.h"
@@ -205,10 +210,12 @@ int TestDegreesFromRadians()
   int status = 0;
   std::cout << "DegreesFromRadians..";
 
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   unsigned int numSamples = 1000;
   for (unsigned int i = 0; i < numSamples; ++i)
   {
-    float floatDegrees = vtkMath::Random(-180.0, 180.0);
+    float floatDegrees = rand->GetNextRangeValue(-180.0, 180.0);
     float floatRadians = vtkMath::RadiansFromDegrees(floatDegrees);
     float result = vtkMath::DegreesFromRadians(floatRadians);
     if (!vtkMathUtilities::FuzzyCompare(
@@ -223,7 +230,7 @@ int TestDegreesFromRadians()
   }
   for (unsigned int i = 0; i < numSamples; ++i)
   {
-    double doubleDegrees = vtkMath::Random(-180.0, 180.0);
+    double doubleDegrees = rand->GetNextRangeValue(-180.0, 180.0);
     double doubleRadians = vtkMath::RadiansFromDegrees(doubleDegrees);
     double result = vtkMath::DegreesFromRadians(doubleRadians);
     if (!vtkMathUtilities::FuzzyCompare(
@@ -718,14 +725,16 @@ int TestRandom()
 template <typename T>
 int AddSubtract()
 {
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   int status = 0;
   T da[3], db[3], dc[3], dd[3];
   for (int n = 0; n < 100000; ++n)
   {
     for (int i = 0; i < 3; ++i)
     {
-      da[i] = vtkMath::Random(-10.0, 10.0);
-      db[i] = vtkMath::Random(-10.0, 10.0);
+      da[i] = rand->GetNextRangeValue(-10.0, 10.0);
+      db[i] = rand->GetNextRangeValue(-10.0, 10.0);
     }
     vtkMath::Add(da, db, dc);
     vtkMath::Subtract(dc, db, dd);
@@ -765,6 +774,8 @@ int TestAddSubtract()
 template <typename T>
 int MultiplyScalar()
 {
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   int status = 0;
   // first T
   T da[3], db[3];
@@ -772,10 +783,10 @@ int MultiplyScalar()
   {
     for (int i = 0; i < 3; ++i)
     {
-      da[i] = vtkMath::Random(-10.0, 10.0);
+      da[i] = rand->GetNextRangeValue(-10.0, 10.0);
       db[i] = da[i];
     }
-    T scale = vtkMath::Random();
+    T scale = rand->GetNextValue();
     vtkMath::MultiplyScalar(da, scale);
 
     for (int i = 0; i < 3; ++i)
@@ -813,6 +824,8 @@ int TestMultiplyScalar()
 
 int TestMultiplyScalar2D()
 {
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   int status = 0;
   std::cout << "MultiplyScalar2D..";
 
@@ -823,10 +836,10 @@ int TestMultiplyScalar2D()
   {
     for (int i = 0; i < 2; ++i)
     {
-      da[i] = vtkMath::Random(-10.0, 10.0);
+      da[i] = rand->GetNextRangeValue(-10.0, 10.0);
       db[i] = da[i];
     }
-    double scale = vtkMath::Random();
+    double scale = rand->GetNextValue();
     vtkMath::MultiplyScalar2D(da, scale);
 
     for (int i = 0; i < 2; ++i)
@@ -846,10 +859,10 @@ int TestMultiplyScalar2D()
   {
     for (int i = 0; i < 2; ++i)
     {
-      fa[i] = vtkMath::Random(-10.0, 10.0);
+      fa[i] = rand->GetNextRangeValue(-10.0, 10.0);
       fb[i] = fa[i];
     }
-    float scale = vtkMath::Random();
+    float scale = rand->GetNextValue();
     vtkMath::MultiplyScalar2D(fa, scale);
 
     for (int i = 0; i < 2; ++i)
@@ -907,6 +920,8 @@ public:
 };
 int TestDot()
 {
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   int status = 0;
   std::cout << "Dot..";
 
@@ -919,8 +934,8 @@ int TestDot()
       double dot = 0.0;
       for (int i = 0; i < 3; ++i)
       {
-        v.a[i] = vtkMath::Random();
-        v.b[i] = vtkMath::Random();
+        v.a[i] = rand->GetNextValue();
+        v.b[i] = rand->GetNextValue();
         dot += (v.a[i] * v.b[i]);
       }
       values.push_back(v);
@@ -974,8 +989,8 @@ int TestDot()
       float dot = 0.0;
       for (int i = 0; i < 3; ++i)
       {
-        v.a[i] = vtkMath::Random();
-        v.b[i] = vtkMath::Random();
+        v.a[i] = rand->GetNextValue();
+        v.b[i] = rand->GetNextValue();
         dot += (v.a[i] * v.b[i]);
       }
       values.push_back(v);
@@ -1050,6 +1065,8 @@ int TestOuter()
 template <typename T>
 int Cross()
 {
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   int status = 0;
   T a[3];
   T b[3];
@@ -1060,8 +1077,8 @@ int Cross()
   {
     for (int i = 0; i < 3; ++i)
     {
-      a[i] = vtkMath::Random(-1.0, 1.0);
-      b[i] = vtkMath::Random(-1.0, 1.0);
+      a[i] = rand->GetNextRangeValue(-1.0, 1.0);
+      b[i] = rand->GetNextRangeValue(-1.0, 1.0);
     }
     vtkMath::Cross(a, b, c);
     vtkMath::MultiplyScalar(b, (T)-1.0);
@@ -1103,6 +1120,8 @@ int TestCross()
 template <typename T, int NDimension>
 int Norm()
 {
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   int status = 0;
   T x[NDimension];
 
@@ -1110,7 +1129,7 @@ int Norm()
   {
     for (int i = 0; i < NDimension; ++i)
     {
-      x[i] = (T)vtkMath::Random(-10.0, 10.0);
+      x[i] = (T)rand->GetNextRangeValue(-10.0, 10.0);
     }
 
     T norm = vtkMath::Norm(x, NDimension);
@@ -1162,13 +1181,15 @@ int TestNorm()
 template <typename T>
 int Normalize()
 {
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   int status = 0;
   for (int n = 0; n < 1000; ++n)
   {
     T a[3];
     for (int i = 0; i < 3; ++i)
     {
-      a[i] = vtkMath::Random(-10000.0, 10000.0);
+      a[i] = rand->GetNextRangeValue(-10000.0, 10000.0);
     }
     vtkMath::Normalize(a);
     T value = vtkMath::Norm(a);
@@ -1206,6 +1227,8 @@ int TestNormalize()
 
 int TestPerpendiculars()
 {
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   int status = 0;
   std::cout << "Perpendiculars..";
   {
@@ -1217,9 +1240,9 @@ int TestPerpendiculars()
     {
       for (int i = 0; i < 3; ++i)
       {
-        x[i] = vtkMath::Random(-10.0, 10.0);
+        x[i] = rand->GetNextRangeValue(-10.0, 10.0);
       }
-      vtkMath::Perpendiculars(x, y, z, vtkMath::Random(-vtkMath::Pi(), vtkMath::Pi()));
+      vtkMath::Perpendiculars(x, y, z, rand->GetNextRangeValue(-vtkMath::Pi(), vtkMath::Pi()));
       {
         valueDouble3D value(x, y);
         values.push_back(value);
@@ -1262,9 +1285,9 @@ int TestPerpendiculars()
     {
       for (int i = 0; i < 3; ++i)
       {
-        x[i] = vtkMath::Random(-10.0, 10.0);
+        x[i] = rand->GetNextRangeValue(-10.0, 10.0);
       }
-      vtkMath::Perpendiculars(x, y, z, vtkMath::Random(-vtkMath::Pi(), vtkMath::Pi()));
+      vtkMath::Perpendiculars(x, y, z, rand->GetNextRangeValue(-vtkMath::Pi(), vtkMath::Pi()));
       {
         valueFloat3D value(x, y);
         values.push_back(value);
@@ -1464,6 +1487,8 @@ public:
 };
 int TestDot2D()
 {
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   int status = 0;
   std::cout << "Dot2D..";
 
@@ -1476,8 +1501,8 @@ int TestDot2D()
       double dot = 0.0;
       for (int i = 0; i < 2; ++i)
       {
-        v.a[i] = vtkMath::Random();
-        v.b[i] = vtkMath::Random();
+        v.a[i] = rand->GetNextValue();
+        v.b[i] = rand->GetNextValue();
         dot += (v.a[i] * v.b[i]);
       }
       values.push_back(v);
@@ -1513,8 +1538,8 @@ int TestDot2D()
       float dot = 0.0;
       for (int i = 0; i < 2; ++i)
       {
-        v.a[i] = vtkMath::Random();
-        v.b[i] = vtkMath::Random();
+        v.a[i] = rand->GetNextValue();
+        v.b[i] = rand->GetNextValue();
         dot += (v.a[i] * v.b[i]);
       }
       values.push_back(v);
@@ -1728,6 +1753,8 @@ int TestDeterminant3x3()
 template <typename T>
 int LUFactor3x3()
 {
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   int status = 0;
 
   T A[3][3];
@@ -1739,7 +1766,7 @@ int LUFactor3x3()
     {
       for (int j = 0; j < 3; ++j)
       {
-        A[i][j] = vtkMath::Random(-10.0, 10.0);
+        A[i][j] = rand->GetNextRangeValue(-10.0, 10.0);
       }
     }
     vtkMath::LUFactor3x3(A, index);
@@ -1768,6 +1795,8 @@ int TestLUFactor3x3()
 template <typename T>
 int LUSolve3x3()
 {
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   int status = 0;
 
   // Generate a Hilbert Matrix
@@ -1780,7 +1809,7 @@ int LUSolve3x3()
   {
     for (int i = 0; i < 3; ++i)
     {
-      lhs[i] = vtkMath::Random(-1.0, 1.0);
+      lhs[i] = rand->GetNextRangeValue(-1.0, 1.0);
     }
 
     for (int i = 1; i <= 3; ++i)
@@ -1829,6 +1858,8 @@ int TestLUSolve3x3()
 template <typename T>
 int LinearSolve3x3()
 {
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   int status = 0;
 
   // Generate a Hilbert Matrix
@@ -1841,7 +1872,7 @@ int LinearSolve3x3()
   {
     for (int i = 0; i < 3; ++i)
     {
-      lhs[i] = vtkMath::Random(-1.0, 1.0);
+      lhs[i] = rand->GetNextRangeValue(-1.0, 1.0);
     }
 
     for (int i = 1; i <= 3; ++i)
@@ -1890,6 +1921,8 @@ int TestLinearSolve3x3()
 template <typename T>
 int Multiply3x3()
 {
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   int status = 0;
   T A[3][3];
   T V[3];
@@ -1899,9 +1932,9 @@ int Multiply3x3()
   {
     for (int j = 0; j < 3; ++j)
     {
-      A[i][j] = vtkMath::Random(-10.0, 10.0);
+      A[i][j] = rand->GetNextRangeValue(-10.0, 10.0);
     }
-    V[i] = vtkMath::Random(-10.0, 10.0);
+    V[i] = rand->GetNextRangeValue(-10.0, 10.0);
   }
 
   vtkMath::Multiply3x3(A, V, U);
@@ -2186,6 +2219,8 @@ int TestIdentity3x3()
 template <typename T>
 int Matrix3x3ToQuaternion()
 {
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   int status = 0;
 
   T A[3][3];
@@ -2197,7 +2232,7 @@ int Matrix3x3ToQuaternion()
     {
       for (int j = 0; j < 3; ++j)
       {
-        A[i][j] = vtkMath::Random(-1.0, 1.0);
+        A[i][j] = rand->GetNextRangeValue(-1.0, 1.0);
       }
     }
     vtkMath::Matrix3x3ToQuaternion(A, quat);
@@ -2226,6 +2261,8 @@ int TestMatrix3x3ToQuaternion()
 template <typename T>
 int QuaternionToMatrix3x3()
 {
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   int status = 0;
 
   T A[3][3];
@@ -2233,10 +2270,10 @@ int QuaternionToMatrix3x3()
 
   for (int n = 0; n < 1000; ++n)
   {
-    quat[0] = vtkMath::Random(-vtkMath::Pi(), vtkMath::Pi());
+    quat[0] = rand->GetNextRangeValue(-vtkMath::Pi(), vtkMath::Pi());
     for (int i = 1; i < 2; ++i)
     {
-      quat[i] = vtkMath::Random(-10.0, 10.0);
+      quat[i] = rand->GetNextRangeValue(-10.0, 10.0);
     }
     vtkMath::QuaternionToMatrix3x3(quat, A);
   }
@@ -2265,6 +2302,8 @@ int TestQuaternionToMatrix3x3()
 template <typename T>
 int MultiplyQuaternion()
 {
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   int status = 0;
 
   T q1[4];
@@ -2272,8 +2311,8 @@ int MultiplyQuaternion()
   T q3[4];
   for (int n = 0; n < 1000; ++n)
   {
-    q1[0] = vtkMath::Random(-vtkMath::Pi(), vtkMath::Pi());
-    q2[0] = vtkMath::Random(-vtkMath::Pi(), vtkMath::Pi());
+    q1[0] = rand->GetNextRangeValue(-vtkMath::Pi(), vtkMath::Pi());
+    q2[0] = rand->GetNextRangeValue(-vtkMath::Pi(), vtkMath::Pi());
     vtkMath::MultiplyQuaternion(q1, q2, q3);
   }
 
@@ -2300,6 +2339,8 @@ int TestMultiplyQuaternion()
 
 int TestOrthogonalize3x3()
 {
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   int status = 0;
   std::cout << "Orthogonalize3x3..";
 
@@ -2315,7 +2356,7 @@ int TestOrthogonalize3x3()
       {
         for (int j = 0; j < 3; ++j)
         {
-          mat[i][j] = vtkMath::Random();
+          mat[i][j] = rand->GetNextValue();
         }
       }
       vtkMath::Orthogonalize3x3(mat, matO);
@@ -2352,7 +2393,7 @@ int TestOrthogonalize3x3()
       {
         for (int j = 0; j < 3; ++j)
         {
-          mat[i][j] = vtkMath::Random();
+          mat[i][j] = rand->GetNextValue();
         }
       }
       vtkMath::Orthogonalize3x3(mat, matO);
@@ -2391,6 +2432,8 @@ int TestOrthogonalize3x3()
 template <typename T>
 int Diagonalize3x3()
 {
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   int status = 0;
 
   T mat[3][3];
@@ -2405,7 +2448,7 @@ int Diagonalize3x3()
     {
       for (int j = i; j < 3; ++j)
       {
-        mat[i][j] = mat[j][i] = vtkMath::Random(-1.0, 1.0);
+        mat[i][j] = mat[j][i] = rand->GetNextRangeValue(-1.0, 1.0);
       }
     }
 
@@ -2480,6 +2523,8 @@ int TestDiagonalize3x3()
 template <typename T>
 int SingularValueDecomposition3x3()
 {
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   int status = 0;
 
   T a[3][3];
@@ -2494,7 +2539,7 @@ int SingularValueDecomposition3x3()
     {
       for (int j = 0; j < 3; ++j)
       {
-        orig[i][j] = a[i][j] = vtkMath::Random(-10.0, 10.0);
+        orig[i][j] = a[i][j] = rand->GetNextRangeValue(-10.0, 10.0);
       }
     }
     vtkMath::SingularValueDecomposition3x3(a, u, w, vt);
@@ -2549,6 +2594,8 @@ int TestSingularValueDecomposition3x3()
 template <typename T, int NDimension>
 int SolveLinearSystem()
 {
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   int status = 0;
 
   for (int n = 0; n < 100; ++n)
@@ -2561,10 +2608,10 @@ int SolveLinearSystem()
     for (int i = 0; i < NDimension; ++i)
     {
       mat[i] = new T[NDimension];
-      lhs[i] = vtkMath::Random(-1.0, 1.0);
+      lhs[i] = rand->GetNextRangeValue(-1.0, 1.0);
       for (int j = 0; j < NDimension; ++j)
       {
-        *(mat[i] + j) = vtkMath::Random(-1.0, 1.0);
+        *(mat[i] + j) = rand->GetNextRangeValue(-1.0, 1.0);
       }
     }
 
@@ -2872,6 +2919,8 @@ int TestLUSolveLinearSystemEstimateMatrixCondition()
 template <typename T, int NDimension>
 int JacobiN()
 {
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   int status = 0;
 
   T mat[NDimension][NDimension];
@@ -2887,7 +2936,7 @@ int JacobiN()
     {
       for (int j = i; j < NDimension; ++j)
       {
-        mat[i][j] = mat[j][i] = vtkMath::Random(0.0, 1.0);
+        mat[i][j] = mat[j][i] = rand->GetNextRangeValue(0.0, 1.0);
         orig[i][j] = orig[j][i] = mat[i][j];
       }
     }
@@ -2974,6 +3023,8 @@ int TestJacobiN()
 template <typename T>
 int RGBToHSV()
 {
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   int status = 0;
   T R, G, B;
   T H, S, V;
@@ -2982,9 +3033,9 @@ int RGBToHSV()
   {
     std::vector<T> values;
     std::vector<T> expecteds;
-    R = (T)vtkMath::Random(0.0, 1.0);
-    G = (T)vtkMath::Random(0.0, 1.0);
-    B = (T)vtkMath::Random(0.0, 1.0);
+    R = (T)rand->GetNextRangeValue(0.0, 1.0);
+    G = (T)rand->GetNextRangeValue(0.0, 1.0);
+    B = (T)rand->GetNextRangeValue(0.0, 1.0);
 
     vtkMath::RGBToHSV(R, G, B, &H, &S, &V);
     vtkMath::HSVToRGB(H, S, V, &CR, &CG, &CB);
@@ -3115,6 +3166,8 @@ int TestClampValue()
 // Validate with known solutions
 int TestClampValues()
 {
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   int status = 0;
   std::cout << "ClampValues..";
 
@@ -3122,7 +3175,7 @@ int TestClampValues()
   double clampedValues[1000];
   for (int n = 0; n < 1000; ++n)
   {
-    values[n] = vtkMath::Random(-2.0, 2.0);
+    values[n] = rand->GetNextRangeValue(-2.0, 2.0);
   }
   double range[2] = { -1.0, 1.0 };
   vtkMath::ClampValues(values, 1000, range, clampedValues);
@@ -3210,12 +3263,14 @@ int TestClampAndNormalizeValue()
 // are in correct places
 int TestTensorFromSymmetricTensor()
 {
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   int status = 0;
   std::cout << "TensorFromSymmetricTensor..";
   double symmTensor[9];
   for (int i = 0; i < 6; i++)
   {
-    symmTensor[i] = vtkMath::Random();
+    symmTensor[i] = rand->GetNextValue();
   }
   double tensor[9];
   vtkMath::TensorFromSymmetricTensor(symmTensor, tensor);
@@ -3371,6 +3426,8 @@ int TestGetScalarTypeFittingRange()
 // Validate with known solutions
 int TestGetAdjustedScalarRange()
 {
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   int status = 0;
   std::cout << "GetAdjustedScalarRange..";
 
@@ -3382,7 +3439,7 @@ int TestGetAdjustedScalarRange()
     for (int j = 0; j < 3; ++j)
     {
       uc->SetComponent(i, j,
-        vtkMath::Random(
+        rand->GetNextRangeValue(
           std::numeric_limits<unsigned char>::min(), std::numeric_limits<unsigned char>::max()));
     }
   }
@@ -3401,13 +3458,13 @@ int TestGetAdjustedScalarRange()
   for (int i = 0; i < 10000; ++i)
   {
     us->SetComponent(i, 0,
-      vtkMath::Random(
+      rand->GetNextRangeValue(
         std::numeric_limits<unsigned short>::min(), std::numeric_limits<unsigned short>::max()));
     us->SetComponent(i, 1,
-      vtkMath::Random(std::numeric_limits<unsigned short>::min(),
+      rand->GetNextRangeValue(std::numeric_limits<unsigned short>::min(),
         std::numeric_limits<unsigned char>::max() + 100));
     us->SetComponent(i, 2,
-      vtkMath::Random(
+      rand->GetNextRangeValue(
         std::numeric_limits<unsigned short>::min(), std::numeric_limits<unsigned char>::max()));
   }
   vtkMath::GetAdjustedScalarRange(us, 0, range);
@@ -3648,6 +3705,8 @@ int TestPointIsWithinBounds()
 // Validate with with alternative solution
 int TestSolve3PointCircle()
 {
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   int status = 0;
   std::cout << "Solve3PointCircle..";
 
@@ -3659,9 +3718,9 @@ int TestSolve3PointCircle()
 
     for (int i = 0; i < 3; ++i)
     {
-      A[i] = vtkMath::Random(-1.0, 1.0);
-      B[i] = vtkMath::Random(-1.0, 1.0);
-      C[i] = vtkMath::Random(-1.0, 1.0);
+      A[i] = rand->GetNextRangeValue(-1.0, 1.0);
+      B[i] = rand->GetNextRangeValue(-1.0, 1.0);
+      C[i] = rand->GetNextRangeValue(-1.0, 1.0);
     }
 
     vtkMath::Subtract(A, C, a);

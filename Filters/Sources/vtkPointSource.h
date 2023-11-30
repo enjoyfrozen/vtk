@@ -116,7 +116,7 @@ public:
   ///@{
   /**
    * Set/Get a random sequence generator.
-   * By default, the generator in vtkMath is used to maintain backwards
+   * By default, a static the generator instance is used to maintain backwards
    * compatibility.
    */
   virtual void SetRandomSequence(vtkRandomSequence* randomSequence);

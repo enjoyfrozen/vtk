@@ -9,7 +9,8 @@
 #include "vtkCellArray.h"
 #include "vtkDelaunay2D.h"
 #include "vtkDoubleArray.h"
-#include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 #include "vtkPointData.h"
 #include "vtkPolyData.h"
 #include "vtkPolyDataMapper.h"
@@ -35,7 +36,8 @@ int TestUncertaintyTubeFilter(int, char*[])
   newPts->SetPoint(8, 1, 8, 4);
   newPts->SetPoint(9, 1, 16, 5);
 
-  vtkMath::RandomSeed(1177);
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+  rand->SetSeed(1177);
   vtkSmartPointer<vtkDoubleArray> s = vtkSmartPointer<vtkDoubleArray>::New();
   s->SetNumberOfComponents(1);
   s->SetNumberOfTuples(10);
@@ -44,10 +46,10 @@ int TestUncertaintyTubeFilter(int, char*[])
   v->SetNumberOfTuples(10);
   for (int i = 0; i < 10; i++)
   {
-    s->SetTuple1(i, vtkMath::Random(0, 1));
-    double x = vtkMath::Random(0.0, 2);
-    double y = vtkMath::Random(0.0, 2);
-    double z = vtkMath::Random(0.0, 2);
+    s->SetTuple1(i, rand->GetNextRangeValue(0, 1));
+    double x = rand->GetNextRangeValue(0.0, 2);
+    double y = rand->GetNextRangeValue(0.0, 2);
+    double z = rand->GetNextRangeValue(0.0, 2);
     v->SetTuple3(i, x, y, z);
   }
 
