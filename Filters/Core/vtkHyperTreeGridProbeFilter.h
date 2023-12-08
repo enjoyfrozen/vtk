@@ -4,9 +4,18 @@
  * @class   vtkHyperTreeGridProbeFilter
  * @brief   Probe a vtkHyperTreeGrid
  *
- * Heavily modeled after the vtkProbeFilter, this class
- *  is meant to be used to probe vtkHyperTreeGrid objects.
+ * Heavily modeled after the vtkProbeFilter, this class is meant to be used
+ * to probe vtkHyperTreeGrid objects.
  *
+ * This class can use two different strategies to store data arrays on the
+ * output :
+ * - If UseImplicitArrays is off, probed values are copied on the output directly
+ * - If UseImplicitArrays is on, these values are not copied but retrieved from
+ * the probed source arrays using implicit arrays. This can lead to lower memory cost,
+ * especially if the probed source holds numerous data arrays, at the price of a higher
+ * computational cost.
+ *
+ * @note The implicit array strategy is not available in distributed yet.
  */
 
 #ifndef vtkHyperTreeGridProbeFilter_h
@@ -16,6 +25,8 @@
 #include "vtkFiltersCoreModule.h" //For export Macro
 #include "vtkNew.h"               //For init in header
 #include "vtkSmartPointer.h"      //For members
+
+#include <memory>
 
 VTK_ABI_NAMESPACE_BEGIN
 class vtkCharArray;
@@ -131,6 +142,25 @@ public:
   vtkGetMacro(ComputeTolerance, bool);
   ///@}
 
+  ///@{
+  /**
+   * Get/Set wether or not the filter should use implicit arrays.
+   * If set to true, probed values will not be copied to the output
+   * but retrieved from the source through indexation (thanks to indexed arrays).
+   * This can lower the memory consumption, especially if the probed source contains
+   * a lot of data arrays. Note that it will also increase the computation time.
+   *
+   * @warning This option is disabled in distributed.
+   * It can be made available once tkHyperTreeGrids are able to generate global IDs
+   * (and vtkHyperTreeGridLocator able to use them).
+   *
+   * @sa vtkPHyperTreeGridProbeFilter
+   */
+  vtkSetMacro(UseImplicitArrays, bool);
+  vtkGetMacro(UseImplicitArrays, bool);
+  vtkBooleanMacro(UseImplicitArrays, bool);
+  ///@}
+
 protected:
   ///@{
   /**
@@ -180,16 +210,24 @@ protected:
   virtual bool Reduce(vtkHyperTreeGrid* source, vtkDataSet* output, vtkIdList* localPointIds);
 
   /**
-   * Helper method for filling arrays with default values
-   */
-  void FillDefaultArray(vtkAbstractArray* aa) const;
-
-  /**
-   * Helper method for dealing with arrays coming from remote locations during the reduce operation
+   * Helper method for dealing with arrays coming from remote locations (nodes other than rank 0)
+   * during the reduce operation
    */
   void DealWithRemote(vtkIdList* remotePointIds, vtkDataSet* remoteOutput, vtkHyperTreeGrid* source,
     vtkDataSet* totOutput);
   ///@}
+
+  /**
+   * Helper method for dealing with arrays coming from remote locations (nodes other than rank 0)
+   * during the reduce operation
+   */
+  void DealWithRemoteHandles(
+    vtkIdList* remotePointIds, vtkIdList* remoteHandles, vtkIdList* totHandles);
+
+  /**
+   * Instantiate and set implicit arrays
+   */
+  void Finalize(vtkHyperTreeGrid* source, vtkDataSet* output, vtkIdType nanId);
 
   vtkSmartPointer<vtkHyperTreeGridLocator> Locator;
 
@@ -203,10 +241,17 @@ protected:
   vtkNew<vtkIdTypeArray> ValidPoints;
   vtkSmartPointer<vtkCharArray> MaskPoints;
 
+  bool UseImplicitArrays = false;
+
+  /**
+   * Used to store vtkIndexedArray handles when `UseImplicitArrays`
+   * is on.
+   */
+  vtkSmartPointer<vtkIdList> Handles;
+
 private:
   vtkHyperTreeGridProbeFilter(const vtkHyperTreeGridProbeFilter&) = delete;
   void operator=(const vtkHyperTreeGridProbeFilter&) = delete;
-
 }; // vtkHyperTreeGridProbeFilter
 
 VTK_ABI_NAMESPACE_END
