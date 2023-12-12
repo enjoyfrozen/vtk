@@ -78,6 +78,8 @@ void MyProcess::Execute()
   prober->SetInputConnection(wavelet->GetOutputPort());
   prober->SetSourceConnection(htgSource->GetOutputPort());
   prober->SetPassPointArrays(true);
+  // Implicit arrays are not supported in distributed yet
+  prober->SetUseImplicitArrays(false);
 
   prober->UpdatePiece(thisProc, numProcs, 0);
   prober->GetOutput()->GetPointData()->SetActiveScalars("Depth");
