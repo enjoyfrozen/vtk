@@ -73,7 +73,7 @@ VTK supports the following operating systems:
 Building
 ========
 
-See [build.md][vtk-build] (in Documentation/dev/) for build instructions.
+See [build.md][vtk-build] (in Documentation/docs/build_instructions) for build instructions.
 
 Contributing
 ============
@@ -90,8 +90,8 @@ See [Copyright.txt][vtk-copyright] for details.
 [kitware]: https://www.kitware.com/
 [kitware-support]: https://www.kitware.com/support/
 [vtk-banner]: vtkBanner.gif
-[vtk-build]: Documentation/dev/build.md#building-vtk
-[vtk-contributing]: CONTRIBUTING.md#contributing-to-vtk
+[vtk-build]: Documentation/docs/build_instructions/build.md
+[vtk-contributing]: CONTRIBUTING.md
 [vtk-copyright]: Copyright.txt
 [vtk-discourse]: https://discourse.vtk.org/
 [vtk-doxygen]: https://www.vtk.org/doc/nightly/html
