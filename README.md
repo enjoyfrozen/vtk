@@ -3,16 +3,14 @@
 Introduction
 ============
 
-VTK is an open-source software system for image processing, 3D
-graphics, volume rendering and visualization. VTK includes many
-advanced algorithms (e.g., surface reconstruction, implicit modeling,
-decimation) and rendering techniques (e.g., hardware-accelerated
-volume rendering, LOD control).
+The Visualization Toolkit (VTK) is a robust and open-source software
+system that provides advanced features in 3D computer graphics, image
+processing, modeling, volume rendering, and scientific visualization.
+It offers threaded and distributed-memory parallel processing for
+scalability and better performance.
 
-VTK is used by academicians for teaching and research; by government
-research institutions such as Los Alamos National Lab in the US or
-CINECA in Italy; and by many commercial firms who use VTK to build or
-extend products.
+VTK is a cross-platform library that can run on many operating systems,
+including Windows, macOS, Linux, and even the web and mobile devices.
 
 The origin of VTK is with the textbook "The Visualization Toolkit, an
 Object-Oriented Approach to 3D Graphics" originally published by
@@ -20,6 +18,8 @@ Prentice Hall and now published by Kitware, Inc. (Third Edition ISBN
 1-930934-07-6). VTK has grown (since its initial release in 1994) to a
 world-wide user base in the commercial, academic, and research
 communities.
+
+To cite VTK in your scientific research, see [Citing][vtk-citing].
 
 Learning Resources
 ==================
@@ -87,3 +87,4 @@ See [Copyright.txt][vtk-copyright] for details.
 [vtk-homepage]: https://www.vtk.org/
 [vtk-issues]: https://gitlab.kitware.com/vtk/vtk/-/issues
 [vtk-supported-hardware]: https://docs.vtk.org/en/latest/supported_hardware.html
+[vtk-citing]: https://docs.vtk.org/en/latest/about.html#citing
