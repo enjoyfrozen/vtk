@@ -24,49 +24,50 @@ To cite VTK in your scientific research, see [Citing][vtk-citing].
 Learning Resources
 ==================
 
-* General information is available at the [VTK Homepage][vtk-homepage].
+* [VTK Documentation][vtk-docs]
 
-* Community discussion takes place on the [VTK Discourse][vtk-discourse] forum.
+* Community discussions on the [VTK Discourse][vtk-discourse] forum.
 
 * Commercial [support and training][kitware-support]
   are available from [Kitware][].
 
-* Doxygen-generated nightly reference documentation is
+* Documentation of VTK C++ classes updated daily is
   available [online][vtk-doxygen].
 
-* There is now a large collection of [VTK Examples][vtk-examples] that
-  showcase VTK features and provide a useful learning resource.
+* [Examples, Tutorials, and guides][vtk-examples] for VTK in C++ and Python.
 
 Reporting Bugs
 ==============
 
 If you have found a bug:
 
-1. If you have a patch, please read the [CONTRIBUTING.md][vtk-contributing] document.
+1. If you have a patch, please refer to the [CONTRIBUTING.md][vtk-contributing] document.
 
-2. Otherwise, please join the [VTK Discourse][vtk-discourse] forum and ask
-   about the expected and observed behaviors to determine if it is
-   really a bug.
+2. Join the [VTK Discourse][vtk-discourse] forum to discuss expected and observed behaviors.
 
-3. Finally, if the issue is not resolved by the above steps, open
-   an entry in the [VTK Issue Tracker][vtk-issues].
+3. If the issue persists, open a ticket in the [VTK Issue Tracker][vtk-issues].
 
 Requirements
 ============
 
-In general VTK tries to be as portable as possible; see [Supported Hardware][vtk-supported-hardware]
-and [Build Prerequisites][vtk-build] for more information.
+VTK prioritizes portability. Refer to [Supported Hardware][vtk-supported-hardware]
+and [Build Prerequisites][vtk-build] for detailed information.
 
 Building
 ========
 
-The [Building][vtk-build] page describes how to build and install VTK. It covers building
-for development, on both Unix-type systems (Linux, HP-UX, Solaris, macOS), and Windows.
+Visit the [Building][vtk-build] page for instructions on building and installing VTK. It covers
+development builds on Unix-type systems (Linux, HP-UX, Solaris, macOS) and Windows.
+
+For using and integrating with existing VTK distributions (e.g., binaries, Python packages, or Docker),
+consult our [Getting Started][vtk-getting-started] documentation.
+
 
 Contributing
 ============
 
-See [CONTRIBUTING.md][vtk-contributing] for instructions to contribute.
+Refer to the [CONTRIBUTING][vtk-contributing] document for guidelines on contributing
+to VTK through GitLab merge requests.
 
 License
 =======
@@ -84,7 +85,8 @@ See [Copyright.txt][vtk-copyright] for details.
 [vtk-discourse]: https://discourse.vtk.org/
 [vtk-doxygen]: https://www.vtk.org/doc/nightly/html
 [vtk-examples]: https://examples.vtk.org
-[vtk-homepage]: https://www.vtk.org/
+[vtk-docs]: https://docs.vtk.org/
 [vtk-issues]: https://gitlab.kitware.com/vtk/vtk/-/issues
 [vtk-supported-hardware]: https://docs.vtk.org/en/latest/supported_hardware.html
 [vtk-citing]: https://docs.vtk.org/en/latest/about.html#citing
+[vtk-getting-started]: https://docs.vtk.org/en/latest/getting_started/index.html
