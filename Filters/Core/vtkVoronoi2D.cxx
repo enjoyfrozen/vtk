@@ -28,9 +28,9 @@ vtkStandardNewMacro(vtkVoronoi2D);
 namespace //anonymous
 {
 
-// Evaluate 2D line equation. Normal n is expected to be a unit normal. The
-// point o is a point on the line (typically midpoint between two Voronoi
-// points).
+// Evaluate the 2D line equation. Normal n is expected to be a unit
+// normal. The point o is a point on the line (typically midpoint between two
+// Voronoi points).
 double EvaluateLine(double x[2], double o[2], double n[2])
 {
   return ((x[0] - o[0]) * n[0] + (x[1] - o[1]) * n[1]);
@@ -413,6 +413,7 @@ struct TileVertex
   {
   }
 };
+using TileVertexType = std::vector<TileVertex>;
 
 // Spokes are used to track connecting edges between generating points (i.e.,
 // a connected edge, or spoke, connects two generating Voronoi points that
@@ -429,66 +430,135 @@ struct TileVertex
 // by the spoke Id.
 struct Spoke
 {
-  vtkIdType Id; // Id of a spoke (wheelId,Id) that a wheel is connected to
+  vtkIdType Id; // Id of the wheel that the spoke is connected to (wheelId,Id)
   unsigned char Classification; // Indicate the classification of this spoke
   enum SpokeClass
   {
-    VALID=0, // Valid edge, contributes to output mesh and/or graph
-    INTERSECTING=1, // Intersecting edge, part of a topological bubble
-    SINGLETON=2, // Edge with one or more end points used by only one wheel
-    DEGENERATE=4, // Edge connects two points but in only one direction
-    BOUNDARY=8 // Connected to the Voronoi boundary
+    VALID=0, // Valid edge, contributes to the output
+    BOUNDARY=1, // Edge connected to the Voronoi boundary
+    DEGENERATE=2, // Edge connects two points but in only one direction
+    INTERSECTING=3, // Intersecting edge, part of a topological bubble
+    SINGLETON=4, // Wheel with only one edge, should never happen
   };
   Spoke() : Id(-1), Classification(VALID) {}
-  Spoke(vtkIdType id) : Id(id), Classification(VALID) {}
+  Spoke(vtkIdType id, unsigned char classification) :
+    Id(id), Classification(classification) {}
 };
 
-// Typedefs related to edge spoke structure
-using WheelType = std::vector<vtkIdType>;
+// Typedefs related to edge spoke structure. Note that the WheelsType
+// vector is used to keep track of the number of spokes in a Voronoi
+// tile, as well as the number of edges in the Voronoi tile (there is
+// a one-to-one correspondance between spoke and tile edge).
+using WheelsType = std::vector<vtkIdType>;
 using SpokeType = std::vector<Spoke>;
 using SpokerIterator = SpokeType::iterator;
 
+// Class to manage batches of points. This is used to improve threaded
+// performance and reduce memory. Note the "exception" when a subset of items
+// is to be processed in a single batch (e.g., single point of interest).
+struct BatchManager
+{
+  vtkIdType Num; //Number of total items to process
+  vtkIdType BatchSize; //The desired batch size (clamped by Num)
+  vtkIdType NumBatches; //The total number of batches to process
+  vtkIdType SubRange[2]; //Define a subrange of items to process
+  BatchManager(vtkIdType num, vtkIdType batchSize) : Num(num), BatchSize(batchSize)
+  {
+    this->NumBatches = static_cast<vtkIdType>(ceil(static_cast<double>(num) / batchSize));
+    this->SubRange[0] = this->SubRange[1] = (-1); //indicate no subrange
+  }
+  void SetSubRange(vtkIdType minRange, vtkIdType maxRange)
+  {
+    this->SubRange[0] = minRange;
+    this->SubRange[1] = maxRange;
+  }
+  vtkIdType GetNumberOfBatches()
+  {
+    return ( this->SubRange[0] < 0 ? this->NumBatches : 1);
+  }
+  vtkIdType GetBatchItemRange(vtkIdType batchNum, vtkIdType &startId, vtkIdType &endId) const
+  {
+    if ( this->SubRange[0] < 0 )
+    {
+      startId = batchNum * this->BatchSize;
+      endId = startId + this->BatchSize;
+    }
+    else
+    {
+      startId = this->SubRange[0];
+      endId = this->SubRange[1];
+    }
+    endId = (endId > this->Num ? this->Num : endId);
+    return (endId - startId);
+  }
+}; //BatchManager
+
+// This is used to track information about each batch. Used to efficiently
+// process items (e.g., generated points) in a batch.
+struct BatchInfo
+{
+  vtkIdType Id; //the batch id
+  vtkIdType Num; //the number of Voronoi vertices produced in this batch
+  BatchInfo(vtkIdType id, vtkIdType num) : Id(id), Num(num) {}
+};
+// A list of batch information. Used by threads to record the
+// batches they've processed.
+using BatchInfoType = std::vector<BatchInfo>;
+
 // Track local data on a per-thread basis. In the Reduce() method this
 // information will be used to composite the data from each thread into a
-// single vtkPolyData output.
+// single vtkPolyData output and/or generate the wheel/spoke structure for
+// later Delaunay generation.
 struct LocalDataType
 {
   vtkIdType NumberOfTiles;
   vtkIdType NumberOfPoints;
   int MaxSides;
-  std::vector<vtkIdType> LocalPtIds; //generating point for each tile
-  std::vector<TileVertex> LocalPoints; //x-y coordinates for each tile vertex
+  BatchInfoType LocalBatches; //the list of batches processed by this thread
+  TileVertexType LocalPoints; //x-y coordinates defining the tile vertices
   SpokeType LocalSpokes;  //connecting edges/spokes for each tile
-  VTile Tile; //computational tile
-  vtkIdType PtOffset; //keep track of the point offsets in this thread
-  vtkIdType TileOffset; //keep track of the cell offsets in this thread
+  VTile Tile; //computational tile does the core work
   vtkIdType ThreadId; //assign a thread id [0,NumThreadsUsed)
 
   LocalDataType()
     : NumberOfTiles(0)
     , NumberOfPoints(0)
     , MaxSides(0)
-    , PtOffset(0)
-    , TileOffset(0)
+    , ThreadId(-1)
   {
-    this->LocalPtIds.reserve(2048);
+    this->LocalBatches.reserve(2048);
     this->LocalPoints.reserve(2048);
     this->LocalSpokes.reserve(2048);
   }
 };
 
-// Map thread local data to id. Keep track of the number of connections
-// to a particular point (i.e., the number of spokes).
+// Map thread local data to thread id.
 using ThreadMapType = std::vector<LocalDataType*>;
-using PointCountType = std::vector<vtkIdType>;
+
+// FYI- These helper functions are created to break cyclic dependencies
+// between classes.
+// Helper function: Given an input point id (or tile id, since there is a
+// tile for each point), return the number of points defining the tile
+// polygon (i.e., also the number of tile edges, or number of spokes). Only
+// call this method after VoronoiTiles::Reduce() has been invoked.
+vtkIdType GetWheelOffset(const WheelsType& offsets, vtkIdType id)
+{ return offsets[id]; }
+
+// Helper function: Given an input point id (or tile id, since there is a
+// tile for each point), return the number of points defining the tile
+// polygon (i.e., also the number of tile edges, or number of spokes). Only
+// call this method after VoronoiTiles::Reduce() has been invoked.
+vtkIdType GetNumberOfSpokes(const WheelsType& offsets, vtkIdType id)
+{ return (offsets[id+1] - offsets[id]); }
 
 // Functor used to generate the filter's Voronoi output. The threading is
 // across the n threads used to compute the Voronoi tiles. So this is
 // effectively a parallel copy to the output polydata.
 struct ProduceVoronoiOutput
 {
+  const BatchManager &Batcher;
+  WheelsType &Wheels;
   const ThreadMapType& ThreadMap;
-  const PointCountType& NumPts;
   double *Pts;
   double Z;
   vtkIdType *Conn;
@@ -497,12 +567,13 @@ struct ProduceVoronoiOutput
   int ScalarMode;
   vtkDataArray *RegionIds;
 
-  ProduceVoronoiOutput(ThreadMapType &threadMap, PointCountType& npts,
-                       double *pts, double z,
+  ProduceVoronoiOutput(const BatchManager &batcher, WheelsType& wheels,
+                       ThreadMapType &threadMap, double *pts, double z,
                        vtkIdType *conn, vtkIdType *offsets,
                        vtkIdType *scalars, int scalarMode, vtkDataArray *regionIds)
-    : ThreadMap(threadMap)
-    , NumPts(npts)
+    : Batcher(batcher)
+    , Wheels(wheels)
+    , ThreadMap(threadMap)
     , Pts(pts)
     , Z(z)
     , Conn(conn)
@@ -515,79 +586,87 @@ struct ProduceVoronoiOutput
 
   void operator()(vtkIdType threadId, vtkIdType endThreadId)
   {
-    // Produce the primary (Voronoi) output. Traverse each tile and
-    // copy local data into the filter output.
+    const BatchManager &batcher = this->Batcher;
+    const WheelsType &wheels = this->Wheels;
+
+    // Produce the primary (Voronoi) output. Traverse each thread, grab its
+    // batches and points in each batch, and copy local data into the filter
+    // output.
     for ( ; threadId < endThreadId; ++threadId )
     {
       LocalDataType& localData = *(this->ThreadMap[threadId]);
-      vtkIdType ptOffset = localData.PtOffset;
-      vtkIdType tileOffset = localData.TileOffset;
+      vtkIdType ptId, endPtId, ptOffset;
+      double *pts;
+      auto pItr = localData.LocalPoints.begin();
 
-      // Copy all the points from this thread into the output points array.
-      double *pts = this->Pts + 3*ptOffset;
-      for ( auto& tvItr : localData.LocalPoints )
+      // Process all point batches in the current thread. Recall that
+      // a batch consists of a set of contiguous point ids. Also recall
+      // that the point id and the tile id are the same (i.e., for every
+      // generating point, a tile is created).
+      for ( auto& batchInfo : localData.LocalBatches )
       {
-        *pts++ = tvItr.X;
-        *pts++ = tvItr.Y;
-        *pts++ = this->Z;
-      }
+        vtkIdType numBatchPts = batcher.GetBatchItemRange(batchInfo.Id, ptId, endPtId);
+        ptOffset = GetWheelOffset(wheels,ptId);
+        vtkIdType totalTilePts = batchInfo.Num;
 
-      // Generate the cell array using the more efficient
-      // vtkCellArray::SetData() method. Start by generating the
-      // connectivity, writing into the output connectivity array.
-      vtkIdType ptId = ptOffset;
-      vtkIdType *connPtr = this->Conn + ptOffset;
-      std::generate(connPtr,connPtr+localData.NumberOfPoints, [&] {return ptId++;});
+        // First copy all the tile points in this batch
+        pts = this->Pts + 3*ptOffset;
+        for (auto i=0; i < totalTilePts; ++i)
+        {
+          *pts++ = pItr->X;
+          *pts++ = pItr->Y;
+          *pts++ = this->Z;
+          pItr++;
+        } // for all points in this batch
 
-      // Now generate cell offsets.
-      vtkIdType offset = ptOffset;
-      vtkIdType *offsetPtr = this->Offsets + tileOffset;
-      for ( auto& pItr : localData.LocalPtIds )
-      {
-        *offsetPtr++ = offset;
-        vtkIdType nPts = this->NumPts[pItr];
-        offset += nPts;
-      }
+        // Generate the cell array using the more efficient
+        // vtkCellArray::SetData() method. Start by generating the
+        // connectivity, writing into the output connectivity array.
+        vtkIdType pId = ptOffset;
+        vtkIdType *connPtr = this->Conn + ptOffset;
+        std::generate(connPtr,connPtr+totalTilePts, [&] {return pId++;});
 
-      // Copy cell scalars if requested
-      if ( this->Scalars != nullptr )
-      {
-        vtkIdType *scalars = this->Scalars + tileOffset;
-        // If requested, thread id
-        if ( this->ScalarMode == vtkVoronoi2D::THREAD_IDS )
+        // Now generate the cell offsets for this run of contiguous tiles
+        vtkIdType *offsetPtr = this->Offsets + ptId;
+        for ( auto i=0; i < numBatchPts; ++i)
         {
-          std::size_t j, nCells = localData.NumberOfTiles;
-          for (j=0; j < nCells; ++j)
-          {
-            *scalars++ = threadId;
-          }
+          *offsetPtr++ = GetNumberOfSpokes(wheels,ptId+i);
         }
-        // the generating point id
-        else if ( this->ScalarMode == vtkVoronoi2D::POINT_IDS )
+
+        // Generate cell scalars if requested
+        if ( this->Scalars != nullptr )
         {
-          for ( auto& pItr : localData.LocalPtIds )
+          vtkIdType *scalars = this->Scalars + ptId;
+          // If requested, thread id
+          if ( this->ScalarMode == vtkVoronoi2D::THREAD_IDS )
           {
-            *scalars++ = pItr;
+            std::fill_n(scalars,numBatchPts,threadId);
           }
-        }
-        // Region ids for output tiles
-        else if ( this->ScalarMode == vtkVoronoi2D::REGION_IDS && this->RegionIds )
-        {
-          for ( auto& pItr : localData.LocalPtIds )
+          // the generating point id
+          else if ( this->ScalarMode == vtkVoronoi2D::POINT_IDS )
           {
-            *scalars++ = this->RegionIds->GetComponent(pItr,0);
+            pId = ptId;
+            std::generate(scalars,scalars+numBatchPts, [&] {return pId++;});
           }
-        }
-        // the number of sides of the voronoi tile
-        else //if ( this->ScalarMode == vtkVoronoi2D::NUMBER_SIDES )
-        {
-          for ( auto& pItr : localData.LocalPtIds )
+          // Region ids for output tiles
+          else if ( this->ScalarMode == vtkVoronoi2D::REGION_IDS && this->RegionIds )
           {
-            *scalars++ = this->NumPts[pItr];
+            for ( auto i=0; i < numBatchPts; ++i)
+            {
+              *scalars++ = this->RegionIds->GetComponent(ptId+i,0);
+            }
           }
-        }
-      }//Produce scalars
-    }//for each thread in this batch
+          // the number of sides of the voronoi tile
+          else //if ( this->ScalarMode == vtkVoronoi2D::NUMBER_SIDES )
+          {
+            for ( auto i=0; i < numBatchPts; ++i)
+            {
+              *scalars++ = GetNumberOfSpokes(wheels,ptId+i);
+            }
+          }
+        } // if cell/tile scalars generated
+      }   // for all batches in this thread
+    }     // for all threads to process
   }
 
 }; // ProduceVoronoiOutput
@@ -597,15 +676,15 @@ struct ProduceVoronoiOutput
 // effectively a parallel generation of the wheels/spokes data structure.
 struct ProduceDelaunayWheels
 {
+  const BatchManager &Batcher;
   const ThreadMapType& ThreadMap;
-  const PointCountType& NumPts;
-  WheelType& Wheels;
+  const WheelsType& Wheels;
   SpokeType& Spokes;
 
-  ProduceDelaunayWheels(ThreadMapType &threadMap, PointCountType& npts,
-                        WheelType& wheels, SpokeType& spokes)
-    : ThreadMap(threadMap)
-    , NumPts(npts)
+  ProduceDelaunayWheels(const BatchManager &batcher, ThreadMapType &threadMap,
+                        WheelsType& wheels, SpokeType& spokes)
+    : Batcher(batcher)
+    , ThreadMap(threadMap)
     , Wheels(wheels)
     , Spokes(spokes)
   {
@@ -613,64 +692,73 @@ struct ProduceDelaunayWheels
 
   void operator()(vtkIdType threadId, vtkIdType endThreadId)
   {
+    const BatchManager &batcher = this->Batcher;
+    const WheelsType &wheels = this->Wheels;
     Spoke *spokes;
     vtkIdType i, numSpokes, ptId;
-    std::vector<vtkIdType>::iterator pItr;
-    std::vector<Spoke>::iterator spItr, spEnd;
 
     // Now copy the spokes into the right spot
     for ( ; threadId < endThreadId; ++threadId )
     {
       LocalDataType& localData = *(this->ThreadMap[threadId]);
-      pItr = localData.LocalPtIds.begin();
-      spEnd = localData.LocalSpokes.end();
-      for ( spItr = localData.LocalSpokes.begin(); spItr != spEnd; )
-      {
-        ptId = *pItr++;
-        numSpokes = this->NumPts[ptId];
-        spokes = this->Spokes.data() + this->Wheels[ptId];
 
-        for ( i=0; i < numSpokes; ++i, ++spItr, ++spokes)
+      // Loop over all batches in this thread
+      auto spItr = localData.LocalSpokes.begin();
+      vtkIdType ptId, endPtId;
+      for ( auto& batchInfo : localData.LocalBatches )
+      {
+        batcher.GetBatchItemRange(batchInfo.Id, ptId, endPtId);
+
+        // Loop over all contiguous spokes in this batch
+        spokes = this->Spokes.data() + GetWheelOffset(wheels,ptId);
+        vtkIdType totalSpokes = batchInfo.Num;
+        for ( ; ptId < endPtId; ++ptId )
         {
-          spokes->Id = spItr->Id;
-          spokes->Classification = spItr->Classification;
-        }
-      }//within this local thread data
+          vtkIdType numSpokes = GetNumberOfSpokes(wheels,ptId);
+          for ( auto i=0; i < numSpokes; ++i, ++spItr, ++spokes)
+          {
+            spokes->Id = spItr->Id;
+            spokes->Classification = spItr->Classification;
+          }
+        } // for all contiguous points in this batch
+      }   // for all batches
     }//across all threads in this batch
   }
 
 }; // ProduceDelaunayWheels
 
 // The threaded core of the algorithm. This could be templated over point
-// type, but due to numerical sensitivity we'll just do double for now.
+// type, but due to numerical sensitivity we'll just process doubles for now.
 struct VoronoiTiles
 {
+  const BatchManager &Batcher; //Controls processing of tile generating points
+  vtkIdType NPts; //The number of input (Voronoi tile generation) points
   const double *Points; //Input points
-  vtkIdType NPts; //The number of input (Voronoi generation) points
   vtkDataArray *RegionIds; // Optional region ids to control tessellation
   vtkStaticPointLocator2D *Locator; // Used to (quickly) find nearby points
   double PaddedBounds[4]; //the expanded domain over which Voronoi is calculated
   double Bounds[4]; //locator bounds
   int Divisions[2]; //Internal parameters for computing
   double H[2]; //Locator bin spacing
-  double BucketRadius; //The circle radius enclosing a locator bin
+
   vtkPoints *NewPoints;//New Voronoi points generated
-  PointCountType NumPts; //Array of (number of points) for each tile
-  vtkCellArray *Tiles; //Actual output convex polygons
-  int ScalarMode;//How to compute scalars
-  vtkIdTypeArray *Scalars; //Scalars if requested
+  vtkCellArray *Tiles; //Actual output convex polygons (Voronoi tiles)
+  int ScalarMode;//Indicate how to compute scalars
+  vtkIdTypeArray *Scalars; //Output Scalars if requested
   vtkIdType MaxClips; //Control the maximum number of half-space clips
   int NumThreadsUsed; //Keep track of the number of threads used
 
   // This are used to create the spokes and wheels graph used to validate
   // the tessllation and produce a Delaunay triangulation.
-  int MaxSides; //Maximum number of sides found in a generated Voronoi tile
-  WheelType Wheels; //Wheel/spokes data structure: offset array to spokes
+  int MaxSides; //Maximum number of sides (i.e., spokes) in a generated Voronoi tile
+  WheelsType Wheels; //Wheel/spokes data structure: offset array to spokes
   vtkIdType NumSpokes; //Total number of edges / spokes
   SpokeType Spokes; //Spokes / edges with classification
+  bool PruneSpokes; //Indicate whether to prune small edges / spokes
+  double PruneTolerance; //Specify a spoke prune tolerance
   vtkCellArray *DelTris; //If requested, triangles are placed here for Delaunay
 
-  // Used for controlling filter abort
+  // Used for controlling filter abort and accessing filter information
   vtkVoronoi2D* Filter;
 
   // Storage local to each thread. We don't want to allocate working arrays
@@ -680,11 +768,12 @@ struct VoronoiTiles
   vtkSMPThreadLocalObject<vtkDoubleArray> Radii2;
   vtkSMPThreadLocal<LocalDataType> LocalData;
 
-  VoronoiTiles(vtkIdType npts, double* points, vtkDataArray* regionIds, vtkStaticPointLocator2D* loc,
-               double padding, vtkPolyData* output, int scalarMode, vtkPolyData *delOutput,
-               vtkIdType maxClips, vtkVoronoi2D* filter)
-    : Points(points)
+  VoronoiTiles(BatchManager &batcher, vtkIdType npts, double* points, vtkDataArray* regionIds,
+               vtkStaticPointLocator2D* loc, double padding, vtkPolyData* output, int scalarMode,
+               vtkPolyData *delOutput, vtkIdType maxClips, vtkVoronoi2D* filter)
+    : Batcher(batcher)
     , NPts(npts)
+    , Points(points)
     , RegionIds(regionIds)
     , Locator(loc)
     , ScalarMode(scalarMode)
@@ -698,7 +787,7 @@ struct VoronoiTiles
   {
     // Tiles and associated points are filled in later in Reduce()
     this->NewPoints = output->GetPoints();
-    this->NumPts.resize(this->NPts,0); //initialized to zero
+    this->Wheels.resize(this->NPts+1,0); //initialized to zero
     this->Tiles = output->GetPolys();
 
     // Output scalars may be produced if desired
@@ -717,6 +806,10 @@ struct VoronoiTiles
       this->PaddedBounds[2 * i] = this->Bounds[2 * i] - padding;
       this->PaddedBounds[2 * i + 1] = this->Bounds[2 * i + 1] + padding;
     }
+
+    // Control spoke pruning
+    this->PruneSpokes = filter->GetPruneSpokes();
+    this->PruneTolerance = filter->GetPruneTolerance();
 
     // Delaunay triangulation computed later (if requested). Note that the
     // input points are the output points of the Delaunay triangulation, so
@@ -754,8 +847,9 @@ struct VoronoiTiles
     localData.Tile.H[1] = this->H[1];
   }
 
-  void operator()(vtkIdType ptId, vtkIdType endPtId)
+  void operator()(vtkIdType batchId, vtkIdType endBatchId)
   {
+    const BatchManager &batcher = this->Batcher;
     vtkDataArray *regionIds = this->RegionIds;
     vtkIdList*& pIds = this->PIds.Local();
     vtkDoubleArray*& radii2 = this->Radii2.Local();
@@ -763,17 +857,20 @@ struct VoronoiTiles
     vtkIdType& numTiles = localData.NumberOfTiles;
     vtkIdType& numPoints = localData.NumberOfPoints;
     int &maxSides = localData.MaxSides;
-    std::vector<vtkIdType>& lPtIds = localData.LocalPtIds;
-    std::vector<TileVertex>& lPoints = localData.LocalPoints;
+    BatchInfoType& lBatches = localData.LocalBatches;
+    TileVertexType& lPoints = localData.LocalPoints;
     SpokeType& lSpokes = localData.LocalSpokes;
     VTile& tile = localData.Tile;
-    const double* x = this->Points + 3 * ptId;
     bool isFirst = vtkSMPTools::GetSingleThread();
-    vtkIdType checkAbortInterval = std::min((endPtId - ptId) / 10 + 1, (vtkIdType)1000);
+    vtkIdType checkAbortInterval = std::min((endBatchId - batchId) / 10 + 1, (vtkIdType)1000);
 
-    for (; ptId < endPtId; ++ptId, x += 3)
+    // Process the tile generating points in batches. This performs
+    // a little better than independent point-by-point processing, and saves
+    // some memory as well.
+    for (; batchId < endBatchId; ++batchId)
     {
-      if (ptId % checkAbortInterval == 0)
+      // Support algorithm interrupts
+      if (batchId % checkAbortInterval == 0)
       {
         if (isFirst)
         {
@@ -785,49 +882,62 @@ struct VoronoiTiles
         }
       }
 
-      // If an outside region, we do not need to process this tile.
-      if ( regionIds && regionIds->GetComponent(ptId,0) == 0 )
+      // Process all points in this batch. Record the batch being
+      // processed. Remember that the point ids are contiguous in this
+      // batch.
+      vtkIdType ptId, endPtId;
+      batcher.GetBatchItemRange(batchId, ptId, endPtId);
+      const double* x = this->Points + 3 * ptId;
+      vtkIdType totalTilePts=0;
+
+      for (; ptId < endPtId; ++ptId, x += 3)
       {
-        continue;
-      }
-
-      // Initialize the Voronoi tile
-      tile.Initialize(ptId, x);
-
-      // If tile is successfully built, copy the convex tile polygon and
-      // points it to thread local storage.
-      int maxClips = ( this->MaxClips < this->NPts ? this->MaxClips :
-                       (this->NPts > 1 ? (this->NPts-1) : 0) );
-      if (tile.BuildTile(pIds, radii2, this->Points, maxClips))
-      {
-        // Now accumulate the tile / convex polygon in this thread
-        lPtIds.emplace_back(ptId); // the generating point id
-        vtkIdType i, nPts = static_cast<vtkIdType>(tile.Verts.size());
-        this->NumPts[ptId] = nPts;
-        maxSides = (nPts > maxSides ? nPts : maxSides);
-
-        // Now accumulate the tile points for this Voronoi tile. Note that
-        // the connectivity is not needed, since no points are shared between
-        // tiles. So the connectivity is implicitly ordered.
-        for (i = 0; i < nPts; ++i)
+        // If the generating point is an outside region, we do not need to
+        // process this tile.
+        if ( regionIds && regionIds->GetComponent(ptId,0) == 0 )
         {
-          lPoints.emplace_back(TileVertex(tile.Verts[i].X[0],tile.Verts[i].X[1]));
+          continue;
         }
 
-        // If a Delaunay triangulation is requested, gather information for
-        // later processing. The spoke edges are used to build the triangulation.
-        if ( this->DelTris != nullptr )
+        // Initialize the Voronoi tile
+        tile.Initialize(ptId, x);
+
+        // If tile is successfully built, copy the convex tile polygon and
+        // points it to thread local storage.
+        int maxClips = ( this->MaxClips < this->NPts ? this->MaxClips :
+                         (this->NPts > 1 ? (this->NPts-1) : 0) );
+        if (tile.BuildTile(pIds, radii2, this->Points, maxClips))
         {
-          for (i=0; i < nPts; ++i)
+          // Now accumulate the tile / convex polygon in this thread
+          vtkIdType i, nPts = static_cast<vtkIdType>(tile.Verts.size());
+          this->Wheels[ptId] = nPts; //initially, the number of points. Later prefix sum for offsets.
+          maxSides = (nPts > maxSides ? nPts : maxSides);
+
+          // Now accumulate the tile points for this Voronoi tile. Note that
+          // the connectivity is not needed, since no points are shared between
+          // tiles. So the connectivity is implicitly ordered.
+          for (i = 0; i < nPts; ++i)
           {
-            lSpokes.emplace_back(Spoke(tile.Verts[i].PointId));
+            lPoints.emplace_back(TileVertex(tile.Verts[i].X[0],tile.Verts[i].X[1]));
           }
-        }
 
-        numTiles++;
-        numPoints += nPts;
-      } // if tile built
-    }   // for all points
+          // If a Delaunay triangulation is requested, gather information for
+          // later processing. The spoke edges are used to build the
+          // triangulation.  Also classify spokes as being valid, or connected
+          // to the Voronoi boundary.
+          if ( this->DelTris != nullptr )
+          {
+            for (i=0; i < nPts; ++i)
+            {
+              vtkIdType ptId = tile.Verts[i].PointId;
+              lSpokes.emplace_back(Spoke(ptId,(ptId<0 ? Spoke::BOUNDARY : Spoke::VALID)));
+            }
+          }
+          totalTilePts += nPts; //total number of tile points generated in this batch
+        } // if tile successfully generated
+      } // for all points in this batch
+      lBatches.emplace_back(BatchInfo(batchId,totalTilePts));
+    } // for all batches of points
   }
 
   void Reduce()
@@ -837,7 +947,7 @@ struct VoronoiTiles
     // tile id offsets to update the cell connectivity list. This will be
     // used later to create the Voronoi output and/or Delaunay output.
     vtkIdType totalPoints = 0;
-    vtkIdType totalTiles = 0;
+    vtkIdType totalTiles = this->NPts;
     this->NumThreadsUsed = 0;
     this->NumSpokes = 0;
     this->MaxSides = 0;
@@ -850,16 +960,24 @@ struct VoronoiTiles
     // across all the threads.
     for ( auto& localData : this->LocalData)
     {
-      localData.PtOffset = totalPoints;
-      localData.TileOffset = totalTiles;
-      totalPoints += localData.NumberOfPoints;
-      totalTiles += localData.NumberOfTiles;
       threadMap.push_back(&localData);
       this->NumSpokes += localData.LocalSpokes.size();
       this->NumThreadsUsed++;
       this->MaxSides = ( localData.MaxSides > this->MaxSides ?
                          localData.MaxSides : this->MaxSides);
     } // loop over local thread output
+
+    // Prefix sum over tiles to determine connectivity offsets,
+    // as well total number of tile points.
+    vtkIdType offset;
+    for ( vtkIdType id=0; id < this->NPts; ++id )
+    {
+      offset = this->Wheels[id];
+      this->Wheels[id] = totalPoints;
+      totalPoints += offset;
+    }
+    // Cap off the wheels / tile offsets array.
+    this->Wheels[this->NPts] = totalPoints;
 
     // If Voronoi output is requested, produce the output convex polygons
     // (tiles) and associated points.
@@ -893,8 +1011,9 @@ struct VoronoiTiles
 
       // Parallel copy the Voronoi-related local thread data (points, cells,
       // scalars) into the filter output.
-      ProduceVoronoiOutput vorOutput(threadMap,this->NumPts,pts,z,connectivityPtr,
-                                     offsetsPtr,scalars,this->ScalarMode,this->RegionIds);
+      ProduceVoronoiOutput vorOutput(this->Batcher,this->Wheels,threadMap,pts,z,
+                                     connectivityPtr,offsetsPtr,scalars,this->ScalarMode,
+                                     this->RegionIds);
       vtkSMPTools::For(0,this->NumThreadsUsed, vorOutput);
 
       // Terminate the offset array
@@ -905,28 +1024,15 @@ struct VoronoiTiles
     // point, create a "wheel" of circumferentially ordered edge spokes. The
     // spokes are placed in a contiguous array with the wheel offset
     // referring to the start of each group of spokes associated with the
-    // generating ptId. To construct the spokes and wheels, accessible by
-    // ptId, a prefix sum over the NumPts array is required to build an
-    // ordered list of wheels (and associated spokes).
+    // generating ptId.
     if ( outputType == vtkVoronoi2D::DELAUNAY ||
          outputType == vtkVoronoi2D::VORONOI_AND_DELAUNAY )
     {
-      this->Wheels.resize(this->NPts);
       this->Spokes.resize(this->NumSpokes);
-      Spoke *spokes;
-      vtkIdType i, offset;
-
-      // Perform a prefix sum in preparation to copy the spokes into an
-      // ordered (by ptId) grouping of spokes.
-      offset = 0;
-      for (i=0; i < this->NPts; ++i)
-      {
-        this->Wheels[i] = offset;
-        offset += this->NumPts[i];
-      }
 
       // Parallel build the Delaunay-related (wheels and spokes) structure.
-      ProduceDelaunayWheels delWheels(threadMap,this->NumPts,this->Wheels,this->Spokes);
+      ProduceDelaunayWheels delWheels(this->Batcher,threadMap,
+                                      this->Wheels,this->Spokes);
       vtkSMPTools::For(0,this->NumThreadsUsed, delWheels);
     }//if Delaunay output desired
   }
@@ -941,7 +1047,7 @@ struct VoronoiTiles
   // This assumes that the wheel&spokes data structure have been built.
   bool IsValidSpoke(vtkIdType w0Id, vtkIdType w1Id)
   {
-    vtkIdType numSpokes = this->NumPts[w0Id];
+    vtkIdType numSpokes = GetNumberOfSpokes(this->Wheels,w0Id);
     Spoke* spokes = &(this->Spokes[this->Wheels[w0Id]]);
 
     for (vtkIdType i=0; i < numSpokes; ++i, ++spokes)
@@ -961,7 +1067,7 @@ struct VoronoiTiles
 // associated spokes is via point id.
 struct Wheel
 {
-  vtkIdType Id; // The associated point id
+  vtkIdType Id; // The associated point/tile id
   int NumSpokes; // The number of emanating spokes
   Spoke* Spokes; // A pointer to an ordered array of spokes connected to this wheel
 
@@ -970,7 +1076,7 @@ struct Wheel
   // Instantiate a wheel given a point id.
   Wheel(VoronoiTiles *vt, vtkIdType id) : Id(id)
   {
-    this->NumSpokes = vt->NumPts[id];
+    this->NumSpokes = GetNumberOfSpokes(vt->Wheels,id);
     this->Spokes = &vt->Spokes[vt->Wheels[id]];
   }
   // Setup the wheel for queries: an efficient form that does not require
@@ -978,7 +1084,7 @@ struct Wheel
   void Initialize(VoronoiTiles *vt, vtkIdType id)
   {
     this->Id = id;
-    this->NumSpokes = vt->NumPts[id];
+    this->NumSpokes = GetNumberOfSpokes(vt->Wheels,id);
     this->Spokes = &vt->Spokes[vt->Wheels[id]];
   }
   // Internal method to return the previous spoke position (clockwise).
@@ -1011,7 +1117,7 @@ struct Wheel
 
 // An optional class for producing the Delaunay triangulation. Basically
 // performs initial topological checks and potential corrections, then
-// produces triangles from the Voronoi tessellation; in particular the wheels
+// produces triangles from the Voronoi tessellation using the wheels
 // and spokes edge structure.
 struct Delaunay
 {
@@ -1043,11 +1149,18 @@ struct Delaunay
   // classified according to simple topological rules. (Ensuring that wheelId
   // is minimum (whellId<ptId) elimates repeating edge classification
   // process.) The end result is a edge graph (represented by classified
-  // wheel and spoke edge data structure) which can be triangulated.
+  // wheel and spoke edge data structure) which can be triangulated. The
+  // spokes have a classification, typically VALID or BOUNDARY, but in some
+  // cases topological issues may cause spokes to be classified
+  // differently. Note that for maximum performance, spokes are never
+  // deleted, they are just classified - which means when processing spokes,
+  // inspecting the spoke classification may be needed to traverse the
+  // wheel/spoke network properly.
   struct ClassifyEdges
   {
     VoronoiTiles *VT;
-    ClassifyEdges(VoronoiTiles *vt) : VT(vt) {}
+    bool AllValid;
+    ClassifyEdges(VoronoiTiles *vt) : VT(vt), AllValid(false) {}
 
     // Determine whether a spoke is used by both wheels. Proper edges must
     // be bidirectional and not extend into the boundary. Singleton edges are
@@ -1063,6 +1176,11 @@ struct Delaunay
         }
       }
       return false;
+    }
+
+    // Need a dummy Initialize() method to ensure Reduce() is invoked.
+    void Initialize()
+    {
     }
 
     void  operator()(vtkIdType wheelId, vtkIdType endWheelId)
@@ -1103,6 +1221,12 @@ struct Delaunay
         }//over all spokes for this wheel
       }//for all wheels
     }
+
+    // Roll up validation
+    void Reduce()
+    {
+      this->AllValid = true;
+    }
   };
 
   // This ensure that there are no topological "bubbles" i.e., overlapping
@@ -1136,18 +1260,21 @@ struct Delaunay
     }
   };
 
-  // (See GenerateTriangles below.) This method counts the number of output
+  // (See GenerateTriangles() below.) This method counts the number of output
   // triangles generated by each wheel, generating an offset array so that
   // that GenerateTriangles() can write in parallel into the output
-  // vtkCellArray containing the triangles.
+  // vtkCellArray containing the triangles. Note: depending on whether we
+  // have to watch out for non-valid edges, different wheel traversal methods
+  // are used (for performance).
   struct CountTriangles
   {
     VoronoiTiles *VT;
     vtkIdType *WIdx;
     vtkIdType NumTriangles;
+    bool AllValid;
 
-    CountTriangles(VoronoiTiles *vt, vtkIdType *widx) :
-      VT(vt), WIdx(widx), NumTriangles(0) {}
+    CountTriangles(VoronoiTiles *vt, vtkIdType *widx, bool allValid) :
+      VT(vt), WIdx(widx), NumTriangles(0), AllValid(allValid) {}
 
     // Need a dummy Initialize() method to ensure Reduce() is invoked.
     void Initialize()
@@ -1213,15 +1340,19 @@ struct Delaunay
   // bit more work. Note that only loops (wheelId,ptId0,ptId1,...) are
   // processed when (wheelId<ptId0,ptId1,...). (Ensuring that wheelId is
   // the minimum is in the loop elimates duplicate work (i.e., processing
-  // loops multiple times.)
+  // loops multiple times.) Note: depending on whether we have to watch out
+  // for non-valid edges, different wheel traversal methods are used (for
+  // performance).
   struct GenerateTriangles
   {
     VoronoiTiles *VT;
     vtkIdType *WIdx;
     vtkIdType *Offsets;
     vtkIdType *Connectivity;
-    GenerateTriangles(VoronoiTiles *vt, vtkIdType *widx, vtkIdType *offsets, vtkIdType *conn) :
-      VT(vt), WIdx(widx), Offsets(offsets), Connectivity(conn) {}
+    bool AllValid;
+    GenerateTriangles(VoronoiTiles *vt, vtkIdType *widx, vtkIdType *offsets,
+                      vtkIdType *conn, bool allValid) :
+      VT(vt), WIdx(widx), Offsets(offsets), Connectivity(conn), AllValid(allValid) {}
 
     void  operator()(vtkIdType wheelId, vtkIdType endWheelId)
     {
@@ -1273,14 +1404,21 @@ struct Delaunay
     // Classify edges. We process one wheel at a time.
     vtkIdType numWheels = vt->NPts;
 
-    // Invoke optional validation process if requested. This may further
-    // modify spoke classification.
-    if (vt->Filter->GetValidate())
+    // At this point in the algorithm, spokes are classified as either VALID
+    // or BOUNDARY. If the user chooses, an additional topologcal analysis
+    // can be invoked to further classify the spokes around each wheel. If no
+    // DEGENERATE or INTERSECTION spokes are found, then a faster Delaunay
+    // process is used; otherwise a slower approach is used (i.e., generating
+    // the output Delaunay when all spokes are either VALID or BOUNDARY is
+    // faster than when DEGENERATE or INTERSECTION spokes exist.)
+    bool allValid = !vt->Filter->GetValidate();
+    if ( !allValid )
     {
       Delaunay::ClassifyEdges classify(vt);
       vtkSMPTools::For(0, numWheels, classify);
-      Delaunay::ButterflyTest butterfly(vt);
-      vtkSMPTools::For(0, numWheels, butterfly);
+      allValid = classify.AllValid;
+      //        Delaunay::ButterflyTest butterfly(vt);
+      //        vtkSMPTools::For(0, numWheels, butterfly);
       //      Delaunay::MakeValid makeValid(vt);
     }
 
@@ -1291,10 +1429,9 @@ struct Delaunay
     // BOUNDARY are processed, all other classifications are ignored.
     // The widx (wheel idx) is used as the thread partitioning array,
     std::vector<vtkIdType> widx(numWheels+1);
-    Delaunay::CountTriangles count(vt,widx.data());
+    Delaunay::CountTriangles count(vt,widx.data(),allValid);
     vtkSMPTools::For(0, numWheels, count);
     vtkIdType numTris = count.NumTriangles;
-    cout << "Num Triangles: " << count.NumTriangles << "\n";
 
     // Compute the internal vtkCellArray offset and connectivity arrays.
     vtkNew<vtkIdTypeArray> offsets;
@@ -1303,7 +1440,7 @@ struct Delaunay
     vtkNew<vtkIdTypeArray> connectivity;
     connectivity->SetNumberOfTuples(numTris*3);
     vtkIdType *connectivityPtr = connectivity->GetPointer(0);
-    Delaunay::GenerateTriangles generate(vt,widx.data(),offsetsPtr,connectivityPtr);
+    Delaunay::GenerateTriangles generate(vt,widx.data(),offsetsPtr,connectivityPtr,allValid);
     vtkSMPTools::For(0, numWheels, generate);
 
     // Now populate the Delaunay triangles array
@@ -1315,38 +1452,37 @@ struct Delaunay
 }; //Delaunay
 
 
-// Implementation of a factory method to conveniently instantiate and execute
-// the Voronoi and Delaunay algorithms.
-int VoronoiTiles::
-Execute(vtkStaticPointLocator2D *loc, vtkIdType numPts, double *points,
-        vtkDataArray *regionIds, double padding, vtkPolyData *output, int sMode,
-        vtkPolyData *delOutput, vtkIdType pointOfInterest, vtkIdType maxClips,
-        int &maxSides, vtkVoronoi2D* filter)
-{
-  // Generate the Voronoi tessellation
-  VoronoiTiles vt(numPts, points, regionIds, loc, padding,
-                  output, sMode, delOutput, maxClips, filter);
-
-  // Either full blown tessellation or just local to a point
-  if ( pointOfInterest < 0 || pointOfInterest >= numPts)
+  // Implementation of a factory method to conveniently instantiate and execute
+  // the Voronoi and Delaunay algorithms.
+  int VoronoiTiles::
+  Execute(vtkStaticPointLocator2D *loc, vtkIdType numPts, double *points,
+          vtkDataArray *regionIds, double padding, vtkPolyData *output, int sMode,
+          vtkPolyData *delOutput, vtkIdType pointOfInterest, vtkIdType maxClips,
+          int &maxSides, vtkVoronoi2D* filter)
   {
-    vtkSMPTools::For(0, numPts, vt);
-  }
-  else
-  {
-    vtkSMPTools::For(pointOfInterest, pointOfInterest+1, vt);
-  }
-  maxSides = vt.MaxSides;
+    // Set up batch processing: either all of the points, or a point of
+    // interest.
+    BatchManager batcher(numPts,filter->GetBatchSize());
+    if ( pointOfInterest >= 0 && pointOfInterest < numPts)
+    {
+      batcher.SetSubRange(pointOfInterest,pointOfInterest+1);
+    }
 
-  // If requested, generate the Delaunay triangulation
-  if ( delOutput != nullptr && (pointOfInterest < 0 || pointOfInterest > numPts) )
-  {
-    Delaunay::Execute(&vt);
-  }
+    // Generate the Voronoi tessellation
+    VoronoiTiles vt(batcher, numPts, points, regionIds, loc, padding,
+                    output, sMode, delOutput, maxClips, filter);
+    vtkSMPTools::For(0,batcher.GetNumberOfBatches(), vt);
+    maxSides = vt.MaxSides;
 
-  // Okay get out
-  return vt.NumThreadsUsed;
-}
+    // If requested, generate the Delaunay triangulation
+    if ( delOutput != nullptr && (pointOfInterest < 0 || pointOfInterest > numPts) )
+    {
+      Delaunay::Execute(&vt);
+    }
+
+    // Okay get out
+    return vt.NumThreadsUsed;
+  }
 
 } // anonymous namespace
 
@@ -1357,7 +1493,8 @@ Execute(vtkStaticPointLocator2D *loc, vtkIdType numPts, double *points,
 vtkVoronoi2D::vtkVoronoi2D()
 {
   this->OutputType = VORONOI; // Voronoi tessellation placed in output 0
-  this->Validate = false;
+  this->Validate = true;
+  this->PassPointData = true;
   this->GenerateScalars = NONE;
   this->Padding = 0.01;
   this->Locator = vtkSmartPointer<vtkStaticPointLocator2D>::New();
@@ -1367,9 +1504,12 @@ vtkVoronoi2D::vtkVoronoi2D()
   this->PointOfInterest = (-1);
   this->MaximumNumberOfTileClips = VTK_ID_MAX;
   this->GenerateVoronoiFlower = false;
-  this->NumberOfThreadsUsed = 0;
   this->Spheres = vtkSmartPointer<vtkSpheres>::New();
+  this->BatchSize = 1000;
+  this->PruneSpokes = false;
+  this->PruneTolerance = 0.001;
   this->MaximumNumberOfSides = 0;
+  this->NumberOfThreadsUsed = 0;
 
   // Optional outputs 2-4 for 2) Delaunay triangulation, 3) Voronoi flower,
   // and 4) Voronoi tile at point of interest
@@ -1377,12 +1517,12 @@ vtkVoronoi2D::vtkVoronoi2D()
 
   // By default process active point scalars to obtain region ids
   this->SetInputArrayToProcess(
-    0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, vtkDataSetAttributes::SCALARS);
+                               0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, vtkDataSetAttributes::SCALARS);
 }
 
 //------------------------------------------------------------------------------
 int vtkVoronoi2D::RequestData(vtkInformation* vtkNotUsed(request),
-  vtkInformationVector** inputVector, vtkInformationVector* outputVector)
+                              vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
   // get the info objects
   vtkInformation* inInfo = inputVector[0]->GetInformationObject(0);
@@ -1442,6 +1582,16 @@ int vtkVoronoi2D::RequestData(vtkInformation* vtkNotUsed(request),
   vtkNew<vtkPolyData> tInput;
   tInput->SetPoints(tPoints);
 
+  // If auxiliary scalars are to be generated, create the
+  // scalars now. This affects both the Voronoi and Delaunay output.
+  vtkSmartPointer<vtkIdTypeArray> auxScalars;
+  if (this->GenerateScalars != NONE)
+  {
+    auxScalars = vtkSmartPointer<vtkIdTypeArray>::New();
+    auxScalars->SetNumberOfComponents(1);
+    auxScalars->SetName("VoronoiScalars");
+  }
+
   // Construct the Voronoi output (if requested). This is
   // output #0
   vtkNew<vtkPoints> newPts; // Used by PointIfInterest
@@ -1452,11 +1602,13 @@ int vtkVoronoi2D::RequestData(vtkInformation* vtkNotUsed(request),
     newPts->SetDataTypeToDouble();
     output->SetPoints(newPts);
     output->SetPolys(tiles);
-    if (this->GenerateScalars != NONE)
+    if ( this->PassPointData )
     {
-      vtkNew<vtkIdTypeArray> ts;
-      ts->SetNumberOfComponents(1);
-      int idx = output->GetCellData()->AddArray(ts);
+      output->GetCellData()->PassData(input->GetPointData());
+    }
+    if ( auxScalars )
+    {
+      int idx = output->GetCellData()->AddArray(auxScalars);
       output->GetCellData()->SetActiveAttribute(idx, vtkDataSetAttributes::SCALARS);
     }
   }
@@ -1482,10 +1634,19 @@ int vtkVoronoi2D::RequestData(vtkInformation* vtkNotUsed(request),
   {
     vtkInformation *outInfo2 = outputVector->GetInformationObject(1);
     delOutput = vtkPolyData::SafeDownCast(
-      outInfo2->Get(vtkDataObject::DATA_OBJECT()));
+                                          outInfo2->Get(vtkDataObject::DATA_OBJECT()));
     delOutput->SetPoints(tPoints);
     vtkNew<vtkCellArray> delTris;
     delOutput->SetPolys(delTris);
+    if ( this->PassPointData )
+    {
+      delOutput->GetPointData()->PassData(input->GetPointData());
+    }
+    if ( auxScalars )
+    {
+      int idx = delOutput->GetPointData()->AddArray(auxScalars);
+      delOutput->GetPointData()->SetActiveAttribute(idx, vtkDataSetAttributes::SCALARS);
+    }
   }
 
   // If region ids are provided, use these to control the Voronoi tessellation.
@@ -1499,7 +1660,7 @@ int vtkVoronoi2D::RequestData(vtkInformation* vtkNotUsed(request),
     }
   }
 
-  // Process the points to generate Voronoi tiles and optional
+  // Process the points to generate Voronoi tiles and the optional
   // Delaunay triangulation.
   double* inPtr = static_cast<vtkDoubleArray*>(tPoints->GetData())->GetPointer(0);
   this->NumberOfThreadsUsed = VoronoiTiles::
@@ -1517,10 +1678,11 @@ int vtkVoronoi2D::RequestData(vtkInformation* vtkNotUsed(request),
                   << delOutput->GetNumberOfCells() << " triangles and "
                   << delOutput->GetNumberOfPoints() << " points");
   }
+
   // If requested, generate in the third output a representation of the
   // Voronoi flower error metric for the PointOfInterest.
   if (!this->CheckAbort() && this->GenerateVoronoiFlower && this->PointOfInterest >= 0 &&
-    this->PointOfInterest < numPts)
+      this->PointOfInterest < numPts)
   {
     // Get the optional third and fourth outputs
     vtkInformation* outInfo3 = outputVector->GetInformationObject(2);
@@ -1549,9 +1711,9 @@ int vtkVoronoi2D::RequestData(vtkInformation* vtkNotUsed(request),
     for (i = 0, npts = 0; i < 1000000; ++i)
     {
       x[0] = vtkMath::Random(
-        center[0] + factor * (bds[0] - center[0]), center[0] + factor * (bds[1] - center[0]));
+                             center[0] + factor * (bds[0] - center[0]), center[0] + factor * (bds[1] - center[0]));
       x[1] = vtkMath::Random(
-        center[1] + factor * (bds[2] - center[1]), center[1] + factor * (bds[3] - center[1]));
+                             center[1] + factor * (bds[2] - center[1]), center[1] + factor * (bds[3] - center[1]));
       x[2] = 0.0;
       if (tile.IntersectTile(x))
       {
@@ -1560,6 +1722,7 @@ int vtkVoronoi2D::RequestData(vtkInformation* vtkNotUsed(request),
         npts++;
       }
     }
+
     fVerts->UpdateCellCount(npts);
     output3->SetPoints(fPts);
     output3->SetVerts(fVerts);
@@ -1618,6 +1781,7 @@ void vtkVoronoi2D::PrintSelf(ostream& os, vtkIndent indent)
 
   os << indent << "Output Type: " << this->OutputType << "\n";
   os << indent << "Validate: " << (this->Validate ? "On\n" : "Off\n");
+  os << indent << "Pass Point Data: " << (this->PassPointData ? "On\n" : "Off\n");
   os << indent << "Generate Scalars: " << this->GenerateScalars << "\n";
   os << indent << "Padding: " << this->Padding << "\n";
   os << indent << "Locator: " << this->Locator << "\n";
@@ -1626,5 +1790,8 @@ void vtkVoronoi2D::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "Point Of Interest: " << this->PointOfInterest << "\n";
   os << indent << "Maximum Number Of Tile Clips: " << this->MaximumNumberOfTileClips << "\n";
   os << indent << "Generate Voronoi Flower: " << (this->GenerateVoronoiFlower ? "On\n" : "Off\n");
+  os << indent << "Prune Spokes: " << (this->PruneSpokes ? "On\n" : "Off\n");
+  os << indent << "Prune Tolerance: " << this->PruneTolerance << "\n";
+  os << indent << "Batch Size: " << this->BatchSize << "\n";
 }
 VTK_ABI_NAMESPACE_END

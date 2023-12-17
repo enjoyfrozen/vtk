@@ -8,13 +8,13 @@
  * list of input points. The points are assumed to lie in a plane. These
  * points may be represented by any dataset of type vtkPointSet and
  * subclasses. The output of the filter is a polygonal dataset. Each output
- * cell is a convex polygon, although options exist for producing
- * other outputs including a 2D Delaunay triangulation.
+ * cell is a convex polygon (i.e., a tile), although options exist for
+ * producing other outputs including a 2D Delaunay triangulation.
  *
  * The 2D Voronoi tessellation is a tiling of space, where each Voronoi tile
- * represents the region nearest to one of the input points. Voronoi
- * tessellations are important in computational geometry (and many other
- * fields), and are the dual of Delaunay triangulations.
+ * represents the region nearest to one of the input points (the tile
+ * generators). Voronoi tessellations are important in computational geometry
+ * (and many other fields), and are the dual of Delaunay triangulations.
  *
  * The input to this filter is a list of points specified in 3D, even though
  * the tessellation is 2D. Thus the tessellation is constructed in the x-y
@@ -57,22 +57,30 @@
  * merging points and validating topology).
  *
  * There are up to four outputs to this filter depending on how the filter is
- * configured. The first is the Voronoi tessellation. The second is the
- * Delaunay triangulation; the third and fourth outputs are available when
- * the PointOfInterest p is set to a value 0 <= p < (number of input points)
- * and GenerateVoronoiFlower is enabled. The third output is a random
- * sampling of points within the flower; the fourth is the Voronoi tile of
- * interest along with scalar values corresponding to the error radii at each
- * Voronoi tile vertex point.
+ * configured. The first filter output #0 is the Voronoi tessellation. The
+ * second output #1 is the Delaunay triangulation; the third (output #2) and
+ * fourth (output #3) outputs are available when the PointOfInterest p is set
+ * to a value 0 <= p < (number of input points) and GenerateVoronoiFlower is
+ * enabled. The third output is a random sampling of points within the
+ * flower; the fourth is the Voronoi tile of interest along with scalar
+ * values corresponding to the error radii at each Voronoi tile vertex point.
  *
  * This filter can be used to tessellate different regions with convex
  * polygons (i.e., Voronoi tiles), or create holes in Voronoi tessellations,
  * using a supplemental input single-component, scalar data array (the region
  * ids array). The size of the region ids array must match the number of
- * input points. In this array, a value of "0" means the tile associated with
- * point 0 is considered "outside" and so is not produced on
- * output. Otherwise, any non-zero region indicates which region a particular
- * tile belongs to.
+ * input points. In this array, a region id value <0 means the tile
+ * associated with its associated point is considered "outside" and so is not
+ * produced on output. Otherwise, any non-negative region is indicates which
+ * region a particular tile belongs to.
+ *
+ * Note that an important concept of this algorithm is a graphical
+ * representation referred to as the "wheel and spoke" data structure.  When
+ * the Voronoi tessellation if generated, connections to the neighbors of
+ * each Voronoi tile are known as spokes. The radially ordered collection of
+ * all spokes associated with a tile is known as a wheel. Then to generate
+ * the Delaunay triangulation, a parallel traversal of the wheels and spokes
+ * graph is used to extract triangles from the graph.
  *
  * @warning
  * Coincident input points will likely produce an invalid tessellation. This
@@ -129,6 +137,9 @@ public:
   void PrintSelf(ostream& os, vtkIndent indent) override;
   ///@}
 
+  /**
+   * Used to control filter output.
+   */
   enum OutputTypeOptions
   {
     VORONOI=0,
@@ -140,8 +151,8 @@ public:
   /**
    * Control whether to produce an output Voronoi tessllation and/or an
    * output Delaunay triangulation. (If enabled, the Voronoi tessellation
-   * is produced in output 0. If enabled, the Delaunay triangulation is
-   * produced in output 1.) Note that this OutputType data member just
+   * is produced in filter output #0. If enabled, the Delaunay triangulation is
+   * produced in output #1.) Note that this OutputType data member just
    * controls what is sent to the filter output--in all cases this filter
    * computes an internal representation of the Voronoi tessellation. However
    * if disabled, then the cost of memory and execution is reduced by not
@@ -149,8 +160,9 @@ public:
    * for example if only the Delaunay triangulation is desired. By default,
    * the filter only produces the Voronoi tessellation. If specified, the
    * Delaunay triangulation is computed by extracting the dual of the
-   * Voronoi tessellation. (Note that the extraction process includes some
-   * checks to ensure that the Voronoi tessellation is valid.)
+   * Voronoi tessellation. (Note that the extraction process may include
+   * topological checks to ensure that the Voronoi tessellation is valid. See
+   * the Validate data member for more information.)
    */
   vtkSetMacro(OutputType, int);
   vtkGetMacro(OutputType, int);
@@ -163,7 +175,9 @@ public:
   /**
    * Enable the validation and repair of the Voronoi tesselation (which also
    * affects the Delaunay triangulation if requested). Enabling validation
-   * increases computation time. By default, validation is off.
+   * increases computation time. By default, validation is on. Validation
+   * can be disabled but this may result in topological inconsistencies
+   * in the output Delaunay triangulation.
    */
   vtkSetMacro(Validate, vtkTypeBool);
   vtkGetMacro(Validate, vtkTypeBool);
@@ -175,22 +189,42 @@ public:
    * Specify a padding for the bounding box of the points. A >0 padding is
    * necessary in order to create valid Voronoi tiles on the boundary of the
    * tessellation. The padding is specified as a fraction of the diagonal
-   * length of the bounding box of the points.
+   * length of the bounding box of the points. Note that changing the padding
+   * can affect the resulting tiles and Delaunay triangulation.
    */
   vtkSetClampMacro(Padding, double, 0.0001, 0.25);
   vtkGetMacro(Padding, double);
   ///@}
 
+  ///@{
   /**
-   * The following enums are used to control the production of scalar data
-   * associated with each Voronoi tile. (Scalar data is only possible when
-   * VORONOI output type is requested.) By default (NONE) no scalar data is
-   * produced.  Otherwise scalars corresponding to point ids (POINT_IDS),
-   * region ids (REGION_IDS), the number of sides for each Voronoi tile
-   * (NUMBER_SIDES), or the thread id producing the tile (THREAD_IDS) is also
-   * possible. Note that REGION_IDS are only possible when a
-   * single-component, point data array is provided on input. Also note that
-   * the THREAD_IDS scalars will likey vary bewtween threaded executions.
+   * Indicate whether to pass input point data through to the filter outputs.
+   * If enabled, input point data is passed through to the Voronoi output #0
+   * as cell data; and to the Delaunay output #1 as point data. By default,
+   * passing the input point data is enabled.
+   */
+  vtkSetMacro(PassPointData,vtkTypeBool);
+  vtkGetMacro(PassPointData,vtkTypeBool);
+  vtkBooleanMacro(PassPointData,vtkTypeBool);
+  ///@}
+
+  /**
+   * The following enums are used to control the production of auxiliary
+   * scalar data associated with each Voronoi tile and/or Delaunay
+   * point. These auxiliary scalars can be used to produce additional
+   * information useful for debugging or display. This auxiliary scalar data
+   * is passed through as both cell data (to the Voronoi output #0) and point
+   * data (to the Delaunay output #1). (Recall for each input point, a Voronoi
+   * tile is generated, which is also a Delaunay vertex; hence the number of
+   * output tiles equals the number of output Delaunay vertices [assuming that
+   * RegionIds are not used for culling]).  By default (NONE) no auxiliary
+   * scalar data is produced.  Otherwise scalars corresponding to point ids
+   * (POINT_IDS), region ids (REGION_IDS), the number of sides for each
+   * Voronoi tile (NUMBER_SIDES), or the thread id producing the tile
+   * (THREAD_IDS) is also possible. Note that REGION_IDS are only possible
+   * when a single-component, point data array is provided on input. Also
+   * note that the THREAD_IDS scalars will likey vary between threaded
+   * executions.
    */
   enum GenerateScalarsStrategy
   {
@@ -203,12 +237,12 @@ public:
 
   ///@{
   /**
-   * Indicate whether to create a scalar array as part of the Voronoi
-   * output (if Voronoi output is requested). Point ids, region ids, the
-   * number of sides of each Voronoi polygon, or execution thread ids may be
-   * output. By default no scalars are generated. Note that different
-   * algorithm executions likely generate different thread ids as execution
-   * order is unpredictable.
+   * Indicate whether to create an auxiliary scalar array as part of the
+   * Voronoi and/or Delaunay output (if Voronoi output is requested). Point
+   * ids, region ids, the number of sides of each Voronoi polygon, or
+   * execution thread ids may be output. By default no auxiliary scalars are
+   * generated. Note that different algorithm executions likely generate
+   * different thread ids as execution order is unpredictable.
    */
   vtkSetClampMacro(GenerateScalars, int, NONE, THREAD_IDS);
   vtkGetMacro(GenerateScalars, int);
@@ -319,6 +353,50 @@ public:
   vtkGetObjectMacro(Spheres, vtkSpheres);
   ///@}
 
+  ///@{
+  /**
+   * Specify whether to prune the connections (i.e., spokes) between Voronoi
+   * tiles during processing. The spokes are dual connections represented by
+   * the edges of each convex Voronoi tile: removing (or pruning) a spoke
+   * means eliminating the connection to a tile neighbor, i.e., deleting a
+   * tile edge. Small tile edges may occur in degenerate situations where more
+   * than three Voronoi tiles meet (i.e., the Delaunay circumcircles are
+   * degenerate with more than three points laying on the
+   * crcumcircle). Pruning can be useful to prevent degenerate
+   * tessellations. By default, pruning is off (it requires extra work and
+   * typically slows algorithm execution).
+   */
+  vtkSetMacro(PruneSpokes, vtkTypeBool);
+  vtkGetMacro(PruneSpokes, vtkTypeBool);
+  vtkBooleanMacro(PruneSpokes, vtkTypeBool);
+  ///@}
+
+  ///@{
+  /**
+   * If PruneSpokes is enabled, specify a relative tolerance to determine
+   * which spokes to prune. The relative tolerance is defined as the ratio of
+   * the edge length of a Voronoi tile to the length of the associated spoke
+   * connecting two Voronoi tile generator points. If the relative tolerance
+   * is <= the PruneTolerance, then the spoke (and associated edge) are
+   * pruned.
+   */
+  vtkSetClampMacro(PruneTolerance, double, 0.0, 0.5);
+  vtkGetMacro(PruneTolerance, double);
+  ///@}
+
+  ///@{
+  /**
+   * Specify the number of input generating points in a batch, where a batch
+   * defines a contiguous subset of the input points operated on during
+   * threaded execution. Generally this is only used for debugging or
+   * performance studies (since batch size affects the thread workload).
+   *
+   * Default is 1000.
+   */
+  vtkSetClampMacro(BatchSize, unsigned int, 1, VTK_INT_MAX);
+  vtkGetMacro(BatchSize, unsigned int);
+  ///@}
+
   /**
    *  Return the maximum number of sides across all Voronoi tiles. This is
    *  valid only after algorithm execution.
@@ -342,8 +420,9 @@ protected:
 
   int OutputType;
   vtkTypeBool Validate;
-  int GenerateScalars;
   double Padding;
+  vtkTypeBool PassPointData;
+  int GenerateScalars;
   int ProjectionPlaneMode; // selects the plane in 3D where the tessellation will be computed
   vtkSmartPointer<vtkStaticPointLocator2D> Locator;
   vtkSmartPointer<vtkAbstractTransform> Transform;
@@ -351,9 +430,12 @@ protected:
   vtkIdType PointOfInterest;
   vtkIdType MaximumNumberOfTileClips;
   vtkTypeBool GenerateVoronoiFlower;
-  int NumberOfThreadsUsed;
   vtkSmartPointer<vtkSpheres> Spheres;
+  vtkTypeBool PruneSpokes;
+  double PruneTolerance;
+  unsigned int BatchSize;
   int MaximumNumberOfSides;
+  int NumberOfThreadsUsed;
 
   // Satisfy pipeline-related API
   int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
