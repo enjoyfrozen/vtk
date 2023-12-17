@@ -128,3 +128,15 @@ vtk_module_add_module(VTK::FiltersCellGrid
   SOURCES ${sources}
   PRIVATE_HEADERS ${private_headers}
 )
+
+# FIXME: vtkDGHex.cxx:20:13: error: redefinition of 'bool registerType'
+set_property(SOURCE
+  vtkDGHex.cxx
+  vtkDGPyr.cxx
+  vtkDGQuad.cxx
+  vtkDGEdge.cxx
+  vtkDGTri.cxx
+  vtkDGVert.cxx
+  vtkDGWdg.cxx
+  PROPERTY
+    SKIP_UNITY_BUILD_INCLUSION ON)

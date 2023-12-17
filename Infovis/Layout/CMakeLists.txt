@@ -47,3 +47,13 @@ set(classes
 vtk_module_add_module(VTK::InfovisLayout
   CLASSES ${classes})
 vtk_add_test_mangling(VTK::InfovisLayout)
+
+# FIXME: vtkCommunity2DLayoutStrategy.cxx:33:21: error: redefinition of 'float CoolDown(float, float)'
+set_property(SOURCE
+  vtkCommunity2DLayoutStrategy.cxx
+  vtkConstrained2DLayoutStrategy.cxx
+  vtkSimple2DLayoutStrategy.cxx
+  vtkClustering2DLayoutStrategy.cxx
+  vtkFast2DLayoutStrategy.cxx
+  PROPERTY
+    SKIP_UNITY_BUILD_INCLUSION ON)

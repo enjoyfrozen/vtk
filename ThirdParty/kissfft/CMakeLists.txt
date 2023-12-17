@@ -14,3 +14,6 @@ configure_file(
 
 vtk_module_install_headers(
   FILES "${CMAKE_CURRENT_BINARY_DIR}/vtk_kissfft.h")
+
+# _kiss_fft_guts.h:22:8: error: redefinition of 'struct kiss_fft_state'
+set_property(TARGET kissfft PROPERTY UNITY_BUILD OFF)

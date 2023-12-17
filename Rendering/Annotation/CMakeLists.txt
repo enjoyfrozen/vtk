@@ -37,3 +37,8 @@ vtk_module_add_module(VTK::RenderingAnnotation
   PRIVATE_CLASSES ${private_classes}
   NOWRAP_HEADERS ${nowrap_headers})
 vtk_add_test_mangling(VTK::RenderingAnnotation)
+
+# FIXME: vtkProp3DAxisFollower.cxx:29:14: error: redefinition of 'const double {anonymous}::AxisAlignedY [3][4][2][3]'
+set_property(SOURCE vtkProp3DAxisFollower.cxx
+  PROPERTY
+    SKIP_UNITY_BUILD_INCLUSION ON)

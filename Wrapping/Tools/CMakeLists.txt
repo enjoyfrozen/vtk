@@ -23,6 +23,11 @@ set(sources
   vtkWrap.c
   vtkWrapText.c)
 
+# FIXME: minwindef.h:131:15: error: 'BOOL' redeclared as different kind of symbol
+set_property(SOURCE vtkParse.tab.c
+  PROPERTY
+    SKIP_UNITY_BUILD_INCLUSION ON)
+
 set(headers
   vtkParse.h
   vtkParseAttributes.h

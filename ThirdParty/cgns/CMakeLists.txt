@@ -31,3 +31,6 @@ configure_file(
 
 vtk_module_install_headers(
   FILES "${CMAKE_CURRENT_BINARY_DIR}/vtk_cgns.h")
+
+# ADFH.c:325:13: error: conflicting types for ‘set_error’
+set_property(TARGET cgns PROPERTY UNITY_BUILD OFF)

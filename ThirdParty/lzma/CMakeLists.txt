@@ -31,3 +31,6 @@ configure_file(
 
 vtk_module_install_headers(
   FILES "${CMAKE_CURRENT_BINARY_DIR}/vtk_lzma.h")
+
+# index_encoder.c:20:17: error: redeclaration of enumerator ‘SEQ_INDICATOR’
+set_property(TARGET lzma PROPERTY UNITY_BUILD OFF)

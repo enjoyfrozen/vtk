@@ -22,3 +22,6 @@ configure_file(
 
 vtk_module_install_headers(
   FILES "${CMAKE_CURRENT_BINARY_DIR}/vtk_zlib.h")
+
+# gzguts.h:202:3: error: conflicting types for ‘gz_state’; have ‘struct <anonymous>’
+set_property(TARGET zlib PROPERTY UNITY_BUILD OFF)

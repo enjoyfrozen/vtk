@@ -61,3 +61,13 @@ endforeach()
 vtk_module_definitions(VTK::GUISupportQt PRIVATE QT_NO_KEYWORDS)
 vtk_module_link(VTK::GUISupportQt PUBLIC ${qt_modules})
 vtk_add_test_mangling(VTK::GUISupportQt)
+
+set_property(
+  SOURCE
+    vtkQtDebugLeaksView.cxx
+    vtkQWidgetRepresentation.cxx
+    vtkQWidgetTexture.cxx
+    QVTKOpenGLNativeWidget.cxx
+    QVTKOpenGLStereoWidget.cxx
+  PROPERTY
+    SKIP_UNITY_BUILD_INCLUSION ON)

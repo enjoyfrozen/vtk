@@ -29,3 +29,6 @@ configure_file(
 
 vtk_module_install_headers(
   FILES "${CMAKE_CURRENT_BINARY_DIR}/vtk_theora.h")
+
+# huffdec.c:107:21: error: redefinition of ‘oc_pack_refill’
+set_property(TARGET theora PROPERTY UNITY_BUILD OFF)

@@ -48,3 +48,8 @@ set(classes
 vtk_module_add_module(VTK::ImagingCore
   CLASSES ${classes})
 vtk_add_test_mangling(VTK::ImagingCore)
+
+# FIXME: vtkGenericImageInterpolator.cxx:848:8: error: redefinition of 'struct {anonymous}::vtkInterpolateNOP<F>'
+set_property(SOURCE vtkGenericImageInterpolator.cxx
+  PROPERTY
+    SKIP_UNITY_BUILD_INCLUSION ON)

@@ -45,3 +45,6 @@ configure_file(
 
 vtk_module_install_headers(
   FILES "${CMAKE_CURRENT_BINARY_DIR}/vtk_hdf5.h")
+
+# H5B2test.c:96:12: error: ‘H5B2_test_rec_t’ undeclared here (not in a function)
+set_property(TARGET vtkhdf5_src PROPERTY UNITY_BUILD OFF)

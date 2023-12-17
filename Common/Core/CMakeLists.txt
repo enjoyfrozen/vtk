@@ -716,3 +716,23 @@ vtk_module_link(VTK::CommonCore
 vtk_module_compile_features(VTK::CommonCore
   PUBLIC
     cxx_std_11)
+
+set_property(SOURCE
+  vtkUnsignedCharArray.cxx
+  vtkFloatArray.cxx
+  vtkDoubleArray.cxx
+  vtkSignedCharArray.cxx
+  vtkLongLongArray.cxx
+  vtkIntArray.cxx
+  vtkUnsignedIntArray.cxx
+  vtkIdTypeArray.cxx
+  vtkUnsignedShortArray.cxx
+  vtkCharArray.cxx
+  vtkLongArray.cxx
+  vtkShortArray.cxx
+  vtkUnsignedLongLongArray.cxx
+  vtkUnsignedLongArray.cxx
+  vtkVariantArray.cxx
+  ${instantiation_sources}
+  PROPERTY
+    SKIP_UNITY_BUILD_INCLUSION ON)

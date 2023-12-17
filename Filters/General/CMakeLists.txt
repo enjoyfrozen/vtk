@@ -139,3 +139,12 @@ vtk_module_add_module(VTK::FiltersGeneral
   CLASSES ${classes}
   TEMPLATES ${templates})
 vtk_add_test_mangling(VTK::FiltersGeneral)
+
+# FIXME: vtkVoxelContoursToSurfaceFilter.cxx:17:21: error: invalid new-expression of abstract class type 'vtkVoxelContoursToSurfaceFilter'
+set_property(SOURCE
+  vtkVoxelContoursToSurfaceFilter.cxx
+  vtkVertexGlyphFilter.cxx
+  vtkUncertaintyTubeFilter.cxx
+  vtkTransformPolyDataFilter.cxx
+  PROPERTY
+    SKIP_UNITY_BUILD_INCLUSION ON)

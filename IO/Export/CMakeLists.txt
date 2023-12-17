@@ -24,3 +24,11 @@ set(classes
 vtk_module_add_module(VTK::IOExport
   CLASSES ${classes})
 vtk_add_test_mangling(VTK::IOExport)
+
+# FIXME: vtkSVGExporter.cxx:33:13: error: redefinition of 'std::string {anonymous}::ColorToString(const unsigned char*)'
+set_property(SOURCE
+  vtkSVGExporter.cxx
+  vtkOOGLExporter.cxx
+  vtkSingleVTPExporter.cxx
+  PROPERTY
+    SKIP_UNITY_BUILD_INCLUSION ON)

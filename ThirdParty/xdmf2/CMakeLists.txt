@@ -25,3 +25,6 @@ configure_file(
 
 vtk_module_install_headers(
   FILES "${CMAKE_CURRENT_BINARY_DIR}/vtk_xdmf2.h")
+
+# XdmfExpr.h:38:16: error: redefinition of 'struct XdmfExprSymbolStruct'
+set_property(TARGET xdmf2 PROPERTY UNITY_BUILD OFF)

@@ -27,3 +27,10 @@ vtk_module_add_module(VTK::FiltersStatistics
   CLASSES ${classes}
   NOWRAP_HEADERS ${nowrap_headers})
 vtk_add_test_mangling(VTK::FiltersStatistics)
+
+# FIXME: vtkMultiCorrelativeStatistics.cxx:40:8: error: redefinition of 'struct {anonymous}::GhostsCounter'
+set_property(SOURCE
+  vtkMultiCorrelativeStatistics.cxx
+  vtkOrderStatistics.cxx
+  PROPERTY
+    SKIP_UNITY_BUILD_INCLUSION ON)
