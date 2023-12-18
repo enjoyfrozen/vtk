@@ -611,12 +611,11 @@ struct ProduceVoronoiOutput
 
         // First copy all the tile points in this batch
         pts = this->Pts + 3*ptOffset;
-        for (auto i=0; i < totalTilePts; ++i)
+        for (auto i=0; i < totalTilePts; ++i, ++pItr)
         {
           *pts++ = pItr->X;
           *pts++ = pItr->Y;
           *pts++ = this->Z;
-          pItr++;
         } // for all points in this batch
 
         // Generate the cell array using the more efficient
@@ -626,11 +625,12 @@ struct ProduceVoronoiOutput
         vtkIdType *connPtr = this->Conn + ptOffset;
         std::generate(connPtr,connPtr+totalTilePts, [&] {return pId++;});
 
-        // Now generate the cell offsets for this run of contiguous tiles
+        // Now generate the cell offsets for this run of contiguous tiles.
+        // Each point in the batch generates a tile.
         vtkIdType *offsetPtr = this->Offsets + ptId;
         for ( auto i=0; i < numBatchPts; ++i)
         {
-          *offsetPtr++ = GetNumberOfSpokes(wheels,ptId+i);
+          *offsetPtr++ = GetWheelOffset(wheels,ptId+i);
         }
 
         // Generate cell scalars if requested
