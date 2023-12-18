@@ -19,6 +19,7 @@
 #include <vtkMultiVolume.h>
 #include <vtkObjectFactory.h>
 #include <vtkPointData.h>
+#include <vtkPolyData.h>
 #include <vtkRectilinearGrid.h>
 #include <vtkRenderWindow.h>
 #include <vtkRenderer.h>
@@ -39,6 +40,12 @@ vtkGPUVolumeRayCastMapper::vtkGPUVolumeRayCastMapper()
   this->MinimumImageSampleDistance = 1.0;
   this->MaximumImageSampleDistance = 10.0;
   this->RenderToImage = 0;
+  this->RenderCurvedPlanarReformation = 0;
+  this->LastCprPolyLineUpdate = 0;
+  this->CprOrientedPolyLine = nullptr;
+  this->CprVolumeXYDimensions[0] = 100.0;
+  this->CprVolumeXYDimensions[1] = 100.0;
+  this->CprVolumeZDimension = 0.0;
   this->DepthImageScalarType = VTK_FLOAT;
   this->ClampDepthToBackface = 0;
   this->UseJittering = 0;
@@ -707,6 +714,17 @@ void vtkGPUVolumeRayCastMapper::SetDepthImageScalarTypeToFloat()
   this->SetDepthImageScalarType(VTK_FLOAT);
 }
 
+vtkPolyData* vtkGPUVolumeRayCastMapper::GetCprOrientedPolyLine()
+{
+  vtkDebugMacro(<< " returning vtkPolyData address " << this->CprOrientedPolyLine);
+  return this->CprOrientedPolyLine;
+}
+
+void vtkGPUVolumeRayCastMapper::SetCprOrientedPolyLine(vtkPolyData* _arg)
+{
+  vtkSetObjectBodyMacro(CprOrientedPolyLine, vtkPolyData, _arg);
+}
+
 //------------------------------------------------------------------------------
 int vtkGPUVolumeRayCastMapper::FillInputPortInformation(int port, vtkInformation* info)
 {
@@ -722,6 +740,153 @@ int vtkGPUVolumeRayCastMapper::FillInputPortInformation(int port, vtkInformation
 vtkDataSet* vtkGPUVolumeRayCastMapper::GetInput(int port)
 {
   return static_cast<vtkDataSet*>(this->GetInputDataObject(port, 0));
+}
+
+//------------------------------------------------------------------------------
+void vtkGPUVolumeRayCastMapper::UpdateCprPolyLine()
+{
+  // Check if an update is needed
+  auto polyData = this->GetCprOrientedPolyLine();
+  auto polyDataTime = polyData ? polyData->GetMTime() : 0;
+  auto imageData = vtkImageData::SafeDownCast(this->GetInput());
+  auto imageDataTime = imageData ? imageData->GetMTime() : 0;
+  // Depends on self time because input polyData and imageData themself can change
+  auto selfTime = this->GetMTime();
+  auto newTime = std::max({ imageDataTime, polyDataTime, selfTime });
+  if (newTime <= this->LastCprPolyLineUpdate)
+  {
+    return;
+  }
+
+  // Update is needed
+  this->LastCprPolyLineUpdate = newTime;
+  this->CprVolumeZDimension = 0;
+  this->CprPolyLineOrientations.clear();
+  this->CprPolyLinePositions.clear();
+
+  if (!polyData || !imageData)
+  {
+    return;
+  }
+
+  auto spacing = imageData->GetSpacing();
+  auto dimensions = imageData->GetDimensions();
+  if (!spacing || !dimensions)
+  {
+    return;
+  }
+
+  // Get the positions of the centerline
+  auto lines = polyData->GetLines();
+  if (!lines)
+  {
+    return;
+  }
+  vtkNew<vtkIdList> lineIds;
+  lines->GetCellAtId(0, lineIds);
+  if (!lineIds)
+  {
+    return;
+  }
+  auto nLinePoints = lineIds->GetNumberOfIds();
+  auto points = polyData->GetPoints();
+  if (!points)
+  {
+    return;
+  }
+
+  // Get the orientations of the centerline
+  auto pointData = polyData->GetPointData();
+  if (!pointData)
+  {
+    return;
+  }
+  auto orientations = vtkArrayDownCast<vtkDataArray>(pointData->GetAbstractArray("Orientations"));
+  if (!orientations && pointData->GetNumberOfArrays() == 1)
+  {
+    orientations = vtkArrayDownCast<vtkDataArray>(pointData->GetAbstractArray(0));
+  }
+  if (!orientations || orientations->GetNumberOfComponents() != 4)
+  {
+    return;
+  }
+  // Compute the vector for cpr positions
+  {
+    this->CprPolyLinePositions.resize(nLinePoints * 4);
+    double textureToIndexScale[3];
+    for (int i = 0; i < 3; ++i)
+    {
+      textureToIndexScale[i] = spacing[i] * dimensions[i];
+    }
+    double totalDistance = 0.0;
+    double modelPoint[3];
+    double previousModelPoint[3];
+    for (vtkIdType i = 0; i < nLinePoints; ++i)
+    {
+      auto pointId = lineIds->GetId(i);
+      double* point = points->GetPoint(pointId);
+      modelPoint[0] = textureToIndexScale[0] * point[0];
+      modelPoint[1] = textureToIndexScale[1] * point[1];
+      modelPoint[2] = textureToIndexScale[2] * point[2];
+      if (i != 0)
+      {
+        vtkMath::Subtract(modelPoint, previousModelPoint, previousModelPoint);
+        totalDistance += vtkMath::Norm(previousModelPoint);
+      }
+      vtkMath::Assign(modelPoint, previousModelPoint);
+      auto rawOffset = 4 * i;
+      for (int j = 0; j < 3; ++j)
+      {
+        this->CprPolyLinePositions[rawOffset + j] = point[j];
+      }
+      this->CprPolyLinePositions[rawOffset + 3] = totalDistance;
+    }
+    this->CprVolumeZDimension = totalDistance;
+    if (totalDistance > 0)
+    {
+      for (vtkIdType i = 0; i < nLinePoints; ++i)
+      {
+        this->CprPolyLinePositions[4 * i + 3] /= totalDistance;
+      }
+    }
+  }
+
+  // Compute the vector for cpr orientations
+  {
+    this->CprPolyLineOrientations.resize(nLinePoints * 4);
+    double tempOrientation[4];
+    for (vtkIdType i = 0; i < nLinePoints; ++i)
+    {
+      auto pointId = lineIds->GetId(i);
+      orientations->GetTuple(pointId, tempOrientation);
+      this->CprPolyLineOrientations[4 * i] = tempOrientation[0];
+      this->CprPolyLineOrientations[4 * i + 1] = tempOrientation[1];
+      this->CprPolyLineOrientations[4 * i + 2] = tempOrientation[2];
+      this->CprPolyLineOrientations[4 * i + 3] = tempOrientation[3];
+    }
+  }
+}
+
+//------------------------------------------------------------------------------
+double* vtkGPUVolumeRayCastMapper::GetBounds()
+{
+  if (this->RenderCurvedPlanarReformation)
+  {
+    this->UpdateCprPolyLine();
+    auto xyDims = this->CprVolumeXYDimensions;
+    auto zDim = this->CprVolumeZDimension;
+    this->Bounds[0] = -xyDims[0] / 2;
+    this->Bounds[1] = +xyDims[0] / 2;
+    this->Bounds[2] = -xyDims[1] / 2;
+    this->Bounds[3] = +xyDims[1] / 2;
+    this->Bounds[4] = -zDim / 2;
+    this->Bounds[5] = +zDim / 2;
+    return this->Bounds;
+  }
+  else
+  {
+    return this->vtkVolumeMapper::GetBounds();
+  }
 }
 
 //------------------------------------------------------------------------------

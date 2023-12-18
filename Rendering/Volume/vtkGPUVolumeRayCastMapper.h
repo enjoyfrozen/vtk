@@ -27,6 +27,9 @@ VTK_ABI_NAMESPACE_BEGIN
 class vtkContourValues;
 class vtkRenderWindow;
 class vtkVolumeProperty;
+class vtkPolyData;
+template <typename T>
+class vtkSmartPointer;
 
 class VTKRENDERINGVOLUME_EXPORT vtkGPUVolumeRayCastMapper : public vtkVolumeMapper
 {
@@ -34,6 +37,15 @@ public:
   static vtkGPUVolumeRayCastMapper* New();
   vtkTypeMacro(vtkGPUVolumeRayCastMapper, vtkVolumeMapper);
   void PrintSelf(ostream& os, vtkIndent indent) override;
+
+  ///@{
+  /**
+   * Return bounding box (array of six doubles) of data expressed as
+   * (xmin,xmax, ymin,ymax, zmin,zmax).
+   */
+  double* GetBounds() VTK_SIZEHINT(6) override;
+  void GetBounds(double bounds[6]) override { this->vtkVolumeMapper::GetBounds(bounds); }
+  ///@}
 
   ///@{
   /**
@@ -304,6 +316,52 @@ public:
 
   ///@{
   /**
+   * Enable or disable rendering the volume using curved planar reformation (CPR). The CPR mode
+   * needs an oriented PolyLine to be set using `SetCprOrientedPolyLine`. By default this is set to
+   * 0 (off).
+   * It should be noted that it is possible that underlying API specific mapper may not supoport CPR
+   * mode.
+   * \warning
+   * \li This method only works with a single volume input.
+   * \li This method redefine `texture` function in the fragment shader. This is not supported in
+   * OpenGL ES.
+
+   * \sa SetCprOrientedPolyLine()
+   */
+  vtkSetMacro(RenderCurvedPlanarReformation, vtkTypeBool);
+  vtkGetMacro(RenderCurvedPlanarReformation, vtkTypeBool);
+  vtkBooleanMacro(RenderCurvedPlanarReformation, vtkTypeBool);
+  ///@}
+
+  ///@{
+  /**
+   * Contains the PolyLine used by the Curved Planar Reformation mode (CPR).
+   * This PolyData should contain a line cell and and an array of quaternions as PointData to orient
+   * each point.
+   * The DataArray containing the orientations can be named "Orientations" and has 4 components. It
+   * is an is an array of quaternions:
+   * - `q = (x, y, z, w)`
+   * - `||q|| = 1.0`
+   * The orientation of each point is relative to the IJK axes.
+   * The position of each point is in normalized IJK coordinates.
+
+   * \sa GetRenderCurvedPlanarReformation()
+   */
+  virtual vtkPolyData* GetCprOrientedPolyLine();
+  virtual void SetCprOrientedPolyLine(vtkPolyData*);
+  ///@}
+
+  ///@{
+  /**
+   * An array of size 2, the size of the volume in CPR mode for x and y axes.
+   * The size of of the volume on the z axis is defined by the length of the polyline.
+   */
+  vtkGetVector2Macro(CprVolumeXYDimensions, float);
+  vtkSetVector2Macro(CprVolumeXYDimensions, float);
+  ///@}
+
+  ///@{
+  /**
    * Set/Get the scalar type of the depth texture in RenderToImage mode.
    * By default, the type if VTK_FLOAT.
    * \sa SetRenderToImage()
@@ -527,6 +585,24 @@ protected:
 
   // Render to texture mode flag
   vtkTypeBool RenderToImage;
+
+  // Curved Planar Reformation mode flag (CPR)
+  vtkTypeBool RenderCurvedPlanarReformation;
+
+  // Contains a line cell and a DataArray of quaternions to orient each point
+  vtkPolyData* CprOrientedPolyLine;
+
+  // Size of the volume in CPR mode for x and y axes (a vector 2)
+  float CprVolumeXYDimensions[2];
+
+  // Calling this function updates CprVolumeZDimension, positions and orientations vectors
+  void UpdateCprPolyLine();
+
+  vtkMTimeType LastCprPolyLineUpdate;
+  // The length of the PolyLine
+  float CprVolumeZDimension;
+  std::vector<float> CprPolyLinePositions;
+  std::vector<float> CprPolyLineOrientations;
 
   // Depth image scalar type
   int DepthImageScalarType;

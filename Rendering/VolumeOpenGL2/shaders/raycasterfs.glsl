@@ -137,6 +137,8 @@ void safe_0_vector(inout Ray ray)
 
 //VTK::RenderToImage::Dec
 
+//VTK::CurvedPlanarReformation::Dec
+
 //VTK::DepthPeeling::Dec
 
 uniform float in_scale;

@@ -143,6 +143,9 @@ public:
     this->PreserveGLState = false;
     this->DepthMaskOverride = false;
 
+    this->CprPositionTextureObject = nullptr;
+    this->CprOrientationTextureObject = nullptr;
+
     this->Partitions[0] = this->Partitions[1] = this->Partitions[2] = 1;
   }
 
@@ -178,6 +181,18 @@ public:
     {
       this->RTTColorTextureObject->Delete();
       this->RTTColorTextureObject = nullptr;
+    }
+
+    if (this->CprOrientationTextureObject)
+    {
+      this->CprOrientationTextureObject->Delete();
+      this->CprOrientationTextureObject = nullptr;
+    }
+
+    if (this->CprPositionTextureObject)
+    {
+      this->CprPositionTextureObject->Delete();
+      this->CprPositionTextureObject = nullptr;
     }
 
     if (this->ImageSampleFBO)
@@ -348,7 +363,8 @@ public:
   void SetMaskShaderParameters(vtkShaderProgram* prog, vtkVolumeProperty* prop, int noOfComponents);
   void SetRenderToImageParameters(vtkShaderProgram* prog);
   void SetAdvancedShaderParameters(vtkRenderer* ren, vtkShaderProgram* prog, vtkVolume* vol,
-    vtkVolumeTexture::VolumeBlock* block, int numComp);
+    double bounds[6], int extent[6], int numComp);
+  void SetCprShaderParameters(vtkShaderProgram* prog, vtkRenderer* ren);
   ///@}
 
   void FinishRendering(int numComponents);
@@ -488,6 +504,9 @@ public:
   vtkOpenGLFramebufferObject* DPFBO;
   vtkTextureObject* DPDepthBufferTextureObject;
   vtkTextureObject* DPColorTextureObject;
+
+  vtkTextureObject* CprPositionTextureObject;
+  vtkTextureObject* CprOrientationTextureObject;
 
   vtkOpenGLFramebufferObject* ImageSampleFBO = nullptr;
   std::vector<vtkSmartPointer<vtkTextureObject>> ImageSampleTexture;
@@ -2294,6 +2313,18 @@ void vtkOpenGLGPUVolumeRayCastMapper::ReleaseGraphicsResources(vtkWindow* window
   this->Impl->ReleaseGraphicsMaskTransfer(window);
   this->Impl->DeleteMaskTransfer();
 
+  if (this->Impl->CprOrientationTextureObject)
+  {
+    this->Impl->CprOrientationTextureObject->Delete();
+    this->Impl->CprOrientationTextureObject = nullptr;
+  }
+
+  if (this->Impl->CprPositionTextureObject)
+  {
+    this->Impl->CprPositionTextureObject->Delete();
+    this->Impl->CprPositionTextureObject = nullptr;
+  }
+
   this->Impl->ReleaseResourcesTime.Modified();
 }
 
@@ -2690,6 +2721,19 @@ void vtkOpenGLGPUVolumeRayCastMapper::ReplaceShaderRTT(
 }
 
 //------------------------------------------------------------------------------
+void vtkOpenGLGPUVolumeRayCastMapper::ReplaceShaderCPR(
+  std::map<vtkShader::Type, vtkShader*>& shaders, vtkRenderer* ren, vtkVolume* vol,
+  int vtkNotUsed(numComps))
+{
+  if (this->RenderCurvedPlanarReformation)
+  {
+    vtkShader* fragmentShader = shaders[vtkShader::Fragment];
+    vtkShaderProgram::Substitute(fragmentShader, "//VTK::CurvedPlanarReformation::Dec",
+      vtkvolume::CurvedPlanarReformationDeclarationFragment(ren, this, vol));
+  }
+}
+
+//------------------------------------------------------------------------------
 void vtkOpenGLGPUVolumeRayCastMapper::ReplaceShaderValues(
   std::map<vtkShader::Type, vtkShader*>& shaders, vtkRenderer* ren, vtkVolume* vol,
   int noOfComponents)
@@ -2778,6 +2822,10 @@ void vtkOpenGLGPUVolumeRayCastMapper::ReplaceShaderValues(
   // Render to texture
   //---------------------------------------------------------------------------
   this->ReplaceShaderRTT(shaders, ren, vol, noOfComponents);
+
+  // Curved Planar Reformation
+  //---------------------------------------------------------------------------
+  this->ReplaceShaderCPR(shaders, ren, vol, noOfComponents);
 
   // Set number of isosurfaces
   if (this->GetBlendMode() == vtkVolumeMapper::ISOSURFACE_BLEND)
@@ -3465,7 +3513,25 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::BindTransformations(
       inputData.Volume->GetModelToWorldMatrix(this->TempMatrix4x4);
       vtkMatrix4x4* volMatrix = this->TempMatrix4x4;
       dataToWorld->DeepCopy(volMatrix);
-      texToDataMat->DeepCopy(volTex->GetCurrentBlock()->TextureToDataset.GetPointer());
+      if (this->Parent->GetRenderCurvedPlanarReformation())
+      {
+        auto xyDims = this->Parent->CprVolumeXYDimensions;
+        auto zDim = this->Parent->CprVolumeZDimension;
+        texToDataMat->Identity();
+        auto matrixData = texToDataMat->GetData();
+        // Scale
+        matrixData[0] = xyDims[0];
+        matrixData[5] = xyDims[1];
+        matrixData[10] = zDim;
+        // Translation
+        matrixData[3] = -xyDims[0] / 2;
+        matrixData[7] = -xyDims[1] / 2;
+        matrixData[11] = -zDim / 2;
+      }
+      else
+      {
+        texToDataMat->DeepCopy(volTex->GetCurrentBlock()->TextureToDataset.GetPointer());
+      }
 
       // Texture matrices (texture to view)
       vtkMatrix4x4::Multiply4x4(volMatrix, texToDataMat.GetPointer(), texToViewMat.GetPointer());
@@ -3754,6 +3820,80 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::SetMaskShaderParameters(
 }
 
 //------------------------------------------------------------------------------
+void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::SetCprShaderParameters(
+  vtkShaderProgram* prog, vtkRenderer* ren)
+{
+  this->Parent->UpdateCprPolyLine();
+  if (!this->Parent->RenderCurvedPlanarReformation)
+  {
+    return;
+  }
+  // Get image data spacing and dimensions
+  auto imageData = vtkImageData::SafeDownCast(this->Parent->GetTransformedInput(0));
+  if (!imageData)
+  {
+    return;
+  }
+  auto spacing = imageData->GetSpacing();
+  auto dimensions = imageData->GetDimensions();
+  if (!spacing || !dimensions)
+  {
+    return;
+  }
+  int nLinePoints = this->Parent->CprPolyLinePositions.size() / 4;
+
+  // Set the uniforms
+  prog->SetUniformi("in_cprPolyLineNumberOfPoints", nLinePoints);
+
+  prog->SetUniform2fv("in_cprBoxSize", 1, this->Parent->CprVolumeXYDimensions);
+
+  float textureToIndexScale[3];
+  vtkInternal::ToFloat(spacing[0] * dimensions[0], spacing[1] * dimensions[1],
+    spacing[2] * dimensions[2], textureToIndexScale);
+  prog->SetUniform3fv("in_cprVolumeSize", 1, &textureToIndexScale);
+
+  // TODO: Deactivate textures when not used
+
+  auto oglRenWin = vtkOpenGLRenderWindow::SafeDownCast(ren->GetRenderWindow());
+  // Compute the texture for cpr positions
+  {
+    if (!this->CprPositionTextureObject)
+    {
+      this->CprPositionTextureObject = vtkTextureObject::New();
+      this->CprPositionTextureObject->SetContext(oglRenWin);
+      this->CprPositionTextureObject->SetWrapS(vtkTextureObject::ClampToEdge);
+      this->CprPositionTextureObject->SetWrapT(vtkTextureObject::ClampToEdge);
+      this->CprPositionTextureObject->SetMagnificationFilter(vtkTextureObject::Nearest);
+      this->CprPositionTextureObject->SetMinificationFilter(vtkTextureObject::Nearest);
+      this->CprPositionTextureObject->SetAutoParameters(0);
+    }
+    this->CprPositionTextureObject->Create2DFromRaw(
+      nLinePoints, 1, 4, VTK_FLOAT, this->Parent->CprPolyLinePositions.data());
+    this->CprPositionTextureObject->Activate();
+    prog->SetUniformi("in_cprPolyLinePositions", this->CprPositionTextureObject->GetTextureUnit());
+  }
+
+  // Compute the texture for cpr orientations
+  {
+    if (!this->CprOrientationTextureObject)
+    {
+      this->CprOrientationTextureObject = vtkTextureObject::New();
+      this->CprOrientationTextureObject->SetContext(oglRenWin);
+      this->CprOrientationTextureObject->SetWrapS(vtkTextureObject::ClampToEdge);
+      this->CprOrientationTextureObject->SetWrapT(vtkTextureObject::ClampToEdge);
+      this->CprOrientationTextureObject->SetMagnificationFilter(vtkTextureObject::Nearest);
+      this->CprOrientationTextureObject->SetMinificationFilter(vtkTextureObject::Nearest);
+      this->CprOrientationTextureObject->SetAutoParameters(0);
+    }
+    this->CprOrientationTextureObject->Create2DFromRaw(
+      nLinePoints, 1, 4, VTK_FLOAT, this->Parent->CprPolyLineOrientations.data());
+    this->CprOrientationTextureObject->Activate();
+    prog->SetUniformi(
+      "in_cprPolyLineOrientations", this->CprOrientationTextureObject->GetTextureUnit());
+  }
+}
+
+//------------------------------------------------------------------------------
 void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::SetRenderToImageParameters(
   vtkShaderProgram* prog)
 {
@@ -3762,10 +3902,9 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::SetRenderToImageParameters(
 
 //------------------------------------------------------------------------------
 void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::SetAdvancedShaderParameters(vtkRenderer* ren,
-  vtkShaderProgram* prog, vtkVolume* vol, vtkVolumeTexture::VolumeBlock* block, int numComp)
+  vtkShaderProgram* prog, vtkVolume* vol, double bounds[6], int extent[6], int numComp)
 {
   // Cropping and clipping
-  auto bounds = block->LoadedBoundsAA;
   this->SetCroppingRegions(prog, bounds);
   this->SetClippingPlanes(ren, prog, vol);
 
@@ -3775,12 +3914,11 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::SetAdvancedShaderParameters(v
     this->SetPickingId(ren);
   }
 
-  auto blockExt = block->Extents;
   float fvalue3[3];
-  vtkInternal::ToFloat(blockExt[0], blockExt[2], blockExt[4], fvalue3);
+  vtkInternal::ToFloat(extent[0], extent[2], extent[4], fvalue3);
   prog->SetUniform3fv("in_textureExtentsMin", 1, &fvalue3);
 
-  vtkInternal::ToFloat(blockExt[1], blockExt[3], blockExt[5], fvalue3);
+  vtkInternal::ToFloat(extent[1], extent[3], extent[5], fvalue3);
   prog->SetUniform3fv("in_textureExtentsMax", 1, &fvalue3);
 
   // Component weights (independent components)
@@ -3874,6 +4012,18 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::FinishRendering(const int num
     }
   }
 
+  if (this->Parent->GetRenderCurvedPlanarReformation())
+  {
+    if (this->CprOrientationTextureObject)
+    {
+      this->CprOrientationTextureObject->Deactivate();
+    }
+    if (this->CprPositionTextureObject)
+    {
+      this->CprPositionTextureObject->Deactivate();
+    }
+  }
+
   vtkOpenGLStaticCheckErrorMacro("Failed after FinishRendering!");
 }
 
@@ -3944,7 +4094,6 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::RenderSingleInput(
   // is a single block.
   vol->GetModelToWorldMatrix(this->TempMatrix4x4);
   volumeTex->SortBlocksBackToFront(ren, this->TempMatrix4x4);
-  vtkVolumeTexture::VolumeBlock* block = volumeTex->GetCurrentBlock();
 
   if (this->CurrentMask)
   {
@@ -3953,28 +4102,71 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::RenderSingleInput(
 
   const int independent = vol->GetProperty()->GetIndependentComponents();
   const int numComp = volumeTex->GetLoadedScalars()->GetNumberOfComponents();
-  while (block != nullptr)
+  if (this->Parent->GetRenderCurvedPlanarReformation())
   {
+    vtkImageData* imageData = vtkImageData::SafeDownCast(this->Parent->GetInput());
+    if (!imageData)
+    {
+      return;
+    }
     const int numSamplers = (independent ? numComp : 1);
     this->SetMapperShaderParameters(prog, ren, independent, numComp);
 
     vtkMatrix4x4 *wcvc, *vcdc, *wcdc;
     vtkMatrix3x3* norm;
     cam->GetKeyMatrices(ren, wcvc, norm, vcdc, wcdc);
+
+    // CprVolumeZDimension is set by UpdateCprPolyLine in SetCprShaderParameters
+    this->SetCprShaderParameters(prog, ren);
+    double bounds[6];
+    this->Parent->GetBounds(bounds);
+    double geometry[24] = { bounds[0], bounds[2], bounds[4], bounds[1], bounds[2], bounds[4],
+      bounds[0], bounds[3], bounds[4], bounds[1], bounds[3], bounds[4], bounds[0], bounds[2],
+      bounds[5], bounds[1], bounds[2], bounds[5], bounds[0], bounds[3], bounds[5], bounds[1],
+      bounds[3], bounds[5] };
+    int* extent = imageData->GetExtent();
+
+    // This call uses CprVolumeZDimension and has to be made after SetCprShaderParameters
     this->SetVolumeShaderParameters(prog, independent, numComp, wcvc);
 
     this->SetMaskShaderParameters(prog, vol->GetProperty(), numComp);
     this->SetLightingShaderParameters(ren, prog, vol, numSamplers);
     this->SetCameraShaderParameters(prog, ren, cam);
-    this->SetAdvancedShaderParameters(ren, prog, vol, block, numComp);
 
-    this->RenderVolumeGeometry(ren, prog, vol, block->VolumeGeometry);
+    this->SetAdvancedShaderParameters(ren, prog, vol, bounds, extent, numComp);
+
+    this->RenderVolumeGeometry(ren, prog, vol, geometry);
 
     this->FinishRendering(numComp);
-    block = volumeTex->GetNextBlock();
-    if (this->CurrentMask)
+  }
+  else
+  {
+    vtkVolumeTexture::VolumeBlock* block = volumeTex->GetCurrentBlock();
+    while (block != nullptr)
     {
-      this->CurrentMask->GetNextBlock();
+      const int numSamplers = (independent ? numComp : 1);
+      this->SetMapperShaderParameters(prog, ren, independent, numComp);
+
+      vtkMatrix4x4 *wcvc, *vcdc, *wcdc;
+      vtkMatrix3x3* norm;
+      cam->GetKeyMatrices(ren, wcvc, norm, vcdc, wcdc);
+      this->SetVolumeShaderParameters(prog, independent, numComp, wcvc);
+
+      this->SetMaskShaderParameters(prog, vol->GetProperty(), numComp);
+      this->SetLightingShaderParameters(ren, prog, vol, numSamplers);
+      this->SetCameraShaderParameters(prog, ren, cam);
+
+      this->SetAdvancedShaderParameters(
+        ren, prog, vol, block->LoadedBoundsAA, block->Extents, numComp);
+
+      this->RenderVolumeGeometry(ren, prog, vol, block->VolumeGeometry);
+
+      this->FinishRendering(numComp);
+      block = volumeTex->GetNextBlock();
+      if (this->CurrentMask)
+      {
+        this->CurrentMask->GetNextBlock();
+      }
     }
   }
 }
