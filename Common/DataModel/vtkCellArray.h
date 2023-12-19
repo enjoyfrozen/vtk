@@ -84,6 +84,13 @@
  * - `bool ConvertToDefaultStorage() // Depends on vtkIdType`
  * - `bool ConvertToSmallestStorage() // Depends on current values in arrays`
  *
+ * There is an additional mode of storage to allow any kind of vtkDataArray derived
+ * types. The Generic storage mode allows separate array types for offsets and connectivity.
+ * There is no method to explicitly use generic storage mode.
+ * vtkCellArray will automatically switch over to using generic
+ * storage when any overload of vtkCellArray::SetData is invoked with array types that
+ * are NOT in vtkCellArray::InputArrayList.
+ *
  * Note that some legacy methods are still available that reflect the
  * previous storage format of this data, which embedded the cell sizes into
  * the Connectivity array:
@@ -130,8 +137,6 @@
 #include "vtkAOSDataArrayTemplate.h" // Needed for inline methods
 #include "vtkCell.h"                 // Needed for inline methods
 #include "vtkDataArrayRange.h"       // Needed for inline methods
-#include "vtkFeatures.h"             // for VTK_USE_MEMKIND
-#include "vtkSmartPointer.h"         // For vtkSmartPointer
 #include "vtkTypeInt32Array.h"       // Needed for inline methods
 #include "vtkTypeInt64Array.h"       // Needed for inline methods
 #include "vtkTypeList.h"             // Needed for ArrayList definition
@@ -205,6 +210,24 @@ public:
   using InputArrayList =
     typename vtkTypeList::Unique<vtkTypeList::Create<vtkAOSDataArrayTemplate<int>,
       vtkAOSDataArrayTemplate<long>, vtkAOSDataArrayTemplate<long long>>>::Result;
+
+  /**
+   * For generic storage, the arrays can have any signed integer larger than 2-bytes or any unsigned
+   * integer. You may mix and match signed with unsigned.
+   * As an example, it is possible to use vtkTypeUInt8 for connectivity
+   * when you know before hand that the max index does not exceed 255 and use vtkTypeInt64 for
+   * offsets.
+   */
+  template <typename T>
+  struct IsValidGenericStorageType
+    : std::integral_constant<bool,
+        // do not permit signed integers smaller than 16-bit to avoid
+        // -Wchar-subscript
+        ((std::is_integral<T>::value && std::is_signed<T>::value && sizeof(T) >= 2) ||
+          // allow all types of unsigned integers.
+          (std::is_integral<T>::value && !std::is_signed<T>::value))>
+  {
+  };
 
   /**
    * Allocate memory.
@@ -303,13 +326,15 @@ public:
    */
   vtkIdType GetNumberOfCells() const override
   {
-    if (this->Storage.Is64Bit())
+    switch (this->Storage.GetStorageType())
     {
-      return this->Storage.GetArrays64().Offsets->GetNumberOfValues() - 1;
-    }
-    else
-    {
-      return this->Storage.GetArrays32().Offsets->GetNumberOfValues() - 1;
+      case StorageTypes::Generic:
+        return this->Storage.GetArraysGeneric().Offsets->GetNumberOfValues() - 1;
+      case StorageTypes::OptimalInteger32:
+        return this->Storage.GetArrays32().Offsets->GetNumberOfValues() - 1;
+      case StorageTypes::OptimalInteger64:
+      default:
+        return this->Storage.GetArrays64().Offsets->GetNumberOfValues() - 1;
     }
   }
 
@@ -319,13 +344,15 @@ public:
    */
   vtkIdType GetNumberOfOffsets() const override
   {
-    if (this->Storage.Is64Bit())
+    switch (this->Storage.GetStorageType())
     {
-      return this->Storage.GetArrays64().Offsets->GetNumberOfValues();
-    }
-    else
-    {
-      return this->Storage.GetArrays32().Offsets->GetNumberOfValues();
+      case StorageTypes::Generic:
+        return this->Storage.GetArraysGeneric().Offsets->GetNumberOfValues();
+      case StorageTypes::OptimalInteger32:
+        return this->Storage.GetArrays32().Offsets->GetNumberOfValues();
+      case StorageTypes::OptimalInteger64:
+      default:
+        return this->Storage.GetArrays64().Offsets->GetNumberOfValues();
     }
   }
 
@@ -334,13 +361,15 @@ public:
    */
   vtkIdType GetOffset(vtkIdType cellId) override
   {
-    if (this->Storage.Is64Bit())
+    switch (this->Storage.GetStorageType())
     {
-      return this->Storage.GetArrays64().Offsets->GetValue(cellId);
-    }
-    else
-    {
-      return this->Storage.GetArrays32().Offsets->GetValue(cellId);
+      case StorageTypes::Generic:
+        return this->Storage.GetArraysGeneric().Offsets->GetComponent(cellId, 0);
+      case StorageTypes::OptimalInteger32:
+        return this->Storage.GetArrays32().Offsets->GetValue(cellId);
+      case StorageTypes::OptimalInteger64:
+      default:
+        return this->Storage.GetArrays64().Offsets->GetValue(cellId);
     }
   }
 
@@ -352,13 +381,15 @@ public:
    */
   vtkIdType GetNumberOfConnectivityIds() const override
   {
-    if (this->Storage.Is64Bit())
+    switch (this->Storage.GetStorageType())
     {
-      return this->Storage.GetArrays64().Connectivity->GetNumberOfValues();
-    }
-    else
-    {
-      return this->Storage.GetArrays32().Connectivity->GetNumberOfValues();
+      case StorageTypes::Generic:
+        return this->Storage.GetArraysGeneric().Connectivity->GetNumberOfValues();
+      case StorageTypes::OptimalInteger32:
+        return this->Storage.GetArrays32().Connectivity->GetNumberOfValues();
+      case StorageTypes::OptimalInteger64:
+      default:
+        return this->Storage.GetArrays64().Connectivity->GetNumberOfValues();
     }
   }
 
@@ -417,11 +448,37 @@ public:
    */
   bool SetData(vtkIdType cellSize, vtkDataArray* connectivity);
 
+  enum StorageTypes
+  {
+    // we could very well use Generic always, but the first two are optimized for 32-bit and
+    // 64-bit signed integers.
+    OptimalInteger64,
+    OptimalInteger32,
+    Generic,
+  };
+
   /**
-   * @return True if the internal storage is using 64 bit arrays. If false,
-   * the storage is using 32 bit arrays.
+   * @return Type of internal storage.
+   */
+  inline StorageTypes GetStorageType() const noexcept { return this->Storage.GetStorageType(); }
+
+  /**
+   * @return True if the internal storage is using 64 bit arrays.
    */
   bool IsStorage64Bit() const { return this->Storage.Is64Bit(); }
+
+  /**
+   * @return True if the internal storage is using 32 bit arrays.
+   */
+  bool IsStorage32Bit() const
+  {
+    return this->Storage.GetStorageType() == StorageTypes::OptimalInteger32;
+  }
+
+  /**
+   * @return True if the internal storage is using vtkDataArray.
+   */
+  bool IsStorageGeneric() const { return this->Storage.GetStorageType() == StorageTypes::Generic; }
 
   /**
    * @return True if the internal storage can be shared as a
@@ -431,13 +488,15 @@ public:
    */
   bool IsStorageShareable() const override
   {
-    if (this->Storage.Is64Bit())
+    switch (this->Storage.GetStorageType())
     {
-      return VisitState<ArrayType64>::ValueTypeIsSameAsIdType;
-    }
-    else
-    {
-      return VisitState<ArrayType32>::ValueTypeIsSameAsIdType;
+      case StorageTypes::Generic:
+        return false;
+      case StorageTypes::OptimalInteger32:
+        return VisitState<ArrayType32, ArrayType32, vtkTypeInt32>::ValueTypeIsSameAsIdType;
+      case StorageTypes::OptimalInteger64:
+      default:
+        return VisitState<ArrayType64, ArrayType64, vtkTypeInt64>::ValueTypeIsSameAsIdType;
     }
   }
 
@@ -496,17 +555,20 @@ public:
    */
   vtkDataArray* GetOffsetsArray()
   {
-    if (this->Storage.Is64Bit())
+    switch (this->Storage.GetStorageType())
     {
-      return this->GetOffsetsArray64();
-    }
-    else
-    {
-      return this->GetOffsetsArray32();
+      case StorageTypes::Generic:
+        return this->GetOffsetsArrayGeneric();
+      case StorageTypes::OptimalInteger32:
+        return this->GetOffsetsArray32();
+      case StorageTypes::OptimalInteger64:
+      default:
+        return this->GetOffsetsArray64();
     }
   }
   ArrayType32* GetOffsetsArray32() { return this->Storage.GetArrays32().Offsets; }
   ArrayType64* GetOffsetsArray64() { return this->Storage.GetArrays64().Offsets; }
+  vtkDataArray* GetOffsetsArrayGeneric() { return this->Storage.GetArraysGeneric().Offsets; }
   /**@}*/
 
   /**
@@ -517,17 +579,23 @@ public:
    */
   vtkDataArray* GetConnectivityArray()
   {
-    if (this->Storage.Is64Bit())
+    switch (this->Storage.GetStorageType())
     {
-      return this->GetConnectivityArray64();
-    }
-    else
-    {
-      return this->GetConnectivityArray32();
+      case StorageTypes::Generic:
+        return this->GetConnectivityArrayGeneric();
+      case StorageTypes::OptimalInteger32:
+        return this->GetConnectivityArray32();
+      case StorageTypes::OptimalInteger64:
+      default:
+        return this->GetConnectivityArray64();
     }
   }
   ArrayType32* GetConnectivityArray32() { return this->Storage.GetArrays32().Connectivity; }
   ArrayType64* GetConnectivityArray64() { return this->Storage.GetArrays64().Connectivity; }
+  vtkDataArray* GetConnectivityArrayGeneric()
+  {
+    return this->Storage.GetArraysGeneric().Connectivity;
+  }
   /**@}*/
 
   /**
@@ -794,27 +862,58 @@ public:
   // The wrappers get understandably confused by some of the template code below
 #ifndef __VTK_WRAP__
 
-  // Holds connectivity and offset arrays of the given ArrayType.
-  template <typename ArrayT>
+  // Holds connectivity and offset arrays of the given array type and value types.
+  // Generally speaking the value type must be in agreement with the array's value type.
+  // The value types allow one to enforce a data type when either of the array's are vtkDataArray.
+  template <typename OffsetsArrayT, typename ConnectivityArrayT, typename OffsetsValueT,
+    typename ConnectivityValueT = OffsetsValueT>
   struct VisitState
   {
-    using ArrayType = ArrayT;
-    using ValueType = typename ArrayType::ValueType;
-    using CellRangeType = decltype(vtk::DataArrayValueRange<1>(std::declval<ArrayType>()));
+    using OffsetsArrayType = OffsetsArrayT;
+    using OffsetsValueType = OffsetsValueT;
+    using ConnectivityArrayType = ConnectivityArrayT;
+    using ConnectivityValueType = ConnectivityValueT;
+    // clang-format off
+    using OffsetsRangeType =
+      decltype(vtk::DataArrayValueRange<1, OffsetsValueType>(std::declval<OffsetsArrayType>()));
+    using ConnectivityRangeType =
+      decltype(vtk::DataArrayValueRange<1, ConnectivityValueType>(std::declval<ConnectivityArrayType>()));
+    // clang-format on
 
     // We can't just use is_same here, since binary compatible representations
     // (e.g. int and long) are distinct types. Instead, ensure that ValueType
     // is a signed integer the same size as vtkIdType.
     // If this value is true, ValueType pointers may be safely converted to
     // vtkIdType pointers via reinterpret cast.
-    static constexpr bool ValueTypeIsSameAsIdType = std::is_integral<ValueType>::value &&
-      std::is_signed<ValueType>::value && (sizeof(ValueType) == sizeof(vtkIdType));
+    // clang-format off
+    static constexpr bool ConnectivityValueTypeIsSameAsIdType =
+      std::is_integral<ConnectivityValueT>::value
+      && std::is_signed<ConnectivityValueT>::value
+      && (sizeof(ConnectivityValueT) == sizeof(vtkIdType));
+  
+    static constexpr bool OffsetsValueTypeIsSameAsIdType =
+      std::is_integral<OffsetsValueT>::value
+      && std::is_signed<OffsetsValueT>::value
+      && (sizeof(OffsetsValueT) == sizeof(vtkIdType));
+  
+    static constexpr bool ValueTypeIsSameAsIdType =
+      ConnectivityValueTypeIsSameAsIdType
+      && OffsetsValueTypeIsSameAsIdType;
+    // clang-format on
 
-    ArrayType* GetOffsets() { return this->Offsets; }
-    const ArrayType* GetOffsets() const { return this->Offsets; }
+    OffsetsArrayType* GetOffsets() { return this->Offsets; }
+    const OffsetsArrayType* GetOffsets() const { return this->Offsets; }
+    OffsetsRangeType GetOffsetsRange() const
+    {
+      return vtk::DataArrayValueRange<1, OffsetsValueT>(this->Offsets);
+    }
 
-    ArrayType* GetConnectivity() { return this->Connectivity; }
-    const ArrayType* GetConnectivity() const { return this->Connectivity; }
+    ConnectivityArrayType* GetConnectivity() { return this->Connectivity; }
+    const ConnectivityArrayType* GetConnectivity() const { return this->Connectivity; }
+    ConnectivityRangeType GetConnectivityRange() const
+    {
+      return vtk::DataArrayValueRange<1, ConnectivityValueT>(this->Connectivity);
+    }
 
     vtkIdType GetNumberOfCells() const;
 
@@ -824,16 +923,18 @@ public:
 
     vtkIdType GetCellSize(vtkIdType cellId) const;
 
-    CellRangeType GetCellRange(vtkIdType cellId);
+    ConnectivityRangeType GetCellRange(vtkIdType cellId);
 
     friend class vtkCellArray;
 
   protected:
     VisitState()
     {
-      this->Connectivity = vtkSmartPointer<ArrayType>::New();
-      this->Offsets = vtkSmartPointer<ArrayType>::New();
-      this->Offsets->InsertNextValue(0);
+      // 1. For 32-bit/64-bit storage: the arrays, ranges and inserter objects are initialized in
+      // Storage::Storage()
+      // 2. For generic storage: they are initialized right before invoking the user's visitor
+      // operator in the vtkDataArray* overloads of CellStateRoutineInvoker::invoke() and
+      // CellStateRoutineInvokerWithReturnValue::invoke()
       if (vtkObjectBase::GetUsingMemkind())
       {
         this->IsInMemkind = true;
@@ -867,8 +968,8 @@ public:
 #endif
     }
 
-    vtkSmartPointer<ArrayType> Connectivity;
-    vtkSmartPointer<ArrayType> Offsets;
+    vtkSmartPointer<ConnectivityArrayType> Connectivity;
+    vtkSmartPointer<OffsetsArrayType> Offsets;
 
   private:
     VisitState(const VisitState&) = delete;
@@ -878,12 +979,111 @@ public:
 
 private: // Helpers that allow Visit to return a value:
   template <typename Functor, typename... Args>
-  using GetReturnType = decltype(
-    std::declval<Functor>()(std::declval<VisitState<ArrayType32>&>(), std::declval<Args>()...));
+  using GetReturnType = decltype(std::declval<Functor>()(
+    std::declval<VisitState<ArrayType32, ArrayType32, vtkTypeInt32>&>(), std::declval<Args>()...));
 
   template <typename Functor, typename... Args>
   struct ReturnsVoid : std::is_same<GetReturnType<Functor, Args...>, void>
   {
+  };
+
+  template <typename Functor, typename... Args>
+  struct CellStateRoutineInvoker
+  {
+    void operator()(
+      vtkDataArray* offsets, vtkDataArray* connectivity, Functor&& functor, Args&&... args)
+    {
+      switch (vtkTemplate2PackMacro(offsets->GetDataType(), connectivity->GetDataType()))
+      {
+        vtkTemplate2Macro(do {
+          // placeholder pointers are used to infer the `OffsetsValueT` and `ConnectivityValueT`
+          // template parameters of the `impl()` function because invoking impl<VTK_T1, VTK_T2>
+          // confuses the preprocessor.
+          VTK_T1* placeholderOffsetPtr = nullptr;
+          VTK_T2* placeholderConnPtr = nullptr;
+          this->invoke(offsets, connectivity, placeholderOffsetPtr, placeholderConnPtr,
+            std::forward<Functor>(functor), std::forward<Args>(args)...);
+        } while (0));
+      }
+    }
+
+    template <typename OffsetsValueT, typename ConnectivityValueT,
+      typename std::enable_if<!IsValidGenericStorageType<OffsetsValueT>::value ||
+          !IsValidGenericStorageType<ConnectivityValueT>::value,
+        bool>::type = true>
+    static void invoke(
+      vtkDataArray*, vtkDataArray*, OffsetsValueT*, ConnectivityValueT*, Functor&&, Args&&...)
+    {
+      vtkGenericWarningMacro(<< "Unexpected behavior! CellStateRoutineInvoker invoked with "
+                                "unsupported array value types. OffsetsValueT="
+                             << typeid(OffsetsValueT).name()
+                             << ", ConnectivityValueT=" << typeid(ConnectivityValueT).name());
+    }
+
+    template <typename OffsetsValueT, typename ConnectivityValueT,
+      typename std::enable_if<IsValidGenericStorageType<OffsetsValueT>::value &&
+          IsValidGenericStorageType<ConnectivityValueT>::value,
+        bool>::type = true>
+    static void invoke(vtkDataArray* offsets, vtkDataArray* connectivity,
+      OffsetsValueT* vtkNotUsed(offsetsP), ConnectivityValueT* vtkNotUsed(connP), Functor&& functor,
+      Args&&... args)
+    {
+      // Instantiate the real state object for generic storage, templated on correct value types.
+      VisitState<vtkDataArray, vtkDataArray, OffsetsValueT, ConnectivityValueT> state;
+      state.Connectivity = connectivity;
+      state.Offsets = offsets;
+      functor(state, std::forward<Args>(args)...);
+    }
+  };
+
+  template <typename Functor, typename... Args>
+  struct CellStateRoutineInvokerWithReturnValue
+  {
+    void operator()(vtkDataArray* offsets, vtkDataArray* connectivity,
+      GetReturnType<Functor, Args...>* result, Functor&& functor, Args&&... args)
+    {
+      switch (vtkTemplate2PackMacro(offsets->GetDataType(), connectivity->GetDataType()))
+      {
+        vtkTemplate2Macro(do {
+          // placeholder pointers are used to infer the `OffsetsValueT` and `ConnectivityValueT`
+          // template parameters of the `impl()` function because invoking impl<VTK_T1, VTK_T2>
+          // confuses the preprocessor.
+          VTK_T1* placeholderOffsetPtr = nullptr;
+          VTK_T2* placeholderConnPtr = nullptr;
+          this->invoke(offsets, connectivity, placeholderOffsetPtr, placeholderConnPtr, result,
+            std::forward<Functor>(functor), std::forward<Args>(args)...);
+        } while (0));
+      }
+    }
+
+    template <typename OffsetsValueT, typename ConnectivityValueT,
+      typename std::enable_if<!IsValidGenericStorageType<OffsetsValueT>::value ||
+          !IsValidGenericStorageType<ConnectivityValueT>::value,
+        bool>::type = true>
+    static void invoke(vtkDataArray*, vtkDataArray*, OffsetsValueT*, ConnectivityValueT*,
+      GetReturnType<Functor, Args...>*, Functor&&, Args&&...)
+    {
+      vtkGenericWarningMacro(
+        << "Unexpected behavior! CellStateRoutineInvokerWithReturnValue invoked with "
+           "unsupported array value types. OffsetsValueT="
+        << typeid(OffsetsValueT).name()
+        << ", ConnectivityValueT=" << typeid(ConnectivityValueT).name());
+    }
+
+    template <typename OffsetsValueT, typename ConnectivityValueT,
+      typename std::enable_if<IsValidGenericStorageType<OffsetsValueT>::value &&
+          IsValidGenericStorageType<ConnectivityValueT>::value,
+        bool>::type = true>
+    static void invoke(vtkDataArray* offsets, vtkDataArray* connectivity,
+      OffsetsValueT* vtkNotUsed(offsetsP), ConnectivityValueT* vtkNotUsed(connP),
+      GetReturnType<Functor, Args...>* result, Functor&& functor, Args&&... args)
+    {
+      // Instantiate the real state object for generic storage, templated on correct value types.
+      VisitState<vtkDataArray, vtkDataArray, OffsetsValueT, ConnectivityValueT> state;
+      state.Connectivity = connectivity;
+      state.Offsets = offsets;
+      *result = functor(state, std::forward<Args>(args)...);
+    }
   };
 
 public:
@@ -960,19 +1160,33 @@ public:
     typename = typename std::enable_if<ReturnsVoid<Functor, Args...>::value>::type>
   void Visit(Functor&& functor, Args&&... args)
   {
-    if (this->Storage.Is64Bit())
+    switch (this->Storage.GetStorageType())
     {
-      // If you get an error on the next line, a call to Visit(functor, Args...)
-      // is being called with arguments that do not match the functor's call
-      // signature. See the Visit documentation for details.
-      functor(this->Storage.GetArrays64(), std::forward<Args>(args)...);
-    }
-    else
-    {
-      // If you get an error on the next line, a call to Visit(functor, Args...)
-      // is being called with arguments that do not match the functor's call
-      // signature. See the Visit documentation for details.
-      functor(this->Storage.GetArrays32(), std::forward<Args>(args)...);
+      case StorageTypes::Generic:
+      {
+        CellStateRoutineInvoker<Functor, Args...> invoke;
+        auto offsets = this->Storage.GetArraysGeneric().GetOffsets();
+        auto connectivity = this->Storage.GetArraysGeneric().GetConnectivity();
+        invoke(offsets, connectivity, std::forward<Functor>(functor), std::forward<Args>(args)...);
+        break;
+      }
+      case StorageTypes::OptimalInteger32:
+      {
+        // If you get an error on the next line, a call to Visit(functor, Args...)
+        // is being called with arguments that do not match the functor's call
+        // signature. See the Visit documentation for details.
+        functor(this->Storage.GetArrays32(), std::forward<Args>(args)...);
+        break;
+      }
+      case StorageTypes::OptimalInteger64:
+      default:
+      {
+        // If you get an error on the next line, a call to Visit(functor, Args...)
+        // is being called with arguments that do not match the functor's call
+        // signature. See the Visit documentation for details.
+        functor(this->Storage.GetArrays64(), std::forward<Args>(args)...);
+        break;
+      }
     }
   }
 
@@ -980,19 +1194,34 @@ public:
     typename = typename std::enable_if<ReturnsVoid<Functor, Args...>::value>::type>
   void Visit(Functor&& functor, Args&&... args) const
   {
-    if (this->Storage.Is64Bit())
+    switch (this->Storage.GetStorageType())
     {
-      // If you get an error on the next line, a call to Visit(functor, Args...)
-      // is being called with arguments that do not match the functor's call
-      // signature. See the Visit documentation for details.
-      functor(this->Storage.GetArrays64(), std::forward<Args>(args)...);
-    }
-    else
-    {
-      // If you get an error on the next line, a call to Visit(functor, Args...)
-      // is being called with arguments that do not match the functor's call
-      // signature. See the Visit documentation for details.
-      functor(this->Storage.GetArrays32(), std::forward<Args>(args)...);
+      case StorageTypes::Generic:
+      {
+        CellStateRoutineInvoker<Functor, Args...> invoke;
+        auto offsets = this->Storage.GetArraysGeneric().GetOffsets();
+        auto connectivity = this->Storage.GetArraysGeneric().GetConnectivity();
+        invoke(const_cast<vtkDataArray*>(offsets), const_cast<vtkDataArray*>(connectivity),
+          std::forward<Functor>(functor), std::forward<Args>(args)...);
+        break;
+      }
+      case StorageTypes::OptimalInteger32:
+      {
+        // If you get an error on the next line, a call to Visit(functor, Args...)
+        // is being called with arguments that do not match the functor's call
+        // signature. See the Visit documentation for details.
+        functor(this->Storage.GetArrays32(), std::forward<Args>(args)...);
+        break;
+      }
+      case StorageTypes::OptimalInteger64:
+      default:
+      {
+        // If you get an error on the next line, a call to Visit(functor, Args...)
+        // is being called with arguments that do not match the functor's call
+        // signature. See the Visit documentation for details.
+        functor(this->Storage.GetArrays64(), std::forward<Args>(args)...);
+        break;
+      }
     }
   }
 
@@ -1000,38 +1229,66 @@ public:
     typename = typename std::enable_if<!ReturnsVoid<Functor, Args...>::value>::type>
   GetReturnType<Functor, Args...> Visit(Functor&& functor, Args&&... args)
   {
-    if (this->Storage.Is64Bit())
+    switch (this->Storage.GetStorageType())
     {
-      // If you get an error on the next line, a call to Visit(functor, Args...)
-      // is being called with arguments that do not match the functor's call
-      // signature. See the Visit documentation for details.
-      return functor(this->Storage.GetArrays64(), std::forward<Args>(args)...);
-    }
-    else
-    {
-      // If you get an error on the next line, a call to Visit(functor, Args...)
-      // is being called with arguments that do not match the functor's call
-      // signature. See the Visit documentation for details.
-      return functor(this->Storage.GetArrays32(), std::forward<Args>(args)...);
+      case StorageTypes::Generic:
+      {
+        CellStateRoutineInvokerWithReturnValue<Functor, Args...> invoke;
+        GetReturnType<Functor, Args...> result;
+        auto offsets = this->Storage.GetArraysGeneric().GetOffsets();
+        auto connectivity = this->Storage.GetArraysGeneric().GetConnectivity();
+        invoke(offsets, connectivity, &result, std::forward<Functor>(functor),
+          std::forward<Args>(args)...);
+        return result;
+      }
+      case StorageTypes::OptimalInteger32:
+      {
+        // If you get an error on the next line, a call to Visit(functor, Args...)
+        // is being called with arguments that do not match the functor's call
+        // signature. See the Visit documentation for details.
+        return functor(this->Storage.GetArrays32(), std::forward<Args>(args)...);
+      }
+      case StorageTypes::OptimalInteger64:
+      default:
+      {
+        // If you get an error on the next line, a call to Visit(functor, Args...)
+        // is being called with arguments that do not match the functor's call
+        // signature. See the Visit documentation for details.
+        return functor(this->Storage.GetArrays64(), std::forward<Args>(args)...);
+      }
     }
   }
   template <typename Functor, typename... Args,
     typename = typename std::enable_if<!ReturnsVoid<Functor, Args...>::value>::type>
   GetReturnType<Functor, Args...> Visit(Functor&& functor, Args&&... args) const
   {
-    if (this->Storage.Is64Bit())
+    switch (this->Storage.GetStorageType())
     {
-      // If you get an error on the next line, a call to Visit(functor, Args...)
-      // is being called with arguments that do not match the functor's call
-      // signature. See the Visit documentation for details.
-      return functor(this->Storage.GetArrays64(), std::forward<Args>(args)...);
-    }
-    else
-    {
-      // If you get an error on the next line, a call to Visit(functor, Args...)
-      // is being called with arguments that do not match the functor's call
-      // signature. See the Visit documentation for details.
-      return functor(this->Storage.GetArrays32(), std::forward<Args>(args)...);
+      case StorageTypes::Generic:
+      {
+        CellStateRoutineInvokerWithReturnValue<Functor, Args...> invoke;
+        GetReturnType<Functor, Args...> result;
+        auto offsets = this->Storage.GetArraysGeneric().GetOffsets();
+        auto connectivity = this->Storage.GetArraysGeneric().GetConnectivity();
+        invoke(const_cast<vtkDataArray*>(offsets), const_cast<vtkDataArray*>(connectivity), &result,
+          std::forward<Functor>(functor), std::forward<Args>(args)...);
+        return result;
+      }
+      case StorageTypes::OptimalInteger32:
+      {
+        // If you get an error on the next line, a call to Visit(functor, Args...)
+        // is being called with arguments that do not match the functor's call
+        // signature. See the Visit documentation for details.
+        return functor(this->Storage.GetArrays32(), std::forward<Args>(args)...);
+      }
+      case StorageTypes::OptimalInteger64:
+      default:
+      {
+        // If you get an error on the next line, a call to Visit(functor, Args...)
+        // is being called with arguments that do not match the functor's call
+        // signature. See the Visit documentation for details.
+        return functor(this->Storage.GetArrays64(), std::forward<Args>(args)...);
+      }
     }
   }
 
@@ -1199,8 +1456,13 @@ protected:
     union ArraySwitch {
       ArraySwitch() = default;  // handled by Storage
       ~ArraySwitch() = default; // handle by Storage
-      VisitState<ArrayType32>* Int32;
-      VisitState<ArrayType64>* Int64;
+      VisitState<ArrayType32, ArrayType32, vtkTypeInt32>* Int32;
+      VisitState<ArrayType64, ArrayType64, vtkTypeInt64>* Int64;
+      // This is a placeholder just to hold the user provided arrays.
+      // vtkCellArray::Visit constructs a new state at runtime.
+      // This new state is templated on the correct value type
+      // of both offsets and connectivity arrays.
+      VisitState<vtkDataArray, vtkDataArray, vtkIdType>* Generic;
     };
 
     Storage()
@@ -1215,13 +1477,23 @@ protected:
       // Default can be changed, to save memory
       if (vtkCellArray::GetDefaultStorageIs64Bit())
       {
-        this->Arrays->Int64 = new VisitState<ArrayType64>;
-        this->StorageIs64Bit = true;
+        this->Arrays->Int64 = new VisitState<ArrayType64, ArrayType64, vtkTypeInt64>;
+        auto& state = this->Arrays->Int64;
+        this->StorageType = StorageTypes::OptimalInteger64;
+        // initialize arrays.
+        state->Connectivity = vtkSmartPointer<ArrayType64>::New();
+        state->Offsets = vtkSmartPointer<ArrayType64>::New();
+        state->Offsets->InsertNextValue(0);
       }
       else
       {
-        this->Arrays->Int32 = new VisitState<ArrayType32>;
-        this->StorageIs64Bit = false;
+        this->Arrays->Int32 = new VisitState<ArrayType32, ArrayType32, vtkTypeInt32>;
+        auto& state = this->Arrays->Int32;
+        this->StorageType = StorageTypes::OptimalInteger32;
+        // initialize arrays.
+        state->Connectivity = vtkSmartPointer<ArrayType32>::New();
+        state->Offsets = vtkSmartPointer<ArrayType32>::New();
+        state->Offsets->InsertNextValue(0);
       }
 
 #ifdef VTK_USE_MEMKIND
@@ -1236,16 +1508,7 @@ protected:
 
     ~Storage()
     {
-      if (this->StorageIs64Bit)
-      {
-        this->Arrays->Int64->~VisitState();
-        delete this->Arrays->Int64;
-      }
-      else
-      {
-        this->Arrays->Int32->~VisitState();
-        delete this->Arrays->Int32;
-      }
+      this->ResetCurrentlyUsedArrays();
 #ifdef VTK_USE_MEMKIND
       if (this->IsInMemkind)
       {
@@ -1260,20 +1523,51 @@ protected:
 #endif
     }
 
+    // Clears out arrays which correspond to the current storage type.
+    void ResetCurrentlyUsedArrays()
+    {
+      switch (this->StorageType)
+      {
+        case Generic:
+          this->Arrays->Generic->~VisitState();
+          delete this->Arrays->Generic;
+          break;
+        case OptimalInteger32:
+          this->Arrays->Int32->~VisitState();
+          delete this->Arrays->Int32;
+          break;
+        case OptimalInteger64:
+        default:
+          this->Arrays->Int64->~VisitState();
+          delete this->Arrays->Int64;
+          break;
+      }
+    }
+
+    void SetGenericArrays(vtkDataArray* offsets, vtkDataArray* connectivity)
+    {
+      auto& state = this->Arrays->Generic;
+      state->Connectivity = connectivity;
+      state->Offsets = offsets;
+    }
+
     // Switch the internal arrays to be 32-bit. Any old data is lost. Returns
     // true if the storage changes.
     bool Use32BitStorage()
     {
-      if (!this->StorageIs64Bit)
+      if (this->StorageType == StorageTypes::OptimalInteger32)
       {
         return false;
       }
 
-      this->Arrays->Int64->~VisitState();
-      delete this->Arrays->Int64;
-      this->Arrays->Int32 = new VisitState<ArrayType32>;
-      this->StorageIs64Bit = false;
-
+      this->ResetCurrentlyUsedArrays();
+      this->Arrays->Int32 = new VisitState<ArrayType32, ArrayType32, vtkTypeInt32>;
+      auto& state = this->Arrays->Int32;
+      this->StorageType = StorageTypes::OptimalInteger32;
+      // initialize arrays.
+      state->Connectivity = vtkSmartPointer<ArrayType32>::New();
+      state->Offsets = vtkSmartPointer<ArrayType32>::New();
+      state->Offsets->InsertNextValue(0);
       return true;
     }
 
@@ -1281,53 +1575,87 @@ protected:
     // true if the storage changes.
     bool Use64BitStorage()
     {
-      if (this->StorageIs64Bit)
+      if (this->StorageType == StorageTypes::OptimalInteger64)
       {
         return false;
       }
 
-      this->Arrays->Int32->~VisitState();
-      delete this->Arrays->Int32;
-      this->Arrays->Int64 = new VisitState<ArrayType64>;
-      this->StorageIs64Bit = true;
+      this->ResetCurrentlyUsedArrays();
+      this->Arrays->Int64 = new VisitState<ArrayType64, ArrayType64, vtkTypeInt64>;
+      auto& state = this->Arrays->Int64;
+      this->StorageType = StorageTypes::OptimalInteger64;
+      // initialize arrays.
+      state->Connectivity = vtkSmartPointer<ArrayType64>::New();
+      state->Offsets = vtkSmartPointer<ArrayType64>::New();
+      state->Offsets->InsertNextValue(0);
+      return true;
+    }
+
+    // Switch the internal arrays to be 64-bit. Any old data is lost. Returns
+    // true if the storage changes.
+    bool UseGenericStorage()
+    {
+      if (this->StorageType == StorageTypes::Generic)
+      {
+        return false;
+      }
+
+      this->ResetCurrentlyUsedArrays();
+      this->Arrays->Generic = new VisitState<vtkDataArray, vtkDataArray, vtkIdType>;
+      this->StorageType = StorageTypes::Generic;
 
       return true;
     }
 
     // Returns true if the storage is currently configured to be 64 bit.
-    bool Is64Bit() const { return this->StorageIs64Bit; }
+    bool Is64Bit() const { return this->StorageType == StorageTypes::OptimalInteger64; }
+
+    // Returns current storage type. Either one of OptimalInteger32, OptimalInteger64 or Generic.
+    inline const StorageTypes& GetStorageType() const noexcept { return this->StorageType; }
 
     // Get the VisitState for 32-bit arrays
-    VisitState<ArrayType32>& GetArrays32()
+    VisitState<ArrayType32, ArrayType32, vtkTypeInt32>& GetArrays32()
     {
-      assert(!this->StorageIs64Bit);
+      assert(this->StorageType == StorageTypes::OptimalInteger32);
       return *this->Arrays->Int32;
     }
 
-    const VisitState<ArrayType32>& GetArrays32() const
+    const VisitState<ArrayType32, ArrayType32, vtkTypeInt32>& GetArrays32() const
     {
-      assert(!this->StorageIs64Bit);
+      assert(this->StorageType == StorageTypes::OptimalInteger32);
       return *this->Arrays->Int32;
     }
 
     // Get the VisitState for 64-bit arrays
-    VisitState<ArrayType64>& GetArrays64()
+    VisitState<ArrayType64, ArrayType64, vtkTypeInt64>& GetArrays64()
     {
-      assert(this->StorageIs64Bit);
+      assert(this->StorageType == StorageTypes::OptimalInteger64);
       return *this->Arrays->Int64;
     }
 
-    const VisitState<ArrayType64>& GetArrays64() const
+    const VisitState<ArrayType64, ArrayType64, vtkTypeInt64>& GetArrays64() const
     {
-      assert(this->StorageIs64Bit);
+      assert(this->StorageType == StorageTypes::OptimalInteger64);
       return *this->Arrays->Int64;
+    }
+
+    VisitState<vtkDataArray, vtkDataArray, vtkIdType>& GetArraysGeneric()
+    {
+      assert(this->StorageType == StorageTypes::Generic);
+      return *this->Arrays->Generic;
+    }
+
+    const VisitState<vtkDataArray, vtkDataArray, vtkIdType>& GetArraysGeneric() const
+    {
+      assert(this->StorageType == StorageTypes::Generic);
+      return *this->Arrays->Generic;
     }
 
   private:
     // Access restricted to ensure proper union construction/destruction thru
     // API.
     ArraySwitch* Arrays;
-    bool StorageIs64Bit;
+    StorageTypes StorageType;
     bool IsInMemkind = false;
   };
 
@@ -1343,36 +1671,48 @@ private:
   void operator=(const vtkCellArray&) = delete;
 };
 
-template <typename ArrayT>
-vtkIdType vtkCellArray::VisitState<ArrayT>::GetNumberOfCells() const
+template <typename OffsetsArrayT, typename ConnectivityArrayT, typename OffsetsValueT,
+  typename ConnectivityValueT>
+vtkIdType vtkCellArray::VisitState<OffsetsArrayT, ConnectivityArrayT, OffsetsValueT,
+  ConnectivityValueT>::GetNumberOfCells() const
 {
   return this->Offsets->GetNumberOfValues() - 1;
 }
 
-template <typename ArrayT>
-vtkIdType vtkCellArray::VisitState<ArrayT>::GetBeginOffset(vtkIdType cellId) const
+template <typename OffsetsArrayT, typename ConnectivityArrayT, typename OffsetsValueT,
+  typename ConnectivityValueT>
+vtkIdType vtkCellArray::VisitState<OffsetsArrayT, ConnectivityArrayT, OffsetsValueT,
+  ConnectivityValueT>::GetBeginOffset(vtkIdType cellId) const
 {
-  return static_cast<vtkIdType>(this->Offsets->GetValue(cellId));
+  return static_cast<vtkIdType>(vtk::DataArrayValueRange<1, OffsetsValueT>(this->Offsets)[cellId]);
 }
 
-template <typename ArrayT>
-vtkIdType vtkCellArray::VisitState<ArrayT>::GetEndOffset(vtkIdType cellId) const
+template <typename OffsetsArrayT, typename ConnectivityArrayT, typename OffsetsValueT,
+  typename ConnectivityValueT>
+vtkIdType vtkCellArray::VisitState<OffsetsArrayT, ConnectivityArrayT, OffsetsValueT,
+  ConnectivityValueT>::GetEndOffset(vtkIdType cellId) const
 {
-  return static_cast<vtkIdType>(this->Offsets->GetValue(cellId + 1));
+  return static_cast<vtkIdType>(
+    vtk::DataArrayValueRange<1, OffsetsValueT>(this->Offsets)[cellId + 1]);
 }
 
-template <typename ArrayT>
-vtkIdType vtkCellArray::VisitState<ArrayT>::GetCellSize(vtkIdType cellId) const
+template <typename OffsetsArrayT, typename ConnectivityArrayT, typename OffsetsValueT,
+  typename ConnectivityValueT>
+vtkIdType vtkCellArray::VisitState<OffsetsArrayT, ConnectivityArrayT, OffsetsValueT,
+  ConnectivityValueT>::GetCellSize(vtkIdType cellId) const
 {
   return this->GetEndOffset(cellId) - this->GetBeginOffset(cellId);
 }
 
-template <typename ArrayT>
-typename vtkCellArray::VisitState<ArrayT>::CellRangeType
-vtkCellArray::VisitState<ArrayT>::GetCellRange(vtkIdType cellId)
+template <typename OffsetsArrayT, typename ConnectivityArrayT, typename OffsetsValueT,
+  typename ConnectivityValueT>
+typename vtkCellArray::VisitState<OffsetsArrayT, ConnectivityArrayT, OffsetsValueT,
+  ConnectivityValueT>::ConnectivityRangeType
+vtkCellArray::VisitState<OffsetsArrayT, ConnectivityArrayT, OffsetsValueT,
+  ConnectivityValueT>::GetCellRange(vtkIdType cellId)
 {
-  return vtk::DataArrayValueRange<1>(
-    this->GetConnectivity(), this->GetBeginOffset(cellId), this->GetEndOffset(cellId));
+  return this->GetConnectivityRange().GetSubRange(
+    this->GetBeginOffset(cellId), this->GetEndOffset(cellId));
 }
 VTK_ABI_NAMESPACE_END
 
@@ -1380,23 +1720,69 @@ namespace vtkCellArray_detail
 {
 VTK_ABI_NAMESPACE_BEGIN
 
+template <typename ArrayT>
+struct vtkDataArrayInserter
+{
+  typedef typename ArrayT::ValueType APIType;
+  static void InsertNextValue(ArrayT* array, APIType value) { array->InsertNextValue(value); }
+  static void InsertValue(ArrayT* array, vtkIdType index, APIType value)
+  {
+    array->InsertValue(index, value);
+  }
+};
+
+template <>
+struct vtkDataArrayInserter<vtkDataArray>
+{
+  typedef double APIType;
+  static void InsertNextValue(vtkDataArray* array, APIType value)
+  {
+    array->InsertNextTuple(&value);
+  }
+  static void InsertValue(vtkDataArray* array, vtkIdType index, APIType value)
+  {
+    array->InsertTuple(index, &value);
+  }
+};
+
+template <typename T>
+struct ImplicitCellOffset
+{
+  ImplicitCellOffset(vtkIdType cellSize)
+    : CellSize(cellSize)
+  {
+  }
+  // used for GetValue
+  T map(vtkIdType idx) const { return this->mapComponent(idx, 0); }
+  // used for GetTypedComponent
+  T mapComponent(int idx, int vtkNotUsed(component)) const { return idx * this->CellSize; }
+
+private:
+  vtkIdType CellSize = 0;
+};
+
 struct InsertNextCellImpl
 {
   // Insert full cell
   template <typename CellStateT>
   vtkIdType operator()(CellStateT& state, const vtkIdType npts, const vtkIdType pts[])
   {
-    using ValueType = typename CellStateT::ValueType;
+    using OffsetsArrayType = typename CellStateT::OffsetsArrayType;
+    using ConnectivityArrayType = typename CellStateT::ConnectivityArrayType;
+    using OffsetsValueType = typename CellStateT::OffsetsValueType;
+    using ConnectivityValueType = typename CellStateT::ConnectivityValueType;
     auto* conn = state.GetConnectivity();
     auto* offsets = state.GetOffsets();
 
     const vtkIdType cellId = offsets->GetNumberOfValues() - 1;
 
-    offsets->InsertNextValue(static_cast<ValueType>(conn->GetNumberOfValues() + npts));
+    vtkDataArrayInserter<OffsetsArrayType>::InsertNextValue(
+      offsets, static_cast<OffsetsValueType>(conn->GetNumberOfValues() + npts));
 
     for (vtkIdType i = 0; i < npts; ++i)
     {
-      conn->InsertNextValue(static_cast<ValueType>(pts[i]));
+      vtkDataArrayInserter<ConnectivityArrayType>::InsertNextValue(
+        conn, static_cast<ConnectivityValueType>(pts[i]));
     }
 
     return cellId;
@@ -1406,13 +1792,15 @@ struct InsertNextCellImpl
   template <typename CellStateT>
   vtkIdType operator()(CellStateT& state, const vtkIdType npts)
   {
-    using ValueType = typename CellStateT::ValueType;
+    using OffsetsArrayType = typename CellStateT::OffsetsArrayType;
+    using OffsetsValueType = typename CellStateT::OffsetsValueType;
     auto* conn = state.GetConnectivity();
     auto* offsets = state.GetOffsets();
 
     const vtkIdType cellId = offsets->GetNumberOfValues() - 1;
 
-    offsets->InsertNextValue(static_cast<ValueType>(conn->GetNumberOfValues() + npts));
+    vtkDataArrayInserter<OffsetsArrayType>::InsertNextValue(
+      offsets, static_cast<OffsetsValueType>(conn->GetNumberOfValues() + npts));
 
     return cellId;
   }
@@ -1424,11 +1812,12 @@ struct UpdateCellCountImpl
   template <typename CellStateT>
   void operator()(CellStateT& state, const vtkIdType npts)
   {
-    using ValueType = typename CellStateT::ValueType;
+    using OffsetsValueType = typename CellStateT::OffsetsValueType;
 
     auto* offsets = state.GetOffsets();
-    const ValueType cellBegin = offsets->GetValue(offsets->GetMaxId() - 1);
-    offsets->SetValue(offsets->GetMaxId(), static_cast<ValueType>(cellBegin + npts));
+    auto offsetsRange = state.GetOffsetsRange();
+    const OffsetsValueType cellBegin = offsetsRange[offsets->GetMaxId() - 1];
+    offsetsRange[offsets->GetMaxId()] = static_cast<OffsetsValueType>(cellBegin + npts);
   }
 };
 
@@ -1446,17 +1835,14 @@ struct GetCellAtIdImpl
   template <typename CellStateT>
   void operator()(CellStateT& state, const vtkIdType cellId, vtkIdList* ids)
   {
-    using ValueType = typename CellStateT::ValueType;
-
     const vtkIdType beginOffset = state.GetBeginOffset(cellId);
     const vtkIdType endOffset = state.GetEndOffset(cellId);
     const vtkIdType cellSize = endOffset - beginOffset;
-    const auto cellConnectivity = state.GetConnectivity()->GetPointer(beginOffset);
-
-    // ValueType differs from vtkIdType, so we have to copy into a temporary buffer:
+    const auto cellConnectivity = state.GetConnectivityRange().GetSubRange(beginOffset);
+    // ConnectivityValueType differs from vtkIdType, so we have to copy into a temporary buffer:
     ids->SetNumberOfIds(cellSize);
     vtkIdType* idPtr = ids->GetPointer(0);
-    for (ValueType i = 0; i < cellSize; ++i)
+    for (vtkIdType i = 0; i < cellSize; ++i)
     {
       idPtr[i] = static_cast<vtkIdType>(cellConnectivity[i]);
     }
@@ -1466,14 +1852,12 @@ struct GetCellAtIdImpl
   void operator()(
     CellStateT& state, const vtkIdType cellId, vtkIdType& cellSize, vtkIdType* cellPoints)
   {
-    using ValueType = typename CellStateT::ValueType;
-
     const vtkIdType beginOffset = state.GetBeginOffset(cellId);
     const vtkIdType endOffset = state.GetEndOffset(cellId);
     cellSize = endOffset - beginOffset;
-    const ValueType* cellConnectivity = state.GetConnectivity()->GetPointer(beginOffset);
+    const auto cellConnectivity = state.GetConnectivityRange().GetSubRange(beginOffset);
 
-    // ValueType differs from vtkIdType, so we have to copy into a temporary buffer:
+    // ConnectivityValueType differs from vtkIdType, so we have to copy into a temporary buffer:
     for (vtkIdType i = 0; i < cellSize; ++i)
     {
       cellPoints[i] = static_cast<vtkIdType>(cellConnectivity[i]);
@@ -1486,11 +1870,17 @@ struct GetCellAtIdImpl
   struct CanShareConnPtr
   {
   private:
-    using ValueType = typename CellStateT::ValueType;
-    using ArrayType = typename CellStateT::ArrayType;
-    using AOSArrayType = vtkAOSDataArrayTemplate<ValueType>;
-    static constexpr bool ValueTypeCompat = CellStateT::ValueTypeIsSameAsIdType;
-    static constexpr bool ArrayTypeCompat = std::is_base_of<AOSArrayType, ArrayType>::value;
+    using OffsetsValueType = typename CellStateT::OffsetsValueType;
+    using ConnectivityValueType = typename CellStateT::ConnectivityValueType;
+    using OffsetsArrayType = typename CellStateT::OffsetsArrayType;
+    using ConnectivityArrayType = typename CellStateT::ConnectivityArrayType;
+    using AOSOfstArrayType = vtkAOSDataArrayTemplate<OffsetsValueType>;
+    using AOSConnArrayType = vtkAOSDataArrayTemplate<ConnectivityValueType>;
+    static constexpr bool ValueTypeCompat =
+      CellStateT::OffsetsValueTypeIsSameAsIdType && CellStateT::ConnectivityValueTypeIsSameAsIdType;
+    static constexpr bool ArrayTypeCompat =
+      std::is_base_of<AOSOfstArrayType, OffsetsArrayType>::value &&
+      std::is_base_of<AOSConnArrayType, ConnectivityArrayType>::value;
 
   public:
     static constexpr bool value = ValueTypeCompat && ArrayTypeCompat;
@@ -1505,7 +1895,7 @@ struct GetCellAtIdImpl
     const vtkIdType endOffset = state.GetEndOffset(cellId);
     cellSize = endOffset - beginOffset;
     // This is safe, see CanShareConnPtr helper above.
-    cellPoints = reinterpret_cast<vtkIdType*>(state.GetConnectivity()->GetPointer(beginOffset));
+    cellPoints = reinterpret_cast<vtkIdType*>(state.GetConnectivityRange().data() + beginOffset);
   }
 
   template <typename CellStateT>
@@ -1513,14 +1903,11 @@ struct GetCellAtIdImpl
     CellStateT& state, const vtkIdType cellId, vtkIdType& cellSize, vtkIdType const*& cellPoints,
     vtkIdList* temp)
   {
-    using ValueType = typename CellStateT::ValueType;
-
     const vtkIdType beginOffset = state.GetBeginOffset(cellId);
     const vtkIdType endOffset = state.GetEndOffset(cellId);
     cellSize = endOffset - beginOffset;
-    const ValueType* cellConnectivity = state.GetConnectivity()->GetPointer(beginOffset);
+    auto cellConnectivity = state.GetConnectivityRange().GetSubRange(beginOffset);
 
-    // ValueType differs from vtkIdType, so we have to copy into a temporary buffer:
     temp->SetNumberOfIds(cellSize);
     vtkIdType* tempPtr = temp->GetPointer(0);
     for (vtkIdType i = 0; i < cellSize; ++i)
@@ -1537,9 +1924,10 @@ struct ResetImpl
   template <typename CellStateT>
   void operator()(CellStateT& state)
   {
+    using OffsetsArrayType = typename CellStateT::OffsetsArrayType;
     state.GetOffsets()->Reset();
     state.GetConnectivity()->Reset();
-    state.GetOffsets()->InsertNextValue(0);
+    vtkDataArrayInserter<OffsetsArrayType>::InsertNextValue(state.GetOffsets(), 0);
   }
 };
 
@@ -1622,15 +2010,28 @@ inline vtkIdType vtkCellArray::InsertNextCell(int npts)
 //----------------------------------------------------------------------------
 inline void vtkCellArray::InsertCellPoint(vtkIdType id)
 {
-  if (this->Storage.Is64Bit())
+  switch (this->Storage.GetStorageType())
   {
-    using ValueType = typename ArrayType64::ValueType;
-    this->Storage.GetArrays64().Connectivity->InsertNextValue(static_cast<ValueType>(id));
-  }
-  else
-  {
-    using ValueType = typename ArrayType32::ValueType;
-    this->Storage.GetArrays32().Connectivity->InsertNextValue(static_cast<ValueType>(id));
+    case StorageTypes::Generic:
+    {
+      auto conn = this->Storage.GetArraysGeneric().Connectivity;
+      using InserterType = vtkCellArray_detail::vtkDataArrayInserter<vtkDataArray>;
+      InserterType::InsertNextValue(conn, static_cast<InserterType::APIType>(id));
+      break;
+    }
+    case StorageTypes::OptimalInteger32:
+    {
+      using ValueType = typename ArrayType32::ValueType;
+      this->Storage.GetArrays32().Connectivity->InsertNextValue(static_cast<ValueType>(id));
+      break;
+    }
+    case StorageTypes::OptimalInteger64:
+    default:
+    {
+      using ValueType = typename ArrayType64::ValueType;
+      this->Storage.GetArrays64().Connectivity->InsertNextValue(static_cast<ValueType>(id));
+      break;
+    }
   }
 }
 
