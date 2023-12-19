@@ -74,10 +74,9 @@ public:
   static void ComputeBounds(vtkPoints* pts, const unsigned char* ptUses, double bounds[6]);
   static void ComputeBounds(
     vtkPoints* pts, const std::atomic<unsigned char>* ptUses, double bounds[6]);
+  template <typename T>
   static void ComputeBounds(
-    vtkPoints* pts, const long long* ptIds, long long numPointIds, double bounds[6]);
-  static void ComputeBounds(vtkPoints* pts, const long* ptIds, long numPointIds, double bounds[6]);
-  static void ComputeBounds(vtkPoints* pts, const int* ptIds, int numPointIds, double bounds[6]);
+    vtkPoints* pts, const T* ptIds, vtkIdType numPointIds, double bounds[6]);
   void ComputeBounds(vtkPoints* pts)
   {
     double bds[6];
