@@ -291,25 +291,23 @@ struct SurfaceNets
     template <typename CellStateT>
     void operator()(CellStateT& state, unsigned char sqCase, vtkIdType* pIds, vtkIdType& lineId)
     {
-      using ValueType = typename CellStateT::ValueType;
-      auto* offsets = state.GetOffsets();
-      auto* conn = state.GetConnectivity();
+      using OffsetsValueType = typename CellStateT::OffsetsValueType;
 
-      auto offsetRange = vtk::DataArrayValueRange<1>(offsets);
+      auto offsetRange = state.GetOffsetsRange();
       auto offsetIter = offsetRange.begin() + lineId;
-      auto connRange = vtk::DataArrayValueRange<1>(conn);
+      auto connRange = state.GetConnectivityRange();
       auto connIter = connRange.begin() + (lineId * 2);
 
       if (SurfaceNets::GenerateXLine(sqCase))
       {
-        *offsetIter++ = static_cast<ValueType>(2 * lineId++);
+        *offsetIter++ = static_cast<OffsetsValueType>(2 * lineId++);
         *connIter++ = pIds[1];
         *connIter++ = pIds[1] + 1; // in the +x direction
       }
 
       if (SurfaceNets::GenerateYLine(sqCase))
       {
-        *offsetIter++ = static_cast<ValueType>(2 * lineId++);
+        *offsetIter++ = static_cast<OffsetsValueType>(2 * lineId++);
         *connIter++ = pIds[1];
         *connIter++ = pIds[2]; // in the +y direction
       }
@@ -323,11 +321,11 @@ struct SurfaceNets
     template <typename CellStateT>
     void operator()(CellStateT& state, vtkIdType numLines)
     {
-      using ValueType = typename CellStateT::ValueType;
+      using OffsetsValueType = typename CellStateT::OffsetsValueType;
       auto* offsets = state.GetOffsets();
       auto offsetRange = vtk::DataArrayValueRange<1>(offsets);
       auto offsetIter = offsetRange.begin() + numLines;
-      *offsetIter = static_cast<ValueType>(2 * numLines);
+      *offsetIter = static_cast<OffsetsValueType>(2 * numLines);
     }
   };
 
@@ -340,12 +338,9 @@ struct SurfaceNets
       // The point on which the stencil operates
       vtkIdType pId = pIds[1];
 
-      auto* offsets = state.GetOffsets();
-      auto* conn = state.GetConnectivity();
-
-      auto offsetRange = vtk::DataArrayValueRange<1>(offsets);
+      auto offsetRange = state.GetOffsetsRange();
       auto offsetIter = offsetRange.begin() + pId;
-      auto connRange = vtk::DataArrayValueRange<1>(conn);
+      auto connRange = state.GetConnectivityRange();
       auto connIter = connRange.begin() + sOffset;
 
       // Create the stencil. Note that for stencils with just one connection
@@ -398,11 +393,11 @@ struct SurfaceNets
     template <typename CellStateT>
     void operator()(CellStateT& state, vtkIdType numPts, vtkIdType numSEdges)
     {
-      using ValueType = typename CellStateT::ValueType;
+      using OffsetsValueType = typename CellStateT::OffsetsValueType;
       auto* offsets = state.GetOffsets();
       auto offsetRange = vtk::DataArrayValueRange<1>(offsets);
       auto offsetIter = offsetRange.begin() + numPts;
-      *offsetIter = static_cast<ValueType>(numSEdges);
+      *offsetIter = static_cast<OffsetsValueType>(numSEdges);
     }
   };
 
