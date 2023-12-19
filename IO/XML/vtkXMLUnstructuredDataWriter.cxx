@@ -1054,29 +1054,23 @@ struct ConvertCellsVisitor
   template <typename CellStateT>
   void operator()(CellStateT& state)
   {
-    using ArrayT = typename CellStateT::ArrayType;
-
-    vtkNew<ArrayT> offsets;
-    vtkNew<ArrayT> conn;
-
     // Shallow copy will let us change the name of the array to what the
     // writer expects without actually copying the array data:
-    conn->ShallowCopy(state.GetConnectivity());
-    conn->SetName("connectivity");
-    this->Connectivity = std::move(conn);
+    this->Connectivity.TakeReference(state.GetConnectivity()->NewInstance());
+    this->Connectivity->ShallowCopy(state.GetConnectivity());
+    this->Connectivity->SetName("connectivity");
 
     // The file format for offsets always skips the first offset, because
     // it's always zero. Use SetArray and GetPointer to create a view
     // of the offsets array that starts at index=1:
     auto* offsetsIn = state.GetOffsets();
+    this->Offsets.TakeReference(offsetsIn->NewInstance());
     const vtkIdType numOffsets = offsetsIn->GetNumberOfValues();
     if (numOffsets >= 2)
     {
-      offsets->SetArray(offsetsIn->GetPointer(1), numOffsets - 1, 1 /*save*/);
+      this->Offsets->SetVoidArray(offsetsIn->GetVoidPointer(1), numOffsets - 1, 1 /*save*/);
     }
-    offsets->SetName("offsets");
-
-    this->Offsets = std::move(offsets);
+    this->Offsets->SetName("offsets");
   }
 };
 
