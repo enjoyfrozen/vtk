@@ -7,12 +7,11 @@
 #include "vtkCellArrayIterator.h"
 #include "vtkDataArrayRange.h"
 #include "vtkIdTypeArray.h"
-#include "vtkIntArray.h"
-#include "vtkLongArray.h"
-#include "vtkLongLongArray.h"
+#include "vtkImplicitArray.h"
 #include "vtkObjectFactory.h"
 #include "vtkSMPThreadLocal.h"
 #include "vtkSMPTools.h"
+#include "vtkSmartPointer.h"
 
 #include <algorithm>
 #include <array>
@@ -42,13 +41,13 @@ struct LocationToCellIdFunctor
   template <typename CellStateT>
   vtkIdType operator()(CellStateT& cells, vtkIdType location) const
   {
-    using ValueType = typename CellStateT::ValueType;
+    using OffsetsValueType = typename CellStateT::OffsetsValueType;
 
     const auto offsets = vtk::DataArrayValueRange<1>(cells.GetOffsets());
 
     // Use a binary-search to find the location:
     auto it = this->BinarySearchOffset(
-      offsets.begin(), offsets.end() - 1, static_cast<ValueType>(location));
+      offsets.begin(), offsets.end() - 1, static_cast<OffsetsValueType>(location));
 
     const vtkIdType cellId = std::distance(offsets.begin(), it);
 
@@ -105,7 +104,7 @@ struct CellIdToLocationFunctor
   {
     // Adding the cellId to the offset of that cell id gives us the cell
     // location in the old-style vtkCellArray connectivity array.
-    return static_cast<vtkIdType>(cells.GetOffsets()->GetValue(cellId)) + cellId;
+    return static_cast<vtkIdType>(cells.GetOffsetsRange()[cellId]) + cellId;
   }
 };
 
@@ -128,7 +127,7 @@ struct PrintDebugImpl
   template <typename CellStateT>
   void operator()(CellStateT& state, std::ostream& os)
   {
-    using ValueType = typename CellStateT::ValueType;
+    using ConnectivityValueType = typename CellStateT::ConnectivityValueType;
 
     const vtkIdType numCells = state.GetNumberOfCells();
     for (vtkIdType cellId = 0; cellId < numCells; ++cellId)
@@ -136,7 +135,7 @@ struct PrintDebugImpl
       os << "cell " << cellId << ": ";
 
       const auto cellRange = state.GetCellRange(cellId);
-      for (ValueType ptId : cellRange)
+      for (ConnectivityValueType ptId : cellRange)
       {
         os << ptId << " ";
       }
@@ -151,9 +150,11 @@ struct InitializeImpl
   template <typename CellStateT>
   void operator()(CellStateT& cells) const
   {
+    using OffsetsArrayType = typename CellStateT::OffsetsArrayType;
+    using OffsetsInserterType = vtkCellArray_detail::vtkDataArrayInserter<OffsetsArrayType>;
     cells.GetConnectivity()->Initialize();
     cells.GetOffsets()->Initialize();
-    cells.GetOffsets()->InsertNextValue(0);
+    OffsetsInserterType::InsertNextValue(cells.GetOffsets(), 0);
   }
 };
 
@@ -172,17 +173,17 @@ struct IsValidImpl
   template <typename CellStateT>
   bool operator()(CellStateT& state) const
   {
-    using ValueType = typename CellStateT::ValueType;
-    auto* offsetArray = state.GetOffsets();
-    auto* connArray = state.GetConnectivity();
+    using OffsetsValueType = typename CellStateT::OffsetsValueType;
+
+    auto offsets = state.GetOffsetsRange();
+    //(XXX REMOVE) auto conn = state.GetConnectivityRange();
 
     // Both arrays must be single component
-    if (offsetArray->GetNumberOfComponents() != 1 || connArray->GetNumberOfComponents() != 1)
+    if (state.GetOffsets()->GetNumberOfComponents() != 1 ||
+      state.GetConnectivity()->GetNumberOfComponents() != 1)
     {
       return false;
     }
-
-    auto offsets = vtk::DataArrayValueRange<1>(offsetArray);
 
     // Offsets must have at least one value, and the first value must be zero
     if (offsets.size() == 0 || *offsets.cbegin() != 0)
@@ -192,14 +193,15 @@ struct IsValidImpl
 
     // Values in offsets must not decrease
     auto it = std::adjacent_find(offsets.cbegin(), offsets.cend(),
-      [](const ValueType a, const ValueType b) -> bool { return a > b; });
+      [](const OffsetsValueType a, const OffsetsValueType b) -> bool { return a > b; });
     if (it != offsets.cend())
     {
       return false;
     }
 
     // The last value in offsets must be the size of the connectivity array.
-    if (connArray->GetNumberOfValues() != *(offsets.cend() - 1))
+    if (state.GetConnectivity()->GetNumberOfValues() !=
+      static_cast<vtkIdType>(*(offsets.cend() - 1)))
     {
       return false;
     }
@@ -214,23 +216,26 @@ struct CanConvert
   template <typename CellStateT>
   bool operator()(CellStateT& state) const
   {
-    using ArrayType = typename CellStateT::ArrayType;
-    using ValueType = typename CellStateT::ValueType;
+    using OffsetsValueType = typename CellStateT::OffsetsValueType;
+    using ConnectivityValueType = typename CellStateT::ConnectivityValueType;
 
     // offsets are sorted, so just check the last value, but we have to compute
     // the full range of the connectivity array.
     auto* off = state.GetOffsets();
-    if (off->GetNumberOfValues() > 0 && !this->CheckValue(off->GetValue(off->GetMaxId())))
+    if (off->GetNumberOfValues() > 0 &&
+      !this->CheckValue(OffsetsValueType(state.GetOffsetsRange()[off->GetMaxId()])))
     {
       return false;
     }
 
-    std::array<ValueType, 2> connRange;
-    auto* mutConn = const_cast<ArrayType*>(state.GetConnectivity());
-    if (mutConn->GetNumberOfValues() > 0)
+    std::array<ConnectivityValueType, 2> connMinMax;
+    auto connRange = state.GetConnectivityRange();
+    if (connRange.size() > 0)
     {
-      mutConn->GetValueRange(connRange.data(), 0);
-      if (!this->CheckValue(connRange[0]) || !this->CheckValue(connRange[1]))
+      connMinMax[0] = *std::min_element(connRange.begin(), connRange.end());
+      connMinMax[1] = *std::max_element(connRange.begin(), connRange.end());
+      if (!this->CheckValue(ConnectivityValueType(connMinMax[0])) ||
+        !this->CheckValue(ConnectivityValueType(connMinMax[1])))
       {
         return false;
       }
@@ -279,7 +284,7 @@ struct IsHomogeneousImpl
   template <typename CellArraysT>
   vtkIdType operator()(CellArraysT& state) const
   {
-    using ValueType = typename CellArraysT::ValueType;
+    using OffsetsValueType = typename CellArraysT::OffsetsValueType;
     auto* offsets = state.GetOffsets();
 
     const vtkIdType numCells = state.GetNumberOfCells();
@@ -294,7 +299,9 @@ struct IsHomogeneousImpl
     // Verify the rest:
     auto offsetRange = vtk::DataArrayValueRange<1>(offsets);
     auto it = std::adjacent_find(offsetRange.begin() + 1, offsetRange.end(),
-      [&](const ValueType a, const ValueType b) -> bool { return (b - a != firstCellSize); });
+      [&](const OffsetsValueType a, const OffsetsValueType b) -> bool {
+        return (static_cast<vtkIdType>(b - a) != firstCellSize);
+      });
 
     if (it != offsetRange.end())
     { // Found a cell that doesn't match the size of the first cell:
@@ -310,11 +317,13 @@ struct AllocateExactImpl
   template <typename CellStateT>
   bool operator()(CellStateT& cells, vtkIdType numCells, vtkIdType connectivitySize) const
   {
+    using OffsetsArrayType = typename CellStateT::OffsetsArrayType;
+    using OffsetsInserterType = vtkCellArray_detail::vtkDataArrayInserter<OffsetsArrayType>;
     const bool result = (cells.GetOffsets()->Allocate(numCells + 1) &&
       cells.GetConnectivity()->Allocate(connectivitySize));
     if (result)
     {
-      cells.GetOffsets()->InsertNextValue(0);
+      OffsetsInserterType::InsertNextValue(cells.GetOffsets(), 0);
     }
 
     return result;
@@ -421,9 +430,9 @@ struct ReplaceCellPointAtIdImpl
   void operator()(
     CellStateT& cells, vtkIdType cellId, vtkIdType cellPointIndex, vtkIdType newPointId) const
   {
-    using ValueType = typename CellStateT::ValueType;
+    using ConnectivityValueType = typename CellStateT::ConnectivityValueType;
 
-    cells.GetCellRange(cellId)[cellPointIndex] = static_cast<ValueType>(newPointId);
+    cells.GetCellRange(cellId)[cellPointIndex] = static_cast<ConnectivityValueType>(newPointId);
   }
 };
 
@@ -433,14 +442,14 @@ struct ReplaceCellAtIdImpl
   void operator()(
     CellStateT& cells, vtkIdType cellId, vtkIdType cellSize, const vtkIdType* cellPoints) const
   {
-    using ValueType = typename CellStateT::ValueType;
+    using ConnectivityValueType = typename CellStateT::ConnectivityValueType;
 
     auto cellRange = cells.GetCellRange(cellId);
 
     assert(cellRange.size() == cellSize);
     for (vtkIdType i = 0; i < cellSize; ++i)
     {
-      cellRange[i] = static_cast<ValueType>(cellPoints[i]);
+      cellRange[i] = static_cast<ConnectivityValueType>(cellPoints[i]);
     }
   }
 };
@@ -451,19 +460,27 @@ struct AppendLegacyFormatImpl
   void operator()(
     CellStateT& cells, const vtkIdType* data, const vtkIdType len, const vtkIdType ptOffset) const
   {
-    using ValueType = typename CellStateT::ValueType;
+    using OffsetsArrayType = typename CellStateT::OffsetsArrayType;
+    using ConnectivityArrayType = typename CellStateT::ConnectivityArrayType;
+    using OffsetsValueType = typename CellStateT::OffsetsValueType;
+    using ConnectivityValueType = typename CellStateT::ConnectivityValueType;
+    using OffsetsInserterType = vtkCellArray_detail::vtkDataArrayInserter<OffsetsArrayType>;
+    using ConnectivityInserterType =
+      vtkCellArray_detail::vtkDataArrayInserter<ConnectivityArrayType>;
 
-    ValueType offset = static_cast<ValueType>(cells.GetConnectivity()->GetNumberOfValues());
+    OffsetsValueType offset =
+      static_cast<OffsetsValueType>(cells.GetConnectivity()->GetNumberOfValues());
 
     const vtkIdType* const dataEnd = data + len;
     while (data < dataEnd)
     {
       vtkIdType numPts = *data++;
-      offset += static_cast<ValueType>(numPts);
-      cells.GetOffsets()->InsertNextValue(offset);
+      offset += static_cast<OffsetsValueType>(numPts);
+      OffsetsInserterType::InsertNextValue(cells.GetOffsets(), offset);
       while (numPts-- > 0)
       {
-        cells.GetConnectivity()->InsertNextValue(static_cast<ValueType>(*data++ + ptOffset));
+        ConnectivityInserterType::InsertNextValue(
+          cells.GetConnectivity(), static_cast<ConnectivityValueType>(*data++ + ptOffset));
       }
     }
   }
@@ -506,7 +523,9 @@ struct AppendImpl
 
     // This extends the allocation of dst to ensure we have enough space
     // allocated:
-    dstArray->InsertValue(dstEnd - 1, 0);
+    {
+      vtkCellArray_detail::vtkDataArrayInserter<DstArrayT>::InsertValue(dstArray, dstEnd - 1, 0);
+    }
 
     const auto srcRange = vtk::DataArrayValueRange<1>(srcArray, skipFirst ? 1 : 0);
     auto dstRange = vtk::DataArrayValueRange<1>(dstArray, dstBegin, dstEnd);
@@ -683,23 +702,41 @@ void vtkCellArray::DeepCopy(vtkAbstractCellArray* ca)
     return;
   }
 
-  if (other->Storage.Is64Bit())
+  switch (other->Storage.GetStorageType())
   {
-    this->Storage.Use64BitStorage();
-    auto& srcStorage = other->Storage.GetArrays64();
-    auto& dstStorage = this->Storage.GetArrays64();
-    dstStorage.Offsets->DeepCopy(srcStorage.Offsets);
-    dstStorage.Connectivity->DeepCopy(srcStorage.Connectivity);
-    this->Modified();
-  }
-  else
-  {
-    this->Storage.Use32BitStorage();
-    auto& srcStorage = other->Storage.GetArrays32();
-    auto& dstStorage = this->Storage.GetArrays32();
-    dstStorage.Offsets->DeepCopy(srcStorage.Offsets);
-    dstStorage.Connectivity->DeepCopy(srcStorage.Connectivity);
-    this->Modified();
+    case StorageTypes::Generic:
+    {
+      this->Storage.UseGenericStorage();
+      auto& srcStorage = other->Storage.GetArraysGeneric();
+      auto& dstStorage = this->Storage.GetArraysGeneric();
+      dstStorage.Offsets = vtk::TakeSmartPointer(srcStorage.Offsets->NewInstance());
+      dstStorage.Offsets->DeepCopy(srcStorage.Offsets);
+      dstStorage.Connectivity = vtk::TakeSmartPointer(srcStorage.Connectivity->NewInstance());
+      dstStorage.Connectivity->DeepCopy(srcStorage.Connectivity);
+      this->Modified();
+      break;
+    }
+    case StorageTypes::OptimalInteger32:
+    {
+      this->Storage.Use32BitStorage();
+      auto& srcStorage = other->Storage.GetArrays32();
+      auto& dstStorage = this->Storage.GetArrays32();
+      dstStorage.Offsets->DeepCopy(srcStorage.Offsets);
+      dstStorage.Connectivity->DeepCopy(srcStorage.Connectivity);
+      this->Modified();
+      break;
+    }
+    case StorageTypes::OptimalInteger64:
+    default:
+    {
+      this->Storage.Use64BitStorage();
+      auto& srcStorage = other->Storage.GetArrays64();
+      auto& dstStorage = this->Storage.GetArrays64();
+      dstStorage.Offsets->DeepCopy(srcStorage.Offsets);
+      dstStorage.Connectivity->DeepCopy(srcStorage.Connectivity);
+      this->Modified();
+      break;
+    }
   }
 }
 
@@ -716,15 +753,27 @@ void vtkCellArray::ShallowCopy(vtkAbstractCellArray* ca)
     return;
   }
 
-  if (other->Storage.Is64Bit())
+  switch (other->Storage.GetStorageType())
   {
-    auto& srcStorage = other->Storage.GetArrays64();
-    this->SetData(srcStorage.GetOffsets(), srcStorage.GetConnectivity());
-  }
-  else
-  {
-    auto& srcStorage = other->Storage.GetArrays32();
-    this->SetData(srcStorage.GetOffsets(), srcStorage.GetConnectivity());
+    case StorageTypes::Generic:
+    {
+      auto& srcStorage = other->Storage.GetArraysGeneric();
+      this->SetData(srcStorage.GetOffsets(), srcStorage.GetConnectivity());
+      break;
+    }
+    case StorageTypes::OptimalInteger32:
+    {
+      auto& srcStorage = other->Storage.GetArrays32();
+      this->SetData(srcStorage.GetOffsets(), srcStorage.GetConnectivity());
+      break;
+    }
+    case StorageTypes::OptimalInteger64:
+    default:
+    {
+      auto& srcStorage = other->Storage.GetArrays64();
+      this->SetData(srcStorage.GetOffsets(), srcStorage.GetConnectivity());
+      break;
+    }
   }
 }
 
@@ -899,22 +948,6 @@ struct SetDataGenericImpl
   }
 };
 
-struct GenerateOffsetsImpl
-{
-  vtkIdType CellSize;
-  vtkIdType ConnectivityArraySize;
-
-  template <typename ArrayT>
-  void operator()(ArrayT* offsets)
-  {
-    for (vtkIdType cc = 0, max = (offsets->GetNumberOfTuples() - 1); cc < max; ++cc)
-    {
-      offsets->SetTypedComponent(cc, 0, cc * this->CellSize);
-    }
-    offsets->SetTypedComponent(offsets->GetNumberOfTuples() - 1, 0, this->ConnectivityArraySize);
-  }
-};
-
 } // end anon namespace
 
 VTK_ABI_NAMESPACE_BEGIN
@@ -926,10 +959,10 @@ bool vtkCellArray::SetData(vtkDataArray* offsets, vtkDataArray* connectivity)
   using Dispatch = vtkArrayDispatch::DispatchByArray<SupportedArrays>;
   if (!Dispatch::Execute(offsets, worker))
   {
-    vtkErrorMacro("Invalid array types passed to SetData: "
-      << "offsets=" << offsets->GetClassName() << ", "
-      << "connectivity=" << connectivity->GetClassName());
-    return false;
+    // Dispatch failed because given data arrays are not one of those in `SupportedArrays`.
+    this->Storage.UseGenericStorage();
+    this->Storage.SetGenericArrays(offsets, connectivity);
+    return true;
   }
 
   if (!worker.ArraysMatch)
@@ -939,6 +972,23 @@ bool vtkCellArray::SetData(vtkDataArray* offsets, vtkDataArray* connectivity)
   }
 
   return true;
+}
+
+namespace
+{
+template <typename T>
+void SetDataFixedCellSizeImpl(
+  vtkCellArray* cellArray, vtkIdType cellSize, vtkDataArray* connectivity, bool& success)
+{
+  using BackendT = vtkCellArray_detail::ImplicitCellOffset<T>;
+  vtkNew<vtkImplicitArray<BackendT>> offsets;
+  offsets->SetBackend(std::make_shared<BackendT>(cellSize));
+  const vtkIdType numberOfCells = connectivity->GetNumberOfValues() / cellSize;
+  offsets->SetNumberOfTuples(numberOfCells + 1);
+  offsets->SetNumberOfComponents(1);
+
+  success = cellArray->SetData(offsets, connectivity);
+}
 }
 
 //------------------------------------------------------------------------------
@@ -956,21 +1006,12 @@ bool vtkCellArray::SetData(vtkIdType cellSize, vtkDataArray* connectivity)
     return false;
   }
 
-  vtkSmartPointer<vtkDataArray> offsets;
-  offsets.TakeReference(connectivity->NewInstance());
-  offsets->SetNumberOfTuples(1 + connectivity->GetNumberOfTuples() / cellSize);
-
-  GenerateOffsetsImpl worker{ cellSize, connectivity->GetNumberOfTuples() };
-  using SupportedArrays = vtkCellArray::InputArrayList;
-  using Dispatch = vtkArrayDispatch::DispatchByArray<SupportedArrays>;
-  if (!Dispatch::Execute(offsets, worker))
+  bool success = false;
+  switch (connectivity->GetDataType())
   {
-    vtkErrorMacro("Invalid array types passed to SetData: "
-      << "connectivity=" << connectivity->GetClassName());
-    return false;
+    vtkTemplateMacro(SetDataFixedCellSizeImpl<VTK_TT>(this, cellSize, connectivity, success));
   }
-
-  return this->SetData(offsets, connectivity);
+  return success;
 }
 
 //------------------------------------------------------------------------------
@@ -1124,7 +1165,20 @@ void vtkCellArray::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 
-  os << indent << "StorageIs64Bit: " << this->Storage.Is64Bit() << "\n";
+  os << indent << "StorageType: ";
+  switch (this->Storage.GetStorageType())
+  {
+    case StorageTypes::Generic:
+      os << "Generic\n";
+      break;
+    case StorageTypes::OptimalInteger32:
+      os << "OptimalInteger32\n";
+      break;
+    case StorageTypes::OptimalInteger64:
+    default:
+      os << "OptimalInteger64\n";
+      break;
+  }
 
   PrintSelfImpl functor;
   this->Visit(functor, os, indent);

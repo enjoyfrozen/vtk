@@ -14,10 +14,8 @@
 #include "vtkNew.h"
 #include "vtkPolyData.h"
 #include "vtkQuad.h"
-#include "vtkSetGet.h"
+#include "vtkSOADataArrayTemplate.h"
 #include "vtkSmartPointer.h"
-#include "vtkTypeInt32Array.h"
-#include "vtkTypeInt64Array.h"
 
 #include <algorithm>
 #include <initializer_list>
@@ -38,29 +36,177 @@ namespace
 #define TEST_ASSERT(cond)                                                                          \
   do                                                                                               \
   {                                                                                                \
+    std::cout << "=> Check " << #cond << " ... ";                                                  \
     if (!(cond))                                                                                   \
     {                                                                                              \
+      std::cout << "false" << std::endl;                                                           \
       ThrowAssertError(vtkQuoteMacro(__FILE__) ":" vtkQuoteMacro(                                  \
         __LINE__) ": test assertion failed: (" #cond ")");                                         \
     }                                                                                              \
+    std::cout << "true" << std::endl;                                                              \
   } while (false)
 
-vtkSmartPointer<vtkCellArray> NewCellArray(bool use64BitStorage)
+// Macro to store type name as a string. This preserves template parameters.
+// Ex:
+//  REGISTER_TYPE(vtkAOSDataArrayTemplate<vtkTypeUInt8>);
+//  template <typename ArrayT> void SomeFunc(ArrayT* array)
+//  {
+//    // prints "ArrayT=vtkAOSDataArrayTemplate<vtkTypeUInt8>"
+//    std::cout << "ArrayT=" << TypeTraits<ArrayT>::name << std::endl
+//  }
+#define REGISTER_TYPE(X)                                                                           \
+  template <>                                                                                      \
+  struct TypeTraits<X>                                                                             \
+  {                                                                                                \
+    static const char* name;                                                                       \
+  };                                                                                               \
+  const char* TypeTraits<X>::name = #X
+
+template <typename T>
+struct TypeTraits;
+
+template <typename ValueT>
+class MockDataArray : public vtkGenericDataArray<MockDataArray<ValueT>, ValueT>
 {
-  auto cellArray = vtkSmartPointer<vtkCellArray>::New();
-  if (use64BitStorage)
+  using GenericDataArrayType = vtkGenericDataArray<MockDataArray<ValueT>, ValueT>;
+
+public:
+  vtkTemplateTypeMacro(MockDataArray<ValueT>, GenericDataArrayType);
+  using ValueType = typename Superclass::ValueType;
+  static MockDataArray* New() { VTK_STANDARD_NEW_BODY(MockDataArray<ValueT>); }
+  void* GetVoidPointer(vtkIdType idx) override { return this->Buffer->GetBuffer() + idx; }
+  ValueType GetValue(vtkIdType valueIdx) const { return this->Buffer->GetBuffer()[valueIdx]; }
+  void SetValue(vtkIdType valueIdx, ValueType value)
   {
-    cellArray->Use64BitStorage();
+    this->Buffer->GetBuffer()[valueIdx] = value;
   }
-  else
+  void GetTypedTuple(vtkIdType tupleIdx, ValueType* tuple) const
   {
+    const vtkIdType valueIdx = tupleIdx * this->NumberOfComponents;
+    std::copy(this->Buffer->GetBuffer() + valueIdx,
+      this->Buffer->GetBuffer() + valueIdx + this->NumberOfComponents, tuple);
+  }
+  void SetTypedTuple(vtkIdType tupleIdx, const ValueType* tuple)
+  {
+    const vtkIdType valueIdx = tupleIdx * this->NumberOfComponents;
+    std::copy(tuple, tuple + this->NumberOfComponents, this->Buffer->GetBuffer() + valueIdx);
+  }
+  ValueType GetTypedComponent(vtkIdType tupleIdx, int compIdx) const
+  {
+    return this->Buffer->GetBuffer()[this->NumberOfComponents * tupleIdx + compIdx];
+  }
+  void SetTypedComponent(vtkIdType tupleIdx, int compIdx, ValueType value)
+  {
+    const vtkIdType valueIdx = tupleIdx * this->NumberOfComponents + compIdx;
+    this->SetValue(valueIdx, value);
+  }
+
+protected:
+  vtkNew<vtkBuffer<ValueT>> Buffer;
+  bool AllocateTuples(vtkIdType numTuples)
+  {
+    vtkIdType numValues = numTuples * this->GetNumberOfComponents();
+    if (this->Buffer->Allocate(numValues))
+    {
+      this->Size = this->Buffer->GetSize();
+      return true;
+    }
+    return false;
+  }
+  bool ReallocateTuples(vtkIdType numTuples)
+  {
+    if (this->Buffer->Reallocate(numTuples * this->GetNumberOfComponents()))
+    {
+      this->Size = this->Buffer->GetSize();
+      return true;
+    }
+    return false;
+  }
+  friend class vtkGenericDataArray<MockDataArray<ValueT>, ValueT>;
+};
+
+REGISTER_TYPE(vtkTypeUInt8);
+REGISTER_TYPE(vtkTypeUInt16);
+REGISTER_TYPE(vtkTypeUInt32);
+REGISTER_TYPE(vtkTypeUInt64);
+REGISTER_TYPE(vtkTypeInt16);
+REGISTER_TYPE(vtkTypeInt32);
+REGISTER_TYPE(vtkTypeInt64);
+REGISTER_TYPE(vtkTypeInt32Array);
+REGISTER_TYPE(vtkTypeInt64Array);
+REGISTER_TYPE(vtkAOSDataArrayTemplate<vtkTypeUInt8>);
+REGISTER_TYPE(vtkAOSDataArrayTemplate<vtkTypeUInt16>);
+REGISTER_TYPE(vtkAOSDataArrayTemplate<vtkTypeUInt32>);
+REGISTER_TYPE(vtkAOSDataArrayTemplate<vtkTypeUInt64>);
+REGISTER_TYPE(vtkAOSDataArrayTemplate<vtkTypeInt16>);
+REGISTER_TYPE(vtkAOSDataArrayTemplate<vtkTypeInt32>);
+REGISTER_TYPE(vtkAOSDataArrayTemplate<vtkTypeInt64>);
+REGISTER_TYPE(vtkSOADataArrayTemplate<vtkTypeUInt8>);
+REGISTER_TYPE(vtkSOADataArrayTemplate<vtkTypeUInt16>);
+REGISTER_TYPE(vtkSOADataArrayTemplate<vtkTypeUInt32>);
+REGISTER_TYPE(vtkSOADataArrayTemplate<vtkTypeUInt64>);
+REGISTER_TYPE(vtkSOADataArrayTemplate<vtkTypeInt16>);
+REGISTER_TYPE(vtkSOADataArrayTemplate<vtkTypeInt32>);
+REGISTER_TYPE(vtkSOADataArrayTemplate<vtkTypeInt64>);
+REGISTER_TYPE(MockDataArray<vtkTypeUInt8>);
+REGISTER_TYPE(MockDataArray<vtkTypeUInt16>);
+REGISTER_TYPE(MockDataArray<vtkTypeUInt32>);
+REGISTER_TYPE(MockDataArray<vtkTypeUInt64>);
+REGISTER_TYPE(MockDataArray<vtkTypeInt16>);
+REGISTER_TYPE(MockDataArray<vtkTypeInt32>);
+REGISTER_TYPE(MockDataArray<vtkTypeInt64>);
+REGISTER_TYPE(vtkIdTypeArray);
+REGISTER_TYPE(vtkIntArray);
+REGISTER_TYPE(vtkLongArray);
+REGISTER_TYPE(vtkLongLongArray);
+
+template <vtkCellArray::StorageTypes StorageType, typename... ArrayTypes>
+struct CellArrayFactory
+{
+  static vtkSmartPointer<vtkCellArray> New() { return nullptr; }
+};
+
+template <>
+struct CellArrayFactory<vtkCellArray::StorageTypes::OptimalInteger32>
+{
+  static vtkSmartPointer<vtkCellArray> New()
+  {
+    auto cellArray = vtkSmartPointer<vtkCellArray>::New();
     cellArray->Use32BitStorage();
+    TEST_ASSERT(cellArray->GetStorageType() == vtkCellArray::StorageTypes::OptimalInteger32);
+    return cellArray;
   }
+};
 
-  TEST_ASSERT(cellArray->IsStorage64Bit() == use64BitStorage);
+template <>
+struct CellArrayFactory<vtkCellArray::StorageTypes::OptimalInteger64>
+{
+  static vtkSmartPointer<vtkCellArray> New()
+  {
+    auto cellArray = vtkSmartPointer<vtkCellArray>::New();
+    cellArray->Use64BitStorage();
+    TEST_ASSERT(cellArray->GetStorageType() == vtkCellArray::StorageTypes::OptimalInteger64);
+    return cellArray;
+  }
+};
 
-  return cellArray;
-}
+template <typename ConnectivityArrayT, typename OffsetsArrayT>
+struct CellArrayFactory<vtkCellArray::StorageTypes::Generic, ConnectivityArrayT, OffsetsArrayT>
+{
+  static vtkSmartPointer<vtkCellArray> New()
+  {
+    auto cellArray = vtkSmartPointer<vtkCellArray>::New();
+    // By passing array types which are NOT in vtkCellArray::InputArrayList,
+    // vtkCellArray can be put into the "Generic" storage mode.
+    vtkNew<ConnectivityArrayT> placeholderConn;
+    vtkNew<OffsetsArrayT> placeholderOffsets;
+    // initialize the offsets array with one element i.e, number of elements in the connectivity.
+    placeholderOffsets->InsertNextValue(0);
+    cellArray->SetData(placeholderOffsets, placeholderConn);
+    TEST_ASSERT(cellArray->GetStorageType() == vtkCellArray::StorageTypes::Generic);
+    return cellArray;
+  }
+};
 
 void FillCellArray(vtkCellArray* cellArray)
 {
@@ -360,34 +506,91 @@ void TestNewIterator(vtkSmartPointer<vtkCellArray> cellArray)
   }
 }
 
-template <typename ArrayType>
+template <typename OffsetsArrayType, typename ConnectivityArrayType>
 void TestSetDataImpl(vtkSmartPointer<vtkCellArray> cellArray, bool checkNoCopy)
 {
-  using ValueType = typename ArrayType::ValueType;
+  vtkLogScopeF(INFO, "%s<%s,%s>", __func__, TypeTraits<OffsetsArrayType>::name,
+    TypeTraits<ConnectivityArrayType>::name);
+  using OffsetsValueType = typename OffsetsArrayType::ValueType;
+  using ConnectivityValueType = typename ConnectivityArrayType::ValueType;
 
   vtkNew<vtkCellArray> test;
   test->DeepCopy(cellArray); // copy config settings
 
-  vtkNew<ArrayType> offsets;
-  vtkNew<ArrayType> conn;
+  vtkNew<OffsetsArrayType> offsets;
+  vtkNew<ConnectivityArrayType> conn;
+  offsets->InsertNextValue(0);
+  offsets->InsertNextValue(5);
+  offsets->InsertNextValue(8);
+  conn->InsertNextValue(0);
+  conn->InsertNextValue(1);
+  conn->InsertNextValue(2);
+  conn->InsertNextValue(3);
+  conn->InsertNextValue(4);
+  conn->InsertNextValue(10);
+  conn->InsertNextValue(12);
+  conn->InsertNextValue(13);
   test->SetData(offsets, conn);
 
-  static_assert(
-    sizeof(ValueType) == 4 || sizeof(ValueType) == 8, "Invalid type for cell array storage.");
-
-  if (sizeof(ValueType) == 4)
+  if (std::is_base_of<vtkAOSDataArrayTemplate<OffsetsValueType>, OffsetsArrayType>::value &&
+    std::is_base_of<vtkAOSDataArrayTemplate<ConnectivityValueType>, ConnectivityArrayType>::value)
   {
-    TEST_ASSERT(!test->IsStorage64Bit());
+    if (sizeof(OffsetsValueType) == 4 && sizeof(ConnectivityValueType) == 4)
+    {
+      TEST_ASSERT(!test->IsStorage64Bit());
+      TEST_ASSERT(test->IsStorage32Bit());
+      TEST_ASSERT(!test->IsStorageGeneric());
+    }
+    else
+    {
+      TEST_ASSERT(test->IsStorage64Bit());
+      TEST_ASSERT(!test->IsStorage32Bit());
+      TEST_ASSERT(!test->IsStorageGeneric());
+    }
   }
   else
   {
-    TEST_ASSERT(test->IsStorage64Bit());
+    TEST_ASSERT(!test->IsStorage64Bit());
+    TEST_ASSERT(!test->IsStorage32Bit());
+    TEST_ASSERT(test->IsStorageGeneric());
   }
 
   if (checkNoCopy)
   {
     TEST_ASSERT(test->GetConnectivityArray()->GetVoidPointer(0) == conn->GetVoidPointer(0));
     TEST_ASSERT(test->GetOffsetsArray()->GetVoidPointer(0) == offsets->GetVoidPointer(0));
+  }
+
+  TEST_ASSERT(test->GetNumberOfCells() == 2);
+  TEST_ASSERT(test->GetNumberOfConnectivityIds() == 8);
+  TEST_ASSERT(test->GetNumberOfOffsets() == 3);
+  {
+    vtkIdType npts;
+    const vtkIdType* pts;
+
+    auto iter = vtk::TakeSmartPointer(test->NewIterator());
+    TEST_ASSERT(!iter->IsDoneWithTraversal());
+    iter->GoToFirstCell();
+
+    TEST_ASSERT(!iter->IsDoneWithTraversal());
+    iter->GetCurrentCell(npts, pts);
+    TEST_ASSERT(npts == 5);
+    TEST_ASSERT(pts[0] == 0);
+    TEST_ASSERT(pts[1] == 1);
+    TEST_ASSERT(pts[2] == 2);
+    TEST_ASSERT(pts[3] == 3);
+    TEST_ASSERT(pts[4] == 4);
+    iter->GoToNextCell();
+
+    TEST_ASSERT(!iter->IsDoneWithTraversal());
+    iter->GetCurrentCell(npts, pts);
+    TEST_ASSERT(npts == 3);
+    TEST_ASSERT(pts[0] == 10);
+    TEST_ASSERT(pts[1] == 12);
+    TEST_ASSERT(pts[2] == 13);
+    iter->GoToNextCell();
+
+    TEST_ASSERT(iter->IsDoneWithTraversal());
   }
 }
 
@@ -396,16 +599,70 @@ void TestSetData(vtkSmartPointer<vtkCellArray> cellArray)
   vtkLogScopeFunction(INFO);
 
   // These are documented to not deep copy the input arrays.
-  TestSetDataImpl<vtkCellArray::ArrayType32>(cellArray, true);
-  TestSetDataImpl<vtkCellArray::ArrayType64>(cellArray, true);
-  TestSetDataImpl<vtkIdTypeArray>(cellArray, true);
+  TestSetDataImpl<vtkCellArray::ArrayType32, vtkCellArray::ArrayType32>(cellArray, true);
+  TestSetDataImpl<vtkCellArray::ArrayType64, vtkCellArray::ArrayType64>(cellArray, true);
+  TestSetDataImpl<vtkIdTypeArray, vtkIdTypeArray>(cellArray, true);
 
   // These should work, but may deep copy:
-  TestSetDataImpl<vtkTypeInt32Array>(cellArray, false);
-  TestSetDataImpl<vtkTypeInt64Array>(cellArray, false);
-  TestSetDataImpl<vtkIntArray>(cellArray, false);
-  TestSetDataImpl<vtkLongArray>(cellArray, false);
-  TestSetDataImpl<vtkLongLongArray>(cellArray, false);
+  TestSetDataImpl<vtkTypeInt32Array, vtkTypeInt32Array>(cellArray, false);
+  TestSetDataImpl<vtkTypeInt64Array, vtkTypeInt64Array>(cellArray, false);
+  TestSetDataImpl<vtkIntArray, vtkIntArray>(cellArray, false);
+  TestSetDataImpl<vtkLongArray, vtkLongArray>(cellArray, false);
+  TestSetDataImpl<vtkLongLongArray, vtkLongLongArray>(cellArray, false);
+
+  // These are documented to not deep copy the input arrays.
+  TestSetDataImpl<MockDataArray<vtkTypeUInt8>, MockDataArray<vtkTypeUInt8>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeUInt8>, MockDataArray<vtkTypeUInt16>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeUInt8>, MockDataArray<vtkTypeUInt32>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeUInt8>, MockDataArray<vtkTypeUInt64>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeUInt16>, MockDataArray<vtkTypeUInt8>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeUInt16>, MockDataArray<vtkTypeUInt16>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeUInt16>, MockDataArray<vtkTypeUInt32>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeUInt16>, MockDataArray<vtkTypeUInt64>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeUInt32>, MockDataArray<vtkTypeUInt8>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeUInt32>, MockDataArray<vtkTypeUInt16>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeUInt32>, MockDataArray<vtkTypeUInt32>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeUInt32>, MockDataArray<vtkTypeUInt64>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeUInt64>, MockDataArray<vtkTypeUInt8>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeUInt64>, MockDataArray<vtkTypeUInt16>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeUInt64>, MockDataArray<vtkTypeUInt32>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeUInt64>, MockDataArray<vtkTypeUInt64>>(cellArray, true);
+
+  TestSetDataImpl<MockDataArray<vtkTypeInt16>, MockDataArray<vtkTypeUInt8>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeInt16>, MockDataArray<vtkTypeUInt16>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeInt16>, MockDataArray<vtkTypeUInt32>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeInt16>, MockDataArray<vtkTypeUInt64>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeInt32>, MockDataArray<vtkTypeUInt8>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeInt32>, MockDataArray<vtkTypeUInt16>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeInt32>, MockDataArray<vtkTypeUInt32>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeInt32>, MockDataArray<vtkTypeUInt64>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeInt64>, MockDataArray<vtkTypeUInt8>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeInt64>, MockDataArray<vtkTypeUInt16>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeInt64>, MockDataArray<vtkTypeUInt32>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeInt64>, MockDataArray<vtkTypeUInt64>>(cellArray, true);
+
+  TestSetDataImpl<MockDataArray<vtkTypeInt16>, MockDataArray<vtkTypeInt16>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeInt16>, MockDataArray<vtkTypeInt32>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeInt16>, MockDataArray<vtkTypeInt64>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeInt32>, MockDataArray<vtkTypeInt16>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeInt32>, MockDataArray<vtkTypeInt32>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeInt32>, MockDataArray<vtkTypeInt64>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeInt64>, MockDataArray<vtkTypeInt16>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeInt64>, MockDataArray<vtkTypeInt32>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeInt64>, MockDataArray<vtkTypeInt64>>(cellArray, true);
+
+  TestSetDataImpl<MockDataArray<vtkTypeUInt8>, MockDataArray<vtkTypeInt16>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeUInt8>, MockDataArray<vtkTypeInt32>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeUInt8>, MockDataArray<vtkTypeInt64>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeUInt16>, MockDataArray<vtkTypeInt16>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeUInt16>, MockDataArray<vtkTypeInt32>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeUInt16>, MockDataArray<vtkTypeInt64>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeUInt32>, MockDataArray<vtkTypeInt16>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeUInt32>, MockDataArray<vtkTypeInt32>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeUInt32>, MockDataArray<vtkTypeInt64>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeUInt64>, MockDataArray<vtkTypeInt16>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeUInt64>, MockDataArray<vtkTypeInt32>>(cellArray, true);
+  TestSetDataImpl<MockDataArray<vtkTypeUInt64>, MockDataArray<vtkTypeInt64>>(cellArray, true);
 }
 
 struct TestIsStorage64BitImpl
@@ -413,17 +670,10 @@ struct TestIsStorage64BitImpl
   template <typename CellStateT>
   void operator()(CellStateT&, bool expect64Bit) const
   {
-    // Check the actual arrays, not the typedefs:
-    using OffsetsArrayType =
-      typename std::decay<decltype(*std::declval<CellStateT>().GetOffsets())>::type;
+    using ConnectivityValueType = typename CellStateT::ConnectivityValueType;
+    using OffsetsValueType = typename CellStateT::OffsetsValueType;
 
-    using ConnArrayType =
-      typename std::decay<decltype(*std::declval<CellStateT>().GetConnectivity())>::type;
-
-    using OffsetsValueType = typename OffsetsArrayType::ValueType;
-    using ConnValueType = typename ConnArrayType::ValueType;
-
-    const bool connIs64Bit = sizeof(ConnValueType) == 8;
+    const bool connIs64Bit = sizeof(ConnectivityValueType) == 8;
     const bool offsetsIs64Bit = sizeof(OffsetsValueType) == 8;
 
     TEST_ASSERT(connIs64Bit == expect64Bit);
@@ -560,13 +810,18 @@ void TestGetOffsetsArray(vtkSmartPointer<vtkCellArray> cellArray)
 {
   vtkLogScopeFunction(INFO);
 
-  if (cellArray->IsStorage64Bit())
+  switch (cellArray->GetStorageType())
   {
-    TEST_ASSERT(cellArray->GetOffsetsArray() == cellArray->GetOffsetsArray64());
-  }
-  else
-  {
-    TEST_ASSERT(cellArray->GetOffsetsArray() == cellArray->GetOffsetsArray32());
+    case vtkCellArray::Generic:
+      TEST_ASSERT(cellArray->GetOffsetsArray() == cellArray->GetOffsetsArrayGeneric());
+      break;
+    case vtkCellArray::OptimalInteger32:
+      TEST_ASSERT(cellArray->GetOffsetsArray() == cellArray->GetOffsetsArray32());
+      break;
+    case vtkCellArray::OptimalInteger64:
+    default:
+      TEST_ASSERT(cellArray->GetOffsetsArray() == cellArray->GetOffsetsArray64());
+      break;
   }
 }
 
@@ -574,13 +829,18 @@ void TestGetConnectivityArray(vtkSmartPointer<vtkCellArray> cellArray)
 {
   vtkLogScopeFunction(INFO);
 
-  if (cellArray->IsStorage64Bit())
+  switch (cellArray->GetStorageType())
   {
-    TEST_ASSERT(cellArray->GetConnectivityArray() == cellArray->GetConnectivityArray64());
-  }
-  else
-  {
-    TEST_ASSERT(cellArray->GetConnectivityArray() == cellArray->GetConnectivityArray32());
+    case vtkCellArray::Generic:
+      TEST_ASSERT(cellArray->GetConnectivityArray() == cellArray->GetConnectivityArrayGeneric());
+      break;
+    case vtkCellArray::OptimalInteger32:
+      TEST_ASSERT(cellArray->GetConnectivityArray() == cellArray->GetConnectivityArray32());
+      break;
+    case vtkCellArray::OptimalInteger64:
+    default:
+      TEST_ASSERT(cellArray->GetConnectivityArray() == cellArray->GetConnectivityArray64());
+      break;
   }
 }
 
@@ -969,13 +1229,135 @@ void TestAppendImpl(vtkSmartPointer<vtkCellArray> first, vtkSmartPointer<vtkCell
 void TestAppend32(vtkSmartPointer<vtkCellArray> cellArray)
 {
   vtkLogScopeFunction(INFO);
-  TestAppendImpl(cellArray, NewCellArray(false));
+  TestAppendImpl(cellArray, CellArrayFactory<vtkCellArray::OptimalInteger32>::New());
 }
 
 void TestAppend64(vtkSmartPointer<vtkCellArray> cellArray)
 {
   vtkLogScopeFunction(INFO);
-  TestAppendImpl(cellArray, NewCellArray(true));
+  TestAppendImpl(cellArray, CellArrayFactory<vtkCellArray::OptimalInteger64>::New());
+}
+
+template <typename OffsetValueType, typename ConnectivityArrayType>
+void TestSetDataSingleCellTypeSeparateDataTypes(vtkSmartPointer<vtkCellArray> cellArray)
+{
+  vtkLogScopeF(INFO, "%s<OffsetValueType=%s,ConnectivityArrayType=%s>", __func__,
+    TypeTraits<OffsetValueType>::name, TypeTraits<ConnectivityArrayType>::name);
+  struct TriangulationImplicitCellOffset
+  {
+    TriangulationImplicitCellOffset(vtkIdType cellSize)
+      : CellSize(cellSize)
+    {
+    }
+    // used for GetValue
+    OffsetValueType map(vtkIdType idx) const { return this->mapComponent(idx, 0); }
+    // used for GetTypedComponent
+    OffsetValueType mapComponent(vtkIdType idx, int vtkNotUsed(component)) const
+    {
+      return idx * this->CellSize;
+    }
+
+  private:
+    vtkIdType CellSize;
+  };
+
+  // Offsets     : 0 3 6
+  // Connectivity: 0 1 2 0 2 3
+  vtkNew<vtkImplicitArray<TriangulationImplicitCellOffset>> offsets;
+  offsets->SetBackend(std::make_shared<TriangulationImplicitCellOffset>(3));
+  offsets->SetNumberOfTuples(3);
+  offsets->SetNumberOfComponents(1);
+  vtkNew<ConnectivityArrayType> connectivity;
+  // tri 0: 0 1 2
+  connectivity->InsertNextValue(0);
+  connectivity->InsertNextValue(1);
+  connectivity->InsertNextValue(2);
+  // tri 1: 0 2 3
+  connectivity->InsertNextValue(0);
+  connectivity->InsertNextValue(2);
+  connectivity->InsertNextValue(3);
+  cellArray->SetData(offsets, connectivity);
+  // cellArray->PrintDebug(std::cout);
+
+  TEST_ASSERT(cellArray->GetNumberOfCells() == 2);
+  TEST_ASSERT(cellArray->GetNumberOfConnectivityIds() == 6);
+  TEST_ASSERT(cellArray->GetNumberOfOffsets() == 3);
+  {
+    vtkIdType npts;
+    const vtkIdType* pts;
+
+    auto iter = vtk::TakeSmartPointer(cellArray->NewIterator());
+    TEST_ASSERT(!iter->IsDoneWithTraversal());
+    iter->GoToFirstCell();
+
+    TEST_ASSERT(!iter->IsDoneWithTraversal());
+    iter->GetCurrentCell(npts, pts);
+    TEST_ASSERT(npts == 3);
+    TEST_ASSERT(pts[0] == 0);
+    TEST_ASSERT(pts[1] == 1);
+    TEST_ASSERT(pts[2] == 2);
+    iter->GoToNextCell();
+
+    TEST_ASSERT(!iter->IsDoneWithTraversal());
+    iter->GetCurrentCell(npts, pts);
+    TEST_ASSERT(npts == 3);
+    TEST_ASSERT(pts[0] == 0);
+    TEST_ASSERT(pts[1] == 2);
+    TEST_ASSERT(pts[2] == 3);
+    iter->GoToNextCell();
+
+    TEST_ASSERT(iter->IsDoneWithTraversal());
+  }
+}
+
+template <typename ConnectivityArrayType>
+void TestSetDataSingleCellType(vtkSmartPointer<vtkCellArray> cellArray)
+{
+  vtkLogScopeF(
+    INFO, "%s<ConnectivityArrayType=%s>", __func__, TypeTraits<ConnectivityArrayType>::name);
+  // Offsets     : 0 3 6
+  // Connectivity: 0 1 2 0 2 3
+  vtkNew<ConnectivityArrayType> connectivity;
+  // tri 0: 0 1 2
+  connectivity->InsertNextValue(0);
+  connectivity->InsertNextValue(1);
+  connectivity->InsertNextValue(2);
+  // tri 1: 0 2 3
+  connectivity->InsertNextValue(0);
+  connectivity->InsertNextValue(2);
+  connectivity->InsertNextValue(3);
+  cellArray->SetData(/*cellSize=*/3, connectivity);
+  // cellArray->PrintDebug(std::cout);
+
+  TEST_ASSERT(cellArray->GetNumberOfCells() == 2);
+  TEST_ASSERT(cellArray->GetNumberOfConnectivityIds() == 6);
+  TEST_ASSERT(cellArray->GetNumberOfOffsets() == 3);
+  {
+    vtkIdType npts;
+    const vtkIdType* pts;
+
+    auto iter = vtk::TakeSmartPointer(cellArray->NewIterator());
+    TEST_ASSERT(!iter->IsDoneWithTraversal());
+    iter->GoToFirstCell();
+
+    TEST_ASSERT(!iter->IsDoneWithTraversal());
+    iter->GetCurrentCell(npts, pts);
+    TEST_ASSERT(npts == 3);
+    TEST_ASSERT(pts[0] == 0);
+    TEST_ASSERT(pts[1] == 1);
+    TEST_ASSERT(pts[2] == 2);
+    iter->GoToNextCell();
+
+    TEST_ASSERT(!iter->IsDoneWithTraversal());
+    iter->GetCurrentCell(npts, pts);
+    TEST_ASSERT(npts == 3);
+    TEST_ASSERT(pts[0] == 0);
+    TEST_ASSERT(pts[1] == 2);
+    TEST_ASSERT(pts[2] == 3);
+    iter->GoToNextCell();
+
+    TEST_ASSERT(iter->IsDoneWithTraversal());
+  }
 }
 
 void TestLegacyFormatImportExportAppend(vtkSmartPointer<vtkCellArray> cellArray)
@@ -1332,71 +1714,338 @@ void TestLegacySetCells(vtkSmartPointer<vtkCellArray> cellArray)
   validate(2, { 9, 6, 5, 2 });
 }
 
-void RunLegacyTests(bool use64BitStorage)
+template <vtkCellArray::StorageTypes StorageType, typename... ArrayTypes>
+void RunLegacyTests()
 {
   vtkLogScopeFunction(INFO);
 
-  TestLegacyAllocate(NewCellArray(use64BitStorage));
-  TestLegacyEstimateSize(NewCellArray(use64BitStorage));
-  TestLegacyGetSize(NewCellArray(use64BitStorage));
-  TestLegacyGetNumberOfConnectivityEntries(NewCellArray(use64BitStorage));
-  TestLegacyGetCell(NewCellArray(use64BitStorage));
-  TestLegacyGetInsertLocation(NewCellArray(use64BitStorage));
-  TestLegacyGetSetTraversalLocation(NewCellArray(use64BitStorage));
-  TestLegacyReverseCell(NewCellArray(use64BitStorage));
-  TestLegacyReplaceCell(NewCellArray(use64BitStorage));
-  TestLegacyGetData(NewCellArray(use64BitStorage));
-  TestLegacySetCells(NewCellArray(use64BitStorage));
+  TestLegacyAllocate(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestLegacyEstimateSize(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestLegacyGetSize(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestLegacyGetNumberOfConnectivityEntries(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestLegacyGetCell(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestLegacyGetInsertLocation(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestLegacyGetSetTraversalLocation(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestLegacyReverseCell(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestLegacyReplaceCell(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestLegacyGetData(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestLegacySetCells(CellArrayFactory<StorageType, ArrayTypes...>::New());
 }
 
-void RunTests(bool use64BitStorage)
+const char* StorageTypeToString(vtkCellArray::StorageTypes storageType)
 {
-  vtkLogScopeF(INFO, "Testing %d-bit storage.", use64BitStorage ? 64 : 32);
+  switch (storageType)
+  {
+    case vtkCellArray::OptimalInteger64:
+      return "OptimalInteger64";
+    case vtkCellArray::OptimalInteger32:
+      return "OptimalInteger32";
+    case vtkCellArray::Generic:
+    default:
+      return "Generic";
+  }
+}
 
-  TestAllocate(NewCellArray(use64BitStorage));
-  TestResize(NewCellArray(use64BitStorage));
-  TestInitialize(NewCellArray(use64BitStorage));
-  TestSqueeze(NewCellArray(use64BitStorage));
-  TestReset(NewCellArray(use64BitStorage));
-  TestIsValid(NewCellArray(use64BitStorage));
-  TestGetNumberOfCells(NewCellArray(use64BitStorage));
-  TestGetNumberOfOffsets(NewCellArray(use64BitStorage));
-  TestGetNumberOfConnectivityIds(NewCellArray(use64BitStorage));
-  TestNewIterator(NewCellArray(use64BitStorage));
-  TestSetData(NewCellArray(use64BitStorage));
-  TestIsStorage64Bit(NewCellArray(use64BitStorage));
-  TestUse32BitStorage(NewCellArray(use64BitStorage));
-  TestUse64BitStorage(NewCellArray(use64BitStorage));
-  TestUseDefaultStorage(NewCellArray(use64BitStorage));
-  TestCanConvertTo32BitStorage(NewCellArray(use64BitStorage));
-  TestCanConvertTo64BitStorage(NewCellArray(use64BitStorage));
-  TestConvertTo32BitStorage(NewCellArray(use64BitStorage));
-  TestConvertTo64BitStorage(NewCellArray(use64BitStorage));
-  TestGetOffsetsArray(NewCellArray(use64BitStorage));
-  TestGetConnectivityArray(NewCellArray(use64BitStorage));
-  TestIsHomogeneous(NewCellArray(use64BitStorage));
-  TestTraversalSizePointer(NewCellArray(use64BitStorage));
-  TestTraversalIdList(NewCellArray(use64BitStorage));
-  TestGetCellAtId(NewCellArray(use64BitStorage));
-  TestGetCellSize(NewCellArray(use64BitStorage));
-  TestInsertNextCell(NewCellArray(use64BitStorage));
-  TestIncrementalCellInsertion(NewCellArray(use64BitStorage));
-  TestReverseCellAtId(NewCellArray(use64BitStorage));
-  TestReplaceCellAtId(NewCellArray(use64BitStorage));
-  TestGetMaxCellSize(NewCellArray(use64BitStorage));
-  TestDeepCopy(NewCellArray(use64BitStorage));
-  TestShallowCopy(NewCellArray(use64BitStorage));
-  TestAppend32(NewCellArray(use64BitStorage));
-  TestAppend64(NewCellArray(use64BitStorage));
-  TestLegacyFormatImportExportAppend(NewCellArray(use64BitStorage));
+template <vtkCellArray::StorageTypes StorageType, typename... ArrayTypes>
+void RunTests()
+{
+  vtkLogScopeF(INFO, "Testing %s storage.", StorageTypeToString(StorageType));
 
-  RunLegacyTests(use64BitStorage);
+  TestAllocate(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestResize(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestInitialize(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestSqueeze(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestReset(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestIsValid(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestGetNumberOfCells(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestGetNumberOfOffsets(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestGetNumberOfConnectivityIds(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestNewIterator(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestSetData(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  if (StorageType != vtkCellArray::Generic)
+  {
+    // When storage type is generic, offsets and connectivity can have mixed bit width.
+    TestIsStorage64Bit(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  }
+  TestUse32BitStorage(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestUse64BitStorage(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestUseDefaultStorage(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestCanConvertTo32BitStorage(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestCanConvertTo64BitStorage(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestConvertTo32BitStorage(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestConvertTo64BitStorage(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestGetOffsetsArray(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestGetConnectivityArray(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestIsHomogeneous(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestTraversalSizePointer(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestTraversalIdList(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestGetCellAtId(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestGetCellSize(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestInsertNextCell(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestIncrementalCellInsertion(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestReverseCellAtId(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestReplaceCellAtId(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestGetMaxCellSize(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestDeepCopy(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestShallowCopy(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestAppend32(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestAppend64(CellArrayFactory<StorageType, ArrayTypes...>::New());
+  TestLegacyFormatImportExportAppend(CellArrayFactory<StorageType, ArrayTypes...>::New());
+
+  RunLegacyTests<StorageType, ArrayTypes...>();
 }
 
 void RunTests()
 {
-  RunTests(false);
-  RunTests(true);
+  RunTests<vtkCellArray::OptimalInteger32>();
+  RunTests<vtkCellArray::OptimalInteger64>();
+
+  // Now exercise every possible combination of integer arrays for generic storage.
+  // <unsigned, unsigned>
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeUInt8>, MockDataArray<vtkTypeUInt8>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeUInt8>, MockDataArray<vtkTypeUInt16>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeUInt8>, MockDataArray<vtkTypeUInt32>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeUInt8>, MockDataArray<vtkTypeUInt64>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeUInt16>, MockDataArray<vtkTypeUInt8>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeUInt16>, MockDataArray<vtkTypeUInt16>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeUInt16>, MockDataArray<vtkTypeUInt32>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeUInt16>, MockDataArray<vtkTypeUInt64>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeUInt32>, MockDataArray<vtkTypeUInt8>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeUInt32>, MockDataArray<vtkTypeUInt16>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeUInt32>, MockDataArray<vtkTypeUInt32>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeUInt32>, MockDataArray<vtkTypeUInt64>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeUInt64>, MockDataArray<vtkTypeUInt8>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeUInt64>, MockDataArray<vtkTypeUInt16>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeUInt64>, MockDataArray<vtkTypeUInt32>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeUInt64>, MockDataArray<vtkTypeUInt64>>();
+
+  // <unsigned, signed>
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeUInt8>, MockDataArray<vtkTypeInt16>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeUInt8>, MockDataArray<vtkTypeInt32>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeUInt8>, MockDataArray<vtkTypeInt64>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeUInt16>, MockDataArray<vtkTypeInt16>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeUInt16>, MockDataArray<vtkTypeInt32>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeUInt16>, MockDataArray<vtkTypeInt64>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeUInt32>, MockDataArray<vtkTypeInt16>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeUInt32>, MockDataArray<vtkTypeInt32>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeUInt32>, MockDataArray<vtkTypeInt64>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeUInt64>, MockDataArray<vtkTypeInt16>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeUInt64>, MockDataArray<vtkTypeInt32>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeUInt64>, MockDataArray<vtkTypeInt64>>();
+
+  // <signed, signed>
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeInt16>, MockDataArray<vtkTypeInt16>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeInt16>, MockDataArray<vtkTypeInt32>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeInt16>, MockDataArray<vtkTypeInt64>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeInt32>, MockDataArray<vtkTypeInt16>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeInt32>, MockDataArray<vtkTypeInt32>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeInt32>, MockDataArray<vtkTypeInt64>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeInt64>, MockDataArray<vtkTypeInt16>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeInt64>, MockDataArray<vtkTypeInt32>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeInt64>, MockDataArray<vtkTypeInt64>>();
+
+  // <signed, unsigned>
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeInt16>, MockDataArray<vtkTypeUInt8>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeInt16>, MockDataArray<vtkTypeUInt16>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeInt16>, MockDataArray<vtkTypeUInt32>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeInt16>, MockDataArray<vtkTypeUInt64>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeInt32>, MockDataArray<vtkTypeUInt8>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeInt32>, MockDataArray<vtkTypeUInt16>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeInt32>, MockDataArray<vtkTypeUInt32>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeInt32>, MockDataArray<vtkTypeUInt64>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeInt64>, MockDataArray<vtkTypeUInt8>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeInt64>, MockDataArray<vtkTypeUInt16>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeInt64>, MockDataArray<vtkTypeUInt32>>();
+  RunTests<vtkCellArray::Generic, MockDataArray<vtkTypeInt64>, MockDataArray<vtkTypeUInt64>>();
+
+  // clang-format off
+  // Connectivity: MockDataArray<All integral types>
+  TestSetDataSingleCellType<MockDataArray<vtkTypeUInt8>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellType<MockDataArray<vtkTypeUInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellType<MockDataArray<vtkTypeUInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellType<MockDataArray<vtkTypeUInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellType<MockDataArray<vtkTypeInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellType<MockDataArray<vtkTypeInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellType<MockDataArray<vtkTypeInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellType<MockDataArray<vtkIdType>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  // Connectivity: vtkAOSDataArrayTemplate<All integral types>
+  TestSetDataSingleCellType<vtkAOSDataArrayTemplate<vtkTypeUInt8>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellType<vtkAOSDataArrayTemplate<vtkTypeUInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellType<vtkAOSDataArrayTemplate<vtkTypeUInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellType<vtkAOSDataArrayTemplate<vtkTypeUInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellType<vtkAOSDataArrayTemplate<vtkTypeInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellType<vtkAOSDataArrayTemplate<vtkTypeInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellType<vtkAOSDataArrayTemplate<vtkTypeInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellType<vtkAOSDataArrayTemplate<vtkIdType>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  // Connectivity: vtkSOADataArrayTemplate<All integral types>
+  TestSetDataSingleCellType<vtkSOADataArrayTemplate<vtkTypeUInt8>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellType<vtkSOADataArrayTemplate<vtkTypeUInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellType<vtkSOADataArrayTemplate<vtkTypeUInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellType<vtkSOADataArrayTemplate<vtkTypeUInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellType<vtkSOADataArrayTemplate<vtkTypeInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellType<vtkSOADataArrayTemplate<vtkTypeInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellType<vtkSOADataArrayTemplate<vtkTypeInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellType<vtkSOADataArrayTemplate<vtkIdType>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+
+  // Offsets: All unsigned integral types, Connectivity: MockDataArray<All integral types>
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt8, MockDataArray<vtkTypeUInt8>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt8, MockDataArray<vtkTypeUInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt8, MockDataArray<vtkTypeUInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt8, MockDataArray<vtkTypeUInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt16, MockDataArray<vtkTypeUInt8>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt16, MockDataArray<vtkTypeUInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt16, MockDataArray<vtkTypeUInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt16, MockDataArray<vtkTypeUInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt32, MockDataArray<vtkTypeUInt8>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt32, MockDataArray<vtkTypeUInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt32, MockDataArray<vtkTypeUInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt32, MockDataArray<vtkTypeUInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt64, MockDataArray<vtkTypeUInt8>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt64, MockDataArray<vtkTypeUInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt64, MockDataArray<vtkTypeUInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt64, MockDataArray<vtkTypeUInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt8, MockDataArray<vtkTypeInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt8, MockDataArray<vtkTypeInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt8, MockDataArray<vtkTypeInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt16, MockDataArray<vtkTypeInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt16, MockDataArray<vtkTypeInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt16, MockDataArray<vtkTypeInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt32, MockDataArray<vtkTypeInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt32, MockDataArray<vtkTypeInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt32, MockDataArray<vtkTypeInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt64, MockDataArray<vtkTypeInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt64, MockDataArray<vtkTypeInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt64, MockDataArray<vtkTypeInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt16, MockDataArray<vtkTypeUInt8>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt16, MockDataArray<vtkTypeUInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt16, MockDataArray<vtkTypeUInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt16, MockDataArray<vtkTypeUInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt32, MockDataArray<vtkTypeUInt8>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt32, MockDataArray<vtkTypeUInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt32, MockDataArray<vtkTypeUInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt32, MockDataArray<vtkTypeUInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt64, MockDataArray<vtkTypeUInt8>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt64, MockDataArray<vtkTypeUInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt64, MockDataArray<vtkTypeUInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt64, MockDataArray<vtkTypeUInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt16, MockDataArray<vtkTypeInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt16, MockDataArray<vtkTypeInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt16, MockDataArray<vtkTypeInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt32, MockDataArray<vtkTypeInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt32, MockDataArray<vtkTypeInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt32, MockDataArray<vtkTypeInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt64, MockDataArray<vtkTypeInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt64, MockDataArray<vtkTypeInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt64, MockDataArray<vtkTypeInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  // Offsets: All integral types, Connectivity: vtkAOSDataArrayTemplate<All integral types>
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt8, vtkAOSDataArrayTemplate<vtkTypeUInt8>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt8, vtkAOSDataArrayTemplate<vtkTypeUInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt8, vtkAOSDataArrayTemplate<vtkTypeUInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt8, vtkAOSDataArrayTemplate<vtkTypeUInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt16, vtkAOSDataArrayTemplate<vtkTypeUInt8>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt16, vtkAOSDataArrayTemplate<vtkTypeUInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt16, vtkAOSDataArrayTemplate<vtkTypeUInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt16, vtkAOSDataArrayTemplate<vtkTypeUInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt32, vtkAOSDataArrayTemplate<vtkTypeUInt8>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt32, vtkAOSDataArrayTemplate<vtkTypeUInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt32, vtkAOSDataArrayTemplate<vtkTypeUInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt32, vtkAOSDataArrayTemplate<vtkTypeUInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt64, vtkAOSDataArrayTemplate<vtkTypeUInt8>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt64, vtkAOSDataArrayTemplate<vtkTypeUInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt64, vtkAOSDataArrayTemplate<vtkTypeUInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt64, vtkAOSDataArrayTemplate<vtkTypeUInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt8, vtkAOSDataArrayTemplate<vtkTypeInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt8, vtkAOSDataArrayTemplate<vtkTypeInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt8, vtkAOSDataArrayTemplate<vtkTypeInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt16, vtkAOSDataArrayTemplate<vtkTypeInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt16, vtkAOSDataArrayTemplate<vtkTypeInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt16, vtkAOSDataArrayTemplate<vtkTypeInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt32, vtkAOSDataArrayTemplate<vtkTypeInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt32, vtkAOSDataArrayTemplate<vtkTypeInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt32, vtkAOSDataArrayTemplate<vtkTypeInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt64, vtkAOSDataArrayTemplate<vtkTypeInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt64, vtkAOSDataArrayTemplate<vtkTypeInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt64, vtkAOSDataArrayTemplate<vtkTypeInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt16, vtkAOSDataArrayTemplate<vtkTypeUInt8>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt16, vtkAOSDataArrayTemplate<vtkTypeUInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt16, vtkAOSDataArrayTemplate<vtkTypeUInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt16, vtkAOSDataArrayTemplate<vtkTypeUInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt32, vtkAOSDataArrayTemplate<vtkTypeUInt8>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt32, vtkAOSDataArrayTemplate<vtkTypeUInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt32, vtkAOSDataArrayTemplate<vtkTypeUInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt32, vtkAOSDataArrayTemplate<vtkTypeUInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt64, vtkAOSDataArrayTemplate<vtkTypeUInt8>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt64, vtkAOSDataArrayTemplate<vtkTypeUInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt64, vtkAOSDataArrayTemplate<vtkTypeUInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt64, vtkAOSDataArrayTemplate<vtkTypeUInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt16, vtkAOSDataArrayTemplate<vtkTypeInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt16, vtkAOSDataArrayTemplate<vtkTypeInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt16, vtkAOSDataArrayTemplate<vtkTypeInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt32, vtkAOSDataArrayTemplate<vtkTypeInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt32, vtkAOSDataArrayTemplate<vtkTypeInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt32, vtkAOSDataArrayTemplate<vtkTypeInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt64, vtkAOSDataArrayTemplate<vtkTypeInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt64, vtkAOSDataArrayTemplate<vtkTypeInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt64, vtkAOSDataArrayTemplate<vtkTypeInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  // Offsets: All integral types, Connectivity: vtkSOADataArrayTemplate<All integral types>
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt8, vtkSOADataArrayTemplate<vtkTypeUInt8>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt8, vtkSOADataArrayTemplate<vtkTypeUInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt8, vtkSOADataArrayTemplate<vtkTypeUInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt8, vtkSOADataArrayTemplate<vtkTypeUInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt16, vtkSOADataArrayTemplate<vtkTypeUInt8>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt16, vtkSOADataArrayTemplate<vtkTypeUInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt16, vtkSOADataArrayTemplate<vtkTypeUInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt16, vtkSOADataArrayTemplate<vtkTypeUInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt32, vtkSOADataArrayTemplate<vtkTypeUInt8>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt32, vtkSOADataArrayTemplate<vtkTypeUInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt32, vtkSOADataArrayTemplate<vtkTypeUInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt32, vtkSOADataArrayTemplate<vtkTypeUInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt64, vtkSOADataArrayTemplate<vtkTypeUInt8>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt64, vtkSOADataArrayTemplate<vtkTypeUInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt64, vtkSOADataArrayTemplate<vtkTypeUInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt64, vtkSOADataArrayTemplate<vtkTypeUInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt8, vtkSOADataArrayTemplate<vtkTypeInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt8, vtkSOADataArrayTemplate<vtkTypeInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt8, vtkSOADataArrayTemplate<vtkTypeInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt16, vtkSOADataArrayTemplate<vtkTypeInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt16, vtkSOADataArrayTemplate<vtkTypeInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt16, vtkSOADataArrayTemplate<vtkTypeInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt32, vtkSOADataArrayTemplate<vtkTypeInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt32, vtkSOADataArrayTemplate<vtkTypeInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt32, vtkSOADataArrayTemplate<vtkTypeInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt64, vtkSOADataArrayTemplate<vtkTypeInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt64, vtkSOADataArrayTemplate<vtkTypeInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt64, vtkSOADataArrayTemplate<vtkTypeInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt16, vtkSOADataArrayTemplate<vtkTypeUInt8>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt16, vtkSOADataArrayTemplate<vtkTypeUInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt16, vtkSOADataArrayTemplate<vtkTypeUInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt16, vtkSOADataArrayTemplate<vtkTypeUInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt32, vtkSOADataArrayTemplate<vtkTypeUInt8>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt32, vtkSOADataArrayTemplate<vtkTypeUInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt32, vtkSOADataArrayTemplate<vtkTypeUInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt32, vtkSOADataArrayTemplate<vtkTypeUInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt64, vtkSOADataArrayTemplate<vtkTypeUInt8>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt64, vtkSOADataArrayTemplate<vtkTypeUInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt64, vtkSOADataArrayTemplate<vtkTypeUInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt64, vtkSOADataArrayTemplate<vtkTypeUInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt16, vtkSOADataArrayTemplate<vtkTypeInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt16, vtkSOADataArrayTemplate<vtkTypeInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt16, vtkSOADataArrayTemplate<vtkTypeInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt32, vtkSOADataArrayTemplate<vtkTypeInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt32, vtkSOADataArrayTemplate<vtkTypeInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt32, vtkSOADataArrayTemplate<vtkTypeInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt64, vtkSOADataArrayTemplate<vtkTypeInt16>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt64, vtkSOADataArrayTemplate<vtkTypeInt32>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt64, vtkSOADataArrayTemplate<vtkTypeInt64>>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  // Offsets: All integral types, Connectivity: vtkIdTypeArray
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt8, vtkIdTypeArray>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt16, vtkIdTypeArray>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt32, vtkIdTypeArray>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeUInt64, vtkIdTypeArray>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt16, vtkIdTypeArray>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt32, vtkIdTypeArray>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  TestSetDataSingleCellTypeSeparateDataTypes<vtkTypeInt64, vtkIdTypeArray>(vtk::TakeSmartPointer(vtkCellArray::New()));
+  // clang-format on
 }
 
 } // end anon namespace
