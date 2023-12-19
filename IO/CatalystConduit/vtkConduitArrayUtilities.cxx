@@ -8,6 +8,7 @@
 #include "vtkLogger.h"
 #include "vtkObjectFactory.h"
 #include "vtkSOADataArrayTemplate.h"
+#include "vtkSetGet.h"
 #include "vtkTypeFloat32Array.h"
 #include "vtkTypeFloat64Array.h"
 #include "vtkTypeInt16Array.h"
@@ -19,9 +20,17 @@
 #include "vtkTypeUInt64Array.h"
 #include "vtkTypeUInt8Array.h"
 
+#if VTK_MODULE_ENABLE_VTK_AcceleratorsVTKmDataModel
+#include "vtkm/cont/ArrayHandle.h"
+#include "vtkm/cont/CellSetSingleType.h"
+#include "vtkm/cont/DeviceAdapterTag.h"
+#include "vtkmDataArray.h"
+#endif
+
 #include <catalyst_conduit.hpp>
 #include <catalyst_conduit_blueprint.hpp>
 
+#include <type_traits>
 #include <vector>
 
 namespace internals
@@ -205,9 +214,9 @@ vtkConduitArrayUtilities::~vtkConduitArrayUtilities() = default;
 
 //----------------------------------------------------------------------------
 vtkSmartPointer<vtkDataArray> vtkConduitArrayUtilities::MCArrayToVTKArray(
-  const conduit_node* mcarray, const std::string& arrayname)
+  const conduit_node* mcarray, const std::string& arrayname, MemorySpaceTypes memorySpace)
 {
-  if (auto array = vtkConduitArrayUtilities::MCArrayToVTKArray(mcarray))
+  if (auto array = vtkConduitArrayUtilities::MCArrayToVTKArray(mcarray, memorySpace))
   {
     array->SetName(arrayname.c_str());
     return array;
@@ -217,9 +226,9 @@ vtkSmartPointer<vtkDataArray> vtkConduitArrayUtilities::MCArrayToVTKArray(
 
 //----------------------------------------------------------------------------
 vtkSmartPointer<vtkDataArray> vtkConduitArrayUtilities::MCArrayToVTKArray(
-  const conduit_node* mcarray)
+  const conduit_node* mcarray, MemorySpaceTypes memorySpace)
 {
-  return vtkConduitArrayUtilities::MCArrayToVTKArrayImpl(mcarray, false);
+  return vtkConduitArrayUtilities::MCArrayToVTKArrayImpl(mcarray, memorySpace, false);
 }
 
 //----------------------------------------------------------------------------
@@ -260,7 +269,7 @@ vtkSmartPointer<vtkDataArray> vtkConduitArrayUtilities::MCGhostArrayToVTKGhostAr
 
 //----------------------------------------------------------------------------
 vtkSmartPointer<vtkDataArray> vtkConduitArrayUtilities::MCArrayToVTKArrayImpl(
-  const conduit_node* c_mcarray, bool force_signed)
+  const conduit_node* c_mcarray, MemorySpaceTypes memorySpace, bool force_signed)
 {
   // XXX(const-correctness): This should really be `const Node`, but is used
   // non-const in the `set_external` below.
@@ -275,14 +284,14 @@ vtkSmartPointer<vtkDataArray> vtkConduitArrayUtilities::MCArrayToVTKArrayImpl(
       conduit_cpp::Node temp;
       temp.append().set_external(mcarray);
       return vtkConduitArrayUtilities::MCArrayToVTKArrayImpl(
-        conduit_cpp::c_node(&temp), force_signed);
+        conduit_cpp::c_node(&temp), memorySpace, force_signed);
     }
     // in some cases, the array is inside a values subnode. handle that
     else if (mcarray.has_path("values"))
     {
       const auto& tmp = mcarray["values"];
       return vtkConduitArrayUtilities::MCArrayToVTKArrayImpl(
-        conduit_cpp::c_node(&tmp), force_signed);
+        conduit_cpp::c_node(&tmp), memorySpace, force_signed);
     }
     else
     {
@@ -316,18 +325,60 @@ vtkSmartPointer<vtkDataArray> vtkConduitArrayUtilities::MCArrayToVTKArrayImpl(
 
   if (conduit_cpp::BlueprintMcArray::is_interleaved(mcarray))
   {
-    return vtkConduitArrayUtilities::MCArrayToVTKAOSArray(
-      conduit_cpp::c_node(&mcarray), force_signed);
+    if (vtkConduitArrayUtilities::IsDirectAccessPossible(memorySpace))
+    {
+      return vtkConduitArrayUtilities::MCArrayToVTKAOSArray(
+        conduit_cpp::c_node(&mcarray), force_signed);
+    }
+    else
+    {
+#if VTK_MODULE_ENABLE_VTK_AcceleratorsVTKmDataModel
+      return vtkConduitArrayUtilities::MCArrayToVTKmAOSArray(
+        conduit_cpp::c_node(&mcarray), memorySpace, force_signed);
+#else
+      vtkErrorMacro(<< "External memory space is inaccessible. Please enable VTK-m in "
+                       "your VTK build configuration.");
+      return nullptr;
+#endif
+    }
   }
   else if (internals::is_contiguous(mcarray))
   {
-    return vtkConduitArrayUtilities::MCArrayToVTKSOAArray(
-      conduit_cpp::c_node(&mcarray), force_signed);
+    if (vtkConduitArrayUtilities::IsDirectAccessPossible(memorySpace))
+    {
+      return vtkConduitArrayUtilities::MCArrayToVTKSOAArray(
+        conduit_cpp::c_node(&mcarray), force_signed);
+    }
+    else
+    {
+#if VTK_MODULE_ENABLE_VTK_AcceleratorsVTKmDataModel
+      return vtkConduitArrayUtilities::MCArrayToVTKmSOAArray(
+        conduit_cpp::c_node(&mcarray), memorySpace, force_signed);
+#else
+      vtkErrorMacro(<< "External memory space is inaccessible. Please enable VTK-m in "
+                       "your VTK build configuration.");
+      return nullptr;
+#endif
+    }
   }
   else if (mcarray.dtype().number_of_elements() == 1)
   {
-    return vtkConduitArrayUtilities::MCArrayToVTKSOAArray(
-      conduit_cpp::c_node(&mcarray), force_signed);
+    if (vtkConduitArrayUtilities::IsDirectAccessPossible(memorySpace))
+    {
+      return vtkConduitArrayUtilities::MCArrayToVTKSOAArray(
+        conduit_cpp::c_node(&mcarray), force_signed);
+    }
+    else
+    {
+#if VTK_MODULE_ENABLE_VTK_AcceleratorsVTKmDataModel
+      return vtkConduitArrayUtilities::MCArrayToVTKmSOAArray(
+        conduit_cpp::c_node(&mcarray), memorySpace, force_signed);
+#else
+      vtkErrorMacro(<< "External memory space is inaccessible. Please enable VTK-m in "
+                       "your VTK build configuration.");
+      return nullptr;
+#endif
+    }
   }
   else
   {
@@ -481,9 +532,10 @@ struct NoOp
 
 //----------------------------------------------------------------------------
 vtkSmartPointer<vtkCellArray> vtkConduitArrayUtilities::MCArrayToVTKCellArray(
-  vtkIdType cellSize, const conduit_node* mcarray)
+  vtkIdType cellSize, MemorySpaceTypes memorySpace, const conduit_node* mcarray)
 {
-  auto array = vtkConduitArrayUtilities::MCArrayToVTKArrayImpl(mcarray, /*force_signed*/ true);
+  auto array =
+    vtkConduitArrayUtilities::MCArrayToVTKArrayImpl(mcarray, memorySpace, /*force_signed*/ true);
   if (!array)
   {
     return nullptr;
@@ -495,59 +547,15 @@ vtkSmartPointer<vtkCellArray> vtkConduitArrayUtilities::MCArrayToVTKCellArray(
   return cellArray;
 }
 
-VTK_ABI_NAMESPACE_END
-
-namespace
-{
-VTK_ABI_NAMESPACE_BEGIN
-
-struct O2MRelationToVTKCellArrayWorker
-{
-  vtkNew<vtkCellArray> Cells;
-
-  template <typename ElementsArray, typename SizesArray, typename OffsetsArray>
-  void operator()(ElementsArray* elements, SizesArray* sizes, OffsetsArray* offsets)
-  {
-    VTK_ASSUME(elements->GetNumberOfComponents() == 1);
-    VTK_ASSUME(sizes->GetNumberOfComponents() == 1);
-    VTK_ASSUME(offsets->GetNumberOfComponents() == 1);
-
-    auto& cellArray = this->Cells;
-    cellArray->AllocateEstimate(offsets->GetNumberOfTuples(),
-      std::max(static_cast<vtkIdType>(sizes->GetRange(0)[1]), vtkIdType(1)));
-
-    vtkDataArrayAccessor<ElementsArray> e(elements);
-    vtkDataArrayAccessor<SizesArray> s(sizes);
-    vtkDataArrayAccessor<OffsetsArray> o(offsets);
-
-    const auto numElements = sizes->GetNumberOfTuples();
-    for (vtkIdType id = 0; id < numElements; ++id)
-    {
-      const auto offset = static_cast<vtkIdType>(o.Get(id, 0));
-      const auto size = static_cast<vtkIdType>(s.Get(id, 0));
-
-      cellArray->InsertNextCell(size);
-      for (vtkIdType cc = 0; cc < size; ++cc)
-      {
-        cellArray->InsertCellPoint(e.Get(offset + cc, 0));
-      }
-    }
-  }
-};
-VTK_ABI_NAMESPACE_END
-}
-
-VTK_ABI_NAMESPACE_BEGIN
-
 //----------------------------------------------------------------------------
 vtkSmartPointer<vtkCellArray> vtkConduitArrayUtilities::O2MRelationToVTKCellArray(
-  const conduit_node* c_o2mrelation, const std::string& leafname)
+  const conduit_node* c_o2mrelation, MemorySpaceTypes memorySpace, const std::string& leafname)
 {
   const conduit_cpp::Node o2mrelation =
     conduit_cpp::cpp_node(const_cast<conduit_node*>(c_o2mrelation));
   const auto leaf = o2mrelation[leafname];
   auto elements = vtkConduitArrayUtilities::MCArrayToVTKArrayImpl(
-    conduit_cpp::c_node(&leaf), /*force_signed*/ true);
+    conduit_cpp::c_node(&leaf), memorySpace, /*force_signed*/ true);
   if (!elements)
   {
     return nullptr;
@@ -558,27 +566,208 @@ vtkSmartPointer<vtkCellArray> vtkConduitArrayUtilities::O2MRelationToVTKCellArra
     vtkLogF(WARNING, "'indices' in a O2MRelation are currently ignored.");
   }
 
-  const auto node_sizes = o2mrelation["sizes"];
-  auto sizes = vtkConduitArrayUtilities::MCArrayToVTKArrayImpl(
-    conduit_cpp::c_node(&node_sizes), /*force_signed*/ true);
   const auto node_offsets = o2mrelation["offsets"];
   auto offsets = vtkConduitArrayUtilities::MCArrayToVTKArrayImpl(
-    conduit_cpp::c_node(&node_offsets), /*force_signed*/ true);
+    conduit_cpp::c_node(&node_offsets), memorySpace, /*force_signed*/ true);
 
-  O2MRelationToVTKCellArrayWorker worker;
+  vtkNew<vtkCellArray> cellArray;
+  cellArray->SetData(offsets, elements);
+  return cellArray;
+}
 
-  // Using a reduced type list for typical id types.
-  using TypeList =
-    vtkTypeList::Unique<vtkTypeList::Create<vtkTypeInt32, vtkTypeInt64, vtkIdType>>::Result;
-
-  using Dispatcher = vtkArrayDispatch::Dispatch3ByValueType<TypeList, TypeList, TypeList>;
-  if (!Dispatcher::Execute(elements.GetPointer(), sizes.GetPointer(), offsets.GetPointer(), worker))
+#if VTK_MODULE_ENABLE_VTK_AcceleratorsVTKmDataModel
+bool vtkConduitArrayUtilities::IsDirectAccessPossible(
+  vtkConduitArrayUtilities::MemorySpaceTypes spaceType)
+{
+  bool result = false;
+  switch (spaceType)
   {
-    worker(elements.GetPointer(), sizes.GetPointer(), offsets.GetPointer());
+    case vtkConduitArrayUtilities::Serial:
+    case vtkConduitArrayUtilities::OpenMP:
+      result = true;
+      break;
+    case vtkConduitArrayUtilities::CUDA:
+    case vtkConduitArrayUtilities::TBB:
+    case vtkConduitArrayUtilities::Kokkos:
+    default:
+      result = false;
+      break;
+  }
+  return result;
+}
+
+#define vtkmAOSDataArrayConstructSingleComponent(dtype, nvals, raw_ptr)                            \
+  do                                                                                               \
+  {                                                                                                \
+    return make_vtkmDataArray(vtkm::cont::ArrayHandle<dtype>(                                      \
+      std::vector<vtkm::cont::internal::Buffer>{ vtkm::cont::internal::MakeBuffer(                 \
+        vtkm::cont::make_DeviceAdapterId(                                                          \
+          static_cast<std::underlying_type<MemorySpaceTypes>::type>(memorySpace)),                 \
+        reinterpret_cast<dtype*>(raw_ptr), reinterpret_cast<dtype*>(raw_ptr),                      \
+        vtkm::internal::NumberOfValuesToNumberOfBytes<dtype>(nvals), [](void*) {},                 \
+        vtkm::cont::internal::InvalidRealloc) }));                                                 \
+  } while (0)
+
+#define vtkmAOSDataArrayConstructMultiComponent(dtype, ntups, ncomp, raw_ptr)                      \
+  do                                                                                               \
+  {                                                                                                \
+    return make_vtkmDataArray(vtkm::cont::ArrayHandle<vtkm::Vec<dtype, ncomp>>(                    \
+      std::vector<vtkm::cont::internal::Buffer>{ vtkm::cont::internal::MakeBuffer(                 \
+        vtkm::cont::make_DeviceAdapterId(                                                          \
+          static_cast<std::underlying_type<MemorySpaceTypes>::type>(memorySpace)),                 \
+        reinterpret_cast<dtype*>(raw_ptr), reinterpret_cast<dtype*>(raw_ptr),                      \
+        vtkm::internal::NumberOfValuesToNumberOfBytes<dtype>(ntups * ncomp), [](void*) {},         \
+        vtkm::cont::internal::InvalidRealloc) }));                                                 \
+  } while (0)
+
+#define vtkmAOSDataArrayNumComponentsBody(dtype, ntups, ncomp, raw_ptr)                            \
+  switch (num_components)                                                                          \
+  {                                                                                                \
+    case 1:                                                                                        \
+      vtkmAOSDataArrayConstructSingleComponent(dtype, num_tuples, raw_ptr);                        \
+    case 2:                                                                                        \
+      vtkmAOSDataArrayConstructMultiComponent(dtype, num_tuples, 2, raw_ptr);                      \
+    case 3:                                                                                        \
+      vtkmAOSDataArrayConstructMultiComponent(dtype, num_tuples, 3, raw_ptr);                      \
+    case 4:                                                                                        \
+      vtkmAOSDataArrayConstructMultiComponent(dtype, num_tuples, 4, raw_ptr);                      \
+    case 5:                                                                                        \
+      vtkmAOSDataArrayConstructMultiComponent(dtype, num_tuples, 5, raw_ptr);                      \
+    case 6:                                                                                        \
+    default:                                                                                       \
+      vtkmAOSDataArrayConstructMultiComponent(dtype, num_tuples, 6, raw_ptr);                      \
   }
 
-  return worker.Cells;
+#define vtkmAOSDataArrayCase(conduitTypeId, dtype, ntups, ncomp, raw_ptr)                          \
+  case conduitTypeId:                                                                              \
+  {                                                                                                \
+    vtkmAOSDataArrayNumComponentsBody(dtype, ntups, ncomp, raw_ptr);                               \
+  }                                                                                                \
+  break
+
+//----------------------------------------------------------------------------
+vtkSmartPointer<vtkDataArray> vtkConduitArrayUtilities::MCArrayToVTKmAOSArray(
+  const conduit_node* c_mcarray, MemorySpaceTypes memorySpace, bool force_signed)
+{
+  const conduit_cpp::Node mcarray = conduit_cpp::cpp_node(const_cast<conduit_node*>(c_mcarray));
+  const auto& child0 = mcarray.child(0);
+  const conduit_cpp::DataType dtype0 = child0.dtype();
+
+  const int num_components = static_cast<int>(mcarray.number_of_children());
+  const vtkIdType num_tuples = static_cast<vtkIdType>(dtype0.number_of_elements());
+  void* raw_ptr = const_cast<void*>(child0.element_ptr(0));
+
+  using conduit_dtype = conduit_cpp::DataType::Id;
+
+  switch (internals::GetTypeId(dtype0.id(), force_signed))
+  {
+    vtkmAOSDataArrayCase(conduit_dtype::int8, vtkm::Int8, num_tuples, num_components, raw_ptr);
+    vtkmAOSDataArrayCase(conduit_dtype::int16, vtkm::Int16, num_tuples, num_components, raw_ptr);
+    vtkmAOSDataArrayCase(conduit_dtype::int32, vtkm::Int32, num_tuples, num_components, raw_ptr);
+    vtkmAOSDataArrayCase(conduit_dtype::int64, vtkm::Int64, num_tuples, num_components, raw_ptr);
+    vtkmAOSDataArrayCase(conduit_dtype::uint8, vtkm::UInt8, num_tuples, num_components, raw_ptr);
+    vtkmAOSDataArrayCase(conduit_dtype::uint16, vtkm::UInt16, num_tuples, num_components, raw_ptr);
+    vtkmAOSDataArrayCase(conduit_dtype::uint32, vtkm::UInt32, num_tuples, num_components, raw_ptr);
+    vtkmAOSDataArrayCase(conduit_dtype::uint64, vtkm::UInt64, num_tuples, num_components, raw_ptr);
+    vtkmAOSDataArrayCase(
+      conduit_dtype::float32, vtkm::Float32, num_tuples, num_components, raw_ptr);
+    vtkmAOSDataArrayCase(
+      conduit_dtype::float64, vtkm::Float64, num_tuples, num_components, raw_ptr);
+    default:
+      vtkLogF(ERROR, "unsupported data type '%s' ", dtype0.name().c_str());
+      return {};
+  }
+  return {};
 }
+
+#define vtkmSOADataArrayConstructSingleComponent(dtype, nvals)                                     \
+  do                                                                                               \
+  {                                                                                                \
+    std::vector<vtkm::cont::internal::Buffer> buffers;                                             \
+    buffers.reserve(num_components);                                                               \
+    for (int cc = 0; cc < num_components; ++cc)                                                    \
+    {                                                                                              \
+      buffers.push_back(vtkm::cont::internal::MakeBuffer(                                          \
+        vtkm::cont::make_DeviceAdapterId(                                                          \
+          static_cast<std::underlying_type<MemorySpaceTypes>::type>(memorySpace)),                 \
+        reinterpret_cast<dtype*>(const_cast<void*>(mcarray.child(cc).element_ptr(0))),             \
+        reinterpret_cast<dtype*>(const_cast<void*>(mcarray.child(cc).element_ptr(0))),             \
+        vtkm::internal::NumberOfValuesToNumberOfBytes<dtype>(nvals), [](void*) {},                 \
+        vtkm::cont::internal::InvalidRealloc));                                                    \
+    }                                                                                              \
+    return make_vtkmDataArray(vtkm::cont::ArrayHandle<dtype>(buffers));                            \
+  } while (0)
+
+#define vtkmSOADataArrayConstructMultiComponent(dtype, ntups, ncomp)                               \
+  do                                                                                               \
+  {                                                                                                \
+    std::vector<vtkm::cont::internal::Buffer> buffers;                                             \
+    buffers.reserve(num_components);                                                               \
+    for (int cc = 0; cc < num_components; ++cc)                                                    \
+    {                                                                                              \
+      buffers.push_back(vtkm::cont::internal::MakeBuffer(                                          \
+        vtkm::cont::make_DeviceAdapterId(                                                          \
+          static_cast<std::underlying_type<MemorySpaceTypes>::type>(memorySpace)),                 \
+        reinterpret_cast<dtype*>(const_cast<void*>(mcarray.child(cc).element_ptr(0))),             \
+        reinterpret_cast<dtype*>(const_cast<void*>(mcarray.child(cc).element_ptr(0))),             \
+        vtkm::internal::NumberOfValuesToNumberOfBytes<dtype>(num_tuples), [](void*) {},            \
+        vtkm::cont::internal::InvalidRealloc));                                                    \
+    }                                                                                              \
+    return make_vtkmDataArray(vtkm::cont::ArrayHandleSOA<vtkm::Vec<dtype, ncomp>>(buffers));       \
+  } while (0)
+
+#define vtkmSOADataArrayCase(conduitTypeId, dtype, ntups, ncomp)                                   \
+  case conduitTypeId:                                                                              \
+  {                                                                                                \
+    switch (num_components)                                                                        \
+    {                                                                                              \
+      case 1:                                                                                      \
+        vtkmSOADataArrayConstructSingleComponent(dtype, num_tuples);                               \
+      case 2:                                                                                      \
+        vtkmSOADataArrayConstructMultiComponent(dtype, num_tuples, 2);                             \
+      case 3:                                                                                      \
+        vtkmSOADataArrayConstructMultiComponent(dtype, num_tuples, 3);                             \
+      case 4:                                                                                      \
+        vtkmSOADataArrayConstructMultiComponent(dtype, num_tuples, 4);                             \
+      case 5:                                                                                      \
+        vtkmSOADataArrayConstructMultiComponent(dtype, num_tuples, 5);                             \
+      case 6:                                                                                      \
+      default:                                                                                     \
+        vtkmSOADataArrayConstructMultiComponent(dtype, num_tuples, 6);                             \
+    }                                                                                              \
+  }                                                                                                \
+  break
+
+//----------------------------------------------------------------------------
+vtkSmartPointer<vtkDataArray> vtkConduitArrayUtilities::MCArrayToVTKmSOAArray(
+  const conduit_node* c_mcarray, MemorySpaceTypes memorySpace, bool force_signed)
+{
+  const conduit_cpp::Node mcarray = conduit_cpp::cpp_node(const_cast<conduit_node*>(c_mcarray));
+  const conduit_cpp::DataType dtype0 = mcarray.child(0).dtype();
+  const int num_components = static_cast<int>(mcarray.number_of_children());
+  const vtkIdType num_tuples = static_cast<vtkIdType>(dtype0.number_of_elements());
+
+  using conduit_dtype = conduit_cpp::DataType::Id;
+
+  switch (internals::GetTypeId(dtype0.id(), force_signed))
+  {
+    vtkmSOADataArrayCase(conduit_dtype::int8, vtkm::Int8, num_tuples, num_components);
+    vtkmSOADataArrayCase(conduit_dtype::int16, vtkm::Int16, num_tuples, num_components);
+    vtkmSOADataArrayCase(conduit_dtype::int32, vtkm::Int32, num_tuples, num_components);
+    vtkmSOADataArrayCase(conduit_dtype::int64, vtkm::Int64, num_tuples, num_components);
+    vtkmSOADataArrayCase(conduit_dtype::uint8, vtkm::UInt8, num_tuples, num_components);
+    vtkmSOADataArrayCase(conduit_dtype::uint16, vtkm::UInt16, num_tuples, num_components);
+    vtkmSOADataArrayCase(conduit_dtype::uint32, vtkm::UInt32, num_tuples, num_components);
+    vtkmSOADataArrayCase(conduit_dtype::uint64, vtkm::UInt64, num_tuples, num_components);
+    vtkmSOADataArrayCase(conduit_dtype::float32, vtkm::Float32, num_tuples, num_components);
+    vtkmSOADataArrayCase(conduit_dtype::float64, vtkm::Float64, num_tuples, num_components);
+    default:
+      vtkLogF(ERROR, "unsupported data type '%s' ", dtype0.name().c_str());
+      return {};
+  }
+  return {};
+}
+#endif
 
 //----------------------------------------------------------------------------
 void vtkConduitArrayUtilities::PrintSelf(ostream& os, vtkIndent indent)

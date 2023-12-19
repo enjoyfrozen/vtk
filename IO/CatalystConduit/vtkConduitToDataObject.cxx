@@ -34,7 +34,8 @@ namespace vtkConduitToDataObject
 VTK_ABI_NAMESPACE_BEGIN
 
 //----------------------------------------------------------------------------
-bool FillPartionedDataSet(vtkPartitionedDataSet* output, const conduit_cpp::Node& node)
+bool FillPartionedDataSet(vtkPartitionedDataSet* output, const conduit_cpp::Node& node,
+  vtkConduitArrayUtilities::MemorySpaceTypes memorySpace)
 {
   conduit_cpp::Node info;
   if (!conduit_cpp::BlueprintMesh::verify(node, info))
@@ -54,7 +55,7 @@ bool FillPartionedDataSet(vtkPartitionedDataSet* output, const conduit_cpp::Node
     auto child = topologies.child(i);
     try
     {
-      if (auto ds = CreateMesh(child, node["coordsets"]))
+      if (auto ds = CreateMesh(child, node["coordsets"], memorySpace))
       {
         auto idx = output->GetNumberOfPartitions();
         output->SetPartition(idx, ds);
@@ -75,7 +76,7 @@ bool FillPartionedDataSet(vtkPartitionedDataSet* output, const conduit_cpp::Node
   {
     for (const auto& dataset : datasets)
     {
-      AddFieldData(dataset.second.Get(), node["state/fields"]);
+      AddFieldData(dataset.second.Get(), node["state/fields"], memorySpace);
     }
   }
 
@@ -119,8 +120,8 @@ bool FillPartionedDataSet(vtkPartitionedDataSet* output, const conduit_cpp::Node
         }
         else
         {
-          array =
-            vtkConduitArrayUtilities::MCArrayToVTKArray(conduit_cpp::c_node(&values), fieldname);
+          array = vtkConduitArrayUtilities::MCArrayToVTKArray(
+            conduit_cpp::c_node(&values), fieldname, memorySpace);
           if (array->GetNumberOfTuples() != dataset->GetNumberOfElements(vtk_association))
           {
             throw std::runtime_error("mismatched tuple count!");
@@ -141,7 +142,8 @@ bool FillPartionedDataSet(vtkPartitionedDataSet* output, const conduit_cpp::Node
 }
 
 //----------------------------------------------------------------------------
-bool FillAMRMesh(vtkOverlappingAMR* amr, const conduit_cpp::Node& node)
+bool FillAMRMesh(vtkOverlappingAMR* amr, const conduit_cpp::Node& node,
+  vtkConduitArrayUtilities::MemorySpaceTypes memorySpace)
 {
   const int default_refinement_ratio = 2;
 
@@ -288,7 +290,7 @@ bool FillAMRMesh(vtkOverlappingAMR* amr, const conduit_cpp::Node& node)
       ug->SetDimensions(pdims);
 
       const auto fields = child["fields"];
-      AddFieldData(ug, fields, true);
+      AddFieldData(ug, fields, memorySpace, true);
 
       vtkAMRBox box(origin, pdims, spacing, global_origin, amr->GetGridDescription());
       // set level spacing
@@ -382,8 +384,8 @@ bool FillAMRMesh(vtkOverlappingAMR* amr, const conduit_cpp::Node& node)
 }
 
 //----------------------------------------------------------------------------
-vtkSmartPointer<vtkDataSet> CreateMesh(
-  const conduit_cpp::Node& topology, const conduit_cpp::Node& coordsets)
+vtkSmartPointer<vtkDataSet> CreateMesh(const conduit_cpp::Node& topology,
+  const conduit_cpp::Node& coordsets, vtkConduitArrayUtilities::MemorySpaceTypes memorySpace)
 {
   // get the coordset for this topology element.
   auto coords = coordsets[topology["coordset"].as_string()];
@@ -394,12 +396,12 @@ vtkSmartPointer<vtkDataSet> CreateMesh(
 
   if (topology["type"].as_string() == "rectilinear" && coords["type"].as_string() == "rectilinear")
   {
-    return CreateRectilinearGrid(coords);
+    return CreateRectilinearGrid(coords, memorySpace);
   }
 
   if (topology["type"].as_string() == "structured" && coords["type"].as_string() == "explicit")
   {
-    return CreateStructuredGrid(topology, coords);
+    return CreateStructuredGrid(topology, coords, memorySpace);
   }
 
   if (coords["type"].as_string() == "explicit" && topology["type"].as_string() == "unstructured" &&
@@ -408,11 +410,11 @@ vtkSmartPointer<vtkDataSet> CreateMesh(
     std::string shape = topology["elements/shape"].as_string();
     if (shape != "mixed")
     {
-      return CreateMonoShapedUnstructuredGrid(topology, coords);
+      return CreateMonoShapedUnstructuredGrid(topology, coords, memorySpace);
     }
     else if (topology.has_path("elements/shape_map") && topology.has_path("elements/shapes"))
     {
-      return CreateMixedUnstructuredGrid(topology, coords);
+      return CreateMixedUnstructuredGrid(topology, coords, memorySpace);
     }
     // if there are no cells in the Conduit mesh, return an empty ug
     return vtkSmartPointer<vtkUnstructuredGrid>::New();
@@ -454,36 +456,22 @@ vtkSmartPointer<vtkImageData> CreateImageData(const conduit_cpp::Node& coordset)
 }
 
 //----------------------------------------------------------------------------
-vtkSmartPointer<vtkRectilinearGrid> CreateRectilinearGrid(const conduit_cpp::Node& coordset)
+vtkSmartPointer<vtkRectilinearGrid> CreateRectilinearGrid(
+  const conduit_cpp::Node& coordset, vtkConduitArrayUtilities::MemorySpaceTypes memorySpace)
 {
   auto rectilinearGrid = vtkSmartPointer<vtkRectilinearGrid>::New();
 
-  conduit_cpp::Node values_x;
   const bool has_x_values = coordset.has_path("values/x");
-  if (has_x_values)
-  {
-    values_x = coordset["values/x"];
-  }
-
-  conduit_cpp::Node values_y;
   const bool has_y_values = coordset.has_path("values/y");
-  if (has_y_values)
-  {
-    values_y = coordset["values/y"];
-  }
-
-  conduit_cpp::Node values_z;
   const bool has_z_values = coordset.has_path("values/z");
-  if (has_z_values)
-  {
-    values_z = coordset["values/z"];
-  }
 
   vtkIdType x_dimension = 1;
   vtkSmartPointer<vtkDataArray> xArray;
   if (has_x_values)
   {
-    xArray = vtkConduitArrayUtilities::MCArrayToVTKArray(conduit_cpp::c_node(&values_x), "xcoords");
+    const auto& values_x = coordset["values/x"];
+    xArray = vtkConduitArrayUtilities::MCArrayToVTKArray(
+      conduit_cpp::c_node(&values_x), "xcoords", memorySpace);
     x_dimension = xArray->GetNumberOfTuples();
   }
 
@@ -491,7 +479,9 @@ vtkSmartPointer<vtkRectilinearGrid> CreateRectilinearGrid(const conduit_cpp::Nod
   vtkSmartPointer<vtkDataArray> yArray;
   if (has_y_values)
   {
-    yArray = vtkConduitArrayUtilities::MCArrayToVTKArray(conduit_cpp::c_node(&values_y), "ycoords");
+    const auto& values_y = coordset["values/y"];
+    yArray = vtkConduitArrayUtilities::MCArrayToVTKArray(
+      conduit_cpp::c_node(&values_y), "ycoords", memorySpace);
     y_dimension = yArray->GetNumberOfTuples();
   }
 
@@ -499,7 +489,9 @@ vtkSmartPointer<vtkRectilinearGrid> CreateRectilinearGrid(const conduit_cpp::Nod
   vtkSmartPointer<vtkDataArray> zArray;
   if (has_z_values)
   {
-    zArray = vtkConduitArrayUtilities::MCArrayToVTKArray(conduit_cpp::c_node(&values_z), "zcoords");
+    const auto& values_z = coordset["values/z"];
+    zArray = vtkConduitArrayUtilities::MCArrayToVTKArray(
+      conduit_cpp::c_node(&values_z), "zcoords", memorySpace);
     z_dimension = zArray->GetNumberOfTuples();
   }
   rectilinearGrid->SetDimensions(x_dimension, y_dimension, z_dimension);
@@ -521,12 +513,12 @@ vtkSmartPointer<vtkRectilinearGrid> CreateRectilinearGrid(const conduit_cpp::Nod
 }
 
 //----------------------------------------------------------------------------
-vtkSmartPointer<vtkStructuredGrid> CreateStructuredGrid(
-  const conduit_cpp::Node& topology, const conduit_cpp::Node& coordset)
+vtkSmartPointer<vtkStructuredGrid> CreateStructuredGrid(const conduit_cpp::Node& topology,
+  const conduit_cpp::Node& coordset, vtkConduitArrayUtilities::MemorySpaceTypes memorySpace)
 {
   auto sg = vtkSmartPointer<vtkStructuredGrid>::New();
 
-  sg->SetPoints(CreatePoints(coordset));
+  sg->SetPoints(CreatePoints(coordset, memorySpace));
   sg->SetDimensions(
     topology.has_path("elements/dims/i") ? topology["elements/dims/i"].to_int32() + 1 : 1,
     topology.has_path("elements/dims/j") ? topology["elements/dims/j"].to_int32() + 1 : 1,
@@ -535,14 +527,14 @@ vtkSmartPointer<vtkStructuredGrid> CreateStructuredGrid(
 }
 
 //----------------------------------------------------------------------------
-vtkSmartPointer<vtkDataSet> CreateMonoShapedUnstructuredGrid(
-  const conduit_cpp::Node& topologyNode, const conduit_cpp::Node& coordset)
+vtkSmartPointer<vtkDataSet> CreateMonoShapedUnstructuredGrid(const conduit_cpp::Node& topologyNode,
+  const conduit_cpp::Node& coordset, vtkConduitArrayUtilities::MemorySpaceTypes memorySpace)
 {
   auto unstructured = vtkSmartPointer<vtkUnstructuredGrid>::New();
   conduit_cpp::Node connectivity = topologyNode["elements/connectivity"];
   const conduit_cpp::DataType dtype0 = connectivity.dtype();
   const auto nb_cells = dtype0.number_of_elements();
-  unstructured->SetPoints(CreatePoints(coordset));
+  unstructured->SetPoints(CreatePoints(coordset, memorySpace));
   const auto vtk_cell_type = GetCellType(topologyNode["elements/shape"].as_string());
   if (nb_cells > 0)
   {
@@ -553,9 +545,9 @@ vtkSmartPointer<vtkDataSet> CreateMonoShapedUnstructuredGrid(
       conduit_cpp::Node t_elements = topologyNode["elements"];
       conduit_cpp::Node t_subelements = topologyNode["subelements"];
       auto elements = vtkConduitArrayUtilities::O2MRelationToVTKCellArray(
-        conduit_cpp::c_node(&t_elements), "connectivity");
+        conduit_cpp::c_node(&t_elements), memorySpace, "connectivity");
       auto subelements = vtkConduitArrayUtilities::O2MRelationToVTKCellArray(
-        conduit_cpp::c_node(&t_subelements), "connectivity");
+        conduit_cpp::c_node(&t_subelements), memorySpace, "connectivity");
 
       // currently, this is an ugly deep-copy. Once vtkUnstructuredGrid is modified
       // as proposed here (vtk/vtk#18190), this will get simpler.
@@ -567,14 +559,14 @@ vtkSmartPointer<vtkDataSet> CreateMonoShapedUnstructuredGrid(
       // differently.
       conduit_cpp::Node t_elements = topologyNode["elements"];
       auto cellArray = vtkConduitArrayUtilities::O2MRelationToVTKCellArray(
-        conduit_cpp::c_node(&t_elements), "connectivity");
+        conduit_cpp::c_node(&t_elements), memorySpace, "connectivity");
       unstructured->SetCells(vtk_cell_type, cellArray);
     }
     else
     {
       const auto cell_size = GetNumberOfPointsInCellType(vtk_cell_type);
       auto cellArray = vtkConduitArrayUtilities::MCArrayToVTKCellArray(
-        cell_size, conduit_cpp::c_node(&connectivity));
+        cell_size, memorySpace, conduit_cpp::c_node(&connectivity));
       unstructured->SetCells(vtk_cell_type, cellArray);
     }
   }
@@ -608,28 +600,31 @@ struct MixedPolyhedralCells
 
   template <typename ConnectivityArray, typename SubConnectivityArray>
   void operator()(ConnectivityArray* elementConnectivity,
-    SubConnectivityArray* subElementConnectivity, vtkUnstructuredGrid* ug)
+    SubConnectivityArray* subElementConnectivity, vtkUnstructuredGrid* ug,
+    vtkConduitArrayUtilities::MemorySpaceTypes memorySpace)
   {
     using ConnectivityArrayType = vtk::GetAPIType<ConnectivityArray>;
     using SubConnectivityArrayType = vtk::GetAPIType<SubConnectivityArray>;
-
-    const auto elementShapesArray =
-      vtkConduitArrayUtilities::MCArrayToVTKArray(conduit_cpp::c_node(this->ElementShapes));
-    const auto elementSizesArray =
-      vtkConduitArrayUtilities::MCArrayToVTKArray(conduit_cpp::c_node(this->ElementSizes));
-    const auto elementOffsetsArray =
-      vtkConduitArrayUtilities::MCArrayToVTKArray(conduit_cpp::c_node(this->ElementOffsets));
+    // shapes must be provided in host memory space because `verify_shapes_node()` in
+    // 'conduit/blueprint/conduit_blueprint_mesh.cpp' dereferences the pointer to access values.
+    const auto elementShapesArray = vtkConduitArrayUtilities::MCArrayToVTKArray(
+      conduit_cpp::c_node(this->ElementShapes), vtkConduitArrayUtilities::MemorySpaceTypes::Serial);
+    // rest all arrays will be in the given memory space.
+    const auto elementSizesArray = vtkConduitArrayUtilities::MCArrayToVTKArray(
+      conduit_cpp::c_node(this->ElementSizes), memorySpace);
+    const auto elementOffsetsArray = vtkConduitArrayUtilities::MCArrayToVTKArray(
+      conduit_cpp::c_node(this->ElementOffsets), memorySpace);
 
     vtkSmartPointer<vtkDataArray> subElementSizesArray(nullptr), subElementOffsetsArray(nullptr);
     if (this->SubElementSizes != nullptr)
     {
-      subElementSizesArray =
-        vtkConduitArrayUtilities::MCArrayToVTKArray(conduit_cpp::c_node(this->SubElementSizes));
+      subElementSizesArray = vtkConduitArrayUtilities::MCArrayToVTKArray(
+        conduit_cpp::c_node(this->SubElementSizes), memorySpace);
     }
     if (this->SubElementOffsets != nullptr)
     {
-      subElementOffsetsArray =
-        vtkConduitArrayUtilities::MCArrayToVTKArray(conduit_cpp::c_node(this->SubElementOffsets));
+      subElementOffsetsArray = vtkConduitArrayUtilities::MCArrayToVTKArray(
+        conduit_cpp::c_node(this->SubElementOffsets), memorySpace);
     }
 
     auto elementShapesRange = vtk::DataArrayValueRange(elementShapesArray);
@@ -715,8 +710,8 @@ struct MixedPolyhedralCells
 };
 
 //----------------------------------------------------------------------------
-vtkSmartPointer<vtkDataSet> CreateMixedUnstructuredGrid(
-  const conduit_cpp::Node& topologyNode, const conduit_cpp::Node& coords)
+vtkSmartPointer<vtkDataSet> CreateMixedUnstructuredGrid(const conduit_cpp::Node& topologyNode,
+  const conduit_cpp::Node& coords, vtkConduitArrayUtilities::MemorySpaceTypes memorySpace)
 {
   auto unstructured = vtkSmartPointer<vtkUnstructuredGrid>::New();
   // mixed shapes definition
@@ -741,15 +736,15 @@ vtkSmartPointer<vtkDataSet> CreateMixedUnstructuredGrid(
   }
   if (nCells > 0)
   {
-    unstructured->SetPoints(CreatePoints(coords));
+    unstructured->SetPoints(CreatePoints(coords, memorySpace));
 
     conduit_cpp::Node t_elementShapes = topologyNode["elements/shapes"];
     conduit_cpp::Node t_elementSizes = topologyNode["elements/sizes"];
     conduit_cpp::Node t_elementOffsets = topologyNode["elements/offsets"];
     conduit_cpp::Node t_elementConnectivity = topologyNode["elements/connectivity"];
 
-    auto elementConnectivity =
-      vtkConduitArrayUtilities::MCArrayToVTKArray(conduit_cpp::c_node(&t_elementConnectivity));
+    auto elementConnectivity = vtkConduitArrayUtilities::MCArrayToVTKArray(
+      conduit_cpp::c_node(&t_elementConnectivity), memorySpace);
 
     if (elementConnectivity == nullptr)
     {
@@ -770,8 +765,8 @@ vtkSmartPointer<vtkDataSet> CreateMixedUnstructuredGrid(
       p_subElementOffsets = &t_subElementOffsets;
       p_subElementSizes = &t_subElementSizes;
 
-      subConnectivity =
-        vtkConduitArrayUtilities::MCArrayToVTKArray(conduit_cpp::c_node(&t_subElementConnectivity));
+      subConnectivity = vtkConduitArrayUtilities::MCArrayToVTKArray(
+        conduit_cpp::c_node(&t_subElementConnectivity), memorySpace);
 
       if (subConnectivity == nullptr)
       {
@@ -783,9 +778,10 @@ vtkSmartPointer<vtkDataSet> CreateMixedUnstructuredGrid(
     MixedPolyhedralCells worker(
       &t_elementShapes, &t_elementSizes, &t_elementOffsets, p_subElementSizes, p_subElementOffsets);
     if (!vtkArrayDispatch::Dispatch2::Execute(
-          elementConnectivity, subConnectivity, worker, unstructured))
+          elementConnectivity, subConnectivity, worker, unstructured, memorySpace))
     {
-      worker(elementConnectivity.GetPointer(), subConnectivity.GetPointer(), unstructured);
+      worker(
+        elementConnectivity.GetPointer(), subConnectivity.GetPointer(), unstructured, memorySpace);
     }
   }
 
@@ -793,7 +789,8 @@ vtkSmartPointer<vtkDataSet> CreateMixedUnstructuredGrid(
 }
 
 //----------------------------------------------------------------------------
-bool AddFieldData(vtkDataObject* output, const conduit_cpp::Node& stateFields, bool isAMReX)
+bool AddFieldData(vtkDataObject* output, const conduit_cpp::Node& stateFields,
+  vtkConduitArrayUtilities::MemorySpaceTypes memorySpace, bool isAMReX)
 {
   auto field_data = output->GetFieldData();
   auto number_of_children = stateFields.number_of_children();
@@ -828,7 +825,7 @@ bool AddFieldData(vtkDataObject* output, const conduit_cpp::Node& stateFields, b
         else
         {
           dataArray = vtkConduitArrayUtilities::MCArrayToVTKArray(
-            conduit_cpp::c_node(&field_node), field_name);
+            conduit_cpp::c_node(&field_node), field_name, memorySpace);
         }
 
         if (dataArray)
@@ -864,7 +861,8 @@ bool AddFieldData(vtkDataObject* output, const conduit_cpp::Node& stateFields, b
 }
 
 //----------------------------------------------------------------------------
-vtkSmartPointer<vtkPoints> CreatePoints(const conduit_cpp::Node& coords)
+vtkSmartPointer<vtkPoints> CreatePoints(
+  const conduit_cpp::Node& coords, vtkConduitArrayUtilities::MemorySpaceTypes memorySpace)
 {
   if (coords["type"].as_string() != "explicit")
   {
@@ -872,7 +870,8 @@ vtkSmartPointer<vtkPoints> CreatePoints(const conduit_cpp::Node& coords)
   }
 
   conduit_cpp::Node values = coords["values"];
-  auto array = vtkConduitArrayUtilities::MCArrayToVTKArray(conduit_cpp::c_node(&values), "coords");
+  auto array = vtkConduitArrayUtilities::MCArrayToVTKArray(
+    conduit_cpp::c_node(&values), "coords", memorySpace);
   if (array == nullptr)
   {
     throw std::runtime_error("failed to convert to VTK array!");

@@ -35,13 +35,25 @@ public:
   vtkTypeMacro(vtkConduitArrayUtilities, vtkObject);
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
+  enum MemorySpaceTypes : int
+  {
+    Serial = 1,
+    CUDA,
+    TBB,
+    OpenMP,
+    Kokkos,
+    NumberOfSpaces
+  };
+  static bool IsDirectAccessPossible(MemorySpaceTypes spaceType);
+
   ///@{
   /**
    * Returns a vtkDataArray from a conduit node in the conduit mcarray protocol.
    */
-  static vtkSmartPointer<vtkDataArray> MCArrayToVTKArray(const conduit_node* mcarray);
   static vtkSmartPointer<vtkDataArray> MCArrayToVTKArray(
-    const conduit_node* mcarray, const std::string& arrayname);
+    const conduit_node* mcarray, MemorySpaceTypes memorySpace);
+  static vtkSmartPointer<vtkDataArray> MCArrayToVTKArray(
+    const conduit_node* mcarray, const std::string& arrayname, MemorySpaceTypes memorySpace);
   ///@}
 
   ///@{
@@ -60,7 +72,7 @@ public:
    * of data to match data type expected by vtkCellArray API.
    */
   static vtkSmartPointer<vtkCellArray> MCArrayToVTKCellArray(
-    vtkIdType cellSize, const conduit_node* mcarray);
+    vtkIdType cellSize, MemorySpaceTypes memorySpace, const conduit_node* mcarray);
 
   /**
    * If the number of components in the array does not match the target, a new
@@ -73,18 +85,25 @@ public:
    * Read a O2MRelation element
    */
   static vtkSmartPointer<vtkCellArray> O2MRelationToVTKCellArray(
-    const conduit_node* o2mrelation, const std::string& leafname);
+    const conduit_node* o2mrelation, MemorySpaceTypes memorySpace, const std::string& leafname);
 
 protected:
   vtkConduitArrayUtilities();
   ~vtkConduitArrayUtilities() override;
 
   static vtkSmartPointer<vtkDataArray> MCArrayToVTKArrayImpl(
-    const conduit_node* mcarray, bool force_signed);
+    const conduit_node* mcarray, MemorySpaceTypes memorySpace, bool force_signed);
   static vtkSmartPointer<vtkDataArray> MCArrayToVTKAOSArray(
     const conduit_node* mcarray, bool force_signed);
   static vtkSmartPointer<vtkDataArray> MCArrayToVTKSOAArray(
     const conduit_node* mcarray, bool force_signed);
+
+#if VTK_MODULE_ENABLE_VTK_AcceleratorsVTKmDataModel
+  static vtkSmartPointer<vtkDataArray> MCArrayToVTKmAOSArray(
+    const conduit_node* mcarray, MemorySpaceTypes memorySpace, bool force_signed);
+  static vtkSmartPointer<vtkDataArray> MCArrayToVTKmSOAArray(
+    const conduit_node* mcarray, MemorySpaceTypes memorySpace, bool force_signed);
+#endif
 
 private:
   vtkConduitArrayUtilities(const vtkConduitArrayUtilities&) = delete;
