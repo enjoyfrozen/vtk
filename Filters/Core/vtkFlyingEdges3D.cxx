@@ -161,18 +161,16 @@ public:
     void operator()(
       CellStateT& state, const unsigned char* edges, int numTris, vtkIdType* eIds, vtkIdType& triId)
     {
-      using ValueType = typename CellStateT::ValueType;
-      auto* offsets = state.GetOffsets();
-      auto* conn = state.GetConnectivity();
+      using OffsetsValueType = typename CellStateT::OffsetsValueType;
 
-      auto offsetRange = vtk::DataArrayValueRange<1>(offsets);
+      auto offsetRange = state.GetOffsetsRange();
       auto offsetIter = offsetRange.begin() + triId;
-      auto connRange = vtk::DataArrayValueRange<1>(conn);
+      auto connRange = state.GetConnectivityRange();
       auto connIter = connRange.begin() + (triId * 3);
 
       for (int i = 0; i < numTris; ++i)
       {
-        *offsetIter++ = static_cast<ValueType>(3 * triId++);
+        *offsetIter++ = static_cast<OffsetsValueType>(3 * triId++);
         *connIter++ = eIds[*edges++];
         *connIter++ = eIds[*edges++];
         *connIter++ = eIds[*edges++];
@@ -186,11 +184,10 @@ public:
     template <typename CellStateT>
     void operator()(CellStateT& state, vtkIdType numTris)
     {
-      using ValueType = typename CellStateT::ValueType;
-      auto* offsets = state.GetOffsets();
-      auto offsetRange = vtk::DataArrayValueRange<1>(offsets);
+      using OffsetsValueType = typename CellStateT::OffsetsValueType;
+      auto offsetRange = state.GetOffsetsRange();
       auto offsetIter = offsetRange.begin() + numTris;
-      *offsetIter = static_cast<ValueType>(3 * numTris);
+      *offsetIter = static_cast<OffsetsValueType>(3 * numTris);
     }
   };
   void GenerateTris(unsigned char eCase, unsigned char numTris, vtkIdType* eIds, vtkIdType& triId)
