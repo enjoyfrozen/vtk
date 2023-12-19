@@ -267,7 +267,7 @@ struct ComputeCellBoundsVisitor
     const vtkIdType endOffset = state.GetEndOffset(cellId);
     const vtkIdType numPts = endOffset - beginOffset;
 
-    const auto pointIds = state.GetConnectivity()->GetPointer(beginOffset);
+    const auto pointIds = state.GetConnectivityRange().data() + beginOffset;
     vtkBoundingBox::ComputeBounds(points, pointIds, numPts, bounds);
   }
 };

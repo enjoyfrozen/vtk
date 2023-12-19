@@ -382,7 +382,7 @@ struct ComputeCellBoundsVisitor
     const vtkIdType endOffset = state.GetEndOffset(cellId);
     const vtkIdType numPts = endOffset - beginOffset;
 
-    const auto pointIds = state.GetConnectivity()->GetPointer(beginOffset);
+    const auto pointIds = state.GetConnectivityRange().data() + beginOffset;
     vtkBoundingBox::ComputeBounds(points, pointIds, numPts, bounds);
   }
 };
@@ -1701,7 +1701,8 @@ struct IsCellBoundaryImpl
   bool operator()(CellStateT& state, TLinks* links, vtkIdType cellId, vtkIdType nPts,
     const vtkIdType* pts, vtkIdType& neighborCellId) const
   {
-    using ValueType = typename CellStateT::ValueType;
+    using ConnectivityValueType = typename CellStateT::ConnectivityValueType;
+    using OffsetsValueType = typename CellStateT::OffsetsValueType;
 
     neighborCellId = -1;
 
@@ -1723,19 +1724,19 @@ struct IsCellBoundaryImpl
 
     // Now for each cell, see if it contains all the face points
     // in the facePts list. If so, then this is not a boundary face.
-    const ValueType* connectivityPtr = state.GetConnectivity()->GetPointer(0);
-    const ValueType* offsetsPtr = state.GetOffsets()->GetPointer(0);
+    const auto connectivity = state.GetConnectivityRange();
+    const auto offsets = state.GetOffsetsRange();
     bool match;
     vtkIdType j;
-    ValueType k;
+    OffsetsValueType k;
     for (vtkIdType i = 0; i < minNumCells; ++i)
     {
       const auto& minCellId = minCells[i];
       if (minCellId != cellId) // don't include current cell
       {
         // get cell points
-        const ValueType nCellPts = offsetsPtr[minCellId + 1] - offsetsPtr[minCellId];
-        const ValueType* cellPts = connectivityPtr + offsetsPtr[minCellId];
+        const OffsetsValueType nCellPts = offsets[minCellId + 1] - offsets[minCellId];
+        const auto cellPts = connectivity.GetSubRange(offsets[minCellId]);
         match = true;
         for (j = 0; j < nPts && match; ++j) // for all pts in input boundary entity
         {
@@ -1745,7 +1746,9 @@ struct IsCellBoundaryImpl
             match = false;
             for (k = 0; k < nCellPts; ++k) // for all points in candidate cell
             {
-              if (ptId == cellPts[k])
+              // 1. cast ptId to ConnectivityValueType because vtkIdType is always signed whereas
+              //    ConnectivityValueType may be unsigned
+              if (static_cast<ConnectivityValueType>(ptId) == cellPts[k])
               {
                 match = true; // a match was found
                 break;
@@ -1774,7 +1777,8 @@ struct GetCellNeighborsImpl
   void operator()(CellStateT& state, TLinks* links, vtkIdType cellId, vtkIdType nPts,
     const vtkIdType* pts, vtkIdList* cellIds) const
   {
-    using ValueType = typename CellStateT::ValueType;
+    using ConnectivityValueType = typename CellStateT::ConnectivityValueType;
+    using OffsetsValueType = typename CellStateT::OffsetsValueType;
 
     // Find the shortest linked list
     auto minPtId = pts[0];
@@ -1794,19 +1798,19 @@ struct GetCellNeighborsImpl
 
     // Now for each cell, see if it contains all the face points
     // in the facePts list. If so, then this is not a boundary face.
-    const ValueType* connectivityPtr = state.GetConnectivity()->GetPointer(0);
-    const ValueType* offsetsPtr = state.GetOffsets()->GetPointer(0);
+    const auto connectivity = state.GetConnectivityRange();
+    const auto offsets = state.GetOffsetsRange();
     bool match;
     vtkIdType j;
-    ValueType k;
+    OffsetsValueType k;
     for (vtkIdType i = 0; i < minNumCells; ++i)
     {
       const auto& minCellId = minCells[i];
       if (minCellId != cellId) // don't include current cell
       {
         // get cell points
-        const ValueType nCellPts = offsetsPtr[minCellId + 1] - offsetsPtr[minCellId];
-        const ValueType* cellPts = connectivityPtr + offsetsPtr[minCellId];
+        const OffsetsValueType nCellPts = offsets[minCellId + 1] - offsets[minCellId];
+        const auto cellPts = connectivity.GetSubRange(offsets[minCellId]);
         match = true;
         for (j = 0; j < nPts && match; ++j) // for all pts in input boundary entity
         {
@@ -1816,7 +1820,9 @@ struct GetCellNeighborsImpl
             match = false;
             for (k = 0; k < nCellPts; ++k) // for all points in candidate cell
             {
-              if (ptId == cellPts[k])
+              // 1. cast ptId to ConnectivityValueType because vtkIdType is always signed whereas
+              //    ConnectivityValueType may be unsigned
+              if (static_cast<ConnectivityValueType>(ptId) == cellPts[k])
               {
                 match = true; // a match was found
                 break;

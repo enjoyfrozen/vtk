@@ -189,10 +189,10 @@ struct CountPointsThreaded
   void operator()(
     CellStateT& state, std::atomic<TIds>* linkOffsets, vtkIdType beginCellId, vtkIdType endCellId)
   {
-    using ValueType = typename CellStateT::ValueType;
+    using ValueType = typename CellStateT::ConnectivityValueType;
     const vtkIdType connBeginId = state.GetBeginOffset(beginCellId);
     const vtkIdType connEndId = state.GetEndOffset(endCellId - 1);
-    auto connRange = vtk::DataArrayValueRange<1>(state.GetConnectivity(), connBeginId, connEndId);
+    auto connRange = state.GetConnectivityRange().GetSubRange(connBeginId, connEndId);
 
     // Count number of point uses
     for (const ValueType ptId : connRange)
@@ -209,17 +209,17 @@ struct BuildLinks
   template <typename CellStateT, typename TIds>
   void operator()(CellStateT& state, TIds* linkOffsets, TIds* links, vtkIdType idOffset = 0)
   {
-    using ValueType = typename CellStateT::ValueType;
+    using OffsetsValueType = typename CellStateT::OffsetsValueType;
 
     const vtkIdType numCells = state.GetNumberOfCells();
 
-    const auto cellConnectivity = vtk::DataArrayValueRange<1>(state.GetConnectivity());
-    const auto cellOffsets = vtk::DataArrayValueRange<1>(state.GetOffsets());
+    const auto cellConnectivity = state.GetConnectivityRange();
+    const auto cellOffsets = state.GetOffsetsRange();
     // Now build the links. The summation from the prefix sum indicates where
     // the cells are to be inserted. Each time a cell is inserted, the offset
     // is decremented. In the end, the offset array is also constructed as it
     // points to the beginning of each cell run.
-    ValueType ptIdOffset;
+    OffsetsValueType ptIdOffset;
     size_t ptId;
     for (vtkIdType cellId = 0; cellId < numCells; ++cellId)
     {
@@ -240,15 +240,15 @@ struct BuildLinksThreaded
   void operator()(CellStateT& state, const TIds* offsets, std::atomic<TIds>* counts, TIds* links,
     vtkIdType beginCellId, vtkIdType endCellId, const TIds idOffset = 0)
   {
-    using ValueType = typename CellStateT::ValueType;
+    using OffsetsValueType = typename CellStateT::OffsetsValueType;
 
-    const auto cellConnectivity = vtk::DataArrayValueRange<1>(state.GetConnectivity());
-    const auto cellOffsets = vtk::DataArrayValueRange<1>(state.GetOffsets());
+    const auto cellConnectivity = state.GetConnectivityRange();
+    const auto cellOffsets = state.GetOffsetsRange();
     // Now build the links. The summation from the prefix sum indicates where
     // the cells are to be inserted. Each time a cell is inserted, the offset
     // is decremented. In the end, the offset array is also constructed as it
     // points to the beginning of each cell run.
-    ValueType ptIdOffset;
+    OffsetsValueType ptIdOffset;
     size_t ptId;
     TIds offset;
     for (vtkIdType cellId = beginCellId; cellId < endCellId; ++cellId)
@@ -512,14 +512,14 @@ void vtkStaticCellLinksTemplate<TIds>::BuildLinks(vtkPolyData* pd)
 //----------------------------------------------------------------------------
 // Indicate whether the point ids provided form part of at least one cell.
 template <typename TIds>
-template <typename TGivenIds>
-bool vtkStaticCellLinksTemplate<TIds>::MatchesCell(TGivenIds npts, const TGivenIds* pts)
+template <typename TNumIds, typename TGivenIds>
+bool vtkStaticCellLinksTemplate<TIds>::MatchesCell(TNumIds npts, const TGivenIds* pts)
 {
   // Find the shortest cell links list.
-  int minList = 0;
+  TNumIds minList = 0;
   vtkIdType minNumCells = VTK_INT_MAX;
   TIds numCells;
-  for (auto i = 0; i < npts; ++i)
+  for (TNumIds i = 0; i < npts; ++i)
   {
     numCells = this->GetNcells(pts[i]);
     if (numCells < minNumCells)
@@ -536,7 +536,7 @@ bool vtkStaticCellLinksTemplate<TIds>::MatchesCell(TGivenIds npts, const TGivenI
     bool foundCell = true;
     auto cellId = shortCells[j];
     // Loop over all cell lists looking for this cellId
-    for (auto i = 0; i < npts && foundCell; ++i)
+    for (TNumIds i = 0; i < npts && foundCell; ++i)
     {
       if (i != minList)
       {

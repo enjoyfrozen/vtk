@@ -118,8 +118,8 @@ public:
    * Indicate whether the point ids provided defines at least one cell, or a
    * portion of a cell.
    */
-  template <typename TGivenIds>
-  bool MatchesCell(TGivenIds npts, const TGivenIds* pts);
+  template <typename TNumIds, typename TGivenIds>
+  bool MatchesCell(TNumIds npts, const TGivenIds* pts);
 
   /**
    * Return a list of cell ids using the point specified by ptId.
