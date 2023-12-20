@@ -38,6 +38,7 @@ NPts = 1000
 PointsPerBucket = 2
 MaxTileClips = 1000
 PointOfInterest = 251
+PointOfInterest = 6
 GenerateFlower = 1
 
 # Create the RenderWindow, Renderer and both Actors
@@ -126,12 +127,13 @@ sphereActor.GetProperty().SetColor(0,0,0)
 
 # Voronoi flower represented by sampled points
 fMapper = vtkPointGaussianMapper()
-fMapper.SetInputConnection(voronoi.GetOutputPort(1))
+fMapper.SetInputConnection(voronoi.GetOutputPort(2))
 fMapper.EmissiveOff()
 fMapper.SetScaleFactor(0.0)
 
 fActor = vtkActor()
 fActor.SetMapper(fMapper)
+fActor.GetProperty().SetPointSize(2)
 fActor.GetProperty().SetColor(0,0,1)
 
 # Voronoi flower circles
@@ -182,7 +184,6 @@ iActor.GetProperty().SetColor(0,0,0)
 
 # Add the actors to the renderer, set the background and size
 #
-ren0.AddActor(actor)
 ren0.AddActor(ptActor)
 if PointOfInterest >= 0:
     ren0.AddActor(sphereActor)
@@ -190,6 +191,7 @@ if PointOfInterest >= 0:
          ren0.AddActor(cActor)
          ren0.AddActor(fActor)
          ren0.RemoveActor(ptActor)
+ren0.AddActor(actor)
 
 ren0.SetBackground(1,1,1)
 renWin.SetSize(600,300)
