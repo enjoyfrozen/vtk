@@ -64,6 +64,13 @@ public:
 
   static vtkmDataArray* New();
 
+  /// @brief This method deep copies the data from vtkm ArrayHandle
+  ///        into a temporary vtkDataArray.
+  /// @warning This method exists because some parts of VTK really expect
+  ///          a pointer. This method may be removed in the future when
+  ///          std::span is used instead of raw pointers.
+  void* GetVoidPointer(vtkIdType valueIdx) override;
+
   /// @brief Set the VTK-m ArrayHandle to be wrapped
   ///
   template <typename V, typename S>

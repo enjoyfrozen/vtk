@@ -29,6 +29,8 @@ class CoordinateSystem;
 VTK_ABI_NAMESPACE_BEGIN
 class vtkDataArray;
 class vtkPoints;
+template <typename T>
+class vtkmDataArray;
 VTK_ABI_NAMESPACE_END
 
 namespace tovtkm
@@ -94,6 +96,22 @@ struct DataArrayToArrayHandle<vtkSOADataArrayTemplate<T>, 1>
   {
     return vtkm::cont::make_ArrayHandle(
       input->GetComponentArrayPointer(0), input->GetNumberOfTuples(), vtkm::CopyFlag::Off);
+  }
+};
+
+template <typename T, vtkm::IdComponent NumComponents>
+struct DataArrayToArrayHandle<vtkmDataArray<T>, NumComponents>
+{
+  using ValueType =
+    typename std::conditional<NumComponents == 1, T, vtkm::Vec<T, NumComponents>>::type;
+  using StorageType = vtkm::cont::internal::Storage<ValueType, vtkm::cont::StorageTagBasic>;
+  using ArrayHandleType = vtkm::cont::ArrayHandle<ValueType, vtkm::cont::StorageTagBasic>;
+
+  static ArrayHandleType Wrap(vtkmDataArray<T>* input)
+  {
+    ArrayHandleType ah;
+    input->GetVtkmUnknownArrayHandle().AsArrayHandle(ah);
+    return ah;
   }
 };
 
