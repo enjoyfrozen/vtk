@@ -5,16 +5,17 @@
  * @brief   create 2D Voronoi convex tiling of input points
  *
  * vtkVoronoi2D is a filter that constructs a 2D Voronoi tessellation of a
- * list of input points. The points are assumed to lie in a plane. These
+ * set of input points. The points are assumed to lie in a plane. These
  * points may be represented by any dataset of type vtkPointSet and
  * subclasses. The output of the filter is a polygonal dataset. Each output
- * cell is a convex polygon (i.e., a tile), although options exist for
- * producing other outputs including a 2D Delaunay triangulation.
+ * cell is a convex polygon (i.e., a Voronoi tile), although options exist
+ * for producing other outputs including a 2D Delaunay triangulation.
  *
  * The 2D Voronoi tessellation is a tiling of space, where each Voronoi tile
  * represents the region nearest to one of the input points (the tile
- * generators). Voronoi tessellations are important in computational geometry
- * (and many other fields), and are the dual of Delaunay triangulations.
+ * generators). Voronoi tessellations are fundamental constructs in
+ * computational geometry (and many other fields), and are the dual of
+ * Delaunay triangulations.
  *
  * The input to this filter is a list of points specified in 3D, even though
  * the tessellation is 2D. Thus the tessellation is constructed in the x-y
@@ -32,8 +33,8 @@
  * This filter is a reference implementation written with simplicity in
  * mind. The filter also provides methods for debugging / instructional
  * purposes. This includes producing a single Voronoi tile under various
- * stages of creation, as well as the Voronoi flower, related to the error
- * metric for point insertion / half-space clipping.
+ * stages of creation, as well as the Voronoi flower, related to the
+ * neighborhood metric for point insertion / half-space clipping.
  *
  * Publications are in preparation to describe the algorithm. A brief summary
  * is as follows. In parallel, each (generating) input point is associated
@@ -45,16 +46,17 @@
  * the convex Voronoi tile as being on either side (inside,outside) of the
  * clip line. If two intersections of the Voronoi tile are found, the portion
  * of the tile "outside" the clip line is discarded, resulting in a new
- * convex, Voronoi tile. As each clip occurs, the Voronoi "Flower" error
- * metric (the union of Delaunay circumcircles) is compared to the extent of
- * the region containing the neighboring clip points. The clip region (along
- * with the points contained in it) is grown by careful expansion (e.g.,
- * outward, annular requests of point neighbors). When the Voronoi Flower is
- * contained within the clip region, the algorithm terminates and the Voronoi
- * tile is output. Once complete, it is possible to construct the Delaunay
- * triangulation from the Voronoi tessellation. Note that topological and
- * geometric information is used to generate a valid triangulation (e.g.,
- * merging points and validating topology).
+ * convex, Voronoi tile. As each clip occurs, the Voronoi "Flower"
+ * neighborhood metric (the union of Delaunay circumcircles) is compared to
+ * the extent of the region containing the neighboring clip points. The clip
+ * region (along with the points contained in it) is grown by careful
+ * expansion (e.g., outward, annular requests of point neighbors). When the
+ * Voronoi Flower is contained within the clip region, the algorithm
+ * terminates and the Voronoi tile is output. Once complete, it is possible
+ * to construct the Delaunay triangulation from the Voronoi
+ * tessellation. Note that topological and geometric information is used to
+ * generate a valid triangulation (e.g., merging points and validating
+ * topology).
  *
  * There are up to four outputs to this filter depending on how the filter is
  * configured. The first filter output #0 is the Voronoi tessellation. The
@@ -63,9 +65,10 @@
  * to a value 0 <= p < (number of input points) and GenerateVoronoiFlower is
  * enabled. The third output is a random sampling of points within the
  * flower; the fourth is the Voronoi tile of interest along with scalar
- * values corresponding to the error radii at each Voronoi tile vertex point.
+ * values corresponding to the Voronoi petals radii at each Voronoi tile
+ * vertex point.
  *
- * This filter can be used to tessellate different regions with convex
+ * This filter can be used to tessellate different regions using convex
  * polygons (i.e., Voronoi tiles), or create holes in Voronoi tessellations,
  * using a supplemental input single-component, scalar data array (the region
  * ids array). The size of the region ids array must match the number of
@@ -75,12 +78,13 @@
  * region a particular tile belongs to.
  *
  * Note that an important concept of this algorithm is a graphical
- * representation referred to as the "wheel and spoke" data structure.  When
+ * representation referred to as the "wheel and spokes" data structure.  When
  * the Voronoi tessellation if generated, connections to the neighbors of
- * each Voronoi tile are known as spokes. The radially ordered collection of
- * all spokes associated with a tile is known as a wheel. Then to generate
- * the Delaunay triangulation, a parallel traversal of the wheels and spokes
- * graph is used to extract triangles from the graph.
+ * each Voronoi tile are known as spokes. The radially ordered (in
+ * counterclockwise direction) collection of all spokes associated with a
+ * tile is known as a wheel. Then to generate the Delaunay triangulation, a
+ * parallel traversal of the wheel and spokes graph is used to extract
+ * triangles from the graph.
  *
  * @warning
  * Coincident input points will likely produce an invalid tessellation. This
@@ -190,7 +194,11 @@ public:
    * necessary in order to create valid Voronoi tiles on the boundary of the
    * tessellation. The padding is specified as a fraction of the diagonal
    * length of the bounding box of the points. Note that changing the padding
-   * can affect the resulting tiles and Delaunay triangulation.
+   * can affect the resulting tiles and Delaunay triangulation. This is because
+   * any Voronoi tessellation will have semi-infinite tiles on the boundary
+   * of the tessellation, practically meaning that as the padding is increased,
+   * the dual Delaunay triangulation will become more convex (i.e., and as the
+   * padding is decreased, the Delaunay triangulation will become less convex).
    */
   vtkSetClampMacro(Padding, double, 0.0001, 0.25);
   vtkGetMacro(Padding, double);
@@ -332,10 +340,10 @@ public:
    * These methods are for debugging or instructional purposes. If
    * GenerateVoronoiFlower is on, and the PointOfIntersect is specified, then
    * third and fourth (optional) outputs are populated which contains a
-   * representation of the Voronoi flower error metric (third output) and
-   * the single Voronoi tile (corresponding to PointOfInterest) with point
-   * scalar values indicating the radii of the Voronoi Flower petals (i.e.,
-   * circles contributing to the error metric).
+   * representation of the Voronoi flower neighborhood metric (third output)
+   * and the single Voronoi tile (corresponding to PointOfInterest) with
+   * point scalar values indicating the radii of the Voronoi Flower petals
+   * (i.e., circles contributing to the neighborhood metric).
    */
   vtkSetMacro(GenerateVoronoiFlower, vtkTypeBool);
   vtkGetMacro(GenerateVoronoiFlower, vtkTypeBool);

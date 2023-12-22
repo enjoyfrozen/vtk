@@ -1126,7 +1126,7 @@ struct VoronoiTiles
       // is requested. Else, thread the output.
       if ( poi )
       {
-        this->Wheels[1] = totalPoints;
+        this->Wheels[1] = totalPoints; //end the output cell array after 1 cell
         GeneratePOITile(this->PointOfInterest,this->Wheels,threadMap,
                         pts,z,connectivityPtr,offsetsPtr,
                         scalars,this->ScalarMode,this->RegionIds);
@@ -1141,7 +1141,7 @@ struct VoronoiTiles
         vtkSMPTools::For(0,this->NumThreadsUsed, vorOutput);
       }
 
-      // Terminate the offset array
+      // Terminate the output offset array
       offsetsPtr[totalTiles] = totalPoints;
     } // If Voronoi tiles output desired
 
@@ -1155,7 +1155,7 @@ struct VoronoiTiles
     {
       this->Spokes.resize(this->NumSpokes);
 
-      // Parallel build the Delaunay-related (wheels and spokes) structure.
+      // Parallel build the Delaunay-related (wheel and spokes) structure.
       ProduceDelaunayWheels delWheels(this->Batcher,threadMap,
                                       this->Wheels,this->Spokes);
       vtkSMPTools::For(0,this->NumThreadsUsed, delWheels);
@@ -1188,11 +1188,11 @@ struct VoronoiTiles
 }; // VoronoiTiles
 
 // Gather spokes into a wheel. Define some basic operators.  Note that every
-// wheel is associated with a point. So access to the wheel and its
-// associated spokes is via point id.
+// wheel is associated with an input (tile generating) point. So access to
+// the wheel and its associated spokes is via point id.
 struct Wheel
 {
-  vtkIdType Id; // The associated point/tile id
+  vtkIdType Id; // The associated point/tile id: so wheelId == pointId
   int NumSpokes; // The number of emanating spokes
   Spoke* Spokes; // A pointer to an ordered array of spokes connected to this wheel
 
@@ -1224,6 +1224,45 @@ struct Wheel
   {
     return (spokeNum == this->NumSpokes-1 ? 0 : spokeNum+1);
   }
+  // Given a spoke number, return the spoke
+  Spoke* GetSpoke(int spokeNum)
+  {
+    return this->Spokes + spokeNum;
+  }
+
+  // Given the connected wheel wInId, return the previous valid edge (wOutId)
+  // in clockwise order to the incoming edge (wInId,this->Id). If no valid edge is
+  // returned, return <0. To be clear, the returned value wOutId implicitly
+  // defines the previous edge (in the clockwise direction)
+  // (this->Id,wOudId).  Also, the method ensures that an edge with VALID
+  // classification is returned.
+  int GetPreviousValidEdge(vtkIdType wInId)
+  {
+    // Search for incoming spoke
+    Spoke *spoke = this->Spokes;
+    int i;
+    for ( i=0; i < this->NumSpokes; ++i, ++spoke )
+    {
+      if ( spoke->Id == wInId )
+      {
+        break;
+      }
+    }
+    if ( i > this->NumSpokes )
+    {
+      return -1;
+    }
+    int prev = this->_Previous(i);
+    spoke = this->GetSpoke(prev);
+    if ( spoke->Classification != Spoke::VALID )
+    {
+      return (-1);
+    }
+    else
+    {
+      return spoke->Id;
+    }
+  }
   // Return the previous spoke (i.e., in the clockwise direction). Make sure
   // that at least two spokes are available in the wheel.
   Spoke* Previous(int spokeNum)
@@ -1244,6 +1283,7 @@ struct Wheel
 // performs initial topological checks and potential corrections, then
 // produces triangles from the Voronoi tessellation using the wheels
 // and spokes edge structure.
+using LoopType = std::vector<vtkIdType>; //list of ids forming triangles
 struct Delaunay
 {
   VoronoiTiles *VTiles;
@@ -1251,22 +1291,61 @@ struct Delaunay
 
   // Determine whether one or more valid triangles can be formed given a
   // wheel and two adjacent spokes.  This requires checking classification
-  // and connectivity between wheels.
-  static int FormsTriangles(VoronoiTiles* vt, Wheel* wheel,
-                            Spoke* currentSpoke, Spoke* nextSpoke)
+  // and connectivity between wheels. Note, if more than one triangle can
+  // be created, then the loop parameter contains a (convex) loop of points
+  // that require triangulation.
+  static int
+  FormsTriangles(VoronoiTiles* vt, Wheel* inWheel, Spoke* currentSpoke,
+                 Spoke* nextSpoke, LoopType& loop)
   {
-    // Make sure the spokes are valid. If so, see if the two connected wheels
-    // connect with each other. Recall that to avoid parallel contention,
-    // whe wheel can create a triangle only if has the smallest point id.
-    if ( (wheel->Id < currentSpoke->Id && wheel->Id < nextSpoke->Id) &&
-         currentSpoke->Classification == Spoke::VALID &&
-         nextSpoke->Classification == Spoke::VALID &&
-         vt->IsValidSpoke(currentSpoke->Id,nextSpoke->Id) )
+    // Cull out invalid loops. A loop is valid, and can be processed, if all
+    // the wheel/point ids are greater than the current wheel id (this
+    // prevents processing the same loop more than once). Also, the initial
+    // loop edges must be valid.
+    if ( inWheel->Id > currentSpoke->Id || inWheel->Id > nextSpoke->Id ||
+         currentSpoke->Classification != Spoke::VALID ||
+         nextSpoke->Classification != Spoke::VALID )
     {
-      return 1;
+      return 0;
     }
 
-    return 0;
+    // Let's see if we have a triangle; if not we have a co-circular Delaunay
+    // degeneracy, so we'll try to build a valid loop.
+    if ( vt->IsValidSpoke(currentSpoke->Id,nextSpoke->Id) )
+    {
+      return 1; // return a single triangle
+    }
+
+    // Let's see if a valid loop can be formed. We start with the
+    // two edge segments (currentSpoke->Id,inWheel->Id,nextSpoke->Id) and see
+    // if we can form a valid, counterclockwise loop. This means linking
+    // edges in counterclockwise CCW order.
+    vtkIdType v0=inWheel->Id, v1=currentSpoke->Id;
+    vtkIdType nextV, loopEnd=nextSpoke->Id;
+    loop.resize(0);
+    loop.emplace_back(v0);
+    loop.emplace_back(v1);
+    Wheel wheel(vt,v1);
+    while ( (nextV = wheel.GetPreviousValidEdge(v0)) >= 0 &&
+            nextV > inWheel->Id )
+    {
+      loop.emplace_back(nextV);
+      if ( nextV == loopEnd )
+      {
+        // Successfully traversed a valid loop, return the number
+        // of triangles.
+        return (loop.size() - 2);
+      }
+      else
+      {
+        v0 = v1;
+        v1 = nextV;
+      }
+      // Move to the next wheel
+      wheel.Initialize(vt,nextV);
+    } // while still traversing a valid loop
+
+    return 0; // nothing to see here
   }
 
   // Edge classification via SMPTools. Each wheel with center wheelId is
@@ -1274,7 +1353,7 @@ struct Delaunay
   // classified according to simple topological rules. (Ensuring that wheelId
   // is minimum (whellId<ptId) elimates repeating edge classification
   // process.) The end result is a edge graph (represented by classified
-  // wheel and spoke edge data structure) which can be triangulated. The
+  // wheel and spokes edge data structure) which can be triangulated. The
   // spokes have a classification, typically VALID or BOUNDARY, but in some
   // cases topological issues may cause spokes to be classified
   // differently. Note that for maximum performance, spokes are never
@@ -1387,7 +1466,7 @@ struct Delaunay
 
   // (See GenerateTriangles() below.) This method counts the number of output
   // triangles generated by each wheel, generating an offset array so that
-  // that GenerateTriangles() can write in parallel into the output
+  // that GenerateTriangles() can later parallel write into the output
   // vtkCellArray containing the triangles. Note: depending on whether we
   // have to watch out for non-valid edges, different wheel traversal methods
   // are used (for performance).
@@ -1398,12 +1477,15 @@ struct Delaunay
     vtkIdType NumTriangles;
     bool AllValid;
 
+    // Used separately be each loop, avoid repeated allocations
+    vtkSMPThreadLocal<LoopType> Loop;
+
     CountTriangles(VoronoiTiles *vt, vtkIdType *widx, bool allValid) :
       VT(vt), WIdx(widx), NumTriangles(0), AllValid(allValid) {}
 
-    // Need a dummy Initialize() method to ensure Reduce() is invoked.
     void Initialize()
     {
+      this->Loop.Local().reserve(32);
     }
 
     void  operator()(vtkIdType wheelId, vtkIdType endWheelId)
@@ -1413,6 +1495,7 @@ struct Delaunay
       Spoke *spoke, *spokeNext;
       int numTris;
       vtkIdType *widx=this->WIdx;
+      LoopType &loop = this->Loop.Local();
 
       for ( ; wheelId < endWheelId; ++wheelId )
       {
@@ -1428,7 +1511,7 @@ struct Delaunay
         for (spokeNum=0; spokeNum < wheel.NumSpokes; ++spokeNum, spoke=spokeNext)
         {
           spokeNext = wheel.Next(spokeNum);
-          numTris += Delaunay::FormsTriangles(this->VT,&wheel,spoke,spokeNext);
+          numTris += Delaunay::FormsTriangles(this->VT,&wheel,spoke,spokeNext,loop);
         } // over all spokes in the current wheel
         widx[wheelId] = numTris;
       } // over allwheels
@@ -1455,16 +1538,16 @@ struct Delaunay
     }
   };
 
-  // Triangle generation via SMPTools. The classified wheel and spoke
+  // Triangle generation via SMPTools. The classified wheel and spokes data
   // structure (a graph) is triangulated. Typically the graph consists of
   // mostly 3-edge subloops which are trivially triangulated. Larger loops
-  // (corresponding to degeneracies in the Delaunay triangulation) require a
-  // bit more work. Note that only loops (wheelId,ptId0,ptId1,...) are
-  // processed when (wheelId<ptId0,ptId1,...). (Ensuring that wheelId is
-  // the minimum is in the loop elimates duplicate work (i.e., processing
-  // loops multiple times.) Note: depending on whether we have to watch out
-  // for non-valid edges, different wheel traversal methods are used (for
-  // performance).
+  // (corresponding to co-circular degeneracies in the Delaunay
+  // triangulation) require a bit more work. Note that only loops
+  // (wheelId,ptId0,ptId1,...) are processed when (wheelId<ptId0,
+  // wheelId<ptId1,...). (Ensuring that wheelId is the minimum id in the loop
+  // elimates duplicate work (i.e., avoids processing the same loop multiple times.)
+  // Note: depending on whether we have to watch out for non-valid edges,
+  // different wheel traversal methods are used (for performance).
   struct GenerateTriangles
   {
     VoronoiTiles *VT;
@@ -1472,9 +1555,17 @@ struct Delaunay
     vtkIdType *Offsets;
     vtkIdType *Connectivity;
     bool AllValid;
+    // Used separately be each loop, avoid repeated allocations
+    vtkSMPThreadLocal<LoopType> Loop;
+
     GenerateTriangles(VoronoiTiles *vt, vtkIdType *widx, vtkIdType *offsets,
                       vtkIdType *conn, bool allValid) :
       VT(vt), WIdx(widx), Offsets(offsets), Connectivity(conn), AllValid(allValid) {}
+
+    void Initialize()
+    {
+      this->Loop.Local().reserve(32);
+    }
 
     void  operator()(vtkIdType wheelId, vtkIdType endWheelId)
     {
@@ -1485,6 +1576,7 @@ struct Delaunay
       vtkIdType *widx=this->WIdx;
       vtkIdType *offsets=this->Offsets, *o, offset;
       vtkIdType *conn=this->Connectivity, *c;
+      LoopType &loop = this->Loop.Local();
 
       for ( ; wheelId < endWheelId; ++wheelId )
       {
@@ -1505,7 +1597,7 @@ struct Delaunay
           for (spokeNum=0; spokeNum < wheel.NumSpokes; ++spokeNum, spoke=spokeNext)
           {
             spokeNext = wheel.Next(spokeNum);
-            if ( (numTris=Delaunay::FormsTriangles(this->VT,&wheel,spoke,spokeNext)) > 0)
+            if ( (numTris=Delaunay::FormsTriangles(this->VT,&wheel,spoke,spokeNext,loop)) > 0)
             {
               if ( numTris == 1 ) // Generate a single triangle quickly
               {
@@ -1517,12 +1609,25 @@ struct Delaunay
               }
               else // multiple triangles formed, need to tessellate convex loop
               {
+                for (auto tri=0; tri < numTris; ++tri)
+                {
+                  // Just use a fan triangulation since any triangulation is
+                  // of the same quality (since this is a degenerate Delaunay
+                  // co-circular loop).
+                  *c++ = loop[0];
+                  *c++ = loop[tri+1];
+                  *c++ = loop[tri+2];
+                  *o++ = offset;
+                  offset += 3;
+                }
               }
             }
           } // over all spokes in the current wheel
         } // if triangles are generated in this wheel
       } // over all wheels
-    }
+    } // operator()
+
+  void Reduce() {}
   }; // GenerateTriangles
 
   // Generate the Delaunay triangulation from the Voronoi tessellation.
