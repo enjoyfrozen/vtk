@@ -30,8 +30,8 @@ namespace //anonymous
 {
 
 // Evaluate the 2D line equation. Normal n is expected to be a unit
-// normal. The point o is a point on the line (typically midpoint between two
-// Voronoi points).
+// normal. The point o is a point on the line (typically the midpoint between
+// two Voronoi points).
 double EvaluateLine(double x[2], double o[2], double n[2])
 {
   return ((x[0] - o[0]) * n[0] + (x[1] - o[1]) * n[1]);
@@ -41,14 +41,19 @@ double EvaluateLine(double x[2], double o[2], double n[2])
 // a Voronoi tile edge. The tile vertex has a position X, and the current
 // value of the half-space clipping function. In counterclockwise direction,
 // the PointId refers to the point id in the neighboring tile that, together
-// with this tile's point id, produced the edge.
+// with this tile's point id, produced a connected edge between two points
+// (i.e., a spoke). The radius**2 is computed on demand, including being
+// clipped by the bounding box to reduce the size of the Flower neighborhood
+// metric with large padding.
 struct VVertex
 {
   double X[2];       // position of this vertex
   vtkIdType PointId; // generating point id for the associated edge
   double Val;        // current value of the current half-space clipping function
+  double R2;         // Radius**2 of circumcircle / flower petal
 
-  VVertex(double x[2], vtkIdType ptId) : X{x[0],x[1]}, PointId(ptId), Val(0.0)
+  VVertex(double x[2], vtkIdType ptId) :
+    X{x[0],x[1]}, PointId(ptId), Val(0.0), R2(-1)
   {
   }
 
@@ -78,6 +83,7 @@ struct VTile
   int Divisions[2];                 // locator binning dimensions
   double H[2];                      // locator spacing
   double Padding2;                  // Bounding box padding distance
+  vtkIdType NumClips;              // The number of clips so far
 
   // Instantiate with initial values. Typically tiles consist of 5 to 6
   // vertices. Preallocate for performance.
@@ -116,6 +122,9 @@ struct VTile
     // Make sure that the tile is reset (if used multiple times as for
     // example in multiple threads).
     this->Verts.clear();
+
+    // Initialize the number of clips
+    this->NumClips = 0;
 
     // Now for each of the corners of the bounding box, add a tile
     // vertex. Note this is done in counterclockwise ordering. The initial
@@ -167,7 +176,8 @@ struct VTile
     }
   }
 
-  // Convenience methods for moving around the modulo ring of the vertices.
+  // Convenience methods for moving around the modulo ring of the tile
+  // vertices.
   VertexRingIterator Previous(VertexRingIterator itr)
   {
     if (itr == this->Verts.begin())
@@ -187,7 +197,7 @@ struct VTile
 
   // Indicate whether the point provided would produce a half-space that
   // would intersect the tile.
-  bool IntersectTile(double x[2])
+  bool IntersectsTile(double x[2])
   {
     // Produce the half-space
     double o[2], normal[2];
@@ -199,10 +209,9 @@ struct VTile
 
     // Evaluate all the points of the convex polygon. Positive values indicate
     // an intersection occurs.
-    VertexRingIterator tPtr;
-    for (tPtr = this->Verts.begin(); tPtr != this->Verts.end(); ++tPtr)
+    for (auto& v : this->Verts)
     {
-      if (EvaluateLine(tPtr->X, o, normal) >= 0.0)
+      if (EvaluateLine(v.X, o, normal) >= 0.0)
       {
         return true;
       }
@@ -219,17 +228,30 @@ struct VTile
     radii->SetNumberOfTuples(nPts);
     tile->InsertNextCell(static_cast<int>(nPts));
 
-    vtkIdType i;
+    vtkIdType i=0;
     double r;
-    VertexRingIterator tPtr;
-    for (i = 0, tPtr = this->Verts.begin(); tPtr != this->Verts.end(); ++tPtr, ++i)
+    for (auto& v : this->Verts)
     {
-      centers->SetPoint(i, tPtr->X[0], tPtr->X[1], 0.0);
-      r = sqrt((tPtr->X[0] - this->TileX[0]) * (tPtr->X[0] - this->TileX[0]) +
-        (tPtr->X[1] - this->TileX[1]) * (tPtr->X[1] - this->TileX[1]));
+      centers->SetPoint(i, v.X[0], v.X[1], 0.0);
+      r = sqrt((v.X[0] - this->TileX[0]) * (v.X[0] - this->TileX[0]) +
+        (v.X[1] - this->TileX[1]) * (v.X[1] - this->TileX[1]));
       radii->SetTuple1(i, r);
-      tile->InsertCellPoint(i);
+      tile->InsertCellPoint(i++);
     }
+  }
+
+  // The CircumFlower and VoronoiFlower require computing radius**2 to the
+  // generating tile point. This computation is performed and cached as
+  // needed.
+  double GetR2(VertexRingIterator v)
+  {
+    // If r**2 not yet computed, compute and cache the value.
+    if ( v->R2 < 0 )
+    {
+      v->R2 = ( (v->X[0] - this->TileX[0]) * (v->X[0] - this->TileX[0]) +
+                (v->X[1] - this->TileX[1]) * (v->X[1] - this->TileX[1]) );
+    }
+    return v->R2;
   }
 
   // Compute the bounding Voronoi flower circumcircle (i.e., contains all
@@ -238,13 +260,11 @@ struct VTile
   double ComputeCircumFlower()
   {
     double r2, r2Max=VTK_FLOAT_MIN;
-    VertexRingIterator tPtr;
 
-    for (tPtr = this->Verts.begin(); tPtr != this->Verts.end(); ++tPtr)
+    VertexRingIterator vEnd=this->Verts.end();
+    for (VertexRingIterator v = this->Verts.begin(); v != vEnd; v++)
     {
-      r2 = (tPtr->X[0] - this->TileX[0]) * (tPtr->X[0] - this->TileX[0]) +
-        (tPtr->X[1] - this->TileX[1]) * (tPtr->X[1] - this->TileX[1]);
-
+      r2 = this->GetR2(v);
       r2Max = ( r2 > r2Max ? r2 : r2Max );
     }
 
@@ -252,18 +272,16 @@ struct VTile
   }
 
   // Determine whether the provided point is within the Voronoi flower
-  // error metric. Return true if it is; false otherwise.
+  // neighborhood metric. Return true if it is; false otherwise.
   bool InFlower(const double p[3])
   {
     // Check against the flower petals
-    VertexRingIterator tPtr;
-    for (tPtr = this->Verts.begin(); tPtr != this->Verts.end(); ++tPtr)
+    VertexRingIterator vEnd=this->Verts.end();
+    for (VertexRingIterator v = this->Verts.begin(); v != vEnd; v++)
     {
-      double fr2 = (tPtr->X[0] - this->TileX[0]) * (tPtr->X[0] - this->TileX[0]) +
-        (tPtr->X[1] - this->TileX[1]) * (tPtr->X[1] - this->TileX[1]);
-
-      double r2 = (tPtr->X[0] - p[0]) * (tPtr->X[0] - p[0]) +
-        (tPtr->X[1] - p[1]) * (tPtr->X[1] - p[1]);
+      double fr2 = this->GetR2(v);
+      double r2 = (v->X[0] - p[0]) * (v->X[0] - p[0]) +
+        (v->X[1] - p[1]) * (v->X[1] - p[1]);
 
       if ( r2 <= fr2 )
       {
@@ -290,12 +308,11 @@ struct VTile
 
     // Evaluate all the points of the convex polygon. Positive valued points
     // are eventually clipped away from the tile.
-    bool intersection;
-    VertexRingIterator tPtr;
-    for (intersection = false, tPtr = this->Verts.begin(); tPtr != this->Verts.end(); ++tPtr)
+    bool intersection=false;
+    for (auto& v : this->Verts)
     {
-      tPtr->Val = EvaluateLine(tPtr->X, origin, normal);
-      intersection = (tPtr->Val >= 0.0 ? true : intersection);
+      v.Val = EvaluateLine(v.X, origin, normal);
+      intersection = (v.Val >= 0.0 ? true : intersection);
     }
     if (!intersection)
     {
@@ -305,27 +322,28 @@ struct VTile
     // The tile has been determined to be clipped by the half-space line. Add
     // the remaining tile vertices and new intersection points to modify the
     // tile. Care is taken to preserve the counterclockwise vertex ordering.
+    intersection=false;
     this->NewVerts.clear();
-    for (intersection = false, tPtr = this->Verts.begin(); tPtr != this->Verts.end(); ++tPtr)
+    for (auto vPtr = this->Verts.begin(); vPtr != this->Verts.end(); ++vPtr)
     {
       // If the vertex is inside the clip, just add it.
-      if ( tPtr->Val < 0.0 )
+      if ( vPtr->Val < 0.0 )
       {
-        this->NewVerts.emplace_back(VVertex(*tPtr));
+        this->NewVerts.emplace_back(VVertex(*vPtr));
       }
 
       // Now see if the edge requires clipping. If so, create a new tile
       // vertex. Note that depending on the order of edge, the new vertex
       // has to be treated differently (i.e., the neigboring tile id).
       double t, x[2];
-      VertexRingIterator tNext = this->Next(tPtr);
-      if ( (tPtr->Val < 0.0 && tNext->Val >= 0.0) ||
-           (tPtr->Val >= 0.0 && tNext->Val < 0.0 ) )
+      VertexRingIterator vNext = this->Next(vPtr);
+      if ( (vPtr->Val < 0.0 && vNext->Val >= 0.0) ||
+           (vPtr->Val >= 0.0 && vNext->Val < 0.0 ) )
       {
-        t = ( -tPtr->Val ) / ( tNext->Val - tPtr->Val );
-        x[0] = tPtr->X[0] + t * (tNext->X[0] - tPtr->X[0]);
-        x[1] = tPtr->X[1] + t * (tNext->X[1] - tPtr->X[1]);
-        vtkIdType pId = ( tPtr->Val < 0.0 ? ptId : tPtr->PointId );
+        t = ( -vPtr->Val ) / ( vNext->Val - vPtr->Val );
+        x[0] = vPtr->X[0] + t * (vNext->X[0] - vPtr->X[0]);
+        x[1] = vPtr->X[1] + t * (vNext->X[1] - vPtr->X[1]);
+        vtkIdType pId = ( vPtr->Val < 0.0 ? ptId : vPtr->PointId );
         this->NewVerts.emplace_back(VVertex(x,pId));
       } //check for intersecting edge
     } // clip verts & edges
@@ -340,16 +358,16 @@ struct VTile
   // the length of the spoke are deleted.
   void Prune(double pruneTol2)
   {
-    VertexRingIterator tPtr, tNext, endItr;
-    for (tPtr = this->Verts.begin(); tPtr != this->Verts.end(); ++tPtr)
+    VertexRingIterator vPtr, vNext, endItr;
+    for (vPtr = this->Verts.begin(); vPtr != this->Verts.end(); ++vPtr)
     {
-      tNext = this->Next(tPtr);
-      double eLen2 = (tPtr->X[0]-tNext->X[0])*(tPtr->X[0]-tNext->X[0]) +
-        (tPtr->X[1]-tNext->X[1])*(tPtr->X[1]-tNext->X[1]);
+      vNext = this->Next(vPtr);
+      double eLen2 = (vPtr->X[0]-vNext->X[0])*(vPtr->X[0]-vNext->X[0]) +
+        (vPtr->X[1]-vNext->X[1])*(vPtr->X[1]-vNext->X[1]);
       double spokeLen2;
-      if ( tPtr->PointId >= 0 )
+      if ( vPtr->PointId >= 0 )
       {
-        const double *px = this->Points + 3*tPtr->PointId;
+        const double *px = this->Points + 3*vPtr->PointId;
         spokeLen2 = (this->TileX[0]-px[0])*(this->TileX[0]-px[0]) +
           (this->TileX[1]-px[1])*(this->TileX[1]-px[1]);
       }
@@ -357,7 +375,7 @@ struct VTile
       {
         spokeLen2 = this->Padding2;
       }
-      tPtr->Val = eLen2 / spokeLen2;
+      vPtr->Val = eLen2 / spokeLen2;
     }
     // Now remove spokes (if any) and erase them
     endItr = std::remove_if(this->Verts.begin(),this->Verts.end(),
@@ -368,7 +386,7 @@ struct VTile
   // Generate a Voronoi tile by iterative clipping of the tile with nearby
   // points.  Termination of the clipping process occurs when the neighboring
   // points become "far enough" away from the generating point (i.e., the
-  // Voronoi Flower error metric is satisfied).
+  // Voronoi Flower neighborhood metric is satisfied).
   bool BuildTile(vtkIdList* pIds, vtkDoubleArray *radii2, const double* pts,
                  vtkIdType maxClips, bool prune, double pruneTol2)
   {
@@ -379,8 +397,8 @@ struct VTile
     }
 
     const double* v;
-    vtkIdType ptId, numClips = 0, numClipAttempts = 0;
-    vtkIdType prevNumClips, numPts = this->NPts;
+    vtkIdType& numClips=this->NumClips;
+    vtkIdType ptId,  numPts=this->NPts;
 
     // Request neighboring points around the generating point in annular
     // rings. The rings are defined by an inner and outer radius
@@ -388,9 +406,9 @@ struct VTile
     // radius r:(min<r<=max). The neighboring points are used to perform
     // half-space clipping of the Voronoi tile. (The original tile around the
     // generating point is defined from the bounding box of the domain.) The
-    // Voronoi Flower and CircumFlower error metrics are used to terminate
-    // the clipping process. The Flower is the set of all Flower Petals
-    // (i.e., Delaunay circumcircles) centered at the Voronoi Tile
+    // Voronoi Flower and CircumFlower neighborhood metrics are used to
+    // terminate the clipping process. The Flower is the set of all Flower
+    // Petals (i.e., Delaunay circumcircles) centered at the Voronoi Tile
     // vertices. The CircumFlower is the circle that bounds all petals, i.e.,
     // Voronoi Flower.
     constexpr int QUERY_SIZE = 6;
@@ -411,9 +429,9 @@ struct VTile
       radii2Ptr = radii2->GetPointer(0);
       for ( vtkIdType i=0; i < numPtIds && numClips < maxClips; ++i )
       {
-        numClipAttempts++;
         ptId = pIdsPtr[i];
         v = pts + 3 * ptId;
+        // Only check InFlower() after the first pass
         if ( radii2Ptr[i] <= R2 && this->InFlower(v) &&
              this->ClipTile(ptId, v) )
         {
@@ -1912,7 +1930,7 @@ int vtkVoronoi2D::RequestData(vtkInformation* vtkNotUsed(request),
   }
 
   // If requested, generate in the third output a representation of the
-  // Voronoi flower error metric for the PointOfInterest.
+  // Voronoi flower neighborhood metric for the PointOfInterest.
   if (!this->CheckAbort() && this->GenerateVoronoiFlower && this->PointOfInterest >= 0 &&
       this->PointOfInterest < numPts)
   {
@@ -1949,7 +1967,7 @@ int vtkVoronoi2D::RequestData(vtkInformation* vtkNotUsed(request),
       x[1] = random->GetNextRangeValue(center[1] + factor * (bds[2] - center[1]),
                                        center[1] + factor * (bds[3] - center[1]));
       x[2] = 0.0;
-      if (tile.IntersectTile(x))
+      if (tile.IntersectsTile(x))
       {
         pid = fPts->InsertNextPoint(x);
         fVerts->InsertCellPoint(pid);
@@ -1963,7 +1981,7 @@ int vtkVoronoi2D::RequestData(vtkInformation* vtkNotUsed(request),
 
     // Now update the vtkSpheres implicit function, and create a third output
     // that has the PointOfInterested-associated tile, with scalar values at
-    // each point which are the radii of the error circles (and when taken
+    // each point which are the radii of the Voronoi petals (and when taken
     // together form the Voronoi Flower).
     vtkInformation* outInfo4 = outputVector->GetInformationObject(3);
     vtkPolyData* output4 = vtkPolyData::SafeDownCast(outInfo4->Get(vtkDataObject::DATA_OBJECT()));
