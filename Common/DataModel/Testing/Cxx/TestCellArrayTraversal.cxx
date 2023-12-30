@@ -3,6 +3,8 @@
 
 #include "vtkCellArray.h"
 #include "vtkCellArrayIterator.h"
+#include "vtkIdList.h"
+#include "vtkImplicitArray.h"
 #include "vtkLogger.h"
 #include "vtkSmartPointer.h"
 #include "vtkTimerLog.h"
@@ -13,7 +15,7 @@ namespace
 
 void RunTest(vtkCellArray::StorageTypes storageType)
 {
-  const vtkIdType numTris = 25000;
+  const vtkIdType numTris = 500000;
   vtkIdType num;
 
   auto ca = vtkSmartPointer<vtkCellArray>::New();
@@ -87,7 +89,26 @@ void RunTest(vtkCellArray::StorageTypes storageType)
     ++num;
   }
   timer->StopTimer();
-  cout << "Traverse cell array (new GetCellAtId()): " << timer->GetElapsedTime() << "\n";
+  cout << "Traverse cell array (new GetCellAtId(vtkIdType, vtkIdType&, vtkIdType const*&)): "
+       << timer->GetElapsedTime() << "\n";
+  cout << "   " << num << " triangles visited\n";
+
+  // Iterate directly over cell array such that point ids are copied
+  num = 0;
+  timer->StartTimer();
+  vtkNew<vtkIdList> ptIds;
+  for (auto cellId = 0; cellId < numCells; ++cellId)
+  {
+    ca->GetCellAtId(cellId, ptIds);
+    assert(ptIds->GetNumberOfIds() == 3);
+    assert(ptIds->GetId(0) == 0);
+    assert(ptIds->GetId(1) == 1);
+    assert(ptIds->GetId(2) == 2);
+    ++num;
+  }
+  timer->StopTimer();
+  cout << "Traverse cell array (new GetCellAtId(vtkIdType, vtkIdList*)): "
+       << timer->GetElapsedTime() << "\n";
   cout << "   " << num << " triangles visited\n";
 
   // Iterate using iterator
