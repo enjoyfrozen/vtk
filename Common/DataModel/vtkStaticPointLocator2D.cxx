@@ -43,9 +43,9 @@ constexpr size_t VTK_INITIAL_BUCKET_SIZE = 10000;
 // the sorted point ids array. This enables quick access, and an indirect count
 // of the number of points in each bucket.
 
-// Believe it or not I had to change the name because MS Visual Studio was
-// mistakenly linking the hidden, scoped classes (vtkNeighborBuckets) found
-// in vtkPointLocator and vtkStaticPointLocator2D and causing weird faults.
+// We had to change the name because MS Visual Studio was mistakenly linking
+// the hidden, scoped classes (vtkNeighborBuckets) found in vtkPointLocator
+// and vtkStaticPointLocator2D and causing weird faults.
 struct NeighborBuckets2D;
 
 //------------------------------------------------------------------------------
@@ -66,6 +66,7 @@ struct vtkBucketList2D
   double hX, hY;
   double fX, fY, bX, bY;
   vtkIdType xD, yD, zD;
+  double BucketRadius;
 
   // Construction
   vtkBucketList2D(vtkStaticPointLocator2D* loc, vtkIdType numPts, int numBuckets)
@@ -93,6 +94,7 @@ struct vtkBucketList2D
     this->xD = this->Divisions[0];
     this->yD = this->Divisions[1];
     this->zD = 1;
+    this->BucketRadius = sqrt((this->hX*this->hX) + (this->hY*this->hY)) / 2.0;
   }
 
   // Virtuals for templated subclasses
@@ -105,6 +107,7 @@ struct vtkBucketList2D
   void GenerateFace(int face, int i, int j, int k, vtkPoints* pts, vtkCellArray* polys);
   double Distance2ToBucket(const double x[3], const int nei[3]);
   double Distance2ToBounds(const double x[3], const double bounds[6]);
+  bool BucketInCircle(const int bucketIJ[2], const double x[3], double radius);
 
   //-----------------------------------------------------------------------------
   // Inlined for performance. These function invocations must be called after
@@ -129,66 +132,29 @@ struct vtkBucketList2D
 };
 
 //------------------------------------------------------------------------------
-// Utility class to store an array of ij values
+// Internal utility classes to store an array of ij bucket-location values.
+struct BucketIJ
+{
+  const int IJ[2];
+  BucketIJ(const int x[2]) : IJ{x[0],x[1]} {}
+  const int* data() {return IJ;}
+};
+
 struct NeighborBuckets2D
 {
-  // Start with an array to avoid memory allocation overhead.
-  // Initially, P will alias InitialBuffer, but could later
-  // be assigned dynamically allocated memory.
-  int InitialBuffer[VTK_INITIAL_BUCKET_SIZE * 2];
-  int* P;
-  vtkIdType Count;
-  vtkIdType MaxSize;
+  std::vector<BucketIJ> Buckets;
+  NeighborBuckets2D() {this->Buckets.reserve(VTK_INITIAL_BUCKET_SIZE);}
 
-  NeighborBuckets2D()
+  int GetNumberOfNeighbors() { return this->Buckets.size(); }
+  void Reset() { this->Buckets.clear(); }
+
+  const int* GetBucket(vtkIdType i) { return this->Buckets[i].data(); }
+
+  void InsertNextBucket(const int x[2])
   {
-    this->P = this->InitialBuffer;
-    this->Count = 0;
-    this->MaxSize = VTK_INITIAL_BUCKET_SIZE;
+    this->Buckets.emplace_back(BucketIJ(x));
   }
-
-  ~NeighborBuckets2D()
-  {
-    this->Count = 0;
-    if (this->P != this->InitialBuffer)
-    {
-      delete[] this->P;
-    }
-  }
-
-  int GetNumberOfNeighbors() { return this->Count; }
-  void Reset() { this->Count = 0; }
-
-  int* GetPoint(vtkIdType i) { return this->P + 2 * i; }
-
-  vtkIdType InsertNextBucket(const int x[2])
-  {
-    // Re-allocate if beyond the current max size.
-    // (Increase by VTK_INITIAL_BUCKET_SIZE)
-    int* tmp;
-    vtkIdType offset = this->Count * 2;
-
-    if (this->Count >= this->MaxSize)
-    {
-      tmp = this->P;
-      this->MaxSize *= 2;
-      this->P = new int[this->MaxSize * 2];
-
-      memcpy(this->P, tmp, offset * sizeof(int));
-
-      if (tmp != this->InitialBuffer)
-      {
-        delete[] tmp;
-      }
-    }
-
-    tmp = this->P + offset;
-    *tmp++ = *x++;
-    *tmp = *x;
-    this->Count++;
-    return this->Count - 1;
-  }
-};
+}; // NeighborBuckets2D
 
 //------------------------------------------------------------------------------
 //  Internal function to get bucket neighbors at specified level
@@ -330,6 +296,20 @@ double vtkBucketList2D::Distance2ToBounds(const double x[3], const double bounds
 
   distance = vtkMath::Dot(deltas, deltas);
   return distance;
+}
+
+// Given a bucket specified by i,j binning space, determine whether it is
+// fully contained by the circle at origin x and with radius r.
+bool vtkBucketList2D::
+BucketInCircle(const int bucketIJ[2], const double x[3], double R)
+{
+  double c[2];
+  c[0] = this->bX + ((static_cast<double>(bucketIJ[0]) + 0.5) * this->hX);
+  c[1] = this->bY + ((static_cast<double>(bucketIJ[1]) + 0.5) * this->hY);
+
+  double r = sqrt(Distance2BetweenPoints2D(c,x));
+
+  return ( ((r + this->BucketRadius) < R) ? true : false );
 }
 
 //------------------------------------------------------------------------------
@@ -718,7 +698,8 @@ vtkIdType BucketList2D<TIds>::FindClosestPoint(const double x[3])
   double pt[3];
   int closest, level;
   vtkIdType ptId, cno, numIds;
-  int ij[2], *nei;
+  int ij[2];
+  const int *nei;
   NeighborBuckets2D buckets;
   const LocatorTuple<TIds>* ids;
 
@@ -737,7 +718,7 @@ vtkIdType BucketList2D<TIds>::FindClosestPoint(const double x[3])
 
     for (i = 0; i < buckets.GetNumberOfNeighbors(); i++)
     {
-      nei = buckets.GetPoint(i);
+      nei = buckets.GetBucket(i);
       cno = nei[0] + nei[1] * this->xD;
 
       if ((numIds = this->GetNumberOfIds(cno)) > 0)
@@ -767,7 +748,7 @@ vtkIdType BucketList2D<TIds>::FindClosestPoint(const double x[3])
     this->GetOverlappingBuckets(&buckets, x, ij, sqrt(minDist2), 0);
     for (i = 0; i < buckets.GetNumberOfNeighbors(); i++)
     {
-      nei = buckets.GetPoint(i);
+      nei = buckets.GetBucket(i);
       cno = nei[0] + nei[1] * this->xD;
 
       if ((numIds = this->GetNumberOfIds(cno)) > 0)
@@ -798,7 +779,8 @@ vtkIdType BucketList2D<TIds>::FindClosestPointWithinRadius(
   int i, j;
   double pt[3];
   vtkIdType ptId, closest = -1;
-  int ij[2], *nei;
+  int ij[2];
+  const int *nei;
   double minDist2;
 
   double refinedRadius, radius2, refinedRadius2;
@@ -899,7 +881,7 @@ vtkIdType BucketList2D<TIds>::FindClosestPointWithinRadius(
 
     for (i = 0; i < buckets.GetNumberOfNeighbors(); i++)
     {
-      nei = buckets.GetPoint(i);
+      nei = buckets.GetBucket(i);
       // do we still need to test this bucket?
       if (this->Distance2ToBucket(x, nei) < refinedRadius2)
       {
@@ -979,7 +961,8 @@ void BucketList2D<TIds>::FindClosestNPoints(int N, const double x[3], vtkIdList*
   double pt[3];
   int level, maxLevel;
   vtkIdType ptId, cno, numIds;
-  int ij[2], *nei;
+  int ij[2];
+  const int *nei;
   NeighborBuckets2D buckets;
   const LocatorTuple<TIds>* ids;
 
@@ -1000,7 +983,7 @@ void BucketList2D<TIds>::FindClosestNPoints(int N, const double x[3], vtkIdList*
   {
     for (i = 0; i < buckets.GetNumberOfNeighbors(); i++)
     {
-      nei = buckets.GetPoint(i);
+      nei = buckets.GetBucket(i);
       cno = nei[0] + nei[1] * this->xD;
       if ((numIds = this->GetNumberOfIds(cno)) > 0)
       {
@@ -1043,7 +1026,7 @@ FOUND_N:
     {
       for (i = iStart; i < buckets.GetNumberOfNeighbors(); i++)
       {
-        nei = buckets.GetPoint(i);
+        nei = buckets.GetBucket(i);
         cno = nei[0] + nei[1] * this->xD;
         if ((numIds = this->GetNumberOfIds(cno)) > 0)
         {
@@ -1082,14 +1065,15 @@ FOUND_N:
 }
 
 //------------------------------------------------------------------------------
-// This algorithm works by grabbing the first N points it finds, defining a
-// maxDist2 for the N points. Then using this circumcircle, checks neighboring
-// bins and adds additional points within maxDist2. A sort is performed, and
-// then >=N points are returned (unless N > number of points in the dataset).
-// Note: typically more than N points are returned since either: 1) since
-// additional points may be the same distance as the Nth point; 2) the algorithm
-// finds more than N points during processing; typically it's more efficient to
-// include them.
+// This algorithm works by grabbing the first N points it finds outside the
+// inner radius minDist2, which define a maxDist2 from these initial N
+// points. Then using this maxDist2 (and >minDist2), checks neighboring bins
+// and adds additional points within maxDist2 (which is the return value of
+// the method). A sort is performed, and then >=N points are returned (unless
+// N > number of points in the dataset).  Note: typically more than N points
+// are returned since either: 1) additional points may be the same
+// distance as the Nth point at maxDist2; 2) the algorithm finds more than N
+// points during processing; typically it's more efficient to include them.
 template <typename TIds> double BucketList2D<TIds>::
 FindNPointsInAnnulus(int N, const double x[3], vtkIdList* result,
                      vtkDoubleArray* radii2, double minDist2)
@@ -1100,6 +1084,9 @@ FindNPointsInAnnulus(int N, const double x[3], vtkIdList* result,
   {
     radii2->Reset();
   }
+
+  // Pre-calcute some values
+  double minDist = sqrt(minDist2);
 
   // Find the bucket the point is in. Set the initial bucket range.
   int ij[2], ijMin[2], ijMax[2];
@@ -1117,18 +1104,16 @@ FindNPointsInAnnulus(int N, const double x[3], vtkIdList* result,
   int count=0;
   std::vector<IdTuple> res;
   vtkIdType ptId, cno, numIds;
-  int i, j, *nei;
+  const int *nei;
+  int i, j;
   const LocatorTuple<TIds>* ids;
   bool done=false, cropping=false;
 
   // Expand out from current bucket, adding candidate points that lie within
   // the requested annulus. We first need N samples, and then expand
   // beyond to find other points that might be closer than the original N
-  // samples.
-  // TODO: Buckets may lie completely within the annulus minimum radius, in
-  // which case skipping such buckets would save time. This doesn't happen
-  // that often (e.g., supporting vtkVoronoi2D), but should be added at some
-  // point.
+  // samples. Note: Buckets may lie completely within the annulus minimum radius minDist2, in
+  // which case skipping buckets saves time.
   while (!done)
   {
     done = true;
@@ -1136,12 +1121,20 @@ FindNPointsInAnnulus(int N, const double x[3], vtkIdList* result,
     for (i = 0; i < buckets.GetNumberOfNeighbors(); i++)
     {
       // Retrieve current candidate bucket to work on
-      nei = buckets.GetPoint(i);
+      nei = buckets.GetBucket(i);
 
       // Crop out candidate bucket if necessary. The cropping footprint
       // is determined from the maxDist2 found from the first N samples.
       if ( cropping && (nei[0] < ijMin[0] || nei[0] > ijMax[0] ||
                         nei[1] < ijMin[1] || nei[1] > ijMax[1]) )
+      {
+        continue;
+      }
+
+      // Also check if the current bucket is contained within the circle of
+      // radius minDist2. If so, it can be skipped. Make sure it's worthwhile
+      // computing (i.e., at higher levels).
+      if ( level >= 3 && this->BucketInCircle(nei, x, minDist) )
       {
         continue;
       }
@@ -1157,7 +1150,7 @@ FindNPointsInAnnulus(int N, const double x[3], vtkIdList* result,
         {
           ptId = ids[j].PtId;
           this->DataSet->GetPoint(ptId, pt);
-          d2 = vtkMath::Distance2BetweenPoints(x, pt);
+          d2 = Distance2BetweenPoints2D(x, pt);
           if ( d2 > minDist2 && (count < N || d2 <= maxDist2 ) )
           {
             res.emplace_back(IdTuple(ptId,d2));
@@ -1473,7 +1466,8 @@ double BucketList2D<TIds>::FindCloseNBoundedPoints(int N, const double x[3], vtk
   double pt[3];
   int level;
   vtkIdType ptId, cno, numIds;
-  int ij[2], *nei;
+  int ij[2];
+  const int *nei;
   NeighborBuckets2D buckets;
   const LocatorTuple<TIds>* ids;
 
@@ -1494,7 +1488,7 @@ double BucketList2D<TIds>::FindCloseNBoundedPoints(int N, const double x[3], vtk
     // For all buckets in this level
     for (i = 0; i < buckets.GetNumberOfNeighbors(); i++)
     {
-      nei = buckets.GetPoint(i);
+      nei = buckets.GetBucket(i);
       cno = nei[0] + nei[1] * this->xD;
       if ((numIds = this->GetNumberOfIds(cno)) > 0)
       {
@@ -1535,7 +1529,7 @@ double BucketList2D<TIds>::FindCloseNBoundedPoints(int N, const double x[3], vtk
       this->GetOverlappingBuckets(&buckets, x, ij, sqrt(maxDist2), level - 1);
       for (i = 0; i < buckets.GetNumberOfNeighbors(); i++)
       {
-        nei = buckets.GetPoint(i);
+        nei = buckets.GetBucket(i);
         cno = nei[0] + nei[1] * this->xD;
         if ((numIds = this->GetNumberOfIds(cno)) > 0)
         {

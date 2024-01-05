@@ -411,12 +411,15 @@ struct VTile
     // Petals (i.e., Delaunay circumcircles) centered at the Voronoi Tile
     // vertices. The CircumFlower is the circle that bounds all petals, i.e.,
     // Voronoi Flower.
+    constexpr int INIT_QUERY_SIZE = 8;
     constexpr int QUERY_SIZE = 6;
     double R2 = VTK_FLOAT_MAX;
     double annulusMin2 = 0.0;
-    double annulusMax2 = this->Locator->FindNPointsInAnnulus(QUERY_SIZE, this->TileX, pIds, radii2, annulusMin2);
+    double annulusMax2 =
+      this->Locator->FindNPointsInAnnulus(INIT_QUERY_SIZE, this->TileX, pIds, radii2, annulusMin2);
     vtkIdType numPtIds, *pIdsPtr;
     double *radii2Ptr;
+    bool initQuery=true;
 
     // Now add additional points until they are outside of the Voronoi
     // flower. For speed, we use the bounding Voronoi circumcircle to
@@ -431,14 +434,19 @@ struct VTile
       {
         ptId = pIdsPtr[i];
         v = pts + 3 * ptId;
-        // Only check InFlower() after the first pass
-        if ( radii2Ptr[i] <= R2 && this->InFlower(v) &&
-             this->ClipTile(ptId, v) )
+        // Only check CircumFlower and InFlower() after the first pass
+        if ( initQuery || (radii2Ptr[i] <= R2 && this->InFlower(v)) )
         {
-          R2 = this->ComputeCircumFlower();
-          numClips++;
+          if ( this->ClipTile(ptId, v) )
+          {
+            numClips++;
+          }
         }
       } // process all points in requested annulus
+
+      // Okay start checking against the CircumFlower and Voronoi Flower
+      initQuery = false;
+      R2 = this->ComputeCircumFlower();
 
       // See if circumflower radius is less then radius of annulus request; if so, the
       // Voronoi tile has been formed.
@@ -496,11 +504,11 @@ struct Spoke
   unsigned char Classification; // Indicate the classification of this spoke
   enum SpokeClass
   {
-    VALID=0, // Valid edge, contributes to the output
-    BOUNDARY=1, // Edge connected to the Voronoi boundary
+    VALID=0,      // Valid edge, contributes to the output
+    BOUNDARY=1,   // Edge connected to the Voronoi boundary
     DEGENERATE=2, // Edge connects two points but in only one direction
-    INTERSECTING=3, // Intersecting edge, part of a topological bubble
-    SINGLETON=4, // Wheel with only one edge, should never happen
+    BUBBLE=3,     // Intersecting edge, part of a topological bubble
+    SINGLETON=4,  // Wheel with only one edge, should never happen
   };
   Spoke() : Id(-1), Classification(VALID) {}
   Spoke(vtkIdType id, unsigned char classification) :
@@ -789,14 +797,14 @@ struct ProduceVoronoiOutput
 // Functor used to generate the filter's Delaunay structures. The threading
 // is across the n threads used to compute the Voronoi tiles. So this is
 // effectively a parallel generation of the wheels/spokes data structure.
-struct ProduceDelaunayWheels
+struct ProduceWheels
 {
   const BatchManager &Batcher;
   const ThreadMapType& ThreadMap;
   const WheelsType& Wheels;
   SpokeType& Spokes;
 
-  ProduceDelaunayWheels(const BatchManager &batcher, ThreadMapType &threadMap,
+  ProduceWheels(const BatchManager &batcher, ThreadMapType &threadMap,
                         WheelsType& wheels, SpokeType& spokes)
     : Batcher(batcher)
     , ThreadMap(threadMap)
@@ -840,7 +848,7 @@ struct ProduceDelaunayWheels
     }//across all threads in this batch
   }
 
-}; // ProduceDelaunayWheels
+}; // ProduceWheels
 
 // The threaded core of the algorithm. This could be templated over point
 // type, but due to numerical sensitivity we'll just process doubles for now.
@@ -1174,8 +1182,7 @@ struct VoronoiTiles
       this->Spokes.resize(this->NumSpokes);
 
       // Parallel build the Delaunay-related (wheel and spokes) structure.
-      ProduceDelaunayWheels delWheels(this->Batcher,threadMap,
-                                      this->Wheels,this->Spokes);
+      ProduceWheels delWheels(this->Batcher,threadMap,this->Wheels,this->Spokes);
       vtkSMPTools::For(0,this->NumThreadsUsed, delWheels);
     }//if Delaunay output desired
   }
@@ -1375,14 +1382,17 @@ struct Delaunay
   // spokes have a classification, typically VALID or BOUNDARY, but in some
   // cases topological issues may cause spokes to be classified
   // differently. Note that for maximum performance, spokes are never
-  // deleted, they are just classified - which means when processing spokes,
-  // inspecting the spoke classification may be needed to traverse the
-  // wheel/spoke network properly.
-  struct ClassifyEdges
+  // deleted, they are just marked/classified - which means when processing
+  // spokes, inspecting the spoke classification may be needed to traverse
+  // the wheel/spoke network properly.
+  struct MarkDegenerate
   {
     VoronoiTiles *VT;
     bool AllValid;
-    ClassifyEdges(VoronoiTiles *vt) : VT(vt), AllValid(false) {}
+    MarkDegenerate(VoronoiTiles *vt) : VT(vt), AllValid(false) {}
+
+    // Keep track whether threads are non-degenerate.
+    vtkSMPThreadLocal<unsigned char> ThreadAllValid;
 
     // Determine whether a spoke is used by both wheels. Proper edges must
     // be bidirectional and not extend into the boundary. Singleton edges are
@@ -1400,9 +1410,9 @@ struct Delaunay
       return false;
     }
 
-    // Need a dummy Initialize() method to ensure Reduce() is invoked.
     void Initialize()
     {
+      this->ThreadAllValid.Local() = 1;
     }
 
     void  operator()(vtkIdType wheelId, vtkIdType endWheelId)
@@ -1411,49 +1421,51 @@ struct Delaunay
       Wheel wheel, neighborWheel;
       Spoke *spoke;
 
+      // At this point edges should be classified either VALID or
+      // BOUNDARY. We only need to examine the VALID edges.
       for ( ; wheelId < endWheelId; ++wheelId )
       {
         wheel.Initialize(this->VT,wheelId);
         spoke = wheel.Spokes;
         for (spokeNum=0; spokeNum < wheel.NumSpokes; ++spokeNum, ++spoke)
         {
-          // Ensure processing of this edge only once. The current spoke
-          // (v0,v1) must be v0<v1, with v1 non-boundary.
-          if ( spoke->Id < 0 )
-          {
-            spoke->Classification = Spoke::BOUNDARY;
-          }
-          else
+          // Make sure to visit this spoke only once when (v0<v1).
+          if ( wheelId < spoke->Id && spoke->Classification == Spoke::VALID )
           {
             neighborWheel.Initialize(this->VT,spoke->Id);
-            // Visit this spoke only once when (v0<v1)
-            if ( wheelId < spoke->Id )
-            {
-              // Check for unidirectional degeneracy or singleton edge.
-              if ( ! this->IsBiDirectional(wheelId, neighborWheel) )
-              { // Bidirectional connected if (v0->v1) and (v1->v0)
-                spoke->Classification = Spoke::DEGENERATE;
-              }
-              else if ( wheel.NumSpokes == 1 || neighborWheel.NumSpokes == 1)
-              {
-                spoke->Classification = Spoke::SINGLETON;
-              }
+            // Check for unidirectional degeneracy or singleton edge.
+            if ( ! this->IsBiDirectional(wheelId, neighborWheel) )
+            { // Bidirectional connected if (v0->v1) and (v1->v0)
+              spoke->Classification = Spoke::DEGENERATE;
+              this->ThreadAllValid.Local() = 0;
             }
-          }
-        }//over all spokes for this wheel
-      }//for all wheels
+            else if ( wheel.NumSpokes == 1 || neighborWheel.NumSpokes == 1)
+            {
+              spoke->Classification = Spoke::SINGLETON;
+              this->ThreadAllValid.Local() = 0;
+            }
+          } // process valid edge only once
+        }   // over all spokes for this wheel
+      }     // for all wheels
     }
 
     // Roll up validation
     void Reduce()
     {
-      this->AllValid = true;
+      this->AllValid = 1;
+      for (auto& localValid : this->ThreadAllValid)
+      {
+        if ( localValid == 0 )
+        {
+          this->AllValid = 0;
+        }
+      }
     }
-  };
+  }; // MarkDegenerate
 
   // This ensure that there are no topological "bubbles" i.e., overlapping
   // portions of the mesh. Edges that fail the butterfly test are classified
-  // "INTERSECTING" because the edge intersects other potentially valid
+  // "BUBBLE" because the edge intersects other potentially valid
   // edges. Note that when this functor executes, everything but VALID edges
   // are excluded from the test.
   struct ButterflyTest
@@ -1657,16 +1669,17 @@ struct Delaunay
     // At this point in the algorithm, spokes are classified as either VALID
     // or BOUNDARY. If the user chooses, an additional topologcal analysis
     // can be invoked to further classify the spokes around each wheel. If no
-    // DEGENERATE or INTERSECTION spokes are found, then a faster Delaunay
+    // DEGENERATE or BUBBLE spokes are found, then a faster Delaunay
     // process is used; otherwise a slower approach is used (i.e., generating
     // the output Delaunay when all spokes are either VALID or BOUNDARY is
-    // faster than when DEGENERATE or INTERSECTION spokes exist.)
+    // faster than when DEGENERATE or BUBBLE spokes exist.)
     bool allValid = !vt->Filter->GetValidate();
     if ( !allValid )
     {
-      Delaunay::ClassifyEdges classify(vt);
-      vtkSMPTools::For(0, numWheels, classify);
-      allValid = classify.AllValid;
+      Delaunay::MarkDegenerate degenerate(vt);
+      vtkSMPTools::For(0, numWheels, degenerate);
+      allValid = degenerate.AllValid;
+      cout << "All Valid: " << allValid << "\n";
       //        Delaunay::ButterflyTest butterfly(vt);
       //        vtkSMPTools::For(0, numWheels, butterfly);
       //      Delaunay::MakeValid makeValid(vt);
@@ -1743,10 +1756,10 @@ struct Delaunay
 vtkVoronoi2D::vtkVoronoi2D()
 {
   this->OutputType = VORONOI; // Voronoi tessellation placed in output 0
-  this->Validate = true;
+  this->Validate = false;
   this->PassPointData = true;
   this->GenerateScalars = NONE;
-  this->Padding = 0.01;
+  this->Padding = 0.001;
   this->Locator = vtkSmartPointer<vtkStaticPointLocator2D>::New();
   this->Locator->SetNumberOfPointsPerBucket(2);
   this->Transform = nullptr;
