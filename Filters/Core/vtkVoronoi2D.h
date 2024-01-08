@@ -87,6 +87,19 @@
  * triangles from the graph.
  *
  * @warning
+ * Delaunay degenerate cases (when more than three points are co-circular)
+ * are of theoretical and practical interest in the implementation of
+ * Delaunay and Voronoi algorithms. Degenerate cases introduce numerical
+ * challenges into algorithms, and extremely important work such as
+ * Shewchuk's geometric predicates (https://www.cs.cmu.edu/~quake/robust.html).
+ * In this algorithm, degeneracies are treated in two ways. First, Voronoi
+ * spokes, which correspond to very short "edges" on a Voronoi tile can be
+ * geometrically pruned (i.e., edge deleted). Alternatively, the wheel and
+ * spokes data structure can be processed to identify and repair
+ * inconsistencies in the resulting mesh, ensuring that a vlid result is
+ * produced.
+ *
+ * @warning
  * Coincident input points will likely produce an invalid tessellation. This
  * is because the Voronoi tessellation requires unique input points. Use a
  * cleaning filter (like vtkStaticCleanPolyData/vtkCleanPolyData) to remove
@@ -117,7 +130,7 @@
 #define vtkVoronoi2D_h
 
 #include "vtkFiltersCoreModule.h" // For export macro
-#include "vtkPointSetAlgorithm.h"
+#include "vtkPolyDataAlgorithm.h"
 #include "vtkAbstractTransform.h" // For transforming input points
 #include "vtkSmartPointer.h" // For self-destructing data members
 #include "vtkSpheres.h" // For Voronoi Flower
@@ -129,7 +142,7 @@ class vtkAbstractTransform;
 class vtkPointSet;
 class vtkSpheres;
 
-class VTKFILTERSCORE_EXPORT vtkVoronoi2D : public vtkPointSetAlgorithm
+class VTKFILTERSCORE_EXPORT vtkVoronoi2D : public vtkPolyDataAlgorithm
 {
 public:
   ///@{
@@ -137,7 +150,7 @@ public:
    * Standard methods for instantiation, type information, and printing.
    */
   static vtkVoronoi2D* New();
-  vtkTypeMacro(vtkVoronoi2D, vtkPointSetAlgorithm);
+  vtkTypeMacro(vtkVoronoi2D, vtkPolyDataAlgorithm);
   void PrintSelf(ostream& os, vtkIndent indent) override;
   ///@}
 
@@ -174,19 +187,6 @@ public:
   void SetOutputTypeToDelaunay() { this->SetOutputType(DELAUNAY); }
   void SetOutputTypeToVoronoiAndDelaunay() { this->SetOutputType(VORONOI_AND_DELAUNAY); }
   //@}
-
-  ///@{
-  /**
-   * Enable the validation and repair of the Voronoi tesselation (which also
-   * affects the Delaunay triangulation if requested). Enabling validation
-   * increases computation time. By default, validation is on. Validation
-   * can be disabled but this may result in topological inconsistencies
-   * in the output Delaunay triangulation.
-   */
-  vtkSetMacro(Validate, vtkTypeBool);
-  vtkGetMacro(Validate, vtkTypeBool);
-  vtkBooleanMacro(Validate, vtkTypeBool);
-  ///@}
 
   ///@{
   /**
@@ -261,6 +261,68 @@ public:
     { this->SetGenerateScalars(NUMBER_SIDES); }
   void SetGenerateScalarsToThreadIds()
     { this->SetGenerateScalars(THREAD_IDS); }
+  ///@}
+
+  ///@{
+  /**
+   * The following methods - FindTile() and GetTileData() - can be used to
+   * locate/query the tile containing a point x (i.e., given that a Voronoi
+   * tile Vi is a region of closest proximity to the generating point x).
+   * FindTile() returns the tile id/point id of a query location x. If
+   * desired, GetTileData() will return the associated convex polygonal tile
+   * in the user-supplied vtkPolyData. (GetTileData() requires that the output
+   * type is VORONOI or VORONOI_AND_DELAUNAY.) Note that if the query point x is
+   * outside of the bounds of the input point set, an id value <0 is
+   * returned. Also, these methods are only valid after the filter executes.
+   * (The third component of thw query point x[2] should be in the transformed
+   * space of the input points.)
+   */
+  vtkIdType FindTile(double x[3]);
+  void GetTileData(vtkIdType tileId, vtkPolyData* tileData);
+  ///@}
+
+  ///@{
+  /**
+   * Specify whether to prune the connections (i.e., spokes) between Voronoi
+   * tiles during processing. The spokes are dual connections represented by
+   * the edges of each convex Voronoi tile: removing (or pruning) a spoke
+   * means eliminating the connection to a tile neighbor, i.e., deleting a
+   * tile edge. Small tile edges may occur in degenerate situations where more
+   * than three Voronoi tiles meet (i.e., the Delaunay circumcircles are
+   * degenerate with more than three points laying on the
+   * crcumcircle). Pruning can be useful to prevent degenerate
+   * tessellations. By default, pruning is off (it requires extra work and
+   * typically slows algorithm execution).
+   */
+  vtkSetMacro(PruneSpokes, vtkTypeBool);
+  vtkGetMacro(PruneSpokes, vtkTypeBool);
+  vtkBooleanMacro(PruneSpokes, vtkTypeBool);
+  ///@}
+
+  ///@{
+  /**
+   * If PruneSpokes is enabled, specify a relative tolerance to determine
+   * which spokes to prune. The relative tolerance is defined as the ratio of
+   * the edge length of a Voronoi tile to the length of the associated spoke
+   * connecting two Voronoi tile generator points. If the relative tolerance
+   * is <= the PruneTolerance, then the spoke (and associated edge) are
+   * pruned.
+   */
+  vtkSetClampMacro(PruneTolerance, double, 0.0, 0.5);
+  vtkGetMacro(PruneTolerance, double);
+  ///@}
+
+  ///@{
+  /**
+   * Enable the validation and repair of the Voronoi tesselation (which also
+   * affects the Delaunay triangulation if requested). Enabling validation
+   * increases computation time. By default, validation is on. Validation
+   * can be disabled but this may result in topological inconsistencies
+   * in the output Delaunay triangulation.
+   */
+  vtkSetMacro(Validate, vtkTypeBool);
+  vtkGetMacro(Validate, vtkTypeBool);
+  vtkBooleanMacro(Validate, vtkTypeBool);
   ///@}
 
   ///@{
@@ -363,37 +425,6 @@ public:
 
   ///@{
   /**
-   * Specify whether to prune the connections (i.e., spokes) between Voronoi
-   * tiles during processing. The spokes are dual connections represented by
-   * the edges of each convex Voronoi tile: removing (or pruning) a spoke
-   * means eliminating the connection to a tile neighbor, i.e., deleting a
-   * tile edge. Small tile edges may occur in degenerate situations where more
-   * than three Voronoi tiles meet (i.e., the Delaunay circumcircles are
-   * degenerate with more than three points laying on the
-   * crcumcircle). Pruning can be useful to prevent degenerate
-   * tessellations. By default, pruning is off (it requires extra work and
-   * typically slows algorithm execution).
-   */
-  vtkSetMacro(PruneSpokes, vtkTypeBool);
-  vtkGetMacro(PruneSpokes, vtkTypeBool);
-  vtkBooleanMacro(PruneSpokes, vtkTypeBool);
-  ///@}
-
-  ///@{
-  /**
-   * If PruneSpokes is enabled, specify a relative tolerance to determine
-   * which spokes to prune. The relative tolerance is defined as the ratio of
-   * the edge length of a Voronoi tile to the length of the associated spoke
-   * connecting two Voronoi tile generator points. If the relative tolerance
-   * is <= the PruneTolerance, then the spoke (and associated edge) are
-   * pruned.
-   */
-  vtkSetClampMacro(PruneTolerance, double, 0.0, 0.5);
-  vtkGetMacro(PruneTolerance, double);
-  ///@}
-
-  ///@{
-  /**
    * Specify the number of input generating points in a batch, where a batch
    * defines a contiguous subset of the input points operated on during
    * threaded execution. Generally this is only used for debugging or
@@ -447,8 +478,8 @@ protected:
 
   // Satisfy pipeline-related API
   int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
-  // Specify that the output is of type vtkPolyData
-  int FillOutputPortInformation(int port, vtkInformation* info) override;
+  // Specify that the input is of type vtkPointSet
+  int FillInputPortInformation(int, vtkInformation*) override;
 
 private:
   vtkVoronoi2D(const vtkVoronoi2D&) = delete;

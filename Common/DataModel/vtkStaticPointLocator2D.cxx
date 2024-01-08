@@ -108,6 +108,7 @@ struct vtkBucketList2D
   double Distance2ToBucket(const double x[3], const int nei[3]);
   double Distance2ToBounds(const double x[3], const double bounds[6]);
   bool BucketInCircle(const int bucketIJ[2], const double x[3], double radius);
+  bool BucketInAnnulus(const int bucketIJ[2], const double x[3], double rmin, double rmax);
 
   //-----------------------------------------------------------------------------
   // Inlined for performance. These function invocations must be called after
@@ -310,6 +311,24 @@ BucketInCircle(const int bucketIJ[2], const double x[3], double R)
   double r = sqrt(Distance2BetweenPoints2D(c,x));
 
   return ( ((r + this->BucketRadius) < R) ? true : false );
+}
+
+// Given a bucket specified by i,j binning space, determine whether it is
+// fully contained by the circle at origin x and with radius r.
+bool vtkBucketList2D::
+BucketInAnnulus(const int bucketIJ[2], const double x[3], double rmin, double rmax)
+{
+  // Compute center of the bucket
+  double c[2];
+  c[0] = this->bX + ((static_cast<double>(bucketIJ[0]) + 0.5) * this->hX);
+  c[1] = this->bY + ((static_cast<double>(bucketIJ[1]) + 0.5) * this->hY);
+
+  // Get the radius of the bucket center to the center of the circle
+  double r = sqrt(Distance2BetweenPoints2D(c,x));
+
+  // Reject buckets outside of the annulus
+  double br = this->BucketRadius;
+  return ( ((r+br) < rmin || (r-br) > rmax) ? false : true );
 }
 
 //------------------------------------------------------------------------------
@@ -1099,7 +1118,7 @@ FindNPointsInAnnulus(int N, const double x[3], vtkIdList* result,
   // candidate points.
   int level=0;
   NeighborBuckets2D buckets;
-  double d2, maxDist2=0.0;
+  double d2, maxDist2=0.0, Rmax=VTK_FLOAT_MAX;
   double pt[3];
   int count=0;
   std::vector<IdTuple> res;
@@ -1125,18 +1144,17 @@ FindNPointsInAnnulus(int N, const double x[3], vtkIdList* result,
 
       // Crop out candidate bucket if necessary. The cropping footprint
       // is determined from the maxDist2 found from the first N samples.
-      if ( cropping && (nei[0] < ijMin[0] || nei[0] > ijMax[0] ||
-                        nei[1] < ijMin[1] || nei[1] > ijMax[1]) )
+      // Also check if the current bucket is strictly outside the annulus of
+      // radius range (minDist2,maxDist2). If so, it can be skipped. Make
+      // sure it's worthwhile computing (i.e., at higher levels).
+      if ( cropping )
       {
-        continue;
-      }
-
-      // Also check if the current bucket is contained within the circle of
-      // radius minDist2. If so, it can be skipped. Make sure it's worthwhile
-      // computing (i.e., at higher levels).
-      if ( level >= 3 && this->BucketInCircle(nei, x, minDist) )
-      {
-        continue;
+        if ( (nei[0] < ijMin[0] || nei[0] > ijMax[0] ||
+              nei[1] < ijMin[1] || nei[1] > ijMax[1]) ||
+             (level >= 3 && !this->BucketInAnnulus(nei, x, minDist, Rmax)) )
+        {
+          continue;
+        }
       }
 
       // We are doing something
@@ -1164,14 +1182,14 @@ FindNPointsInAnnulus(int N, const double x[3], vtkIdList* result,
             if ( ++count >= N && !cropping )
             {
               cropping = true;
-              double R = sqrt(maxDist2);
+              Rmax = sqrt(maxDist2);
               // Determine the range of indices in each direction based on radius R.
               // These will be used to crop the previous bucket neighbor traversal.
               double xMin[2], xMax[2];
-              xMin[0] = x[0] - R;
-              xMin[1] = x[1] - R;
-              xMax[0] = x[0] + R;
-              xMax[1] = x[1] + R;
+              xMin[0] = x[0] - Rmax;
+              xMin[1] = x[1] - Rmax;
+              xMax[0] = x[0] + Rmax;
+              xMax[1] = x[1] + Rmax;
               this->GetBucketIndices(xMin, ijMin);
               this->GetBucketIndices(xMax, ijMax);
             } // setup cropping

@@ -83,7 +83,7 @@ struct VTile
   int Divisions[2];                 // locator binning dimensions
   double H[2];                      // locator spacing
   double Padding2;                  // Bounding box padding distance
-  vtkIdType NumClips;              // The number of clips so far
+  vtkIdType NumClips;               // The number of clips so far
 
   // Instantiate with initial values. Typically tiles consist of 5 to 6
   // vertices. Preallocate for performance.
@@ -2021,11 +2021,67 @@ int vtkVoronoi2D::RequestData(vtkInformation* vtkNotUsed(request),
 }
 
 //------------------------------------------------------------------------------
-// This filter produces vtkPolyData
-int vtkVoronoi2D::FillOutputPortInformation(int vtkNotUsed(port), vtkInformation* info)
+vtkIdType vtkVoronoi2D::FindTile(double x[3])
 {
-  // now add our info
-  info->Set(vtkDataObject::DATA_TYPE_NAME(), "vtkPolyData");
+  // Make sure the filter has executed (i.e., a locator is available), and the
+  // request is within the bounding box of the input points.
+  if ( this->Locator == nullptr )
+  {
+    return (-1);
+  }
+
+  double bounds[6];
+  this->Locator->GetBounds(bounds);
+  if ( x[0] < bounds[0] || x[0] > bounds[1] ||
+       x[1] < bounds[2] || x[1] > bounds[3] )
+  {
+    return -1;
+  }
+
+  // Now simply request the closest point.
+  return this->Locator->FindClosestPoint(x);
+}
+
+//------------------------------------------------------------------------------
+void vtkVoronoi2D::GetTileData(vtkIdType tileId, vtkPolyData* tileData)
+{
+  // Make sure the input is valid, and a locator is available (i.e., the filter
+  // has executed).
+  if ( tileId < 0 || tileData == nullptr || this->Locator == nullptr ||
+       (this->OutputType != vtkVoronoi2D::VORONOI &&
+        this->OutputType != vtkVoronoi2D::VORONOI_AND_DELAUNAY) )
+  {
+    return;
+  }
+
+  // Get the output
+  vtkPolyData *output = this->GetOutput();
+  vtkPoints *vPts = output->GetPoints();
+  vtkCellArray *vCells = output->GetPolys();
+
+  // Define points. Reuse the locator's points.
+  tileData->SetPoints(vPts);
+
+  // Now grab the output tile
+  vtkNew<vtkCellArray> tile;
+  vtkNew<vtkIdList> pts;
+  vCells->GetCellAtId(tileId,pts);
+  tile->InsertNextCell(pts);
+  tileData->SetPolys(tile);
+}
+
+//------------------------------------------------------------------------------
+int vtkVoronoi2D::FillInputPortInformation(int port, vtkInformation* info)
+{
+  if (port == 0)
+  {
+    info->Set(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "vtkPointSet");
+  }
+  else if (port == 1) //optional second input
+  {
+    info->Set(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "vtkPolyData");
+    info->Set(vtkAlgorithm::INPUT_IS_OPTIONAL(), 1);
+  }
   return 1;
 }
 

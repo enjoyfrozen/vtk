@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from vtkmodules.vtkCommonCore import (
+    vtkIdList,
     vtkMath,
     vtkPoints,
 )
@@ -23,22 +24,9 @@ from vtkmodules.util.misc import vtkGetDataRoot
 VTK_DATA_ROOT = vtkGetDataRoot()
 
 # Control problem size and set debugging parameters
-NPts = 1
-NPts = 5000000
-#NPts = 5000
-MaxTileClips = 10000
+NPts = 500
+PointOfInterest = 117
 PointsPerBucket = 2
-GenerateFlower = 1
-PointOfInterest = -1
-
-# Create the RenderWindow, Renderer and both Actors
-#
-ren1 = vtkRenderer()
-renWin = vtkRenderWindow()
-renWin.SetMultiSamples(0)
-renWin.AddRenderer(ren1)
-iren = vtkRenderWindowInteractor()
-iren.SetRenderWindow(renWin)
 
 # create some points and display them
 #
@@ -68,42 +56,33 @@ ptActor.GetProperty().SetPointSize(3)
 voronoi = vtkVoronoi2D()
 voronoi.SetInputData(profile)
 voronoi.SetGenerateScalarsToPointIds()
-voronoi.SetOutputTypeToVoronoiAndDelaunay()
+voronoi.GetLocator().SetNumberOfPointsPerBucket(PointsPerBucket)
 voronoi.SetOutputTypeToVoronoi()
-#voronoi.SetOutputTypeToDelaunay()
-voronoi.SetPadding(0.0001)
-#voronoi.ValidateOn()
 
-# Time execution
-timer = vtkTimerLog()
-timer.StartTimer()
+# Query for tile
 voronoi.Update()
-timer.StopTimer()
-time = timer.GetElapsedTime()
-print("Number of points processed: {0}".format(NPts))
-print("   Time to generate Voronoi tessellation: {0}".format(time))
-print("   Number of threads used: {0}".format(voronoi.GetNumberOfThreadsUsed()))
+x = [0,0,0]
+points.GetPoint(PointOfInterest,x)
+tileId = voronoi.FindTile(x)
+print("FindTile: ", tileId)
+tileData = vtkPolyData()
+voronoi.GetTileData(tileId,tileData)
 
 mapper = vtkPolyDataMapper()
 mapper.SetInputConnection(voronoi.GetOutputPort())
-#mapper.SetInputConnection(voronoi.GetOutputPort(1))
-if voronoi.GetGenerateScalars() == 1:
-    mapper.SetScalarRange(0,NPts)
-elif voronoi.GetGenerateScalars() == 2:
-    mapper.SetScalarRange(0,voronoi.GetNumberOfThreadsUsed())
+mapper.SetScalarRange(0,NPts)
 print("Scalar Range: {}".format(mapper.GetScalarRange()))
 
 actor = vtkActor()
 actor.SetMapper(mapper)
 actor.GetProperty().SetColor(1,0,0)
 
-# Debug code
+# Show the tile and query point
 sphere = vtkSphereSource()
-sphere.SetRadius(0.05)
+sphere.SetRadius(0.001)
 sphere.SetThetaResolution(16)
 sphere.SetPhiResolution(8)
-if PointOfInterest >= 0:
-    sphere.SetCenter(points.GetPoint(PointOfInterest))
+sphere.SetCenter(points.GetPoint(PointOfInterest))
 
 sphereMapper = vtkPolyDataMapper()
 sphereMapper.SetInputConnection(sphere.GetOutputPort())
@@ -112,49 +91,36 @@ sphereActor = vtkActor()
 sphereActor.SetMapper(sphereMapper)
 sphereActor.GetProperty().SetColor(0,0,0)
 
-# Voronoi flower
-fMapper = vtkPointGaussianMapper()
-fMapper.SetInputConnection(voronoi.GetOutputPort(1))
-fMapper.EmissiveOff()
-fMapper.SetScaleFactor(0.0)
+tileMapper = vtkPolyDataMapper()
+tileMapper.SetInputData(tileData)
 
-fActor = vtkActor()
-fActor.SetMapper(fMapper)
-fActor.GetProperty().SetColor(0,0,1)
+tileActor = vtkActor()
+tileActor.SetMapper(tileMapper)
+tileActor.GetProperty().SetColor(1,0,0)
+
+# Create the RenderWindow, Renderer and both Actors
+#
+ren1 = vtkRenderer()
+ren1.SetViewport(0,0,0.5,1)
+ren2 = vtkRenderer()
+ren2.SetViewport(0.5,0,1,1)
+renWin = vtkRenderWindow()
+renWin.AddRenderer(ren1)
+renWin.AddRenderer(ren2)
+iren = vtkRenderWindowInteractor()
+iren.SetRenderWindow(renWin)
 
 # Add the actors to the renderer, set the background and size
 #
 ren1.AddActor(actor)
 ren1.AddActor(ptActor)
-if PointOfInterest >= 0:
-    ren1.AddActor(sphereActor)
-    if GenerateFlower > 0:
-         ren1.AddActor(fActor)
-         ren1.RemoveActor(ptActor)
+ren2.AddActor(sphereActor)
+ren2.AddActor(tileActor)
 
 ren1.SetBackground(1,1,1)
-renWin.SetSize(300,300)
+ren2.SetBackground(1,1,1)
+renWin.SetSize(600,300)
 renWin.Render()
-cam1 = ren1.GetActiveCamera()
-if PointOfInterest >= 0:
-    xyz = []
-    xyz = points.GetPoint(PointOfInterest)
-    cam1.SetFocalPoint(xyz)
-    cam1.SetPosition(xyz[0],xyz[1],xyz[2]+1)
-    renWin.Render()
-    ren1.ResetCameraClippingRange()
-    cam1.Zoom(1.5)
-
-# added these unused default arguments so that the prototype
-# matches as required in python.
-def reportPointId(obj=None, event=""):
-    print("Point Id: {}".format(picker.GetPointId()))
-
-picker = vtkPointPicker()
-picker.AddObserver("EndPickEvent",reportPointId)
-picker.PickFromListOn()
-picker.AddPickList(ptActor)
-iren.SetPicker(picker)
 
 renWin.Render()
 iren.Start()
