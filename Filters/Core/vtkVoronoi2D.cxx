@@ -2045,16 +2045,26 @@ vtkIdType vtkVoronoi2D::FindTile(double x[3])
 //------------------------------------------------------------------------------
 void vtkVoronoi2D::GetTileData(vtkIdType tileId, vtkPolyData* tileData)
 {
-  // Make sure the input is valid, and a locator is available (i.e., the filter
-  // has executed).
-  if ( tileId < 0 || tileData == nullptr || this->Locator == nullptr ||
+  // Initialize the tile polydata
+  if (tileData)
+  {
+    tileData->Initialize();
+  }
+  else
+  {
+    return;
+  }
+
+  // Make sure the input is valid, a locator is available (i.e., the filter
+  // has executed), and a Voronoi output has been produced.
+  if ( tileId < 0 || this->Locator == nullptr ||
        (this->OutputType != vtkVoronoi2D::VORONOI &&
         this->OutputType != vtkVoronoi2D::VORONOI_AND_DELAUNAY) )
   {
     return;
   }
 
-  // Get the output
+  // Get the output (this is output# 0).
   vtkPolyData *output = this->GetOutput();
   vtkPoints *vPts = output->GetPoints();
   vtkCellArray *vCells = output->GetPolys();
@@ -2068,6 +2078,18 @@ void vtkVoronoi2D::GetTileData(vtkIdType tileId, vtkPolyData* tileData)
   vCells->GetCellAtId(tileId,pts);
   tile->InsertNextCell(pts);
   tileData->SetPolys(tile);
+
+  // Finally, copy the scalar cell (tile) data if created.
+  vtkIdTypeArray *auxScalars =
+    vtkIdTypeArray::FastDownCast(output->GetCellData()->GetArray("VoronoiScalars"));
+  if (auxScalars)
+  {
+    vtkNew<vtkIdTypeArray> tileScalar;
+    tileScalar->SetNumberOfComponents(1);
+    tileScalar->SetNumberOfTuples(1);
+    tileScalar->SetTuple1(0, auxScalars->GetComponent(tileId,0));
+    tileData->GetCellData()->SetScalars(tileScalar);
+  }
 }
 
 //------------------------------------------------------------------------------

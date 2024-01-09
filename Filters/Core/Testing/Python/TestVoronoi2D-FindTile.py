@@ -93,6 +93,7 @@ sphereActor.GetProperty().SetColor(0,0,0)
 
 tileMapper = vtkPolyDataMapper()
 tileMapper.SetInputData(tileData)
+tileMapper.SetScalarRange(0,NPts)
 
 tileActor = vtkActor()
 tileActor.SetMapper(tileMapper)
