@@ -919,7 +919,7 @@ struct VoronoiTiles
     this->Tiles = output->GetPolys();
 
     // Output scalars may be produced if desired
-    this->Scalars = static_cast<vtkIdTypeArray*>(output->GetCellData()->GetScalars());
+    this->Scalars = vtkIdTypeArray::FastDownCast(output->GetCellData()->GetScalars());
 
     // Compute some local data for speed. Just need 2D info because
     // everything is happening in 2D.
@@ -1128,7 +1128,7 @@ struct VoronoiTiles
       // the x-y plane.
       const double z = this->Points[2];
       this->NewPoints->SetNumberOfPoints(totalPoints);
-      double *pts = static_cast<vtkDoubleArray*>(this->NewPoints->GetData())->GetPointer(0);
+      double *pts = vtkDoubleArray::FastDownCast(this->NewPoints->GetData())->GetPointer(0);
 
       // Structures for cell definitions. Directly create the offsets
       // and connectivity for efficiency.
@@ -1925,7 +1925,7 @@ int vtkVoronoi2D::RequestData(vtkInformation* vtkNotUsed(request),
 
   // Process the points to generate Voronoi tiles and the optional
   // Delaunay triangulation.
-  double* inPtr = static_cast<vtkDoubleArray*>(tPoints->GetData())->GetPointer(0);
+  double* inPtr = vtkDoubleArray::FastDownCast(tPoints->GetData())->GetPointer(0);
   this->NumberOfThreadsUsed = VoronoiTiles::
     Execute(this->Locator, numPts, inPtr, regionIds, padding, output,
             this->GenerateScalars, delOutput, this->PointOfInterest,
