@@ -103,6 +103,13 @@ vtk_add_test_cxx(vtkRenderingVolumeCxxTests tests
   ${VolumeCxxTests}
   )
 
+foreach(cprMode IN ITEMS stretched straightened)
+  foreach(volumeRendering IN ITEMS slice volume)
+    vtk_add_test_cxx(vtkRenderingVolumeCxxTests tests
+      TestGPURayCastCurvedPlanarReformation_${cprMode}_${volumeRendering},TestGPURayCastCurvedPlanarReformation.cxx ${cprMode} ${volumeRendering})
+  endforeach()
+endforeach()
+
 vtk_test_cxx_executable(vtkRenderingVolumeCxxTests tests
   DISABLE_FLOATING_POINT_EXCEPTIONS
   RENDERING_FACTORY
