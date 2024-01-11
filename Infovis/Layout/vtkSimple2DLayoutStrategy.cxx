@@ -67,7 +67,7 @@ vtkSimple2DLayoutStrategy::~vtkSimple2DLayoutStrategy()
 // Set the graph that will be laid out
 void vtkSimple2DLayoutStrategy::Initialize()
 {
-  vtkMath::RandomSeed(this->RandomSeed);
+  this->Rng->SetSeed(this->RandomSeed);
 
   // Set up some quick access variables
   vtkPoints* pts = this->Graph->GetPoints();
@@ -122,12 +122,11 @@ void vtkSimple2DLayoutStrategy::Initialize()
   // If jitter then do it now at initialization
   if (Jitter)
   {
-
     // Jitter x and y, skip z
     for (vtkIdType i = 0; i < numVertices * 3; i += 3)
     {
-      rawPointData[i] += this->RestDistance * (vtkMath::Random() - .5);
-      rawPointData[i + 1] += this->RestDistance * (vtkMath::Random() - .5);
+      rawPointData[i] += this->RestDistance * (this->Rng->GetNextValue() - .5);
+      rawPointData[i + 1] += this->RestDistance * (this->Rng->GetNextValue() - .5);
     }
   }
 

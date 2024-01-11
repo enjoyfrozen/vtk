@@ -9,9 +9,10 @@
 #include "vtkGraph.h"
 #include "vtkIdTypeArray.h"
 #include "vtkInformation.h"
-#include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
 #include "vtkMutableDirectedGraph.h"
 #include "vtkMutableUndirectedGraph.h"
+#include "vtkNew.h"
 #include "vtkObjectFactory.h"
 #include "vtkPointData.h"
 #include "vtkSmartPointer.h"
@@ -86,7 +87,8 @@ int vtkRandomGraphSource::RequestData(
   vtkInformation*, vtkInformationVector**, vtkInformationVector* outputVector)
 {
   // Seed the random number generator so we can produce repeatable results
-  vtkMath::RandomSeed(this->Seed);
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+  rand->SetSeed(this->Seed);
 
   // Create a mutable graph of the appropriate type.
   vtkSmartPointer<vtkMutableDirectedGraph> dirBuilder =
@@ -111,7 +113,7 @@ int vtkRandomGraphSource::RequestData(
     for (vtkIdType i = 1; i < this->NumberOfVertices; i++)
     {
       // Pick a random vertex in [0, i-1].
-      int j = static_cast<vtkIdType>(vtkMath::Random(0, i));
+      int j = static_cast<vtkIdType>(rand->GetNextRangeValue(0, i));
       if (this->Directed)
       {
         dirBuilder->AddEdge(j, i);
@@ -130,7 +132,7 @@ int vtkRandomGraphSource::RequestData(
       vtkIdType begin = this->Directed ? 0 : i + 1;
       for (vtkIdType j = begin; j < this->NumberOfVertices; j++)
       {
-        double r = vtkMath::Random();
+        double r = rand->GetNextValue();
         if (r < this->EdgeProbability)
         {
           if (this->Directed)
@@ -174,8 +176,8 @@ int vtkRandomGraphSource::RequestData(
       bool newEdgeFound = false;
       while (!newEdgeFound)
       {
-        vtkIdType s = static_cast<vtkIdType>(vtkMath::Random(0, this->NumberOfVertices));
-        vtkIdType t = static_cast<vtkIdType>(vtkMath::Random(0, this->NumberOfVertices));
+        vtkIdType s = static_cast<vtkIdType>(rand->GetNextRangeValue(0, this->NumberOfVertices));
+        vtkIdType t = static_cast<vtkIdType>(rand->GetNextRangeValue(0, this->NumberOfVertices));
         if (s == t && (!this->AllowSelfLoops))
         {
           continue;
@@ -243,7 +245,7 @@ int vtkRandomGraphSource::RequestData(
     weights->SetName(this->EdgeWeightArrayName);
     for (vtkIdType i = 0; i < output->GetNumberOfEdges(); ++i)
     {
-      weights->InsertNextValue(vtkMath::Random());
+      weights->InsertNextValue(rand->GetNextValue());
     }
     output->GetEdgeData()->AddArray(weights);
     weights->Delete();

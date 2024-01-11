@@ -41,10 +41,8 @@ public:
       {
         this->Item->GetScene()->GetGeometry(size);
       }
-      this->Random->Next();
-      float x = static_cast<int>(this->Random->GetValue() * size[0]);
-      this->Random->Next();
-      float y = static_cast<int>(this->Random->GetValue() * size[1]);
+      float x = static_cast<int>(this->Random->GetNextValue() * size[0]);
+      float y = static_cast<int>(this->Random->GetNextValue() * size[1]);
       this->Position.push_back(std::make_pair(x, y));
     }
   }

@@ -25,16 +25,13 @@ int TestParametricFunctionSource(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
   vtkSmartPointer<vtkParametricEllipsoid> parametricEllipsoid =
     vtkSmartPointer<vtkParametricEllipsoid>::New();
 
-  randomSequence->Next();
-  double xRadius = randomSequence->GetValue();
+  double xRadius = randomSequence->GetNextValue();
   parametricEllipsoid->SetXRadius(xRadius);
 
-  randomSequence->Next();
-  double yRadius = randomSequence->GetValue();
+  double yRadius = randomSequence->GetNextValue();
   parametricEllipsoid->SetYRadius(yRadius);
 
-  randomSequence->Next();
-  double zRadius = randomSequence->GetValue();
+  double zRadius = randomSequence->GetNextValue();
   parametricEllipsoid->SetZRadius(zRadius);
 
   parametricFunctionSource->SetParametricFunction(parametricEllipsoid);
@@ -51,16 +48,13 @@ int TestParametricFunctionSource(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 
   parametricFunctionSource->SetOutputPointsPrecision(vtkAlgorithm::DOUBLE_PRECISION);
 
-  randomSequence->Next();
-  xRadius = randomSequence->GetValue();
+  xRadius = randomSequence->GetNextValue();
   parametricEllipsoid->SetXRadius(xRadius);
 
-  randomSequence->Next();
-  yRadius = randomSequence->GetValue();
+  yRadius = randomSequence->GetNextValue();
   parametricEllipsoid->SetYRadius(yRadius);
 
-  randomSequence->Next();
-  zRadius = randomSequence->GetValue();
+  zRadius = randomSequence->GetNextValue();
   parametricEllipsoid->SetZRadius(zRadius);
 
   parametricFunctionSource->SetParametricFunction(parametricEllipsoid);

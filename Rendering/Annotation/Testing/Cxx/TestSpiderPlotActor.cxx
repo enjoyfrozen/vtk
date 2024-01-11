@@ -6,7 +6,8 @@
 #include "vtkFloatArray.h"
 #include "vtkIdList.h"
 #include "vtkLegendBoxActor.h"
-#include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 #include "vtkPoints.h"
 #include "vtkPolyData.h"
 #include "vtkProperty2D.h"
@@ -38,13 +39,15 @@ int TestSpiderPlotActor(int argc, char* argv[])
   vtkFloatArray* oily = vtkFloatArray::New();
   oily->SetNumberOfTuples(numTuples);
 
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   for (int i = 0; i < numTuples; i++)
   {
-    bitter->SetTuple1(i, vtkMath::Random(1, 10));
-    crispy->SetTuple1(i, vtkMath::Random(-1, 1));
-    crunchy->SetTuple1(i, vtkMath::Random(1, 100));
-    salty->SetTuple1(i, vtkMath::Random(0, 10));
-    oily->SetTuple1(i, vtkMath::Random(5, 25));
+    bitter->SetTuple1(i, rand->GetNextRangeValue(1, 10));
+    crispy->SetTuple1(i, rand->GetNextRangeValue(-1, 1));
+    crunchy->SetTuple1(i, rand->GetNextRangeValue(1, 100));
+    salty->SetTuple1(i, rand->GetNextRangeValue(0, 10));
+    oily->SetTuple1(i, rand->GetNextRangeValue(5, 25));
   }
 
   vtkDataObject* dobj = vtkDataObject::New();
@@ -74,9 +77,9 @@ int TestSpiderPlotActor(int argc, char* argv[])
   actor->GetLegendActor()->SetNumberOfEntries(numTuples);
   for (int i = 0; i < numTuples; i++)
   {
-    double red = vtkMath::Random(0, 1);
-    double green = vtkMath::Random(0, 1);
-    double blue = vtkMath::Random(0, 1);
+    double red = rand->GetNextRangeValue(0, 1);
+    double green = rand->GetNextRangeValue(0, 1);
+    double blue = rand->GetNextRangeValue(0, 1);
     actor->SetPlotColor(i, red, green, blue);
   }
   actor->LegendVisibilityOn();

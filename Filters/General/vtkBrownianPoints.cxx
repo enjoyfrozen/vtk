@@ -9,6 +9,8 @@
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
 #include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 #include "vtkObjectFactory.h"
 #include "vtkPointData.h"
 
@@ -65,6 +67,8 @@ int vtkBrownianPoints::RequestData(vtkInformation* vtkNotUsed(request),
   int tenth = numPts / 10 + 1;
   for (i = 0; i < numPts; i++)
   {
+    static vtkNew<vtkMinimalStandardRandomSequence> rand;
+
     if (!(i % tenth))
     {
       this->UpdateProgress(static_cast<double>(i) / numPts);
@@ -74,12 +78,12 @@ int vtkBrownianPoints::RequestData(vtkInformation* vtkNotUsed(request),
       }
     }
 
-    speed = vtkMath::Random(this->MinimumSpeed, this->MaximumSpeed);
+    speed = rand->GetNextRangeValue(this->MinimumSpeed, this->MaximumSpeed);
     if (speed != 0.0)
     {
       for (j = 0; j < 3; j++)
       {
-        v[j] = vtkMath::Random(-1.0, 1.0);
+        v[j] = rand->GetNextRangeValue(-1.0, 1.0);
       }
       norm = vtkMath::Norm(v);
       for (j = 0; j < 3; j++)

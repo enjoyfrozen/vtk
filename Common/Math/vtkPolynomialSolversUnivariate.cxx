@@ -4,6 +4,8 @@
 #include "vtkPolynomialSolversUnivariate.h"
 #include "vtkDataArray.h"
 #include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 #include "vtkObjectFactory.h"
 
 #include <cmath>
@@ -1455,6 +1457,9 @@ int vtkPolynomialSolversUnivariate::LinBairstowSolve(double* c, int d, double* r
     c[i] /= c[0];
   }
 
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+  rand->SetSeed(static_cast<int>(time(nullptr)));
+
   double* div1 = new double[dp1];
   double* div2 = new double[dp1];
   div1[0] = div2[0] = 1;
@@ -1473,7 +1478,7 @@ int vtkPolynomialSolversUnivariate::LinBairstowSolve(double* c, int d, double* r
       // within the current tolerance
       if (!(nIterations % 100))
       {
-        R = vtkMath::Random(0., 2.);
+        R = rand->GetNextRangeValue(0., 2.);
         if (!(nIterations % 200))
         {
           tolerance *= 4.;
@@ -1509,8 +1514,8 @@ int vtkPolynomialSolversUnivariate::LinBairstowSolve(double* c, int d, double* r
       // by the means of a crude limiter
       if (fabs(dR) + fabs(dS) > 10.)
       {
-        dR = vtkMath::Random(-1., 1.);
-        dS = vtkMath::Random(-1., 1.);
+        dR = rand->GetNextRangeValue(-1., 1.);
+        dS = rand->GetNextRangeValue(-1., 1.);
       }
 
       R += dR;

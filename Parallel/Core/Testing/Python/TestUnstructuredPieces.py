@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from vtkmodules.vtkCommonCore import vtkMath
 from vtkmodules.vtkFiltersCore import (
     vtkContourFilter,
     vtkPolyDataNormals,
@@ -23,9 +22,6 @@ import vtkmodules.vtkRenderingOpenGL2
 from vtkmodules.util.misc import vtkGetDataRoot
 VTK_DATA_ROOT = vtkGetDataRoot()
 
-
-math = vtkMath()
-math.RandomSeed(22)
 
 pl3d = vtkMultiBlockPLOT3DReader()
 pl3d.SetXYZFileName(VTK_DATA_ROOT + "/Data/combxyz.bin")

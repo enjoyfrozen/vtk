@@ -9,11 +9,13 @@
 
 #include "vtkPKMeansStatistics.h"
 
+#include "vtkBoxMuellerRandomSequence.h"
 #include "vtkDoubleArray.h"
 #include "vtkIdTypeArray.h"
 #include "vtkMPIController.h"
-#include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
 #include "vtkMultiBlockDataSet.h"
+#include "vtkNew.h"
 #include "vtkTable.h"
 #include "vtkTimerLog.h"
 #include "vtkVariantArray.h"
@@ -51,8 +53,12 @@ void RandomSampleStatistics(vtkMultiProcessController* controller, void* arg)
   // Get local rank
   int myRank = com->GetLocalProcessId();
 
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
   // Seed random number generator
-  vtkMath::RandomSeed(static_cast<int>(vtkTimerLog::GetUniversalTime()) * (myRank + 1));
+  rand->SetSeed(static_cast<int>(vtkTimerLog::GetUniversalTime()) * (myRank + 1));
+
+  vtkNew<vtkBoxMuellerRandomSequence> grand;
+  grand->SetUniformSequence(rand);
 
   // Generate column names
   int nVariables = args->nVariables;
@@ -84,7 +90,7 @@ void RandomSampleStatistics(vtkMultiProcessController* controller, void* arg)
       double x;
       for (int r = 0; r < obsPerCluster; ++r)
       {
-        x = vtkMath::Gaussian(c * args->meanFactor, args->stdev);
+        x = grand->GetNextScaledValue(c * args->meanFactor, args->stdev);
         doubleArray->InsertNextValue(x);
       }
     }

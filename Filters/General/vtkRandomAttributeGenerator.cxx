@@ -18,6 +18,7 @@
 #include "vtkLongArray.h"
 #include "vtkLongLongArray.h"
 #include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
 #include "vtkNew.h"
 #include "vtkObjectFactory.h"
 #include "vtkPointData.h"
@@ -62,6 +63,8 @@ vtkRandomAttributeGenerator::vtkRandomAttributeGenerator()
 namespace
 {
 
+static vtkNew<vtkMinimalStandardRandomSequence> rng;
+
 //------------------------------------------------------------------------------
 template <class T>
 void GenerateRandomTuple(
@@ -70,7 +73,7 @@ void GenerateRandomTuple(
   for (int comp = minComp; comp <= maxComp; comp++)
   {
     // Now generate a random component value
-    data[i * numComp + comp] = static_cast<T>(vtkMath::Random(min, max));
+    data[i * numComp + comp] = static_cast<T>(rng->GetNextRangeValue(min, max));
   }
 }
 
@@ -80,7 +83,7 @@ void GenerateRandomTupleBit(vtkDataArray* data, vtkIdType i, int minComp, int ma
   for (int comp = minComp; comp <= maxComp; comp++)
   {
     // Now generate a random component value
-    data->SetComponent(i, comp, vtkMath::Random(0.0, 1.0) < 0.5 ? 0 : 1);
+    data->SetComponent(i, comp, rng->GetNextRangeValue(0.0, 1.0) < 0.5 ? 0 : 1);
   }
 }
 

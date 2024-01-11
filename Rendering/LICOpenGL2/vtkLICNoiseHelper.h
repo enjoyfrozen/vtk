@@ -36,12 +36,7 @@ public:
   /**
   Get a random number in the range of 0 to 1.
   */
-  double GetRandomNumber()
-  {
-    double val = this->RNG->GetValue();
-    this->RNG->Next();
-    return val;
-  }
+  double GetRandomNumber() { return this->RNG->GetNextValue(); }
 
 private:
   void operator=(const vtkLICRandomNumberGeneratorInterface&) = delete;

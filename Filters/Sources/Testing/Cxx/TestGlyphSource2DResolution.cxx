@@ -42,17 +42,12 @@ int TestGlyphSource2DResolution(int argc, char* argv[])
 
   for (int i = 0; i < 100; ++i)
   {
-    randomSequence->Next();
-    double x = randomSequence->GetValue() * size;
-    randomSequence->Next();
-    double y = randomSequence->GetValue() * size;
+    double x = randomSequence->GetNextValue() * size;
+    double y = randomSequence->GetNextValue() * size;
     pts->InsertNextPoint(x, y, 0.0);
-    randomSequence->Next();
-    scalars->InsertNextValue(5.0 * randomSequence->GetValue());
-    randomSequence->Next();
-    double ihat = randomSequence->GetValue() * 2 - 1;
-    randomSequence->Next();
-    double jhat = randomSequence->GetValue() * 2 - 1;
+    scalars->InsertNextValue(5.0 * randomSequence->GetNextValue());
+    double ihat = randomSequence->GetNextValue() * 2 - 1;
+    double jhat = randomSequence->GetNextValue() * 2 - 1;
     vectors->InsertNextTuple3(ihat, jhat, 0.0);
   }
 

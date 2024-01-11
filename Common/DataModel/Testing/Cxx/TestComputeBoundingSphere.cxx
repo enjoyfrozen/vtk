@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <vtkMath.h>
+#include <vtkMinimalStandardRandomSequence.h>
+#include <vtkNew.h>
 #include <vtkSmartPointer.h>
 #include <vtkSphere.h>
 
@@ -14,6 +15,8 @@ int TestComputeBoundingSphere(int, char*[])
 
   const size_t numberOfPoints = 1000;
   const size_t numberOfSpheres = 100;
+
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
 
   {
     std::cout << "Testing 0 points...";
@@ -36,9 +39,9 @@ int TestComputeBoundingSphere(int, char*[])
     std::vector<double> doublePoints;
     for (size_t i = 0; i < 1; ++i)
     {
-      double x = vtkMath::Random(-100.0, 100.0);
-      double y = vtkMath::Random(-10.0, 10.0);
-      double z = vtkMath::Random(-1.0, 1.0);
+      double x = rand->GetNextRangeValue(-100.0, 100.0);
+      double y = rand->GetNextRangeValue(-10.0, 10.0);
+      double z = rand->GetNextRangeValue(-1.0, 1.0);
       doublePoints.push_back(x);
       doublePoints.push_back(y);
       doublePoints.push_back(z);
@@ -62,9 +65,9 @@ int TestComputeBoundingSphere(int, char*[])
     std::vector<double> doublePoints;
     for (size_t i = 0; i < numberOfPoints; ++i)
     {
-      double x = vtkMath::Random(-100.0, 100.0);
-      double y = vtkMath::Random(-10.0, 10.0);
-      double z = vtkMath::Random(-1.0, 1.0);
+      double x = rand->GetNextRangeValue(-100.0, 100.0);
+      double y = rand->GetNextRangeValue(-10.0, 10.0);
+      double z = rand->GetNextRangeValue(-1.0, 1.0);
       doublePoints.push_back(x);
       doublePoints.push_back(y);
       doublePoints.push_back(z);
@@ -87,9 +90,9 @@ int TestComputeBoundingSphere(int, char*[])
     floatPoints.push_back(0.0);
     for (size_t i = 2; i < numberOfPoints; ++i)
     {
-      float x = vtkMath::Random(-100.0, 100.0);
-      float y = vtkMath::Random(-100.0, 100.0);
-      float z = vtkMath::Random(-100.0, 100.0);
+      float x = rand->GetNextRangeValue(-100.0, 100.0);
+      float y = rand->GetNextRangeValue(-100.0, 100.0);
+      float z = rand->GetNextRangeValue(-100.0, 100.0);
       floatPoints.push_back(x);
       floatPoints.push_back(y);
       floatPoints.push_back(z);
@@ -110,9 +113,9 @@ int TestComputeBoundingSphere(int, char*[])
     std::vector<double> doublePoints;
     for (size_t i = 0; i < numberOfPoints; ++i)
     {
-      double x = vtkMath::Random(-100.0, 100.0);
-      double y = vtkMath::Random(-10.0, 10.0);
-      double z = vtkMath::Random(-1.0, 1.0);
+      double x = rand->GetNextRangeValue(-100.0, 100.0);
+      double y = rand->GetNextRangeValue(-10.0, 10.0);
+      double z = rand->GetNextRangeValue(-1.0, 1.0);
       doublePoints.push_back(x);
       doublePoints.push_back(y);
       doublePoints.push_back(z);
@@ -146,10 +149,10 @@ int TestComputeBoundingSphere(int, char*[])
     for (size_t i = 0; i < 1; ++i)
     {
       std::vector<float> xyzr(4);
-      xyzr[0] = vtkMath::Random(-100.0, 100.0);
-      xyzr[1] = vtkMath::Random(-100.0, 100.0);
-      xyzr[2] = vtkMath::Random(-100.0, 100.0);
-      xyzr[3] = vtkMath::Random(1.0, 2.0);
+      xyzr[0] = rand->GetNextRangeValue(-100.0, 100.0);
+      xyzr[1] = rand->GetNextRangeValue(-100.0, 100.0);
+      xyzr[2] = rand->GetNextRangeValue(-100.0, 100.0);
+      xyzr[3] = rand->GetNextRangeValue(1.0, 2.0);
       floatPoints.push_back(xyzr);
     }
     std::vector<float*> floatSpheres(floatPoints.size());
@@ -177,10 +180,10 @@ int TestComputeBoundingSphere(int, char*[])
     for (size_t i = 0; i < numberOfSpheres; ++i)
     {
       std::vector<float> xyzr(4);
-      xyzr[0] = vtkMath::Random(-100.0, 100.0);
-      xyzr[1] = vtkMath::Random(-100.0, 100.0);
-      xyzr[2] = vtkMath::Random(-100.0, 100.0);
-      xyzr[3] = vtkMath::Random(1.0, 2.0);
+      xyzr[0] = rand->GetNextRangeValue(-100.0, 100.0);
+      xyzr[1] = rand->GetNextRangeValue(-100.0, 100.0);
+      xyzr[2] = rand->GetNextRangeValue(-100.0, 100.0);
+      xyzr[3] = rand->GetNextRangeValue(1.0, 2.0);
       floatPoints.push_back(xyzr);
     }
     std::vector<float*> floatSpheres(floatPoints.size());
@@ -217,10 +220,10 @@ int TestComputeBoundingSphere(int, char*[])
 
     for (size_t i = 2; i < numberOfSpheres; ++i)
     {
-      xyzr[0] = vtkMath::Random(-100.0, 100.0);
-      xyzr[1] = vtkMath::Random(-100.0, 100.0);
-      xyzr[2] = vtkMath::Random(-100.0, 100.0);
-      xyzr[3] = vtkMath::Random(1.0, 2.0);
+      xyzr[0] = rand->GetNextRangeValue(-100.0, 100.0);
+      xyzr[1] = rand->GetNextRangeValue(-100.0, 100.0);
+      xyzr[2] = rand->GetNextRangeValue(-100.0, 100.0);
+      xyzr[3] = rand->GetNextRangeValue(1.0, 2.0);
       doublePoints.push_back(xyzr);
     }
     std::vector<double*> doubleSpheres(doublePoints.size());

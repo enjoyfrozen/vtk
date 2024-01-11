@@ -12,6 +12,8 @@
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
 #include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 #include "vtkObjectFactory.h"
 #include "vtkOutEdgeIterator.h"
 #include "vtkPointData.h"
@@ -104,13 +106,14 @@ void vtkForceDirectedLayoutStrategy::Initialize()
   // Get the points, either x,y,0 or x,y,z or random
   if (this->RandomInitialPoints)
   {
-    vtkMath::RandomSeed(this->RandomSeed);
+    vtkNew<vtkMinimalStandardRandomSequence> rand;
+    rand->SetSeed(this->RandomSeed);
 
     for (vtkIdType i = 0; i < numVertices; i++)
     {
       for (int j = 0; j < maxCoord; j++)
       {
-        double r = vtkMath::Random();
+        double r = rand->GetNextValue();
         v[i].x[j] =
           (this->GraphBounds[2 * j + 1] - this->GraphBounds[2 * j]) * r + this->GraphBounds[2 * j];
       }

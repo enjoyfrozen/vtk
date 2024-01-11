@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from vtkmodules.vtkCommonCore import vtkMath
 from vtkmodules.vtkCommonDataModel import vtkDataSetAttributes
 from vtkmodules.vtkFiltersCore import vtkPolyDataNormals
 from vtkmodules.vtkFiltersParallel import (
@@ -20,9 +19,6 @@ import vtkmodules.vtkRenderingFreeType
 import vtkmodules.vtkRenderingOpenGL2
 from vtkmodules.util.misc import vtkGetDataRoot
 VTK_DATA_ROOT = vtkGetDataRoot()
-
-math = vtkMath()
-math.RandomSeed(22)
 
 sphere = vtkSphereSource()
 sphere.SetPhiResolution(32)

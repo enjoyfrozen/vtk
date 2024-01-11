@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 from vtkmodules.vtkCommonCore import (
-    vtkMath,
     vtkPoints,
 )
 from vtkmodules.vtkCommonDataModel import vtkPolyData
@@ -28,8 +27,6 @@ VTK_DATA_ROOT = vtkGetDataRoot()
 res = 15
 
 # Parameters for debugging
-math = vtkMath()
-math.RandomSeed(31415)
 
 # create pipeline
 #

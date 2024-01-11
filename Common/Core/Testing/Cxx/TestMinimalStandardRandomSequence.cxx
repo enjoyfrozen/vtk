@@ -13,6 +13,9 @@
 // 31, 10 (Oct. 1988) pp. 1192-1201.
 // Code is at page 1195, "Integer version 2"
 
+// Hide VTK_DEPRECATED_IN_9_1_0() warnings for this class.
+#define VTK_DEPRECATION_LEVEL 0
+
 #include "vtkDebugLeaks.h"
 #include "vtkMath.h"
 #include "vtkMinimalStandardRandomSequence.h"

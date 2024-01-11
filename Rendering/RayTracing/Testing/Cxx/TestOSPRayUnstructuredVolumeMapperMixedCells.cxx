@@ -61,9 +61,6 @@ int TestOSPRayUnstructuredVolumeMapperMixedCells(int argc, char* argv[])
 
   int blockDims[3] = { 24, 24, 24 };
 
-  // Seed this for the random attribute generators:
-  vtkMath::RandomSeed(0);
-
   vtkNew<vtkAppendFilter> datasetBuilder;
   datasetBuilder->SetOutputPointsPrecision(VTK_TYPE_FLOAT32);
 

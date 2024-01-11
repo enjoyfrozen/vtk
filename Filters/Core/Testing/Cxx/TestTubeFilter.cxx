@@ -41,8 +41,7 @@ void InitializePolyData(vtkPolyData* polyData, int dataType)
       double point[3];
       for (unsigned int j = 0; j < 3; ++j)
       {
-        randomSequence->Next();
-        point[j] = randomSequence->GetValue();
+        point[j] = randomSequence->GetNextValue();
       }
       vtkIdType pointId = points->InsertNextPoint(point);
       verts->InsertCellPoint(pointId);
@@ -57,8 +56,7 @@ void InitializePolyData(vtkPolyData* polyData, int dataType)
       float point[3];
       for (unsigned int j = 0; j < 3; ++j)
       {
-        randomSequence->Next();
-        point[j] = static_cast<float>(randomSequence->GetValue());
+        point[j] = static_cast<float>(randomSequence->GetNextValue());
       }
       vtkIdType pointId = points->InsertNextPoint(point);
       verts->InsertCellPoint(pointId);

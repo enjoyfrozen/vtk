@@ -22,16 +22,14 @@ int TestArcSource(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
   double normal[3];
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    normal[i] = randomSequence->GetValue();
+    normal[i] = randomSequence->GetNextValue();
   }
   arcSource->SetNormal(normal);
 
   double polarVector[3];
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    polarVector[i] = randomSequence->GetValue();
+    polarVector[i] = randomSequence->GetNextValue();
   }
   arcSource->SetPolarVector(polarVector);
 
@@ -49,15 +47,13 @@ int TestArcSource(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    normal[i] = randomSequence->GetValue();
+    normal[i] = randomSequence->GetNextValue();
   }
   arcSource->SetNormal(normal);
 
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    polarVector[i] = randomSequence->GetValue();
+    polarVector[i] = randomSequence->GetNextValue();
   }
   arcSource->SetPolarVector(polarVector);
 

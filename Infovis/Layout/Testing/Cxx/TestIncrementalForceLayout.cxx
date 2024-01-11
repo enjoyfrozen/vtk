@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "vtkIncrementalForceLayout.h"
-#include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
 #include "vtkNew.h"
 #include "vtkPoints.h"
 #include "vtkRandomGraphSource.h"
@@ -16,10 +16,13 @@ int TestIncrementalForceLayout(int, char*[])
   source->SetNumberOfEdges(10);
   source->Update();
 
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   vtkGraph* randomGraph = source->GetOutput();
   for (vtkIdType i = 0; i < randomGraph->GetNumberOfVertices(); ++i)
   {
-    randomGraph->GetPoints()->SetPoint(i, vtkMath::Random(), vtkMath::Random(), vtkMath::Random());
+    randomGraph->GetPoints()->SetPoint(
+      i, rand->GetNextValue(), rand->GetNextValue(), rand->GetNextValue());
   }
 
   vtkNew<vtkIncrementalForceLayout> layout;

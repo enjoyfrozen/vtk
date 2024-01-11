@@ -6,7 +6,8 @@
 #include "vtkImageProgressIterator.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
-#include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 #include "vtkObjectFactory.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
 
@@ -92,6 +93,8 @@ void vtkImageNoiseSource::ExecuteDataWithInformation(vtkDataObject* output, vtkI
 
   vtkImageProgressIterator<double> outIt(data, data->GetExtent(), this, 0);
 
+  static vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   // Loop through output pixels
   while (!outIt.IsAtEnd())
   {
@@ -100,7 +103,7 @@ void vtkImageNoiseSource::ExecuteDataWithInformation(vtkDataObject* output, vtkI
     while (outSI != outSIEnd)
     {
       // now process the components
-      *outSI = this->Minimum + (this->Maximum - this->Minimum) * vtkMath::Random();
+      *outSI = this->Minimum + (this->Maximum - this->Minimum) * rand->GetNextValue();
       outSI++;
     }
     outIt.NextSpan();

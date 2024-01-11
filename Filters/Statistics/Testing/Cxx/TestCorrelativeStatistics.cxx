@@ -5,11 +5,14 @@
 // Thanks to Philippe Pebay from Sandia National Laboratories
 // for implementing this test.
 
+#include "vtkBoxMuellerRandomSequence.h"
 #include "vtkCorrelativeStatistics.h"
 #include "vtkDataObjectCollection.h"
 #include "vtkDoubleArray.h"
 #include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
 #include "vtkMultiBlockDataSet.h"
+#include "vtkNew.h"
 #include "vtkStringArray.h"
 #include "vtkTable.h"
 #include "vtkTimerLog.h"
@@ -539,14 +542,18 @@ int TestCorrelativeStatistics(int, char*[])
   datasetLaplace->SetName("Standard Laplace");
 
   // Seed random number generator
-  vtkMath::RandomSeed(static_cast<int>(vtkTimerLog::GetUniversalTime()));
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+  rand->SetSeed(static_cast<int>(vtkTimerLog::GetUniversalTime()));
+
+  vtkNew<vtkBoxMuellerRandomSequence> grand;
+  grand->SetUniformSequence(rand);
 
   // Generate pseudo-random vectors
   double x, y, z1, z2, z3;
   for (int i = 0; i < nVals; ++i)
   {
-    x = vtkMath::Gaussian();
-    y = vtkMath::Gaussian();
+    x = grand->GetNextValue();
+    y = grand->GetNextValue();
     z1 = rhoXZ1 * x + rorXZ1 * y;
     z2 = rhoXZ2 * x + rorXZ2 * y;
     z3 = 5. * x - 2.;
@@ -555,8 +562,8 @@ int TestCorrelativeStatistics(int, char*[])
     datasetNormalZ1->InsertNextValue(z1);
     datasetNormalZ2->InsertNextValue(z2);
     datasetNormalZ3->InsertNextValue(z3);
-    datasetUniform->InsertNextValue(vtkMath::Random());
-    double u = vtkMath::Random() - .5;
+    datasetUniform->InsertNextValue(rand->GetNextValue());
+    double u = rand->GetNextValue() - .5;
     datasetLaplace->InsertNextValue((u < 0. ? 1. : -1.) * log(1. - 2. * fabs(u)));
   }
 

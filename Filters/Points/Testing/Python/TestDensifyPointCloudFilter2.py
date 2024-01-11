@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from vtkmodules.vtkCommonCore import vtkMath
 from vtkmodules.vtkFiltersCore import vtkGlyph3D
 from vtkmodules.vtkFiltersPoints import vtkDensifyPointCloudFilter
 from vtkmodules.vtkFiltersSources import (
@@ -24,8 +23,6 @@ res = 100
 
 # Parameters for debugging
 NPts = 1000000
-math = vtkMath()
-math.RandomSeed(31415)
 
 # create pipeline
 #

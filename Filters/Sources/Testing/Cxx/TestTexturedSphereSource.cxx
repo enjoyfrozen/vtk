@@ -20,8 +20,7 @@ int TestTexturedSphereSource(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 
   texturedSphereSource->SetOutputPointsPrecision(vtkAlgorithm::SINGLE_PRECISION);
 
-  randomSequence->Next();
-  double radius = randomSequence->GetValue();
+  double radius = randomSequence->GetNextValue();
   texturedSphereSource->SetRadius(radius);
 
   texturedSphereSource->Update();
@@ -36,8 +35,7 @@ int TestTexturedSphereSource(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 
   texturedSphereSource->SetOutputPointsPrecision(vtkAlgorithm::DOUBLE_PRECISION);
 
-  randomSequence->Next();
-  radius = randomSequence->GetValue();
+  radius = randomSequence->GetNextValue();
   texturedSphereSource->SetRadius(radius);
 
   texturedSphereSource->Update();

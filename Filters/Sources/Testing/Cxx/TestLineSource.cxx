@@ -22,16 +22,14 @@ int TestLineSource(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
   double point1[3];
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    point1[i] = randomSequence->GetValue();
+    point1[i] = randomSequence->GetNextValue();
   }
   lineSource->SetPoint1(point1);
 
   double point2[3];
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    point2[i] = randomSequence->GetValue();
+    point2[i] = randomSequence->GetNextValue();
   }
   lineSource->SetPoint2(point2);
 
@@ -49,15 +47,13 @@ int TestLineSource(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    point1[i] = randomSequence->GetValue();
+    point1[i] = randomSequence->GetNextValue();
   }
   lineSource->SetPoint1(point1);
 
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    point2[i] = randomSequence->GetValue();
+    point2[i] = randomSequence->GetNextValue();
   }
   lineSource->SetPoint2(point2);
 
@@ -78,15 +74,13 @@ int TestLineSource(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    point1[i] = randomSequence->GetValue();
+    point1[i] = randomSequence->GetNextValue();
   }
   inputPoints->InsertNextPoint(point1);
 
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    point2[i] = randomSequence->GetValue();
+    point2[i] = randomSequence->GetNextValue();
   }
   inputPoints->InsertNextPoint(point2);
 
@@ -108,15 +102,13 @@ int TestLineSource(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    point1[i] = randomSequence->GetValue();
+    point1[i] = randomSequence->GetNextValue();
   }
   inputPoints->InsertNextPoint(point1);
 
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    point2[i] = randomSequence->GetValue();
+    point2[i] = randomSequence->GetNextValue();
   }
   inputPoints->InsertNextPoint(point2);
 

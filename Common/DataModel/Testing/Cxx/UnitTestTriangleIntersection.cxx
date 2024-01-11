@@ -145,8 +145,7 @@ void GeneratePointInPlane(vtkRandom* seq, double* o, double* n, double* p)
 
   for (int i = 0; i < 3; i++)
   {
-    seq->Next();
-    p[i] = -1. + 2. * seq->GetValue();
+    p[i] = -1. + 2. * seq->GetNextValue();
   }
 
   ProjectPointOntoPlane(o, n, p);
@@ -213,10 +212,8 @@ void RandomSphere(vtkRandom* seq, const double radius, const double* offset, dou
 {
   // Generate a point on a sphere.
 
-  seq->Next();
-  double theta = 2. * vtkMath::Pi() * seq->GetValue();
-  seq->Next();
-  double phi = vtkMath::Pi() * seq->GetValue();
+  double theta = 2. * vtkMath::Pi() * seq->GetNextValue();
+  double phi = vtkMath::Pi() * seq->GetNextValue();
   value[0] = radius * cos(theta) * sin(phi) + offset[0];
   value[1] = radius * sin(theta) * sin(phi) + offset[1];
   value[2] = radius * cos(phi) + offset[2];
@@ -234,8 +231,7 @@ int TestNegativeResult(vtkRandom* seq, unsigned nTests)
 
     for (int i = 0; i < 3; i++)
     {
-      seq->Next();
-      o1[i] = seq->GetValue();
+      o1[i] = seq->GetNextValue();
     }
 
     GenerateTriangleInPlane(seq, o1, n1, t1[0], t1[1], t1[2]);
@@ -285,8 +281,7 @@ int TestCoplanarNegativeResult(vtkRandom* seq, unsigned nTests)
     {
       n2[i] -= dot * n1[i];
       nn2[i] = -1. * n2[i];
-      seq->Next();
-      o1[i] = seq->GetValue();
+      o1[i] = seq->GetNextValue();
     }
 
     o1[0] = o1[1] = o1[2] = 1.;
@@ -331,8 +326,7 @@ void ProjectAlongRay(vtkRandom* seq, double* x0, double* x1, double* p)
   vtkMath::Subtract(x1, x0, n);
   vtkMath::Normalize(n);
 
-  seq->Next();
-  double len = seq->GetValue();
+  double len = seq->GetNextValue();
   for (int i = 0; i < 3; i++)
   {
     p[i] = x1[i] + len * n[i];
@@ -348,13 +342,11 @@ void GenerateOverlappingSegments(
   std::vector<double> random(4, 0.);
   for (int i = 0; i < 4; i++)
   {
-    seq->Next();
-    random[i] = seq->GetValue();
+    random[i] = seq->GetNextValue();
   }
   std::sort(random.begin(), random.end());
 
-  seq->Next();
-  double sequence = seq->GetValue();
+  double sequence = seq->GetNextValue();
 
   double par[4]; // parametric values for x1,x2,y1,y2
 
@@ -401,8 +393,7 @@ void RandomPoint(vtkRandom* seq, double* p)
   // Set p to be a random point in the box (-1,1) x (-1,1) x (-1,1).
   for (int i = 0; i < 3; i++)
   {
-    seq->Next();
-    p[i] = -1. + 2. * seq->GetValue();
+    p[i] = -1. + 2. * seq->GetNextValue();
   }
 }
 

@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 
-from vtkmodules.vtkCommonCore import vtkMath
+from vtkmodules.vtkCommonCore import vtkMinimalStandardRandomSequence
 from vtkmodules.vtkRenderingCore import vtkPropPicker
 import vtkmodules.vtkInteractionStyle
 import vtkmodules.vtkRenderingFreeType
@@ -14,12 +14,12 @@ class TestStyleBase(object):
         self.ren1 = ren
 
         # Get random numbers
-        self.math = vtkMath()
-        self.math.RandomSeed(1)
+        self.rand = vtkMinimalStandardRandomSequence()
+        self.rand.SetSeed(1)
 
 
     def randint(self, min, max):
-        f = self.math.Random(min, max)
+        f = self.rand.GetNextRangeValue(min, max)
         return int(f)
 
 

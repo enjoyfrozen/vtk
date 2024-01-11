@@ -20,11 +20,15 @@
 #include "vtkInformationVector.h"
 #include "vtkLogger.h"
 #include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 #include "vtkObjectFactory.h"
 #include "vtkPointData.h"
 #include "vtkPoints.h"
 #include "vtkSmartPointer.h"
 #include "vtkTree.h"
+
+static vtkNew<vtkMinimalStandardRandomSequence> rng;
 
 VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkFast2DLayoutStrategy);
@@ -135,7 +139,7 @@ void vtkFast2DLayoutStrategy::GenerateGaussianSplat(vtkImageData* splat, int x, 
 // Set the graph that will be laid out
 void vtkFast2DLayoutStrategy::Initialize()
 {
-  vtkMath::RandomSeed(this->RandomSeed);
+  rng->SetSeed(this->RandomSeed);
 
   // Set up some quick access variables
   vtkPoints* pts = this->Graph->GetPoints();
@@ -190,8 +194,8 @@ void vtkFast2DLayoutStrategy::Initialize()
   // Jitter x and y, skip z
   for (vtkIdType i = 0; i < numVertices * 3; i += 3)
   {
-    rawPointData[i] += this->RestDistance * (vtkMath::Random() - .5);
-    rawPointData[i + 1] += this->RestDistance * (vtkMath::Random() - .5);
+    rawPointData[i] += this->RestDistance * (rng->GetNextValue() - .5);
+    rawPointData[i + 1] += this->RestDistance * (rng->GetNextValue() - .5);
   }
 
   // Get the weight array
@@ -509,8 +513,8 @@ void vtkFast2DLayoutStrategy::ResolveCoincidentVertices()
         collisionOps++;
 
         // Move
-        rawPointData[rawIndex] += jumpDistance * (vtkMath::Random() - .5);
-        rawPointData[rawIndex + 1] += jumpDistance * (vtkMath::Random() - .5);
+        rawPointData[rawIndex] += jumpDistance * (rng->GetNextValue() - .5);
+        rawPointData[rawIndex + 1] += jumpDistance * (rng->GetNextValue() - .5);
 
         // Test
         indexX = static_cast<int>((rawPointData[rawIndex] - paddedBounds[0]) /

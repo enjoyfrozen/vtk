@@ -275,9 +275,9 @@ static VTK_THREAD_RETURN_TYPE vtkRandomPool_ThreadedMethod(void* arg)
   vtkIdType i, start = threadId * info->SeqChunk;
   vtkIdType end = start + info->SeqChunk;
   end = (end < info->SeqSize ? end : info->SeqSize);
-  for (i = start; i < end; ++i, sequencer->Next())
+  for (i = start; i < end; ++i)
   {
-    pool[i] = sequencer->GetValue();
+    pool[i] = sequencer->GetNextValue();
   }
 
   return VTK_THREAD_RETURN_VALUE;
@@ -317,9 +317,9 @@ const double* vtkRandomPool::GeneratePool()
   {
     sequencer->Initialize(31415);
     double* p = this->Pool;
-    for (vtkIdType i = 0; i < seqSize; ++i, sequencer->Next())
+    for (vtkIdType i = 0; i < seqSize; ++i)
     {
-      *p++ = sequencer->GetValue();
+      *p++ = sequencer->GetNextValue();
     }
   }
 

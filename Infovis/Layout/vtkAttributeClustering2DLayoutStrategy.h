@@ -18,7 +18,9 @@
 #define vtkAttributeClustering2DLayoutStrategy_h
 
 #include "vtkGraphLayoutStrategy.h"
-#include "vtkInfovisLayoutModule.h" // For export macro
+#include "vtkInfovisLayoutModule.h"           // For export macro
+#include "vtkMinimalStandardRandomSequence.h" // For ivars
+#include "vtkNew.h"                           // For ivars
 
 #include "vtkSmartPointer.h" // Required for smart pointer internal ivars.
 
@@ -149,6 +151,8 @@ private:
   vtkSmartPointer<vtkFloatArray> RepulsionArray;
   vtkSmartPointer<vtkFloatArray> AttractionArray;
   vtkSmartPointer<vtkIntArray> EdgeCountArray;
+
+  vtkNew<vtkMinimalStandardRandomSequence> Rng;
 
   int RandomSeed;
   int IterationsPerLayout;

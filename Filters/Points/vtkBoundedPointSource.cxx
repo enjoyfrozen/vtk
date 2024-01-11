@@ -6,7 +6,8 @@
 #include "vtkFloatArray.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
-#include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 #include "vtkObjectFactory.h"
 #include "vtkPointData.h"
 #include "vtkPoints.h"
@@ -67,11 +68,13 @@ int vtkBoundedPointSource::RequestData(vtkInformation* vtkNotUsed(request),
   double zmin = (this->Bounds[4] < this->Bounds[5] ? this->Bounds[4] : this->Bounds[5]);
   double zmax = (this->Bounds[4] < this->Bounds[5] ? this->Bounds[5] : this->Bounds[4]);
 
+  static vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   for (ptId = 0; ptId < this->NumberOfPoints; ptId++)
   {
-    x[0] = vtkMath::Random(xmin, xmax);
-    x[1] = vtkMath::Random(ymin, ymax);
-    x[2] = vtkMath::Random(zmin, zmax);
+    x[0] = rand->GetNextRangeValue(xmin, xmax);
+    x[1] = rand->GetNextRangeValue(ymin, ymax);
+    x[2] = rand->GetNextRangeValue(zmin, zmax);
     newPoints->SetPoint(ptId, x);
   }
   output->SetPoints(newPoints);
@@ -90,7 +93,7 @@ int vtkBoundedPointSource::RequestData(vtkInformation* vtkNotUsed(request),
       (this->ScalarRange[0] < this->ScalarRange[1] ? this->ScalarRange[1] : this->ScalarRange[0]);
     for (ptId = 0; ptId < this->NumberOfPoints; ptId++)
     {
-      *s++ = vtkMath::Random(sMin, sMax);
+      *s++ = rand->GetNextRangeValue(sMin, sMax);
     }
     output->GetPointData()->SetScalars(scalars);
     scalars->Delete();

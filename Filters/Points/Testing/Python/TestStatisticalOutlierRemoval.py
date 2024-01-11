@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from vtkmodules.vtkCommonCore import (
     vtkFloatArray,
-    vtkMath,
+    vtkMinimalStandardRandomSequence,
     vtkPoints,
 )
 from vtkmodules.vtkCommonDataModel import (
@@ -29,8 +29,8 @@ VTK_DATA_ROOT = vtkGetDataRoot()
 
 # Parameters for debugging
 NPts = 20000
-math = vtkMath()
-math.RandomSeed(31415)
+rand = vtkMinimalStandardRandomSequence()
+rand.SetSeed(31415)
 
 # create point cloud. A bunch of random points plus some outliers
 # over the six faces of the bounding box
@@ -42,8 +42,8 @@ scalars = vtkFloatArray()
 scalars.SetNumberOfTuples(NPts+6)
 scalars.SetName("scalars")
 for i in range(0,NPts):
-    points.SetPoint(i,math.Random(-1,1),math.Random(-1,1),math.Random(-1,1))
-    scalars.SetValue(i,math.Random(0,1))
+    points.SetPoint(i,rand.GetNextRangeValue(-1,1),rand.GetNextRangeValue(-1,1),rand.GetNextRangeValue(-1,1))
+    scalars.SetValue(i,rand.GetNextRangeValue(0,1))
 
 points.SetPoint(NPts,  -5,0,0)
 scalars.SetValue(NPts, 0.5)

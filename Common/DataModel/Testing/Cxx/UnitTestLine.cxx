@@ -24,12 +24,9 @@ void GenerateIntersectingLineSegments(vtkMinimalStandardRandomSequence* seq, dou
   double intersection[3];
   for (unsigned i = 0; i < 3; i++)
   {
-    intersection[i] = seq->GetValue();
-    seq->Next();
-    a1[i] = seq->GetValue();
-    seq->Next();
-    b1[i] = seq->GetValue();
-    seq->Next();
+    intersection[i] = seq->GetNextValue();
+    a1[i] = seq->GetNextValue();
+    b1[i] = seq->GetNextValue();
   }
 
   intersection[0] = 1.;
@@ -38,10 +35,8 @@ void GenerateIntersectingLineSegments(vtkMinimalStandardRandomSequence* seq, dou
   b1[0] = b1[1] = 1.;
   b1[2] = 0.;
 
-  double t1 = seq->GetValue();
-  seq->Next();
-  double t2 = seq->GetValue();
-  seq->Next();
+  double t1 = seq->GetNextValue();
+  double t2 = seq->GetNextValue();
 
   double lenA = 0.;
   double lenB = 0.;
@@ -72,10 +67,8 @@ void RandomSphere(
 {
   // Generate a point within a sphere.
 
-  double theta = 2. * vtkMath::Pi() * seq->GetValue();
-  seq->Next();
-  double phi = vtkMath::Pi() * seq->GetValue();
-  seq->Next();
+  double theta = 2. * vtkMath::Pi() * seq->GetNextValue();
+  double phi = vtkMath::Pi() * seq->GetNextValue();
   value[0] = radius * cos(theta) * sin(phi) + offset[0];
   value[1] = radius * sin(theta) * sin(phi) + offset[1];
   value[2] = radius * cos(phi) + offset[2];
@@ -107,12 +100,9 @@ void GenerateColinearLineSegments(
 
   for (unsigned i = 0; i < 3; i++)
   {
-    a1[i] = seq->GetValue();
-    seq->Next();
-    a2[i] = seq->GetValue();
-    seq->Next();
-    double tmp = seq->GetValue();
-    seq->Next();
+    a1[i] = seq->GetNextValue();
+    a2[i] = seq->GetNextValue();
+    double tmp = seq->GetNextValue();
     b1[i] = a1[i] + tmp;
     b2[i] = a2[i] + tmp;
   }
@@ -128,32 +118,24 @@ void GenerateLinesAtKnownDistance(vtkMinimalStandardRandomSequence* seq, double&
   double v1[3], v2[3], v3[3];
   for (unsigned i = 0; i < 3; i++)
   {
-    v1[i] = seq->GetValue();
-    seq->Next();
-    v2[i] = seq->GetValue();
-    seq->Next();
+    v1[i] = seq->GetNextValue();
+    v2[i] = seq->GetNextValue();
   }
   vtkMath::Cross(v1, v2, v3);
   vtkMath::Normalize(v1);
   vtkMath::Normalize(v2);
   vtkMath::Normalize(v3);
 
-  double a1_to_a12 = .1 + seq->GetValue();
-  seq->Next();
-  double a12_to_a2 = .1 + seq->GetValue();
-  seq->Next();
-  double b1_to_b12 = .1 + seq->GetValue();
-  seq->Next();
-  double b12_to_b2 = .1 + seq->GetValue();
-  seq->Next();
+  double a1_to_a12 = .1 + seq->GetNextValue();
+  double a12_to_a2 = .1 + seq->GetNextValue();
+  double b1_to_b12 = .1 + seq->GetNextValue();
+  double b12_to_b2 = .1 + seq->GetNextValue();
 
-  lineDist = seq->GetValue();
-  seq->Next();
+  lineDist = seq->GetNextValue();
 
   for (unsigned i = 0; i < 3; i++)
   {
-    a12[i] = seq->GetValue();
-    seq->Next();
+    a12[i] = seq->GetNextValue();
     b12[i] = a12[i] + lineDist * v3[i];
     a1[i] = a12[i] - a1_to_a12 * v1[i];
     a2[i] = a12[i] + a12_to_a2 * v1[i];
@@ -173,29 +155,23 @@ void GenerateLineAtKnownDistance(
   double v1[3], v2[3], v3[3];
   for (unsigned i = 0; i < 3; i++)
   {
-    v1[i] = seq->GetValue();
-    seq->Next();
-    v2[i] = seq->GetValue();
-    seq->Next();
+    v1[i] = seq->GetNextValue();
+    v2[i] = seq->GetNextValue();
   }
   vtkMath::Cross(v1, v2, v3);
   vtkMath::Normalize(v1);
   vtkMath::Normalize(v2);
   vtkMath::Normalize(v3);
 
-  double a1_to_a12 = .1 + seq->GetValue();
-  seq->Next();
-  double a12_to_a2 = .1 + seq->GetValue();
-  seq->Next();
+  double a1_to_a12 = .1 + seq->GetNextValue();
+  double a12_to_a2 = .1 + seq->GetNextValue();
 
-  dist = seq->GetValue();
-  seq->Next();
+  dist = seq->GetNextValue();
 
   double nearest[3];
   for (unsigned i = 0; i < 3; i++)
   {
-    nearest[i] = seq->GetValue();
-    seq->Next();
+    nearest[i] = seq->GetNextValue();
     p[i] = nearest[i] + dist * v3[i];
     a1[i] = nearest[i] - a1_to_a12 * v1[i];
     a2[i] = nearest[i] + a12_to_a2 * v1[i];
@@ -258,13 +234,11 @@ void GenerateLineSegmentsAtKnownDistance(vtkMinimalStandardRandomSequence* seq, 
 
   GenerateLinesAtKnownDistance(seq, lineDist, a1, a2, b1, b2, a12, b12, u, v);
 
-  double modify = seq->GetValue();
-  seq->Next();
+  double modify = seq->GetNextValue();
 
   if (modify < 0.25)
   {
-    double t = seq->GetValue();
-    seq->Next();
+    double t = seq->GetNextValue();
 
     for (unsigned i = 0; i < 3; i++)
     {
@@ -276,8 +250,7 @@ void GenerateLineSegmentsAtKnownDistance(vtkMinimalStandardRandomSequence* seq, 
   }
   else if (modify < 0.5)
   {
-    double t = seq->GetValue();
-    seq->Next();
+    double t = seq->GetNextValue();
 
     for (unsigned i = 0; i < 3; i++)
     {

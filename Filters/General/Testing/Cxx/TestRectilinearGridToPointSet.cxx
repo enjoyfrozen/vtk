@@ -4,7 +4,8 @@
 #include <vtkRectilinearGridToPointSet.h>
 
 #include <vtkDoubleArray.h>
-#include <vtkMath.h>
+#include <vtkMinimalStandardRandomSequence.h>
+#include <vtkNew.h>
 #include <vtkRectilinearGrid.h>
 #include <vtkStructuredGrid.h>
 
@@ -13,17 +14,19 @@
 
 #include <ctime>
 
+static vtkNew<vtkMinimalStandardRandomSequence> rng;
+
 static vtkSmartPointer<vtkDataArray> MonotonicValues(vtkIdType numValues)
 {
   vtkSmartPointer<vtkDoubleArray> values = vtkSmartPointer<vtkDoubleArray>::New();
   values->SetNumberOfComponents(1);
   values->SetNumberOfTuples(numValues);
 
-  double v = vtkMath::Random();
+  double v = rng->GetNextValue();
   for (vtkIdType id = 0; id < numValues; id++)
   {
     values->SetValue(id, v);
-    v += vtkMath::Random();
+    v += rng->GetNextValue();
   }
 
   return values;
@@ -36,8 +39,8 @@ static vtkSmartPointer<vtkRectilinearGrid> MakeRectilinearGrid()
   int extent[6];
   for (int i = 0; i < 6; i += 2)
   {
-    extent[i] = std::lround(vtkMath::Random(-10, 10));
-    extent[i + 1] = extent[i] + std::lround(vtkMath::Random(0, 10));
+    extent[i] = std::lround(rng->GetNextRangeValue(-10, 10));
+    extent[i + 1] = extent[i] + std::lround(rng->GetNextRangeValue(0, 10));
   }
 
   grid->SetExtent(extent);
@@ -60,7 +63,7 @@ int TestRectilinearGridToPointSet(int, char*[])
 {
   int seed = time(nullptr);
   std::cout << "Seed: " << seed << std::endl;
-  vtkMath::RandomSeed(seed);
+  rng->SetSeed(seed);
 
   vtkSmartPointer<vtkRectilinearGrid> inData = MakeRectilinearGrid();
 

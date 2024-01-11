@@ -56,7 +56,6 @@ int TestBSPTree(int argc, char* argv[])
     //
     // Create random point cloud
     //
-    vtkMath::RandomSeed(s);
     vtkSmartPointer<vtkPointSource> points = vtkSmartPointer<vtkPointSource>::New();
     points->SetRadius(0.05);
     points->SetNumberOfPoints(30);

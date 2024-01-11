@@ -11,6 +11,8 @@
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
 #include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 #include "vtkObjectFactory.h"
 #include "vtkPlane.h"
 #include "vtkPointData.h"
@@ -867,6 +869,8 @@ vtkVoronoi2D::~vtkVoronoi2D()
 int vtkVoronoi2D::RequestData(vtkInformation* vtkNotUsed(request),
   vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
+  static vtkNew<vtkMinimalStandardRandomSequence> rand;
+
   // get the info objects
   vtkInformation* inInfo = inputVector[0]->GetInformationObject(0);
   vtkInformation* outInfo = outputVector->GetInformationObject(0);
@@ -996,9 +1000,9 @@ int vtkVoronoi2D::RequestData(vtkInformation* vtkNotUsed(request),
     vtkIdType i, pid;
     for (i = 0, npts = 0; i < 1000000; ++i)
     {
-      x[0] = vtkMath::Random(
+      x[0] = rand->GetNextRangeValue(
         center[0] + factor * (bds[0] - center[0]), center[0] + factor * (bds[1] - center[0]));
-      x[1] = vtkMath::Random(
+      x[1] = rand->GetNextRangeValue(
         center[1] + factor * (bds[2] - center[1]), center[1] + factor * (bds[3] - center[1]));
       x[2] = 0.0;
       if (tile.IntersectTile(x))

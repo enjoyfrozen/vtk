@@ -1,11 +1,16 @@
 // SPDX-FileCopyrightText: Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
 // SPDX-FileCopyrightText: Copyright 2011 Sandia Corporation
 // SPDX-License-Identifier: LicenseRef-BSD-3-Clause-Sandia-USGov
+
+// Hide VTK_DEPRECATED_IN_9_4_0() warnings from this class.
+#define VTK_DEPRECATION_LEVEL 0
+
 #include "vtkMath.h"
 
 #include "vtkBoxMuellerRandomSequence.h"
 #include "vtkDataArray.h"
 #include "vtkDebugLeaks.h"
+#include "vtkLegacy.h"
 #include "vtkMinimalStandardRandomSequence.h"
 #include "vtkObjectFactory.h"
 #include "vtkTypeTraits.h"
@@ -93,8 +98,13 @@ int vtkMath::CeilLog2(vtkTypeUInt64 x)
 // This is used to provide portability across different systems.
 double vtkMath::Random()
 {
-  vtkMath::Internal->Uniform->Next();
-  return vtkMath::Internal->Uniform->GetValue();
+  static bool warned = false;
+  if (!warned)
+  {
+    warned = true;
+    VTK_LEGACY_BODY(vtkMath::Random, "VTK 9.1");
+  }
+  return vtkMath::Internal->Uniform->GetNextValue();
 }
 
 //------------------------------------------------------------------------------
@@ -105,6 +115,12 @@ double vtkMath::Random()
 // repeatability of Random().
 void vtkMath::RandomSeed(int s)
 {
+  static bool warned = false;
+  if (!warned)
+  {
+    warned = true;
+    VTK_LEGACY_BODY(vtkMath::RandomSeed, "VTK 9.1");
+  }
   vtkMath::Internal->Uniform->SetSeed(s);
 }
 
@@ -113,28 +129,49 @@ void vtkMath::RandomSeed(int s)
 // Return the current seed used by the random number generator.
 int vtkMath::GetSeed()
 {
+  static bool warned = false;
+  if (!warned)
+  {
+    warned = true;
+    VTK_LEGACY_BODY(vtkMath::SetSeed, "VTK 9.1");
+  }
   return vtkMath::Internal->Uniform->GetSeed();
 }
 
 //------------------------------------------------------------------------------
 double vtkMath::Random(double min, double max)
 {
-  vtkMath::Internal->Uniform->Next();
-  return vtkMath::Internal->Uniform->GetRangeValue(min, max);
+  static bool warned = false;
+  if (!warned)
+  {
+    warned = true;
+    VTK_LEGACY_BODY(vtkMath::Random, "VTK 9.1");
+  }
+  return vtkMath::Internal->Uniform->GetNextRangeValue(min, max);
 }
 
 //------------------------------------------------------------------------------
 double vtkMath::Gaussian()
 {
-  vtkMath::Internal->Gaussian->Next();
-  return vtkMath::Internal->Gaussian->GetValue();
+  static bool warned = false;
+  if (!warned)
+  {
+    warned = true;
+    VTK_LEGACY_BODY(vtkMath::Gaussian, "VTK 9.1");
+  }
+  return vtkMath::Internal->Gaussian->GetNextValue();
 }
 
 //------------------------------------------------------------------------------
 double vtkMath::Gaussian(double mean, double std)
 {
-  vtkMath::Internal->Gaussian->Next();
-  return vtkMath::Internal->Gaussian->GetScaledValue(mean, std);
+  static bool warned = false;
+  if (!warned)
+  {
+    warned = true;
+    VTK_LEGACY_BODY(vtkMath::Gaussian, "VTK 9.1");
+  }
+  return vtkMath::Internal->Gaussian->GetNextScaledValue(mean, std);
 }
 
 //------------------------------------------------------------------------------

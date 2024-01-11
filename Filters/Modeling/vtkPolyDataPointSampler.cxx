@@ -422,8 +422,7 @@ struct RandomGeneration : public GeneratePoints
     double ranVal, frac = (this->Distance / std::pow(this->Length, 0.3333));
     for (auto i = 0; i < this->NumPts; ++i)
     {
-      ranVal = this->RandomSeq->GetValue();
-      this->RandomSeq->Next();
+      ranVal = this->RandomSeq->GetNextValue();
       if (ranVal <= frac)
       { // insert point
         this->OutPts->InsertNextPoint(this->InPts->GetPoint(i));
@@ -449,8 +448,7 @@ struct RandomGeneration : public GeneratePoints
       double t, x[3];
       for (auto i = 0; i < npts; ++i)
       {
-        t = this->RandomSeq->GetValue();
-        this->RandomSeq->Next();
+        t = this->RandomSeq->GetNextValue();
         x[0] = x0[0] + t * (x1[0] - x0[0]);
         x[1] = x0[1] + t * (x1[1] - x0[1]);
         x[2] = x0[2] + t * (x1[2] - x0[2]);
@@ -487,10 +485,8 @@ struct RandomGeneration : public GeneratePoints
 
       for (auto i = 0; i < npts; ++i)
       {
-        s = this->RandomSeq->GetValue();
-        this->RandomSeq->Next();
-        t = this->RandomSeq->GetValue();
-        this->RandomSeq->Next();
+        s = this->RandomSeq->GetNextValue();
+        t = this->RandomSeq->GetNextValue();
         if ((1.0 - s - t) >= 0.0)
         { // in triangle parametric space
           x[0] = x0[0] + s * (x1[0] - x0[0]) + t * (x2[0] - x0[0]);

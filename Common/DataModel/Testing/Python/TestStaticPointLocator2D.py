@@ -2,7 +2,7 @@
 from vtkmodules.vtkCommonCore import (
     reference,
     vtkIdList,
-    vtkMath,
+    vtkMinimalStandardRandomSequence,
     vtkPoints,
 )
 from vtkmodules.vtkCommonDataModel import (
@@ -13,8 +13,8 @@ from vtkmodules.vtkCommonSystem import vtkTimerLog
 
 # create a test dataset
 #
-math = vtkMath()
-math.RandomSeed(314159)
+rand = vtkMinimalStandardRandomSequence()
+rand.SetSeed(314159)
 
 # Note: the bigger the data the better vtkStaticPointLocator performs
 #testSize = "large"
@@ -36,7 +36,7 @@ points = vtkPoints()
 points.SetDataTypeToDouble()
 points.SetNumberOfPoints(numPts)
 for i in range(0,numPts):
-    points.SetPoint(i,math.Random(-1,1),math.Random(-1,1), 0.0)
+    points.SetPoint(i,rand.GetNextRangeValue(-1,1),rand.GetNextRangeValue(-1,1), 0.0)
 
 polydata = vtkPolyData()
 polydata.SetPoints(points)
@@ -49,7 +49,7 @@ probePoints = vtkPoints()
 probePoints.SetDataTypeToDouble()
 probePoints.SetNumberOfPoints(numProbes)
 for i in range (0,numProbes):
-    probePoints.SetPoint(i,math.Random(-1,1),math.Random(-1,1), 0.0)
+    probePoints.SetPoint(i,rand.GetNextRangeValue(-1,1),rand.GetNextRangeValue(-1,1), 0.0)
 staticClosest = vtkIdList()
 staticClosest.SetNumberOfIds(numProbes)
 
@@ -72,7 +72,6 @@ BuildTime = staticTimer.GetElapsedTime()
 print("Build Static Point Locator: {0}".format(BuildTime))
 
 # Now probe the dataset with FindClosestPoint()
-math.RandomSeed(314159)
 staticTimer.StartTimer()
 for i in range (0,numProbes):
     staticClosest.SetId(i, staticLocator.FindClosestPoint(probePoints.GetPoint(i)))

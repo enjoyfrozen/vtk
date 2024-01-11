@@ -13,7 +13,7 @@
 #include <vtkIdList.h>
 #include <vtkIdTypeArray.h>
 #include <vtkIntArray.h>
-#include <vtkMath.h>
+#include <vtkMinimalStandardRandomSequence.h>
 #include <vtkNew.h>
 #include <vtkPointData.h>
 #include <vtkPointSet.h>
@@ -24,6 +24,8 @@
 #include <vtkXMLMultiBlockDataReader.h>
 
 #include <numeric> // for iota
+
+static vtkNew<vtkMinimalStandardRandomSequence> rng;
 
 //////////////////////////////////////////////////////////////////////////////
 namespace
@@ -52,7 +54,7 @@ void FillComponentWithRandom(vtkIntArray* array, int component)
   int* values = array->GetPointer(0);
   for (vtkIdType i = 0; i < array->GetNumberOfTuples(); ++i)
   {
-    values[i * numberOfComponents + component] = vtkMath::Random() * 100000;
+    values[i * numberOfComponents + component] = rng->GetNextValue() * 100000;
   }
 }
 
@@ -110,7 +112,7 @@ void CreateDataset(vtkPointSet* dataset, int numberOfPoints,
   vtkNew<vtkIdList> ids;
   for (vtkIdType i = 0; i < numberOfPoints; ++i)
   {
-    points->InsertNextPoint(vtkMath::Random(), vtkMath::Random(), vtkMath::Random());
+    points->InsertNextPoint(rng->GetNextValue(), rng->GetNextValue(), rng->GetNextValue());
     ids->InsertId(0, i);
   }
 

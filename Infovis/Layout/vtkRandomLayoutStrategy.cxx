@@ -10,7 +10,8 @@
 #include "vtkFloatArray.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
-#include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 #include "vtkObjectFactory.h"
 #include "vtkPointData.h"
 #include "vtkPoints.h"
@@ -58,19 +59,20 @@ void vtkRandomLayoutStrategy::SetGraph(vtkGraph* graph)
   }
 
   // Generate the points, either x,y,0 or x,y,z
-  vtkMath::RandomSeed(this->RandomSeed);
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+  rand->SetSeed(this->RandomSeed);
 
   vtkPoints* newPoints = vtkPoints::New();
   for (int i = 0; i < graph->GetNumberOfVertices(); i++)
   {
     double x, y, z, r;
-    r = vtkMath::Random();
+    r = rand->GetNextValue();
     x = (this->GraphBounds[1] - this->GraphBounds[0]) * r + this->GraphBounds[0];
-    r = vtkMath::Random();
+    r = rand->GetNextValue();
     y = (this->GraphBounds[3] - this->GraphBounds[2]) * r + this->GraphBounds[2];
     if (this->ThreeDimensionalLayout)
     {
-      r = vtkMath::Random();
+      r = rand->GetNextValue();
       z = (this->GraphBounds[5] - this->GraphBounds[4]) * r + this->GraphBounds[4];
     }
     else

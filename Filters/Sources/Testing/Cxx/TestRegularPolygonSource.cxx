@@ -19,15 +19,13 @@ int TestRegularPolygonSource(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 
   regularPolygonSource->SetOutputPointsPrecision(vtkAlgorithm::SINGLE_PRECISION);
 
-  randomSequence->Next();
-  double radius = randomSequence->GetValue();
+  double radius = randomSequence->GetNextValue();
   regularPolygonSource->SetRadius(radius);
 
   double center[3];
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    center[i] = randomSequence->GetValue();
+    center[i] = randomSequence->GetNextValue();
   }
   regularPolygonSource->SetCenter(center);
 
@@ -36,8 +34,7 @@ int TestRegularPolygonSource(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
   double normal[3];
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    normal[i] = randomSequence->GetValue();
+    normal[i] = randomSequence->GetNextValue();
   }
   regularPolygonSource->SetNormal(normal);
 
@@ -53,21 +50,18 @@ int TestRegularPolygonSource(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 
   regularPolygonSource->SetOutputPointsPrecision(vtkAlgorithm::DOUBLE_PRECISION);
 
-  randomSequence->Next();
-  radius = randomSequence->GetValue();
+  radius = randomSequence->GetNextValue();
   regularPolygonSource->SetRadius(radius);
 
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    center[i] = randomSequence->GetValue();
+    center[i] = randomSequence->GetNextValue();
   }
   regularPolygonSource->SetCenter(center);
 
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    normal[i] = randomSequence->GetValue();
+    normal[i] = randomSequence->GetNextValue();
   }
   regularPolygonSource->SetNormal(normal);
 

@@ -9,6 +9,8 @@
 #include "vtkDataSetSurfaceFilter.h"
 #include "vtkDoubleArray.h"
 #include "vtkMath.h"
+#include "vtkMinimalStandardRandomSequence.h"
+#include "vtkNew.h"
 #include "vtkPoints.h"
 #include "vtkPolyData.h"
 #include "vtkTriangle.h"
@@ -177,9 +179,12 @@ static vtkSmartPointer<vtkUnstructuredGrid> BuildInput(
     idsLeft.push_back(i);
   }
 
+  vtkNew<vtkMinimalStandardRandomSequence> rand;
+  rand->SetSeed(static_cast<int>(time(nullptr)));
+
   while (!idsLeft.empty())
   {
-    vtkIdType next = std::lround(vtkMath::Random(-0.49, idsLeft.size() - 0.51));
+    vtkIdType next = std::lround(rand->GetNextRangeValue(-0.49, idsLeft.size() - 0.51));
     std::vector<vtkIdType>::iterator nextp = idsLeft.begin() + next;
     idMap.push_back(*nextp);
     idsLeft.erase(nextp, nextp + 1);
@@ -312,13 +317,6 @@ static void Check3DPrimitive(
 
 int BoxClipTriangulate(int, char*[])
 {
-  long seed = time(nullptr);
-  std::cout << "Random seed = " << seed << std::endl;
-  vtkMath::RandomSeed(seed);
-  vtkMath::Random();
-  vtkMath::Random();
-  vtkMath::Random();
-
   try
   {
     std::cout << "Checking triangle strip." << std::endl;

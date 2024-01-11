@@ -23,17 +23,14 @@ int TestGlyphSource2D(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
   double center[3];
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    center[i] = randomSequence->GetValue();
+    center[i] = randomSequence->GetNextValue();
   }
   glyphSource->SetCenter(center);
 
-  randomSequence->Next();
-  double rotationAngle = randomSequence->GetValue();
+  double rotationAngle = randomSequence->GetNextValue();
   glyphSource->SetRotationAngle(rotationAngle);
 
-  randomSequence->Next();
-  double scale = randomSequence->GetValue();
+  double scale = randomSequence->GetNextValue();
   glyphSource->SetScale(scale);
 
   glyphSource->Update();
@@ -50,17 +47,14 @@ int TestGlyphSource2D(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 
   for (unsigned int i = 0; i < 3; ++i)
   {
-    randomSequence->Next();
-    center[i] = randomSequence->GetValue();
+    center[i] = randomSequence->GetNextValue();
   }
   glyphSource->SetCenter(center);
 
-  randomSequence->Next();
-  rotationAngle = randomSequence->GetValue();
+  rotationAngle = randomSequence->GetNextValue();
   glyphSource->SetRotationAngle(rotationAngle);
 
-  randomSequence->Next();
-  scale = randomSequence->GetValue();
+  scale = randomSequence->GetNextValue();
   glyphSource->SetScale(scale);
 
   glyphSource->Update();

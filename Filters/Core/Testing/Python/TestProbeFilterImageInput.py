@@ -44,7 +44,6 @@ spacing = img.GetSpacing()
 
 # create an unstructured grid by generating a point cloud and
 # applying Delaunay triangulation on it.
-vtkMath().RandomSeed(0) # vtkPointSource internally uses vtkMath::Random()
 pointSource = vtkPointSource()
 pointSource.SetCenter(center)
 pointSource.SetRadius(center[0])

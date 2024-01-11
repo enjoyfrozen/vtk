@@ -747,9 +747,10 @@ void SampleProminentValues(std::vector<std::vector<vtkVariant>>& uniques, vtkIdT
     vtkIdType totalBlockCount = nt / blockSize + (nt % blockSize ? 1 : 0);
     std::set<vtkIdType> startTuples;
     // Sort the list of blocks we'll search to maintain cache coherence.
-    for (int i = 0; i < numberOfBlocks; ++i, seq->Next())
+    for (int i = 0; i < numberOfBlocks; ++i)
     {
-      vtkIdType startTuple = static_cast<vtkIdType>(seq->GetValue() * totalBlockCount) * blockSize;
+      vtkIdType startTuple =
+        static_cast<vtkIdType>(seq->GetNextValue() * totalBlockCount) * blockSize;
       startTuples.insert(startTuple);
     }
     // Now iterate over the blocks, accumulating unique values and tuples.
