@@ -178,15 +178,7 @@ struct VTile
 
   // Convenience methods for moving around the modulo ring of the tile
   // vertices.
-  VertexRingIterator Previous(VertexRingIterator itr)
-  {
-    if (itr == this->Verts.begin())
-    {
-      return this->Verts.end() - 1;
-    }
-    return (itr - 1);
-  }
-  VertexRingIterator Next(VertexRingIterator itr)
+  VertexRingIterator Next(VertexRingIterator& itr)
   {
     if (itr == (this->Verts.end() - 1))
     {
@@ -209,9 +201,9 @@ struct VTile
 
     // Evaluate all the points of the convex polygon. Positive values indicate
     // an intersection occurs.
-    for (auto& v : this->Verts)
+    for (auto v=this->Verts.begin(); v != this->Verts.end(); ++v)
     {
-      if (EvaluateLine(v.X, o, normal) >= 0.0)
+      if (EvaluateLine(v->X, o, normal) >= 0.0)
       {
         return true;
       }
@@ -230,11 +222,11 @@ struct VTile
 
     vtkIdType i=0;
     double r;
-    for (auto& v : this->Verts)
+    for (auto v=this->Verts.begin(); v != this->Verts.end(); ++v)
     {
-      centers->SetPoint(i, v.X[0], v.X[1], 0.0);
-      r = sqrt((v.X[0] - this->TileX[0]) * (v.X[0] - this->TileX[0]) +
-        (v.X[1] - this->TileX[1]) * (v.X[1] - this->TileX[1]));
+      centers->SetPoint(i, v->X[0], v->X[1], 0.0);
+      r = sqrt((v->X[0] - this->TileX[0]) * (v->X[0] - this->TileX[0]) +
+        (v->X[1] - this->TileX[1]) * (v->X[1] - this->TileX[1]));
       radii->SetTuple1(i, r);
       tile->InsertCellPoint(i++);
     }
@@ -243,7 +235,7 @@ struct VTile
   // The CircumFlower and VoronoiFlower require computing radius**2 to the
   // generating tile point. This computation is performed and cached as
   // needed.
-  double GetR2(VertexRingIterator v)
+  double GetR2(VertexRingIterator& v)
   {
     // If r**2 not yet computed, compute and cache the value.
     if ( v->R2 < 0 )
@@ -261,8 +253,7 @@ struct VTile
   {
     double r2, r2Max=VTK_FLOAT_MIN;
 
-    VertexRingIterator vEnd=this->Verts.end();
-    for (VertexRingIterator v = this->Verts.begin(); v != vEnd; v++)
+    for (auto v=this->Verts.begin(); v != this->Verts.end(); ++v)
     {
       r2 = this->GetR2(v);
       r2Max = ( r2 > r2Max ? r2 : r2Max );
@@ -276,12 +267,11 @@ struct VTile
   bool InFlower(const double p[3])
   {
     // Check against the flower petals
-    VertexRingIterator vEnd=this->Verts.end();
-    for (VertexRingIterator v = this->Verts.begin(); v != vEnd; v++)
+    for (auto v=this->Verts.begin(); v != this->Verts.end(); ++v)
     {
       double fr2 = this->GetR2(v);
-      double r2 = (v->X[0] - p[0]) * (v->X[0] - p[0]) +
-        (v->X[1] - p[1]) * (v->X[1] - p[1]);
+      double r2 = ((v->X[0] - p[0]) * (v->X[0] - p[0])) +
+        ((v->X[1] - p[1]) * (v->X[1] - p[1]));
 
       if ( r2 <= fr2 )
       {
@@ -309,10 +299,10 @@ struct VTile
     // Evaluate all the points of the convex polygon. Positive valued points
     // are eventually clipped away from the tile.
     bool intersection=false;
-    for (auto& v : this->Verts)
+    for (auto v=this->Verts.begin(); v != this->Verts.end(); ++v)
     {
-      v.Val = EvaluateLine(v.X, origin, normal);
-      intersection = (v.Val >= 0.0 ? true : intersection);
+      v->Val = EvaluateLine(v->X, origin, normal);
+      intersection = (v->Val >= 0.0 ? true : intersection);
     }
     if (!intersection)
     {
@@ -324,26 +314,26 @@ struct VTile
     // tile. Care is taken to preserve the counterclockwise vertex ordering.
     intersection=false;
     this->NewVerts.clear();
-    for (auto vPtr = this->Verts.begin(); vPtr != this->Verts.end(); ++vPtr)
+    for (auto v = this->Verts.begin(); v != this->Verts.end(); ++v)
     {
       // If the vertex is inside the clip, just add it.
-      if ( vPtr->Val < 0.0 )
+      if ( v->Val < 0.0 )
       {
-        this->NewVerts.emplace_back(VVertex(*vPtr));
+        this->NewVerts.emplace_back(VVertex(*v));
       }
 
       // Now see if the edge requires clipping. If so, create a new tile
       // vertex. Note that depending on the order of edge, the new vertex
       // has to be treated differently (i.e., the neigboring tile id).
       double t, x[2];
-      VertexRingIterator vNext = this->Next(vPtr);
-      if ( (vPtr->Val < 0.0 && vNext->Val >= 0.0) ||
-           (vPtr->Val >= 0.0 && vNext->Val < 0.0 ) )
+      VertexRingIterator vNext = this->Next(v);
+      if ( (v->Val < 0.0 && vNext->Val >= 0.0) ||
+           (v->Val >= 0.0 && vNext->Val < 0.0 ) )
       {
-        t = ( -vPtr->Val ) / ( vNext->Val - vPtr->Val );
-        x[0] = vPtr->X[0] + t * (vNext->X[0] - vPtr->X[0]);
-        x[1] = vPtr->X[1] + t * (vNext->X[1] - vPtr->X[1]);
-        vtkIdType pId = ( vPtr->Val < 0.0 ? ptId : vPtr->PointId );
+        t = ( -v->Val ) / ( vNext->Val - v->Val );
+        x[0] = v->X[0] + t * (vNext->X[0] - v->X[0]);
+        x[1] = v->X[1] + t * (vNext->X[1] - v->X[1]);
+        vtkIdType pId = ( v->Val < 0.0 ? ptId : v->PointId );
         this->NewVerts.emplace_back(VVertex(x,pId));
       } //check for intersecting edge
     } // clip verts & edges
@@ -358,16 +348,16 @@ struct VTile
   // the length of the spoke are deleted.
   void Prune(double pruneTol2)
   {
-    VertexRingIterator vPtr, vNext, endItr;
-    for (vPtr = this->Verts.begin(); vPtr != this->Verts.end(); ++vPtr)
+    VertexRingIterator vNext, endItr;
+    for (auto v=this->Verts.begin(); v != this->Verts.end(); ++v)
     {
-      vNext = this->Next(vPtr);
-      double eLen2 = (vPtr->X[0]-vNext->X[0])*(vPtr->X[0]-vNext->X[0]) +
-        (vPtr->X[1]-vNext->X[1])*(vPtr->X[1]-vNext->X[1]);
+      vNext = this->Next(v);
+      double eLen2 = (v->X[0]-vNext->X[0])*(v->X[0]-vNext->X[0]) +
+        (v->X[1]-vNext->X[1])*(v->X[1]-vNext->X[1]);
       double spokeLen2;
-      if ( vPtr->PointId >= 0 )
+      if ( v->PointId >= 0 )
       {
-        const double *px = this->Points + 3*vPtr->PointId;
+        const double *px = this->Points + 3*v->PointId;
         spokeLen2 = (this->TileX[0]-px[0])*(this->TileX[0]-px[0]) +
           (this->TileX[1]-px[1])*(this->TileX[1]-px[1]);
       }
@@ -375,7 +365,7 @@ struct VTile
       {
         spokeLen2 = this->Padding2;
       }
-      vPtr->Val = eLen2 / spokeLen2;
+      v->Val = eLen2 / spokeLen2;
     }
     // Now remove spokes (if any) and erase them
     endItr = std::remove_if(this->Verts.begin(),this->Verts.end(),
