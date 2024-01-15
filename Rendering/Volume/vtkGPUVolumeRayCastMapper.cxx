@@ -714,12 +714,14 @@ void vtkGPUVolumeRayCastMapper::SetDepthImageScalarTypeToFloat()
   this->SetDepthImageScalarType(VTK_FLOAT);
 }
 
+//------------------------------------------------------------------------------
 vtkPolyData* vtkGPUVolumeRayCastMapper::GetCprOrientedPolyLine()
 {
   vtkDebugMacro(<< " returning vtkPolyData address " << this->CprOrientedPolyLine);
   return this->CprOrientedPolyLine;
 }
 
+//------------------------------------------------------------------------------
 void vtkGPUVolumeRayCastMapper::SetCprOrientedPolyLine(vtkPolyData* _arg)
 {
   vtkSetObjectBodyMacro(CprOrientedPolyLine, vtkPolyData, _arg);
@@ -839,7 +841,7 @@ void vtkGPUVolumeRayCastMapper::UpdateCprPolyLine()
       // Compute and copy polyline positions
       points->GetPoint(pointId, positionTC);
       // Apply X offset if in stretched cpr mode
-      if (this->CprMode == CprMethods::STRETCHED)
+      if (this->CprMode == CPRModeType::STRETCHED)
       {
         // To compute `{1, 0, 0}` rotated by `orientation = {x, y, z, w}`, we use the first vector
         // of a rotation matrix:

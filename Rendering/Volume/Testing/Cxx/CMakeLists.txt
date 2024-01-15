@@ -106,7 +106,7 @@ vtk_add_test_cxx(vtkRenderingVolumeCxxTests tests
 foreach(cprMode IN ITEMS stretched straightened)
   foreach(volumeRendering IN ITEMS slice volume)
     vtk_add_test_cxx(vtkRenderingVolumeCxxTests tests
-      TestGPURayCastCurvedPlanarReformation_${cprMode}_${volumeRendering},TestGPURayCastCurvedPlanarReformation.cxx ${cprMode} ${volumeRendering})
+      TestGPURayCastCPR_${cprMode}_${volumeRendering},TestGPURayCastCurvedPlanarReformation.cxx ${cprMode} ${volumeRendering})
   endforeach()
 endforeach()
 

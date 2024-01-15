@@ -28,8 +28,6 @@ class vtkContourValues;
 class vtkRenderWindow;
 class vtkVolumeProperty;
 class vtkPolyData;
-template <typename T>
-class vtkSmartPointer;
 
 class VTKRENDERINGVOLUME_EXPORT vtkGPUVolumeRayCastMapper : public vtkVolumeMapper
 {
@@ -42,6 +40,9 @@ public:
   /**
    * Return bounding box (array of six doubles) of data expressed as
    * (xmin,xmax, ymin,ymax, zmin,zmax).
+   * When the CPR mode is enabled, the bounds are defined by CprVolumeXYDimensions and
+   * CprVolumeZDimensions (see GetCprVolumeXYDimensions). The volume is also centered on (0, 0, 0),
+   * the origin of the input image is lost.
    */
   double* GetBounds() VTK_SIZEHINT(6) override;
   void GetBounds(double bounds[6]) override { this->vtkVolumeMapper::GetBounds(bounds); }
@@ -363,8 +364,8 @@ public:
 
   ///@{
   /**
-   * An array of size 2, the size of the volume in CPR mode for x and y axes.
-   * The size of of the volume on the z axis is defined by the length of the polyline.
+   * An array of size 2, the size of the volume in CPR mode for cross-section (X and Y) axes.
+   * The size of of the volume on the forward (Z) axis is defined by the length of the polyline.
    */
   vtkGetVector2Macro(CprVolumeXYDimensions, float);
   vtkSetVector2Macro(CprVolumeXYDimensions, float);
@@ -382,7 +383,7 @@ public:
   vtkSetVector3Macro(CprCenterPoint, double);
   ///@}
 
-  enum class CprMethods : unsigned int
+  enum class CPRModeType : unsigned int
   {
     STRAIGHTENED,
     STRETCHED
@@ -394,8 +395,8 @@ public:
    * The stretched mode uses the center point (see GetCprCenterPoint).
    * See GetRenderCurvedPlanarReformation for an explanation on how CPR works.
    */
-  vtkSetEnumMacro(CprMode, CprMethods);
-  vtkGetEnumMacro(CprMode, CprMethods);
+  vtkSetEnumMacro(CprMode, CPRModeType);
+  vtkGetEnumMacro(CprMode, CPRModeType);
   ///@}
 
   ///@{
@@ -644,7 +645,7 @@ protected:
 
   // The center point is used to create a "stretch mode" effect
   double CprCenterPoint[3] = { 0, 0, 0 };
-  CprMethods CprMode = CprMethods::STRAIGHTENED;
+  CPRModeType CprMode = CPRModeType::STRAIGHTENED;
 
   // Depth image scalar type
   int DepthImageScalarType;

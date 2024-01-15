@@ -329,6 +329,8 @@ public:
   void RenderWithDepthPass(vtkRenderer* ren, vtkOpenGLCamera* cam, vtkMTimeType renderPassTime);
 
   void RenderSingleInput(vtkRenderer* ren, vtkOpenGLCamera* cam, vtkShaderProgram* prog);
+  void RenderSingleInputBlock(vtkRenderer* ren, vtkOpenGLCamera* cam, vtkShaderProgram* prog,
+    int independent, int numComp, vtkVolume* vol, double* bounds, int* extent, double* geometry);
 
   void RenderMultipleInputs(vtkRenderer* ren, vtkOpenGLCamera* cam, vtkShaderProgram* prog);
 
@@ -3823,7 +3825,6 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::SetMaskShaderParameters(
 void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::SetCprShaderParameters(
   vtkShaderProgram* prog, vtkRenderer* ren)
 {
-  this->Parent->UpdateCprPolyLine();
   if (!this->Parent->RenderCurvedPlanarReformation)
   {
     return;
@@ -3840,6 +3841,7 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::SetCprShaderParameters(
   {
     return;
   }
+  this->Parent->UpdateCprPolyLine();
   int nLinePoints = this->Parent->CprPolyLinePositions.size() / 4;
 
   // Set the uniforms
@@ -3851,8 +3853,6 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::SetCprShaderParameters(
   vtkInternal::ToFloat(spacing[0] * dimensions[0], spacing[1] * dimensions[1],
     spacing[2] * dimensions[2], textureToIndexScale);
   prog->SetUniform3fv("in_cprVolumeSize", 1, &textureToIndexScale);
-
-  // TODO: Deactivate textures when not used
 
   auto oglRenWin = vtkOpenGLRenderWindow::SafeDownCast(ren->GetRenderWindow());
   // Compute the texture for cpr positions
@@ -4012,16 +4012,13 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::FinishRendering(const int num
     }
   }
 
-  if (this->Parent->GetRenderCurvedPlanarReformation())
+  if (this->CprOrientationTextureObject)
   {
-    if (this->CprOrientationTextureObject)
-    {
-      this->CprOrientationTextureObject->Deactivate();
-    }
-    if (this->CprPositionTextureObject)
-    {
-      this->CprPositionTextureObject->Deactivate();
-    }
+    this->CprOrientationTextureObject->Deactivate();
+  }
+  if (this->CprPositionTextureObject)
+  {
+    this->CprPositionTextureObject->Deactivate();
   }
 
   vtkOpenGLStaticCheckErrorMacro("Failed after FinishRendering!");
@@ -4083,6 +4080,32 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::RenderMultipleInputs(
 }
 
 //------------------------------------------------------------------------------
+void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::RenderSingleInputBlock(vtkRenderer* ren,
+  vtkOpenGLCamera* cam, vtkShaderProgram* prog, int independent, int numComp, vtkVolume* vol,
+  double* bounds, int* extent, double* geometry)
+{
+  const int numSamplers = (independent ? numComp : 1);
+  this->SetMapperShaderParameters(prog, ren, independent, numComp);
+
+  vtkMatrix4x4 *wcvc, *vcdc, *wcdc;
+  vtkMatrix3x3* norm;
+  cam->GetKeyMatrices(ren, wcvc, norm, vcdc, wcdc);
+
+  this->SetCprShaderParameters(prog, ren);
+  this->SetVolumeShaderParameters(prog, independent, numComp, wcvc);
+
+  this->SetMaskShaderParameters(prog, vol->GetProperty(), numComp);
+  this->SetLightingShaderParameters(ren, prog, vol, numSamplers);
+  this->SetCameraShaderParameters(prog, ren, cam);
+
+  this->SetAdvancedShaderParameters(ren, prog, vol, bounds, extent, numComp);
+
+  this->RenderVolumeGeometry(ren, prog, vol, geometry);
+
+  this->FinishRendering(numComp);
+}
+
+//------------------------------------------------------------------------------
 void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::RenderSingleInput(
   vtkRenderer* ren, vtkOpenGLCamera* cam, vtkShaderProgram* prog)
 {
@@ -4109,15 +4132,7 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::RenderSingleInput(
     {
       return;
     }
-    const int numSamplers = (independent ? numComp : 1);
-    this->SetMapperShaderParameters(prog, ren, independent, numComp);
 
-    vtkMatrix4x4 *wcvc, *vcdc, *wcdc;
-    vtkMatrix3x3* norm;
-    cam->GetKeyMatrices(ren, wcvc, norm, vcdc, wcdc);
-
-    // CprVolumeZDimension is set by UpdateCprPolyLine in SetCprShaderParameters
-    this->SetCprShaderParameters(prog, ren);
     double bounds[6];
     this->Parent->GetBounds(bounds);
     double geometry[24] = { bounds[0], bounds[2], bounds[4], bounds[1], bounds[2], bounds[4],
@@ -4125,43 +4140,19 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::RenderSingleInput(
       bounds[5], bounds[1], bounds[2], bounds[5], bounds[0], bounds[3], bounds[5], bounds[1],
       bounds[3], bounds[5] };
     int* extent = imageData->GetExtent();
-
-    // This call uses CprVolumeZDimension and has to be made after SetCprShaderParameters
-    this->SetVolumeShaderParameters(prog, independent, numComp, wcvc);
-
-    this->SetMaskShaderParameters(prog, vol->GetProperty(), numComp);
-    this->SetLightingShaderParameters(ren, prog, vol, numSamplers);
-    this->SetCameraShaderParameters(prog, ren, cam);
-
-    this->SetAdvancedShaderParameters(ren, prog, vol, bounds, extent, numComp);
-
-    this->RenderVolumeGeometry(ren, prog, vol, geometry);
-
-    this->FinishRendering(numComp);
+    // CPR does not support per-block rendering because the volume is deformed by the polyline in
+    // unpredictable ways
+    this->RenderSingleInputBlock(
+      ren, cam, prog, independent, numComp, vol, bounds, extent, geometry);
   }
   else
   {
     vtkVolumeTexture::VolumeBlock* block = volumeTex->GetCurrentBlock();
     while (block != nullptr)
     {
-      const int numSamplers = (independent ? numComp : 1);
-      this->SetMapperShaderParameters(prog, ren, independent, numComp);
+      this->RenderSingleInputBlock(ren, cam, prog, independent, numComp, vol, block->LoadedBoundsAA,
+        block->Extents, block->VolumeGeometry);
 
-      vtkMatrix4x4 *wcvc, *vcdc, *wcdc;
-      vtkMatrix3x3* norm;
-      cam->GetKeyMatrices(ren, wcvc, norm, vcdc, wcdc);
-      this->SetVolumeShaderParameters(prog, independent, numComp, wcvc);
-
-      this->SetMaskShaderParameters(prog, vol->GetProperty(), numComp);
-      this->SetLightingShaderParameters(ren, prog, vol, numSamplers);
-      this->SetCameraShaderParameters(prog, ren, cam);
-
-      this->SetAdvancedShaderParameters(
-        ren, prog, vol, block->LoadedBoundsAA, block->Extents, numComp);
-
-      this->RenderVolumeGeometry(ren, prog, vol, block->VolumeGeometry);
-
-      this->FinishRendering(numComp);
       block = volumeTex->GetNextBlock();
       if (this->CurrentMask)
       {

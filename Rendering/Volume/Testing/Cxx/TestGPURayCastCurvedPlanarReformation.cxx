@@ -45,7 +45,7 @@ bool TestCPR(vtkTesting* testing, vtkImageData* image, vtkPolyData* orientedPoly
   mapper->SetCprVolumeXYDimensions(length, length);
   if (stretchedMode)
   {
-    mapper->SetCprMode(vtkGPUVolumeRayCastMapper::CprMethods::STRETCHED);
+    mapper->SetCprMode(vtkGPUVolumeRayCastMapper::CPRModeType::STRETCHED);
     mapper->SetCprCenterPoint(orientedPolyLine->GetPoint(0)); // The first point of the polyline
   }
 
@@ -153,7 +153,7 @@ vtkSmartPointer<vtkPolyData> GetCprPolyLine()
   vtkQuaternion<double> lastQuat{ 1, 0, 0, 0 }; // Order: w, x, y, z
   vtkNew<vtkDoubleArray> orientationArray;      // Order: x, y, z, w
   orientationArray->SetNumberOfComponents(4);
-  for (size_t i = 0; i < numberOfPoints; ++i)
+  for (vtkIdType i = 0; i < numberOfPoints; ++i)
   {
     // Estimate normal at point i, this is a very rough estimate
     size_t aPointIdx = i > 0 ? i - 1 : 0;
