@@ -2723,15 +2723,15 @@ void vtkOpenGLGPUVolumeRayCastMapper::ReplaceShaderRTT(
 }
 
 //------------------------------------------------------------------------------
-void vtkOpenGLGPUVolumeRayCastMapper::ReplaceShaderCPR(
+void vtkOpenGLGPUVolumeRayCastMapper::ReplaceShaderCpr(
   std::map<vtkShader::Type, vtkShader*>& shaders, vtkRenderer* ren, vtkVolume* vol,
   int vtkNotUsed(numComps))
 {
-  if (this->RenderCurvedPlanarReformation)
+  if (this->RenderCpr)
   {
     vtkShader* fragmentShader = shaders[vtkShader::Fragment];
     vtkShaderProgram::Substitute(fragmentShader, "//VTK::CurvedPlanarReformation::Dec",
-      vtkvolume::CurvedPlanarReformationDeclarationFragment(ren, this, vol));
+      vtkvolume::CprDeclarationFragment(ren, this, vol));
   }
 }
 
@@ -2827,7 +2827,7 @@ void vtkOpenGLGPUVolumeRayCastMapper::ReplaceShaderValues(
 
   // Curved Planar Reformation
   //---------------------------------------------------------------------------
-  this->ReplaceShaderCPR(shaders, ren, vol, noOfComponents);
+  this->ReplaceShaderCpr(shaders, ren, vol, noOfComponents);
 
   // Set number of isosurfaces
   if (this->GetBlendMode() == vtkVolumeMapper::ISOSURFACE_BLEND)
@@ -3515,7 +3515,7 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::BindTransformations(
       inputData.Volume->GetModelToWorldMatrix(this->TempMatrix4x4);
       vtkMatrix4x4* volMatrix = this->TempMatrix4x4;
       dataToWorld->DeepCopy(volMatrix);
-      if (this->Parent->GetRenderCurvedPlanarReformation())
+      if (this->Parent->GetRenderCpr())
       {
         auto xyDims = this->Parent->CprVolumeXYDimensions;
         auto zDim = this->Parent->CprVolumeZDimension;
@@ -3825,7 +3825,7 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::SetMaskShaderParameters(
 void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::SetCprShaderParameters(
   vtkShaderProgram* prog, vtkRenderer* ren)
 {
-  if (!this->Parent->RenderCurvedPlanarReformation)
+  if (!this->Parent->RenderCpr)
   {
     return;
   }
@@ -4125,7 +4125,7 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::RenderSingleInput(
 
   const int independent = vol->GetProperty()->GetIndependentComponents();
   const int numComp = volumeTex->GetLoadedScalars()->GetNumberOfComponents();
-  if (this->Parent->GetRenderCurvedPlanarReformation())
+  if (this->Parent->GetRenderCpr())
   {
     vtkImageData* imageData = vtkImageData::SafeDownCast(this->Parent->GetInput());
     if (!imageData)

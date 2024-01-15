@@ -339,9 +339,9 @@ public:
 
    * \sa SetCprOrientedPolyLine()
    */
-  vtkSetMacro(RenderCurvedPlanarReformation, vtkTypeBool);
-  vtkGetMacro(RenderCurvedPlanarReformation, vtkTypeBool);
-  vtkBooleanMacro(RenderCurvedPlanarReformation, vtkTypeBool);
+  vtkSetMacro(RenderCpr, vtkTypeBool);
+  vtkGetMacro(RenderCpr, vtkTypeBool);
+  vtkBooleanMacro(RenderCpr, vtkTypeBool);
   ///@}
 
   ///@{
@@ -356,7 +356,7 @@ public:
    * The orientation of each point is relative to the IJK axes.
    * The position of each point is in normalized IJK coordinates (texture coordinates).
 
-   * \sa GetRenderCurvedPlanarReformation()
+   * \sa GetRenderCpr()
    */
   virtual vtkPolyData* GetCprOrientedPolyLine();
   virtual void SetCprOrientedPolyLine(vtkPolyData*);
@@ -376,14 +376,14 @@ public:
    * The center point can be used to create a stretched CPR mode instead of the default straightened
    * CPR mode. It is expressed in the same coordinate system as the points of the CPR polyline
    * (texture coordinates, see GetCprOrientedPolyLine).
-   * See GetRenderCurvedPlanarReformation for an explanation on how CPR works.
+   * See GetRenderCpr for an explanation on how CPR works.
    * Defaults to STRAIGHTENED.
    */
   vtkGetVector3Macro(CprCenterPoint, double);
   vtkSetVector3Macro(CprCenterPoint, double);
   ///@}
 
-  enum class CPRModeType : unsigned int
+  enum class CprModeType : unsigned int
   {
     STRAIGHTENED,
     STRETCHED
@@ -393,10 +393,10 @@ public:
   /**
    * The different modes change the way that the CprVolumeZDimension is computed
    * The stretched mode uses the center point (see GetCprCenterPoint).
-   * See GetRenderCurvedPlanarReformation for an explanation on how CPR works.
+   * See GetRenderCpr for an explanation on how CPR works.
    */
-  vtkSetEnumMacro(CprMode, CPRModeType);
-  vtkGetEnumMacro(CprMode, CPRModeType);
+  vtkSetEnumMacro(CprMode, CprModeType);
+  vtkGetEnumMacro(CprMode, CprModeType);
   ///@}
 
   ///@{
@@ -626,7 +626,7 @@ protected:
   vtkTypeBool RenderToImage;
 
   // Curved Planar Reformation mode flag (CPR)
-  vtkTypeBool RenderCurvedPlanarReformation;
+  vtkTypeBool RenderCpr;
 
   // Contains a line cell and a DataArray of quaternions to orient each point
   vtkPolyData* CprOrientedPolyLine;
@@ -645,7 +645,7 @@ protected:
 
   // The center point is used to create a "stretch mode" effect
   double CprCenterPoint[3] = { 0, 0, 0 };
-  CPRModeType CprMode = CPRModeType::STRAIGHTENED;
+  CprModeType CprMode = CprModeType::STRAIGHTENED;
 
   // Depth image scalar type
   int DepthImageScalarType;

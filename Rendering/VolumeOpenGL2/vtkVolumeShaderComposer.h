@@ -3876,7 +3876,7 @@ inline std::string RenderToImageExit(
 }
 
 //--------------------------------------------------------------------------
-inline std::string CurvedPlanarReformationDeclarationFragment(
+inline std::string CprDeclarationFragment(
   vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* vtkNotUsed(mapper), vtkVolume* vtkNotUsed(vol))
 {
   return std::string(

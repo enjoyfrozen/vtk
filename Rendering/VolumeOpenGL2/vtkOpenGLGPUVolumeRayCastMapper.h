@@ -263,7 +263,7 @@ protected:
     std::map<vtkShader::Type, vtkShader*>& shaders, vtkRenderer* ren, vtkVolume* vol, int numComps);
   void ReplaceShaderRTT(
     std::map<vtkShader::Type, vtkShader*>& shaders, vtkRenderer* ren, vtkVolume* vol, int numComps);
-  void ReplaceShaderCPR(
+  void ReplaceShaderCpr(
     std::map<vtkShader::Type, vtkShader*>& shaders, vtkRenderer* ren, vtkVolume* vol, int numComps);
   void ReplaceShaderRenderPass(
     std::map<vtkShader::Type, vtkShader*>& shaders, vtkVolume* vol, bool prePass);

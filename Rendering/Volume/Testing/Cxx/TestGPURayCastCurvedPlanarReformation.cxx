@@ -22,7 +22,7 @@
 #include "vtkVolumeProperty.h"
 
 //----------------------------------------------------------------------------
-bool TestCPR(vtkTesting* testing, vtkImageData* image, vtkPolyData* orientedPolyLine,
+bool TestCpr(vtkTesting* testing, vtkImageData* image, vtkPolyData* orientedPolyLine,
   bool stretchedMode, bool sliceRendering)
 {
   // Standard rendering classes
@@ -38,14 +38,14 @@ bool TestCPR(vtkTesting* testing, vtkImageData* image, vtkPolyData* orientedPoly
   // Create mapper
   vtkNew<vtkGPUVolumeRayCastMapper> mapper;
   mapper->SetInputData(image);
-  mapper->SetRenderCurvedPlanarReformation(true);
+  mapper->SetRenderCpr(true);
   mapper->SetCprOrientedPolyLine(orientedPolyLine);
   mapper->AutoAdjustSampleDistancesOff();
   auto length = image->GetLength();
   mapper->SetCprVolumeXYDimensions(length, length);
   if (stretchedMode)
   {
-    mapper->SetCprMode(vtkGPUVolumeRayCastMapper::CPRModeType::STRETCHED);
+    mapper->SetCprMode(vtkGPUVolumeRayCastMapper::CprModeType::STRETCHED);
     mapper->SetCprCenterPoint(orientedPolyLine->GetPoint(0)); // The first point of the polyline
   }
 
@@ -218,6 +218,6 @@ int TestGPURayCastCurvedPlanarReformation(int argc, char* argv[])
   // Run tests
   vtkNew<vtkTesting> testing;
   testing->AddArguments(argc, argv);
-  return TestCPR(testing, imageData, polyLine, isStretchedMode, isSliceRendering) ? EXIT_SUCCESS
+  return TestCpr(testing, imageData, polyLine, isStretchedMode, isSliceRendering) ? EXIT_SUCCESS
                                                                                   : EXIT_FAILURE;
 }

@@ -40,7 +40,7 @@ vtkGPUVolumeRayCastMapper::vtkGPUVolumeRayCastMapper()
   this->MinimumImageSampleDistance = 1.0;
   this->MaximumImageSampleDistance = 10.0;
   this->RenderToImage = 0;
-  this->RenderCurvedPlanarReformation = 0;
+  this->RenderCpr = 0;
   this->LastCprPolyLineUpdate = 0;
   this->CprOrientedPolyLine = nullptr;
   this->CprVolumeXYDimensions[0] = 100.0;
@@ -841,7 +841,7 @@ void vtkGPUVolumeRayCastMapper::UpdateCprPolyLine()
       // Compute and copy polyline positions
       points->GetPoint(pointId, positionTC);
       // Apply X offset if in stretched cpr mode
-      if (this->CprMode == CPRModeType::STRETCHED)
+      if (this->CprMode == CprModeType::STRETCHED)
       {
         // To compute `{1, 0, 0}` rotated by `orientation = {x, y, z, w}`, we use the first vector
         // of a rotation matrix:
@@ -893,7 +893,7 @@ void vtkGPUVolumeRayCastMapper::UpdateCprPolyLine()
 //------------------------------------------------------------------------------
 double* vtkGPUVolumeRayCastMapper::GetBounds()
 {
-  if (this->RenderCurvedPlanarReformation)
+  if (this->RenderCpr)
   {
     this->UpdateCprPolyLine();
     auto xyDims = this->CprVolumeXYDimensions;
