@@ -37,6 +37,19 @@ Less common, but variables which may be of interest to some:
     backend has his option `VTK_SMP_ENABLE_<backend_name>` set to `ON`.
   * `VTK_ENABLE_CATALYST` (default `OFF`): Enable catalyst-dependent modules
     including the VTK catalyst implementation. Depends on an external Catalyst.
+  * `VTK_ENABLE_DEBUG_BREAKPOINT` (default `OFF`): Provides macro for programmatically
+    breaking in a debugger. When enabled, edit the `CMakeLists.txt` of the module which you
+    are working in to link with the `VTK::debugging` module and then include
+    `vtkDebugBreakpoint.h`. This header is NOT installed.
+
+    Example:
+      ```cmake
+      if (VTK_ENABLE_DEBUG_BREAKPOINT)
+        target_link_libraries(WrapPython
+          PRIVATE
+            "$<BUILD_LOCAL_INTERFACE:VTK::debugging>")
+      endif ()
+      ```
 
 OpenGL-related options:
 

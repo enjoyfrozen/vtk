@@ -78,6 +78,11 @@ if (NOT TARGET WrapPython)
   target_link_libraries(WrapPython
     PRIVATE
       "${ns}::WrappingTools")
+  if (VTK_ENABLE_DEBUG_BREAKPOINT)
+    target_link_libraries(WrapPython
+      PRIVATE
+        "$<BUILD_LOCAL_INTERFACE:VTK::debugging>")
+  endif ()
   add_executable("${ns}::WrapPython" ALIAS
     WrapPython)
 
