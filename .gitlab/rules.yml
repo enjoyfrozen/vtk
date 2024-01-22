@@ -68,6 +68,8 @@
       - if: '$RSYNC_UPLOAD_ENABLE == "true"'
         when: on_success
       - when: never
+    variables:
+      GIT_STRATEGY: none
 
 .weekly_upload_only:
     rules:
