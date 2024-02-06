@@ -965,10 +965,10 @@ size_t vtkXMLDataParser::ReadAppendedData(
 // unsigned char, and float/double by making them a better conversion than
 // the template.
 template <class T>
-T* vtkXMLParseAsciiData(istream& is, int* length, T*, long)
+T* vtkXMLParseAsciiData(istream& is, size_t* length, T*, long)
 {
-  int dataLength = 0;
-  int dataBufferSize = 64;
+  size_t dataLength = 0;
+  size_t dataBufferSize = 64;
 
   T* dataBuffer = new T[dataBufferSize];
   T element;
@@ -977,7 +977,7 @@ T* vtkXMLParseAsciiData(istream& is, int* length, T*, long)
   {
     if (dataLength == dataBufferSize)
     {
-      int newSize = dataBufferSize * 2;
+      size_t newSize = dataBufferSize * 2;
       T* newBuffer = new T[newSize];
       memcpy(newBuffer, dataBuffer, dataLength * sizeof(T));
       delete[] dataBuffer;
@@ -996,10 +996,10 @@ T* vtkXMLParseAsciiData(istream& is, int* length, T*, long)
 }
 
 //------------------------------------------------------------------------------
-static float* vtkXMLParseAsciiData(istream& is, int* length, float*, int)
+static float* vtkXMLParseAsciiData(istream& is, size_t* length, float*, int)
 {
-  int dataLength = 0;
-  int dataBufferSize = 64;
+  size_t dataLength = 0;
+  size_t dataBufferSize = 64;
 
   float* dataBuffer = new float[dataBufferSize];
   std::string stringBuffer;
@@ -1032,7 +1032,7 @@ static float* vtkXMLParseAsciiData(istream& is, int* length, float*, int)
     }
     if (dataLength == dataBufferSize)
     {
-      int newSize = dataBufferSize * 2;
+      size_t newSize = dataBufferSize * 2;
       float* newBuffer = new float[newSize];
       memcpy(newBuffer, dataBuffer, dataLength * sizeof(float));
       delete[] dataBuffer;
@@ -1051,10 +1051,10 @@ static float* vtkXMLParseAsciiData(istream& is, int* length, float*, int)
 }
 
 //------------------------------------------------------------------------------
-static double* vtkXMLParseAsciiData(istream& is, int* length, double*, int)
+static double* vtkXMLParseAsciiData(istream& is, size_t* length, double*, int)
 {
-  int dataLength = 0;
-  int dataBufferSize = 64;
+  size_t dataLength = 0;
+  size_t dataBufferSize = 64;
 
   double* dataBuffer = new double[dataBufferSize];
   std::string stringBuffer;
@@ -1087,7 +1087,7 @@ static double* vtkXMLParseAsciiData(istream& is, int* length, double*, int)
     }
     if (dataLength == dataBufferSize)
     {
-      int newSize = dataBufferSize * 2;
+      size_t newSize = dataBufferSize * 2;
       double* newBuffer = new double[newSize];
       memcpy(newBuffer, dataBuffer, dataLength * sizeof(double));
       delete[] dataBuffer;
@@ -1106,10 +1106,10 @@ static double* vtkXMLParseAsciiData(istream& is, int* length, double*, int)
 }
 
 //------------------------------------------------------------------------------
-static char* vtkXMLParseAsciiData(istream& is, int* length, char*, int)
+static char* vtkXMLParseAsciiData(istream& is, size_t* length, char*, int)
 {
-  int dataLength = 0;
-  int dataBufferSize = 64;
+  size_t dataLength = 0;
+  size_t dataBufferSize = 64;
 
   char* dataBuffer = new char[dataBufferSize];
   char element;
@@ -1120,7 +1120,7 @@ static char* vtkXMLParseAsciiData(istream& is, int* length, char*, int)
     element = inElement;
     if (dataLength == dataBufferSize)
     {
-      int newSize = dataBufferSize * 2;
+      size_t newSize = dataBufferSize * 2;
       char* newBuffer = new char[newSize];
       memcpy(newBuffer, dataBuffer, dataLength * sizeof(char));
       delete[] dataBuffer;
@@ -1139,10 +1139,10 @@ static char* vtkXMLParseAsciiData(istream& is, int* length, char*, int)
 }
 
 //------------------------------------------------------------------------------
-static unsigned char* vtkXMLParseAsciiData(istream& is, int* length, unsigned char*, int)
+static unsigned char* vtkXMLParseAsciiData(istream& is, size_t* length, unsigned char*, int)
 {
-  int dataLength = 0;
-  int dataBufferSize = 64;
+  size_t dataLength = 0;
+  size_t dataBufferSize = 64;
 
   unsigned char* dataBuffer = new unsigned char[dataBufferSize];
   unsigned char element;
@@ -1153,7 +1153,7 @@ static unsigned char* vtkXMLParseAsciiData(istream& is, int* length, unsigned ch
     element = inElement;
     if (dataLength == dataBufferSize)
     {
-      int newSize = dataBufferSize * 2;
+      size_t newSize = dataBufferSize * 2;
       unsigned char* newBuffer = new unsigned char[newSize];
       memcpy(newBuffer, dataBuffer, dataLength * sizeof(unsigned char));
       delete[] dataBuffer;
@@ -1172,10 +1172,10 @@ static unsigned char* vtkXMLParseAsciiData(istream& is, int* length, unsigned ch
 }
 
 //------------------------------------------------------------------------------
-static signed char* vtkXMLParseAsciiData(istream& is, int* length, signed char*, int)
+static signed char* vtkXMLParseAsciiData(istream& is, size_t* length, signed char*, int)
 {
-  int dataLength = 0;
-  int dataBufferSize = 64;
+  size_t dataLength = 0;
+  size_t dataBufferSize = 64;
 
   signed char* dataBuffer = new signed char[dataBufferSize];
   signed char element;
@@ -1186,7 +1186,7 @@ static signed char* vtkXMLParseAsciiData(istream& is, int* length, signed char*,
     element = inElement;
     if (dataLength == dataBufferSize)
     {
-      int newSize = dataBufferSize * 2;
+      size_t newSize = dataBufferSize * 2;
       signed char* newBuffer = new signed char[newSize];
       memcpy(newBuffer, dataBuffer, dataLength * sizeof(signed char));
       delete[] dataBuffer;
@@ -1205,7 +1205,7 @@ static signed char* vtkXMLParseAsciiData(istream& is, int* length, signed char*,
 }
 
 //------------------------------------------------------------------------------
-static unsigned char* vtkXMLParseAsciiBitData(istream& is, int* length)
+static unsigned char* vtkXMLParseAsciiBitData(istream& is, size_t* length)
 {
   size_t arrayCapacity = 64; // capacity in bytes
   unsigned char* array = new unsigned char[arrayCapacity];
@@ -1251,9 +1251,7 @@ static unsigned char* vtkXMLParseAsciiBitData(istream& is, int* length)
 
   if (length)
   {
-    // We fudge the 'word size' to 1 byte for bit arrays (since it's integral)
-    // so return the length in bytes here:
-    *length = static_cast<int>(fullBytesRead + (currentBitInByte != 0 ? 1 : 0));
+    *length = fullBytesRead;
   }
 
   return array;
@@ -1277,7 +1275,7 @@ int vtkXMLDataParser::ParseAsciiData(int wordType)
     this->FreeAsciiBuffer();
   }
 
-  int length = 0;
+  size_t length = 0;
   void* buffer = nullptr;
   switch (wordType)
   {
