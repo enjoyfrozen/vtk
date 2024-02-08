@@ -128,6 +128,25 @@ static void CreateImplFile(
 
   fprintf(fout, "\n");
   fprintf(fout, "  vtkPythonUtil::AddModule(\"%s\");\n\n", libName);
+
+  if (strncmp("vtkCommonDataModel", libName, strlen("vtkCommonDataModel")) == 0)
+  {
+    fprintf(fout,
+      "  // Import the module\n"
+      "  if (PyObject *moduleName = PyUnicode_DecodeFSDefault(\"vtkmodules.util.data_model\"))\n"
+      "  {\n"
+      "    if (PyObject *internalModule = PyImport_Import(moduleName))\n"
+      "    {\n"
+      "      Py_DECREF(internalModule);\n"
+      "    }\n"
+      "    else\n"
+      "    {\n"
+      "      return nullptr;\n"
+      "    }\n"
+      "    Py_DECREF(moduleName);\n"
+      "  }\n");
+  }
+
   fprintf(fout, "  return m;\n");
   fprintf(fout, "}\n\n");
 }
