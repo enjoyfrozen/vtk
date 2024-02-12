@@ -405,7 +405,10 @@ void vtkInteractorStyleTrackballCamera::EnvironmentRotate()
   vtkRenderWindowInteractor* rwi = this->Interactor;
 
   int dx = rwi->GetEventPosition()[0] - rwi->GetLastEventPosition()[0];
-  int sizeX = this->CurrentRenderer->GetRenderWindow()->GetSize()[0];
+
+  double* vp = this->CurrentRenderer->GetViewport();
+  int sizeX =
+    static_cast<int>(this->CurrentRenderer->GetRenderWindow()->GetSize()[0] * (vp[2] - vp[0]));
 
   vtkNew<vtkMatrix3x3> mat;
 
