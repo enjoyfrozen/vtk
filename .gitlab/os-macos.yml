@@ -39,6 +39,14 @@
         PYTHON_VERSION_SUFFIX: "3.11"
         _PYTHON_HOST_PLATFORM: "macosx-11.0-arm64"
 
+.wheel_macos312_arm64:
+    extends: .wheel_macos_arm64
+
+    variables:
+        CMAKE_CONFIGURATION: wheel_macos312_arm64
+        PYTHON_VERSION_SUFFIX: "3.12"
+        _PYTHON_HOST_PLATFORM: "macosx-11.0-arm64"
+
 .wheel_macos_x86_64:
     extends: .macos
 
@@ -87,6 +95,14 @@
     variables:
         CMAKE_CONFIGURATION: wheel_macos311_x86_64
         PYTHON_VERSION_SUFFIX: "3.11"
+        _PYTHON_HOST_PLATFORM: "macosx-10.10-x86_64"
+
+.wheel_macos312_x86_64:
+    extends: .wheel_macos_x86_64
+
+    variables:
+        CMAKE_CONFIGURATION: wheel_macos312_x86_64
+        PYTHON_VERSION_SUFFIX: "3.12"
         _PYTHON_HOST_PLATFORM: "macosx-10.10-x86_64"
 
 ### Build and test
@@ -186,12 +202,19 @@
     - git submodule sync --recursive
     - git submodule update --init --recursive
 
+.before_script_macos_deps: &before_script_macos_deps
+    # currently not downloading adios for macos wheels
+    # this way we can only get it for non-wheel macos builds
+    - cmake -P .gitlab/ci/download_adios2.cmake
+    - export CMAKE_PREFIX_PATH=$CMAKE_PREFIX_PATH:$PWD/.gitlab/adios2
+
 .cmake_build_macos:
     stage: build
     extends: .warning_policy
 
     script:
         - *before_script_macos
+        - *before_script_macos_deps
         - .gitlab/ci/sccache.sh
         # Allow the server to already be running.
         - "sccache --start-server || :"
@@ -208,6 +231,7 @@
 
     script:
         - *before_script_macos
+        - *before_script_macos_deps
         - ctest --output-on-failure -V -S .gitlab/ci/ctest_test.cmake
     interruptible: true
 
@@ -239,6 +263,7 @@
         - sccache --show-stats
         - cd build
         - "$PYTHON_PREFIX/bin/python$PYTHON_VERSION_SUFFIX -m venv venv"
+        - venv/bin/pip install setuptools
         - venv/bin/pip install wheel
         - venv/bin/python3 setup.py bdist_wheel
         - '[ -f dist/*_universal2.whl ] && exit 1 # universal2 wheels are not made; platform detection requires an override'

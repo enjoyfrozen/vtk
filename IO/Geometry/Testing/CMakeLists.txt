@@ -66,12 +66,16 @@ vtk_module_test_data(
 
   Data/TecPlot/,REGEX:.*
   Data/Viewpoint/cow.obj
+  Data/3D_cylinder_surf.msh
+  Data/3D_cylinder_vol.msh
+  Data/fluent_quad.msh
   Data/absolute_indices.obj
   Data/cellcentered.tec
   Data/cellsnd.ascii.inp
   Data/cellsnd.bin.inp
   Data/flow.tec
   Data/flow.tec.gz
+  Data/malformed.obj
   Data/obj_double_sphere.obj
   Data/obj_multiline.obj
   Data/obj_multitexture.obj

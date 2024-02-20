@@ -72,7 +72,12 @@ int vtkGhostCellsGenerator::FillInputPortInformation(int vtkNotUsed(port), vtkIn
 int vtkGhostCellsGenerator::RequestData(
   vtkInformation*, vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
-  vtkDataObject* inputDO = vtkDataObject::GetData(inputVector[0], 0);
+  return this->Execute(vtkDataObject::GetData(inputVector[0], 0), outputVector);
+}
+
+//----------------------------------------------------------------------------
+int vtkGhostCellsGenerator::Execute(vtkDataObject* inputDO, vtkInformationVector* outputVector)
+{
   vtkDataObject* outputDO = vtkDataObject::GetData(outputVector, 0);
 
   vtkInformation* outInfo = outputVector->GetInformationObject(0);
@@ -80,26 +85,29 @@ int vtkGhostCellsGenerator::RequestData(
   bool error = false;
   int retVal = 1;
 
+  vtkSmartPointer<vtkDataObject> modifInputDO =
+    vtkSmartPointer<vtkDataObject>::Take(inputDO->NewInstance());
+  modifInputDO->ShallowCopy(inputDO);
   if (this->GenerateProcessIds)
   {
     vtkNew<vtkGenerateProcessIds> pidGenerator;
-    pidGenerator->SetInputData(inputDO);
+    pidGenerator->SetInputData(modifInputDO);
     pidGenerator->GenerateCellDataOn();
     pidGenerator->GeneratePointDataOn();
     pidGenerator->Update();
-    inputDO->ShallowCopy(pidGenerator->GetOutputDataObject(0));
+    modifInputDO->ShallowCopy(pidGenerator->GetOutputDataObject(0));
   }
   if (this->GenerateGlobalIds)
   {
     vtkNew<vtkGenerateGlobalIds> gidGenerator;
-    gidGenerator->SetInputData(inputDO);
+    gidGenerator->SetInputData(modifInputDO);
     gidGenerator->Update();
-    inputDO->ShallowCopy(gidGenerator->GetOutputDataObject(0));
+    modifInputDO->ShallowCopy(gidGenerator->GetOutputDataObject(0));
   }
 
   std::vector<vtkDataObject*> inputPDSs, outputPDSs;
 
-  if (auto inputPDSC = vtkPartitionedDataSetCollection::SafeDownCast(inputDO))
+  if (auto inputPDSC = vtkPartitionedDataSetCollection::SafeDownCast(modifInputDO))
   {
     auto outputPDSC = vtkPartitionedDataSetCollection::SafeDownCast(outputDO);
     outputPDSC->CopyStructure(inputPDSC);
@@ -112,7 +120,7 @@ int vtkGhostCellsGenerator::RequestData(
   }
   else
   {
-    inputPDSs.emplace_back(inputDO);
+    inputPDSs.emplace_back(modifInputDO);
     outputPDSs.emplace_back(outputDO);
   }
 
@@ -168,10 +176,13 @@ int vtkGhostCellsGenerator::RequestData(
       continue;
     }
 
+    // Note: We synchronize only if both points AND cells can be synchronized, it would be possible
+    // to improve that if the generating part is able to generate only cells or points at some
+    // point.
     bool canSyncCell = false;
     bool canSyncPoint = false;
-
-    if (vtkGhostCellsGenerator::CanSynchronize(inputPartition, canSyncCell, canSyncPoint))
+    if (this->SynchronizeOnly &&
+      vtkGhostCellsGenerator::CanSynchronize(inputPartition, canSyncCell, canSyncPoint))
     {
       std::vector<vtkDataSet*> inputsDS =
         vtkCompositeDataSet::GetDataSets<vtkDataSet>(inputPartition);
@@ -250,13 +261,6 @@ int vtkGhostCellsGenerator::RequestUpdateExtent(
 bool vtkGhostCellsGenerator::CanSynchronize(
   vtkDataObject* input, bool& canSyncCell, bool& canSyncPoint)
 {
-  if (!this->Sync)
-  {
-    canSyncCell = false;
-    canSyncPoint = false;
-    return false;
-  }
-
   vtkDataSetAttributes* inputCell = input->GetAttributes(vtkDataObject::AttributeTypes::CELL);
   vtkDataSetAttributes* inputPoint = input->GetAttributes(vtkDataObject::AttributeTypes::POINT);
   canSyncCell = inputCell && inputCell->GetGhostArray() && inputCell->GetGlobalIds() &&
@@ -264,7 +268,7 @@ bool vtkGhostCellsGenerator::CanSynchronize(
   canSyncPoint = inputPoint && inputPoint->GetGhostArray() && inputPoint->GetGlobalIds() &&
     inputPoint->GetProcessIds();
 
-  return canSyncCell || canSyncPoint;
+  return canSyncCell && canSyncPoint;
 }
 
 //----------------------------------------------------------------------------

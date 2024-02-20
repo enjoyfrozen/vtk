@@ -54,7 +54,7 @@ int TestContourImplicitArrays(int argc, char* argv[])
 
   vtkNew<vtkContourFilter> contour;
   contour->SetInputData(baseGrid);
-  contour->SetValue(0, 0.0);
+  contour->SetContourValues({ 0.0 });
 
   contour->Update();
 
@@ -79,4 +79,4 @@ int TestContourImplicitArrays(int argc, char* argv[])
   return (vtkRegressionTester::Test(argc, argv, renWin, 10) == vtkRegressionTester::PASSED)
     ? EXIT_SUCCESS
     : EXIT_FAILURE;
-};
+}

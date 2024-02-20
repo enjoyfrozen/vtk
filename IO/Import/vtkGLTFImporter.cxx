@@ -5,6 +5,7 @@
 
 #include "vtkActor.h"
 #include "vtkCamera.h"
+#include "vtkDataAssembly.h"
 #include "vtkDoubleArray.h"
 #include "vtkEventForwarderCommand.h"
 #include "vtkFloatArray.h"
@@ -314,7 +315,7 @@ void ApplyGLTFMaterialToVTKActor(std::shared_ptr<vtkGLTFDocumentLoader::Model> m
     b = pow(b, 1.f / 2.2f);
     actor->GetProperty()->SetColor(r, g, b);
   }
-};
+}
 
 //------------------------------------------------------------------------------
 void ApplyTransformToCamera(vtkSmartPointer<vtkCamera> cam, vtkSmartPointer<vtkMatrix4x4> transform)
@@ -353,6 +354,12 @@ vtkGLTFImporter::~vtkGLTFImporter()
 }
 
 //------------------------------------------------------------------------------
+void vtkGLTFImporter::InitializeLoader()
+{
+  this->Loader = vtkSmartPointer<vtkGLTFDocumentLoader>::New();
+}
+
+//------------------------------------------------------------------------------
 int vtkGLTFImporter::ImportBegin()
 {
   // Make sure we have a file to read.
@@ -364,7 +371,8 @@ int vtkGLTFImporter::ImportBegin()
 
   this->Textures.clear();
 
-  this->Loader = vtkSmartPointer<vtkGLTFDocumentLoader>::New();
+  this->InitializeLoader();
+  this->SceneHierarchy.TakeReference(vtkDataAssembly::New());
 
   vtkNew<vtkEventForwarderCommand> forwarder;
   forwarder->SetTarget(this);
@@ -408,16 +416,24 @@ int vtkGLTFImporter::ImportBegin()
 void vtkGLTFImporter::ImportActors(vtkRenderer* renderer)
 {
   auto model = this->Loader->GetInternalModel();
+  if (!model)
+  {
+    vtkErrorMacro("The GLTF model is nullptr, aborting.");
+    return;
+  }
 
-  int scene = model->DefaultScene;
+  const int& scene = model->DefaultScene;
 
   // List of nodes to import
   std::stack<int> nodeIdStack;
+  std::stack<int> dasmParents;
+  int flatActorId = 0;
 
   // Add root nodes to the stack
   for (int nodeId : model->Scenes[scene].Nodes)
   {
     nodeIdStack.push(nodeId);
+    dasmParents.push(0);
   }
 
   this->OutputsDescription = "";
@@ -428,14 +444,29 @@ void vtkGLTFImporter::ImportActors(vtkRenderer* renderer)
   while (!nodeIdStack.empty())
   {
     // Get current node
-    int nodeId = nodeIdStack.top();
+    const int nodeId = nodeIdStack.top();
     nodeIdStack.pop();
-    vtkGLTFDocumentLoader::Node& node = model->Nodes[nodeId];
+    const auto& node = model->Nodes[nodeId];
+
+    // Add this node into the scene hierarchy
+    const int dasmParent = dasmParents.top();
+    dasmParents.pop();
+    std::string dasmNodeName;
+    if (!node.Name.empty())
+    {
+      dasmNodeName = vtkDataAssembly::MakeValidNodeName(node.Name.c_str());
+    }
+    else
+    {
+      dasmNodeName = "node" + std::to_string(nodeId);
+    }
+    const int dasmNode = this->SceneHierarchy->AddNode(dasmNodeName.c_str(), dasmParent);
 
     // Import node's geometry
     if (node.Mesh >= 0)
     {
       auto mesh = model->Meshes[node.Mesh];
+      int primitiveId = 0;
       for (auto primitive : mesh.Primitives)
       {
         auto pointData = primitive.Geometry->GetPointData();
@@ -472,10 +503,15 @@ void vtkGLTFImporter::ImportActors(vtkRenderer* renderer)
 
         actor->SetMapper(mapper);
         actor->SetUserMatrix(node.GlobalTransform);
-
+        std::string meshNodeName;
         if (!mesh.Name.empty())
         {
           this->OutputsDescription += mesh.Name + " ";
+          meshNodeName = vtkDataAssembly::MakeValidNodeName(mesh.Name.c_str());
+        }
+        else
+        {
+          meshNodeName = "primitive_" + std::to_string(primitiveId++);
         }
         this->OutputsDescription += "Primitive Geometry:\n";
         this->OutputsDescription +=
@@ -489,6 +525,10 @@ void vtkGLTFImporter::ImportActors(vtkRenderer* renderer)
         renderer->AddActor(actor);
 
         this->Actors[nodeId].emplace_back(actor);
+        const int actorNode =
+          this->SceneHierarchy->AddNode(meshNodeName.c_str(), /*parent=*/dasmNode);
+        this->SceneHierarchy->SetAttribute(actorNode, "parent_node_name", dasmNodeName.c_str());
+        this->SceneHierarchy->SetAttribute(actorNode, "flat_actor_id", flatActorId++);
 
         this->InvokeEvent(vtkCommand::UpdateDataEvent);
       }
@@ -498,6 +538,7 @@ void vtkGLTFImporter::ImportActors(vtkRenderer* renderer)
     for (int childNodeId : node.Children)
     {
       nodeIdStack.push(childNodeId);
+      dasmParents.push(dasmNode);
     }
   }
 
@@ -508,6 +549,11 @@ void vtkGLTFImporter::ImportActors(vtkRenderer* renderer)
 void vtkGLTFImporter::ImportCameras(vtkRenderer* renderer)
 {
   auto model = this->Loader->GetInternalModel();
+  if (!model)
+  {
+    vtkErrorMacro("The GLTF model is nullptr, aborting.");
+    return;
+  }
 
   int scene = model->DefaultScene;
 
@@ -566,18 +612,25 @@ void vtkGLTFImporter::ImportCameras(vtkRenderer* renderer)
 vtkIdType vtkGLTFImporter::GetNumberOfCameras()
 {
   auto model = this->Loader->GetInternalModel();
+  if (!model)
+  {
+    vtkErrorMacro("The GLTF model is nullptr, aborting.");
+    return 0;
+  }
+
   return model->Cameras.size();
 }
 
 //------------------------------------------------------------------------------
 std::string vtkGLTFImporter::GetCameraName(vtkIdType camIndex)
 {
-  auto model = this->Loader->GetInternalModel();
   if (camIndex < 0 || camIndex >= this->GetNumberOfCameras())
   {
     vtkErrorMacro("Camera index invalid");
     return "";
   }
+  auto model = this->Loader->GetInternalModel();
+  assert(model);
   return model->Cameras[camIndex].Name;
 }
 
@@ -603,6 +656,12 @@ void vtkGLTFImporter::ImportLights(vtkRenderer* renderer)
   std::stack<int> nodeIdStack;
 
   const auto& model = this->Loader->GetInternalModel();
+  if (!model)
+  {
+    vtkErrorMacro("The GLTF model is nullptr, aborting.");
+    return;
+  }
+
   const auto& lights = model->ExtensionMetaData.KHRLightsPunctualMetaData.Lights;
 
   // Add root nodes to the stack
@@ -682,6 +741,12 @@ void vtkGLTFImporter::UpdateTimeStep(double timeValue)
 void vtkGLTFImporter::ApplySkinningMorphing()
 {
   const auto& model = this->Loader->GetInternalModel();
+  if (!model)
+  {
+    vtkErrorMacro("The GLTF model is nullptr, aborting.");
+    return;
+  }
+
   int scene = model->DefaultScene;
 
   // List of nodes to import
@@ -761,7 +826,14 @@ void vtkGLTFImporter::ApplySkinningMorphing()
 //----------------------------------------------------------------------------
 vtkIdType vtkGLTFImporter::GetNumberOfAnimations()
 {
-  return static_cast<vtkIdType>(this->Loader->GetInternalModel()->Animations.size());
+  const auto& model = this->Loader->GetInternalModel();
+  if (!model)
+  {
+    vtkErrorMacro("The GLTF model is nullptr, aborting.");
+    return 0;
+  }
+
+  return static_cast<vtkIdType>(model->Animations.size());
 }
 
 //----------------------------------------------------------------------------
@@ -769,7 +841,9 @@ std::string vtkGLTFImporter::GetAnimationName(vtkIdType animationIndex)
 {
   if (animationIndex >= 0 && animationIndex < this->GetNumberOfAnimations())
   {
-    return this->Loader->GetInternalModel()->Animations[animationIndex].Name;
+    const auto& model = this->Loader->GetInternalModel();
+    assert(model);
+    return model->Animations[animationIndex].Name;
   }
   return "";
 }
@@ -804,8 +878,11 @@ bool vtkGLTFImporter::GetTemporalInformation(vtkIdType animationIndex, double fr
 {
   if (animationIndex < this->GetNumberOfAnimations())
   {
+    const auto& model = this->Loader->GetInternalModel();
+    assert(model);
+
     timeRange[0] = 0;
-    timeRange[1] = this->Loader->GetInternalModel()->Animations[animationIndex].Duration;
+    timeRange[1] = model->Animations[animationIndex].Duration;
 
     if (frameRate > 0)
     {

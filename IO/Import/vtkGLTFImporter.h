@@ -85,7 +85,7 @@ public:
   /**
    * Get a printable string describing all outputs
    */
-  std::string GetOutputsDescription() override { return this->OutputsDescription; };
+  std::string GetOutputsDescription() override { return this->OutputsDescription; }
 
   /**
    * update timestep
@@ -141,6 +141,12 @@ public:
 protected:
   vtkGLTFImporter() = default;
   ~vtkGLTFImporter() override;
+
+  /**
+   * Initialize the document loader.
+   * Can be subclassed to instantiate a custom loader.
+   */
+  virtual void InitializeLoader();
 
   int ImportBegin() override;
   void ImportActors(vtkRenderer* renderer) override;

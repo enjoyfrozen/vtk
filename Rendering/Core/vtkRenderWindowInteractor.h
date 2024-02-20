@@ -186,7 +186,8 @@ public:
    * group, the create methods take a timer duration argument (in
    * milliseconds) and return a timer id. Thus the ResetTimer(timerId) and
    * DestroyTimer(timerId) methods take this timer id and operate on the
-   * timer as appropriate. Methods are also available for determining
+   * timer as appropriate. Make sure you run Initialize() before creating
+   * the timer in order for it to work.
    */
   virtual int CreateTimer(int timerType); // first group, for backward compatibility
   virtual int DestroyTimer();             // first group, for backward compatibility
@@ -514,6 +515,10 @@ public:
   ///@{
   /**
    * Set/get whether alt modifier key was pressed.
+   * On macOS, this corresponds to the Option key
+   * which may have unexpected effect on the KeyCode and KeySym.
+   *
+   * AltGr does NOT trigger this modifier.
    */
   vtkSetMacro(AltKey, int);
   vtkGetMacro(AltKey, int);
@@ -522,6 +527,8 @@ public:
   ///@{
   /**
    * Set/get whether control modifier key was pressed.
+   * On macOS, pressing either Cmd or Control turn this
+   * modifier on.
    */
   vtkSetMacro(ControlKey, int);
   vtkGetMacro(ControlKey, int);
@@ -537,7 +544,27 @@ public:
 
   ///@{
   /**
-   * Set/get the key code for the key that was pressed.
+   * Set/get the unicode value for the key that was pressed, as an 8-bit char value.
+   * This restricts the value to the Basic Latin and Latin1 blocks of unicode.
+   *
+   * Since the 'char' type may be signed, one should cast to 'unsigned char' before retrieving the
+   * code value.
+   *
+   * unsigned char keyCode = static_cast<unsigned char>(rwi->GetKeyCode())
+   *
+   * Please note KeyCode is impacted by modifiers:
+   *
+   * "A" -> 'a'
+   * "Shift" + "A" -> 'A'
+   * "Ctrl" + "A" -> 1
+   * "Alt" + "A" -> 'a'
+   *
+   * The behavior with Control modifier is related to C0 and C1 control codes.
+   *
+   * Please note KeyCode IS NOT reliable across platforms, especially for special characters with
+   * modifiers. Using KeySym should be more reliable.
+   *
+   * Default is 0.
    */
   vtkSetMacro(KeyCode, char);
   vtkGetMacro(KeyCode, char);
@@ -555,9 +582,23 @@ public:
   ///@{
   /**
    * Set/get the key symbol for the key that was pressed. This is the key
-   * symbol as defined by the relevant X headers. On X based platforms this
-   * corresponds to the installed X server, whereas on other platforms the
-   * native key codes are translated into a string representation.
+   * symbol as defined by the relevant X headers (xlib/X11/keysymdef.h).
+   * On X based platforms this corresponds to the installed X server, whereas on other platforms the
+   * native key codes are translated into a string representation using VTK defined tables.
+   *
+   * Please note the KeySym is impacted by modifiers:
+   *
+   * "A" -> "a"
+   * "Shift" + "A" -> "A"
+   * "Alt" + "A" -> "a"
+   * "Ctrl" + "A" -> "a"
+   *
+   * Please note KeySym may NOT be fully reliable across platforms, especially for special
+   * characters with modifiers. Please check the actual KeySym on supported platform before relying
+   * on it. However, KeySym is intended to always correspond to the key the user intended to press,
+   * even accross layouts and platforms.
+   *
+   * Default is nullptr.
    */
   vtkSetStringMacro(KeySym);
   vtkGetStringMacro(KeySym);
@@ -792,6 +833,26 @@ public:
   bool IsPointerIndexSet(int i);
   void ClearPointerIndex(int i);
   ///@}
+
+  /**
+   * This flag is useful when you are integrating VTK in a larger system.
+   * In such cases, an application can lock up if the `Start()` method
+   * in vtkRenderWindowInteractor processes events indefinitely without
+   * giving the system a chance to execute anything.
+   * The default value for this flag is true. It currently only affects
+   * VTK webassembly applications.
+   *
+   * As an example with webassembly in the browser through emscripten SDK:
+   * 1. If your app has an `int main` entry point, leave this value enabled.
+   *    Emscripten will simulate an infinite event loop and avoid running code
+   *    after `interactor->Start()` which is usually the end of `main`.
+   *    Otherwise, all VTK objects will go out of scope immediately without
+   *    giving a chance for user interaction with the render window.
+   * 2. If your app does not have an `int main` entry point, disable this
+   *    behavior.
+   *    Otherwise, the webassembly application will not start up successfully.
+   */
+  static bool InteractorManagesTheEventLoop;
 
 protected:
   vtkRenderWindowInteractor();

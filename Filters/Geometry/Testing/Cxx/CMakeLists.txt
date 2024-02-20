@@ -23,6 +23,8 @@ vtk_add_test_cxx(vtkFiltersGeometryCxxTests no_data_tests
   TestStructuredGridConnectivity.cxx
   UnitTestDataSetSurfaceFilter.cxx
   UnitTestProjectSphereFilter.cxx
+  TestMatchBoundariesIgnoringCellOrder.cxx
+  TestUnstructuredGridGeometryFilterDegenerateCells.cxx
   )
 
 set(all_tests

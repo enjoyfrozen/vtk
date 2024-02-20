@@ -137,6 +137,10 @@ $<$<BOOL:${_vtk_java_hierarchy_files}>:\n--types \'$<JOIN:${_vtk_java_hierarchy_
 
     set(_vtk_java_source_output
       "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${_vtk_java_library_name}Java/${_vtk_java_basename}Java.${_vtk_java_ext}")
+    set(_vtk_java_wrap_depfile_genex
+      "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${_vtk_java_library_name}Java/${_vtk_java_basename}Java.${_vtk_java_ext}.$<CONFIG>.d")
+    set(_vtk_java_wrap_depfile_nogenex
+      "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${_vtk_java_library_name}Java/${_vtk_java_basename}Java.${_vtk_java_ext}.d")
     list(APPEND _vtk_java_sources
       "${_vtk_java_source_output}")
 
@@ -158,16 +162,26 @@ $<$<BOOL:${_vtk_java_hierarchy_files}>:\n--types \'$<JOIN:${_vtk_java_hierarchy_
       set(_vtk_java_parse_target "VTKCompileTools::ParseJava")
     endif ()
 
+    _vtk_module_depfile_args(
+      MULTI_CONFIG_NEEDS_GENEX
+      TOOL_ARGS _vtk_java_depfile_flags
+      CUSTOM_COMMAND_ARGS _vtk_java_depfile_args
+      SOURCE "${_vtk_java_header}"
+      DEPFILE_PATH "${_vtk_java_wrap_depfile_genex}"
+      DEPFILE_NO_GENEX_PATH "${_vtk_java_wrap_depfile_nogenex}"
+      TOOL_FLAGS "-MF")
+
     add_custom_command(
       OUTPUT  "${_vtk_java_source_output}"
       COMMAND ${CMAKE_CROSSCOMPILING_EMULATOR}
               "$<TARGET_FILE:${_vtk_java_wrap_target}>"
+              ${_vtk_java_depfile_flags}
               "@${_vtk_java_args_file}"
               -o "${_vtk_java_source_output}"
               "${_vtk_java_header}"
+              ${_vtk_java_warning_args}
               ${_vtk_java_macros_args}
-      IMPLICIT_DEPENDS
-              CXX "${_vtk_java_header}"
+      ${_vtk_java_depfile_args}
       COMMENT "Generating Java wrapper sources for ${_vtk_java_basename}"
       DEPENDS
         "${_vtk_java_header}"
@@ -177,18 +191,28 @@ $<$<BOOL:${_vtk_java_hierarchy_files}>:\n--types \'$<JOIN:${_vtk_java_hierarchy_
 
     set(_vtk_java_java_source_output
       "${_vtk_java_JAVA_OUTPUT}/${_vtk_java_basename}.java")
+    set(_vtk_java_parse_depfile
+      "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${_vtk_java_library_name}Java.dir/${_vtk_java_basename}.java.d")
     list(APPEND _vtk_java_java_sources
       "${_vtk_java_java_source_output}")
+
+    _vtk_module_depfile_args(
+      TOOL_ARGS _vtk_java_depfile_flags
+      CUSTOM_COMMAND_ARGS _vtk_java_depfile_args
+      SOURCE "${_vtk_java_header}"
+      DEPFILE_PATH "${_vtk_java_parse_depfile}"
+      TOOL_FLAGS "-MF")
 
     add_custom_command(
       OUTPUT  "${_vtk_java_java_source_output}"
       COMMAND "${_vtk_java_parse_target}"
+              ${_vtk_java_depfile_flags}
               "@${_vtk_java_args_file}"
               -o "${_vtk_java_java_source_output}"
               "${_vtk_java_header}"
+              ${_vtk_java_warning_args}
               ${_vtk_java_macros_args}
-      IMPLICIT_DEPENDS
-              CXX "${_vtk_java_header}"
+      ${_vtk_java_depfile_args}
       COMMENT "Generating Java sources for ${_vtk_java_basename}"
       DEPENDS
         "${_vtk_java_header}"
@@ -280,8 +304,14 @@ function (_vtk_module_wrap_java_library name)
   # XXX(java): Should this be a `MODULE`? If not, we should probably export
   # these targets, but then we'll need logic akin to the `vtkModuleWrapPython`
   # logic for loading wrapped modules from other packages.
-  add_library("${_vtk_java_target}" SHARED
-    ${_vtk_java_library_sources})
+  add_library("${_vtk_java_target}" SHARED)
+  target_sources("${_vtk_java_target}"
+    PRIVATE
+      ${_vtk_java_library_sources})
+  # Add a dummy file set to optimize dependencies. See CMP0154.
+  _vtk_module_add_file_set("${_vtk_java_target}"
+    BASE_DIRS "${CMAKE_CURRENT_BINARY_DIR}"
+    NAME      dummy)
 
   if (_vtk_java_UTILITY_TARGET)
     target_link_libraries("${_vtk_java_target}"
@@ -351,7 +381,9 @@ endfunction ()
 
       [LIBRARY_DESTINATION <destination>]
       [JNILIB_DESTINATION <destination>]
-      [JNILIB_COMPONENT <component>])
+      [JNILIB_COMPONENT <component>]
+
+      [WARNINGS <warning>...])
 
   * ``MODULES``: (Required) The list of modules to wrap.
   * ``WRAPPED_MODULES``: (Recommended) Not all modules are wrappable. This
@@ -368,6 +400,7 @@ endfunction ()
   * ``JNILIB_DESTINATION``: Where to install JNI libraries.
   * ``JNILIB_COMPONENT``: Defaults to ``jni``. The install component to use for JNI
     libraries.
+  * ``WARNINGS``: Warnings to enable. Supported warnings: ``empty``.
 
   For each wrapped module, a ``<module>Java`` target will be created. These targets
   will have a ``_vtk_module_java_files`` property which is the list of generated
@@ -380,7 +413,7 @@ function (vtk_module_wrap_java)
   cmake_parse_arguments(PARSE_ARGV 0 _vtk_java
     ""
     "JAVA_OUTPUT;WRAPPED_MODULES;LIBRARY_DESTINATION;JNILIB_DESTINATION;JNILIB_COMPONENT;UTILITY_TARGET"
-    "MODULES")
+    "MODULES;WARNINGS")
 
   if (_vtk_java_UNPARSED_ARGUMENTS)
     message(FATAL_ERROR
@@ -395,6 +428,18 @@ function (vtk_module_wrap_java)
   if (NOT _vtk_java_JNILIB_COMPONENT)
     set(_vtk_java_JNILIB_COMPONENT "jni")
   endif ()
+
+  set(_vtk_java_known_warnings
+    empty)
+  set(_vtk_java_warning_args)
+  foreach (_vtk_java_warning IN LISTS _vtk_java_WARNINGS)
+    if (NOT _vtk_java_warning IN_LIST _vtk_java_known_warnings)
+      message(FATAL_ERROR
+        "Unrecognized warning: ${_vtk_java_warning}")
+    endif ()
+    list(APPEND _vtk_java_warning_args
+      "-W${_vtk_java_warning}")
+  endforeach ()
 
   # Set up rpaths
   set(CMAKE_BUILD_RPATH_USE_ORIGIN 1)

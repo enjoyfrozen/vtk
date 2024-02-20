@@ -28,6 +28,7 @@ vtk_add_test_cxx(vtkCommonDataModelCxxTests tests
   TestComputeBoundingSphere.cxx
   TestDataAssembly.cxx
   TestDataAssemblyUtilities.cxx
+  TestDataSetAttributes.cxx
   TestDataObject.cxx
   TestDataObjectTreeRange.cxx
   TestFieldList.cxx
@@ -64,6 +65,7 @@ vtk_add_test_cxx(vtkCommonDataModelCxxTests tests
   TestPolyhedronConvexity.cxx
   TestPolyhedronConvexityMultipleCells.cxx
   TestPolyhedronTriangulateFaces.cxx
+  TestPolyhedralCellsInUG.cxx
   TestPyramid.cxx
   TestQuadraticPolygon.cxx
   TestRect.cxx
@@ -73,6 +75,7 @@ vtk_add_test_cxx(vtkCommonDataModelCxxTests tests
   TestSimpleIncrementalOctreePointLocator.cxx
   TestSortFieldData.cxx
   TestStaticCellLocator.cxx
+  TestStructuredCellArray.cxx
   TestTable.cxx
   TestThreadedCopy.cxx
   TestTreeBFSIterator.cxx
@@ -83,9 +86,11 @@ vtk_add_test_cxx(vtkCommonDataModelCxxTests tests
   otherCellBoundaries.cxx
   otherCellPosition.cxx
   otherCellTypes.cxx
+  otherCellGrid.cxx
   otherColorTransferFunction.cxx
   otherEmptyCell.cxx
   otherFieldData.cxx
+  otherHyperTreeGrid.cxx
   otherImageData.cxx
   otherPolyData.cxx
   otherRectilinearGrid.cxx
@@ -124,6 +129,7 @@ vtk_add_test_cxx(vtkCommonDataModelCxxTests data_tests
   TestPolyhedronDecompose.cxx,NO_DATA
   TestSmoothErrorMetric.cxx
   TestQuadraticPolygonFilters.cxx
+  TestNonlinearSubdivisionOfDegenerateCells.cxx,NO_DATA
   )
 # add to the list but don't define a test
 list(APPEND data_tests

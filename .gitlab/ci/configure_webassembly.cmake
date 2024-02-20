@@ -26,6 +26,7 @@ set(VTK_MODULE_ENABLE_VTK_InfovisCore NO CACHE STRING "" ) # no boost
 set(VTK_MODULE_ENABLE_VTK_InfovisLayout NO CACHE STRING "" ) # no boost
 # ├── IO
 set(VTK_MODULE_ENABLE_VTK_IOADIOS2 NO CACHE STRING "") # no adios
+set(VTK_MODULE_ENABLE_VTK_IOAlembic NO CACHE STRING "") # alembic
 set(VTK_MODULE_ENABLE_VTK_IOAMR NO CACHE STRING "") # no hdf5
 set(VTK_MODULE_ENABLE_VTK_IOCatalystConduit NO CACHE STRING "") # no catalyst
 set(VTK_MODULE_ENABLE_VTK_IOFFMPEG NO CACHE STRING "") # no ffmpeg
@@ -38,7 +39,6 @@ set(VTK_MODULE_ENABLE_VTK_IOOpenVDB NO CACHE STRING "") # no openvdb
 set(VTK_MODULE_ENABLE_VTK_IOPDAL NO CACHE STRING "") # no pdal
 set(VTK_MODULE_ENABLE_VTK_IOPostgreSQL NO CACHE STRING "") # no postgresql
 # ├── Rendering
-set(VTK_MODULE_ENABLE_VTK_RenderingCellGrid NO CACHE STRING "") # gl code incompatible with gles 3.0
 set(VTK_MODULE_ENABLE_VTK_RenderingExternal NO CACHE STRING "") # gl code incompatible with gles 3.0
 set(VTK_MODULE_ENABLE_VTK_RenderingFFMPEGOpenGL2 NO CACHE STRING "") # no ffmpeg
 set(VTK_MODULE_ENABLE_VTK_RenderingFreeTypeFontConfig NO CACHE STRING "") # no fontconfig
@@ -53,8 +53,7 @@ set(VTK_MODULE_ENABLE_VTK_RenderingVR NO CACHE STRING "") # gl code incompatible
 set(VTK_MODULE_ENABLE_VTK_RenderingZSpace NO CACHE STRING "") # no zspace
 # ├── ThirdParty
 set(VTK_MODULE_ENABLE_VTK_fides NO CACHE STRING "") # no adios2
-set(VTK_MODULE_ENABLE_VTK_hdf5 NO CACHE STRING "") # fails to configure
-set(VTK_MODULE_ENABLE_VTK_libproj NO CACHE STRING "") # fails to generate proj.db
+set(VTK_MODULE_ENABLE_VTK_xdmf3 NO CACHE STRING "") # no boost
 set(VTK_MODULE_ENABLE_VTK_vtkvtkm NO CACHE STRING "") # no execinfo.h in vtkm's loguru
 
 include("${CMAKE_CURRENT_LIST_DIR}/configure_common.cmake")

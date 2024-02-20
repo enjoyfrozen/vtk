@@ -61,12 +61,14 @@ public:
   /// \sa DataModelInput
   DataSetReader(const std::string& dataModel,
                 DataModelInput inputType = DataModelInput::JSONFile,
-                const Params& params = Params());
+                const Params& params = Params(),
+                bool createSharedPoints = false);
 
   DataSetReader(const std::string& dataModel,
                 DataModelInput inputType,
                 bool streamSteps,
-                const Params& params = Params());
+                const Params& params = Params(),
+                bool createSharedPoints = false);
 
   ~DataSetReader();
 

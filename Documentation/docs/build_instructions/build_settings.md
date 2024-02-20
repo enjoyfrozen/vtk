@@ -66,6 +66,8 @@ exist to make sure a broken build is not being made. Essentially:
   * `VTK_DEFAULT_EGL_DEVICE_INDEX` (default `0`; requires
     `VTK_OPENGL_HAS_EGL`): The default EGL device to use for EGL render
     windows.
+  * `VTK_ENABLE_WEBGPU` (default `OFF`; required if using Emscripten): Enable
+    WebGPU rendering support.
   * `VTK_DEFAULT_RENDER_WINDOW_OFFSCREEN` (default `OFF`): Whether to default
     to offscreen render windows by default or not.
   * `VTK_USE_OPENGL_DELAYED_LOAD` (default `OFF`; requires Windows and CMake >=
@@ -82,6 +84,13 @@ More advanced options:
      wrap all VTK public symbols in an
      `inline namespace <VTK_ABI_NAMESPACE_NAME>` to allow runtime co-habitation
      with different VTK versions.
+     Some C ABIs are also wrapped in this namespace using macro expansion
+     `#define c_abi VTK_ABI_NAMESPACE_MANGLE(c_abi)`
+  * `VTK_ABI_NAMESPACE_ATTRIBUTES` (default `<DEFAULT>` aka `""`): If set, VTK will
+     inject these attributes into the `inline namespace`. i.e.
+     `inline namespace <VTK_ABI_NAMESPACE_ATTRIBUTES> <VTK_ABI_NAMESPACE_NAME>`
+     The `VTK_ABI_NAMESPACE_ATTRIBUTES` is only applied the the APIs inside of the
+     namespace, not to C APIs.
   * `VTK_BUILD_DOCUMENTATION` (default `OFF`): If set, VTK will build its API
     documentation using Doxygen.
   * `VTK_BUILD_SPHINX_DOCUMENTATION` (default `OFF`): If set, VTK will build its sphinx
@@ -207,14 +216,16 @@ More advanced options:
      and installed for each module and third party, in order to be able to create a SBOM.
      See [](/api/cmake/ModuleSystem.md#spdx-files-generation) and
      [](/advanced/spdx_and_sbom.md) for more info.
+  * `VTK_ANARI_ENABLE_NVTX` (default `OFF`; requires CUDA Toolkit): If `ON`, enables the NVIDIA
+     Tools Extension Library (NVTX) for profiling the ANARI rendering code and visualizing
+     these events in tools like [NSight Systems][nsight].
 
 `vtkArrayDispatch` related options:
 
 The `VTK_DISPATCH_<array_type>_ARRAYS` options (default `OFF` for all but AOS) enable the
 specified type of array to be included in a dispatch type list. Explicit arrays (such as
-AOS, SOA and Typed) are included in the `vtkArrayDispatchTypeList.h` while
-`vtkArrayDispatchImplicitTypeList.h` includes both explicit and implicit arrays. The implicit
-array framework is included in the `CommonImplicitArrays` module. The following array types
+AOS, SOA, Typed, and implicit arrays) are included in the `vtkArrayDispatchTypeList.h`
+The implicit array framework is included in the `CommonCore` module. The following array types
 currently exist for use with the VTK dispatch mechanism:
 
   * `VTK_DISPATCH_AOS_ARRAYS` (default `ON`): includes dispatching for the commonly used
@@ -229,12 +240,6 @@ currently exist for use with the VTK dispatch mechanism:
     `vtkConstantArray` as part of the implicit array framework
   * `VTK_DISPATCH_STD_FUNCTION_ARRAYS` (default `OFF`): includes dispatching for arrays with
     an `std::function` backend `vtkStdFunctionArray` as part of the implicit array framework
-  * `VTK_DISPATCH_COMPOSITE_ARRAYS` (default `OFF`): includes dispatching of arrays with a
-    `vtkCompositeImplicitBackend` backend, `vtkCompositeArray`, as part of the implicit array
-    framework
-  * `VTK_DISPATCH_INDEXED_ARRAYS` (default `OFF`): includes dispatching of arrays with a
-    `vtkIndexedImplicitBackend` backend, `vtkIndexedArray`, as part of the implicit array
-    framework
 
 The outlier in terms of dispatch support is the family of arrays derived from
 `vtkScaledSOADataArrayTemplate` which are automatically included in dispatch when built setting
@@ -289,3 +294,4 @@ If any `YES` module requires a `NO` module, an error is raised.
 [cuda]: https://developer.nvidia.com/cuda-zone
 [hip]: https://en.wikipedia.org/wiki/ROCm
 [mpi]: https://www.mcs.anl.gov/research/projects/mpi
+[nsight]: https://developer.nvidia.com/nsight-systems

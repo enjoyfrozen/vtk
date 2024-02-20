@@ -29,7 +29,6 @@
 #ifndef vtkTableFFT_h
 #define vtkTableFFT_h
 
-#include "vtkDeprecation.h"          // For VTK_DEPRECATED_IN_9_2_0
 #include "vtkFFT.h"                  // For vtkFFT::Scaling
 #include "vtkFiltersGeneralModule.h" // For export macro
 #include "vtkSmartPointer.h"         // For internal method.
@@ -192,7 +191,7 @@ public:
   ///@{
   /**
    * Remove trend on each segment before applying the FFT. This is a constant
-   * detrend where the mean of the signal is substracted to the signal.
+   * detrend where the mean of the signal is subtracted to the signal.
    * Only used if AverageFft is true.
    *
    * @see vtkTableFFT::SetAverageFft(bool)
@@ -202,21 +201,6 @@ public:
   vtkGetMacro(Detrend, bool);
   vtkSetMacro(Detrend, bool);
   vtkBooleanMacro(Detrend, bool);
-  ///@}
-
-  ///@{
-  /**
-   * @deprecated in v9.2. Behavior was not coherent with VTK philosophy.
-   *
-   * Specify if output array should be prefixed by "FFT_" or not.
-   * This behavior was introduced in v9.1. Default is false.
-   */
-  VTK_DEPRECATED_IN_9_2_0(
-    "Deprecated in favor of always keeping the output array names the same as the input.")
-  vtkGetMacro(PrefixOutputArrays, bool);
-  VTK_DEPRECATED_IN_9_2_0(
-    "Deprecated in favor of always keeping the output array names the same as the input.")
-  vtkSetMacro(PrefixOutputArrays, bool);
   ///@}
 
   ///@{
@@ -237,7 +221,7 @@ public:
   VTK_DEPRECATED_IN_9_3_0("Function has been renamed ReturnOnesidedOn")
   virtual void OptimizeForRealInputOn() { this->ReturnOnesidedOn(); }
   VTK_DEPRECATED_IN_9_3_0("Function has been renamed ReturnOnesidedOff")
-  virtual void OptimizeForRealInputOff() { this->ReturnOnesidedOff(); };
+  virtual void OptimizeForRealInputOff() { this->ReturnOnesidedOff(); }
   ///@}
 
   ///@{
@@ -250,10 +234,10 @@ public:
    */
   VTK_DEPRECATED_IN_9_3_0(
     "Block behavior is not controlled using BlockSize and BlockOverlap properties.")
-  virtual int GetNumberOfBlock() { return 0; };
+  virtual int GetNumberOfBlock() { return 0; }
   VTK_DEPRECATED_IN_9_3_0(
     "Block behavior is not controlled using BlockSize and BlockOverlap properties.")
-  virtual void SetNumberOfBlock(int){};
+  virtual void SetNumberOfBlock(int) {}
   ///@}
 
 protected:
@@ -292,9 +276,6 @@ private:
   int BlockOverlap = -1;
   bool Detrend = false;
   int ScalingMethod = 0;
-
-  // Deprecated variables
-  bool PrefixOutputArrays = false;
 
   struct vtkInternal;
   std::unique_ptr<vtkInternal> Internals;

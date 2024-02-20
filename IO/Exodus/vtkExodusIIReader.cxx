@@ -4624,7 +4624,6 @@ int vtkExodusIIReaderPrivate::SetUpEmptyGrid(vtkMultiBlockDataSet* output)
   // Iterate over all block and set types, creating a
   // multiblock dataset to hold objects of each type.
   int conntypidx;
-  int nbl = 0;
   output->SetNumberOfBlocks(num_conn_types);
   for (conntypidx = 0; conntypidx < num_conn_types; ++conntypidx)
   {
@@ -4655,7 +4654,6 @@ int vtkExodusIIReaderPrivate::SetUpEmptyGrid(vtkMultiBlockDataSet* output)
       vtkUnstructuredGrid* ug = vtkUnstructuredGrid::New();
       mbds->SetBlock(sortIdx, ug);
       ug->FastDelete();
-      ++nbl;
     }
   }
 #if 0
@@ -4747,7 +4745,7 @@ int vtkExodusIIReaderPrivate::SetUpEmptyGrid(vtkMultiBlockDataSet* output)
 
 void vtkExodusIIReaderPrivate::Reset()
 {
-  vtkLogF(TRACE, "vtkExodusIIReaderPrivate(%p)::Reset", this);
+  vtkLogF(TRACE, "vtkExodusIIReaderPrivate(%p)::Reset", static_cast<void*>(this));
   this->CloseFile();
   this->ResetCache(); // must come before BlockInfo and SetInfo are cleared.
   this->BlockInfo.clear();
@@ -4942,8 +4940,8 @@ void vtkExodusIIReaderPrivate::SetObjectStatus(int otyp, int k, int stat)
     return;
   }
 
-  vtkLogF(TRACE, "vtkExodusIIReaderPrivate(%p): SetObjectStatus(%d, %d (%s), %d)", this, otyp, k,
-    oinfop->Name.c_str(), stat);
+  vtkLogF(TRACE, "vtkExodusIIReaderPrivate(%p): SetObjectStatus(%d, %d (%s), %d)",
+    static_cast<void*>(this), otyp, k, oinfop->Name.c_str(), stat);
 
   if (oinfop->Status == stat)
   { // no change => do nothing
@@ -4963,8 +4961,8 @@ void vtkExodusIIReaderPrivate::SetUnsortedObjectStatus(int otyp, int k, int stat
     return;
   }
 
-  vtkLogF(TRACE, "vtkExodusIIReaderPrivate(%p): SetUnsortedObjectStatus(%d, %d (%s), %d)", this,
-    otyp, k, oinfop->Name.c_str(), stat);
+  vtkLogF(TRACE, "vtkExodusIIReaderPrivate(%p): SetUnsortedObjectStatus(%d, %d (%s), %d)",
+    static_cast<void*>(this), otyp, k, oinfop->Name.c_str(), stat);
 
   if (oinfop->Status == stat)
   { // no change => do nothing

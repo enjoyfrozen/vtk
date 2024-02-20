@@ -76,8 +76,14 @@
 #if defined(VTK_COMPILER_GCC) //------------------------------------------------
 
 #define VTK_ALWAYS_INLINE __attribute__((always_inline)) inline
+// CUDA does not recognize pragma options
+#if defined(__CUDACC__)
+#define VTK_ALWAYS_OPTIMIZE_START
+#define VTK_ALWAYS_OPTIMIZE_END
+#else
 #define VTK_ALWAYS_OPTIMIZE_START _Pragma("GCC push_options") _Pragma("GCC optimize (\"O3\")")
 #define VTK_ALWAYS_OPTIMIZE_END _Pragma("GCC pop_options")
+#endif
 
 #elif defined(VTK_COMPILER_CLANG) //--------------------------------------------
 
@@ -192,6 +198,13 @@
 #define vtkSetStringMacroOverride(name)                                                            \
   void Set##name(const char* _arg) vtkSetStringBodyMacro(name, _arg) override
 
+//
+// Set a string token. Creates member Set"name"()
+// (e.g., SetArrayName(vtkStringToken));
+//
+#define vtkSetStringTokenMacro(name)                                                               \
+  virtual void Set##name(vtkStringToken _arg) vtkSetStringTokenBodyMacro(name, _arg)
+
 // Set a file path, like vtkSetStringMacro but with VTK_FILEPATH hint.
 #define vtkSetFilePathMacro(name)                                                                  \
   virtual void Set##name(VTK_FILEPATH const char* _arg) vtkSetStringBodyMacro(name, _arg)
@@ -236,6 +249,26 @@
 //
 #define vtkGetStringMacro(name) virtual char* Get##name() vtkGetStringBodyMacro(name)
 
+//
+// Get string token.  Creates member Get"name"()
+// (e.g., vtkStringToken GetArrayName());
+//
+#define vtkGetStringTokenMacro(name)                                                               \
+  virtual vtkStringToken Get##name() vtkGetStringTokenBodyMacro(name)
+
+// This macro defines a body of set string macro. It can be used either in
+// the header file using vtkSetStringMacro or in the implementation.
+#define vtkSetStringTokenBodyMacro(name, _arg)                                                     \
+  {                                                                                                \
+    vtkDebugMacro(<< " setting " #name " to " << _arg.Data());                                     \
+    if (this->name == _arg)                                                                        \
+    {                                                                                              \
+      return;                                                                                      \
+    }                                                                                              \
+    this->name = _arg;                                                                             \
+    this->Modified();                                                                              \
+  }
+
 // Get a file path, like vtkGetStringMacro but with VTK_FILEPATH hint.
 #define vtkGetFilePathMacro(name)                                                                  \
   virtual VTK_FILEPATH VTK_FUTURE_CONST char* Get##name()                                          \
@@ -246,6 +279,14 @@
 #define vtkGetStringBodyMacro(name)                                                                \
   {                                                                                                \
     vtkDebugMacro(<< " returning " #name " of " << (this->name ? this->name : "(null)"));          \
+    return this->name;                                                                             \
+  }
+
+// This macro defines a body of get string-token macro. It can be used either in
+// the header file using vtkGetStringTokenMacro or in the implementation.
+#define vtkGetStringTokenBodyMacro(name)                                                           \
+  {                                                                                                \
+    vtkDebugMacro(<< " returning " #name " of " << this->name.Data());                             \
     return this->name;                                                                             \
   }
 

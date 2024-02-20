@@ -76,7 +76,7 @@ manipulation or using VTK filters to merge data. Keywords are case insensitive, 
 
 * The geometry/topology description must occur prior to the data attribute description.
 
-### Binary Files.
+### Binary Files
 
 Binary files in VTK are portable across different computer systems as long as you observe two conditions. First, make sure that the byte ordering of the data is correct, and second, make sure that the length of each data type is consistent.
 
@@ -91,7 +91,7 @@ SetDataByteOrderToLittleEndian()
 
 Another problem with binary files is that systems may use a different number of bytes to represent an integer or other native type. For example, some 64-bit systems will represent an integer with 8-bytes, while others represent an integer with 4-bytes. Currently, the *Visualization Toolkit* cannot handle transporting binary files across systems with incompatible data length. In this case, use ASCII file formats instead.
 
-### Dataset Format.
+### Dataset Format
 The *Visualization Toolkit* supports five different dataset formats: structured points, structured grid, rectilinear grid, unstructured grid, and polygonal data. Data with implicit topology (structured data such as vtkImageData and vtkStructuredGrid) are ordered with x increasing fastest, then y, then z. These formats are as follows.
 
 * **Structured Points**. The file format supports 1D, 2D, and 3D structured point datasets. The dimensions nx, ny, nz must be greater than or equal to 1. The data spacing sx, sy, sz must be greater than 0. (Note: in the version 1.0 data file, spacing was referred to as "aspect ratio". ASPECT_RATIO can still be used in version 2.0 data files, but is discouraged.)
@@ -172,7 +172,7 @@ type<sub>n-1</sub></i></b><br>
 
 * **Field**. Field data is a general format without topological and geometric structure, and without a particular dimensionality. Typically field data is associated with the points or cells of a dataset. However, if the FIELD type is specified as the dataset type (see Figure1), then a general VTK data object is defined. Use the format described in the next section to define a field. Also see "Working With Field Data" on [page 249](https://www.kitware.com/products/books/VTKUsersGuide.pdf#page=263) and the fourth example in this chapter [Legacy File Examples](#legacy-file-examples).
 
-### Dataset Attribute Format.
+### Dataset Attribute Format
 
 The *Visualization Toolkit* supports the following dataset attributes: scalars (one to four components), vectors, normals, texture coordinates (1D, 2D, and 3D), tensors, and field data. In addition, a lookup table using the RGBA color specification, associated with the scalar data, can be defined as well. Dataset attributes are supported for both points and cells.
 
@@ -192,7 +192,7 @@ c<sub>10</sub> c<sub>11</sub> ... c<sub>1(nValues-1)</sub><br>
 ...<br>
 c<sub>(n-1)0</sub> c<sub>(n-1)1</sub> ... c<sub>(n-1)(nValues-1)</sub></i></b>
 
-* **Lookup Table**. The *tableName* field is a character string (without imbedded white space) used to identify the lookup table. This label is used by the VTK reader to extract a specific table.
+* **Lookup Table**. The *tableName* field is a character string (without embedded white space) used to identify the lookup table. This label is used by the VTK reader to extract a specific table.
 Each entry in the lookup table is a rgba[4] (red-green-blue-alpha) array (alpha is opacity where alpha=0 is transparent). If the file format is ASCII, the lookup table values must be float values between (0,1). If the file format is BINARY, the stream of data must be four unsigned char values per table entry.
 <br><br>LOOKUP_TABLE <b><i>tableName size<br>
 r<sub>0</sub> g<sub>0</sub> b<sub>0</sub> a<sub>0</sub><br>
@@ -256,7 +256,7 @@ f<sub>10</sub> f<sub>11</sub> ... f<sub>1(numComponents-1)</sub><br>
 ...<br>
 f<sub>(numTuples-1)0</sub> f<sub>(numTuples-1)1</sub> ... f<sub>(numTuples-1)(numComponents-1)</sub></i></b>
 
-### Legacy File Examples.
+### Legacy File Examples
 The first example is a cube represented by six polygonal faces. We define a single-component scalar, normals, and field data on the six faces. There are scalar data associated with the eight vertices. A lookup table of eight colors, associated with the point scalars, is also defined.
 
 ```
@@ -532,7 +532,7 @@ The attributes of the element are:
 
 Nested inside the _VTKFile_ element is an element whose name corresponds to the type of the data format (i.e., the _type_ attribute). This element describes the topology the dataset, and is different for the serial and parallel formats, which are described as follows.
 
-### **Serial XML File Formats.**
+### **Serial XML File Formats**
 The _VTKFile_ element contains one element whose name corresponds to the type of dataset the file describes. We refer to this as the dataset element, which is one of _ImageData_, _RectilinearGrid_, _StructuredGrid_, _PolyData_, or _UnstructuredGrid_. The dataset element contains one or more _Piece_ elements, each describing a portion of the dataset. Together, the dataset element and _Piece_ elements specify the entire dataset.
 
 Each piece of a dataset must specify the geometry (points and cells) of that piece along with the data associated with each point or cell. Geometry is specified differently for each dataset type, but every piece of every dataset contains
@@ -738,7 +738,7 @@ The appended data section is stored in an _AppendedData_ element that is nested 
 
 The appended data section begins with the first character after the underscore inside the _AppendedData_ element. The underscore is not part of the data, but is always present. Data in this section is always in binary form, but can be compressed and/or base64 encoded. The byte-order of the data matches that specified by the byte_order attribute of the _VTKFile_ element. Each _DataArray_’s data are stored contiguously and appended immediately after the previous _DataArray_’s data without a separator. The _DataArray_’s _offset_ attribute indicates the file position offset from the first character after the underscore to the beginning its data.
 
-### **Parallel File Formats.**
+### **Parallel File Formats**
 The parallel file formats do not actually store any data in the file. Instead, the data are broken into pieces, each of which is stored in a serial file of the same dataset type.
 
 The _VTKFile_ element contains one element whose name corresponds to the type of dataset the file describes, but with a "P" prefix. We refer to this as the parallel dataset element, which is one of _PImageData_, _PRectilinearGrid_, _PStructuredGrid_, _PPolyData_, or _PUnstructuredGrid_.
@@ -874,7 +874,7 @@ All of the data and geometry specifications use _PDataArray_ elements to describ
     <PDataArray type="Float32" Name="vectors" NumberOfComponents="3"/>
 ```
 
-### XML File Example.
+### XML File Example
 The following is a complete example specifying a vtkPolyData representing a cube with some scalar data on its points and faces. <sup>[1](https://kitware.com/products/books/VTKUsersGuide.pdf)</sup>
 
 ```xml
@@ -933,16 +933,37 @@ The following is a complete example specifying a vtkPolyData representing a cube
    </VTKFile>
 ```
 
-## HDF File Formats
+## VTKHDF File Format
 
 The `VTKHDF` file format is a file format using the same concepts as the
 XML formats described above but relying on
 [HDF5](https://www.hdfgroup.org/solutions/hdf5/) for actual storage. It
-is meant to provide good I/O perfomance as well as robust and flexible
+is meant to provide good I/O performance as well as robust and flexible
 parallel I/O capabilities.
+
+The current file format version is the **2.1**.
 
 Note: This development is iterative and the format is expected to grow in
 its support for more and more use cases.
+
+### Changelog
+
+#### VTKHDF - 2.1
+
+- add specification in the format for `PartitionedDataSetCollection` and `MultiBlockDataSet`
+
+#### VTKHDF - 2.0
+
+- extends the specification for `PolyData`.
+
+- add support for `Transient` dataset for `PolyData`, `ImageData` and `UnstructuredGrid`.
+
+#### VTKHDF - 1.0
+
+- add specification for these vtk data types:
+  - `UnstructuredGrid`
+  - `ImageData`
+  - `Overlapping AMR`
 
 ### Extension
 
@@ -957,8 +978,9 @@ VTK HDF files start with a group called `VTKHDF` with two attributes:
 `Version`, an array of two integers and `Type`, a string showing the
 VTK dataset type stored in the file. Additional attributes can follow
 depending on the dataset type. Currently, `Version`
-is the array [2, 0] and `Type` can be `ImageData`, `PolyData`,
-`UnstructuredGrid` or `OverlappingAMR`.
+is the array [2, 1] and `Type` can be `ImageData`, `PolyData`,
+`UnstructuredGrid`, `OverlappingAMR`,  `PartitionedDataSetCollection` or
+`MultiBlockDataSet`.
 
 The data type for each HDF dataset is part of the dataset and it is
 determined at write time. The reader matches the type of the dataset
@@ -977,6 +999,7 @@ group or dataset in bold font and the attributes underneath with
 regular font.
 
 ### Image data
+
 The format for image data is detailed in the Figure 6 where the `Type`
 attribute of the `VTKHDF` group is `ImageData`.  An
 ImageData (regular grid) is not split into partitions for parallel
@@ -994,6 +1017,7 @@ groups specify the active attributes in the dataset.
 </figure>
 
 ### Unstructured grid
+
 The format for unstructured grid is shown in Figure 7. In this case
 the `Type` attribute of the `VTKHDF` group is `UnstructuredGrid`.
 The unstructured grid is split into partitions, with a partition for
@@ -1082,7 +1106,7 @@ using the following formulas:
 | CellData | (∑j {CellCategory_j}/NumberOfCells[i]) * sizeof(cell_array_k[0]) |
 
 
-```{figure} poly_data_hdf_schema.png
+```{figure} vtkhdf_images/poly_data_hdf_schema.png
 :width: 640px
 :align: center
 
@@ -1093,8 +1117,8 @@ To read the data for its rank a node reads the information about all
 partitions, compute the correct offset and then read data from that
 offset.
 
-
 ### Overlapping AMR
+
 The format for Overlapping AMR is shown in Figure 9. In this case
 the `Type` attribute of the `VTKHDF` group is `OverlappingAMR`.
 The mandatory `Origin` parameter is a double triplet that defines
@@ -1116,9 +1140,54 @@ PointData or CellData group.
   <figcaption>Figure 9. - Overlapping AMR VTKHDF File Format</figcaption>
 </figure>
 
+### PartitionedDataSetCollection and MultiBlockDataSet
+
+The general VTKHDF format for vtkPartitionedDataSetCollection (PDC) and vtkMultiBlockDataSet (MB) is shown in Figure 10.
+
+Both VTK data types share a common structure, with a few notable differences.
+The `Type` attribute of the `VTKHDF` group for them should be `PartitionedDataSetCollection` or `MultiBlockDataSet`.
+The most important element in this design is the `Assembly` group, direct child of the `VTKHDF` group.
+This group describes the composite data hierarchy. The elements of the Assembly group do not contain the data directly.
+Instead, the data blocks are stored as direct children of the `VTKHDF` group, without any hierarchy,
+and any node in the Assembly group can use an [HDF5 symbolic link](https://davis.lbl.gov/Manuals/HDF5-1.8.7/UG/09_Groups.html#HardAndSymbolicLinks)
+to the top-level datasets.
+
+Here lies the main distinction between the PDC and MB formats.
+For PDC, a group in the assembly that is not a softlink represents a node in the vtkAssembly associated to it, and
+a softlink represents a dataset index associated to its parent node (similar to what the function `AddDataSetIndex` does in `vtkDataAssembly`).
+This way, a single dataset can be used multiple times in the assembly without any additional storage cost.
+Top-level datasets need to set an `Index` attribute to specify their index in the PDC flat structure.
+On the other hand, MB structures work a little differently. First, they don't need no index for their datasets, and
+secondly, an assembly node that is not a softlink represents a nested `vtkMultiBlockDataSet`.
+A softlink in the assembly represents a dataset nested in its parent `vtkMultiBlockDataSet`.
+Again, this MB format can save space when a block is referenced multiple times.
+
+Some additional detail about the format:
+* The data blocks should not be composite themselves : they can only be simple or partitioned types, but not using an assembly.
+* The Assembly group and its children need to track creation order to be able to keep subtrees ordered.
+For this, you need to set H5G properties `H5P_CRT_ORDER_TRACKED` and `H5P_CRT_ORDER_INDEXED` on each group when writing the Assembly.
+* For PDC, the assembly structure only needs to be traversed once at the beginning of the
+reading procedure (and can potentially be read and broadcasted only by the main
+process in a distributed context) to optimize file meta-data reading.
+* The block wise reading implementation and composite level implementation can be
+managed independently from each other.
+* It would be doable for each block to have its own time range and time steps in
+a transient context with the full composite data set able to collect and expose a
+combined range and set of time values, but for now we only allow
+reading datasets that have all the same number of timesteps.
+* Reading performance can scale linearly with the number of blocks even in a
+distributed context.
+
+```{figure} vtkhdf_images/partitioned_dataset_collection_hdf_schema.png
+:width: 640px
+:align: center
+
+Figure 10. - PartitionedDataSetCollection/MultiBlockDataset VTKHDF File Format
+```
+
 ### Transient Data
 
-The generic format for all `VTKHDF` transient data is shown in Figure 10.
+The generic format for all `VTKHDF` transient data is shown in Figure 11.
 The general idea is to take the static formats described above and use them
 as a base to append all the time dependent data. As such, a file holding static
 data has a very similar structure to a file holding dynamic data. An additional
@@ -1158,11 +1227,11 @@ many values to offset reading into the given array for the associated time step.
 absence of a data set, the appropriate geometry offsetting for the time step is used in its
 place.
 
-```{figure} transient_hdf_schema.png
+```{figure} vtkhdf_images/transient_hdf_schema.png
 :width: 640px
 :align: center
 
-Figure 10. - Transient Data VTKHDF File Format
+Figure 11. - Transient Data VTKHDF File Format
 ```
 
 A particularity of transient `Image Data` in the format is that the reader expects an additional
@@ -1199,7 +1268,7 @@ that we don't partition image data, so the same format is used for
 serial and parallel processing.
 
 ```
-HDF5 "./ExternalData/Testing/Data/mandelbrot-vti.hdf" {
+HDF5 "ExternalData/Testing/Data/mandelbrot-vti.hdf" {
 GROUP "/" {
    GROUP "VTKHDF" {
       ATTRIBUTE "Direction" {
@@ -1305,7 +1374,7 @@ GROUP "/" {
 The unstructured grid is the can example (only the can, not the brick) from ParaView, partitioned in three:
 
 ```
-HDF5 "./ExternalData/Testing/Data/can-pvtu.hdf" {
+HDF5 "ExternalData/Testing/Data/can-pvtu.hdf" {
 GROUP "/" {
    GROUP "VTKHDF" {
       ATTRIBUTE "Type" {
@@ -1456,7 +1525,7 @@ GROUP "/" {
 The poly data is the `test_poly_data.hdf` from the `VTK` testing data:
 
 ```
-HDF5 "./ExternalData/Testing/Data/test_poly_data.hdf" {
+HDF5 "ExternalData/Testing/Data/test_poly_data.hdf" {
 GROUP "/" {
    GROUP "VTKHDF" {
       ATTRIBUTE "Type" {
@@ -1580,6 +1649,7 @@ The Overlapping AMR data file is an AMR Guaussian Pulse source with two levels
 `Data` are not displayed for readability.
 
 ```
+HDF5 "ExternalData/Testing/Data/amr_gaussian_pulse.hdf" {
 GROUP "/" {
    GROUP "VTKHDF" {
       ATTRIBUTE "Origin" {
@@ -1690,11 +1760,219 @@ GROUP "/" {
             DATASET "Coord Result" {
                DATATYPE  H5T_IEEE_F64LE
                DATASPACE  SIMPLE { ( 770 ) / ( 770 ) }
-               }
             }
          }
       }
    }
+}
+}
+```
+
+#### PartitionedDataSetCollection
+
+This partitioned dataset collection has 2 blocks, one unstructured grid (Block1) and one polydata (Block0).
+Its assembly has 3 elements and no nesting, referencing one of the 2 blocks using symbolic links
+
+```
+HDF5 "composite.hdf" {
+GROUP "/" {
+   GROUP "VTKHDF" {
+      ATTRIBUTE "Type" {
+         DATATYPE  H5T_STRING {
+            STRSIZE 28;
+            STRPAD H5T_STR_NULLTERM;
+            CSET H5T_CSET_ASCII;
+            CTYPE H5T_C_S1;
+         }
+         DATASPACE  SCALAR
+      }
+      ATTRIBUTE "Version" {
+         DATATYPE  H5T_STD_I64LE
+         DATASPACE  SIMPLE { ( 2 ) / ( 2 ) }
+      }
+      GROUP "Assembly" {
+         GROUP "blockName0" {
+            SOFTLINK "Block0" {
+               LINKTARGET "/VTKHDF/Block0"
+            }
+         }
+         GROUP "blockName2" {
+            SOFTLINK "Block1" {
+               LINKTARGET "/VTKHDF/Block1"
+            }
+         }
+         GROUP "groupName0" {
+            GROUP "blockName1" {
+               SOFTLINK "Block1" {
+                  LINKTARGET "/VTKHDF/Block1"
+               }
+            }
+         }
+      }
+      GROUP "Block0" {
+         ATTRIBUTE "Index" {
+            DATATYPE  H5T_STD_I64LE
+            DATASPACE  SCALAR
+         }
+         ATTRIBUTE "Type" {
+            DATATYPE  H5T_STRING {
+               STRSIZE 8;
+               STRPAD H5T_STR_NULLTERM;
+               CSET H5T_CSET_ASCII;
+               CTYPE H5T_C_S1;
+            }
+            DATASPACE  SCALAR
+         }
+         ATTRIBUTE "Version" {
+            DATATYPE  H5T_STD_I64LE
+            DATASPACE  SIMPLE { ( 2 ) / ( 2 ) }
+         }
+         GROUP "CellData" {
+            DATASET "Materials" {
+               DATATYPE  H5T_STD_I64LE
+               DATASPACE  SIMPLE { ( 96 ) / ( 96 ) }
+            }
+         }
+         GROUP "Lines" {
+            DATASET "Connectivity" {
+               DATATYPE  H5T_STD_I64LE
+               DATASPACE  SIMPLE { ( 0 ) / ( 0 ) }
+            }
+            DATASET "NumberOfCells" {
+               DATATYPE  H5T_STD_I64LE
+               DATASPACE  SIMPLE { ( 1 ) / ( 1 ) }
+            }
+            DATASET "NumberOfConnectivityIds" {
+               DATATYPE  H5T_STD_I64LE
+               DATASPACE  SIMPLE { ( 1 ) / ( 1 ) }
+            }
+            DATASET "Offsets" {
+               DATATYPE  H5T_STD_I64LE
+               DATASPACE  SIMPLE { ( 1 ) / ( 1 ) }
+            }
+         }
+         DATASET "NumberOfPoints" {
+            DATATYPE  H5T_STD_I64LE
+            DATASPACE  SIMPLE { ( 1 ) / ( 1 ) }
+         }
+         GROUP "PointData" {
+            DATASET "Normals" {
+               DATATYPE  H5T_IEEE_F32LE
+               DATASPACE  SIMPLE { ( 50, 3 ) / ( 50, 3 ) }
+            }
+            DATASET "Warping" {
+               DATATYPE  H5T_IEEE_F32LE
+               DATASPACE  SIMPLE { ( 50, 3 ) / ( 50, 3 ) }
+            }
+         }
+         DATASET "Points" {
+            DATATYPE  H5T_IEEE_F32LE
+            DATASPACE  SIMPLE { ( 50, 3 ) / ( 50, 3 ) }
+         }
+         GROUP "Polygons" {
+            DATASET "Connectivity" {
+               DATATYPE  H5T_STD_I64LE
+               DATASPACE  SIMPLE { ( 288 ) / ( 288 ) }
+            }
+            DATASET "NumberOfCells" {
+               DATATYPE  H5T_STD_I64LE
+               DATASPACE  SIMPLE { ( 1 ) / ( 1 ) }
+            }
+            DATASET "NumberOfConnectivityIds" {
+               DATATYPE  H5T_STD_I64LE
+               DATASPACE  SIMPLE { ( 1 ) / ( 1 ) }
+            }
+            DATASET "Offsets" {
+               DATATYPE  H5T_STD_I64LE
+               DATASPACE  SIMPLE { ( 97 ) / ( 97 ) }
+            }
+         }
+         GROUP "Strips" {
+            DATASET "Connectivity" {
+               DATATYPE  H5T_STD_I64LE
+               DATASPACE  SIMPLE { ( 0 ) / ( 0 ) }
+            }
+            DATASET "NumberOfCells" {
+               DATATYPE  H5T_STD_I64LE
+               DATASPACE  SIMPLE { ( 1 ) / ( 1 ) }
+            }
+            DATASET "NumberOfConnectivityIds" {
+               DATATYPE  H5T_STD_I64LE
+               DATASPACE  SIMPLE { ( 1 ) / ( 1 ) }
+            }
+            DATASET "Offsets" {
+               DATATYPE  H5T_STD_I64LE
+               DATASPACE  SIMPLE { ( 1 ) / ( 1 ) }
+            }
+         }
+         GROUP "Vertices" {
+            DATASET "Connectivity" {
+               DATATYPE  H5T_STD_I64LE
+               DATASPACE  SIMPLE { ( 0 ) / ( 0 ) }
+            }
+            DATASET "NumberOfCells" {
+               DATATYPE  H5T_STD_I64LE
+               DATASPACE  SIMPLE { ( 1 ) / ( 1 ) }
+            }
+            DATASET "NumberOfConnectivityIds" {
+               DATATYPE  H5T_STD_I64LE
+               DATASPACE  SIMPLE { ( 1 ) / ( 1 ) }
+            }
+            DATASET "Offsets" {
+               DATATYPE  H5T_STD_I64LE
+               DATASPACE  SIMPLE { ( 1 ) / ( 1 ) }
+            }
+         }
+      }
+      GROUP "Block1" {
+         ATTRIBUTE "Index" {
+            DATATYPE  H5T_STD_I64LE
+            DATASPACE  SCALAR
+         }
+         ATTRIBUTE "Type" {
+            DATATYPE  H5T_STRING {
+               STRSIZE 16;
+               STRPAD H5T_STR_NULLTERM;
+               CSET H5T_CSET_ASCII;
+               CTYPE H5T_C_S1;
+            }
+            DATASPACE  SCALAR
+         }
+         ATTRIBUTE "Version" {
+            DATATYPE  H5T_STD_I64LE
+            DATASPACE  SIMPLE { ( 2 ) / ( 2 ) }
+         }
+         DATASET "Connectivity" {
+            DATATYPE  H5T_STD_I64LE
+            DATASPACE  SIMPLE { ( 8 ) / ( 8 ) }
+         }
+         DATASET "NumberOfCells" {
+            DATATYPE  H5T_STD_I64LE
+            DATASPACE  SIMPLE { ( 1 ) / ( 1 ) }
+         }
+         DATASET "NumberOfConnectivityIds" {
+            DATATYPE  H5T_STD_I64LE
+            DATASPACE  SIMPLE { ( 1 ) / ( 1 ) }
+         }
+         DATASET "NumberOfPoints" {
+            DATATYPE  H5T_STD_I64LE
+            DATASPACE  SIMPLE { ( 1 ) / ( 1 ) }
+         }
+         DATASET "Offsets" {
+            DATATYPE  H5T_STD_I64LE
+            DATASPACE  SIMPLE { ( 2 ) / ( 2 ) }
+         }
+         DATASET "Points" {
+            DATATYPE  H5T_IEEE_F32LE
+            DATASPACE  SIMPLE { ( 8, 3 ) / ( 8, 3 ) }
+         }
+         DATASET "Types" {
+            DATATYPE  H5T_STD_U8LE
+            DATASPACE  SIMPLE { ( 1 ) / ( 1 ) }
+         }
+      }
+   }
+}
 }
 ```
 
@@ -1703,7 +1981,7 @@ GROUP "/" {
 The poly data is the `test_transient_poly_data.hdf` from the `VTK` testing data:
 
 ```
-HDF5 "./ExternalData/Testing/Data/test_transient_poly_data.hdf" {
+HDF5 "ExternalData/Testing/Data/test_transient_poly_data.hdf" {
 GROUP "/" {
    GROUP "VTKHDF" {
       ATTRIBUTE "Type" {

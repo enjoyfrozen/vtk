@@ -15,7 +15,10 @@ vtk_module_test_data(
   Data/amr_gaussian_pulse/amr_gaussian_pulse_2.vti
   Data/test_poly_data.hdf
   Data/test_transient_poly_data.hdf
+  Data/test_transient_poly_data_offset.vtkhdf
   Data/transient_sphere.hdf
+  Data/transient_cube.hdf
+  Data/transient_harmonics.hdf
   Data/transient_wavelet.hdf
   Data/wavelet_cell_data.hdf
   Data/wavelet_cell_data.vti
@@ -30,6 +33,27 @@ vtk_module_test_data(
   Data/hdf_transient_poly_data_twin/hdf_transient_poly_data_twin_007.vtp
   Data/hdf_transient_poly_data_twin/hdf_transient_poly_data_twin_008.vtp
   Data/hdf_transient_poly_data_twin/hdf_transient_poly_data_twin_009.vtp
-  )
+  Data/elements.vtu
+  Data/explicitStructuredGrid.vtu
+  Data/explicitStructuredGridEmpty.vtu
+  Data/cube-with-time.vtu
+
+  Data/vtkHDF/test_composite.hdf
+  Data/vtkHDF/test_composite.hdf_000000.vtpc
+  Data/vtkHDF/test_composite.hdf_000000/test_composite.hdf_000000_0_0.vtp
+  Data/vtkHDF/test_composite.hdf_000000/test_composite.hdf_000000_1_0.vtu
+  Data/vtkHDF/test_composite.hdf_000000/test_composite.hdf_000000_2_0.vti
+
+  Data/vtkHDF/dummy_pdc_structure.vtpc
+  Data/vtkHDF/multi_ds_pdc.vtpc
+  Data/vtkHDF/dummy_pdc_structure/dummy_pdc_structure_0_0.vtp
+  Data/vtkHDF/dummy_pdc_structure/dummy_pdc_structure_1_0.vtp
+  Data/vtkHDF/dummy_pdc_structure/dummy_pdc_structure_2_0.vtu
+
+  Data/vtkHDF/test_multiblock_hdf.vtm
+  Data/vtkHDF/test_multiblock_hdf/test_multiblock_hdf_0_0.vtp
+  Data/vtkHDF/test_multiblock_hdf/test_multiblock_hdf_1_0.vtp
+  Data/vtkHDF/test_multiblock_hdf/test_multiblock_hdf_2_0.vtu
+)
 
 add_subdirectory(Cxx)

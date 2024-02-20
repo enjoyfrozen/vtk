@@ -1,4 +1,5 @@
 set(classes
+  vtkArrayRenderer
   vtkCameraPass
   vtkClearRGBPass
   vtkClearZPass
@@ -8,24 +9,33 @@ set(classes
   vtkDepthImageProcessingPass
   vtkDepthOfFieldPass
   vtkDepthPeelingPass
+  vtkDrawTexturedElements
   vtkDualDepthPeelingPass
   vtkEDLShading
   vtkEquirectangularToCubeMapTexture
   vtkFramebufferPass
   vtkGaussianBlurPass
   vtkGenericOpenGLRenderWindow
+  vtkGLSLModCamera
+  vtkGLSLModCoincidentTopology
+  vtkGLSLModLight
+  vtkGLSLModPixelDebugger
+  vtkGLSLModifierBase
+  vtkGLSLModifierFactory
   vtkHiddenLineRemovalPass
   vtkImageProcessingPass
   vtkLightingMapPass
   vtkLightsPass
   vtkOpaquePass
   vtkOpenGLActor
+  vtkOpenGLArrayTextureBufferAdapter
   vtkOpenGLBatchedPolyDataMapper
   vtkOpenGLBillboardTextActor3D
   vtkOpenGLBufferObject
   vtkOpenGLCamera
   vtkOpenGLCellToVTKCellMap
   vtkOpenGLCompositePolyDataMapperDelegator
+  vtkOpenGLES30PolyDataMapper2D
   vtkOpenGLFXAAFilter
   vtkOpenGLFXAAPass
   vtkOpenGLFluidMapper
@@ -43,6 +53,8 @@ set(classes
   vtkOpenGLInstanceCulling
   vtkOpenGLLabeledContourMapper
   vtkOpenGLLight
+  vtkOpenGLLowMemoryBatchedPolyDataMapper
+  vtkOpenGLLowMemoryPolyDataMapper
   vtkOpenGLPointGaussianMapper
   vtkOpenGLPolyDataMapper
   vtkOpenGLPolyDataMapper2D
@@ -104,6 +116,8 @@ set(headers
 
 set(nowrap_headers
   vtkCompositeMapperHelper2.h
+  vtkOpenGLPointGaussianMapperHelper.h
+  vtkOpenGLShaderDeclaration.h
 )
 
 # add opengl support test executable on windows
@@ -118,6 +132,13 @@ endif ()
 
 set(sources)
 set(private_headers)
+set(private_classes
+  vtkOpenGLLowMemoryCellTypeAgent
+  vtkOpenGLLowMemoryLinesAgent
+  vtkOpenGLLowMemoryPolygonsAgent
+  vtkOpenGLLowMemoryStripsAgent
+  vtkOpenGLLowMemoryVerticesAgent
+)
 
 set(shader_files
   glsl/vtkDepthOfFieldPassFS.glsl
@@ -153,6 +174,7 @@ set(shader_files
   glsl/vtkPolyDataWideLineGS.glsl
   glsl/vtkSSAAPassFS.glsl
   glsl/vtkSimpleMotionBlurPassFS.glsl
+  glsl/vtkSimpleSplatVS.glsl
   glsl/vtkSobelGradientMagnitudePass1FS.glsl
   glsl/vtkSobelGradientMagnitudePass2FS.glsl
   glsl/vtkSphereMapperGS.glsl
@@ -164,6 +186,8 @@ unset(shader_h_files)
 foreach(file IN LISTS shader_files)
   vtk_encode_string(
     INPUT         "${file}"
+    EXPORT_SYMBOL "VTKRENDERINGOPENGL2_NO_EXPORT"
+    EXPORT_HEADER "vtkRenderingOpenGL2Module.h"
     HEADER_OUTPUT header
     SOURCE_OUTPUT source)
   list(APPEND sources
@@ -191,6 +215,8 @@ vtk_encode_string(
   INPUT "textures/BlueNoiseTexture64x64.jpg"
   HEADER_OUTPUT BlueNoiseTexture64x64_header
   SOURCE_OUTPUT BlueNoiseTexture64x64_source
+  EXPORT_SYMBOL "VTKRENDERINGOPENGL2_NO_EXPORT"
+  EXPORT_HEADER "vtkRenderingOpenGL2Module.h"
   BINARY)
 list(APPEND sources "${BlueNoiseTexture64x64_source}")
 list(APPEND private_headers "${BlueNoiseTexture64x64_header}")
@@ -225,19 +251,15 @@ set(opengl_overrides
 include(vtkOpenGLOptions)
 if (VTK_OPENGL_USE_GLES)
   # Add custom overrides
-  set(opengles_overrides
-    PolyDataMapper
-    PolyDataMapper2D)
-  list(APPEND classes
-    vtkOpenGLES30PolyDataMapper
-    vtkOpenGLES30PolyDataMapper2D)
-  foreach (opengles_override IN LISTS opengles_overrides)
-    vtk_object_factory_declare(
-      BASE "vtk${opengles_override}"
-      OVERRIDE "vtkOpenGLES30${opengles_override}")
-    # remove opengl override
-    list(REMOVE_ITEM opengl_overrides ${opengles_override})
-  endforeach()
+  vtk_object_factory_declare(
+    BASE "vtkPolyDataMapper"
+    OVERRIDE "vtkOpenGLLowMemoryPolyDataMapper")
+  vtk_object_factory_declare(
+    BASE "vtkPolyDataMapper2D"
+    OVERRIDE "vtkOpenGLES30PolyDataMapper2D")
+  # remove default opengl override
+  list(REMOVE_ITEM opengl_overrides PolyDataMapper)
+  list(REMOVE_ITEM opengl_overrides PolyDataMapper2D)
 endif ()
 
 # Now to see about the GPU info list.
@@ -387,16 +409,29 @@ endif ()
 
 vtk_module_add_module(VTK::RenderingOpenGL2
   CLASSES ${classes}
+  PRIVATE_CLASSES ${private_classes}
   SOURCES ${sources} ${vtk_object_factory_source}
   HEADERS ${headers}
   NOWRAP_HEADERS ${nowrap_headers}
   PRIVATE_HEADERS ${private_headers} ${vtk_object_factory_header})
 
 if (VTK_USE_SDL2)
-  vtk_module_find_package(PACKAGE SDL2)
-  vtk_module_link(VTK::RenderingOpenGL2
-    PUBLIC
-      SDL2::SDL2)
+  if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+    # The -sUSE_SDL=2 flag will inform emcc driver to add include paths.
+    # PUBLIC because vtkSDL2OpenGLRenderWindow.h includes SDL2.h
+    vtk_module_compile_options(VTK::RenderingUI
+      PUBLIC
+        "-sUSE_SDL=2")
+    vtk_module_link_options(VTK::RenderingUI
+      PUBLIC
+        "-sUSE_SDL=2")
+  else()
+    vtk_module_find_package(PACKAGE SDL2)
+    # PUBLIC because vtkSDL2OpenGLRenderWindow.h includes SDL2.h
+    vtk_module_link(VTK::RenderingUI
+      PUBLIC
+        SDL2::SDL2)
+  endif ()
 endif ()
 
 if (VTK_USE_X)

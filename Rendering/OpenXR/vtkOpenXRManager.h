@@ -28,6 +28,7 @@
 
 VTK_ABI_NAMESPACE_BEGIN
 class vtkOpenGLRenderWindow;
+class vtkOpenXRRenderWindow;
 
 class VTKRENDERINGOPENXR_EXPORT vtkOpenXRManager
 {
@@ -43,21 +44,36 @@ public:
   }
   ///@}
 
-  ///@{
-  /**
-   * Utility function to check the XrResult, print the result message
-   * and raise an error if the result failed.
-   */
-  bool XrCheckError(const XrResult&, const std::string& message);
-  ///@}
+  enum OutputLevel
+  {
+    DebugOutput = 0,
+    WarningOutput = 1,
+    ErrorOutput = 2
+  };
 
   ///@{
   /**
    * Utility function to check the XrResult, print the result message
-   * and raise a warning if the result failed.
+   * as a debug, warning or error message if the result failed.
    */
-  bool XrCheckWarn(const XrResult&, const std::string& message);
+  bool XrCheckOutput(OutputLevel level, const XrResult&, const std::string& message);
   ///@}
+
+  /**
+   * Structure representing OpenXR instance version
+   */
+  struct VTKRENDERINGOPENXR_EXPORT InstanceVersion
+  {
+    std::uint16_t Major{};
+    std::uint16_t Minor{};
+    std::uint32_t Patch{};
+  };
+
+  /**
+   * Utility function to get XrInstance runtime version for given ConnectionStrategy
+   * This function creates a XrInstance, which may have a significant runtime overhead.
+   */
+  static InstanceVersion QueryInstanceVersion(vtkOpenXRManagerConnection* cs);
 
   ///@{
   /**
@@ -208,10 +224,10 @@ public:
   /**
    * Prepare the rendering resources for the specified eye and store in \p colorTextureId and
    * in \p depthTextureId (if the depth extension is supported) the texture in which we need
-   * to draw pixels.
+   * to draw pixels. \p win is used to get the right clipping planes for the depth extension.
    * Return true if no error occurred.
    */
-  bool PrepareRendering(uint32_t eye, void* colorTextureId, void* depthTextureId);
+  bool PrepareRendering(vtkOpenXRRenderWindow* win, void* colorTextureId, void* depthTextureId);
   ///@}
 
   ///@{
@@ -363,6 +379,26 @@ public:
    */
   void SetConnectionStrategy(vtkOpenXRManagerConnection* cs) { this->ConnectionStrategy = cs; }
   vtkOpenXRManagerConnection* GetConnectionStrategy() { return this->ConnectionStrategy; }
+  ///@}
+
+  ///@{
+  /**
+   * Enable or disable XR_KHR_composition_layer_depth extension even when it is available.
+   *
+   * This must be set before vtkOpenXRManager initialization.
+   * Do nothing if XR_KHR_composition_layer_depth isn't available.
+   *
+   * Depth information is useful for augmented reality devices such as the Hololens 2.
+   * When enabled and XR_KHR_composition_layer_depth is available,
+   * the depth texture of the render window is submitted to the runtime.
+   * The runtime will use this information increase hologram stability of the Hololens 2.
+   *
+   * Note: enabling this option without providing the depth information could reduce stability.
+   *
+   * Default value: `false`
+   */
+  void SetUseDepthExtension(bool value) { this->UseDepthExtension = value; }
+  bool GetUseDepthExtension() const { return this->UseDepthExtension; }
   ///@}
 
 protected:
@@ -578,6 +614,7 @@ protected:
    */
   XrTime PredictedDisplayTime;
 
+  bool UseDepthExtension = false;
   bool SessionRunning = false;
   // After each WaitAndBeginFrame, the OpenXR runtime may inform us that
   // the current frame should not be rendered. Store it to avoid a render

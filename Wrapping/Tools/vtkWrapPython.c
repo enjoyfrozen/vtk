@@ -246,7 +246,7 @@ int VTK_PARSE_MAIN(int argc, char* argv[])
   unsigned char* wrapAsVTKObject;
   ClassInfo* data = NULL;
   NamespaceInfo* contents;
-  OptionInfo* options;
+  const OptionInfo* options;
   HierarchyInfo* hinfo = NULL;
   FileInfo* file_info;
   FILE* fp;
@@ -299,7 +299,7 @@ int VTK_PARSE_MAIN(int argc, char* argv[])
     char* etext = strerror(e);
     etext = (etext ? etext : "Unknown error");
     fprintf(stderr, "Error %d opening output file %s: %s\n", e, options->OutputFileName, etext);
-    exit(1);
+    return vtkParse_FinalizeMain(1);
   }
 
   /* get the filename without the extension */
@@ -591,5 +591,10 @@ int VTK_PARSE_MAIN(int argc, char* argv[])
 
   vtkParse_Free(file_info);
 
-  return 0;
+  if (!wrapped_anything)
+  {
+    vtkWrap_WarnEmpty(options);
+  }
+
+  return vtkParse_FinalizeMain(0);
 }

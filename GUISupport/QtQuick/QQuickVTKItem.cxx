@@ -75,7 +75,6 @@ public:
   QQueue<std::function<void(vtkRenderWindow*, QQuickVTKItem::vtkUserData)>> asyncDispatch;
 
   QVTKInteractorAdapter qt2vtkInteractorAdapter;
-
   bool scheduleRender = false;
 
   mutable QSGVtkObjectNode* node = nullptr;
@@ -190,7 +189,8 @@ public:
 
   void scheduleRender()
   {
-    if (m_window)
+    // Update only if we have a window and a render is not already queued.
+    if (m_window && !m_renderPending)
     {
       m_renderPending = true;
       m_window->update();
@@ -202,8 +202,6 @@ public Q_SLOTS: // NOLINT(readability-redundant-access-specifiers)
   {
     if (m_renderPending)
     {
-      m_renderPending = false;
-
 #if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
       const bool needsWrap = m_window &&
         QSGRendererInterface::isApiRhiBased(m_window->rendererInterface()->graphicsApi());
@@ -228,6 +226,7 @@ public Q_SLOTS: // NOLINT(readability-redundant-access-specifiers)
         m_window->endExternalCommands();
 #endif
 
+      m_renderPending = false;
       markDirty(QSGNode::DirtyMaterial);
       Q_EMIT textureChanged();
     }

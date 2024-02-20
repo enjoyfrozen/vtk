@@ -178,11 +178,8 @@ if(NOT WIN32 OR _EXPAT_HELP)
 endif()
 set(EXPAT_CHAR_TYPE "char")
 set(EXPAT_ATTR_INFO OFF)
-if (EMSCRIPTEN)
-    set(EXPAT_LARGE_SIZE OFF)
-else ()
-    set(EXPAT_LARGE_SIZE ON)
-endif ()
+# so windows and emscripten use 64bit buffer lengths
+set(EXPAT_LARGE_SIZE ON)
 set(EXPAT_MIN_SIZE OFF)
 if(MSVC OR _EXPAT_HELP)
     set(EXPAT_MSVC_STATIC_CRT OFF)
@@ -462,9 +459,10 @@ set(expat_headers
   lib/vtk_expat_mangle.h)
 
 vtk_module_add_module(VTK::expat
+  HEADER_DIRECTORIES
   SOURCES ${_EXPAT_C_SOURCES}
   HEADERS ${expat_headers}
-  HEADERS_SUBDIR "vtkexpat/lib")
+  HEADERS_SUBDIR "vtkexpat")
 endif ()
 
 if (FALSE) # XXX(kitware): VTK handles installation

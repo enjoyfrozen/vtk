@@ -422,12 +422,13 @@ namespace vtkDataArrayPrivate
 {
 VTK_ABI_NAMESPACE_BEGIN
 template <typename A, typename R, typename T>
-bool DoComputeScalarRange(A*, R*, T, const unsigned char* ghosts, unsigned char ghostsToSkip);
+VTKCOMMONCORE_EXPORT bool DoComputeScalarRange(
+  A*, R*, T, const unsigned char* ghosts, unsigned char ghostsToSkip);
 template <typename A, typename R>
-bool DoComputeVectorRange(
+VTKCOMMONCORE_EXPORT bool DoComputeVectorRange(
   A*, R[2], AllValues, const unsigned char* ghosts, unsigned char ghostsToSkip);
 template <typename A, typename R>
-bool DoComputeVectorRange(
+VTKCOMMONCORE_EXPORT bool DoComputeVectorRange(
   A*, R[2], FiniteValues, const unsigned char* ghosts, unsigned char ghostsToSkip);
 VTK_ABI_NAMESPACE_END
 } // namespace vtkDataArrayPrivate
@@ -533,12 +534,13 @@ namespace vtkDataArrayPrivate
 {
 VTK_ABI_NAMESPACE_BEGIN
 template <typename A, typename R, typename T>
-bool DoComputeScalarRange(A*, R*, T, const unsigned char* ghosts, unsigned char ghostsToSkip);
+VTKCOMMONCORE_EXPORT bool DoComputeScalarRange(
+  A*, R*, T, const unsigned char* ghosts, unsigned char ghostsToSkip);
 template <typename A, typename R>
-bool DoComputeVectorRange(
+VTKCOMMONCORE_EXPORT bool DoComputeVectorRange(
   A*, R[2], AllValues, const unsigned char* ghosts, unsigned char ghostsToSkip);
 template <typename A, typename R>
-bool DoComputeVectorRange(
+VTKCOMMONCORE_EXPORT bool DoComputeVectorRange(
   A*, R[2], FiniteValues, const unsigned char* ghosts, unsigned char ghostsToSkip);
 VTK_ABI_NAMESPACE_END
 } // namespace vtkDataArrayPrivate
@@ -636,7 +638,7 @@ VTK_ABI_NAMESPACE_END
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-#endif // VTK_SOA_DATA_ARRAY_TEMPLATE_EXTERN
+#endif // VTK_GDA_TEMPLATE_EXTERN
 
 #endif // VTK_GDA_VALUERANGE_INSTANTIATING
 

@@ -5,7 +5,7 @@
  * @brief   Objects for traversal a HyperTreeGrid.
  *
  * @sa
- * vtkHyperTreeGridNonOrientedSuperCursor vtkHyperTreeCursor vtkHyperTree vtkHyperTreeGrid
+ * vtkHyperTreeGridNonOrientedSuperCursor vtkHyperTree vtkHyperTreeGrid
  */
 
 #ifndef vtkHyperTreeGridNonOrientedUnlimitedSuperCursor_h
@@ -87,7 +87,7 @@ public:
 
   /**
    * JB Return the global index (relative to the grid) of the
-   * neighboor icursor current vertex in the tree.
+   * neighbor icursor current vertex in the tree.
    */
   vtkIdType GetGlobalNodeIndex(unsigned int icursor);
 

@@ -10,6 +10,7 @@
 
 #include "vtkParse.h"
 #include "vtkParseHierarchy.h"
+#include "vtkParseMain.h"
 #include "vtkWrappingToolsModule.h"
 
 /**
@@ -81,7 +82,7 @@ extern "C"
   VTKWRAPPINGTOOLS_EXPORT int vtkWrap_IsScalar(const ValueInfo* val);
   VTKWRAPPINGTOOLS_EXPORT int vtkWrap_IsPointer(const ValueInfo* val);
   VTKWRAPPINGTOOLS_EXPORT int vtkWrap_IsArray(const ValueInfo* val);
-  VTKWRAPPINGTOOLS_EXPORT int vtkWrap_IsNArray(ValueInfo* val);
+  VTKWRAPPINGTOOLS_EXPORT int vtkWrap_IsNArray(const ValueInfo* val);
   /*@}*/
 
   /**
@@ -129,7 +130,7 @@ extern "C"
   /**
    * Check if the type of the value is an enum member of the class.
    */
-  VTKWRAPPINGTOOLS_EXPORT int vtkWrap_IsEnumMember(ClassInfo* data, const ValueInfo* arg);
+  VTKWRAPPINGTOOLS_EXPORT int vtkWrap_IsEnumMember(const ClassInfo* data, const ValueInfo* arg);
 
   /**
    * Check whether a class is wrapped.  If "hinfo" is NULL,
@@ -217,7 +218,7 @@ extern "C"
   /**
    * True if the method is inherited from a base class.
    */
-  VTKWRAPPINGTOOLS_EXPORT int vtkWrap_IsInheritedMethod(ClassInfo* c, const FunctionInfo* f);
+  VTKWRAPPINGTOOLS_EXPORT int vtkWrap_IsInheritedMethod(const ClassInfo* c, const FunctionInfo* f);
 
   /**
    * Check if a method is from a SetVector method.
@@ -234,7 +235,7 @@ extern "C"
    * This skips the "void *" parameter that follows
    * wrapped function pointer parameters.
    */
-  VTKWRAPPINGTOOLS_EXPORT int vtkWrap_CountWrappedParameters(FunctionInfo* f);
+  VTKWRAPPINGTOOLS_EXPORT int vtkWrap_CountWrappedParameters(const FunctionInfo* f);
 
   /**
    * Count the number of args that are required.
@@ -242,7 +243,7 @@ extern "C"
    * have a default value.  Array args are not allowed
    * to have default values.
    */
-  VTKWRAPPINGTOOLS_EXPORT int vtkWrap_CountRequiredArguments(FunctionInfo* f);
+  VTKWRAPPINGTOOLS_EXPORT int vtkWrap_CountRequiredArguments(const FunctionInfo* f);
 
   /**
    * Write a variable declaration to a file.
@@ -259,7 +260,7 @@ extern "C"
    * - "const" is removed except for return values with "&" or "*".
    */
   VTKWRAPPINGTOOLS_EXPORT void vtkWrap_DeclareVariable(
-    FILE* fp, ClassInfo* data, ValueInfo* v, const char* name, int idx, int flags);
+    FILE* fp, const ClassInfo* data, const ValueInfo* val, const char* name, int idx, int flags);
 
   /**
    * Write an "int" size variable for arrays, initialized to
@@ -267,14 +268,14 @@ extern "C"
    * For N-dimensional arrays, write a static array of ints.
    */
   VTKWRAPPINGTOOLS_EXPORT void vtkWrap_DeclareVariableSize(
-    FILE* fp, ValueInfo* v, const char* name, int idx);
+    FILE* fp, const ValueInfo* val, const char* name, int idx);
 
   /**
    * Qualify all the unqualified identifiers in the given expression
    * and print the result to the file.
    */
   VTKWRAPPINGTOOLS_EXPORT void vtkWrap_QualifyExpression(
-    FILE* fp, ClassInfo* data, const char* text);
+    FILE* fp, const ClassInfo* data, const char* text);
 
   /**
    * Makes a superclass name into a valid identifier. Returns NULL if the given
@@ -286,6 +287,13 @@ extern "C"
    * Return the arg from "templated<T>" as a malloc'd string.
    */
   VTKWRAPPINGTOOLS_EXPORT char* vtkWrap_TemplateArg(const char* name);
+
+  /**
+   * Emit a warning about nothing being wrapped.
+   *
+   * Depends on the warning flag being requested.
+   */
+  VTKWRAPPINGTOOLS_EXPORT void vtkWrap_WarnEmpty(const OptionInfo* options);
 
 #ifdef __cplusplus
 }

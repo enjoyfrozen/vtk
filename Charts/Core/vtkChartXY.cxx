@@ -2541,7 +2541,7 @@ bool vtkChartXY::RemovePlotFromCorners(vtkPlot* plot)
 }
 
 //------------------------------------------------------------------------------
-inline void vtkChartXY::TransformBoxOrPolygon(bool polygonMode, vtkTransform2D* transform,
+void vtkChartXY::TransformBoxOrPolygon(bool polygonMode, vtkTransform2D* transform,
   const vtkVector2f& mousePosition, vtkVector2f& min, vtkVector2f& max, vtkContextPolygon& polygon)
 {
   if (polygonMode)
@@ -2854,7 +2854,7 @@ void vtkChartXY::BuildSelection(
       {
         selection.insert(pair);
       }
-      // Remove selection not affecting old selected blocks because we're substracting
+      // Remove selection not affecting old selected blocks because we're subtracting
       std::set_difference(selection.begin(), selection.end(), oldSelection.begin(),
         oldSelection.end(), std::inserter(uniqueSelection, uniqueSelection.begin()), compKey);
       for (const auto& pair : uniqueSelection)

@@ -37,6 +37,14 @@
 // The BSDs use stat().
 #define VTK_STAT_STRUCT struct stat
 #define VTK_STAT_FUNC stat
+#elif defined __EMSCRIPTEN__
+#if defined _LARGEFILE64_SOURCE
+#define VTK_STAT_STRUCT struct stat64
+#define VTK_STAT_FUNC stat64
+#else
+#define VTK_STAT_STRUCT struct stat
+#define VTK_STAT_FUNC stat
+#endif
 #else
 // here, we're relying on _FILE_OFFSET_BITS defined in vtkWin32Header.h to help
 // us on POSIX without resorting to using stat64.
@@ -336,13 +344,7 @@ int vtkEnSightGoldBinaryReader::InitializeFile(const char* fileName)
   }
   std::string sfilename;
   std::string filenameString(fileName);
-  char quotes = '\"';
-  size_t found = filenameString.find(quotes);
-  if (found != std::string::npos)
-  {
-    filenameString.erase(
-      std::remove(filenameString.begin(), filenameString.end(), quotes), filenameString.end());
-  }
+  this->SanitizeFileName(filenameString);
   if (this->FilePath)
   {
     sfilename = this->FilePath;
@@ -1242,13 +1244,7 @@ int vtkEnSightGoldBinaryReader::ReadMeasuredGeometryFile(
   }
   std::string sfilename;
   std::string filenameString(fileName);
-  char quotes = '\"';
-  size_t found = filenameString.find(quotes);
-  if (found != std::string::npos)
-  {
-    filenameString.erase(
-      std::remove(filenameString.begin(), filenameString.end(), quotes), filenameString.end());
-  }
+  this->SanitizeFileName(filenameString);
   if (this->FilePath)
   {
     sfilename = this->FilePath;
@@ -1402,13 +1398,7 @@ bool vtkEnSightGoldBinaryReader::OpenVariableFile(const char* fileName, const ch
 
   std::string sfilename;
   std::string filenameString(fileName);
-  char quotes = '\"';
-  size_t found = filenameString.find(quotes);
-  if (found != std::string::npos)
-  {
-    filenameString.erase(
-      std::remove(filenameString.begin(), filenameString.end(), quotes), filenameString.end());
-  }
+  this->SanitizeFileName(filenameString);
   if (this->FilePath)
   {
     sfilename = this->FilePath;
@@ -2477,11 +2467,10 @@ int vtkEnSightGoldBinaryReader::CreateUnstructuredGridOutput(
       this->ReadIntArray(nodeIdList, numNodes);
 
       // yyy begin
-      int k;                        // indexing each node Id of a face
-      int faceIdx = 0;              // indexing faces throughout all polyhedra
-      int nodeIdx = 0;              // indexing nodes throughout all polyhedra
-      int arayIdx = 0;              // indexing the array of Ids (info of faces)
-      vtkIdType* faceAry = nullptr; // array of Ids describing a vtkPolyhedron
+      int k;                      // indexing each node Id of a face
+      int faceIdx = 0;            // indexing faces throughout all polyhedra
+      int nodeIdx = 0;            // indexing nodes throughout all polyhedra
+      vtkNew<vtkCellArray> faces; // cell array describing a vtkPolyhedron
       // yyy end
 
       for (i = 0; i < numElements; i++)
@@ -2490,15 +2479,14 @@ int vtkEnSightGoldBinaryReader::CreateUnstructuredGridOutput(
         vtkIdType* nodeIds = new vtkIdType[numNodesPerElement[i]];
 
         // yyy begin
-        arayIdx = 0;
-        faceAry = new vtkIdType[numFacesPerElement[i] + numNodesPerElement[i]];
+        faces->Reset();
         for (j = 0; j < numFacesPerElement[i]; j++, faceIdx++)
         {
-          faceAry[arayIdx++] = numNodesPerFace[faceIdx];
+          faces->InsertNextCell(numNodesPerFace[faceIdx]);
 
           for (k = 0; k < numNodesPerFace[faceIdx]; k++)
           {
-            faceAry[arayIdx++] = nodeIdList[nodeIdx++] - 1;
+            faces->InsertCellPoint(nodeIdList[nodeIdx++] - 1);
           }
         }
         // yyy end
@@ -2520,10 +2508,7 @@ int vtkEnSightGoldBinaryReader::CreateUnstructuredGridOutput(
         // xxx end
 
         // yyy begin
-        cellId = output->InsertNextCell(
-          VTK_POLYHEDRON, elementNodeCount, nodeIds, numFacesPerElement[i], faceAry);
-        delete[] faceAry;
-        faceAry = nullptr;
+        cellId = output->InsertNextCell(VTK_POLYHEDRON, elementNodeCount, nodeIds, faces);
         // yyy end
 
         this->GetCellIds(idx, cellType)->InsertNextId(cellId);

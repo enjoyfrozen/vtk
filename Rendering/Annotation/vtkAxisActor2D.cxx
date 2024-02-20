@@ -4,9 +4,11 @@
 
 #include "vtkCellArray.h"
 #include "vtkMath.h"
+#include "vtkNumberToString.h"
 #include "vtkObjectFactory.h"
 #include "vtkPolyData.h"
 #include "vtkPolyDataMapper2D.h"
+#include "vtkProperty2D.h"
 #include "vtkTextMapper.h"
 #include "vtkTextProperty.h"
 #include "vtkViewport.h"
@@ -88,6 +90,17 @@ vtkAxisActor2D::~vtkAxisActor2D()
 
   this->SetLabelTextProperty(nullptr);
   this->SetTitleTextProperty(nullptr);
+}
+
+//------------------------------------------------------------------------------
+int vtkAxisActor2D::UpdateGeometryAndRenderOpaqueGeometry(vtkViewport* viewport, bool render)
+{
+  this->BuildAxis(viewport);
+  if (render)
+  {
+    return this->RenderOpaqueGeometry(viewport);
+  }
+  return 0;
 }
 
 //------------------------------------------------------------------------------
@@ -204,6 +217,8 @@ void vtkAxisActor2D::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "Number Of Labels Built: " << this->NumberOfLabelsBuilt << "\n";
   os << indent << "Range: (" << this->Range[0] << ", " << this->Range[1] << ")\n";
 
+  os << indent << "Label value notation: " << this->GetNotation() << "\n";
+  os << indent << "Label value precision: " << this->GetPrecision() << "\n";
   os << indent << "Label Format: " << this->LabelFormat << "\n";
   os << indent << "Font Factor: " << this->FontFactor << "\n";
   os << indent << "Label Factor: " << this->LabelFactor << "\n";
@@ -213,11 +228,8 @@ void vtkAxisActor2D::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "Adjust Labels: " << (this->AdjustLabels ? "On\n" : "Off\n");
 
   os << indent << "Axis Visibility: " << (this->AxisVisibility ? "On\n" : "Off\n");
-
   os << indent << "Tick Visibility: " << (this->TickVisibility ? "On\n" : "Off\n");
-
   os << indent << "Label Visibility: " << (this->LabelVisibility ? "On\n" : "Off\n");
-
   os << indent << "Title Visibility: " << (this->TitleVisibility ? "On\n" : "Off\n");
 
   os << indent << "MinorTickLength: " << this->MinorTickLength << endl;
@@ -390,6 +402,10 @@ void vtkAxisActor2D::BuildAxis(vtkViewport* viewport)
   }
 
   // Only draw the inner ticks (not the start/end ticks)
+  if (numTicks >= 2)
+  {
+    this->TicksStartPos->SetNumberOfPoints(numTicks - 2);
+  }
   for (i = 1; i < numTicks - 1; i++)
   {
     int tickLength = 0;
@@ -403,6 +419,7 @@ void vtkAxisActor2D::BuildAxis(vtkViewport* viewport)
     }
     xTick[0] = p1[0] + i * p21[0] * distance;
     xTick[1] = p1[1] + i * p21[1] * distance;
+    this->TicksStartPos->SetPoint(i - 1, xTick);
     pts->InsertNextPoint(xTick);
     xTick[0] = xTick[0] + tickLength * sin(theta);
     xTick[1] = xTick[1] - tickLength * cos(theta);
@@ -447,15 +464,28 @@ void vtkAxisActor2D::BuildAxis(vtkViewport* viewport)
       for (i = 0; i < this->AdjustedNumberOfLabels; i++)
       {
         val = this->AdjustedRange[0] + i * interval;
-        snprintf(string, sizeof(string), this->LabelFormat, val);
-        this->LabelMappers[i]->SetInput(string);
 
-        // Check if the label text has changed
-
-        if (this->LabelMappers[i]->GetMTime() > labeltime)
+        if (this->GetNotation() == 0)
         {
-          labeltime = this->LabelMappers[i]->GetMTime();
+          // Use default legend notation : don't use vtkNumberToString
+          // for the default setting in order to ensure retrocompatibility
+          snprintf(string, sizeof(string), this->LabelFormat, val);
+          this->LabelMappers[i]->SetInput(string);
         }
+        else
+        {
+          vtkNumberToString converter;
+          converter.SetNotation(this->GetNotation());
+          converter.SetPrecision(this->GetPrecision());
+          std::string formattedString = converter.Convert(val);
+          this->LabelMappers[i]->SetInput(formattedString.c_str());
+        }
+      }
+
+      // Check if the label text has changed
+      if (this->LabelMappers[this->AdjustedNumberOfLabels - 1]->GetMTime() > labeltime)
+      {
+        labeltime = this->LabelMappers[this->AdjustedNumberOfLabels - 1]->GetMTime();
       }
     }
 
@@ -587,6 +617,12 @@ void vtkAxisActor2D::BuildAxis(vtkViewport* viewport)
   } // If title visible
 
   this->BuildTime.Modified();
+}
+
+//------------------------------------------------------------------------------
+vtkPoints* vtkAxisActor2D::GetTickPositions()
+{
+  return this->TicksStartPos;
 }
 
 //------------------------------------------------------------------------------
@@ -792,7 +828,7 @@ void vtkAxisActor2D::ComputeRange(double inRange[2], double outRange[2], int vtk
     }
   }
 
-  // Adust if necessary
+  // Adjust if necessary
   if (inRange[0] > inRange[1])
   {
     sRange[0] = outRange[1];

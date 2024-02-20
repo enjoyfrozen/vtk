@@ -76,6 +76,7 @@
 #ifndef vtkDataSetSurfaceFilter_h
 #define vtkDataSetSurfaceFilter_h
 
+#include "vtkDeprecation.h"           // For VTK_DEPRECATED_IN_9_3_0
 #include "vtkFiltersGeometryModule.h" // For export macro
 #include "vtkGeometryFilter.h"        // To facilitate delegation
 #include "vtkPolyDataAlgorithm.h"
@@ -183,6 +184,17 @@ public:
    */
   vtkSetMacro(NonlinearSubdivisionLevel, int);
   vtkGetMacro(NonlinearSubdivisionLevel, int);
+  ///@}
+
+  ///@{
+  /**
+   * When two volumetric cells of different order are connected by their corners (for instance, a
+   * quadratic hexahedron next to a linear hexahedron ), the internal face is rendered and is not
+   * considered as a ghost cell. To remove these faces, switch MatchBoundariesIgnoringCellOrder to 1
+   * (default is 0).
+   */
+  vtkSetMacro(MatchBoundariesIgnoringCellOrder, int);
+  vtkGetMacro(MatchBoundariesIgnoringCellOrder, int);
   ///@}
 
   ///@{
@@ -304,6 +316,8 @@ protected:
   vtkIdType* PointMap;
   vtkIdType GetOutputPointId(
     vtkIdType inPtId, vtkDataSet* input, vtkPoints* outPts, vtkPointData* outPD);
+
+  VTK_DEPRECATED_IN_9_3_0("This function is deprecated since reserved for private usage.")
   vtkIdType GetOutputPointIdAndInterpolate(vtkIdType inPtId, vtkDataSet* input, vtkCell* cell,
     double* weights, vtkPoints* outPts, vtkPointData* outPD);
 
@@ -311,7 +325,7 @@ protected:
 
   vtkEdgeInterpolationMap* EdgeMap;
   vtkIdType GetInterpolatedPointId(vtkIdType edgePtA, vtkIdType edgePtB, vtkDataSet* input,
-    vtkCell* cell, double pcoords[3], double* weights, vtkPoints* outPts, vtkPointData* outPD);
+    vtkCell* cell, double* pcoords, double* weights, vtkPoints* outPts, vtkPointData* outPD);
   vtkIdType GetInterpolatedPointId(vtkDataSet* input, vtkCell* cell, double pcoords[3],
     double* weights, vtkPoints* outPts, vtkPointData* outPD);
   vtkIdType NumberOfNewCells;
@@ -342,6 +356,7 @@ protected:
   char* OriginalPointIdsName;
 
   int NonlinearSubdivisionLevel;
+  int MatchBoundariesIgnoringCellOrder;
   vtkTypeBool Delegation;
   bool FastMode;
 
@@ -352,6 +367,9 @@ private:
 
   int StructuredExecuteNoBlanking(
     vtkDataSet* input, vtkPolyData* output, vtkIdType* ext, vtkIdType* wholeExt);
+
+  vtkIdType GetOutputPointIdAndInterpolate(vtkIdType inPtId, vtkDataSet* input, vtkCell* cell,
+    double* pc, double* weights, vtkPoints* outPts, vtkPointData* outPD);
 
   vtkDataSetSurfaceFilter(const vtkDataSetSurfaceFilter&) = delete;
   void operator=(const vtkDataSetSurfaceFilter&) = delete;

@@ -17,6 +17,8 @@ vtk_add_test_cxx(vtkRenderingOpenGL2CxxTests tests
   TestCompositePolyDataMapper2MixedGeometryCellScalars.cxx,NO_DATA
   TestCompositePolyDataMapper2MixedGeometryEdges.cxx,NO_DATA
   TestCompositePolyDataMapper2NaNPartial.cxx,NO_DATA
+  TestCompositePolyDataMapper2PartialFieldData.cxx,NO_DATA
+  TestCompositePolyDataMapper2PartialPointData.cxx,NO_DATA
   TestCompositePolyDataMapper2Pickability.cxx,NO_DATA
   TestCompositePolyDataMapper2Picking.cxx,NO_DATA
   TestCompositePolyDataMapper2Scalars.cxx,NO_DATA
@@ -24,6 +26,7 @@ vtk_add_test_cxx(vtkRenderingOpenGL2CxxTests tests
   TestCompositePolyDataMapper2SharedArray.cxx,NO_DATA
   TestCompositePolyDataMapper2Spheres.cxx,NO_DATA
   TestCompositePolyDataMapper2Vertices.cxx,NO_DATA
+  TestComputeShader.cxx,NO_DATA,NO_VALID,NO_OUTPUT
   TestCubeMap.cxx
   TestCubeMap2.cxx
   TestCubeMapRerender.cxx
@@ -51,11 +54,10 @@ vtk_add_test_cxx(vtkRenderingOpenGL2CxxTests tests
   TestHiddenLineRemovalPass.cxx
   TestLightingMapLuminancePass.cxx
   TestLightingMapNormalsPass.cxx
-  TestMultiBlockPartialArrayFieldData.cxx
-  TestMultiBlockPartialArrayPointData.cxx
   TestMultiTexturing.cxx
   TestMultiTexturingInterpolateScalars.cxx
   TestNormalMapping.cxx
+  TestNormalMappingWithEdges.cxx
   TestOffscreenRenderingResize.cxx
   TestOutlineGlowPass.cxx
   TestOrderIndependentTranslucentPass.cxx
@@ -72,6 +74,7 @@ vtk_add_test_cxx(vtkRenderingOpenGL2CxxTests tests
   TestPBRTextureInterpolateScalars.cxx
   TestPointFillPass.cxx
   TestPointGaussianMapper.cxx
+  TestPointGaussianMapperAnisotropic.cxx
   TestPointGaussianMapperOpacity.cxx
   TestPointGaussianSelection.cxx,NO_DATA
   TestProgramPointSize.cxx

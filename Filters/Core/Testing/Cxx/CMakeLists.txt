@@ -1,10 +1,3 @@
-set(test_implicit_array)
-if(TARGET VTK::CommonImplicitArrays)
-  list(APPEND test_implicit_array
-    TestContourImplicitArrays.cxx
-  )
-endif()
-
 vtk_add_test_cxx(vtkFiltersCoreCxxTests tests
   Test3DLinearGridPlaneCutterCellData.cxx
   TestAppendArcLength.cxx,NO_VALID
@@ -54,6 +47,7 @@ vtk_add_test_cxx(vtkFiltersCoreCxxTests tests
   TestResampleHyperTreeGridWithDataSet.cxx
   TestImageDataToExplicitStructuredGrid.cxx
   TestImplicitPolyDataDistance.cxx
+  TestImplicitPolyDataDistanceCube.cxx,NO_VALID
   TestImplicitProjectOnPlaneDistance.cxx
   TestMaskPoints.cxx,NO_VALID
   TestMaskPointsModes.cxx
@@ -92,7 +86,19 @@ vtk_add_test_cxx(vtkFiltersCoreCxxTests tests
   TestVaryRadiusTubeFilter.cxx
   UnitTestMaskPoints.cxx,NO_VALID
   UnitTestMergeFilter.cxx,NO_VALID
-  ${test_implicit_array}
+  TestContourImplicitArrays.cxx
   )
 
-vtk_test_cxx_executable(vtkFiltersCoreCxxTests tests)
+# This test fails on vtk-m due to bug #804 (vtk/vtkm)
+# TODO: Remove from condition when fixed
+if (NOT VTK_ENABLE_VTKM_OVERRIDES)
+  vtk_add_test_cxx(vtkFiltersCoreCxxTests no_vtkm_tests
+    TestThresholdComponents.cxx,NO_VALID)
+endif()
+
+set(all_tests
+  ${tests}
+  ${no_vtkm_tests}
+  )
+
+vtk_test_cxx_executable(vtkFiltersCoreCxxTests all_tests)

@@ -52,8 +52,9 @@
 #include "vtkNew.h" // for vtkNew
 
 VTK_ABI_NAMESPACE_BEGIN
-class vtkPolyDataMapper2D;
+class vtkPoints;
 class vtkPolyData;
+class vtkPolyDataMapper2D;
 class vtkTextMapper;
 class vtkTextProperty;
 
@@ -138,6 +139,27 @@ public:
 
   ///@{
   /**
+   * Get/set the numerical precision to use, default is 2.
+   * Precision is only used for scientific and fixed-point notations
+   */
+  vtkSetClampMacro(Precision, int, 0, VTK_INT_MAX);
+  vtkGetMacro(Precision, int);
+  ///@}
+
+  ///@{
+  /**
+   * Get/set number notation to use.
+   * Options are:
+   *  - Mixed (0, default)
+   *  - Scientific (1)
+   *  - Fixed-point (2)
+   */
+  vtkSetClampMacro(Notation, int, 0, 2);
+  vtkGetMacro(Notation, int);
+  ///@}
+
+  ///@{
+  /**
    * Set/Get the format with which to print the labels on the scalar
    * bar.
    */
@@ -167,7 +189,7 @@ public:
     this->UpdateAdjustedRange();
     _arg1 = this->AdjustedRange[0];
     _arg2 = this->AdjustedRange[1];
-  };
+  }
   virtual void GetAdjustedRange(double _arg[2]) { this->GetAdjustedRange(_arg[0], _arg[1]); }
   virtual int GetAdjustedNumberOfLabels()
   {
@@ -175,6 +197,11 @@ public:
     return this->AdjustedNumberOfLabels;
   }
   ///@}
+
+  /**
+   * Return the positions of ticks along the axis
+   */
+  vtkPoints* GetTickPositions();
 
   ///@{
   /**
@@ -301,6 +328,14 @@ public:
   vtkGetMacro(LabelFactor, double);
   ///@}
 
+  /**
+   * Rebuild the geometry using the provided viewport,
+   * and trigger opaque geometry render only if `render` parameter is true.
+   * This is used when we need a geometry update (e.g. to draw the grid using tick positions),
+   * but the axis should not be rendered.
+   */
+  int UpdateGeometryAndRenderOpaqueGeometry(vtkViewport* viewport, bool render);
+
   ///@{
   /**
    * Draw the axis.
@@ -397,6 +432,10 @@ protected:
   double AdjustedRange[2];
   int AdjustedNumberOfLabels = 5;
   int NumberOfLabelsBuilt = 0;
+  vtkNew<vtkPoints> TicksStartPos;
+
+  int Notation = 0;
+  int Precision = 2;
 
   vtkTypeBool AxisVisibility = 1;
   vtkTypeBool TickVisibility = 1;

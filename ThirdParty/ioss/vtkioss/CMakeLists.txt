@@ -344,6 +344,8 @@ list(APPEND headers
   ionit_export.h
   iotr_export.h
 
+  "${CMAKE_CURRENT_BINARY_DIR}/SEACASIoss_config.h"
+
   vtk_ioss_mangle.h)
 
 vtk_module_find_package(PACKAGE Threads)
@@ -357,8 +359,15 @@ configure_file(
   COPYONLY)
 
 vtk_module_add_module(VTK::ioss
+  HEADER_DIRECTORIES
   SOURCES ${sources}
-  PRIVATE_HEADERS ${headers})
+  HEADERS ${headers}
+  HEADERS_SUBDIR "vtkioss")
+vtk_module_include(VTK::ioss
+  INTERFACE
+    # IOSS includes its own headers with `<>`, so we need an explicit `-I` for
+    # them to find each other.
+    "$<INSTALL_INTERFACE:${_vtk_build_HEADERS_DESTINATION}/vtkioss>")
 vtk_module_definitions(VTK::ioss
   PRIVATE
     NO_ZOLTAN_SUPPORT

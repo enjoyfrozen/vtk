@@ -14,6 +14,7 @@ set(test_sources
   TestHyperTreeGrid3DIntercepts.cxx
   TestHyperTreeGrid3DInterface.cxx
   TestHyperTreeGrid3DSimpleInterface.cxx
+  TestHyperTreeGridBinary1DFeatureEdges.cxx
   TestHyperTreeGridBinary2D.cxx
   TestHyperTreeGridBinary2DAxisClipBox.cxx
   TestHyperTreeGridBinary2DAxisClipEllipse.cxx
@@ -28,17 +29,25 @@ set(test_sources
   TestHyperTreeGridBinary2DContourMaterial.cxx
   TestHyperTreeGridBinary2DDepthLimiter.cxx
   TestHyperTreeGridBinary2DDepthLimiterMaterial.cxx
+  TestHyperTreeGridBinary2DFeatureEdges.cxx
   TestHyperTreeGridBinary2DIJK.cxx
   TestHyperTreeGridBinary2DInterfaceMaterial.cxx
   TestHyperTreeGridBinary2DMaterial.cxx
   TestHyperTreeGridBinary2DMaterialIJK.cxx
   TestHyperTreeGridBinary2DThreshold.cxx
+  TestHyperTreeGridBinary2DThresholdImplicit.cxx
+  TestHyperTreeGridBinary2DThresholdDeep.cxx
   TestHyperTreeGridBinary2DThresholdMaterial.cxx
+  TestHyperTreeGridBinary2DThresholdMaterialDeep.cxx
+  TestHyperTreeGridBinary2DThresholdMaterialImplicit.cxx
   TestHyperTreeGridBinary2DVector.cxx
   TestHyperTreeGridBinary2DVectorAxisReflectionXCenter.cxx
   TestHyperTreeGridBinary2DVectorAxisReflectionYCenter.cxx
   TestHyperTreeGridBinary3DContour.cxx
   TestHyperTreeGridBinary3DContourDecomposePolyhedra.cxx
+  TestHyperTreeGridBinary3DContourImplicit.cxx
+  TestHyperTreeGridBinary3DContourImplicitInteger.cxx,NO_VALID,NO_OUTPUT
+  TestHyperTreeGridBinary3DFeatureEdges.cxx
   TestHyperTreeGridBinary3DGeometry.cxx
   TestHyperTreeGridBinaryClipPlanes.cxx
   TestHyperTreeGridBinaryEllipseMaterial.cxx
@@ -75,7 +84,11 @@ set(test_sources
   TestHyperTreeGridTernary3DPlaneCutterDualMaterial.cxx
   TestHyperTreeGridTernary3DPlaneCutterMaterial.cxx
   TestHyperTreeGridTernary3DThreshold.cxx
+  TestHyperTreeGridTernary3DThresholdDeep.cxx
+  TestHyperTreeGridTernary3DThresholdImplicit.cxx
   TestHyperTreeGridTernary3DThresholdMaterial.cxx
+  TestHyperTreeGridTernary3DThresholdMaterialDeep.cxx
+  TestHyperTreeGridTernary3DThresholdMaterialImplicit.cxx
   TestHyperTreeGridTernary3DUnstructured.cxx
   TestHyperTreeGridTernary3DUnstructuredMaterial.cxx
   TestHyperTreeGridTernaryHyperbola.cxx

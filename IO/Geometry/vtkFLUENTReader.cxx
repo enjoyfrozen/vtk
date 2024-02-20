@@ -225,9 +225,9 @@ vtkFLUENTReader::~vtkFLUENTReader()
 int vtkFLUENTReader::RequestData(vtkInformation* vtkNotUsed(request),
   vtkInformationVector** vtkNotUsed(inputVector), vtkInformationVector* outputVector)
 {
-  if (!this->FileName)
+  if (!this->Parsed)
   {
-    vtkErrorMacro("FileName has to be specified!");
+    vtkErrorMacro("The files have not been parsed successfully, aborting.");
     return 0;
   }
 
@@ -235,6 +235,16 @@ int vtkFLUENTReader::RequestData(vtkInformation* vtkNotUsed(request),
 
   vtkMultiBlockDataSet* output =
     vtkMultiBlockDataSet::SafeDownCast(outInfo->Get(vtkMultiBlockDataSet::DATA_OBJECT()));
+
+  // When reading a FLUENT Mesh file, we may encounter mesh that only contains faces.
+  // In this case, we generate a single block multiblock using the faces informations so we can
+  // still display the surface of this mesh.
+  if (this->CellZones->value.empty() && !this->Faces->value.empty() &&
+    this->Points->GetNumberOfPoints() > 0)
+  {
+    this->FillMultiBlockFromFaces(output);
+    return 1;
+  }
 
   output->SetNumberOfBlocks(static_cast<unsigned int>(this->CellZones->value.size()));
   // vtkUnstructuredGrid *Grid[CellZones.size()];
@@ -382,6 +392,8 @@ void vtkFLUENTReader::PrintSelf(ostream& os, vtkIndent indent)
 int vtkFLUENTReader::RequestInformation(vtkInformation* vtkNotUsed(request),
   vtkInformationVector** vtkNotUsed(inputVector), vtkInformationVector* vtkNotUsed(outputVector))
 {
+  this->Parsed = false;
+
   if (!this->FileName)
   {
     vtkErrorMacro("FileName has to be specified!");
@@ -394,23 +406,26 @@ int vtkFLUENTReader::RequestInformation(vtkInformation* vtkNotUsed(request),
     return 0;
   }
 
-  int dat_file_opened = this->OpenDataFile(this->FileName);
-  if (!dat_file_opened)
+  this->LoadVariableNames();
+
+  bool parse = this->ParseCaseFile(); // Reads Necessary Information from the .cas file.
+  if (!parse)
   {
-    vtkWarningMacro("Unable to open dat file.");
+    vtkErrorMacro("Unable to parse case file.");
+    return 0;
   }
 
-  this->LoadVariableNames();
-  this->ParseCaseFile(); // Reads Necessary Information from the .cas file.
-  this->CleanCells();    //  Removes unnecessary faces from the cells.
+  this->CleanCells(); //  Removes unnecessary faces from the cells.
   this->PopulateCellNodes();
   this->GetNumberOfCellZones();
   this->NumberOfScalars = 0;
   this->NumberOfVectors = 0;
-  if (dat_file_opened)
+
+  if (this->OpenDataFile(this->FileName))
   {
     this->ParseDataFile();
   }
+
   for (size_t i = 0; i < this->SubSectionIds->value.size(); i++)
   {
     if (this->SubSectionSize->value[i] == 1)
@@ -431,6 +446,7 @@ int vtkFLUENTReader::RequestInformation(vtkInformation* vtkNotUsed(request),
     }
   }
   this->NumberOfCells = static_cast<vtkIdType>(this->Cells->value.size());
+  this->Parsed = true;
   return 1;
 }
 
@@ -502,17 +518,7 @@ bool vtkFLUENTReader::OpenDataFile(const char* filename)
   mode |= ios::binary;
 #endif
   this->FluentDataFile = new vtksys::ifstream(dfilename.c_str(), mode);
-  if (this->FluentDataFile->fail())
-  {
-    vtkErrorMacro("Could not open data file "
-      << dfilename << "associated with cas file " << filename
-      << ". Please verify the cas and dat files have the same base name.");
-    return false;
-  }
-  else
-  {
-    return true;
-  }
+  return !this->FluentDataFile->fail();
 }
 
 //------------------------------------------------------------------------------
@@ -539,7 +545,11 @@ int vtkFLUENTReader::GetCaseChunk()
   std::string index;
   while (this->FluentCaseFile->peek() != ' ')
   {
-    // index.push_back(this->FluentCaseFile->peek());
+    if (this->FluentCaseFile->peek() == '(' && !index.empty())
+    {
+      break;
+    }
+
     index += static_cast<char>(this->FluentCaseFile->peek());
     // this->CaseBuffer->value.push_back(this->FluentCaseFile->get());
     this->CaseBuffer->value += static_cast<char>(this->FluentCaseFile->get());
@@ -560,9 +570,7 @@ int vtkFLUENTReader::GetCaseChunk()
   if (index.size() > 2)
   { // Binary Chunk
     char end[120];
-    strcpy(end, "End of Binary Section   ");
-    strcat(end, index.c_str());
-    strcat(end, ")");
+    strcpy(end, "End of Binary Section ");
     size_t len = strlen(end);
 
     // Load the case buffer enough to start comparing to the end std::string.
@@ -687,9 +695,12 @@ int vtkFLUENTReader::GetDataChunk()
   std::string index;
   while (this->FluentDataFile->peek() != ' ')
   {
-    // index.push_back(this->FluentDataFile->peek());
+    if (this->FluentDataFile->peek() == '(' && !index.empty())
+    {
+      break;
+    }
+
     index += static_cast<char>(this->FluentDataFile->peek());
-    // this->DataBuffer->value.push_back(this->FluentDataFile->get());
     this->DataBuffer->value += static_cast<char>(this->FluentDataFile->get());
     if (this->FluentDataFile->eof())
     {
@@ -2348,11 +2359,13 @@ void vtkFLUENTReader::LoadVariableNames()
 }
 
 //------------------------------------------------------------------------------
-void vtkFLUENTReader::ParseCaseFile()
+bool vtkFLUENTReader::ParseCaseFile()
 {
   this->FluentCaseFile->clear();
   this->FluentCaseFile->seekg(0, ios::beg);
 
+  bool ret = true;
+  // XXX: Each of these parsing method should be improved for error reporting and robustness
   while (this->GetCaseChunk())
   {
 
@@ -2376,7 +2389,7 @@ void vtkFLUENTReader::ParseCaseFile()
         this->GetCellsAscii();
         break;
       case 13:
-        this->GetFacesAscii();
+        ret &= this->GetFacesAscii();
         break;
       case 18:
         this->GetPeriodicShadowFacesAscii();
@@ -2476,6 +2489,7 @@ void vtkFLUENTReader::ParseCaseFile()
         break;
     }
   }
+  return ret;
 }
 
 //------------------------------------------------------------------------------
@@ -2722,7 +2736,7 @@ void vtkFLUENTReader::GetCellsBinary()
 }
 
 //------------------------------------------------------------------------------
-void vtkFLUENTReader::GetFacesAscii()
+bool vtkFLUENTReader::GetFacesAscii()
 {
 
   if (this->CaseBuffer->value.at(5) == '0')
@@ -2759,6 +2773,11 @@ void vtkFLUENTReader::GetFacesAscii()
       {
         numberOfNodesInFace = faceType;
       }
+      if (this->Faces->value.size() < i)
+      {
+        vtkErrorMacro("Could not parse faces");
+        return false;
+      }
       this->Faces->value[i - 1].nodes.resize(numberOfNodesInFace);
       for (int j = 0; j < numberOfNodesInFace; j++)
       {
@@ -2778,16 +2797,28 @@ void vtkFLUENTReader::GetFacesAscii()
       this->Faces->value[i - 1].ncgParent = 0;
       this->Faces->value[i - 1].ncgChild = 0;
       this->Faces->value[i - 1].interfaceFaceChild = 0;
+
       if (this->Faces->value[i - 1].c0 >= 0)
       {
+        if (this->Cells->value.size() <= static_cast<std::size_t>(this->Faces->value[i - 1].c0))
+        {
+          this->Cells->value.resize(this->Faces->value[i - 1].c0 + 1);
+        }
+
         this->Cells->value[this->Faces->value[i - 1].c0].faces.push_back(i - 1);
       }
       if (this->Faces->value[i - 1].c1 >= 0)
       {
+        if (this->Cells->value.size() <= static_cast<std::size_t>(this->Faces->value[i - 1].c1))
+        {
+          this->Cells->value.resize(this->Faces->value[i - 1].c1 + 1);
+        }
+
         this->Cells->value[this->Faces->value[i - 1].c1].faces.push_back(i - 1);
       }
     }
   }
+  return true;
 }
 
 //------------------------------------------------------------------------------
@@ -2837,12 +2868,23 @@ void vtkFLUENTReader::GetFacesBinary()
     this->Faces->value[i - 1].ncgParent = 0;
     this->Faces->value[i - 1].ncgChild = 0;
     this->Faces->value[i - 1].interfaceFaceChild = 0;
+
     if (this->Faces->value[i - 1].c0 >= 0)
     {
+      if (this->Cells->value.size() <= static_cast<std::size_t>(this->Faces->value[i - 1].c0))
+      {
+        this->Cells->value.resize(this->Faces->value[i - 1].c0 + 1);
+      }
+
       this->Cells->value[this->Faces->value[i - 1].c0].faces.push_back(i - 1);
     }
     if (this->Faces->value[i - 1].c1 >= 0)
     {
+      if (this->Cells->value.size() <= static_cast<std::size_t>(this->Faces->value[i - 1].c1))
+      {
+        this->Cells->value.resize(this->Faces->value[i - 1].c1 + 1);
+      }
+
       this->Cells->value[this->Faces->value[i - 1].c1].faces.push_back(i - 1);
     }
   }
@@ -4190,4 +4232,39 @@ void vtkFLUENTReader::GetSpeciesVariableNames()
     }
   }
 }
+
+//------------------------------------------------------------------------------
+void vtkFLUENTReader::FillMultiBlockFromFaces(vtkMultiBlockDataSet* output)
+{
+  vtkNew<vtkUnstructuredGrid> block;
+  block->SetPoints(Points);
+
+  for (size_t i = 0; i < this->Faces->value.size(); ++i)
+  {
+    auto& face = this->Faces->value[i];
+
+    if (face.type == 3)
+    {
+      for (int j = 0; j < 3; j++)
+      {
+        this->Triangle->GetPointIds()->SetId(j, face.nodes[j]);
+      }
+
+      block->InsertNextCell(this->Triangle->GetCellType(), this->Triangle->GetPointIds());
+    }
+    else if (face.type == 4)
+    {
+      for (int j = 0; j < 4; j++)
+      {
+        this->Tetra->GetPointIds()->SetId(j, face.nodes[j]);
+      }
+
+      block->InsertNextCell(this->Tetra->GetCellType(), this->Tetra->GetPointIds());
+    }
+  }
+
+  output->SetNumberOfBlocks(1);
+  output->SetBlock(0, block);
+}
+
 VTK_ABI_NAMESPACE_END

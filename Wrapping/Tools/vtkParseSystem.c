@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "vtkParseSystem.h"
+#include "vtkParseDepends.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,7 +44,7 @@
 #endif
 
 /* Use hash table size that is a power of two */
-const unsigned int FILE_HASH_TABLE_SIZE = 1 << 10;
+static const unsigned int FILE_HASH_TABLE_SIZE = 1 << 10;
 
 /* Whether to use wide filenames on WIN32 */
 #if defined(_WIN32) && !defined(__MINGW32__)
@@ -471,8 +472,11 @@ void vtkParse_FreeFileCache(SystemInfo* info)
 /**
  * On Win32, this interprets fname as UTF8 and then calls wfopen().
  * The returned handle must be freed with fclose().
+ *
+ * This variant does not add a dependency on the passed filename to any
+ * dependency tracking.
  */
-FILE* vtkParse_FileOpen(const char* fname, const char* mode)
+FILE* vtkParse_FileOpenNoDependency(const char* fname, const char* mode)
 {
 #if defined(_WIN32) && defined(USE_WIDE_FILENAMES)
   int i;
@@ -492,4 +496,19 @@ FILE* vtkParse_FileOpen(const char* fname, const char* mode)
 #else
   return fopen(fname, mode);
 #endif
+}
+
+/**
+ * On Win32, this interprets fname as UTF8 and then calls wfopen().
+ * The returned handle must be freed with fclose().
+ */
+FILE* vtkParse_FileOpen(const char* fname, const char* mode)
+{
+  // Only add dependencies if reading the file.
+  if (mode && *mode == 'r')
+  {
+    vtkParse_AddDependency(fname);
+  }
+
+  return vtkParse_FileOpenNoDependency(fname, mode);
 }

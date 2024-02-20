@@ -1,9 +1,13 @@
-cmake_minimum_required(VERSION 3.12...3.16 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.12...3.21 FATAL_ERROR)
 
 project(VTK)
 
 if (POLICY CMP0127)
   cmake_policy(SET CMP0127 NEW) # cmake_dependent_option changes
+endif ()
+
+if (POLICY CMP0154)
+  cmake_policy(SET CMP0154 NEW) # optimize custom commands in PRIVATE filesets
 endif ()
 
 set(vtk_cmake_dir "${VTK_SOURCE_DIR}/CMake")
@@ -43,11 +47,10 @@ if (VTK_WHEEL_BUILD)
   include(vtkWheelPreparation)
 endif ()
 
-option(VTK_ENABLE_WEBGPU "Enable the WebGPU experimental rendering backend." OFF)
+include(CMakeDependentOption)
+cmake_dependent_option(VTK_ENABLE_WEBGPU "Enable the WebGPU experimental rendering backend." OFF
+  "NOT CMAKE_SYSTEM_NAME STREQUAL \"Emscripten\"" ON)
 mark_as_advanced(VTK_ENABLE_WEBGPU)
-if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
-  set(VTK_ENABLE_WEBGPU ON)
-endif ()
 
 include(GNUInstallDirs)
 
@@ -160,19 +163,40 @@ if(VTK_USE_CUDA)
 endif()
 
 #-----------------------------------------------------------------------------
-# Add an option to enable/disable HIP support.
-cmake_dependent_option(VTK_USE_HIP "Support HIP backend accelerator" OFF
+# Add an option to enable/disable KOKKOS support.
+cmake_dependent_option(VTK_USE_KOKKOS "Support KOKKOS backend accelerator" OFF
   "CMAKE_VERSION VERSION_GREATER_EQUAL 3.21;NOT VTK_USE_CUDA" OFF)
-mark_as_advanced(VTK_USE_HIP)
+mark_as_advanced(VTK_USE_KOKKOS)
+if(VTK_USE_KOKKOS)
+  set(VTK_KOKKOS_BACKEND:STRING "SERIAL" CACHE STRING "'HIP', 'SYCL', or 'CUDA'")
+endif()
+# If the Kokkos backend is set, it should imply that Kokkos is to used
+if(VTK_KOKKOS_BACKEND)
+  set(VTK_USE_KOKKOS ON)
+endif()
 
 if(VTK_USE_HIP)
+  message(WARNING "VTK_USE_HIP will be removed in future releases, please use VTK_USE_KOKKOS and VTK_KOKKOS_BACKEND")
+  set(VTK_USE_KOKKOS ON)
+  set(VTK_KOKKOS_BACKEND "HIP")
+endif()
+
+if(VTK_USE_KOKKOS)
   if(VTK_USE_CUDA)
-    message(FATAL_ERROR "VTK_USE_HIP and VTK_USE_CUDA are mutually exclusive, enable only one.")
+    message(FATAL_ERROR "VTK_USE_KOKKOS and VTK_USE_CUDA are mutually exclusive, enable only one.")
   endif()
   # This needs to be a top level flag as enable_language needs
   # to be called from CMake entry point for variables to have
   # the correct scope.
-  enable_language(HIP)
+  if (VTK_KOKKOS_BACKEND STREQUAL "HIP")
+    enable_language(HIP)
+  elseif (VTK_KOKKOS_BACKEND STREQUAL "CUDA")
+    enable_language(CUDA)
+  elseif (VTK_KOKKOS_BACKEND STREQUAL "SYCL")
+  elseif (VTK_KOKKOS_BACKEND STREQUAL "SERIAL")
+  else ()
+    message(FATAL_ERROR "VTK_KOKKOS_BACKEND not recognized")
+  endif()
 endif()
 
 #-----------------------------------------------------------------------------
@@ -209,7 +233,7 @@ mark_as_advanced(VTK_ENABLE_CATALYST)
 
 #-----------------------------------------------------------------------------
 # Add an option to enable/disable SPDX generation
-# Remove the "Experimental" once https://gitlab.kitware.com/vtk/vtk/-/issues/18999 is adressed
+# Remove the "Experimental" once https://gitlab.kitware.com/vtk/vtk/-/issues/18999 is addressed
 option(VTK_GENERATE_SPDX "Generate SPDX file for each module." OFF)
 mark_as_advanced(VTK_GENERATE_SPDX)
 
@@ -290,6 +314,15 @@ else()
 endif()
 set("_vtk_module_reason_VTK::IOCatalystConduit"
   "via `VTK_ENABLE_CATALYST`")
+if (VTK_ENABLE_WEBGPU)
+  list(APPEND vtk_requested_modules
+    VTK::RenderingWebGPU)
+else ()
+  list(APPEND vtk_rejected_modules
+    VTK::RenderingWebGPU)
+endif ()
+set("_vtk_module_reason_VTK::RenderingWebGPU"
+  "via `VTK_ENABLE_WEBGPU`")
 
 if (VTK_BUILD_TESTING)
   list(APPEND vtk_requested_modules
@@ -497,6 +530,7 @@ vtk_module_build(
   ${vtk_library_version_info}
   TEST_DATA_TARGET    VTKData
   INSTALL_HEADERS     "${VTK_INSTALL_SDK}"
+  USE_FILE_SETS       ON
   BUILD_WITH_KITS     "${VTK_ENABLE_KITS}"
   USE_EXTERNAL        "${VTK_USE_EXTERNAL}"
   ENABLE_WRAPPING     "${VTK_ENABLE_WRAPPING}"

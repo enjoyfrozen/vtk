@@ -43,11 +43,14 @@ vtk_add_test_cxx(vtkRenderingCoreCxxTests tests
   TestCompositePolyDataMapperNaNPartial.cxx,NO_DATA
   TestCompositePolyDataMapperOverrideScalarArray.cxx,NO_DATA
   TestCompositePolyDataMapperOverrideLUT.cxx,NO_DATA
+  TestCompositePolyDataMapperPartialFieldData.cxx,NO_DATA
+  TestCompositePolyDataMapperPartialPointData.cxx,NO_DATA
   TestCompositePolyDataMapperPickability.cxx,NO_DATA
   TestCompositePolyDataMapperPicking.cxx,NO_DATA
   TestCompositePolyDataMapperScalars.cxx,NO_DATA
   TestCompositePolyDataMapperScalarsSurfaceOpacity.cxx,NO_DATA
   TestCompositePolyDataMapperSharedArray.cxx,NO_DATA
+  TestCompositePolyDataMapperStaticBounds.cxx,NO_DATA,NO_VALID
   TestCompositePolyDataMapperSpheres.cxx,NO_DATA
   TestCompositePolyDataMapperVertices.cxx,NO_DATA
   TestDirectScalarsToColors.cxx
@@ -61,6 +64,7 @@ vtk_add_test_cxx(vtkRenderingCoreCxxTests tests
   TestGlyph3DMapper.cxx
   TestGlyph3DMapper2.cxx,NO_VALID,NO_RT,NO_DATA
   TestGlyph3DMapperArrow.cxx
+  TestGlyph3DMapperCompositeDisplayAttributeInheritance.cxx,NO_DATA
   TestGlyph3DMapperIndexing.cxx,NO_DATA
   TestGlyph3DMapperMasking.cxx
   TestGlyph3DMapperOrientationArray.cxx
@@ -77,8 +81,6 @@ vtk_add_test_cxx(vtkRenderingCoreCxxTests tests
   TestManyActors.cxx,NO_VALID
   TestMapVectorsAsRGBColors.cxx
   TestMapVectorsToColors.cxx
-  TestMultiBlockPartialArrayFieldData.cxx
-  TestMultiBlockPartialArrayPointData.cxx
   TestOffAxisStereo.cxx
   TestOnAndOffScreenConeCxx.cxx
   TestOpacity.cxx
@@ -96,7 +98,9 @@ vtk_add_test_cxx(vtkRenderingCoreCxxTests tests
   TestSplitViewportStereoHorizontal.cxx
   TestStereoBackgroundLeft.cxx
   TestStereoBackgroundRight.cxx
+  TestStereoEyeSeparation.cxx
   TestTexturedBackground.cxx
+  TestTexturedCylinder.cxx
   TestTextureRGBA.cxx
   TestTextureRGBADepthPeeling.cxx
   TestTextureSize.cxx,NO_VALID

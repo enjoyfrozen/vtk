@@ -5,18 +5,27 @@
 
 #include "vtkCellData.h"
 #include "vtkCellIterator.h"
+#include "vtkCompositeDataIterator.h"
 #include "vtkConduitSource.h"
 #include "vtkImageData.h"
 #include "vtkLogger.h"
+#include "vtkMultiProcessController.h"
 #include "vtkNew.h"
 #include "vtkOverlappingAMR.h"
 #include "vtkPartitionedDataSet.h"
+#include "vtkPointData.h"
 #include "vtkRectilinearGrid.h"
 #include "vtkSmartPointer.h"
 #include "vtkStructuredGrid.h"
 #include "vtkTestUtilities.h"
 #include "vtkUnstructuredGrid.h"
 #include "vtkVector.h"
+
+#if VTK_MODULE_ENABLE_VTK_ParallelMPI
+#include "vtkMPIController.h"
+#else
+#include "vtkDummyController.h"
+#endif
 
 #include <catalyst_conduit.hpp>
 #include <catalyst_conduit_blueprint.hpp>
@@ -42,6 +51,9 @@ vtkSmartPointer<vtkDataObject> Convert(const conduit_cpp::Node& node)
 void CreateUniformMesh(
   unsigned int nptsX, unsigned int nptsY, unsigned int nptsZ, conduit_cpp::Node& res)
 {
+  auto controller = vtkMultiProcessController::GetGlobalController();
+  auto rank = controller->GetLocalProcessId();
+
   // Create the structure
   conduit_cpp::Node coords = res["coordsets/coords"];
   coords["type"] = "uniform";
@@ -57,7 +69,7 @@ void CreateUniformMesh(
   // -10 to 10 in each dim
   conduit_cpp::Node origin = coords["origin"];
   origin["x"] = -10.0;
-  origin["y"] = -10.0;
+  origin["y"] = -10.0 + 20 * rank;
 
   if (nptsZ > 1)
   {
@@ -81,6 +93,7 @@ bool ValidateMeshTypeUniform()
 {
   conduit_cpp::Node mesh;
   CreateUniformMesh(3, 3, 3, mesh);
+
   auto data = Convert(mesh);
   VERIFY(vtkPartitionedDataSet::SafeDownCast(data) != nullptr,
     "incorrect data type, expected vtkPartitionedDataSet, got %s", vtkLogIdentifier(data));
@@ -361,14 +374,13 @@ bool ValidateMeshTypeUnstructured()
   return true;
 }
 
-bool CheckFieldDataMeshConversion(conduit_cpp::Node& mesh_node, int expected_number_of_arrays,
+bool CheckFieldData(vtkDataObject* data, int expected_number_of_arrays,
   const std::string& expected_array_name, int expected_number_of_components,
   std::vector<vtkVariant> expected_values)
 {
-  auto data = Convert(mesh_node);
   auto field_data = data->GetFieldData();
   VERIFY(field_data->GetNumberOfArrays() == expected_number_of_arrays,
-    "incorrect number of arrays in field data, expected 0, got %d",
+    "incorrect number of arrays in field data, expected %d, got %d", expected_number_of_arrays,
     field_data->GetNumberOfArrays());
 
   if (expected_number_of_arrays > 0)
@@ -376,7 +388,7 @@ bool CheckFieldDataMeshConversion(conduit_cpp::Node& mesh_node, int expected_num
     auto field_array = field_data->GetAbstractArray(0);
 
     VERIFY(std::string(field_array->GetName()) == expected_array_name,
-      "wrong array name, expected \"integer_field_data\", got %s", field_array->GetName());
+      "wrong array name, expected %s, got %s", expected_array_name.c_str(), field_array->GetName());
     VERIFY(field_array->GetNumberOfComponents() == expected_number_of_components,
       "wrong number of component");
     VERIFY(static_cast<size_t>(field_array->GetNumberOfTuples()) == expected_values.size(),
@@ -390,13 +402,49 @@ bool CheckFieldDataMeshConversion(conduit_cpp::Node& mesh_node, int expected_num
   return true;
 }
 
+bool CheckFieldDataMeshConversion(conduit_cpp::Node& mesh_node, int expected_number_of_arrays,
+  const std::string& expected_array_name, int expected_number_of_components,
+  std::vector<vtkVariant> expected_values)
+{
+  auto data = Convert(mesh_node);
+
+  CheckFieldData(data, expected_number_of_arrays, expected_array_name,
+    expected_number_of_components, expected_values);
+  auto pds = vtkPartitionedDataSet::SafeDownCast(data);
+  VERIFY(pds->GetNumberOfPartitions() == 1, "incorrect number of partitions, expected 1, got %d",
+    pds->GetNumberOfPartitions());
+  auto img = vtkImageData::SafeDownCast(pds->GetPartition(0));
+
+  CheckFieldData(img, expected_number_of_arrays, expected_array_name, expected_number_of_components,
+    expected_values);
+
+  return true;
+}
+
 bool ValidateMeshTypeAMR(const std::string& file)
 {
   conduit_cpp::Node mesh;
   // read in an example mesh dataset
   conduit_node_load(conduit_cpp::c_node(&mesh), file.c_str(), "");
 
-  mesh.print();
+  // add in point data
+  std::string field_name = "pointfield";
+  double field_value = 1;
+  size_t num_children = mesh["data"].number_of_children();
+  for (size_t i = 0; i < num_children; i++)
+  {
+    conduit_cpp::Node amr_block = mesh["data"].child(i);
+    int i_dimension = amr_block["coordsets/coords/dims/i"].to_int32();
+    int j_dimension = amr_block["coordsets/coords/dims/j"].to_int32();
+    int k_dimension = amr_block["coordsets/coords/dims/k"].to_int32();
+    conduit_cpp::Node fields = amr_block["fields"];
+    conduit_cpp::Node point_field = fields[field_name];
+    point_field["association"] = "vertex";
+    point_field["topology"] = "topo";
+    std::vector<double> point_values(
+      (i_dimension + 1) * (j_dimension + 1) * (k_dimension + 1), field_value);
+    point_field["values"] = point_values;
+  }
 
   const auto& meshdata = mesh["data"];
   // run vtk conduit source
@@ -423,11 +471,26 @@ bool ValidateMeshTypeAMR(const std::string& file)
 
   VERIFY(origin[0] == 0 && origin[1] == 0 && origin[2] == 0, "Incorrect AMR origin");
 
+  vtkSmartPointer<vtkCompositeDataIterator> iter;
+  iter.TakeReference(amr->NewIterator());
+  iter->InitTraversal();
+  for (iter->GoToFirstItem(); !iter->IsDoneWithTraversal(); iter->GoToNextItem())
+  {
+    vtkDataSet* block = vtkDataSet::SafeDownCast(iter->GetCurrentDataObject());
+    VERIFY(block->GetCellData()->GetArray("density") != nullptr, "Incorrect AMR cell data");
+    double range[2] = { -1, -1 };
+    block->GetPointData()->GetArray(field_name.c_str())->GetRange(range);
+    VERIFY(range[0] == field_value && range[1] == field_value, "Incorrect AMR point data");
+  }
+
   return true;
 }
 
 bool ValidateFieldData()
 {
+  auto controller = vtkMultiProcessController::GetGlobalController();
+  auto rank = controller->GetLocalProcessId();
+
   conduit_cpp::Node mesh;
   CreateUniformMesh(3, 3, 3, mesh);
 
@@ -439,8 +502,8 @@ bool ValidateFieldData()
 
   field_data_node.remove(0);
   auto integer_field_data = field_data_node["integer_field_data"];
-  integer_field_data.set_int64(42);
-  VERIFY(CheckFieldDataMeshConversion(mesh, 1, integer_field_data.name(), 1, { 42 }),
+  integer_field_data.set_int64(42 + rank);
+  VERIFY(CheckFieldDataMeshConversion(mesh, 1, integer_field_data.name(), 1, { 42 + rank }),
     "Verification failed for integer field data.");
 
   field_data_node.remove(0);
@@ -480,7 +543,64 @@ bool ValidateFieldData()
   return true;
 }
 
-bool ValidateRectlinearGridWithDifferentDimensions()
+bool ValidateAscentGhostCellData()
+{
+  conduit_cpp::Node mesh;
+  CreateUniformMesh(3, 3, 3, mesh);
+
+  std::vector<int> cellGhosts(8, 0);
+  cellGhosts[2] = 1;
+
+  conduit_cpp::Node resCellFields = mesh["fields/ascent_ghosts"];
+  resCellFields["association"] = "element";
+  resCellFields["topology"] = "mesh";
+  resCellFields["volume_dependent"] = "false";
+  resCellFields["values"] = cellGhosts;
+
+  auto data = Convert(mesh);
+  auto pds = vtkPartitionedDataSet::SafeDownCast(data);
+  VERIFY(pds->GetNumberOfPartitions() == 1, "incorrect number of partitions, expected 1, got %d",
+    pds->GetNumberOfPartitions());
+  auto img = vtkImageData::SafeDownCast(pds->GetPartition(0));
+  VERIFY(img != nullptr, "missing partition 0");
+  vtkUnsignedCharArray* array = vtkUnsignedCharArray::SafeDownCast(
+    img->GetCellData()->GetArray(vtkDataSetAttributes::GhostArrayName()));
+  VERIFY(array != nullptr &&
+      array->GetValue(2) == static_cast<unsigned char>(vtkDataSetAttributes::HIDDENCELL),
+    "Verification failed for converting Ascent ghost cell data");
+
+  return true;
+}
+
+bool ValidateAscentGhostPointData()
+{
+  conduit_cpp::Node mesh;
+  CreateUniformMesh(3, 3, 3, mesh);
+
+  std::vector<int> pointGhosts(27, 0);
+  pointGhosts[2] = 1;
+
+  conduit_cpp::Node resPointFields = mesh["fields/ascent_ghosts"];
+  resPointFields["association"] = "vertex";
+  resPointFields["topology"] = "mesh";
+  resPointFields["values"] = pointGhosts;
+
+  auto data = Convert(mesh);
+  auto pds = vtkPartitionedDataSet::SafeDownCast(data);
+  VERIFY(pds->GetNumberOfPartitions() == 1, "incorrect number of partitions, expected 1, got %d",
+    pds->GetNumberOfPartitions());
+  auto img = vtkImageData::SafeDownCast(pds->GetPartition(0));
+  VERIFY(img != nullptr, "missing partition 0");
+  vtkUnsignedCharArray* array = vtkUnsignedCharArray::SafeDownCast(
+    img->GetPointData()->GetArray(vtkDataSetAttributes::GhostArrayName()));
+  VERIFY(array != nullptr &&
+      array->GetValue(2) == static_cast<unsigned char>(vtkDataSetAttributes::HIDDENPOINT),
+    "Verification failed for converting Ascent ghost point data");
+
+  return true;
+}
+
+bool ValidateRectilinearGridWithDifferentDimensions()
 {
   conduit_cpp::Node mesh;
   CreateRectilinearMesh(3, 2, 1, mesh);
@@ -944,13 +1064,27 @@ bool ValidateMeshTypeMixed()
 
 int TestConduitSource(int argc, char** argv)
 {
+#if VTK_MODULE_ENABLE_VTK_ParallelMPI
+  vtkNew<vtkMPIController> controller;
+#else
+  vtkNew<vtkDummyController> controller;
+#endif
+  controller->Initialize(&argc, &argv);
+  vtkMultiProcessController::SetGlobalController(controller);
+
   std::string amrFile =
     vtkTestUtilities::ExpandDataFileName(argc, argv, "Data/Conduit/bp_amr_example.json");
 
-  return ValidateMeshTypeUniform() && ValidateMeshTypeRectilinear() &&
+  auto ret = ValidateMeshTypeUniform() && ValidateMeshTypeRectilinear() &&
       ValidateMeshTypeStructured() && ValidateMeshTypeUnstructured() && ValidateFieldData() &&
-      ValidateRectlinearGridWithDifferentDimensions() && Validate1DRectilinearGrid() &&
-      ValidateMeshTypeMixed() && ValidateMeshTypeMixed2D() && ValidateMeshTypeAMR(amrFile)
+      ValidateRectilinearGridWithDifferentDimensions() && Validate1DRectilinearGrid() &&
+      ValidateMeshTypeMixed() && ValidateMeshTypeMixed2D() && ValidateMeshTypeAMR(amrFile) &&
+      ValidateAscentGhostCellData() && ValidateAscentGhostPointData()
+
     ? EXIT_SUCCESS
     : EXIT_FAILURE;
+
+  controller->Finalize();
+
+  return ret;
 }

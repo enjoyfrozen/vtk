@@ -80,8 +80,8 @@ void ByteSwap64(void* aVals, int nVals)
 
 int compare_ids(const void* id1, const void* id2)
 {
-  int* a = (int*)id1;
-  int* b = (int*)id2;
+  const int* a = (const int*)id1;
+  const int* b = (const int*)id2;
 
   if (*a < *b)
     return (-1);
@@ -1691,7 +1691,9 @@ void vtkNek5000Reader::copyContinuumData(vtkUnstructuredGrid* pv_ugrid)
         for (int b_index = 0; b_index < this->myNumBlocks; ++b_index)
         {
           // for every point in this element/block
-          // cerr<<"rank= "<<my_rank<<" : b_index= "<< b_index<<endl;
+#ifndef NDEBUG
+          cerr << "rank= " << my_rank << " : b_index= " << b_index << endl;
+#endif
           int mag_block_offset = b_index * this->totalBlockSize;
           int comp_block_offset = mag_block_offset * 3;
 

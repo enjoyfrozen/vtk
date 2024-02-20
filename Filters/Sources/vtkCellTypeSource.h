@@ -129,10 +129,14 @@ protected:
 
   void GenerateTriangles(vtkUnstructuredGrid*, int extent[6]);
   void GenerateQuads(vtkUnstructuredGrid*, int extent[6]);
+  void GeneratePolygons(vtkUnstructuredGrid*, int extent[6]);
+  void GeneratePixels(vtkUnstructuredGrid*, int extent[6]);
   void GenerateQuadraticTriangles(vtkUnstructuredGrid*, int extent[6]);
   void GenerateQuadraticQuads(vtkUnstructuredGrid*, int extent[6]);
   void GenerateTetras(vtkUnstructuredGrid*, int extent[6]);
   void GenerateHexahedron(vtkUnstructuredGrid*, int extent[6]);
+  void GeneratePolyhedron(vtkUnstructuredGrid*, int extent[6]);
+  void GenerateVoxels(vtkUnstructuredGrid*, int extent[6]);
   void GenerateWedges(vtkUnstructuredGrid*, int extent[6]);
   void GeneratePyramids(vtkUnstructuredGrid*, int extent[6]);
   void GeneratePentagonalPrism(vtkUnstructuredGrid*, int extent[6]);
@@ -143,18 +147,18 @@ protected:
   void GenerateQuadraticPyramids(vtkUnstructuredGrid*, int extent[6]);
   void GenerateTriQuadraticPyramids(vtkUnstructuredGrid*, int extent[6]);
 
+  void GenerateHighOrderQuads(
+    vtkUnstructuredGrid* output, int extent[6], int cellType, int cellOrder);
+  void GenerateHighOrderHexes(
+    vtkUnstructuredGrid* output, int extent[6], int cellType, int cellOrder);
   void GenerateLagrangeCurves(vtkUnstructuredGrid*, int extent[6]);
   void GenerateLagrangeTris(vtkUnstructuredGrid*, int extent[6]);
-  void GenerateLagrangeQuads(vtkUnstructuredGrid*, int extent[6]);
   void GenerateLagrangeTets(vtkUnstructuredGrid*, int extent[6]);
-  void GenerateLagrangeHexes(vtkUnstructuredGrid*, int extent[6]);
   void GenerateLagrangeWedges(vtkUnstructuredGrid*, int extent[6]);
 
   void GenerateBezierCurves(vtkUnstructuredGrid*, int extent[6]);
   void GenerateBezierTris(vtkUnstructuredGrid*, int extent[6]);
-  void GenerateBezierQuads(vtkUnstructuredGrid*, int extent[6]);
   void GenerateBezierTets(vtkUnstructuredGrid*, int extent[6]);
-  void GenerateBezierHexes(vtkUnstructuredGrid*, int extent[6]);
   void GenerateBezierWedges(vtkUnstructuredGrid*, int extent[6]);
 
   virtual void ComputeFields(vtkUnstructuredGrid*);

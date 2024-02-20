@@ -79,9 +79,6 @@ vtkOpenGLRenderer::vtkOpenGLRenderer()
   this->LightingCount = -1;
   this->LightingComplexity = -1;
 
-  this->EnvMapLookupTable = nullptr;
-  this->EnvMapIrradiance = nullptr;
-  this->EnvMapPrefiltered = nullptr;
   this->UseSphericalHarmonics = true;
 }
 
@@ -123,7 +120,7 @@ int vtkOpenGLRenderer::UpdateLights()
     }
   }
 
-  if (this->GetUseImageBasedLighting() && this->GetEnvironmentTexture() && lightingComplexity == 0)
+  if (this->GetUseImageBasedLighting() && lightingComplexity == 0)
   {
     lightingComplexity = 1;
   }
@@ -228,38 +225,50 @@ void vtkOpenGLRenderer::DeviceRender()
 {
   vtkTimerLog::MarkStartEvent("OpenGL Dev Render");
 
-  bool computeIBLTextures = !(this->Pass && this->Pass->IsA("vtkOSPRayPass")) &&
-    this->UseImageBasedLighting && this->EnvironmentTexture;
+  bool computeIBLTextures =
+    !(this->Pass && this->Pass->IsA("vtkOSPRayPass")) && this->UseImageBasedLighting;
   if (computeIBLTextures)
   {
     this->GetEnvMapLookupTable()->Load(this);
     this->GetEnvMapPrefiltered()->Load(this);
 
+    // Complex logic here, different possibilities:
+    // - UseSH is ON, EnvTex is provided but is not compatible, fallback to irradiance
+    // - UseSH is ON and SH are provided, EnvTex is not, just use the SH as is
+    // - UseSH is ON, SH and EnvTex are provided and compatible, check the MTime to recompute SH
+    // - UseSH is ON, SH is not provided, EnvTex is compatible, compute SH
+    // - UseSH is ON, SH is not provided, EnvTex is compatible but empty, error out
+    // - UseSH is OFF, use irradiance
     bool useSH = this->UseSphericalHarmonics;
-
-    if (useSH && this->EnvironmentTexture->GetCubeMap())
+    if (this->EnvironmentTexture && this->EnvironmentTexture->GetCubeMap())
     {
       vtkWarningMacro(
-        "Cannot compute spherical harmonics of a cubemap, fall back to irradiance texture");
-      useSH = false;
-    }
-
-    vtkImageData* img = this->EnvironmentTexture->GetInput();
-    if (useSH && !img)
-    {
-      vtkWarningMacro("Cannot retrieve vtkImageData, fall back to texture");
+        "Cannot compute spherical harmonics of a cubemap, falling back to irradiance texture");
       useSH = false;
     }
 
     if (useSH)
     {
-      if (!this->SphericalHarmonics || img->GetMTime() > this->SphericalHarmonics->GetMTime())
+      vtkImageData* img = nullptr;
+      if (this->EnvironmentTexture)
+      {
+        img = this->EnvironmentTexture->GetInput();
+      }
+
+      if (img &&
+        (!this->SphericalHarmonics || img->GetMTime() > this->SphericalHarmonics->GetMTime()))
       {
         vtkNew<vtkSphericalHarmonics> sh;
         sh->SetInputData(img);
         sh->Update();
         this->SphericalHarmonics = vtkFloatArray::SafeDownCast(
           vtkTable::SafeDownCast(sh->GetOutputDataObject(0))->GetColumn(0));
+      }
+
+      if (!this->SphericalHarmonics)
+      {
+        vtkErrorMacro("Cannot compute spherical harmonics without an image data texture");
+        return;
       }
     }
     else
@@ -667,10 +676,13 @@ void vtkOpenGLRenderer::Clear()
     }
     else // GradientBackground
     {
-      vtkShaderProgram::Substitute(fs, "//VTK::FSQ::Decl",
-        "uniform vec3 stopColors[2];\n"
-        "uniform vec2 screenSize;\n"
-        "//VTK::FSQ::Decl");
+      vtkShaderProgram::Substitute(fs, "//VTK::FSQ::Decl", R"(
+uniform bool dither;
+uniform vec3 stopColors[2];
+// Granularity of dither noise set to very small number 0.5 / 255.0 to ensure any shift in color due to dither noise is minimal
+const highp float DITHERING_GRANULARITY = 0.001960784313725;
+float generateRandom (vec2 st) { return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123); }
+//VTK::FSQ::Decl)");
       switch (this->GradientMode)
       {
         case GradientModes::VTK_GRADIENT_RADIAL_VIEWPORT_FARTHEST_SIDE:
@@ -708,8 +720,11 @@ void vtkOpenGLRenderer::Clear()
         }
       }
       vtkShaderProgram::Substitute(fs, "//VTK::FSQ::Impl",
-        "  gl_FragData[0] = vec4(stopColors[0].xyz * (1.0 - value) + stopColors[1].xyz * "
-        "value, 1.0);");
+        R"(gl_FragData[0] = vec4(mix(stopColors[0].xyz, stopColors[1].xyz, value), 1.0);
+if (dither) {
+  float noise = mix(-DITHERING_GRANULARITY, DITHERING_GRANULARITY, generateRandom(texCoord));
+  gl_FragData[0].xyz += vec3(noise);
+})");
     }
 
     // re-create vtkOpenGLQuadHelper, because fragment shader code might have changed from the last
@@ -733,11 +748,8 @@ void vtkOpenGLRenderer::Clear()
 
       std::copy(this->Background, this->Background + 3, &stopColors[0][0]);
       std::copy(this->Background2, this->Background2 + 3, &stopColors[1][0]);
-      int vp[4]; // llX, llY, width, height
-      this->GetTiledSizeAndOrigin(&vp[2], &vp[3], &vp[0], &vp[1]);
-      float screenSize[2] = { static_cast<float>(vp[3]), static_cast<float>(vp[4]) };
       this->BackgroundRenderer->Program->SetUniform3fv("stopColors", 2, stopColors);
-      this->BackgroundRenderer->Program->SetUniform1fv("screenSize", 2, screenSize);
+      this->BackgroundRenderer->Program->SetUniformi("dither", this->DitherGradient);
     }
     // draw the background.
     this->BackgroundRenderer->Render();
@@ -831,24 +843,6 @@ vtkOpenGLRenderer::~vtkOpenGLRenderer()
   {
     this->TranslucentPass->Delete();
     this->TranslucentPass = nullptr;
-  }
-
-  if (this->EnvMapLookupTable)
-  {
-    this->EnvMapLookupTable->Delete();
-    this->EnvMapLookupTable = nullptr;
-  }
-
-  if (this->EnvMapIrradiance)
-  {
-    this->EnvMapIrradiance->Delete();
-    this->EnvMapIrradiance = nullptr;
-  }
-
-  if (this->EnvMapPrefiltered)
-  {
-    this->EnvMapPrefiltered->Delete();
-    this->EnvMapPrefiltered = nullptr;
   }
 }
 
@@ -1149,7 +1143,7 @@ vtkPBRLUTTexture* vtkOpenGLRenderer::GetEnvMapLookupTable()
 {
   if (!this->EnvMapLookupTable)
   {
-    this->EnvMapLookupTable = vtkPBRLUTTexture::New();
+    this->EnvMapLookupTable = vtkSmartPointer<vtkPBRLUTTexture>::New();
   }
   return this->EnvMapLookupTable;
 }
@@ -1159,7 +1153,7 @@ vtkPBRIrradianceTexture* vtkOpenGLRenderer::GetEnvMapIrradiance()
 {
   if (!this->EnvMapIrradiance)
   {
-    this->EnvMapIrradiance = vtkPBRIrradianceTexture::New();
+    this->EnvMapIrradiance = vtkSmartPointer<vtkPBRIrradianceTexture>::New();
   }
   return this->EnvMapIrradiance;
 }
@@ -1169,7 +1163,7 @@ vtkPBRPrefilterTexture* vtkOpenGLRenderer::GetEnvMapPrefiltered()
 {
   if (!this->EnvMapPrefiltered)
   {
-    this->EnvMapPrefiltered = vtkPBRPrefilterTexture::New();
+    this->EnvMapPrefiltered = vtkSmartPointer<vtkPBRPrefilterTexture>::New();
   }
   return this->EnvMapPrefiltered;
 }

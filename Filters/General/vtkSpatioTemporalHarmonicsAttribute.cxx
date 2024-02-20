@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: Copyright (c) Kitware Inc.
+// SPDX-FileCopyrightText: Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
 // SPDX-License-Identifier: BSD-3-Clause
 #include "vtkSpatioTemporalHarmonicsAttribute.h"
 
@@ -170,33 +170,42 @@ int vtkSpatioTemporalHarmonicsAttribute::RequestData(
   vtkDataSet* input = vtkDataSet::GetData(inputVector[0]);
   vtkDataSet* output = vtkDataSet::GetData(outputVector);
 
-  if (!input)
+  if (!input || input->GetNumberOfPoints() == 0)
   {
-    vtkErrorMacro("No input.");
     return 1;
   }
 
-  if (this->Amplitudes.empty())
-  {
-    vtkWarningMacro("No harmonics specified.");
-    return 1;
-  }
+  // Copy all the input geometry and data to the output.
+  output->ShallowCopy(input);
+
+  // Allocate space for the elevation scalar data.
+  vtkIdType nbPts = input->GetNumberOfPoints();
+  vtkNew<vtkDoubleArray> newScalars;
+  newScalars->SetNumberOfTuples(nbPts);
+
+  // Add the new scalars array to the output.
+  newScalars->SetName(ARRAY_NAME);
+  output->GetPointData()->AddArray(newScalars);
+  output->GetPointData()->SetActiveScalars(ARRAY_NAME);
+
   if (this->Amplitudes.size() != this->TemporalFrequencies.size() ||
     this->Amplitudes.size() != this->WaveVectors.size() ||
     this->Amplitudes.size() != this->Phases.size())
   {
-    vtkErrorMacro("Harmonics parameters should be specified for each harmonic.");
+    vtkErrorMacro(
+      "Failed to compute harmonics. Harmonics parameters should be specified for each harmonic.");
+    return 0;
+  }
+
+  if (this->Amplitudes.empty())
+  {
+    newScalars->FillValue(0.0);
     return 1;
   }
 
   // Get the current time value
   vtkInformation* outInfo = outputVector->GetInformationObject(0);
   double timeValue = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP());
-
-  // Allocate space for the elevation scalar data.
-  vtkIdType nbPts = input->GetNumberOfPoints();
-  vtkNew<vtkDoubleArray> newScalars;
-  newScalars->SetNumberOfTuples(nbPts);
 
   // Create an optimized path for point set input
   vtkPointSet* ps = vtkPointSet::SafeDownCast(input);
@@ -241,14 +250,6 @@ int vtkSpatioTemporalHarmonicsAttribute::RequestData(
       }
     });
   }
-
-  // Copy all the input geometry and data to the output.
-  output->ShallowCopy(input);
-
-  // Add the new scalars array to the output.
-  newScalars->SetName(ARRAY_NAME);
-  output->GetPointData()->AddArray(newScalars);
-  output->GetPointData()->SetActiveScalars(ARRAY_NAME);
 
   return 1;
 }

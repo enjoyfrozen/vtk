@@ -38,7 +38,7 @@
 /**
  * Helper to append a text line to an array of lines
  */
-static char** append_unique_line(char** lines, char* line, size_t* np)
+static char** append_unique_line(char** lines, const char* line, size_t* np)
 {
   size_t l, n, m;
 
@@ -208,7 +208,8 @@ static char* append_trailer(char* line, size_t* m, size_t* maxlen, const char* h
 /**
  * Append typedef info
  */
-static char* append_typedef_to_line(char* line, size_t* m, size_t* maxlen, ValueInfo* typedef_info)
+static char* append_typedef_to_line(
+  char* line, size_t* m, size_t* maxlen, const ValueInfo* typedef_info)
 {
   unsigned int type;
   int ndims;
@@ -815,7 +816,7 @@ static int vtkWrapHierarchy_TryWriteHierarchyFile(const char* file_name, char* c
   FILE* output_file;
   int matched = 0;
 
-  output_file = vtkParse_FileOpen(file_name, "r");
+  output_file = vtkParse_FileOpenNoDependency(file_name, "r");
   if (output_file && vtkWrapHierarchy_CompareHierarchyFile(output_file, lines))
   {
     matched = 1;
@@ -839,7 +840,7 @@ static int vtkWrapHierarchy_TryWriteHierarchyFile(const char* file_name, char* c
 #else
       sleep(1);
 #endif
-      output_file = vtkParse_FileOpen(file_name, "r+");
+      output_file = vtkParse_FileOpenNoDependency(file_name, "r+");
       if (output_file && vtkWrapHierarchy_CompareHierarchyFile(output_file, lines))
       {
         /* if the contents match, no need to write it */
@@ -856,13 +857,13 @@ static int vtkWrapHierarchy_TryWriteHierarchyFile(const char* file_name, char* c
     if (!output_file)
     {
       fprintf(stderr, "vtkWrapHierarchy: tried %i times to write %s\n", tries, file_name);
-      exit(1);
+      return 1;
     }
     if (!vtkWrapHierarchy_WriteHierarchyFile(output_file, lines))
     {
       fclose(output_file);
       fprintf(stderr, "vtkWrapHierarchy: error writing file %s\n", file_name);
-      exit(1);
+      return 1;
     }
     fclose(output_file);
   }
@@ -877,27 +878,27 @@ static int string_compare(const void* vp1, const void* vp2)
 
 int VTK_PARSE_MAIN(int argc, char* argv[])
 {
-  OptionInfo* options;
+  const OptionInfo* options;
   int i;
+  int retValue = 0;
   size_t j, n;
   char** lines = 0;
   char** files = 0;
   char* flags;
   char* module_name;
-  StringCache* string_cache;
 
   /* pre-define a macro to identify the language */
   vtkParse_DefineMacro("__VTK_WRAP_HIERARCHY__", 0);
 
   /* parse command-line options */
-  string_cache = vtkParse_MainMulti(argc, argv);
+  vtkParse_MainMulti(argc, argv);
   options = vtkParse_GetCommandLineOptions();
 
   /* make sure than an output file was given on the command line */
   if (options->OutputFileName == NULL)
   {
     fprintf(stderr, "No output file was specified\n");
-    exit(1);
+    return vtkParse_FinalizeMain(1);
   }
 
   /* read the data file */
@@ -944,7 +945,10 @@ int VTK_PARSE_MAIN(int argc, char* argv[])
   qsort(lines, n, sizeof(char*), &string_compare);
 
   /* write the file, if it has changed */
-  vtkWrapHierarchy_TryWriteHierarchyFile(options->OutputFileName, lines);
+  if (vtkWrapHierarchy_TryWriteHierarchyFile(options->OutputFileName, lines))
+  {
+    retValue = 1;
+  }
 
   for (j = 0; j < n; j++)
   {
@@ -956,9 +960,8 @@ int VTK_PARSE_MAIN(int argc, char* argv[])
     free(files[j]);
   }
 
-  vtkParse_FreeStringCache(string_cache);
-  free(string_cache);
   free(files);
   free(lines);
-  return 0;
+
+  return vtkParse_FinalizeMain(retValue);
 }

@@ -143,6 +143,39 @@ vtkIdType* vtkGenericCell::GetFaces()
 }
 
 //------------------------------------------------------------------------------
+int vtkGenericCell::SetCellFaces(vtkCellArray* faces)
+{
+  vtkPolyhedron* cell = vtkPolyhedron::SafeDownCast(this->Cell);
+  if (!cell)
+  {
+    vtkErrorMacro("SafeDownCast to vtkPolyhedron failed, the cell is not a polyhedron");
+  }
+  return cell->SetCellFaces(faces);
+}
+
+//------------------------------------------------------------------------------
+vtkCellArray* vtkGenericCell::GetCellFaces()
+{
+  vtkPolyhedron* cell = vtkPolyhedron::SafeDownCast(this->Cell);
+  if (!cell)
+  {
+    vtkErrorMacro("SafeDownCast to vtkPolyhedron failed, the cell is not a polyhedron");
+  }
+  return cell->GetCellFaces();
+}
+
+//------------------------------------------------------------------------------
+void vtkGenericCell::GetCellFaces(vtkCellArray* faces)
+{
+  vtkPolyhedron* cell = vtkPolyhedron::SafeDownCast(this->Cell);
+  if (!cell)
+  {
+    vtkErrorMacro("SafeDownCast to vtkPolyhedron failed, the cell is not a polyhedron");
+  }
+  cell->GetCellFaces(faces);
+}
+
+//------------------------------------------------------------------------------
 void vtkGenericCell::Initialize()
 {
   this->Cell->Initialize();
@@ -222,6 +255,18 @@ int vtkGenericCell::IntersectWithLine(const double p1[3], const double p2[3], do
 int vtkGenericCell::Triangulate(int index, vtkIdList* ptIds, vtkPoints* pts)
 {
   return this->Cell->Triangulate(index, ptIds, pts);
+}
+
+//------------------------------------------------------------------------------
+int vtkGenericCell::TriangulateLocalIds(int index, vtkIdList* ptIds)
+{
+  return this->Cell->TriangulateLocalIds(index, ptIds);
+}
+
+//------------------------------------------------------------------------------
+int vtkGenericCell::TriangulateIds(int index, vtkIdList* ptIds)
+{
+  return this->Cell->TriangulateIds(index, ptIds);
 }
 
 //------------------------------------------------------------------------------

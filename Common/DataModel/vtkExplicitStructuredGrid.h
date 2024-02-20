@@ -51,8 +51,6 @@
 
 VTK_ABI_NAMESPACE_BEGIN
 class vtkCellArray;
-class vtkEmptyCell;
-class vtkHexahedron;
 
 class VTKCOMMONDATAMODEL_EXPORT vtkExplicitStructuredGrid : public vtkPointSet
 {
@@ -86,6 +84,7 @@ public:
   void GetCellPoints(vtkIdType cellId, vtkIdList* ptIds) override;
   void GetPointCells(vtkIdType ptId, vtkIdList* cellIds) override;
   int GetMaxCellSize() override { return 8; } // hexahedron is the largest
+  int GetMaxSpatialDimension() override { return 3; }
   void GetCellNeighbors(vtkIdType cellId, vtkIdList* ptIds, vtkIdList* cellIds) override;
   ///@}
 
@@ -335,11 +334,6 @@ protected:
   virtual void InternalCopy(vtkExplicitStructuredGrid* src);
 
   /**
-   * Internal method used by GetCell.
-   */
-  void GetCell(vtkIdType, vtkCell*);
-
-  /**
    * Internal method used by CheckAndReorderFaces
    */
   void InternalCheckAndReorderFaces(bool swap);
@@ -370,10 +364,6 @@ protected:
    * Reorder all cells points based on a transformFlag for each axis and a points map
    */
   void ReorderCellsPoints(const int* ptsMap, const int transformFlag[3]);
-
-  // Used by GetCell method
-  vtkNew<vtkHexahedron> Hexahedron;
-  vtkNew<vtkEmptyCell> EmptyCell;
 
   vtkSmartPointer<vtkCellArray> Cells;
   vtkSmartPointer<vtkAbstractCellLinks> Links;

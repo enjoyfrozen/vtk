@@ -79,7 +79,7 @@ struct vtkFidesReader::vtkFidesReaderImpl
     if (this->Reader)
     {
       auto names = this->Reader->GetDataSourceNames();
-      this->NumberOfDataSources = names.size();
+      this->NumberOfDataSources = static_cast<int>(names.size());
     }
   }
 
@@ -110,6 +110,7 @@ vtkFidesReader::vtkFidesReader()
   this->ConvertToVTK = false;
   this->StreamSteps = false;
   this->NextStepStatus = static_cast<StepStatus>(fides::StepStatus::NotReady);
+  this->CreateSharedPoints = true;
 }
 
 vtkFidesReader::~vtkFidesReader()
@@ -166,6 +167,7 @@ void vtkFidesReader::SetDataSourceIO(const std::string& name, const std::string&
   // can't call SetDataSourceIO in Fides yet, so just save the address for now
   this->Impl->IOObjectInfo = std::make_pair(name, ioAddress);
   this->StreamSteps = true;
+  this->Impl->UseInlineEngine = true;
   this->Modified();
 }
 
@@ -194,11 +196,12 @@ void vtkFidesReader::ParseDataModel()
   }
   try
   {
-    this->Impl->Reader.reset(new fides::io::DataSetReader(
-      this->FileName, inputType, this->StreamSteps, this->Impl->AllParams));
+    this->Impl->Reader.reset(new fides::io::DataSetReader(this->FileName, inputType,
+      this->StreamSteps, this->Impl->AllParams, this->CreateSharedPoints));
   }
   catch (std::exception& e)
   {
+    (void)e;
     // In some cases it's expected that reading will fail (e.g., not all properties have been set
     // yet), so we don't always want to output the exception. We'll just put it in vtkDebugMacro,
     // so we can just turn it on when we're experiencing some issue.
@@ -252,6 +255,7 @@ void vtkFidesReader::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "Has parsed data model: " << this->Impl->HasParsedDataModel << "\n";
   os << indent << "All data sources set: " << this->Impl->AllDataSourcesSet << "\n";
   os << indent << "Number of data sources: " << this->Impl->NumberOfDataSources << "\n";
+  os << indent << "Create shared points: " << this->CreateSharedPoints << "\n";
 }
 
 int vtkFidesReader::ProcessRequest(
@@ -309,6 +313,15 @@ int vtkFidesReader::RequestInformation(
     // RequestInformation calls, but we don't want to actually reset the
     // reader
     return 1;
+  }
+
+  if (this->Impl->UseInlineEngine)
+  {
+    // ranks can only access their own data with the inline engine, so
+    // we have to set CreateSharedPoints to false. GhostCellsGenerator
+    // is currently having a feature added to it, that will fix the gap
+    // without Fides needing to do it, that should work for the inline case
+    this->CreateSharedPoints = false;
   }
 
   vtkInformation* outInfo = outputVector->GetInformationObject(0);
@@ -463,7 +476,8 @@ int vtkFidesReader::RequestInformation(
     }
     else
     {
-      nSteps = metaData.Get<fides::metadata::Size>(fides::keys::NUMBER_OF_STEPS()).NumberOfItems;
+      nSteps = static_cast<int>(
+        metaData.Get<fides::metadata::Size>(fides::keys::NUMBER_OF_STEPS()).NumberOfItems);
 
       times.resize(nSteps);
       std::iota(times.begin(), times.end(), 0);
@@ -692,7 +706,7 @@ int vtkFidesReader::RequestData(
   unsigned int pdsIdx = 0;
   for (const auto& groupMetaData : this->Impl->GroupMetaDataCollection)
   {
-    int nBlocks = groupMetaData.NumberOfBlocks;
+    int nBlocks = static_cast<int>(groupMetaData.NumberOfBlocks);
     int nPieces = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES());
     int piece = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER());
     vtkDebugMacro(<< "nBlocks: " << nBlocks << ", nPieces: " << nPieces << ", piece: " << piece
@@ -796,4 +810,93 @@ int vtkFidesReader::FillOutputPortInformation(int vtkNotUsed(port), vtkInformati
   info->Set(vtkDataObject::DATA_TYPE_NAME(), "vtkPartitionedDataSetCollection");
   return 1;
 }
+
+int vtkFidesReader::GetNumberOfPointArrays()
+{
+  return this->PointDataArraySelection->GetNumberOfArrays();
+}
+
+const char* vtkFidesReader::GetPointArrayName(int index)
+{
+  return this->PointDataArraySelection->GetArrayName(index);
+}
+
+int vtkFidesReader::GetPointArrayStatus(const char* name)
+{
+  return this->PointDataArraySelection->ArrayIsEnabled(name);
+}
+
+void vtkFidesReader::SetPointArrayStatus(const char* name, int status)
+{
+  if (status)
+  {
+    this->PointDataArraySelection->EnableArray(name);
+  }
+  else
+  {
+    this->PointDataArraySelection->DisableArray(name);
+  }
+}
+
+int vtkFidesReader::GetNumberOfCellArrays()
+{
+  return this->CellDataArraySelection->GetNumberOfArrays();
+}
+
+const char* vtkFidesReader::GetCellArrayName(int index)
+{
+  return this->CellDataArraySelection->GetArrayName(index);
+}
+
+int vtkFidesReader::GetCellArrayStatus(const char* name)
+{
+  return this->CellDataArraySelection->ArrayIsEnabled(name);
+}
+
+void vtkFidesReader::SetCellArrayStatus(const char* name, int status)
+{
+  if (status)
+  {
+    this->CellDataArraySelection->EnableArray(name);
+  }
+  else
+  {
+    this->CellDataArraySelection->DisableArray(name);
+  }
+}
+
+int vtkFidesReader::GetNumberOfFieldArrays()
+{
+  return this->FieldDataArraySelection->GetNumberOfArrays();
+}
+
+const char* vtkFidesReader::GetFieldArrayName(int index)
+{
+  return this->FieldDataArraySelection->GetArrayName(index);
+}
+
+int vtkFidesReader::GetFieldArrayStatus(const char* name)
+{
+  return this->FieldDataArraySelection->ArrayIsEnabled(name);
+}
+
+void vtkFidesReader::SetFieldArrayStatus(const char* name, int status)
+{
+  if (status)
+  {
+    this->FieldDataArraySelection->EnableArray(name);
+  }
+  else
+  {
+    this->FieldDataArraySelection->DisableArray(name);
+  }
+}
+
+vtkMTimeType vtkFidesReader::GetMTime()
+{
+  auto curMax = std::max(this->Superclass::GetMTime(), this->PointDataArraySelection->GetMTime());
+  curMax = std::max(curMax, this->CellDataArraySelection->GetMTime());
+  return std::max(curMax, this->FieldDataArraySelection->GetMTime());
+}
+
 VTK_ABI_NAMESPACE_END

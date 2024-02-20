@@ -629,7 +629,7 @@ vtkSmartPointer<vtkUnsignedCharArray> vtkExtractSelection::EvaluateColorArrayInS
     }
     // Internal array added by the EvaluateSelection method, __vtkInsidedness__ is used to know
     // which cell/point from the dataSet are inside a selection, it is useful here to follow the
-    // expression setted by the user and color the selection as the user expect.
+    // expression set by the user and color the selection as the user expect.
     if (strcmp(selArray->GetName(), "__vtkInsidedness__") == 0)
     {
       insidednessArray = selArray;
@@ -1095,8 +1095,7 @@ void vtkExtractSelection::ExtractSelectedRows(
   {
     for (vtkIdType rowId = 0; rowId < numRows; ++rowId)
     {
-      signed char isInside;
-      rowsInside->GetTypedTuple(rowId, &isInside);
+      signed char isInside = rowsInside->GetTypedComponent(rowId, 0);
       if (isInside)
       {
         output->InsertNextRow(input->GetRow(rowId));

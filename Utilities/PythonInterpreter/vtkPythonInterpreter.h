@@ -170,7 +170,18 @@ public:
   static int GetLogVerbosity();
   ///@}
 
-  static bool InitializeWithArgs(int initsigs, int argc, char* argv[]);
+  /**
+   * Initialize the Python interpreter, forwarding specified args to it.
+   * If programName is set, use it as the interpreter's program name. Otherwise, it
+   * will be set to "<path to python lib>/vtkpython"
+   * If libraryPath and landmark are set they are used for a second location
+   * for python modules, as in the case for ParaView built with external VTK.
+   * landmark is the relative path to the python modules such as 'vtkmodules/__init__.py'
+   * for VTK or 'paraview/__init__.py' for ParaView.
+   */
+  static bool InitializeWithArgs(int initsigs, int argc, char* argv[],
+    const char* programName = nullptr, const char* libraryPath = nullptr,
+    const char* landmark = nullptr);
 
 protected:
   vtkPythonInterpreter();
@@ -208,20 +219,6 @@ private:
   static std::string StdErrBuffer;
   static std::string StdOutBuffer;
   ///@}
-
-  /**
-   * Since vtkPythonInterpreter is often used outside CPython executable, e.g.
-   * vtkpython, the default logic to locate Python standard libraries used by
-   * Python (which depends on the executable path) may fail or pickup incorrect
-   * Python libs. This methods address the issue by setting program name to help
-   * guide Python's default prefix/exec_prefix searching logic.
-   */
-  static void SetupPythonPrefix();
-
-  /**
-   * Add paths to VTK's Python modules.
-   */
-  static void SetupVTKPythonPaths();
 
   /**
    * Verbosity level to use when logging info.

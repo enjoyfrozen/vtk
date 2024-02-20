@@ -50,7 +50,6 @@
 #include "vtkCommonDataModelModule.h" // For export macro
 #include "vtkDataObject.h"
 
-#include "vtkDeprecation.h"  // For VTK_DEPRECATED_IN_9_2_0
 #include "vtkNew.h"          // vtkSmartPointer
 #include "vtkSmartPointer.h" // vtkSmartPointer
 
@@ -276,12 +275,6 @@ public:
    * Return the maximum number of trees in the level 0 grid.
    */
   vtkIdType GetMaxNumberOfTrees();
-
-  /**
-   * Get the number of vertices in the primal tree grid.
-   */
-  VTK_DEPRECATED_IN_9_2_0("Please use the renamed version, GetNumberOfCells().")
-  vtkIdType GetNumberOfVertices();
 
   /**
    * Get the number of non empty trees in this grid.
@@ -532,6 +525,11 @@ public:
    */
   unsigned long GetActualMemorySize() override;
 
+  /**
+   * Returns true if type is CELL, false otherwise
+   */
+  bool SupportsGhostArray(int type) override;
+
 private:
   /**
    * Recursively initialize pure material mask
@@ -641,12 +639,12 @@ public:
     vtkIdType, unsigned int&, unsigned int&, unsigned int&) const;
 
   /**
-   * Convert the global index of a root to its Spacial coordinates origin and size.
+   * Convert the global index of a root to its Spatial coordinates origin and size.
    */
   virtual void GetLevelZeroOriginAndSizeFromIndex(vtkIdType, double*, double*);
 
   /**
-   * JB Convert the global index of a root to its Spacial coordinates origin and size.
+   * JB Convert the global index of a root to its Spatial coordinates origin and size.
    */
   virtual void GetLevelZeroOriginFromIndex(vtkIdType, double*);
 

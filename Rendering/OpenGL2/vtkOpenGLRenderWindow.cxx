@@ -36,10 +36,14 @@
 #include "vtkTimerLog.h"
 #include "vtkUnsignedCharArray.h"
 
+#include "vtksys/SystemTools.hxx"
+
 #include "BlueNoiseTexture64x64.h"
 #include "vtkTextureObjectVS.h" // a pass through shader
 
+#include <cstdlib>
 #include <sstream>
+#include <string>
 #include <type_traits>
 using std::ostringstream;
 
@@ -77,9 +81,9 @@ static const vtkOpenGLRenderWindowDriverInfo vtkOpenGLRenderWindowMSAATextureBug
   { "X.Org", "", "AMD" },
 };
 
-const char* defaultWindowName = "Visualization Toolkit - OpenGL";
+static const char* defaultWindowName = "Visualization Toolkit - OpenGL";
 
-const char* ResolveShader =
+static const char* ResolveShader =
   R"***(
   //VTK::System::Dec
   in vec2 texCoord;
@@ -110,7 +114,7 @@ const char* ResolveShader =
   }
   )***";
 
-const char* DepthBlitShader =
+static const char* DepthBlitShader =
   R"***(
   //VTK::System::Dec
   in vec2 texCoord;
@@ -125,7 +129,7 @@ const char* DepthBlitShader =
   }
   )***";
 
-const char* DepthReadShader =
+static const char* DepthReadShader =
   R"***(//VTK::System::Dec
   in vec2 texCoord;
   uniform sampler2D tex;
@@ -156,7 +160,7 @@ const char* DepthReadShader =
   }
   )***";
 
-const char* FlipShader =
+static const char* FlipShader =
   R"***(
   //VTK::System::Dec
   in vec2 texCoord;
@@ -397,7 +401,10 @@ vtkOpenGLRenderWindow::vtkOpenGLRenderWindow()
   this->Initialized = false;
   this->GlewInitValid = false;
 
-  this->MultiSamples = vtkOpenGLRenderWindowGlobalMaximumNumberOfMultiSamples;
+  this->MultiSamples = vtksys::SystemTools::GetEnv("VTK_TESTING")
+    ? 0
+    : vtkOpenGLRenderWindowGlobalMaximumNumberOfMultiSamples;
+
   delete[] this->WindowName;
   this->WindowName = new char[strlen(defaultWindowName) + 1];
   strcpy(this->WindowName, defaultWindowName);
@@ -1068,9 +1075,11 @@ int vtkOpenGLRenderWindow::ReadPixels(
   }
 
   // Must clear previous errors first.
+#ifdef VTK_REPORT_OPENGL_ERRORS
   while (glGetError() != GL_NO_ERROR)
   {
   }
+#endif
 
   this->GetState()->vtkglDisable(GL_SCISSOR_TEST);
 
@@ -1348,8 +1357,15 @@ void vtkOpenGLRenderWindow::Frame()
     this->RenderFramebuffer->Bind(GL_READ_FRAMEBUFFER);
     this->RenderFramebuffer->ActivateReadBuffer(0);
 
-    this->GetState()->vtkglBlitFramebuffer(0, 0, fbsize[0], fbsize[1], 0, 0, fbsize[0], fbsize[1],
-      (copiedColor ? 0 : GL_COLOR_BUFFER_BIT) | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+    if (this->FramebufferFlipY)
+    {
+      this->TextureDepthBlit(this->RenderFramebuffer->GetDepthAttachmentAsTextureObject());
+    }
+    else
+    {
+      this->GetState()->vtkglBlitFramebuffer(0, 0, fbsize[0], fbsize[1], 0, 0, fbsize[0], fbsize[1],
+        (copiedColor ? 0 : GL_COLOR_BUFFER_BIT) | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+    }
 
     this->GetState()->vtkglViewport(0, 0, this->Size[0], this->Size[1]);
     this->GetState()->vtkglScissor(0, 0, this->Size[0], this->Size[1]);

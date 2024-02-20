@@ -12,7 +12,7 @@
  * Cursors are created by the HyperTreeGrid implementation.
  *
  * @sa
- * vtkHyperTreeCursor vtkHyperTree vtkHyperTreeGrid
+ * vtkHyperTree vtkHyperTreeGrid
  *
  * @par Thanks:
  * This class was written by Guenole Harel and Jacques-Bernard Lekien, 2014.
@@ -99,7 +99,7 @@ public:
 
   /**
    * JB Return the global index (relative to the grid) of the
-   * neighboor icursor current vertex in the tree.
+   * neighbor icursor current vertex in the tree.
    */
   vtkIdType GetGlobalNodeIndex(unsigned int icursor);
 

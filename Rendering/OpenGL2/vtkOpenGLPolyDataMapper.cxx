@@ -247,7 +247,8 @@ vtkPolyDataMapper::MapperHashType vtkOpenGLPolyDataMapper::GenerateHash(vtkPolyD
     polydata, this->ScalarMode, this->ArrayAccessMode, this->ArrayId, this->ArrayName, cellFlag);
   bool hasScalars = this->ScalarVisibility && (scalars != nullptr);
   bool hasPointScalars = hasScalars && !cellFlag;
-  bool hasCellScalars = hasScalars && cellFlag == 1;
+  // Field data scalar mode treats field data like cell data
+  bool hasCellScalars = hasScalars && (cellFlag == 1 || cellFlag == 2);
 
   bool usesPointNormals = polydata->GetPointData()->GetNormals() != nullptr;
   bool usesPointTexCoords = polydata->GetPointData()->GetTCoords() != nullptr;
@@ -914,7 +915,7 @@ void vtkOpenGLPolyDataMapper::ReplaceShaderLight(
     vtkOpenGLRenderer* oglRen = vtkOpenGLRenderer::SafeDownCast(ren);
 
     // IBL
-    if (oglRen && ren->GetUseImageBasedLighting() && ren->GetEnvironmentTexture())
+    if (oglRen && ren->GetUseImageBasedLighting())
     {
       hasIBL = true;
       toString << "  const float prefilterMaxLevel = float("
@@ -2129,6 +2130,13 @@ void vtkOpenGLPolyDataMapper::ReplaceShaderNormal(
         vtkShaderProgram::Substitute(VSSource, "//VTK::Normal::Impl",
           "//VTK::Normal::Impl\n"
           "  tangentVCVSOutput = normalMatrix * tangentMC;\n");
+        vtkShaderProgram::Substitute(GSSource, "//VTK::Normal::Dec",
+          "//VTK::Normal::Dec\n"
+          "in vec3 tangentVCVSOutput[];\n"
+          "out vec3 tangentVCGSOutput;");
+        vtkShaderProgram::Substitute(GSSource, "//VTK::Normal::Impl",
+          "//VTK::Normal::Impl\n"
+          "tangentVCGSOutput = tangentVCVSOutput[i];");
         vtkShaderProgram::Substitute(FSSource, "//VTK::Normal::Dec",
           "//VTK::Normal::Dec\n"
           "in vec3 tangentVCVSOutput;\n");
@@ -2388,7 +2396,7 @@ void vtkOpenGLPolyDataMapper::ReplaceShaderCoincidentOffset(
         "  //VTK::UniformFlow::Impl\n" // for other replacements
       );
       vtkShaderProgram::Substitute(FSSource, "//VTK::Depth::Impl",
-        "gl_FragDepth = gl_FragDepth + cFactor*cscale + 1.0*cOffset/65000;\n");
+        "gl_FragDepth = gl_FragDepth + cFactor*cscale + 1.0*cOffset/65000.0;\n");
     }
     else
     {
@@ -2397,7 +2405,7 @@ void vtkOpenGLPolyDataMapper::ReplaceShaderCoincidentOffset(
         "  //VTK::UniformFlow::Impl\n" // for other replacements
       );
       vtkShaderProgram::Substitute(FSSource, "//VTK::Depth::Impl",
-        "gl_FragDepth = gl_FragCoord.z + cFactor*cscale + 1.0*cOffset/65000;\n");
+        "gl_FragDepth = gl_FragCoord.z + cFactor*cscale + 1.0*cOffset/65000.0;\n");
     }
     shaders[vtkShader::Fragment]->SetSource(FSSource);
   }
@@ -2535,7 +2543,8 @@ bool vtkOpenGLPolyDataMapper::GetNeedToRebuildShaders(
     (vtkOpenGLRenderer::SafeDownCast(ren)->GetUseSphericalHarmonics() ? 0x40 : 0) +
     (actor->GetProperty()->GetCoatStrength() > 0.0 ? 0x80 : 0) +
     (actor->GetProperty()->GetAnisotropy() > 0.0 ? 0x100 : 0) +
-    ((this->VBOs->GetNumberOfComponents("tcoord") % 4) << 9);
+    (vtkOpenGLRenderer::SafeDownCast(ren)->GetUseImageBasedLighting() ? 0x200 : 0) +
+    ((this->VBOs->GetNumberOfComponents("tcoord") % 4) << 10);
 
   if (cellBO.Program == nullptr || cellBO.ShaderSourceTime < this->GetMTime() ||
     cellBO.ShaderSourceTime < actor->GetProperty()->GetMTime() ||
@@ -2562,6 +2571,20 @@ bool vtkOpenGLPolyDataMapper::GetNeedToRebuildShaders(
         return true;
       }
     }
+  }
+
+  // Check if environment texture changed
+  vtkOpenGLRenderer* oren = static_cast<vtkOpenGLRenderer*>(ren);
+  vtkTexture* environmentTexture = oren->GetEnvironmentTexture();
+  if (this->EnvironmentTexture != environmentTexture ||
+    (environmentTexture && environmentTexture->GetMTime() > this->EnvironmentTextureTime))
+  {
+    this->EnvironmentTexture = environmentTexture;
+    if (environmentTexture)
+    {
+      this->EnvironmentTextureTime = environmentTexture->GetMTime();
+    }
+    return true;
   }
 
   return false;
@@ -2682,7 +2705,7 @@ void vtkOpenGLPolyDataMapper::SetMapperShaderParameters(
   vtkOpenGLCheckErrorMacro("failed after UpdateShader");
 
   // Add IBL textures
-  if (ren->GetUseImageBasedLighting() && ren->GetEnvironmentTexture())
+  if (ren->GetUseImageBasedLighting())
   {
     vtkOpenGLRenderer* oglRen = vtkOpenGLRenderer::SafeDownCast(ren);
     if (oglRen)
@@ -3435,7 +3458,7 @@ void vtkOpenGLPolyDataMapper::RenderPieceDraw(vtkRenderer* ren, vtkActor* actor)
 
 #ifndef GL_ES_VERSION_3_0
   // when using IBL, we need seamless cubemaps to avoid artifacts
-  if (ren->GetUseImageBasedLighting() && ren->GetEnvironmentTexture())
+  if (ren->GetUseImageBasedLighting())
   {
     ostate->vtkglEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
   }

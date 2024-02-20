@@ -1,10 +1,3 @@
-set(test_implicit_array)
-if(TARGET VTK::CommonImplicitArrays)
-  list(APPEND test_implicit_array
-    TestSmartVolumeMapperImplicitArray.cxx
-  )
-endif()
-
 set (VolumeCxxTests
   ProjectedTetrahedraZoomIn.cxx,NO_VALID
   TestFinalColorWindowLevel.cxx
@@ -45,15 +38,18 @@ set (VolumeCxxTests
   TestGPURayCastIndependentVectorMode.cxx
   TestGPURayCastLabelMap.cxx
   TestGPURayCastLabelMap1Label.cxx
+  TestGPURayCastLabelMapValidity.cxx
   TestGPURayCastLargeColorTransferFunction.cxx
   TestGPURayCastMIPBinaryMask.cxx
   TestGPURayCastMIPToComposite.cxx
   TestGPURayCastMapperBenchmark.cxx
   TestGPURayCastMapperRectilinearGrid.cxx
   TestGPURayCastMapperSampleDistance.cxx
+  TestGPURayCastMapperShadows.cxx
   TestGPURayCastMultiVolumeAddRemove.cxx
   TestGPURayCastMultiVolumeCellData.cxx
   TestGPURayCastMultiVolumeOverlapping.cxx
+  TestGPURayCastMultiVolumeRGBA.cxx
   TestGPURayCastMultiVolumeShade.cxx
   TestGPURayCastMultiVolumeTransfer2D.cxx
   TestGPURayCastNearestDataTypesMIP.cxx
@@ -87,7 +83,6 @@ set (VolumeCxxTests
   TestGPURayCastVolumeUpdate.cxx
   TestGPUVolumeRayCastMapper.cxx
   TestGPUVolumeRayCastMapperManyLights.cxx
-  TestGPURayCastMapperShadows.cxx
   TestMinIntensityRendering.cxx
   TestMultiBlockMapper.cxx
   TestMultiBlockMapperRectilinearGrid.cxx
@@ -98,9 +93,9 @@ set (VolumeCxxTests
   TestProjectedTetrahedraVectorComponent.cxx
   TestRemoveVolumeNonCurrentContext.cxx
   TestSmartVolumeMapper.cxx
+  TestSmartVolumeMapperImplicitArray.cxx
   TestSmartVolumeMapperVolumeUpdate.cxx
   TestSmartVolumeMapperWindowLevel.cxx
-  ${test_implicit_array}
   )
 
 # everyone gets these tests

@@ -18,7 +18,7 @@
  * However, it MUST be consistent between the two lists.
  *
  * Unlike other kinds of cells (e.g. vtkVoxel), the topology is not directly deduced from points
- * coordinates or point IDs ordering; it must be explicitely defined by providing a list of faces
+ * coordinates or point IDs ordering; it must be explicitly defined by providing a list of faces
  * (see the SetFaces() method). Each face is represented as a sequence of global point Ids.
  *
  * Once point coordinates, point IDs and faces are defined, the Initialize() method should be called
@@ -35,7 +35,7 @@
  * //     `. |    `.|
  * //     12`+------+ 14
  * //
- * // (Global IDs are arbitrarily choosen between 8 and 15)
+ * // (Global IDs are arbitrarily chosen between 8 and 15)
  *
  * // Insert point coordinates
  * polyhedron->GetPoints()->SetNumberOfPoints(8);
@@ -77,7 +77,7 @@
  * @section Specifications Specifications
  *
  * Polyhedrons described by this class must conform to some criteria in order to avoid errors and
- * garantee good results in terms of visualization and processing.
+ * guarantee good results in terms of visualization and processing.
  *
  * These specifications are described as follows. Polyhedrons must:
  * - be watertight : the faces describing the polyhedron should define an enclosed volume
@@ -100,7 +100,7 @@
  *
  * @section Limitations Limitations
  *
- * The class does not require the polyhedron to be convex. However, the suport of concave
+ * The class does not require the polyhedron to be convex. However, the support of concave
  * polyhedrons is currently limited. Concavity can lead to bad results with some filters,
  * including:
  * - Contour: the contour (surface) can be constructed outside of the cell,
@@ -293,7 +293,7 @@ public:
    * @warning This method works well for a convex polyhedron but may return
    * wrong result in a concave case.
    */
-  int Triangulate(int index, vtkIdList* ptIds, vtkPoints* pts) override;
+  int TriangulateLocalIds(int index, vtkIdList* ptIds) override;
 
   /**
    * Triangulate each face of the polyhedron.
@@ -302,6 +302,14 @@ public:
    * @warning Can lead to bad results with non-planar faces.
    */
   int TriangulateFaces(vtkIdList* newFaces);
+
+  /**
+   * Triangulate each face of the polyhedron.
+   * This method internally use the vtkCell::Triangulate method on each face (so the
+   * triangulation method vary depending on the 2D cell type corresponding to the face).
+   * @warning Can lead to bad results with non-planar faces.
+   */
+  int TriangulateFaces(vtkCellArray* newFaces);
 
   /**
    * Computes derivatives at the point specified by the parameter coordinate.
@@ -350,6 +358,7 @@ public:
   /**
    * Set the faces of the polyhedron.
    * Face are expressed as sequences of <b> global point IDs </b>.
+   * The SetFaces method will require a copy from internal unstructured grid layout.
    *
    * @param faces 1-dimensional array with the following structure :
    * ```
@@ -382,6 +391,27 @@ public:
    * vtkPolyhedron::GetNumberOfFaces() method.
    */
   vtkIdType* GetFaces() override;
+
+  /**
+   * Set the faces of the polyhedron.
+   * Symmetric method to <b> GetCellFaces </b>
+   *
+   * @param faces vtkCellArray that stores a contiguous list of polygonal faces
+   *  with their corresponding global point IDs defining a polyhedron.
+   */
+  int SetCellFaces(vtkCellArray* faces);
+
+  ///@{
+  /**
+   * Get the faces of the polyhedron.
+   * Face are expressed as sequences of <b> global point IDs </b>.
+   *
+   * @param faces vtkCellArray that stores the list of polygonal faces with their corresponding
+   * global point IDs
+   */
+  vtkCellArray* GetCellFaces();
+  void GetCellFaces(vtkCellArray* faces);
+  ///@}
 
   /**
    * A method particular to vtkPolyhedron. It determines whether a point x[3]
@@ -417,12 +447,10 @@ protected:
 
   // Filled with the SetFaces method.
   // These faces are numbered in global id space
-  // (in the legacy vtkCellArray form)
-  vtkIdTypeArray* GlobalFaces;
+  vtkCellArray* GlobalFaces;
 
-  // Filled with the SetFaces method.
-  // Used to to point to each face in the GlobalFaces array.
-  vtkIdTypeArray* FaceLocations;
+  // Backward compatibility
+  vtkIdTypeArray* LegacyGlobalFaces;
 
   // vtkCell has the data members Points (x,y,z coordinates) and PointIds (global cell ids).
   // These data members are implicitly organized in canonical space, i.e., where the cell
@@ -444,8 +472,8 @@ protected:
   // with canonical IDs) from the GlobalFaces member (faces described with
   // global IDs).
   void GenerateFaces();
-  vtkIdTypeArray* Faces; // These are numbered in canonical id space
-  int FacesGenerated;    // True when Faces have been successfully constructed
+  vtkCellArray* Faces; // These are numbered in canonical id space
+  int FacesGenerated;  // True when Faces have been successfully constructed
 
   // Bounds management
   int BoundsComputed;
@@ -458,7 +486,6 @@ protected:
   // Members for supporting geometric operations
   int PolyDataConstructed;
   vtkPolyData* PolyData;
-  vtkCellArray* Polys;
   void ConstructPolyData();
   int LocatorConstructed;
   vtkCellLocator* CellLocator;

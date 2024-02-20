@@ -588,12 +588,6 @@ void vtkHyperTreeGrid::GetCellDims(unsigned int cellDims[3]) const
 //------------------------------------------------------------------------------
 void vtkHyperTreeGrid::SetExtent(const int extent[6])
 {
-  assert("pre: valid_extent_0" && extent[0] == 0);
-  assert("pre: valid_extent_1" && extent[1] >= -1); // -1 is the unset extent
-  assert("pre: valid_extent_2" && extent[2] == 0);
-  assert("pre: valid_extent_3" && extent[3] >= -1); // -1 is the unset extent
-  assert("pre: valid_extent_4" && extent[4] == 0);
-  assert("pre: valid_extent_5" && extent[5] >= -1); // -1 is the unset extent
   int description = vtkStructuredData::SetExtent(const_cast<int*>(extent), this->Extent);
   // why vtkStructuredData::SetExtent don't take const int* ?
 
@@ -770,13 +764,6 @@ unsigned int vtkHyperTreeGrid::GetNumberOfLevels()
 vtkIdType vtkHyperTreeGrid::GetNumberOfNonEmptyTrees()
 {
   return this->HyperTrees.size();
-}
-
-//------------------------------------------------------------------------------
-vtkIdType vtkHyperTreeGrid::GetNumberOfVertices()
-{
-  VTK_LEGACY_REPLACED_BODY(GetNumberOfVertices, "VTK 9.2", GetNumberOfCells);
-  return this->GetNumberOfCells();
 }
 
 //------------------------------------------------------------------------------
@@ -1422,6 +1409,16 @@ unsigned long vtkHyperTreeGrid::GetActualMemorySize()
 {
   // in kilibytes
   return (this->GetActualMemorySizeBytes() >> 10);
+}
+
+//------------------------------------------------------------------------------
+bool vtkHyperTreeGrid::SupportsGhostArray(int type)
+{
+  if (type == CELL)
+  {
+    return true;
+  }
+  return false;
 }
 
 //------------------------------------------------------------------------------

@@ -3979,7 +3979,7 @@ int TestMetaMultiplyMatrixWithVector()
     status = 1;
   }
 
-  // Testing with the tranpose
+  // Testing with the transpose
   vtkMath::MultiplyMatrixWithVector<3, 3, vtkMatrixUtilities::Layout::Transpose>(M, x, y);
 
   if (y[0] != 6300 || y[1] != 7410 || y[2] != 8520)
@@ -4253,3 +4253,12 @@ int TestMetaLinearSolve()
   }
   return status;
 }
+
+static_assert(vtkMatrixUtilities::MatrixIs2DArray<double**>(), "Failed");
+static_assert(vtkMatrixUtilities::MatrixIs2DArray<double[][3]>(), "Failed");
+static_assert(vtkMatrixUtilities::MatrixIs2DArray<double[3][3]>(), "Failed");
+static_assert(vtkMatrixUtilities::MatrixIs2DArray<double*[]>(), "Failed");
+static_assert(!vtkMatrixUtilities::MatrixIs2DArray<double*>(), "Failed");
+static_assert(!vtkMatrixUtilities::MatrixIs2DArray<double[]>(), "Failed");
+static_assert(!vtkMatrixUtilities::MatrixIs2DArray<double>(), "Failed");
+static_assert(!vtkMatrixUtilities::MatrixIs2DArray<double***>(), "Failed");

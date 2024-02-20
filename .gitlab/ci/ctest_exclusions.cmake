@@ -134,6 +134,9 @@ if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "windows")
 
     # Fail to present D3D resources (see #18657)
     "^VTK::RenderingOpenGL2Cxx-TestWin32OpenGLDXRenderWindow$"
+
+    # https://gitlab.kitware.com/vtk/vtk/-/issues/19183 
+    "^VTK::RenderingCellGridPython-TestCellGridRendering$"
   )
 endif ()
 
@@ -158,10 +161,14 @@ if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "macos_arm64")
 endif ()
 
 if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "macos_x86_64")
-  # Screenshot issue for test comparison with background buffer (intermittent)
   list(APPEND test_exclusions
+    # Screenshot issue for test comparison with background buffer (intermittent)
     "^VTK::GUISupportQtQuickCxx-TestQQuickVTKRenderItemWidget$"
-    "^VTK::GUISupportQtQuickCxx-TestQQuickVTKRenderWindow$")
+    "^VTK::GUISupportQtQuickCxx-TestQQuickVTKRenderWindow$"
+    # MacOS OpenGL issue (intermittent)
+    "^VTK::RenderingCellGridPython-TestCellGridRendering$"
+    "^VTK::FiltersCellGridPython-TestUnstructuredGridToCellGrid$"
+  )
 endif ()
 
 if (("$ENV{CMAKE_CONFIGURATION}" MATCHES "offscreen" AND "$ENV{CMAKE_CONFIGURATION}" MATCHES "ext_vtk") OR
@@ -175,6 +182,18 @@ if (("$ENV{CMAKE_CONFIGURATION}" MATCHES "offscreen" AND "$ENV{CMAKE_CONFIGURATI
     "^VTK::InteractionStylePython-TestStyleRubberBandZoomPerspective$"
     "^VTK::InteractionStylePython-TestStyleTrackballCamera$"
     "^VTK::RenderingCoreCxx-TestInteractorTimers$")
+endif ()
+
+if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "linux" AND "$ENV{CMAKE_CONFIGURATION}" MATCHES "wheel" AND "$ENV{CMAKE_CONFIGURATION}" MATCHES "egl")
+  # These tests fail when using an external VTK because the condition
+  # VTK_USE_X, vtk_can_do_onscreen AND NOT VTK_DEFAULT_RENDER_WINDOW_OFFSCREEN should be false
+  # in Interaction/Style/Testing/Python/CMakeLists.txt
+  list(APPEND test_exclusions
+    "^VTK::InteractionStylePython-TestStyleJoystickActor$"
+    "^VTK::InteractionStylePython-TestStyleJoystickCamera$"
+    "^VTK::InteractionStylePython-TestStyleRubberBandZoomPerspective$"
+    "^VTK::InteractionStylePython-TestStyleTrackballCamera$"
+    "^VTK::InteractionWidgetsPython-TestInteractorEventRecorder$")
 endif ()
 
 if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "stdthread")
@@ -205,6 +224,19 @@ if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "wheel")
       "^VTK::FiltersSourcesPython-TestStaticCellLocatorLineIntersection$"
       "^VTK::InteractionWidgetsPython-TestTensorWidget2$")
   endif ()
+  if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "macos.*_x86_64")
+    list(APPEND test_exclusions
+      # MacOS OpenGL issue (intermittent)
+      "^VTK::RenderingCellGridPython-TestCellGridRendering$"
+      "^VTK::FiltersCellGridPython-TestUnstructuredGridToCellGrid$"
+    )
+  endif()
+  if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "windows")
+    # Windows wheels are intermittently flaky and not reproducible.
+    list(APPEND test_exclusions
+      "^VTK::RenderingCellGridPython-TestCellGridRendering$"
+    )
+  endif()
 endif ()
 
 if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "qt" AND
@@ -221,7 +253,9 @@ endif ()
 if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "ospray")
   list(APPEND test_exclusions
     # Cache segfaults on docker
-    "^VTK::RenderingRayTracing-TestOSPRayCache$")
+    "^VTK::RenderingRayTracingCxx-TestOSPRayCache$"
+    # https://github.com/ospray/ospray/issues/571
+    "^VTK::RenderingRayTracingCxx-TestPathTracerMaterials$")
 endif ()
 
 string(REPLACE ";" "|" test_exclusions "${test_exclusions}")

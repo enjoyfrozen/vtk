@@ -227,7 +227,7 @@ int vtkWrap_IsArray(const ValueInfo* val)
     (val->Count != 0 || val->CountHint != 0));
 }
 
-int vtkWrap_IsNArray(ValueInfo* val)
+int vtkWrap_IsNArray(const ValueInfo* val)
 {
   int j = 0;
   unsigned int i = (val->Type & VTK_PARSE_POINTER_MASK);
@@ -282,7 +282,7 @@ int vtkWrap_IsConst(const ValueInfo* val)
 
 /* -------------------------------------------------------------------- */
 /* Check if the arg type is an enum that is a member of the class */
-int vtkWrap_IsEnumMember(ClassInfo* data, const ValueInfo* arg)
+int vtkWrap_IsEnumMember(const ClassInfo* data, const ValueInfo* arg)
 {
   int i;
 
@@ -362,7 +362,7 @@ int vtkWrap_IsDestructor(const ClassInfo* c, const FunctionInfo* f)
   return 0;
 }
 
-int vtkWrap_IsInheritedMethod(ClassInfo* c, const FunctionInfo* f)
+int vtkWrap_IsInheritedMethod(const ClassInfo* c, const FunctionInfo* f)
 {
   size_t l;
   for (l = 0; c->Name[l]; l++)
@@ -405,7 +405,7 @@ int vtkWrap_IsGetVectorMethod(const FunctionInfo* f)
 /* -------------------------------------------------------------------- */
 /* Argument counting */
 
-int vtkWrap_CountWrappedParameters(FunctionInfo* f)
+int vtkWrap_CountWrappedParameters(const FunctionInfo* f)
 {
   int totalArgs = f->NumberOfParameters;
 
@@ -422,7 +422,7 @@ int vtkWrap_CountWrappedParameters(FunctionInfo* f)
   return totalArgs;
 }
 
-int vtkWrap_CountRequiredArguments(FunctionInfo* f)
+int vtkWrap_CountRequiredArguments(const FunctionInfo* f)
 {
   int requiredArgs = 0;
   int totalArgs;
@@ -755,7 +755,7 @@ void vtkWrap_FindNewInstanceMethods(ClassInfo* data, const HierarchyInfo* hinfo)
 {
   int i;
   FunctionInfo* theFunc;
-  OptionInfo* options;
+  const OptionInfo* options;
 
   for (i = 0; i < data->NumberOfFunctions; i++)
   {
@@ -786,6 +786,8 @@ void vtkWrap_FindNewInstanceMethods(ClassInfo* data, const HierarchyInfo* hinfo)
         fprintf(stderr, "Warning: %s without VTK_NEWINSTANCE hint in %s\n", theFunc->Name,
           options->InputFileName);
         theFunc->ReturnValue->Attributes |= VTK_PARSE_NEWINSTANCE;
+        /* Do not finalize `options` here; we're just peeking at global state
+         * to know when to warn. */
       }
     }
   }
@@ -1008,7 +1010,7 @@ const char* vtkWrap_GetTypeName(const ValueInfo* val)
 /* variable declarations */
 
 void vtkWrap_DeclareVariable(
-  FILE* fp, ClassInfo* data, ValueInfo* val, const char* name, int i, int flags)
+  FILE* fp, const ClassInfo* data, const ValueInfo* val, const char* name, int i, int flags)
 {
   unsigned int aType;
   int j;
@@ -1164,7 +1166,7 @@ void vtkWrap_DeclareVariable(
   free(newTypeName);
 }
 
-void vtkWrap_DeclareVariableSize(FILE* fp, ValueInfo* val, const char* name, int i)
+void vtkWrap_DeclareVariableSize(FILE* fp, const ValueInfo* val, const char* name, int i)
 {
   char idx[32];
   int j;
@@ -1197,7 +1199,7 @@ void vtkWrap_DeclareVariableSize(FILE* fp, ValueInfo* val, const char* name, int
   }
 }
 
-void vtkWrap_QualifyExpression(FILE* fp, ClassInfo* data, const char* text)
+void vtkWrap_QualifyExpression(FILE* fp, const ClassInfo* data, const char* text)
 {
   StringTokenizer t;
   int qualified = 0;
@@ -1308,4 +1310,12 @@ char* vtkWrap_TemplateArg(const char* name)
   vtkParse_FreeTemplateDecomposition(NULL, 2, args);
 
   return arg;
+}
+
+void vtkWrap_WarnEmpty(const OptionInfo* options)
+{
+  if (options->WarningFlags.Empty)
+  {
+    fprintf(stderr, "warning: did not wrap anything from %s [-Wempty]\n", options->InputFileName);
+  }
 }

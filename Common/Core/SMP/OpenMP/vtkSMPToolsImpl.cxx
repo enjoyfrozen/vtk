@@ -15,8 +15,31 @@ namespace detail
 namespace smp
 {
 VTK_ABI_NAMESPACE_BEGIN
-static int specifiedNumThreads = 0;
-static std::stack<int> threadIdStack;
+static int specifiedNumThreads; // Default initialized to zero
+static std::stack<int>* threadIdStack;
+
+//------------------------------------------------------------------------------
+// Must NOT be initialized. Default initialization to zero is necessary.
+unsigned int vtkSMPToolsImplOpenMPInitializeCount;
+
+//------------------------------------------------------------------------------
+vtkSMPToolsImplOpenMPInitialize::vtkSMPToolsImplOpenMPInitialize()
+{
+  if (++vtkSMPToolsImplOpenMPInitializeCount == 1)
+  {
+    threadIdStack = new std::stack<int>;
+  }
+}
+
+//------------------------------------------------------------------------------
+vtkSMPToolsImplOpenMPInitialize::~vtkSMPToolsImplOpenMPInitialize()
+{
+  if (--vtkSMPToolsImplOpenMPInitializeCount == 0)
+  {
+    delete threadIdStack;
+    threadIdStack = nullptr;
+  }
+}
 
 //------------------------------------------------------------------------------
 template <>
@@ -54,7 +77,7 @@ int GetNumberOfThreadsOpenMP()
 //------------------------------------------------------------------------------
 bool GetSingleThreadOpenMP()
 {
-  return threadIdStack.top() == omp_get_thread_num();
+  return threadIdStack->top() == omp_get_thread_num();
 }
 
 //------------------------------------------------------------------------------
@@ -84,7 +107,7 @@ void vtkSMPToolsImplForOpenMP(vtkIdType first, vtkIdType last, vtkIdType grain,
   omp_set_nested(nestedActivated);
 
 #pragma omp single
-  threadIdStack.emplace(omp_get_thread_num());
+  threadIdStack->emplace(omp_get_thread_num());
 
 #pragma omp parallel for schedule(runtime)
   for (vtkIdType from = first; from < last; from += grain)
@@ -93,7 +116,7 @@ void vtkSMPToolsImplForOpenMP(vtkIdType first, vtkIdType last, vtkIdType grain,
   }
 
 #pragma omp single
-  threadIdStack.pop();
+  threadIdStack->pop();
 }
 
 VTK_ABI_NAMESPACE_END

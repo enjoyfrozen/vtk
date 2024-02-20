@@ -8,6 +8,15 @@
  * collection of clipping planes.  It will produce a new closed surface
  * by creating new polygonal faces where the input data was clipped.
  *
+ * The orientation of the polygons that form the surface is important.
+ * Polygons have a front face and a back face, and it's the back face that
+ * defines the interior or "solid" region of the closed surface.  When a
+ * clipping plane cuts through a "solid" region, a new cut face is generated,
+ * but not when a clipping plane cuts through a hole or "empty" region.  This
+ * distinction is crucial when dealing with complex surfaces.  Note that if
+ * a simple surface has its back faces pointing outwards, then that surface
+ * defines a hole in a potentially infinite solid.
+ *
  * Non-manifold surfaces should not be used as input for this filter.
  * The input surface should have no open edges, and must not have any
  * edges that are shared by more than two faces.  The vtkFeatureEdges
@@ -19,6 +28,14 @@
  * the clipping planes intersect the data.  The ScalarMode option
  * will add cell scalars to the output, so that the generated faces
  * can be visualized in a different color from the original surface.
+ *
+ * The InsideOut flag can be used to reverse the sense of what inside/outside
+ * the clip region means. This changes the which side of the clipping plane is
+ * clipped away.
+ *
+ * This filter can be configured to compute a second output. The second output
+ * is the polygonal data with the new triangulated faces. Set the
+ * GenerateClipFaceOutput boolean on if you wish to access this output data.
  *
  * @warning
  * The triangulation of new faces is done in O(n) time for simple convex
@@ -193,6 +210,37 @@ public:
   vtkGetMacro(TriangulationErrorDisplay, vtkTypeBool);
   ///@}
 
+  ///@{
+  /**
+   * Set/Get the InsideOut flag. When off, a vertex is considered inside the
+   * implicit function if it lies in front of the clipping plane. When
+   * InsideOutside is turned on, a vertex is considered inside if it lies on the
+   * back side of the plane.  InsideOut is off by default.
+   *
+   * \note Regardless of the InsideOut flag, it is not possible to generate an
+   * inside (that is, convex) corner by clipping.
+   */
+  vtkSetMacro(InsideOut, vtkTypeBool);
+  vtkGetMacro(InsideOut, vtkTypeBool);
+  vtkBooleanMacro(InsideOut, vtkTypeBool);
+  ///@}
+
+  ///@{
+  /**
+   * Control whether a second output is generated. The second output contains
+   * the polygonal data that is generated at the clip face as a result of the
+   * triangulation.  GenerateClipFaceOutput is off by default.
+   */
+  vtkSetMacro(GenerateClipFaceOutput, vtkTypeBool);
+  vtkGetMacro(GenerateClipFaceOutput, vtkTypeBool);
+  vtkBooleanMacro(GenerateClipFaceOutput, vtkTypeBool);
+  ///@}
+
+  /**
+   * Return the clip face triangulated output.
+   */
+  vtkPolyData* GetClipFaceOutput();
+
 protected:
   vtkClipClosedSurface();
   ~vtkClipClosedSurface() override;
@@ -209,6 +257,8 @@ protected:
   double BaseColor[3];
   double ClipColor[3];
   double ActivePlaneColor[3];
+  vtkTypeBool InsideOut = false;
+  vtkTypeBool GenerateClipFaceOutput = false;
 
   vtkTypeBool TriangulationErrorDisplay;
 

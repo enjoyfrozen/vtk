@@ -14,6 +14,7 @@
 
 // VTK includes
 #include "vtkInformation.h"
+#include "vtkInformationVector.h"
 #include "vtkOpenGLActor.h"
 #include "vtkOpenGLResourceFreeCallback.h"
 #include "vtkOpenGLState.h"
@@ -140,6 +141,7 @@ public:
     this->DPColorTextureObject = nullptr;
     this->PreserveViewport = false;
     this->PreserveGLState = false;
+    this->DepthMaskOverride = false;
 
     this->Partitions[0] = this->Partitions[1] = this->Partitions[2] = 1;
   }
@@ -241,7 +243,7 @@ public:
 
   void UpdateTransfer2DYAxisArray(vtkRenderer* ren, vtkVolume* vol);
 
-  bool LoadMask(vtkRenderer* ren);
+  bool LoadMask(vtkRenderer* ren, vtkVolume* vol);
 
   // Update the depth sampler with the current state of the z-buffer. The
   // sampler is used for z-buffer compositing with opaque geometry during
@@ -472,6 +474,7 @@ public:
   bool NeedToInitializeResources;
   bool PreserveViewport;
   bool PreserveGLState;
+  bool DepthMaskOverride;
 
   vtkShaderProgram* ShaderProgram;
   vtkOpenGLShaderCache* ShaderCache;
@@ -663,7 +666,7 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::UpdateTransferFunctions(vtkRe
 }
 
 //------------------------------------------------------------------------------
-bool vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::LoadMask(vtkRenderer* ren)
+bool vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::LoadMask(vtkRenderer* ren, vtkVolume* vol)
 {
   bool result = true;
   auto maskInput = this->Parent->MaskInput;
@@ -685,6 +688,16 @@ bool vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::LoadMask(vtkRenderer* ren)
       this->CurrentMask->GetLoadedScalars() != arr ||
       (arr && arr->GetMTime() > this->MaskUpdateTime))
     {
+      // Setup the scalar range of the mask volume based on the number of transfer functions in the
+      // property. This is done so that the value for texture lookup in the shader is scaled and
+      // biased based on the range of the texture created by the label transfer functions.
+      vtkVolumeProperty* volumeProperty = vol->GetProperty();
+      auto const numLabels = volumeProperty->GetLabelMapLabels().size();
+      double maskRange[2] = { 0.0, (numLabels > 0.0 ? numLabels : 1.0) };
+      vtkNew<vtkInformationVector> infoVec;
+      infoVec->SetNumberOfInformationObjects(1);
+      infoVec->GetInformationObject(0)->Set(vtkDataArray::COMPONENT_RANGE(), maskRange, 2);
+      arr->GetInformation()->Set(vtkDataArray::PER_FINITE_COMPONENT(), infoVec);
       result =
         this->CurrentMask->LoadVolume(ren, maskInput, arr, isCellData, VTK_NEAREST_INTERPOLATION);
 
@@ -1354,12 +1367,25 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::CheckPropertyKeys(vtkVolume* 
   // Otherwise this breaks volume/translucent geo depth peeling.
   vtkInformation* volumeKeys = vol->GetPropertyKeys();
   this->PreserveGLState = false;
+  this->DepthMaskOverride = false;
   if (volumeKeys && volumeKeys->Has(vtkOpenGLActor::GLDepthMaskOverride()))
   {
+    // Give a chance to volumes to write to the depth buffer.
+    // A value of 0 keeps the depth mask disabled as set by vtkVolumeStateRAII.
+    // A value of 1 enables the depth mask and allows writing to the depth buffer.
+    // Any other value will prevent vtkVolumeStateRAII from changing the state.
     int override = volumeKeys->Get(vtkOpenGLActor::GLDepthMaskOverride());
-    if (override != 0 && override != 1)
+    switch (override)
     {
-      this->PreserveGLState = true;
+      case 0: // glDepthMask(GL_TRUE)
+        this->DepthMaskOverride = false;
+        break;
+      case 1: // glDepthMask(GL_FALSE)
+        this->DepthMaskOverride = true;
+        break;
+      default: // no-op
+        this->PreserveGLState = true;
+        break;
     }
   }
 
@@ -3211,7 +3237,7 @@ void vtkOpenGLGPUVolumeRayCastMapper::GPURender(vtkRenderer* ren, vtkVolume* vol
   // Masks are only supported on single-input rendering.
   if (!this->Impl->MultiVolume)
   {
-    this->Impl->LoadMask(ren);
+    this->Impl->LoadMask(ren, vol);
   }
 
   // Get the shader cache. This is important to make sure that shader cache
@@ -3232,6 +3258,12 @@ void vtkOpenGLGPUVolumeRayCastMapper::GPURender(vtkRenderer* ren, vtkVolume* vol
       this->Impl->BeginPicking(ren);
     }
     vtkVolumeStateRAII glState(renWin->GetState(), this->Impl->PreserveGLState);
+
+    // Override the default depth mask value if the corresponding property key was specified.
+    if (this->Impl->DepthMaskOverride)
+    {
+      renWin->GetState()->vtkglDepthMask(GL_TRUE);
+    }
 
     if (this->Impl->ShaderRebuildNeeded(cam, vol, renderPassTime, ren))
     {
@@ -3346,6 +3378,12 @@ void vtkOpenGLGPUVolumeRayCastMapper::vtkInternal::RenderWithDepthPass(
   // Set OpenGL states
   vtkOpenGLRenderWindow* renWin = vtkOpenGLRenderWindow::SafeDownCast(ren->GetRenderWindow());
   vtkVolumeStateRAII glState(renWin->GetState(), this->PreserveGLState);
+
+  // Override the default depth mask value if the corresponding property key was specified.
+  if (this->DepthMaskOverride)
+  {
+    renWin->GetState()->vtkglDepthMask(GL_TRUE);
+  }
 
   if (this->Parent->RenderToImage)
   {

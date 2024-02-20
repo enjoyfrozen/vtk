@@ -8,6 +8,7 @@
 #include "vtkHyperTree.h"
 #include "vtkHyperTreeGrid.h"
 #include "vtkHyperTreeGridNonOrientedCursor.h"
+#include "vtkHyperTreeGridOrientedCursor.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
 #include "vtkMath.h"
@@ -226,6 +227,7 @@ int vtkHyperTreeGridGhostCellsGenerator::ProcessTrees(
   assert(input->GetDimension() > 1);
 
   // Determining who are my neighbors
+  vtkNew<vtkHyperTreeGridOrientedCursor> inOrientedCursor;
   unsigned i, j, k = 0;
   input->InitializeTreeIterator(inHTs);
   switch (input->GetDimension())
@@ -234,18 +236,25 @@ int vtkHyperTreeGridGhostCellsGenerator::ProcessTrees(
     {
       while (inHTs.GetNextTree(inTreeIndex))
       {
+        input->InitializeOrientedCursor(inOrientedCursor, inTreeIndex);
+        if (inOrientedCursor->IsMasked())
+        {
+          continue;
+        }
         input->GetLevelZeroCoordinatesFromIndex(inTreeIndex, i, j, k);
         // Avoiding over / under flowing the grid
         for (int rj = ((j > 0) ? -1 : 0); rj < (((j + 1) < cellDims[1]) ? 2 : 1); ++rj)
         {
           for (int ri = ((i > 0) ? -1 : 0); ri < (((i + 1) < cellDims[0]) ? 2 : 1); ++ri)
           {
-            int neighbor = (i + ri) * cellDims[1] + j + rj;
+            vtkIdType neighbor = -1;
+            input->GetIndexFromLevelZeroCoordinates(neighbor, i + ri, j + rj, 0);
             int id = hyperTreesMapToProcesses[neighbor];
             if (id >= 0 && id != processId)
             {
-              // Construction a neighborhood mask to extract the interface in ExtractInterface later
-              // on Same encoding as vtkHyperTreeGrid::GetChildMask
+              // Build a neighborhood mask to extract the interface in
+              // ExtractInterface later on.
+              // Same encoding as vtkHyperTreeGrid::GetChildMask
               sendBuffer[id][inTreeIndex].mask |= 1
                 << (8 * sizeof(int) - 1 - (ri + 1 + (rj + 1) * 3));
               // Not receiving anything from this guy since we will send him stuff
@@ -262,6 +271,11 @@ int vtkHyperTreeGridGhostCellsGenerator::ProcessTrees(
     {
       while (inHTs.GetNextTree(inTreeIndex))
       {
+        input->InitializeOrientedCursor(inOrientedCursor, inTreeIndex);
+        if (inOrientedCursor->IsMasked())
+        {
+          continue;
+        }
         input->GetLevelZeroCoordinatesFromIndex(inTreeIndex, i, j, k);
         // Avoiding over / under flowing the grid
         for (int rk = ((k > 0) ? -1 : 0); rk < (((k + 1) < cellDims[2]) ? 2 : 1); ++rk)
@@ -270,12 +284,14 @@ int vtkHyperTreeGridGhostCellsGenerator::ProcessTrees(
           {
             for (int ri = ((i > 0) ? -1 : 0); ri < (((i + 1) < cellDims[0]) ? 2 : 1); ++ri)
             {
-              int neighbor = ((k + rk) * cellDims[1] + j + rj) * cellDims[0] + i + ri;
+              vtkIdType neighbor = -1;
+              input->GetIndexFromLevelZeroCoordinates(neighbor, i + ri, j + rj, k + rk);
               int id = hyperTreesMapToProcesses[neighbor];
               if (id >= 0 && id != processId)
               {
-                // Construction a neighborhood mask to extract the interface in ExtractInterface
-                // later on Same encoding as vtkHyperTreeGrid::GetChildMask
+                // Build a neighborhood mask to extract the interface in
+                // ExtractInterface later on.
+                // Same encoding as vtkHyperTreeGrid::GetChildMask
                 sendBuffer[id][inTreeIndex].mask |= 1
                   << (8 * sizeof(int) - 1 - (ri + 1 + (rj + 1) * 3 + (rk + 1) * 9));
                 // Not receiving anything from this guy since we will send him stuff
@@ -529,7 +545,7 @@ int vtkHyperTreeGridGhostCellsGenerator::ProcessTrees(
   vtkDebugMacro("Barrier");
   this->Internals->Controller->Barrier();
 
-  // We now send the data store on each node
+  // We now send the data stored on each node
   for (int id = 0; id < numberOfProcesses; ++id)
   {
     if (id != processId)
@@ -539,7 +555,8 @@ int vtkHyperTreeGridGhostCellsGenerator::ProcessTrees(
       {
         SendTreeBufferMap& sendTreeMap = sendIt->second;
         std::vector<double> buf;
-        vtkIdType len = 0;
+        vtkIdType totalLength = 0;
+        vtkIdType writeOffset = 0;
         for (auto&& sendTreeBufferPair : sendTreeMap)
         {
           auto&& sendTreeBuffer = sendTreeBufferPair.second;
@@ -547,22 +564,35 @@ int vtkHyperTreeGridGhostCellsGenerator::ProcessTrees(
           {
             vtkCellData* pd = input->GetCellData();
             int nbArray = pd->GetNumberOfArrays();
-            len += sendTreeBuffer.count * nbArray;
-            buf.resize(len);
-            double* arr = buf.data() + len - sendTreeBuffer.count * nbArray;
-            for (int iArray = 0; iArray < nbArray; ++iArray)
+            vtkIdType currentLength = 0;
+
+            // Compute total length of arrays to be sent
+            for (int arrayId = 0; arrayId < nbArray; ++arrayId)
             {
-              vtkDataArray* inArray = pd->GetArray(iArray);
-              for (vtkIdType m = 0; m < sendTreeBuffer.count; ++m)
+              vtkDataArray* inArray = pd->GetArray(arrayId);
+              currentLength += inArray->GetNumberOfComponents();
+            }
+            currentLength *= sendTreeBuffer.count;
+            totalLength += currentLength;
+            buf.resize(totalLength);
+
+            // Fill send buffer with array data
+            for (int arrayId = 0; arrayId < nbArray; ++arrayId)
+            {
+              vtkDataArray* inArray = pd->GetArray(arrayId);
+              for (vtkIdType tupleId = 0; tupleId < sendTreeBuffer.count; ++tupleId)
               {
-                arr[iArray * sendTreeBuffer.count + m] =
-                  inArray->GetTuple1(sendTreeBuffer.indices[m]);
+                for (int compId = 0; compId < inArray->GetNumberOfComponents(); compId++)
+                {
+                  buf[writeOffset++] =
+                    inArray->GetComponent(sendTreeBuffer.indices[tupleId], compId);
+                }
               }
             }
           }
         }
         vtkDebugMacro("Send: data2 from " << id);
-        this->Internals->Controller->Send(buf.data(), len, id, HTGGCG_DATA2_EXCHANGE_TAG);
+        this->Internals->Controller->Send(buf.data(), totalLength, id, HTGGCG_DATA2_EXCHANGE_TAG);
       }
     }
     else
@@ -586,36 +616,50 @@ int vtkHyperTreeGridGhostCellsGenerator::ProcessTrees(
         auto&& recvTreeMap = targetRecvBuffer->second;
         if (flags[process] == INITIALIZE_TREE)
         {
-          unsigned long len = 0;
+          // Compute total length to be received
+          unsigned long totalLength = 0;
           for (auto&& recvTreeBufferPair : recvTreeMap)
           {
             vtkCellData* pd = output->GetCellData();
             int nbArray = pd->GetNumberOfArrays();
-            len += recvTreeBufferPair.second.count * nbArray;
+            int currentLen = 0;
+            for (int arrayId = 0; arrayId < nbArray; arrayId++)
+            {
+              vtkDataArray* outArray = pd->GetArray(arrayId);
+              currentLen += outArray->GetNumberOfComponents();
+            }
+            currentLen *= recvTreeBufferPair.second.count;
+            totalLength += currentLen;
           }
-          std::vector<double> buf(len);
 
+          std::vector<double> buf(totalLength);
           vtkDebugMacro("Receive: data2 from " << process);
-          this->Internals->Controller->Receive(buf.data(), len, process, HTGGCG_DATA2_EXCHANGE_TAG);
-          vtkIdType cpt = 0;
+          this->Internals->Controller->Receive(
+            buf.data(), totalLength, process, HTGGCG_DATA2_EXCHANGE_TAG);
 
+          // Fill output arrays using data received
+          vtkIdType readOffset = 0;
           for (auto&& recvTreeBufferPair : recvTreeMap)
           {
             auto&& recvTreeBuffer = recvTreeBufferPair.second;
             vtkCellData* pd = output->GetCellData();
             int nbArray = pd->GetNumberOfArrays();
-            double* arr = buf.data() + cpt;
 
-            for (int d = 0; d < nbArray; ++d)
+            for (int arrayId = 0; arrayId < nbArray; ++arrayId)
             {
-              vtkDataArray* outArray = pd->GetArray(d);
-              for (vtkIdType m = 0; m < recvTreeBuffer.count; ++m)
+              vtkDataArray* outArray = pd->GetArray(arrayId);
+              outArray->SetNumberOfValues(outArray->GetNumberOfValues() +
+                recvTreeBufferPair.second.count * outArray->GetNumberOfComponents());
+
+              for (vtkIdType tupleId = 0; tupleId < recvTreeBuffer.count; ++tupleId)
               {
-                outArray->InsertTuple1(
-                  recvTreeBuffer.indices[m], arr[d * recvTreeBuffer.count + m]);
+                for (int compIdx = 0; compIdx < outArray->GetNumberOfComponents(); compIdx++)
+                {
+                  outArray->SetComponent(
+                    recvTreeBuffer.indices[tupleId], compIdx, buf[readOffset++]);
+                }
               }
             }
-            cpt += recvTreeBuffer.count * nbArray;
           }
           flags[process] = INITIALIZE_FIELD;
         }

@@ -1,7 +1,5 @@
 // SPDX-FileCopyrightText: Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
 // SPDX-License-Identifier: BSD-3-Clause
-// VTK_DEPRECATED_IN_9_2_0() warnings for this class.
-#define VTK_DEPRECATION_LEVEL 0
 
 #include "vtkGeometryFilter.h"
 
@@ -45,7 +43,6 @@
 
 VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkGeometryFilter);
-vtkCxxSetObjectMacro(vtkGeometryFilter, Locator, vtkIncrementalPointLocator);
 
 static constexpr unsigned char MASKED_CELL_VALUE = vtkDataSetAttributes::HIDDENCELL |
   vtkDataSetAttributes::DUPLICATECELL | vtkDataSetAttributes::REFINEDCELL;
@@ -95,6 +92,7 @@ vtkGeometryFilter::vtkGeometryFilter()
 
   // Compatibility with vtkDataSetSurfaceFilter
   this->NonlinearSubdivisionLevel = 1;
+  this->MatchBoundariesIgnoringCellOrder = 0;
 
   // Enable delegation to an internal vtkDataSetSurfaceFilter.
   this->Delegation = true;
@@ -103,7 +101,6 @@ vtkGeometryFilter::vtkGeometryFilter()
 //------------------------------------------------------------------------------
 vtkGeometryFilter::~vtkGeometryFilter()
 {
-  this->SetLocator(nullptr);
   this->SetOriginalCellIdsName(nullptr);
   this->SetOriginalPointIdsName(nullptr);
 }
@@ -237,10 +234,6 @@ int vtkGeometryFilter::RequestData(vtkInformation* vtkNotUsed(request),
 }
 
 //------------------------------------------------------------------------------
-// Specify a spatial locator for merging points. This method is now deprecated.
-void vtkGeometryFilter::CreateDefaultLocator() {}
-
-//------------------------------------------------------------------------------
 void vtkGeometryFilter::SetExcludedFacesData(vtkPolyData* input)
 {
   this->Superclass::SetInputData(1, input);
@@ -315,6 +308,8 @@ void vtkGeometryFilter::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "OriginalPointIdsName: " << this->GetOriginalPointIdsName() << endl;
 
   os << indent << "NonlinearSubdivisionLevel: " << this->GetNonlinearSubdivisionLevel() << endl;
+  os << indent
+     << "MatchBoundariesIgnoringCellOrder: " << this->GetMatchBoundariesIgnoringCellOrder() << endl;
 }
 
 //------------------------------------------------------------------------------
@@ -2817,6 +2812,7 @@ void vtkGeometryFilterHelper::CopyFilterParams(vtkGeometryFilter* gf, vtkDataSet
   dssf->SetOriginalCellIdsName(gf->GetOriginalCellIdsName());
   dssf->SetOriginalPointIdsName(gf->GetOriginalPointIdsName());
   dssf->SetNonlinearSubdivisionLevel(gf->GetNonlinearSubdivisionLevel());
+  dssf->SetMatchBoundariesIgnoringCellOrder(gf->GetMatchBoundariesIgnoringCellOrder());
   dssf->SetFastMode(gf->GetFastMode());
 }
 
@@ -2831,6 +2827,7 @@ void vtkGeometryFilterHelper::CopyFilterParams(vtkDataSetSurfaceFilter* dssf, vt
   gf->SetOriginalCellIdsName(dssf->GetOriginalCellIdsName());
   gf->SetOriginalPointIdsName(dssf->GetOriginalPointIdsName());
   gf->SetNonlinearSubdivisionLevel(dssf->GetNonlinearSubdivisionLevel());
+  gf->SetMatchBoundariesIgnoringCellOrder(dssf->GetMatchBoundariesIgnoringCellOrder());
   gf->SetFastMode(dssf->GetFastMode());
 }
 

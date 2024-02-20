@@ -125,7 +125,7 @@ public:
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
-   * @brief Contruct a new vtkURI
+   * @brief Construct a new vtkURI
    *
    * Default URI as a defined but empty path. Other components are undefined.
    *
@@ -194,10 +194,15 @@ public:
    * Syntax of components is checked in order to ensure that they respect
    * [RFC3986](https://datatracker.ietf.org/doc/html/rfc3986#section-3).
    *
+   * If scheme is "data" (case-insensitive), the path is only checked
+   * until the beginning of the data. This is done to prevent massive overhead when constructing
+   * a big data URI. Data validation has to be performed by the decoding algorithm.
+   * vtkURI::PercentDecode does the required checks for raw data URIs.
+   *
    * Percent-encoded character are not decoded. Use `vtkURI::PercentEncode` if necessary.
    *
    * Tip: Parameters may be moved-in to prevent copy of big strings.
-   * This function is not wrapped. If you need to contruct an URI from a wrapper, use `Parse(str)`.
+   * This function is not wrapped. If you need to construct an URI from a wrapper, use `Parse(str)`.
    *
    * @param scheme URI scheme, must not be empty if defined.
    * @param authority URI authority, may be defined, but empty.
@@ -326,15 +331,21 @@ public:
   vtkSmartPointer<vtkURI> Clone() const { return vtkURI::Clone(this); }
 
   /**
-   * @brief Contruct the string representation of the URI
+   * @brief Construct the string representation of the URI
    *
    * @return a string representing the URI
    */
   std::string ToString() const;
 
 private:
+  /**
+   * @brief Private version of vtkURI::Make but does not perform syntax check
+   */
+  static vtkSmartPointer<vtkURI> MakeUnchecked(vtkURIComponent scheme, vtkURIComponent authority,
+    vtkURIComponent path, vtkURIComponent query, vtkURIComponent fragment);
+
   // These functions are factories and need write access to this class
-  friend vtkSmartPointer<vtkURI> Make(vtkURIComponent scheme, vtkURIComponent authority,
+  friend vtkSmartPointer<vtkURI> MakeUnchecked(vtkURIComponent scheme, vtkURIComponent authority,
     vtkURIComponent path, vtkURIComponent query, vtkURIComponent fragment);
   friend vtkSmartPointer<vtkURI> Clone(const vtkURI* other);
 

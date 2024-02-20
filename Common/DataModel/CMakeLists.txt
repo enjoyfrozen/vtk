@@ -1,6 +1,7 @@
 set(classes
   vtkAMRBox
   vtkAMRUtilities
+  vtkAbstractCellArray
   vtkAbstractCellLinks
   vtkAbstractCellLocator
   vtkAbstractElectronicData
@@ -33,9 +34,13 @@ set(classes
   vtkCellArray
   vtkCellArrayIterator
   vtkCellAttribute
+  vtkCellAttributeCalculator
   vtkCellData
   vtkCellGrid
   vtkCellGridBoundsQuery
+  vtkCellGridEvaluator
+  vtkCellGridRangeQuery
+  vtkCellGridQuery
   vtkCellGridResponders
   vtkCellGridSidesQuery
   vtkCellIterator
@@ -93,7 +98,6 @@ set(classes
   vtkGraphInternals
   vtkHexagonalPrism
   vtkHexahedron
-  vtkHierarchicalBoxDataIterator
   vtkHierarchicalBoxDataSet
   vtkHigherOrderCurve
   vtkHigherOrderHexahedron
@@ -103,7 +107,6 @@ set(classes
   vtkHigherOrderTriangle
   vtkHigherOrderWedge
   vtkHyperTree
-  vtkHyperTreeCursor
   vtkHyperTreeGrid
   vtkHyperTreeGridLocator
   vtkHyperTreeGridGeometricLocator
@@ -222,6 +225,7 @@ set(classes
   vtkStaticCellLocator
   vtkStaticPointLocator
   vtkStaticPointLocator2D
+  vtkStructuredCellArray
   vtkStructuredData
   vtkStructuredExtent
   vtkStructuredGrid
@@ -277,7 +281,6 @@ set(nowrap_classes
   vtkHyperTreeGridLevelEntry)
 
 set(headers
-  vtkCellGridQuery.h
   vtkCellGridResponder.h
   vtkCellGridResponderBase.h
   vtkCellType.h

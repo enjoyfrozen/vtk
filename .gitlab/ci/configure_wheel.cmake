@@ -7,6 +7,10 @@ if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "osmesa")
   include("${CMAKE_CURRENT_LIST_DIR}/configure_wheel_osmesa.cmake")
 endif ()
 
+if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "egl")
+  include("${CMAKE_CURRENT_LIST_DIR}/configure_wheel_egl.cmake")
+endif ()
+
 set(python_subdir "bin/")
 if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "windows")
   set(python_subdir "")
@@ -49,6 +53,7 @@ set(VTK_MODULE_ENABLE_VTK_DomainsMicroscopy NO CACHE STRING "") # OpenSlide
 set(VTK_MODULE_ENABLE_VTK_FiltersOpenTURNS NO CACHE STRING "") # OpenTURNS
 set(VTK_MODULE_ENABLE_VTK_FiltersReebGraph NO CACHE STRING "") # Boost
 set(VTK_MODULE_ENABLE_VTK_IOADIOS2 NO CACHE STRING "") # ADIOS2
+set(VTK_MODULE_ENABLE_VTK_IOAlembic NO CACHE STRING "") # alembic
 set(VTK_MODULE_ENABLE_VTK_IOFFMPEG NO CACHE STRING "") # FFMPEG
 set(VTK_MODULE_ENABLE_VTK_IOGDAL NO CACHE STRING "") # GDAL
 set(VTK_MODULE_ENABLE_VTK_IOLAS NO CACHE STRING "") # liblas

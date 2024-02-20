@@ -80,7 +80,8 @@ void vtkRectilinearGridToTetrahedra::SetInput(
     else
       NumPointsInDir[i] = (int)ceil(Extent[i] / Spacing[i]) + 1;
     Coord[i] = vtkFloatArray::New();
-    Coord[i]->SetNumberOfValues(NumPointsInDir[i] + 1);
+    // coords should have the same size as dimensions
+    Coord[i]->SetNumberOfValues(NumPointsInDir[i]);
 
     // The last data point inserted is exactly the Extent
     // Thus avoiding a bit of numerical error.
@@ -296,7 +297,7 @@ void vtkRectilinearGridToTetrahedra::GridToTetMesh(vtkRectilinearGrid* RectGrid,
 
 //------------------------------------------------------------------------------
 // Helper Function for Tetrahedralize Voxel
-inline void vtkRectilinearGridToTetrahedra::TetrahedralizeAddCenterPoint(
+void vtkRectilinearGridToTetrahedra::TetrahedralizeAddCenterPoint(
   vtkIdList* VoxelCorners, vtkPoints* NodeList)
 {
   // Need to add a center point

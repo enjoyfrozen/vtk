@@ -157,8 +157,9 @@ void vtkOpenXRRenderWindowInteractor::ProcessXrEvents()
         for (uint32_t hand :
           { vtkOpenXRManager::ControllerIndex::Left, vtkOpenXRManager::ControllerIndex::Right })
         {
-          if (!xrManager.XrCheckWarn(xrGetCurrentInteractionProfile(xrManager.GetSession(),
-                                       xrManager.GetSubactionPaths()[hand], &state),
+          if (!xrManager.XrCheckOutput(vtkOpenXRManager::WarningOutput,
+                xrGetCurrentInteractionProfile(
+                  xrManager.GetSession(), xrManager.GetSubactionPaths()[hand], &state),
                 "Failed to get interaction profile for hand " + hand))
           {
             continue;
@@ -174,7 +175,7 @@ void vtkOpenXRRenderWindowInteractor::ProcessXrEvents()
 
           uint32_t strLength;
           char profileString[XR_MAX_PATH_LENGTH];
-          if (!xrManager.XrCheckWarn(
+          if (!xrManager.XrCheckOutput(vtkOpenXRManager::WarningOutput,
                 xrPathToString(xrManager.GetXrRuntimeInstance(), interactionProfile,
                   XR_MAX_PATH_LENGTH, &strLength, profileString),
                 "Failed to get interaction profile path string for hand " + hand))
@@ -231,6 +232,13 @@ void vtkOpenXRRenderWindowInteractor::PollXrActions()
     }
   }
 
+  auto renWin = vtkOpenXRRenderWindow::SafeDownCast(this->RenderWindow);
+  if (!renWin)
+  {
+    vtkErrorMacro("Unable to retrieve the OpenXR render window !");
+    return;
+  }
+
   // Construct the event data that contains position and orientation of each hand
   double pos[3] = { 0.0 };
   double ppos[3] = { 0.0 };
@@ -260,6 +268,13 @@ void vtkOpenXRRenderWindowInteractor::PollXrActions()
       this->SetPhysicalEventPosition(ppos[0], ppos[1], ppos[2], pointerIndex);
       this->SetWorldEventPosition(pos[0], pos[1], pos[2], pointerIndex);
       this->SetWorldEventOrientation(wxyz[0], wxyz[1], wxyz[2], wxyz[3], pointerIndex);
+
+      // Update DeviceToPhysical matrices, this is a read-write access!
+      vtkMatrix4x4* devicePose = renWin->GetDeviceToPhysicalMatrixForDevice(edHand->GetDevice());
+      if (devicePose)
+      {
+        vtkOpenXRUtilities::SetMatrixFromXrPose(devicePose, *handPose);
+      }
     }
   }
 
@@ -285,19 +300,12 @@ void vtkOpenXRRenderWindowInteractor::PollXrActions()
 
   // Handle head movement
   // XXX This is a temporary solution to stick with the OpenVR behavior.
-  // Move3DEvent is emited by left and right controllers, and the headset.
+  // Move3DEvent is emitted by left and right controllers, and the headset.
   // This is used in vtkOpenXRInteractorStyle for "grounded" movement.
   // In future refactoring of OpenXR classes, we could add a specific method in
   // vtkOpenXRManager to retrieve the "real" head pose (for now we use the left
   // eye direction retrieved in vtkOpenXRRenderWindow::UpdateHMDMatrixPose,
   // that is close).
-  auto renWin = vtkOpenXRRenderWindow::SafeDownCast(this->RenderWindow);
-  if (!renWin)
-  {
-    vtkErrorMacro("Unable to retrieve the OpenXR render window !");
-    return;
-  }
-
   // Retrieve headset pose matrix in physical coordinates and convert to position and orientation
   // in world coordinates
   vtkMatrix4x4* poseMatrix =
@@ -342,8 +350,8 @@ void vtkOpenXRRenderWindowInteractor::HandleAction(
     /*case XR_ACTION_TYPE_FLOAT_INPUT:
       actionT.States[hand]._float.type = XR_TYPE_ACTION_STATE_FLOAT;
       actionT.States[hand]._float.next = nullptr;
-      if (!this->XrCheckError(xrGetActionStateFloat(Session, &info, &action_t.States[hand]._float),
-        "Failed to get float value"))
+      if (!this->XrCheckOutput(vtkOpenXRManager::ErrorOutput, xrGetActionStateFloat(Session, &info,
+      &action_t.States[hand]._float), "Failed to get float value"))
       {
         return false;
       }
@@ -457,6 +465,13 @@ void vtkOpenXRRenderWindowInteractor::HandleVector2fAction(
 
 //------------------------------------------------------------------------------
 void vtkOpenXRRenderWindowInteractor::AddAction(
+  const std::string& path, const vtkCommand::EventIds& eid, bool vtkNotUsed(isAnalog))
+{
+  this->AddAction(path, eid);
+}
+
+//------------------------------------------------------------------------------
+void vtkOpenXRRenderWindowInteractor::AddAction(
   const std::string& path, const vtkCommand::EventIds& eid)
 {
   if (this->MapActionStruct_Name.count(path) == 0)
@@ -468,6 +483,13 @@ void vtkOpenXRRenderWindowInteractor::AddAction(
   auto* am = this->MapActionStruct_Name[path];
   am->EventId = eid;
   am->UseFunction = false;
+}
+
+//------------------------------------------------------------------------------
+void vtkOpenXRRenderWindowInteractor::AddAction(const std::string& path, bool vtkNotUsed(isAnalog),
+  const std::function<void(vtkEventData*)>& func)
+{
+  this->AddAction(path, func);
 }
 
 //------------------------------------------------------------------------------

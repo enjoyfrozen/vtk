@@ -22,7 +22,7 @@
 namespace testhtggeomlocator
 {
 
-double epsilon = 1e-6;
+constexpr double epsilon = 1e-6;
 using SearchPair = std::pair<std::vector<double>, bool>;
 
 struct TestResults
@@ -483,7 +483,7 @@ bool TestLocatorTolerance()
   return success;
 }
 
-};
+}
 
 int TestHyperTreeGridGeometricLocator(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 {

@@ -10,6 +10,7 @@
 #define vtkHDFReaderImplementation_h
 
 #include "vtkHDFReader.h"
+#include "vtkHDFUtilities.h"
 #include "vtk_hdf5.h"
 #include <array>
 #include <map>
@@ -20,6 +21,7 @@ VTK_ABI_NAMESPACE_BEGIN
 class vtkAbstractArray;
 class vtkDataArray;
 class vtkStringArray;
+class vtkDataAssembly;
 
 /**
  * Implementation for the vtkHDFReader. Opens, closes and
@@ -71,6 +73,10 @@ public:
    * Returns the names of arrays for 'attributeType' (point or cell).
    */
   std::vector<std::string> GetArrayNames(int attributeType);
+  /**
+   * Return the name of all children of an HDF group given its path
+   */
+  std::vector<std::string> GetOrderedChildrenOfGroup(const std::string& path);
   ///@{
   /**
    * Reads and returns a new vtkDataArray. The actual type of the array
@@ -102,6 +108,11 @@ public:
   std::vector<hsize_t> GetDimensions(const char* dataset);
 
   /**
+   * Return true if current root path is a soft link
+   */
+  bool IsPathSoftLink(const std::string& path);
+
+  /**
    * Fills the given AMR data with the content of the opened HDF file.
    * The number of level to read is limited by the maximumLevelsToReadByDefault argument.
    * maximumLevelsToReadByDefault == 0 means to read all levels (no limit).
@@ -110,6 +121,15 @@ public:
    */
   bool FillAMR(vtkOverlappingAMR* data, unsigned int maximumLevelsToReadByDefault, double origin[3],
     vtkDataArraySelection* dataArraySelection[3]);
+
+  ///@{
+  /**
+   * Fills the given Assembly with the content of the opened HDF file.
+   * Return true on success, false if the HDF File isn't a composite or the 'Assembly' is missing.
+   */
+  bool FillAssembly(vtkDataAssembly* data);
+  bool FillAssembly(vtkDataAssembly* data, hid_t assemblyHandle, int assemblyID, std::string path);
+  ///@}
 
   ///@{
   /**
@@ -131,6 +151,16 @@ public:
    * Methods to query for array offsets when steps are present
    */
   vtkIdType GetArrayOffset(vtkIdType step, int attributeType, std::string name);
+
+  /**
+   * Open a sub group of the current file and consider it as the new root file.
+   */
+  bool OpenGroupAsVTKGroup(const std::string& groupPath);
+
+  /**
+   * Initialize meta information of the implementation based on root name specified.
+   */
+  bool RetrieveHDFInformation(const std::string& rootName);
 
 protected:
   /**
@@ -155,9 +185,10 @@ protected:
   };
 
   /**
-   * Opens the hdf5 dataset given the 'group'
-   * and 'name'.
+   * Opens the hdf5 dataset given the 'group' and 'name'.
    * Returns the hdf dataset and sets 'nativeType' and 'dims'.
+   * The caller needs to close the returned hid_t manually using H5Dclose or a Scoped Handle if it
+   * is not an invalid hid.
    */
   hid_t OpenDataSet(hid_t group, const char* name, hid_t* nativeType, std::vector<hsize_t>& dims);
   /**
@@ -204,7 +235,7 @@ protected:
    */
   void BuildTypeReaderMap();
   /**
-   * Associates a struc of three integers with HDF type. This can be used as
+   * Associates a struct of three integers with HDF type. This can be used as
    * key in a map.
    */
   TypeDescription GetTypeDescription(hid_t type);

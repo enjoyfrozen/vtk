@@ -1246,6 +1246,15 @@ inline std::string ComputeLightingDeclaration(vtkRenderer* vtkNotUsed(ren), vtkV
 
   int const transferMode = volProperty->GetTransferFunctionMode();
 
+  if (independentComponents)
+  {
+    shaderStr += "\n  int lightingComponent=component;\n";
+  }
+  else
+  {
+    shaderStr += "\n  int lightingComponent=0;\n";
+  }
+
   bool const volumetricShadow = glMapper->GetVolumetricScatteringBlending() > 0.0;
   std::string volumetricCall = volumetricShadow
     ? "\n   vol_shadow = volumeShadow(g_dataPos, tex_light.xyz, 0.0, component, in_volume[0], "
@@ -1315,16 +1324,16 @@ inline std::string ComputeLightingDeclaration(vtkRenderer* vtkNotUsed(ren), vtkV
   }
   if (nDotL > 0.0)
   {
-    diffuse = nDotL * in_diffuse[component] *
+    diffuse = nDotL * in_diffuse[lightingComponent] *
     in_lightDiffuseColor[0] * color.rgb;
     vDotR = max(vDotR, 0.0);
-    specular = pow(vDotR, in_shininess[component]) *
-                 in_specular[component] *
+    specular = pow(vDotR, in_shininess[lightingComponent]) *
+                 in_specular[lightingComponent] *
                  in_lightSpecularColor[0];
   }
   // For the headlight, ignore the light's ambient color
   // for now as it is causing the old mapper tests to fail
-  finalColor.xyz = in_ambient[component] * color.rgb +
+  finalColor.xyz = in_ambient[lightingComponent] * color.rgb +
                    diffuse + specular;
 
         )***";
@@ -1392,7 +1401,7 @@ inline std::string ComputeLightingDeclaration(vtkRenderer* vtkNotUsed(ren), vtkV
       }
       if (rDotV > 0.0)
       {
-        float sf = attenuation * pow(rDotV, in_shininess[component]);
+        float sf = attenuation * pow(rDotV, in_shininess[lightingComponent]);
         specular += (sf * in_lightSpecularColor[posNum]);
       }
     }
@@ -1418,15 +1427,15 @@ inline std::string ComputeLightingDeclaration(vtkRenderer* vtkNotUsed(ren), vtkV
       float rDotV = dot(-viewDirection, r);
       if (rDotV > 0.0)
       {
-        float sf = pow(rDotV, in_shininess[component]);
+        float sf = pow(rDotV, in_shininess[lightingComponent]);
         specular += (sf * in_lightSpecularColor[dirNum]);
       }
     }
     ambient += in_lightAmbientColor[dirNum];
   }
-  finalColor.xyz = in_ambient[component] * ambient +
-                   in_diffuse[component] * diffuse * color.rgb +
-                   in_specular[component] * specular;
+  finalColor.xyz = in_ambient[lightingComponent] * ambient +
+                   in_diffuse[lightingComponent] * diffuse * color.rgb +
+                   in_specular[lightingComponent] * specular;
 
       )***";
     }
@@ -1469,8 +1478,8 @@ inline std::string ComputeLightingDeclaration(vtkRenderer* vtkNotUsed(ren), vtkV
   tex_light = (in_inverseTextureDatasetMatrix[0] * in_inverseVolumeMatrix[0] * vec4(in_cameraPos, 1.0)).xyz;
   phase = phase_function(-1); // always angle of pi
   vol_shadow = volumeShadow(g_dataPos, tex_light, 1.0, component, in_volume[0], 0, label);
-  secondary_contrib += vol_shadow * phase * color.rgb * in_diffuse[component] * in_lightDiffuseColor[0];
-  secondary_contrib += in_ambient[component] * in_lightAmbientColor[0];
+  secondary_contrib += vol_shadow * phase * color.rgb * in_diffuse[lightingComponent] * in_lightDiffuseColor[0];
+  secondary_contrib += in_ambient[lightingComponent] * in_lightAmbientColor[0];
       )***";
     }
     else
@@ -1493,8 +1502,8 @@ inline std::string ComputeLightingDeclaration(vtkRenderer* vtkNotUsed(ren), vtkV
     attenuation *= max(0.0, sign(light_angle - cos(radians(in_lightConeAngle[posNum]))))
                      * pow(light_angle, in_lightExponent[posNum]);
     vol_shadow = volumeShadow(g_dataPos, tex_light, 1.0, component, in_volume[0], 0, label);
-    secondary_contrib += vol_shadow * phase * attenuation * color.rgb * in_diffuse[component] * in_lightDiffuseColor[posNum];
-    secondary_contrib += in_ambient[component] * in_lightAmbientColor[posNum];
+    secondary_contrib += vol_shadow * phase * attenuation * color.rgb * in_diffuse[lightingComponent] * in_lightDiffuseColor[posNum];
+    secondary_contrib += in_ambient[lightingComponent] * in_lightAmbientColor[posNum];
   }
       )***";
       }
@@ -1505,8 +1514,8 @@ inline std::string ComputeLightingDeclaration(vtkRenderer* vtkNotUsed(ren), vtkV
     tex_light = g_lightDirectionTex[dirNum];
     phase = phase_function(dot(normalize(-tex_light), view_tdir));
     vol_shadow = volumeShadow(g_dataPos, tex_light, 0.0, component, in_volume[0], 0, label);
-    secondary_contrib += vol_shadow * phase * color.rgb * in_diffuse[component] * in_lightDiffuseColor[dirNum];
-    secondary_contrib += in_ambient[component] * in_lightAmbientColor[dirNum];
+    secondary_contrib += vol_shadow * phase * color.rgb * in_diffuse[lightingComponent] * in_lightDiffuseColor[dirNum];
+    secondary_contrib += in_ambient[lightingComponent] * in_lightAmbientColor[dirNum];
   }
       )***";
     }
@@ -1558,6 +1567,7 @@ inline std::string ComputeLightingDeclaration(vtkRenderer* vtkNotUsed(ren), vtkV
 
   shaderStr += std::string("\
       \n  finalColor.a = color.a;\
+      \n  //VTK::ComputeLighting::Exit\
       \n  return finalColor;\
       \n  }");
 
@@ -1587,6 +1597,15 @@ inline std::string ComputeLightingMultiDeclaration(vtkRenderer* vtkNotUsed(ren),
       \nvec4 computeLighting(vec3 texPos, vec4 color, const in sampler3D volume, const in sampler2D opacityTF, const int volIdx, int component)\
       \n  {\
       \n  vec4 finalColor = vec4(0.0);\n");
+  }
+
+  if (independentComponents)
+  {
+    shaderStr += "\n  int lightingComponent=component;\n";
+  }
+  else
+  {
+    shaderStr += "\n  int lightingComponent=0;\n";
   }
 
   // Shading for composite blending only
@@ -1664,16 +1683,16 @@ inline std::string ComputeLightingMultiDeclaration(vtkRenderer* vtkNotUsed(ren),
         \n     }\
         \n   if (nDotL > 0.0)\
         \n     {\
-        \n        diffuse = nDotL * in_diffuse[component] *\
+        \n        diffuse = nDotL * in_diffuse[lightingComponent] *\
         \n                 in_lightDiffuseColor[0] * color.rgb;\
         \n        vDotR = max(vDotR, 0.0);\
-        \n        specular = pow(vDotR, in_shininess[component]) *\
-        \n                   in_specular[component] *\
+        \n        specular = pow(vDotR, in_shininess[lightingComponent]) *\
+        \n                   in_specular[lightingComponent] *\
         \n                   in_lightSpecularColor[0];\
         \n     }\
         \n  // For the headlight, ignore the light's ambient color\
         \n  // for now as it is causing the old mapper tests to fail\
-        \n  finalColor.xyz = in_ambient[component] * color.rgb +\
+        \n  finalColor.xyz = in_ambient[lightingComponent] * color.rgb +\
         \n                   diffuse + specular;\
         \n");
   }
@@ -1699,6 +1718,7 @@ inline std::string ComputeLightingMultiDeclaration(vtkRenderer* vtkNotUsed(ren),
 
   shaderStr += std::string("\
       \n  finalColor.a = color.a;\
+      \n  //VTK::ComputeLighting::Exit\
       \n  return clamp(finalColor, 0.0, 1.0);\
       \n  }");
 
@@ -1828,6 +1848,15 @@ inline std::string ComputeColorDeclaration(vtkRenderer* vtkNotUsed(ren),
           \n  }");
     return shaderStr;
   }
+  else if (noOfComponents == 4 && !independentComponents)
+  {
+    shaderStr += std::string("\
+          \nvec4 computeColor(vec4 scalar, float opacity)\
+          \n  {\
+          \n  return clamp(computeLighting(vec4(scalar.xyz, opacity), 3, 0.0), 0.0, 1.0);\
+          \n  }");
+    return shaderStr;
+  }
   else
   {
     shaderStr += std::string("\
@@ -1866,29 +1895,44 @@ inline std::string ComputeColorMultiDeclaration(
   }
   else
   {
+    std::ostringstream colorDec;
+    colorDec << "  vec3 color = ";
+    if (lastComponentMode == vtkVolumeInputHelper::RGBA)
+    {
+      // Use RGB components without mapping through the color transfer function.
+      colorDec << "scalar.xyz;\n";
+    }
+    else // vtkVolumeInputHelper::INDEPENDENT
+    {
+      // MultiVolume assumes input is 1-component, see ShadingMultipleInputs.
+      // To support multiple independent components, each component should be mapped through the
+      // transfer function as done in ComputeColorDeclaration for single volumes.
+      colorDec << "texture2D(colorTF, vec2(scalar.w, 0.0)).xyz;\n";
+    }
+
     if (useGradientTF)
     {
       ss
         << "vec4 computeColor(vec3 texPos, vec4 scalar, float opacity, const in sampler2D colorTF, "
            "const in sampler2D gradientTF, const in sampler3D volume, const in sampler2D "
            "opacityTF, const int volIdx)\n\n"
-           "{\n"
-           "  return clamp(computeLighting(texPos, vec4(texture2D(colorTF,\n"
-           "                         vec2(scalar.w, 0.0)).xyz, opacity), gradientTF, volume, "
-           "opacityTF,"
-           "volIdx, 0), 0.0, 1.0);\n"
-           "}\n";
+           "{\n";
+      ss << colorDec.str()
+         << "  return clamp(computeLighting(texPos, vec4(color, opacity), gradientTF, volume, "
+            "opacityTF,"
+            "volIdx, 0), 0.0, 1.0);\n"
+            "}\n";
     }
     else
     {
       ss
         << "vec4 computeColor(vec3 texPos, vec4 scalar, float opacity, const in sampler2D colorTF, "
            "const in sampler3D volume, const in sampler2D opacityTF, const int volIdx)\n\n"
-           "{\n"
-           "  return clamp(computeLighting(texPos, vec4(texture2D(colorTF,\n"
-           "                         vec2(scalar.w, 0.0)).xyz, opacity), volume, opacityTF,"
-           "volIdx, 0), 0.0, 1.0);\n"
-           "}\n";
+           "{\n";
+      ss << colorDec.str()
+         << "  return clamp(computeLighting(texPos, vec4(color, opacity), volume, opacityTF,"
+            "volIdx, 0), 0.0, 1.0);\n"
+            "}\n";
     }
   }
 
@@ -2527,10 +2571,15 @@ inline std::string ShadingMultipleInputs(
                     << i
                     << "], texPos);\n"
                        "        scalar = scalar * in_volume_scale["
-                    << i << "] + in_volume_bias[" << i
-                    << "];\n"
-                       "        scalar = vec4(scalar.r);\n"
-                       "        g_srcColor = vec4(0.0);\n";
+                    << i << "] + in_volume_bias[" << i << "];\n";
+
+        // MultiVolume considers input has one component when independent component is on.
+        if (property->GetIndependentComponents())
+        {
+          toShaderStr << "        scalar = vec4(scalar.r);\n";
+        }
+
+        toShaderStr << "        g_srcColor = vec4(0.0);\n";
 
         if (property->GetTransferFunctionMode() == vtkVolumeProperty::TF_1D)
         {
@@ -3000,7 +3049,7 @@ inline std::string PickingActorPassExit(
     \n    gl_FragData[0] = vec4(0.0);\
     \n    }\
     \n  return;");
-};
+}
 
 //--------------------------------------------------------------------------
 inline std::string PickingIdLow24PassExit(
@@ -3026,7 +3075,7 @@ inline std::string PickingIdLow24PassExit(
   \n    gl_FragData[0] = vec4(0.0);\
   \n    }\
   \n  return;");
-};
+}
 
 //--------------------------------------------------------------------------
 inline std::string PickingIdHigh24PassExit(
@@ -3053,7 +3102,7 @@ inline std::string PickingIdHigh24PassExit(
   \n    gl_FragData[0] = vec4(0.0);\
   \n    }\
   \n  return;");
-};
+}
 
 //--------------------------------------------------------------------------
 inline std::string ShadingExit(vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* mapper,
@@ -3201,7 +3250,7 @@ inline std::string PickingActorPassDeclaration(
 {
   return std::string("\
       \n  uniform vec3 in_propId;");
-};
+}
 
 //--------------------------------------------------------------------------
 inline std::string TerminationInit(

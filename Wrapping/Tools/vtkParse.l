@@ -68,7 +68,7 @@ static void vtk_section_comment(void);
 static void cpp_comment_line(void);
 static void blank_line(void);
 
-static const char* raw_string(const char* begin);
+static const char* raw_string(const char* begin, int* has_ud_suffix);
 
 static void preprocessor_directive(const char* text, size_t l);
 static void print_preprocessor_error(int result, const char* cp, size_t n);
@@ -124,19 +124,25 @@ ID [a-zA-Z_\x80-\xff][0-9a-zA-Z_\x80-\xff]*
       preprocessor_directive(yytext, yyleng);
    }
 
-("u8"|"u"|"U"|"L")?\"([^\\"]|\\\r\n|\\\n|\\.)*\"(_{ID})?  {
+("u8"|"u"|"U"|"L")?\"([^\\"]|\\\r\n|\\\n|\\.)*\" {
       yylval.str = vtkstrndup(yytext, yyleng);
       return(STRING_LITERAL);
     }
 
-("u8"|"u"|"U"|"L")?\'([^\\']|\\.)+\'(_{ID})?  {
+("u8"|"u"|"U"|"L")?\"([^\\"]|\\\r\n|\\\n|\\.)*\"{ID}  {
+      yylval.str = vtkstrndup(yytext, yyleng);
+      return(STRING_LITERAL_UD);
+    }
+
+("u8"|"u"|"U"|"L")?\'([^\\']|\\.)+\'{ID}?  {
       yylval.str = vtkstrndup(yytext, yyleng);
       return(CHAR_LITERAL);
     }
 
 ("R"|"u8R"|"uR"|"UR"|"LR")\"[^ ()\t\v\f\n]*"(" {
-      yylval.str = raw_string(yytext);
-      return(STRING_LITERAL);
+      int has_ud_suffix = 0;
+      yylval.str = raw_string(yytext, &has_ud_suffix);
+      return (has_ud_suffix ? STRING_LITERAL_UD : STRING_LITERAL);
     }
 
 "auto"          return(AUTO);
@@ -506,7 +512,7 @@ ID [a-zA-Z_\x80-\xff][0-9a-zA-Z_\x80-\xff]*
 /*
  * Return a parenthetical macro arg list as a new string.
  */
-char* get_macro_arguments()
+char* get_macro_arguments(void)
 {
   char* cp = NULL;
   size_t i = 0;
@@ -686,7 +692,7 @@ char* get_macro_arguments()
   return cp;
 }
 
-void skip_macro_arguments()
+void skip_macro_arguments(void)
 {
   char* p = get_macro_arguments();
   free(p);
@@ -695,7 +701,7 @@ void skip_macro_arguments()
 /*
  * Skip a C-style comment, return 0 if unterminated.
  */
-int skip_comment()
+int skip_comment(void)
 {
   int savelineno = yylineno;
   int c1 = 0, c2 = input();
@@ -795,7 +801,7 @@ int skip_trailing_comment(const char* text, size_t l)
  * This will eat the '#' that starts the directive.
  * Return 0 if none found.
  */
-int skip_to_next_directive()
+int skip_to_next_directive(void)
 {
   /* state == 0 at the start of a line */
   int state = 0;
@@ -863,7 +869,7 @@ int skip_to_next_directive()
 /*
  * Skip to the next #else or #elif or #endif
  */
-int skip_conditional_block()
+int skip_conditional_block(void)
 {
   static char* linebuf = NULL;
   static size_t linemaxlen = 80;
@@ -1005,7 +1011,7 @@ int skip_ahead_until(const char* text)
 /*
  * Called for doxygen C-style comments
  */
-void doxygen_comment()
+void doxygen_comment(void)
 {
   char linetext[256];
   int savelineno = yylineno;
@@ -1095,7 +1101,7 @@ void doxygen_comment()
 /*
  * Called for //! and /// doxygen comments (handles just one line)
  */
-void doxygen_cpp_comment()
+void doxygen_cpp_comment(void)
 {
   int type = DoxygenComment;
   int pos = 2;
@@ -1116,7 +1122,7 @@ void doxygen_cpp_comment()
 /*
  * Called for ///@{
  */
-void doxygen_group_start()
+void doxygen_group_start(void)
 {
   /* Set the "ingroup" marker */
   setCommentMemberGroup(1);
@@ -1125,7 +1131,7 @@ void doxygen_group_start()
 /*
  * Called for ///@}
  */
-void doxygen_group_end()
+void doxygen_group_end(void)
 {
   /* Clear the "ingroup" marker */
   setCommentMemberGroup(0);
@@ -1134,7 +1140,7 @@ void doxygen_group_end()
 /*
  * Called for // Description:
  */
-void vtk_comment()
+void vtk_comment(void)
 {
   setCommentState(NormalComment);
 }
@@ -1142,7 +1148,7 @@ void vtk_comment()
 /*
  * Called for // .NAME
  */
-void vtk_name_comment()
+void vtk_name_comment(void)
 {
   int pos = 1;
   while (yytext[pos - 1] != 'M' || yytext[pos] != 'E')
@@ -1157,7 +1163,7 @@ void vtk_name_comment()
 /*
  * Called for // .SECTION
  */
-void vtk_section_comment()
+void vtk_section_comment(void)
 {
   int pos = 1;
   while (yytext[pos - 1] != 'O' || yytext[pos] != 'N')
@@ -1193,7 +1199,7 @@ void vtk_section_comment()
  * Called for each line that has a C++ comment but no code, unless the
  * comment is recognized as beginning a VTK or doxygen comment.
  */
-void cpp_comment_line()
+void cpp_comment_line(void)
 {
   int pos = 2;
   while (yytext[pos - 2] != '/' || yytext[pos - 1] != '/')
@@ -1204,7 +1210,7 @@ void cpp_comment_line()
 /*
  * Called whenever a blank line is encountered.
  */
-void blank_line()
+void blank_line(void)
 {
   commentBreak();
 }
@@ -1212,7 +1218,7 @@ void blank_line()
 /*
  * Convert a raw string into a non-raw string.
  */
-const char* raw_string(const char* begin)
+const char* raw_string(const char* begin, int* has_ud_suffix)
 {
   int savelineno = yylineno;
   char* textbuf;
@@ -1344,13 +1350,18 @@ const char* raw_string(const char* begin)
   *dp++ = '\"';
 
   c = input();
-  if (c == '_')
+  if (vtkParse_CharType(c, CPRE_ID))
   {
+    *has_ud_suffix = 1;
     do
     {
       *dp++ = c;
       c = input();
     } while (vtkParse_CharType(c, CPRE_XID));
+  }
+  else
+  {
+    *has_ud_suffix = 0;
   }
   unput(c);
 
@@ -1371,7 +1382,7 @@ static YY_BUFFER_STATE* buffer_stack = NULL;
 /*
  * push the current buffer onto the buffer stack.
  */
-void push_buffer()
+void push_buffer(void)
 {
   size_t n = buffer_stack_size;
   if (buffer_stack == NULL)
@@ -1394,7 +1405,7 @@ void push_buffer()
 /*
  * pop the buffer stack and restore the previous buffer
  */
-int pop_buffer()
+int pop_buffer(void)
 {
   if (in_macro())
   {
@@ -1410,6 +1421,11 @@ int pop_buffer()
   }
   yy_delete_buffer(YY_CURRENT_BUFFER);
   yy_switch_to_buffer(buffer_stack[--buffer_stack_size]);
+  if (buffer_stack_size == 0)
+  {
+    free(buffer_stack);
+    buffer_stack = NULL;
+  }
   return 1;
 }
 
@@ -1483,7 +1499,7 @@ void push_include(const char* filename)
 /*
  * pop the include stack
  */
-void pop_include()
+void pop_include(void)
 {
   if (include_stack_size > 0)
   {
@@ -1540,7 +1556,7 @@ void push_macro(MacroInfo* macro)
 /*
  * pop the macro stack
  */
-void pop_macro()
+void pop_macro(void)
 {
   MacroInfo* macro;
 
@@ -1551,6 +1567,11 @@ void pop_macro()
     {
       macro->IsExcluded = 0;
     }
+    if (macro_stack_size == 0)
+    {
+      free(macro_stack);
+      macro_stack = NULL;
+    }
   }
   macroEnded = 1;
 }
@@ -1558,7 +1579,7 @@ void pop_macro()
 /*
  * are we currently processing a macro?
  */
-int in_macro()
+int in_macro(void)
 {
   return (macro_stack_size > 0);
 }

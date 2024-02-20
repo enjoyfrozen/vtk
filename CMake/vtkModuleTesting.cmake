@@ -72,7 +72,10 @@ Creating test executables
   convenience functions.
 #]==]
 function (vtk_module_test_executable name)
-  add_executable("${name}" ${ARGN})
+  add_executable("${name}")
+  target_sources("${name}"
+    PRIVATE
+      ${ARGN})
   get_property(test_depends GLOBAL
     PROPERTY "_vtk_module_${_vtk_build_test}_test_depends")
   get_property(test_optional_depends GLOBAL
@@ -371,6 +374,8 @@ function (vtk_add_test_cxx exename _tests)
         LABELS "${_vtk_build_test_labels}"
         FAIL_REGULAR_EXPRESSION "${_vtk_fail_regex}"
         SKIP_REGULAR_EXPRESSION "${_vtk_skip_regex}"
+        # Disables anti-aliasing when rendering
+        ENVIRONMENT "VTK_TESTING"
         # This must match VTK_SKIP_RETURN_CODE in vtkTesting.h
         SKIP_RETURN_CODE 125
       )
@@ -481,6 +486,7 @@ function (vtk_add_test_mpi exename _tests)
         PROCESSORS "${numprocs}"
         FAIL_REGULAR_EXPRESSION "${_vtk_fail_regex}"
         SKIP_REGULAR_EXPRESSION "${_vtk_skip_regex}"
+        ENVIRONMENT "VTK_TESTING"
         # This must match VTK_SKIP_RETURN_CODE in vtkTesting.h"
         SKIP_RETURN_CODE 125
       )
@@ -734,6 +740,7 @@ function (vtk_add_test_python)
         LABELS "${_vtk_build_test_labels}"
         FAIL_REGULAR_EXPRESSION "${_vtk_fail_regex}"
         SKIP_REGULAR_EXPRESSION "${_vtk_skip_regex}"
+        ENVIRONMENT "VTK_TESTING"
         # This must match the skip() function in vtk/test/Testing.py"
         SKIP_RETURN_CODE 125
       )
@@ -783,43 +790,93 @@ function (vtk_add_test_python_mpi)
   vtk_add_test_python(${ARGN})
 endfunction ()
 
+#[==[.rst:
+ABI Mangling tests
+""""""""""""""""""
+
+.. cmake:command:: vtk_add_test_mangling
+
+This function declares a test to verify that all of the exported symbols in the
+VTK module library contain the correct ABI mangling prefix. This test requires
+setting the option VTK_ABI_NAMESPACE_NAME to a value that is not "<DEFAULT>".
+
+Current limitations of this test are:
+- Does not run on non-UNIX platforms
+- Is not compatible with the option "VTK_ENABLE_KITS"
+- May not work outside of VTK itself
+
+  .. code-block:: cmake
+
+    vtk_add_test_mangling(module_name [EXEMPTIONS ...])
+
+Options:
+- ``EXEMPTIONS``: List of symbol patterns to excluded from the ABI mangling test
+  where it is known that the symbols do not support the ABI mangling but are still
+  exported. This option should be extremely rare to use, see the documentation on ABI
+  mangling for how the handle C and C++ symbols before adding an EXEMPTION.
+#]==]
 function (vtk_add_test_mangling module)
+  get_property(vtk_abi_namespace_name GLOBAL PROPERTY _vtk_abi_namespace_name)
+  if (vtk_abi_namespace_name STREQUAL "")
+    return()
+  endif ()
+
+  get_property(_vtkmoduletesting_nomangle_warnings_isset GLOBAL PROPERTY vtkmoduletesting_nomangle_warnings SET)
+  if (NOT _vtkmoduletesting_nomangle_warnings_isset)
+    set_property(GLOBAL PROPERTY vtkmoduletesting_nomangle_warnings FALSE)
+  endif ()
+  get_property(_vtkmoduletesting_nomangle_warnings GLOBAL PROPERTY vtkmoduletesting_nomangle_warnings)
+
+  if (_vtkmoduletesting_nomangle_warnings)
+    # Only warn on these issues once
+    return()
+  endif ()
+
+  if (VTK_ENABLE_KITS)
+    set(_vtkmoduletesting_nomangle_warnings TRUE)
+    message(WARNING "Mangling tests are not supported with VTK_ENABLE_KITS (https://gitlab.kitware.com/vtk/vtk/-/issues/19207)")
+  endif ()
+
   if (NOT UNIX)
-    return ()
+    set(_vtkmoduletesting_nomangle_warnings TRUE)
+    message(WARNING "Mangling tests are not supported on non-UNIX platforms")
+  endif ()
+
+  if (_vtkmoduletesting_nomangle_warnings)
+    set_property(GLOBAL PROPERTY vtkmoduletesting_nomangle_warnings "${_vtkmoduletesting_nomangle_warnings}")
+    return()
   endif ()
 
   cmake_parse_arguments(_vtk_mangling_test "" "" "EXEMPTIONS" ${ARGN})
 
-  get_property(vtk_abi_namespace_name GLOBAL PROPERTY _vtk_abi_namespace_name)
-  if (NOT vtk_abi_namespace_name STREQUAL "")
-    _vtk_module_real_target(_vtk_test_target "${module}")
-    if (CMAKE_VERSION VERSION_LESS "3.19")
-      get_property(target_type TARGET ${_vtk_test_target} PROPERTY TYPE)
-      # CMake 3.19 introduced support for regular properties on `INTERFACE`
-      # libraries. Before that, it was an error to ask for properties like
-      # `SOURCES`. Avoid the error in this case (there aren't any objects
-      # anyways, so no need to make any noise).
-      if (target_type STREQUAL "INTERFACE_LIBRARY")
-        return ()
-      endif ()
+  _vtk_module_real_target(_vtk_test_target "${module}")
+  if (CMAKE_VERSION VERSION_LESS "3.19")
+    get_property(target_type TARGET ${_vtk_test_target} PROPERTY TYPE)
+    # CMake 3.19 introduced support for regular properties on `INTERFACE`
+    # libraries. Before that, it was an error to ask for properties like
+    # `SOURCES`. Avoid the error in this case (there aren't any objects
+    # anyways, so no need to make any noise).
+    if (target_type STREQUAL "INTERFACE_LIBRARY")
+      return()
     endif ()
-    get_property(has_sources TARGET ${_vtk_test_target} PROPERTY SOURCES)
-    get_property(has_test GLOBAL PROPERTY "${module}_HAS_MANGLING_TEST" SET)
+  endif ()
+  get_property(has_sources TARGET ${_vtk_test_target} PROPERTY SOURCES)
+  get_property(has_test GLOBAL PROPERTY "${module}_HAS_MANGLING_TEST" SET)
 
-    if (NOT has_test AND has_sources)
-      set_property(GLOBAL PROPERTY "${module}_HAS_MANGLING_TEST" 1)
-      add_test(
-        NAME    "${module}-ManglingTest"
-        COMMAND "${Python3_EXECUTABLE}"
-                # TODO: What to do when using this from a VTK install?
-                "${VTK_SOURCE_DIR}/Testing/Core/CheckSymbolMangling.py"
-                "--files"
-                "$<TARGET_OBJECTS:${_vtk_test_target}>"
-                "--prefix"
-                # TODO: This is not included in vtk-config.
-                "${vtk_abi_namespace_name}"
-                "--exemptions"
-                "${_vtk_mangling_test_EXEMPTIONS}")
-    endif ()
+  if (NOT has_test AND has_sources)
+    set_property(GLOBAL PROPERTY "${module}_HAS_MANGLING_TEST" 1)
+    add_test(
+      NAME    "${module}-ManglingTest"
+      COMMAND "${Python3_EXECUTABLE}"
+              # TODO: What to do when using this from a VTK install?
+              "${VTK_SOURCE_DIR}/Testing/Core/CheckSymbolMangling.py"
+              "--files"
+              "$<TARGET_FILE:${_vtk_test_target}>"
+              "--prefix"
+              # TODO: This is not included in vtk-config.
+              "${vtk_abi_namespace_name}"
+              "--exemptions"
+              "${_vtk_mangling_test_EXEMPTIONS}")
+    set_property(TEST "${module}-ManglingTest" APPEND PROPERTY LABELS MANGLING)
   endif ()
 endfunction ()

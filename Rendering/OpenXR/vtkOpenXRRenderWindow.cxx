@@ -162,10 +162,7 @@ void vtkOpenXRRenderWindow::Render()
     return;
   }
 
-  if (this->TrackHMD)
-  {
-    this->UpdateHMDMatrixPose();
-  }
+  this->UpdateHMDMatrixPose();
 
   if (xrManager.GetShouldRenderCurrentFrame())
   {
@@ -210,10 +207,13 @@ void vtkOpenXRRenderWindow::UpdateHMDMatrixPose()
   while ((ren = this->Renderers->GetNextRenderer(rit)))
   {
     vtkVRCamera* cam = vtkVRCamera::SafeDownCast(ren->GetActiveCamera());
-    cam->SetCameraFromDeviceToWorldMatrix(d2wMat, this->GetPhysicalScale());
-    if (ren->GetLightFollowCamera())
+    if (cam && cam->GetTrackHMD())
     {
-      ren->UpdateLightsGeometryToFollowCamera();
+      cam->SetCameraFromDeviceToWorldMatrix(d2wMat, this->GetPhysicalScale());
+      if (ren->GetLightFollowCamera())
+      {
+        ren->UpdateLightsGeometryToFollowCamera();
+      }
     }
   }
 }
@@ -254,7 +254,7 @@ void vtkOpenXRRenderWindow::RenderOneEye(uint32_t eye)
   FramebufferDesc& eyeFramebufferDesc = this->FramebufferDescs[eye];
 
   if (!xrManager.PrepareRendering(
-        eye, &eyeFramebufferDesc.ResolveColorTextureId, &eyeFramebufferDesc.ResolveDepthTextureId))
+        this, &eyeFramebufferDesc.ResolveColorTextureId, &eyeFramebufferDesc.ResolveDepthTextureId))
   {
     return;
   }
@@ -279,7 +279,6 @@ void vtkOpenXRRenderWindow::RenderModels()
   vtkOpenGLState* ostate = this->GetState();
   ostate->vtkglEnable(GL_DEPTH_TEST);
 
-  auto iren = vtkOpenXRRenderWindowInteractor::SafeDownCast(this->Interactor);
   for (uint32_t hand :
     { vtkOpenXRManager::ControllerIndex::Left, vtkOpenXRManager::ControllerIndex::Right })
   {
@@ -298,13 +297,8 @@ void vtkOpenXRRenderWindow::RenderModels()
     // if we have a model and it is visible
     if (pRenderModel && pRenderModel->GetVisibility())
     {
-      XrPosef* handPose = iren->GetHandPose(hand);
-      if (handPose)
-      {
-        vtkMatrix4x4* tdPose = this->GetDeviceToPhysicalMatrixForDeviceHandle(handle);
-        vtkOpenXRUtilities::SetMatrixFromXrPose(tdPose, *handPose);
-        pRenderModel->Render(this, tdPose);
-      }
+      vtkMatrix4x4* tdPose = this->GetDeviceToPhysicalMatrixForDeviceHandle(handle);
+      pRenderModel->Render(this, tdPose);
     }
   }
 }

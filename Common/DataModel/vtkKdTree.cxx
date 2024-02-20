@@ -747,7 +747,7 @@ void vtkKdTree::ComputeCellCenter(vtkCell* cell, double* center, double* weights
 void vtkKdTree::BuildLocator()
 {
   // don't rebuild if build time is newer than modified and dataset modified time
-  if (this->Top && this->BuildTime > this->MTime && this->BuildTime > this->DataSet->GetMTime())
+  if (this->Top && this->BuildTime > this->MTime && this->NewGeometry() == 0)
   {
     return;
   }
@@ -777,7 +777,7 @@ void vtkKdTree::BuildLocatorInternal()
   int nCells = 0;
   int i;
 
-  if (this->NewGeometry())
+  if (this->NewGeometry() == 0)
   {
     return;
   }
@@ -3138,7 +3138,7 @@ void vtkKdTree::FreeSearchStructure()
 }
 
 //------------------------------------------------------------------------------
-// build PolyData representation of all spacial regions------------
+// build PolyData representation of all spatial regions------------
 //
 void vtkKdTree::GenerateRepresentation(int level, vtkPolyData* pd)
 {
@@ -3427,7 +3427,7 @@ void vtkKdTree::_generateRepresentationDataBounds(
 }
 
 //------------------------------------------------------------------------------
-// PolyData rep. of all spacial regions, shrunk to data bounds-------
+// PolyData rep. of all spatial regions, shrunk to data bounds-------
 //
 void vtkKdTree::AddPolys(vtkKdNode* kd, vtkPoints* pts, vtkCellArray* polys)
 {
@@ -3527,7 +3527,7 @@ void vtkKdTree::AddPolys(vtkKdNode* kd, vtkPoints* pts, vtkCellArray* polys)
 }
 
 //------------------------------------------------------------------------------
-// PolyData representation of a list of spacial regions------------
+// PolyData representation of a list of spatial regions------------
 //
 void vtkKdTree::GenerateRepresentation(int* regions, int len, vtkPolyData* pd)
 {

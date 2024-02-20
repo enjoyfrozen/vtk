@@ -61,7 +61,9 @@ vtkCell* vtkLagrangeWedge::GetFace(int faceId)
       result->Points->SetPoint(face_id, this->Points->GetPoint(vol_id));
       result->PointIds->SetId(face_id, this->PointIds->GetId(vol_id));
     };
-    this->GetTriangularFace(result, faceId, set_number_of_ids_and_points, set_ids_and_points);
+    vtkHigherOrderWedge::GetTriangularFace(
+      faceId, this->Order, set_number_of_ids_and_points, set_ids_and_points);
+    result->Initialize();
     return result;
   }
   else
@@ -75,7 +77,10 @@ vtkCell* vtkLagrangeWedge::GetFace(int faceId)
       result->Points->SetPoint(face_id, this->Points->GetPoint(vol_id));
       result->PointIds->SetId(face_id, this->PointIds->GetId(vol_id));
     };
-    this->GetQuadrilateralFace(result, faceId, set_number_of_ids_and_points, set_ids_and_points);
+    int faceOrder[2];
+    vtkHigherOrderWedge::GetQuadrilateralFace(
+      faceId, this->Order, set_number_of_ids_and_points, set_ids_and_points, faceOrder);
+    result->SetOrder(faceOrder[0], faceOrder[1]);
     return result;
   }
 }
@@ -95,11 +100,11 @@ void vtkLagrangeWedge::InterpolateDerivs(const double pcoords[3], double* derivs
 vtkHigherOrderQuadrilateral* vtkLagrangeWedge::GetBoundaryQuad()
 {
   return BdyQuad;
-};
+}
 vtkHigherOrderTriangle* vtkLagrangeWedge::GetBoundaryTri()
 {
   return BdyTri;
-};
+}
 vtkHigherOrderCurve* vtkLagrangeWedge::GetEdgeCell()
 {
   return EdgeCell;
@@ -107,5 +112,5 @@ vtkHigherOrderCurve* vtkLagrangeWedge::GetEdgeCell()
 vtkHigherOrderInterpolation* vtkLagrangeWedge::GetInterpolation()
 {
   return Interp;
-};
+}
 VTK_ABI_NAMESPACE_END

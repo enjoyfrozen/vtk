@@ -1242,10 +1242,10 @@ public:
    *
    * This method is implemented for the probing operation for now so as to not have to implement it
    * for all the subclasses of vtkCommunicator. In the future, one could imagine making the Probe
-   * methode a pure virtual method and having it implemented everwhere so as to no longer need the
+   * method a pure virtual method and having it implemented everywhere so as to no longer need the
    * CanProbe method.
    */
-  virtual bool CanProbe() { return false; };
+  virtual bool CanProbe() { return false; }
 
   /**
    * Blocking test for checking for a message tagged with tag from source process (if
