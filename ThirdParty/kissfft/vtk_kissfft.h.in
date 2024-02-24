@@ -8,7 +8,9 @@
 
 #if VTK_MODULE_USE_EXTERNAL_vtkkissfft
 # define VTK_KISSFFT_HEADER(header) <header>
+# define VTK_KISSFFT_HEADER(header) <tools/header>
 #else
+# define VTK_KISSFFT_HEADER(header) <vtkkissfft/header>
 # define VTK_KISSFFT_HEADER(header) <vtkkissfft/header>
 #endif
 
