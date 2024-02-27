@@ -3,16 +3,14 @@
 Introduction
 ============
 
-VTK is an open-source software system for image processing, 3D
-graphics, volume rendering and visualization. VTK includes many
-advanced algorithms (e.g., surface reconstruction, implicit modeling,
-decimation) and rendering techniques (e.g., hardware-accelerated
-volume rendering, LOD control).
+The Visualization Toolkit (VTK) is a robust and open-source software
+system that provides advanced features in 3D computer graphics, image
+processing, modeling, volume rendering, and scientific visualization.
+It offers threaded and distributed-memory parallel processing for
+scalability and better performance.
 
-VTK is used by academicians for teaching and research; by government
-research institutions such as Los Alamos National Lab in the US or
-CINECA in Italy; and by many commercial firms who use VTK to build or
-extend products.
+VTK is a cross-platform library that can run on many operating systems,
+including Windows, macOS, Linux, and even the web and mobile devices.
 
 The origin of VTK is with the textbook "The Visualization Toolkit, an
 Object-Oriented Approach to 3D Graphics" originally published by
@@ -21,64 +19,55 @@ Prentice Hall and now published by Kitware, Inc. (Third Edition ISBN
 world-wide user base in the commercial, academic, and research
 communities.
 
+To cite VTK in your scientific research, see [Citing][vtk-citing].
+
 Learning Resources
 ==================
 
-* General information is available at the [VTK Homepage][vtk-homepage].
+* [VTK Documentation][vtk-docs]
 
-* Community discussion takes place on the [VTK Discourse][vtk-discourse] forum.
+* Community discussions on the [VTK Discourse][vtk-discourse] forum.
 
 * Commercial [support and training][kitware-support]
   are available from [Kitware][].
 
-* Doxygen-generated nightly reference documentation is
+* Documentation of VTK C++ classes updated daily is
   available [online][vtk-doxygen].
 
-* There is now a large collection of [VTK Examples][vtk-examples] that
-  showcase VTK features and provide a useful learning resource.
+* [Examples, Tutorials, and guides][vtk-examples] for VTK in C++ and Python.
 
 Reporting Bugs
 ==============
 
 If you have found a bug:
 
-1. If you have a patch, please read the [CONTRIBUTING.md][vtk-contributing] document.
+1. If you have a patch, please refer to the [CONTRIBUTING.md][vtk-contributing] document.
 
-2. Otherwise, please join the [VTK Discourse][vtk-discourse] forum and ask
-   about the expected and observed behaviors to determine if it is
-   really a bug.
+2. Join the [VTK Discourse][vtk-discourse] forum to discuss expected and observed behaviors.
 
-3. Finally, if the issue is not resolved by the above steps, open
-   an entry in the [VTK Issue Tracker][vtk-issues].
+3. If the issue persists, open a ticket in the [VTK Issue Tracker][vtk-issues].
 
 Requirements
 ============
 
-In general VTK tries to be as portable as possible; the specific configurations below are known to work and tested.
-
-VTK supports the following compilers:
-
-1. GCC 4.8 or newer
-2. Clang 3.3 or newer
-3. Apple Clang 5.0 (from Xcode 5.0) or newer
-4. Microsoft Visual Studio 2015 or newer
-5. Intel 14.0 or newer
-
-VTK supports the following operating systems:
-
-1. Windows Vista or newer
-2. Mac OS X 10.7 or newer
-3. Linux (ex: Ubuntu 12.04 or newer, Debian 4 or newer)
+VTK prioritizes portability. Refer to [Supported Hardware][vtk-supported-hardware]
+and [Build Prerequisites][vtk-build] for detailed information.
 
 Building
 ========
 
-See [build.md][vtk-build] (in Documentation/dev/) for build instructions.
+Visit the [Building][vtk-build] page for instructions on building and installing VTK. It covers
+development builds on Unix-type systems (Linux, HP-UX, Solaris, macOS) and Windows.
+
+For using and integrating with existing VTK distributions (e.g., binaries, Python packages, or Docker),
+consult our [Getting Started][vtk-getting-started] documentation.
+
 
 Contributing
 ============
 
-See [CONTRIBUTING.md][vtk-contributing] for instructions to contribute.
+Refer to the [CONTRIBUTING][vtk-contributing] document for guidelines on contributing
+to VTK through GitLab merge requests.
 
 License
 =======
@@ -90,11 +79,14 @@ See [Copyright.txt][vtk-copyright] for details.
 [kitware]: https://www.kitware.com/
 [kitware-support]: https://www.kitware.com/support/
 [vtk-banner]: vtkBanner.gif
-[vtk-build]: Documentation/dev/build.md#building-vtk
-[vtk-contributing]: CONTRIBUTING.md#contributing-to-vtk
+[vtk-build]: https://docs.vtk.org/en/latest/build_instructions/index.html
+[vtk-contributing]: CONTRIBUTING.md
 [vtk-copyright]: Copyright.txt
 [vtk-discourse]: https://discourse.vtk.org/
 [vtk-doxygen]: https://www.vtk.org/doc/nightly/html
-[vtk-examples]: https://kitware.github.io/vtk-examples/site/
-[vtk-homepage]: https://www.vtk.org/
+[vtk-examples]: https://examples.vtk.org
+[vtk-docs]: https://docs.vtk.org/
 [vtk-issues]: https://gitlab.kitware.com/vtk/vtk/-/issues
+[vtk-supported-hardware]: https://docs.vtk.org/en/latest/supported_hardware.html
+[vtk-citing]: https://docs.vtk.org/en/latest/about.html#citing
+[vtk-getting-started]: https://docs.vtk.org/en/latest/getting_started/index.html

@@ -1,6 +1,6 @@
 # Sphinx Documentation
 
-This is the source of the [vtk docs](docs.vtk.org) website.
+This is the source of the [vtk docs](https://docs.vtk.org) website.
 
 ## Build environment
 
