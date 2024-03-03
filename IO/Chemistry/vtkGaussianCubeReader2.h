@@ -13,12 +13,14 @@
 #ifndef vtkGaussianCubeReader2_h
 #define vtkGaussianCubeReader2_h
 
+#include "vtkDeprecation.h"
 #include "vtkIOChemistryModule.h" // For export macro
 #include "vtkMoleculeAlgorithm.h"
 
 VTK_ABI_NAMESPACE_BEGIN
 class vtkMolecule;
 class vtkImageData;
+class vtkPartitionedDataSet;
 
 class VTKIOCHEMISTRY_EXPORT vtkGaussianCubeReader2 : public vtkMoleculeAlgorithm
 {
@@ -36,13 +38,22 @@ public:
   ///@}
 
   /**
-   * Get/Set the output (vtkImageData) that the reader will fill
+   * In case the parsed cube file contains only a single data set and that happens to be
+   * representable as a vtkImageData object, return that. In all other cases return nullptr. Note:
+   * this function is only retained for backwards compatibility with old code. Prefer using
+   * GetDataOutput();
    */
+  VTK_DEPRECATED_IN_9_3_0("The reader can now return multiple gridded data sets")
   vtkImageData* GetGridOutput();
+
+  /**
+   * Get the parsed data set(s)
+   */
+  vtkPartitionedDataSet* GetDataOutput();
 
   ///@{
   /**
-   * Get/Set the name of the CML file
+   * Get/Set the name of the cube file
    */
   vtkSetFilePathMacro(FileName);
   vtkGetFilePathMacro(FileName);
