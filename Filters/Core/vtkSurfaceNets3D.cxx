@@ -13,6 +13,7 @@
 #include "vtkLabelMapLookup.h"
 #include "vtkLogger.h"
 #include "vtkObjectFactory.h"
+#include "vtkPartitionedDataSet.h"
 #include "vtkPolyData.h"
 #include "vtkSMPThreadLocalObject.h"
 #include "vtkSMPTools.h"
@@ -408,7 +409,7 @@ struct SurfaceNets
   T* Scalars;                // input image scalars
   float* NewPts;             // output points
   vtkCellArray* NewQuads;    // output quad polygons
-  T* NewScalars;             // output 2-component cell scalars if requested
+  T* NewScalars;             // output 2-component adjacency cell tuples if requested
   vtkCellArray* NewStencils; // output smoothing stencils
 
   // Internal variable to handle label processing.
@@ -841,21 +842,6 @@ struct SurfaceNets
     } // operator()
   };  // GenerateQuadsImpl
 
-  // Finalize the quads array: after all the quads are inserted,
-  // the last offset has to be added to complete the offsets array.
-  struct FinalizeQuadsOffsetsImpl
-  {
-    template <typename CellStateT>
-    void operator()(CellStateT& state, vtkIdType numQuads)
-    {
-      using ValueType = typename CellStateT::ValueType;
-      auto* offsets = state.GetOffsets();
-      auto offsetRange = vtk::DataArrayValueRange<1>(offsets);
-      auto offsetIter = offsetRange.begin() + numQuads;
-      *offsetIter = static_cast<ValueType>(4 * numQuads);
-    }
-  };
-
   // Produce the smoothing stencils for this voxel cell.
   struct GenerateStencilImpl
   {
@@ -974,7 +960,7 @@ struct SurfaceNets
   // Threading integration via SMPTools; this method processes a
   // single x-edge.
   void ClassifyXEdges(
-    T* inPtr, vtkIdType row, vtkIdType slice, vtkLabelMapLookup<T>* lMap); // PASS 1
+    T* inPtr, vtkIdType row, vtkIdType slice, vtkLabelMapLookup<T,double>* lMap); // PASS 1
 
   // The second pass is used to classify the y- and z-edges of the triads.
   // This method processes an x-row of voxels.
@@ -993,6 +979,21 @@ struct SurfaceNets
   void GenerateOutput(vtkIdType row, vtkIdType slice); // PASS 4
 
 }; // SurfaceNets
+
+// Finalize a cells array: after all the cells are inserted,
+// the last offset has to be added to complete the offsets array.
+struct FinalizeCellsImpl
+{
+  template <typename CellStateT>
+  void operator()(CellStateT& state, vtkIdType numCells, int cellSize)
+  {
+    using ValueType = typename CellStateT::ValueType;
+    auto* offsets = state.GetOffsets();
+    auto offsetRange = vtk::DataArrayValueRange<1>(offsets);
+    auto offsetIter = offsetRange.begin() + numCells;
+    *offsetIter = static_cast<ValueType>(numCells * cellSize);
+  }
+}; // FinalizeCellsImpl
 
 // Initialize the smoothing stencil cases. There are 64 possible stencil face
 // cases, for each case, the number of active stencil edges, and then 0/1
@@ -1155,7 +1156,7 @@ void SurfaceNets<T>::GenerateEdgeStencils(int optLevel)
 // processed.
 template <typename T>
 void SurfaceNets<T>::ClassifyXEdges(
-  T* inPtr, vtkIdType row, vtkIdType slice, vtkLabelMapLookup<T>* lMap)
+  T* inPtr, vtkIdType row, vtkIdType slice, vtkLabelMapLookup<T,double>* lMap)
 {
   T s0, s1 = (*inPtr); // s1 is the first voxel value in the current row
   bool isLV0, isLV1 = lMap->IsLabelValue(s1);
@@ -1447,7 +1448,7 @@ void SurfaceNets<T>::ConfigureOutput(
 
     // Boundaries, a set of quads contained in vtkCellArray
     newQuads->ResizeExact(numOutQuads, 4 * numOutQuads);
-    newQuads->Visit(FinalizeQuadsOffsetsImpl{}, numOutQuads);
+    newQuads->Visit(FinalizeCellsImpl{}, numOutQuads, 4);
     this->NewQuads = newQuads;
 
     // Scalars, which are of type T and 2-components
@@ -1565,16 +1566,16 @@ struct NetsWorker
     SurfaceNets<T>* Algo;
     // The label map lookup caches information, so to avoid race conditions,
     // an instance per thread must be created.
-    vtkSMPThreadLocal<vtkLabelMapLookup<T>*> LMap;
+    vtkSMPThreadLocal<vtkLabelMapLookup<T,double>*> LMap;
     Pass1(SurfaceNets<T>* algo) { this->Algo = algo; }
     void Initialize()
     {
       this->LMap.Local() =
-        vtkLabelMapLookup<T>::CreateLabelLookup(Algo->LabelValues, Algo->NumLabels);
+        vtkLabelMapLookup<T,double>::CreateLabelLookup(Algo->LabelValues, Algo->NumLabels);
     }
     void operator()(vtkIdType slice, vtkIdType endSlice)
     {
-      vtkLabelMapLookup<T>* lMap = this->LMap.Local();
+      vtkLabelMapLookup<T,double>* lMap = this->LMap.Local();
       T *rowPtr, *slicePtr = this->Algo->Scalars + (slice - 1) * this->Algo->Inc2;
 
       // Process slice-by-slice. Note that the bottom and top slices are not
@@ -1759,7 +1760,7 @@ struct NetsWorker
     // This algorithm executes just once no matter how many contour/label
     // values, requiring a fast lookup as to whether a data/voxel value is a
     // contour value, or should be considered part of the background. In
-    // Pass1, instances of vtkLabelMapLookup<T> are created (per thread)
+    // Pass1, instances of vtkLabelMapLookup<T,TSet> are created (per thread)
     // which performs the fast label lookup.
     algo.NumLabels = self->GetNumberOfLabels();
     algo.LabelValues = self->GetValues();
@@ -1855,17 +1856,28 @@ struct ConvertToTrisImpl
   }
 };
 
-// Complete the cell array offsets.
-struct FinalizeMeshConversionImpl
+// Helper functions to extract cells from the output SurfaceNets and
+// copy them to another cell array.
+struct ExtractRegionImpl
 {
   template <typename CellStateT>
-  void operator()(CellStateT& state, vtkIdType numCells, vtkIdType connSize)
+  void operator()(CellStateT& state, vtkIdType cellId, vtkIdType cellSize, const vtkIdType* pts)
   {
     using ValueType = typename CellStateT::ValueType;
     auto* offsets = state.GetOffsets();
+    auto* conn = state.GetConnectivity();
+
     auto offsetRange = vtk::DataArrayValueRange<1>(offsets);
-    auto offsetIter = offsetRange.begin() + numCells;
-    *offsetIter = static_cast<ValueType>(connSize);
+    auto offsetItr = offsetRange.begin() + cellId;
+    auto connRange = vtk::DataArrayValueRange<1>(conn);
+    auto connItr = connRange.begin() + (cellId * cellSize);
+
+    // Copy the cell
+    *offsetItr++ = static_cast<ValueType>(cellSize * cellId);
+    for ( int i=0; i < cellSize; ++i)
+    {
+      *connItr++ = pts[i];
+    }
   }
 };
 
@@ -1917,7 +1929,6 @@ struct TransformMesh
   vtkSmartPointer<vtkCellArray> OutputMesh;
   int TriStrategy;
   vtkIdType NumOutputCells;
-  vtkIdType OutputConnSize;
 
   // Each thread has a cell array iterator to avoid constant allocation.
   vtkSMPThreadLocalObject<vtkIdList> TLIdList;
@@ -1928,7 +1939,6 @@ struct TransformMesh
     , OutputMesh(nullptr)
     , TriStrategy(triStrategy)
     , NumOutputCells(0)
-    , OutputConnSize(0)
   {
   }
 
@@ -1991,11 +2001,7 @@ struct TransformMesh
     } // over this batch of cells
   }
 
-  void Reduce()
-  {
-    this->OutputMesh->Visit(
-      FinalizeMeshConversionImpl{}, this->NumOutputCells, this->OutputConnSize);
-  }
+  void Reduce() {}
 }; // TransformMesh
 
 // Transform quad mesh to triangles. Also transform the cell data associated with the
@@ -2007,10 +2013,9 @@ struct TransformMeshToTris : public TransformMesh
     : TransformMesh(pts, qMesh, triStrategy)
   {
     this->NumOutputCells = 2 * qMesh->GetNumberOfCells();
-    this->OutputConnSize = 6 * qMesh->GetNumberOfCells();
-
     this->OutputMesh = vtkSmartPointer<vtkCellArray>::New();
-    this->OutputMesh->ResizeExact(this->NumOutputCells, this->OutputConnSize);
+    this->OutputMesh->ResizeExact(this->NumOutputCells, 3 * this->NumOutputCells);
+    this->OutputMesh->Visit(FinalizeCellsImpl{}, this->NumOutputCells, 3);
   }
   void Initialize() { this->TransformMesh::Initialize(); }
   void Reduce() { this->TransformMesh::Reduce(); }
@@ -2086,29 +2091,13 @@ struct CopyCellsImpl
   } // operator()
 };  // CopyCellsImpl
 
-// Finalize the copying of cells. The last offset has to be added to complete
-// the offsets array.
-struct FinalizeCopyCellsImpl
-{
-  template <typename CellStateT>
-  void operator()(CellStateT& state, vtkIdType numCells, int cellSize)
-  {
-    using ValueType = typename CellStateT::ValueType;
-    auto* offsets = state.GetOffsets();
-    auto offsetRange = vtk::DataArrayValueRange<1>(offsets);
-    auto offsetIter = offsetRange.begin() + numCells;
-    *offsetIter = static_cast<ValueType>(cellSize * numCells);
-  }
-};
-
-// Select polys for output: either on the boundary, or specified labels.
-// Boundary faces are those used by just one region. Faces surrounding (a)
-// specified region(s)/label(s) may also be extracted.
+// Select cells for output based on specified labels. Also, the BoundaryFaces
+// setting affects what is extracted.
 struct SelectWorker
 {
   template <typename ST>
   void operator()(
-    ST* newScalars, vtkPolyData* output, int outputStyle, vtkSurfaceNets3D* self, int cellSize)
+    ST* newScalars, vtkPolyData* output, vtkSurfaceNets3D* self, int cellSize)
   {
     // Extract information from the current output. The current output cells
     // may either be triangles or quads, so the cell size is either 3 or 4,
@@ -2120,35 +2109,31 @@ struct SelectWorker
     // then the input cell is not copied to the output.
     std::vector<vtkIdType> selectedCells(numCells);
 
-    // If extracting the boundary of selected regions, then need to
-    // set up a fast lookup with vtkLabelMapLookup.
-    vtkLabelMapLookup<ValueType>* lMap = nullptr;
-    if (outputStyle == vtkSurfaceNets3D::OUTPUT_STYLE_SELECTED)
+    // Need to set up a fast lookup with vtkLabelMapLookup.
+    std::vector<double> labels;
+    labels.reserve(static_cast<size_t>(self->GetNumberOfSelectedLabels()));
+    for (auto i = 0; i < self->GetNumberOfSelectedLabels(); ++i)
     {
-      std::vector<double> labels;
-      labels.reserve(static_cast<size_t>(self->GetNumberOfSelectedLabels()));
-      for (auto i = 0; i < self->GetNumberOfSelectedLabels(); ++i)
-      {
-        labels.push_back(self->GetSelectedLabel(i));
-      }
-      lMap = vtkLabelMapLookup<ValueType>::CreateLabelLookup(
-        labels.data(), self->GetNumberOfSelectedLabels());
+      labels.push_back(self->GetSelectedLabel(i));
     }
+    vtkLabelMapLookup<ValueType,double>* lMap = vtkLabelMapLookup<ValueType,double>::
+      CreateLabelLookup(labels.data(), self->GetNumberOfSelectedLabels());
+    ValueType backgroundLabel = static_cast<ValueType>(self->GetBackgroundLabel());
+    bool boundaryFaces = self->GetBoundaryFaces();
 
-    // Traverse all existing cells and mark those satisfying outputStyle
-    // criterion for extraction.
+    // Traverse all existing cells and mark those satisfying criterion for
+    // extraction.
     vtkSMPTools::For(0, numCells,
-      [&newScalars, outputStyle, &selectedCells, self, lMap](
-        vtkIdType cellId, vtkIdType endCellId) {
+      [backgroundLabel, boundaryFaces, &newScalars, &selectedCells, lMap](
+      vtkIdType cellId, vtkIdType endCellId) {
         const auto inTuples = vtk::DataArrayTupleRange<2>(newScalars);
-        ValueType backgroundLabel = static_cast<ValueType>(self->GetBackgroundLabel());
         for (; cellId < endCellId; ++cellId)
         {
           const auto inTuple = inTuples[cellId];
-          if ((outputStyle == vtkSurfaceNets3D::OUTPUT_STYLE_BOUNDARY &&
-                inTuple[1] == backgroundLabel) ||
-            (outputStyle == vtkSurfaceNets3D::OUTPUT_STYLE_SELECTED &&
-              (lMap->IsLabelValue(inTuple[0]) || lMap->IsLabelValue(inTuple[1]))))
+          if ( (boundaryFaces && (lMap->IsLabelValue(inTuple[0]) &&
+                                  inTuple[1] == backgroundLabel)) ||
+               (!boundaryFaces && (lMap->IsLabelValue(inTuple[0]) ||
+                                   lMap->IsLabelValue(inTuple[1]))) )
           {
             selectedCells[cellId] = 1;
           }
@@ -2175,7 +2160,7 @@ struct SelectWorker
     vtkCellArray* newCells = output->GetPolys();
     vtkNew<vtkCellArray> outCells;
     outCells->ResizeExact(numOutCells, cellSize * numOutCells);
-    outCells->Visit(FinalizeCopyCellsImpl{}, numOutCells, cellSize);
+    outCells->Visit(FinalizeCellsImpl{}, numOutCells, cellSize);
     vtkSMPThreadLocalObject<vtkIdList> tlIdList;
     vtkSMPTools::For(0, numCells,
       [newCells, &selectedCells, &outCells, cellSize, &tlIdList](
@@ -2220,9 +2205,288 @@ struct SelectWorker
     // Now update the filter output with the new cells, and new cell data.
     output->SetPolys(outCells);
     output->GetCellData()->AddArray(outScalars);
-
   } // operator()
 };  // SelectWorker
+
+// A 2D matrix keeps track of output information when extracting regions. The
+// ith column corresponds to label id. The jth row corresponds to batches,
+// i.e., the number of cells in each batch.
+using CountMatrix = std::vector<std::vector<vtkIdType>>;
+
+// Functor for extracting regions from the SurfaceNets mesh. It runs in two
+// modes: first it counts the cells to extract (for each label/region); then
+// after allocation, it actually extracts the cells and places them into each
+// regions' vtkCellArray (and hence associated vtkPolyData).
+template <typename ST>
+struct ExtractRegionsFunctor
+{
+  using ValueType = vtk::GetAPIType<ST>;
+  vtkIdType NumInCells;
+  vtkCellArray *InCells;
+  vtkIdType CellSize;
+  vtkIdType NumLabels;
+  vtkIdType *Labels;
+  vtkCellArray** OutCellArrays;
+  vtkIdType BatchSize;
+  CountMatrix& CellCounts;
+  ST* BoundaryLabels;
+  ValueType BackgroundLabel;
+  bool BoundaryFaces;
+  bool Counting;
+
+  // Used as temporary / scratch variable
+  vtkSMPThreadLocalObject<vtkIdList> CellPointIds;
+  // Label map is not thread safe due to caching
+  vtkSMPThreadLocal<vtkLabelMapLookup<ValueType,vtkIdType>*> LMap;
+
+  ExtractRegionsFunctor(vtkIdType numInCells, vtkCellArray* inCells,
+    vtkIdType cellSize, vtkIdType numLabels, vtkIdType* labels,
+    vtkCellArray** outCellArrays, vtkIdType batchSize, CountMatrix& cellCounts,
+    ST* boundaryLabels, ValueType backgroundLabel, bool boundaryFaces) :
+      NumInCells(numInCells), InCells(inCells), CellSize(cellSize),
+      NumLabels(numLabels), Labels(labels), OutCellArrays(outCellArrays),
+      BatchSize(batchSize), CellCounts(cellCounts), BoundaryLabels(boundaryLabels),
+      BackgroundLabel(backgroundLabel), BoundaryFaces(boundaryFaces), Counting(true)
+  {
+  }
+
+  void Initialize()
+  {
+    this->LMap.Local() =
+      vtkLabelMapLookup<ValueType,vtkIdType>::CreateLabelLookup(this->Labels, this->NumLabels);
+  }
+
+  void operator()(vtkIdType batchNum, vtkIdType endBatchNum)
+  {
+    auto cellPointIds = this->CellPointIds.Local();
+    vtkLabelMapLookup<ValueType,vtkIdType>* lMap = this->LMap.Local();
+    vtkIdType cellSize = this->CellSize;
+    vtkIdType npts;
+    const vtkIdType* pts;
+    bool boundaryFaces = this->BoundaryFaces;
+    ValueType backgroundLabel = this->BackgroundLabel;
+    vtkCellArray* inCells = this->InCells;
+    vtkCellArray** cellArrays = this->OutCellArrays;
+    const auto inTuples = vtk::DataArrayTupleRange<2>(this->BoundaryLabels);
+    CountMatrix& cellCounts = this->CellCounts;
+
+    for (; batchNum < endBatchNum; ++batchNum)
+    {
+      vtkIdType cellId = batchNum * this->BatchSize;
+      vtkIdType endCellId = cellId + this->BatchSize;
+      endCellId = (endCellId > this->NumInCells ? this->NumInCells : endCellId);
+      vtkIdType lID0=0, lID1=0;
+      for (; cellId < endCellId; ++cellId)
+      {
+        const auto inTuple = inTuples[cellId];
+        bool tuple0 = (!boundaryFaces || inTuple[1] == backgroundLabel) &&
+          lMap->IsLabelValue(inTuple[0],lID0);
+        bool tuple1 = !boundaryFaces && lMap->IsLabelValue(inTuple[1],lID1);
+
+        if ( tuple0 || tuple1 )
+        {
+          if ( this->Counting ) // counting the number of cells
+          {
+            if (tuple0)
+            {
+              cellCounts[lID0][batchNum]++;
+            }
+            if (tuple1)
+            {
+              cellCounts[lID1][batchNum]++;
+            }
+          }
+          else // inserting cells
+          {
+            inCells->GetCellAtId(cellId, npts, pts, cellPointIds);
+            if (tuple0)
+            {
+              cellArrays[lID0]->Visit(ExtractRegionImpl{}, cellCounts[lID0][batchNum]++, cellSize, pts);
+            }
+            if (tuple1)
+            {
+              cellArrays[lID1]->Visit(ExtractRegionImpl{}, cellCounts[lID1][batchNum]++, cellSize, pts);
+            }
+          } // inserting cells
+        }   // if cell to be counted or inserted
+      }     // for all cells in this batch
+    }       // for all batches
+  }         // operator()
+
+  void Reduce()
+  {
+    // Delete all of the label map lookups
+    if ( !this->Counting )
+    {
+      for (auto lmItr = this->LMap.begin(); lmItr != this->LMap.end(); ++lmItr)
+      {
+        delete *lmItr;
+      } // over all threads
+    }
+  }
+}; // ExtractRegionsFunctor
+
+
+// Extract the specified regions and place them into the provided partitioned
+// data set. Just extract points and cells for each polydata composing the
+// partitioned dataset. For each region, this is a two part process: first
+// count the number of cells to extract, and then write the cells to the
+// supplied vtkPolyData/vtkCellArray. This processes all cells in all regions
+// simultaneously. Note this algorithm makes only two passes over the output
+// SurfaceNets mesh, no matter the number of labeled regions in the SurfaceNet.
+struct ExtractRegionsWorker
+{
+  template <typename ST>
+  void operator()(
+    ST* boundaryLabels, vtkPolyData* SNOutput, vtkIdType numLabels,
+    vtkIdType *labels, vtkPartitionedDataSet* dataSets, bool boundaryFaces,
+    vtkSurfaceNets3D* self)
+  {
+    // Extract information from the current output. The current output cells
+    // may either be triangles or quads, so the cell size is either 3 or 4,
+    // respectively.
+    using ValueType = vtk::GetAPIType<ST>;
+    vtkCellArray* inCells = SNOutput->GetPolys();
+    vtkIdType numCells = inCells->GetNumberOfCells();
+    int cellSize = static_cast<int>(inCells->GetCellSize(0)); //all cells the same size
+
+    // Cells are processed in large batches.
+    static constexpr vtkIdType batchSize = 250000;
+    vtkIdType numBatches = std::ceil(static_cast<double>(numCells)/batchSize);
+
+    // Create a 2D matrix. The ith column corresponds to label id. The jth row corresponds
+    // to batches, i.e., the number of cells in each batch. We also have to initialize the
+    // matrix values to 0.
+    CountMatrix cellCounts(numLabels,std::vector<vtkIdType>(numBatches,0));
+    ValueType backgroundLabel = static_cast<ValueType>(self->GetBackgroundLabel());
+
+    // Access the output cell arrays.
+    std::vector<vtkCellArray*> cellArrays(numLabels);
+    for ( vtkIdType labelId = 0; labelId < numLabels; ++labelId )
+    {
+      cellArrays[labelId] = vtkPolyData::SafeDownCast(dataSets->GetPartition(labelId))->GetPolys();
+    }
+
+    // Create the functor to count the number of cells to be extracted.
+    ExtractRegionsFunctor<ST> extract(numCells,inCells,cellSize,numLabels,labels,
+      cellArrays.data(),batchSize,cellCounts,boundaryLabels,backgroundLabel,boundaryFaces);
+    extract.Counting = true;
+    vtkSMPTools::For(0, numBatches, extract);
+
+    // Perform a prefix sum across all labels in preparation for allocating
+    // memory foe each output cell array and writing output cells.
+    vtkSMPTools::For(0, numLabels, [&](vtkIdType lId, vtkIdType endLId) {
+      for ( ; lId < endLId; ++lId)
+      {
+        vtkIdType numBatchCells, numOutCells = 0;
+        for (vtkIdType bNum=0; bNum < numBatches; ++ bNum)
+        {
+          numBatchCells = cellCounts[lId][bNum];
+          cellCounts[lId][bNum] = numOutCells;
+          numOutCells += numBatchCells;
+        }
+        // Now allocate cell arrays
+        cellArrays[lId]->ResizeExact(numOutCells, cellSize * numOutCells);
+        cellArrays[lId]->Visit(FinalizeCellsImpl{}, numOutCells, cellSize);
+      } // for each label id
+    });
+
+    // Now copy cells to the appropriate output cell array. Traverse all
+    // batches, writing cells to the correct spot.
+    extract.Counting = false; // enter insert cells mode
+    vtkSMPTools::For(0, numBatches, extract);
+
+  } // operator()
+}; // ExtractRegionsWorker
+
+// Given an input vtkPolyData, eliminate unused points and renumber the cell
+// array. The method will replace the vtkPoints array, and modify the
+// vtkCellArray (points are renumbered). The method is threaded.
+void CleanPolyDataPoints(vtkPolyData* pdata)
+{
+  if ( !pdata || !pdata->GetPoints() || pdata->GetNumberOfCells() < 1 )
+  {
+    return;
+  }
+  vtkIdType numPts = pdata->GetNumberOfPoints();
+  vtkIdType numCells = pdata->GetNumberOfCells();
+  vtkPoints* inPts = pdata->GetPoints();
+  vtkCellArray* inCells = pdata->GetPolys();
+
+  // Need to mark points that are used.
+  std::atomic<unsigned char>* ptUses = new std::atomic<unsigned char>[numPts]();
+  vtkSMPThreadLocalObject<vtkIdList> tlCellPointIds;
+  vtkSMPTools::For(0, numCells, [&](vtkIdType cellId, vtkIdType endCellId) {
+    auto cellPointIds = tlCellPointIds.Local();
+    vtkIdType npts, ptIdx;
+    const vtkIdType* pts;
+    for (; cellId < endCellId; ++cellId)
+    {
+      inCells->GetCellAtId(cellId, npts, pts, cellPointIds);
+      for (ptIdx = 0; ptIdx < npts; ++ptIdx)
+      {
+        // memory_order_relaxed is safe here, since we're not using the atomics for
+        // synchronization.
+        ptUses[pts[ptIdx]].store(1, std::memory_order_relaxed);
+      }
+    }
+  }); // end lambda
+
+  // Count the number of points used and then renumber them.
+  std::vector<vtkIdType> ptMap(numPts);
+  vtkIdType numNewPts = 0;
+  for (vtkIdType pId = 0; pId < numPts; ++pId)
+  {
+    if ( ptUses[pId] > 0 )
+    {
+      ptMap[pId] = numNewPts++;
+    }
+    else
+    {
+      ptMap[pId] = (-1);
+    }
+  }
+  delete [] ptUses;
+
+  // Allocate points and copy over.
+  vtkNew<vtkPoints> outPts;
+  outPts->SetDataTypeToFloat();
+  outPts->SetNumberOfPoints(numNewPts);
+  pdata->SetPoints(outPts);
+  float* inPtsPtr = static_cast<vtkFloatArray*>(inPts->GetData())->GetPointer(0);
+  float* outPtsPtr = static_cast<vtkFloatArray*>(outPts->GetData())->GetPointer(0);
+  vtkSMPTools::For(0, numPts, [&](vtkIdType pId, vtkIdType endPId) {
+    for (; pId < endPId; ++pId)
+    {
+      if ( ptMap[pId] >= 0 )
+      {
+        float* xIn = inPtsPtr + 3*pId;
+        float* xOut = outPtsPtr + 3*ptMap[pId];
+        xOut[0] = xIn[0];
+        xOut[1] = xIn[1];
+        xOut[2] = xIn[2];
+      }
+    }
+  }); // end lambda
+
+  // Now renumber the cells in place.
+  vtkSMPTools::For(0, numCells, [&](vtkIdType cellId, vtkIdType endCellId) {
+    auto cellPointIds = tlCellPointIds.Local();
+    vtkIdType npts, newPts[4];
+    const vtkIdType* pts;
+    for (; cellId < endCellId; ++cellId)
+    {
+      inCells->GetCellAtId(cellId, npts, pts, cellPointIds);
+      for (vtkIdType i=0; i < npts; ++i)
+      {
+        newPts[i] = ptMap[pts[i]];
+      }
+      inCells->ReplaceCellAtId(cellId, npts, newPts);
+    }
+  }); // end lambda
+
+}; // CleanPolyDataPoints
+
 
 } // anonymous namespace
 
@@ -2245,16 +2509,22 @@ vtkSurfaceNets3D::vtkSurfaceNets3D()
   this->ConstraintScale = 2.0;
 
   this->OutputStyle = OUTPUT_STYLE_DEFAULT;
+  this->BoundaryFaces = false;
+  this->CleanPoints = false;
 
   this->TriangulationStrategy = TRIANGULATION_MIN_EDGE;
 
   this->DataCaching = true;
   this->GeometryCache = vtkSmartPointer<vtkPolyData>::New();
   this->StencilsCache = vtkSmartPointer<vtkCellArray>::New();
+  this->SNOutput = nullptr;
 
   // by default process active point scalars
   this->SetInputArrayToProcess(
     0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, vtkDataSetAttributes::SCALARS);
+
+  // This may have two outputs if extraction is requested.
+  this->SetNumberOfOutputPorts(2);
 }
 
 //------------------------------------------------------------------------------
@@ -2272,6 +2542,105 @@ vtkMTimeType vtkSurfaceNets3D::GetMTime()
 
   return (mTime2 > mTime ? mTime2 : mTime);
 }
+
+
+//------------------------------------------------------------------------------
+// Extract a single region from the SurfaceNet. Place the result into the
+// user-provided vtkPolyData.
+void vtkSurfaceNets3D::
+ExtractRegion(vtkIdType labelId, vtkPolyData *regionData,
+              bool boundaryFaces, bool cleanPoints)
+{
+  // Begin by creating empty cells and initializing the output polydata.
+  vtkPolyData* output = this->SNOutput;
+  if ( !output )
+  {
+    vtkErrorMacro("ExtractRegion() only available after filter execution.");
+    return;
+  }
+
+  vtkNew<vtkCellArray> regionCells;
+  regionData->SetPoints(output->GetPoints()); // may be replaced later if cleanPoints is on
+  regionData->SetPolys(regionCells);
+  if ( output->GetNumberOfCells() < 1 )
+  {
+    return; // empty output because empty input
+  }
+
+  // Need a placeholder vtkPartitionedDataSet
+  vtkNew<vtkPartitionedDataSet> dataSets;
+  dataSets->SetNumberOfPartitions(1);
+  dataSets->SetPartition(0,regionData);
+  std::vector<vtkIdType> labels = {labelId};
+
+  // Dispatch on type to extract the region.
+  vtkDataArray* boundaryLabels = output->GetCellData()->GetArray("BoundaryLabels");
+  using ExtractDispatch = vtkArrayDispatch::DispatchByValueType<vtkArrayDispatch::AllTypes>;
+  ExtractRegionsWorker extractWorker;
+  ExtractDispatch::Execute(boundaryLabels, extractWorker, this->SNOutput, 1,
+                           labels.data(), dataSets, boundaryFaces, this);
+
+  // If cleaning is requested, do so at this time.
+  if (cleanPoints)
+  {
+    CleanPolyDataPoints(regionData);
+  }
+
+  vtkDebugMacro("Extracted region: " << labelId);
+}
+
+//------------------------------------------------------------------------------
+// Extract multiple regions from the SurfaceNet. Place the result into the
+// user-provided vtkPartionedDataSet.
+void vtkSurfaceNets3D::
+ExtractRegions(vtkIdType numLabels, vtkIdType *labels,
+               vtkPartitionedDataSet *dataSets,
+               bool boundaryFaces, bool cleanPoints)
+{
+  // Begin by creating empty cells and initializing the output polydata.
+  vtkPolyData* output = this->SNOutput;
+  if ( !output )
+  {
+    vtkErrorMacro("ExtractRegions() only available after filter execution.");
+    return;
+  }
+
+  // Initialize the partitioned dataset
+  if ( numLabels < 1 )
+  {
+    vtkErrorMacro("ExtractRegions() requires at least one label.");
+    return;
+  }
+  dataSets->SetNumberOfPartitions(numLabels);
+
+  // Now construct vtkPolyData and vtkCellArrays for each labeled region.
+  for ( vtkIdType labelId=0; labelId < numLabels; ++labelId )
+  {
+    vtkNew<vtkPolyData> pd;
+    vtkNew<vtkCellArray> ca;
+    pd->SetPoints(output->GetPoints());
+    pd->SetPolys(ca);
+    dataSets->SetPartition(labelId, pd);
+  }
+
+  // Dispatch to the extraction method.
+  vtkDataArray* boundaryLabels = output->GetCellData()->GetArray("BoundaryLabels");
+  using ExtractDispatch = vtkArrayDispatch::DispatchByValueType<vtkArrayDispatch::AllTypes>;
+  ExtractRegionsWorker extractWorker;
+  ExtractDispatch::Execute(boundaryLabels, extractWorker, this->SNOutput, numLabels,
+                           labels, dataSets, boundaryFaces, this);
+
+  // Clean points if requested.
+  if (cleanPoints)
+  {
+    for ( vtkIdType labelId=0; labelId < numLabels; ++labelId )
+    {
+      vtkPolyData* pd = vtkPolyData::SafeDownCast(dataSets->GetPartition(labelId));
+      CleanPolyDataPoints(pd);
+    }
+  }
+
+} // ExtractRegions
 
 //------------------------------------------------------------------------------
 // Selected labels are used to output regions/labels if the OutputStyle is
@@ -2324,10 +2693,13 @@ int vtkSurfaceNets3D::RequestData(vtkInformation* vtkNotUsed(request),
   // Get the information objects
   vtkInformation* inInfo = inputVector[0]->GetInformationObject(0);
   vtkInformation* outInfo = outputVector->GetInformationObject(0);
+  vtkInformation* outInfo2 = outputVector->GetInformationObject(1);
 
   // Get the input and output
   vtkImageData* input = vtkImageData::SafeDownCast(inInfo->Get(vtkDataObject::DATA_OBJECT()));
   vtkPolyData* output = vtkPolyData::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
+  this->SNOutput = output; // may be used by ExtractRegion()
+  vtkPartitionedDataSet* pds = vtkPartitionedDataSet::SafeDownCast(outInfo2->Get(vtkDataObject::DATA_OBJECT()));
 
   // We'll be creating boundary labels cell data
   vtkSmartPointer<vtkDataArray> newScalars;
@@ -2448,16 +2820,34 @@ int vtkSurfaceNets3D::RequestData(vtkInformation* vtkNotUsed(request),
   }
 
   // If the output style is other than default, then extra works needs
-  // to be done to extract a portion of the output (e.g., boundary faces,
-  // or faces associated with a specified region). This modifies the number
-  // of output cells, and the associated cell data.
-  if (this->OutputStyle != OUTPUT_STYLE_DEFAULT)
+  // to be done to extract the output.
+  if (this->OutputStyle == OUTPUT_STYLE_SELECTED)
   {
     using SelectDispatch = vtkArrayDispatch::DispatchByValueType<vtkArrayDispatch::AllTypes>;
     SelectWorker selectWorker;
-    SelectDispatch::Execute(output->GetCellData()->GetArray("BoundaryLabels"), selectWorker, output,
-      this->OutputStyle, this, cellSize);
+    SelectDispatch::Execute(output->GetCellData()->GetArray("BoundaryLabels"), selectWorker,
+      output, this, cellSize);
     vtkLog(INFO, "Selected: " << output->GetNumberOfCells() << " cells");
+  }
+  else if (pds && (this->OutputStyle == OUTPUT_STYLE_EXTRACT_SELECTED ||
+                   this->OutputStyle == OUTPUT_STYLE_EXTRACT_ALL) )
+  {
+    // Create a second vtkPartionedDataSet output
+    vtkIdType numLabels = this->GetNumberOfLabels();
+    const double* labelValues = this->GetValues();
+    std::vector<vtkIdType> extLabels;
+    if ( this->OutputStyle == OUTPUT_STYLE_EXTRACT_ALL )
+    {
+      extLabels.insert(extLabels.end(), labelValues, labelValues+numLabels);
+    }
+    else
+    {
+      extLabels.insert(extLabels.end(), this->SelectedLabels.begin(),
+                       this->SelectedLabels.end());
+    }
+
+    this->ExtractRegions(extLabels.size(), extLabels.data(), pds, this->BoundaryFaces,
+                         this->CleanPoints);
   }
 
   // Flush the cache if caching is disabled.
@@ -2496,6 +2886,21 @@ int vtkSurfaceNets3D::FillInputPortInformation(int, vtkInformation* info)
 }
 
 //------------------------------------------------------------------------------
+int vtkSurfaceNets3D::FillOutputPortInformation(int port, vtkInformation* info)
+{
+  if (port == 1)
+  {
+    info->Set(vtkDataObject::DATA_TYPE_NAME(), "vtkPartitionedDataSet");
+    return 1;
+  }
+  else
+  {
+    info->Set(vtkDataObject::DATA_TYPE_NAME(), "vtkPolyData");
+    return 1;
+  }
+}
+
+//------------------------------------------------------------------------------
 void vtkSurfaceNets3D::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
@@ -2516,6 +2921,8 @@ void vtkSurfaceNets3D::PrintSelf(ostream& os, vtkIndent indent)
 
   os << indent << "Output Style: " << this->OutputStyle << endl;
   os << indent << "Number of Selected Labels: " << this->SelectedLabels.size() << endl;
+  os << indent << "Boundary Faces: " << (this->BoundaryFaces ? "On\n" : "Off\n");
+  os << indent << "CleanPoints: " << (this->CleanPoints ? "On\n" : "Off\n");
 
   os << indent << "Triangulation Strategy: " << this->TriangulationStrategy << endl;
 

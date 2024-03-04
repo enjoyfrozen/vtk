@@ -74,7 +74,7 @@ public:
   int Max1;
   int Inc1;
   int Axis2;
-  vtkLabelMapLookup<T>* LMap;
+  vtkLabelMapLookup<T,double>* LMap;
 
   // Output data. Threads write to partitioned memory.
   T* Scalars;
@@ -1417,7 +1417,7 @@ void vtkDiscreteClipperAlgorithm<T>::ContourImage(vtkDiscreteFlyingEdgesClipper2
   // requiring a fast lookup as to whether a data value is a contour value.
   // Depending on the number of contours, different lookup strategies are
   // used.
-  algo.LMap = vtkLabelMapLookup<T>::CreateLabelLookup(values, numContours);
+  algo.LMap = vtkLabelMapLookup<T,double>::CreateLabelLookup(values, numContours);
 
   // The algorithm is separated into multiple passes. The first pass detects
   // intersections on row edges, counting the number of intersected edges as
