@@ -519,8 +519,8 @@ int vtkGaussianCubeReader2::FillOutputPortInformation(int port, vtkInformation* 
     return this->Superclass::FillOutputPortInformation(port, info);
   }
   // TODO: Shouldn't we be more concrete?
-  // info->Set(vtkDataObject::DATA_TYPE_NAME(), "vtkDataObject");
-  info->Set(vtkDataObject::DATA_TYPE_NAME(), "vtkImageData");
+  info->Set(vtkDataObject::DATA_TYPE_NAME(), "vtkDataObject");
+  // info->Set(vtkDataObject::DATA_TYPE_NAME(), "vtkImageData");
   return 1;
 }
 
