@@ -5,7 +5,7 @@ orphan: true
 VTK Git Usage
 =============
 
-VTK version tracking and development is hosted by [Git](http://git-scm.com).
+VTK version tracking and development is hosted by [Git](https://git-scm.com).
 Please select a task for further instructions:
 
 Main Tasks
@@ -25,7 +25,7 @@ Other Tasks
 
 * [Test VTK](dashboard.md) - CDash client setup
 
-* [Learn Git](http://public.kitware.com/Wiki/Git/Resources) -
+* [Learn Git](https://public.kitware.com/Wiki/Git/Resources) -
   Third-party documentation
 
 Branches
@@ -37,5 +37,5 @@ The upstream VTK repository has the following branches:
 * `release`: Maintenance of latest release
 * `nightly-master`: Follows `master`, updated at `01:00 UTC`
 * `hooks`: Local commit hooks
-   ([placed](http://public.kitware.com/Wiki/Git/Hooks#Local) in `.git/hooks`)
+   ([placed](https://public.kitware.com/Wiki/Git/Hooks#Local) in `.git/hooks`)
 * `dashboard`: Dashboard script ([setup](dashboard.md) a CDash client)

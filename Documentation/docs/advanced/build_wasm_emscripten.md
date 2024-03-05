@@ -19,7 +19,7 @@ Guide created using
 
 For this guide, you will need the following:
 
-1. **CMake**: [CMake](http://www.cmake.org/) version 3.12 or higher and a
+1. **CMake**: [CMake](https://www.cmake.org/) version 3.12 or higher and a
   working compiler. CMake is a tool that makes cross-platform building simple.
   On several systems it will probably be already installed. If it is not,
   please use the following instructions to install it.  There are several

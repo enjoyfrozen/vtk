@@ -74,6 +74,6 @@ to coordinate development and to provide support.
 [Share a Topic]: Documentation/docs/developers_guide/git/develop.md#share-a-topic
 [Create a Merge Request]: Documentation/docs/developers_guide/git/develop.md#create-a-merge-request
 
-[Wiki]: http://www.vtk.org/Wiki/VTK
-[Doxygen]: http://www.vtk.org/doc/nightly/html
+[Wiki]: https://www.vtk.org/Wiki/VTK
+[Doxygen]: https://www.vtk.org/doc/nightly/html
 [VTK Discourse]: https://discourse.vtk.org/

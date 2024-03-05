@@ -4,7 +4,7 @@ Adding Tests
 This page documents how to add test data while developing VTK with [Git][].
 See the [README](README.md) for more information.
 
-[Git]: http://git-scm.com
+[Git]: https://git-scm.com
 
 Setup
 -----
@@ -362,7 +362,7 @@ tell ExternalData to search in [vtkExternalData][] at build time.
 To verify that the data has been uploaded as expected, you may direct
 a web browser to the location where ExternalData has uploaded the files.
 For VTK, that location is currently
-`http://www.vtk.org/files/ExternalData/SHA512/XXXX` where `XXXX` is the
+`https://www.vtk.org/files/ExternalData/SHA512/XXXX` where `XXXX` is the
 complete SHA512 hash stored in the content link file (e.g., the text in
 `MyTest.png.sha512`).
 

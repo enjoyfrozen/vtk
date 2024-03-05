@@ -7,7 +7,7 @@ that computes the external faces of a dataset. Consider also that the
 algorithm runs in parallel on several nodes, each node processing a
 piece of the original dataset. This operation would produce incorrect
 faces at boundaries of pieces. Ghosts cells can prevent this. See the
-following [wiki entry](http://www.vtk.org/Wiki/VTK/Parallel_Pipeline)
+following [wiki entry](https://www.vtk.org/Wiki/VTK/Parallel_Pipeline)
 for a more detailed description of ghost cells.
 
 `Blanking cells` are used to specify that certain pieces of a grid
@@ -25,7 +25,7 @@ We change how ghost and blanked cells are stored to:
    automatically between algorithms and processes
 
 2. provide binary compatibility with VisIt: VTK now uses the
-   [same bits as VisIt](http://www.visitusers.org/index.php?title=Representing_ghost_data)
+   [same bits as VisIt](https://www.visitusers.org/index.php?title=Representing_ghost_data)
    to mark ghost cells and blanked cells
 
 3. save space: the arrays for storing blanking are not needed anymore
@@ -76,7 +76,7 @@ To achieve our goals we made the following changes:
 
 We use the following bits to store information about each cell in the
 dataset. These bits are
-[compatible](http://www.visitusers.org/index.php?title=Representing_ghost_data)
+[compatible](https://www.visitusers.org/index.php?title=Representing_ghost_data)
 with Visit.
 
 `vtkDataSetAttribute::DUPLICATECELL` specifies that this cell is
@@ -96,7 +96,7 @@ refined. Instead, this bit is used to mark this kind of cells. Values
 associated with this cell may be used in interpolation. Note that
 there is no vtkDataSetAttribute::REFINEDPOINT.  For more information
 about AMR datasets in VTK see
-[Visualization & Analysis of AMR Datasets](http://www.kitware.com/source/home/post/32) in The Source.
+[Visualization & Analysis of AMR Datasets](https://www.kitware.com/source/home/post/32) in The Source.
 
 `vtkDataSetAttribute::HIDDENCELL` specifies that this cell is not
 part of the model, it is only used to maintain the connectivity of the

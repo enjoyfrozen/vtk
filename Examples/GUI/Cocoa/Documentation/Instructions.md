@@ -34,7 +34,7 @@ It is recommended to also use these options, and you should synchronize your cho
 - `CMAKE_OSX_ARCHITECTURES`	(as desired)
 - `CMAKE_OSX_DEPLOYMENT_TARGET` (as desired)
 
-The other settings are not so relevant or their defaults are fine.  If you've never built VTK before, please see Ryan Glover's excellent (though dated now) document [here](http://www.vtk.org/Wiki/Cocoa_VTK).  Make sure you both build and install VTK.
+The other settings are not so relevant or their defaults are fine.  If you've never built VTK before, please see Ryan Glover's excellent (though dated now) document [here](https://www.vtk.org/Wiki/Cocoa_VTK).  Make sure you both build and install VTK.
 
 Next, you have to create two "Custom Paths" in Xcode, named `vtk-debug-include` and `vtk-debug-lib`.  Do this from Preferences > Locations > Custom Paths (or Preferences > Locations > Source Trees in older versions of Xcode).  Both should point to subfolders of where your installed VTK is.  If you install into the default `/usr/local/`, set them like so:
 

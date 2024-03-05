@@ -8,7 +8,7 @@ Download VTK with Git
 This page documents how to download VTK source code through [Git][].
 See the [README](README.md) for more information.
 
-[Git]: http://git-scm.com
+[Git]: https://git-scm.com
 
 Clone
 -----
