@@ -128,16 +128,14 @@ The full source of the example can be found [here](https://examples.vtk.org/site
 To build the example:
 
 ```
-mkdir build
-cd build
-ccmake ../ # or cmake-gui if on Windows
+ccmake -B build # or cmake-gui if on Windows
 ```
 Hit `C` if using `ccmake` or the configure button if using `cmake-gui`.
 If VTK was built from scratch you will need to set `VTK_DIR` to the installation path.
 If `ccmake`/`cmake-gui` reports no errors quit `ccmake`/`cmake-gui` and build the project as follows:
 
 ```
-cmake --build .
+cmake --build build
 ```
 To run the example
 
