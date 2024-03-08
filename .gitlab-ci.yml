@@ -189,6 +189,14 @@ vtk:fedora34-cuda-mpi:test-ext:
         CTEST_MAX_PARALLELISM: 8
     timeout: 150 minutes
 
+fedora34-kits-mpi-offscreen-osmesa-python:build:
+    extends:
+        - .fedora34_kits_mpi_offscreen_osmesa_python
+        - .cmake_build_linux
+        - .linux_builder_tags
+        - .cmake_build_artifacts
+        - .run_manually
+
 fedora34-mpi-offscreen-osmesa-python:build:
     extends:
         - .fedora34_mpi_offscreen_osmesa_python
