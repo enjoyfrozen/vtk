@@ -133,24 +133,22 @@ public:
     void operator()(CellStateT& state, const unsigned char* edges, int numLines, vtkIdType* eIds,
       vtkIdType& lineId)
     {
-      using ValueType = typename CellStateT::ValueType;
-      auto* offsets = state.GetOffsets();
-      auto* conn = state.GetConnectivity();
+      using OffsetsValueType = typename CellStateT::OffsetsValueType;
 
-      auto offsetRange = vtk::DataArrayValueRange<1>(offsets);
+      auto offsetRange = state.GetOffsetsRange();
       auto offsetIter = offsetRange.begin() + lineId;
-      auto connRange = vtk::DataArrayValueRange<1>(conn);
+      auto connRange = state.GetConnectivityRange();
       auto connIter = connRange.begin() + (lineId * 2);
 
       for (int i = 0; i < numLines; ++i)
       {
-        *offsetIter++ = static_cast<ValueType>(2 * lineId++);
+        *offsetIter++ = static_cast<OffsetsValueType>(2 * lineId++);
         *connIter++ = eIds[*edges++];
         *connIter++ = eIds[*edges++];
       }
 
       // Write the last offset:
-      *offsetIter = static_cast<ValueType>(2 * lineId);
+      *offsetIter = static_cast<OffsetsValueType>(2 * lineId);
     }
   };
   // Finalize the lines cell array: after all the lines are inserted,
@@ -160,11 +158,10 @@ public:
     template <typename CellStateT>
     void operator()(CellStateT& state, vtkIdType numLines)
     {
-      using ValueType = typename CellStateT::ValueType;
-      auto* offsets = state.GetOffsets();
-      auto offsetRange = vtk::DataArrayValueRange<1>(offsets);
+      using OffsetsValueType = typename CellStateT::OffsetsValueType;
+      auto offsetRange = state.GetOffsetsRange();
       auto offsetIter = offsetRange.begin() + numLines;
-      *offsetIter = static_cast<ValueType>(2 * numLines);
+      *offsetIter = static_cast<OffsetsValueType>(2 * numLines);
     }
   };
   void GenerateLines(

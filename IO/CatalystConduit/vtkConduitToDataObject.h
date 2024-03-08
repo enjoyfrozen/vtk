@@ -8,6 +8,7 @@
 #ifndef vtkConduitToDataObject_h
 #define vtkConduitToDataObject_h
 
+#include "vtkConduitArrayUtilities.h"   // For MemorySpaceTypes
 #include "vtkIOCatalystConduitModule.h" // For windows import/export of shared libraries
 
 #include "vtkObject.h" // for ABI namespace
@@ -44,13 +45,14 @@ VTK_ABI_NAMESPACE_BEGIN
  * Return true if data was correctly generated, false if an error occurred.
  * Do not throw errors.
  */
-VTKIOCATALYSTCONDUIT_EXPORT bool FillPartionedDataSet(
-  vtkPartitionedDataSet* output, const conduit_cpp::Node& meshNode);
+VTKIOCATALYSTCONDUIT_EXPORT bool FillPartionedDataSet(vtkPartitionedDataSet* output,
+  const conduit_cpp::Node& meshNode, vtkConduitArrayUtilities::MemorySpaceTypes memorySpace);
 
 /**
  * Fill the vtkOverlappingAMR input.
  */
-VTKIOCATALYSTCONDUIT_EXPORT bool FillAMRMesh(vtkOverlappingAMR* amr, const conduit_cpp::Node& node);
+VTKIOCATALYSTCONDUIT_EXPORT bool FillAMRMesh(vtkOverlappingAMR* amr, const conduit_cpp::Node& node,
+  vtkConduitArrayUtilities::MemorySpaceTypes memorySpace);
 
 /**
  * vtkDataSet creation.
@@ -62,7 +64,8 @@ VTKIOCATALYSTCONDUIT_EXPORT bool FillAMRMesh(vtkOverlappingAMR* amr, const condu
  * Throw runtime_error on unsupported input.
  */
 VTKIOCATALYSTCONDUIT_EXPORT vtkSmartPointer<vtkDataSet> CreateMesh(
-  const conduit_cpp::Node& topology, const conduit_cpp::Node& coordsets);
+  const conduit_cpp::Node& topology, const conduit_cpp::Node& coordsets,
+  vtkConduitArrayUtilities::MemorySpaceTypes memorySpace);
 
 /**
  * Create a vtkImageData from a coordset node.
@@ -74,13 +77,14 @@ VTKIOCATALYSTCONDUIT_EXPORT vtkSmartPointer<vtkImageData> CreateImageData(
  * Create a vtkRectilinearGrid from a coordset node.
  */
 VTKIOCATALYSTCONDUIT_EXPORT vtkSmartPointer<vtkRectilinearGrid> CreateRectilinearGrid(
-  const conduit_cpp::Node& coordset);
+  const conduit_cpp::Node& coordset, vtkConduitArrayUtilities::MemorySpaceTypes memorySpace);
 
 /**
  * Create a vtkStructuredGrid from a topology and a coordset nodes.
  */
 VTKIOCATALYSTCONDUIT_EXPORT vtkSmartPointer<vtkStructuredGrid> CreateStructuredGrid(
-  const conduit_cpp::Node& topology, const conduit_cpp::Node& coordset);
+  const conduit_cpp::Node& topology, const conduit_cpp::Node& coordset,
+  vtkConduitArrayUtilities::MemorySpaceTypes memorySpace);
 
 /**
  * Create a vtkUnstructuredGrid from a topology and a coordset node.
@@ -88,7 +92,8 @@ VTKIOCATALYSTCONDUIT_EXPORT vtkSmartPointer<vtkStructuredGrid> CreateStructuredG
  * see CreateMixedUnstructuredGrid.
  */
 VTKIOCATALYSTCONDUIT_EXPORT vtkSmartPointer<vtkDataSet> CreateMonoShapedUnstructuredGrid(
-  const conduit_cpp::Node& topologyNode, const conduit_cpp::Node& coordset);
+  const conduit_cpp::Node& topologyNode, const conduit_cpp::Node& coordset,
+  vtkConduitArrayUtilities::MemorySpaceTypes memorySpace);
 
 /**
  * Create a vtkUnstructuredGrid from a coordset and a topology node.
@@ -97,7 +102,8 @@ VTKIOCATALYSTCONDUIT_EXPORT vtkSmartPointer<vtkDataSet> CreateMonoShapedUnstruct
  * throw a runtime_error on invalid node
  */
 VTKIOCATALYSTCONDUIT_EXPORT vtkSmartPointer<vtkDataSet> CreateMixedUnstructuredGrid(
-  const conduit_cpp::Node& topologyNode, const conduit_cpp::Node& coords);
+  const conduit_cpp::Node& topologyNode, const conduit_cpp::Node& coords,
+  vtkConduitArrayUtilities::MemorySpaceTypes memorySpace);
 
 ///@}
 
@@ -106,8 +112,9 @@ VTKIOCATALYSTCONDUIT_EXPORT vtkSmartPointer<vtkDataSet> CreateMixedUnstructuredG
  * Return true if node was correctly parsed, false if a fatal error occurred.
  * If isAMReX, data array is added as a `CellData`
  */
-VTKIOCATALYSTCONDUIT_EXPORT bool AddFieldData(
-  vtkDataObject* output, const conduit_cpp::Node& stateFields, bool isAMReX = false);
+VTKIOCATALYSTCONDUIT_EXPORT bool AddFieldData(vtkDataObject* output,
+  const conduit_cpp::Node& stateFields, vtkConduitArrayUtilities::MemorySpaceTypes memorySpace,
+  bool isAMReX = false);
 
 /**
  * Create a vtkPoints from a coordset node that respect the following requirements:
@@ -116,7 +123,7 @@ VTKIOCATALYSTCONDUIT_EXPORT bool AddFieldData(
  * throw a runtime_error on invalid node
  */
 VTKIOCATALYSTCONDUIT_EXPORT vtkSmartPointer<vtkPoints> CreatePoints(
-  const conduit_cpp::Node& coords);
+  const conduit_cpp::Node& coords, vtkConduitArrayUtilities::MemorySpaceTypes memorySpace);
 
 /**
  * Create polyhedron in grid from elements and subelements.

@@ -9,6 +9,7 @@
 
 #include "vtkObjectFactory.h"
 
+#include <vtkAOSDataArrayTemplate.h>
 #include <vtkm/cont/Algorithm.h>
 #include <vtkm/cont/ArrayHandleCounting.h>
 #include <vtkm/cont/ArrayHandleDecorator.h>
@@ -415,6 +416,8 @@ public:
   virtual bool ComputeVectorRange(double range[2], const unsigned char* ghosts,
     vtkm::UInt8 ghostValueToSkip, bool finitesOnly) = 0;
   virtual vtkm::cont::UnknownArrayHandle GetArrayHandle() const = 0;
+  virtual ValueType* GetPointer(vtkm::Id valIdx, vtkDataArray* srcDa) = 0;
+  virtual void InvalidateCache() = 0;
 };
 
 template <typename ArrayHandleType>
@@ -427,6 +430,14 @@ private:
   using ValueType = typename vtkm::VecTraits<VecType>::BaseComponentType;
   using WritableTag = typename vtkm::cont::internal::IsWritableArrayHandle<ArrayHandleType>::type;
 
+  struct
+  {
+    vtkSmartPointer<vtkAOSDataArrayTemplate<ValueType>> Data;
+    // Prevents multiple threads from allocating storage for Data in `GetPointer` when VTK SMP is
+    // enabled.
+    std::mutex AccessProtection;
+  } Cache;
+
 public:
   explicit ArrayHandleHelper(const ArrayHandleType& arrayHandle)
     : Array(arrayHandle)
@@ -436,6 +447,29 @@ public:
   }
 
   bool IsReadOnly() const override { return !WritableTag::value; }
+
+  ValueType* GetPointer(vtkm::Id valIdx, vtkDataArray* srcDa) override
+  {
+    std::lock_guard<std::mutex> lk(this->Cache.AccessProtection);
+    if (this->Cache.Data == nullptr)
+    {
+      this->Cache.Data = vtkSmartPointer<vtkAOSDataArrayTemplate<ValueType>>::New();
+      this->Cache.Data->DeepCopy(srcDa);
+    }
+    return this->Cache.Data->GetPointer(valIdx);
+  }
+
+  /**
+   * Called from SetTuple or SetComponent.
+   */
+  void InvalidateCache() override
+  {
+    std::lock_guard<std::mutex> lk(this->Cache.AccessProtection);
+    if (this->Cache.Data != nullptr)
+    {
+      this->Cache.Data = nullptr;
+    }
+  }
 
 private:
   template <typename AH>
@@ -485,6 +519,7 @@ public:
   void SetTuple(vtkm::Id valIdx, const ValueType* values) override
   {
     this->SetTupleImpl(valIdx, values, WritableTag{});
+    this->InvalidateCache();
   }
 
   ValueType GetComponent(vtkm::Id valIdx, vtkm::IdComponent compIdx) const override
@@ -515,6 +550,7 @@ public:
   void SetComponent(vtkm::Id valIdx, vtkm::IdComponent compIdx, const ValueType& value) override
   {
     this->SetComponentImpl(valIdx, compIdx, value, WritableTag{});
+    this->InvalidateCache();
   }
 
   bool Reallocate(vtkm::Id numberOfValues) override
@@ -523,6 +559,7 @@ public:
     this->Array.Allocate(numberOfValues, vtkm::CopyFlag::On);
     this->ReadPortalValid = false;
     this->WritePortalValid = false;
+    this->InvalidateCache();
     return true;
   }
   catch (const vtkm::cont::Error& e)
@@ -899,6 +936,16 @@ bool vtkmDataArray<T>::ReallocateTuples(vtkIdType numberOfTuples)
     return this->Helper->Reallocate(numberOfTuples);
   }
   return false;
+}
+
+template <typename T>
+void* vtkmDataArray<T>::GetVoidPointer(vtkIdType valueIdx)
+{
+  if (this->Helper)
+  {
+    return reinterpret_cast<void*>(this->Helper->GetPointer(valueIdx, this));
+  }
+  return nullptr;
 }
 
 VTK_ABI_NAMESPACE_END

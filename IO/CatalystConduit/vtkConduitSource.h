@@ -20,6 +20,8 @@
 #define vtkConduitSource_h
 
 #include "vtkDataObjectAlgorithm.h"
+
+#include "vtkConduitArrayUtilities.h"   // for MemorySpaceTypes
 #include "vtkIOCatalystConduitModule.h" // for exports
 
 #include "conduit.h" // for conduit_node
@@ -64,6 +66,13 @@ public:
   vtkSetMacro(OutputMultiBlock, bool);
   vtkGetMacro(OutputMultiBlock, bool);
   vtkBooleanMacro(OutputMultiBlock, bool);
+  ///@}
+
+  ///@{
+  /**
+   */
+  vtkSetEnumMacro(MemorySpace, vtkConduitArrayUtilities::MemorySpaceTypes);
+  vtkGetEnumMacro(MemorySpace, vtkConduitArrayUtilities::MemorySpaceTypes);
   ///@}
 
   ///@{
@@ -121,6 +130,8 @@ private:
   bool UseAMRMeshProtocol;
   bool UseMultiMeshProtocol;
   bool OutputMultiBlock;
+  vtkConduitArrayUtilities::MemorySpaceTypes MemorySpace =
+    vtkConduitArrayUtilities::MemorySpaceTypes::Serial;
 };
 VTK_ABI_NAMESPACE_END
 

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 #include "vtkConduitSource.h"
 
+#include "vtkConduitArrayUtilities.h"
 #include "vtkConduitToDataObject.h"
 #include "vtkConvertToMultiBlockDataSet.h"
 #include "vtkDataAssembly.h"
@@ -101,7 +102,7 @@ bool vtkConduitSource::GenerateAMR(vtkDataObject* output)
   vtkNew<vtkOverlappingAMR> amr_output;
   const auto& node = this->Internals->Node;
 
-  if (!vtkConduitToDataObject::FillAMRMesh(amr_output, node))
+  if (!vtkConduitToDataObject::FillAMRMesh(amr_output, node, this->MemorySpace))
   {
     vtkLogF(ERROR, "Failed reading AMR mesh '%s'", node.name().c_str());
     return false;
@@ -115,7 +116,8 @@ bool vtkConduitSource::GenerateAMR(vtkDataObject* output)
 bool vtkConduitSource::GeneratePartitionedDataSet(vtkDataObject* output)
 {
   vtkNew<vtkPartitionedDataSet> pd_output;
-  if (!vtkConduitToDataObject::FillPartionedDataSet(pd_output, this->Internals->Node))
+  if (!vtkConduitToDataObject::FillPartionedDataSet(
+        pd_output, this->Internals->Node, this->MemorySpace))
   {
     vtkLogF(ERROR, "Failed reading mesh from '%s'", this->Internals->Node.name().c_str());
     output->Initialize();
@@ -140,7 +142,7 @@ bool vtkConduitSource::GeneratePartitionedDataSetCollection(vtkDataObject* outpu
     const auto& child = pdc_node.child(cc);
     auto pd = pdc_output->GetPartitionedDataSet(static_cast<unsigned int>(cc));
     assert(pd != nullptr);
-    if (!vtkConduitToDataObject::FillPartionedDataSet(pd, child))
+    if (!vtkConduitToDataObject::FillPartionedDataSet(pd, child, this->MemorySpace))
     {
       vtkLogF(ERROR, "Failed reading mesh '%s'", child.name().c_str());
       output->Initialize();
@@ -154,12 +156,12 @@ bool vtkConduitSource::GeneratePartitionedDataSetCollection(vtkDataObject* outpu
     // set field data.
     if (child.has_path("state/fields"))
     {
-      vtkConduitToDataObject::AddFieldData(pd, child["state/fields"]);
+      vtkConduitToDataObject::AddFieldData(pd, child["state/fields"], this->MemorySpace);
     }
     // fields may be located in node at same level as state
     if (child.has_path("fields"))
     {
-      vtkConduitToDataObject::AddFieldData(pd, child["fields"]);
+      vtkConduitToDataObject::AddFieldData(pd, child["fields"], this->MemorySpace);
     }
   }
 
@@ -266,12 +268,14 @@ int vtkConduitSource::RequestData(
 
   if (internals.GlobalFieldsNodeValid)
   {
-    vtkConduitToDataObject::AddFieldData(real_output, internals.GlobalFieldsNode);
+    vtkConduitToDataObject::AddFieldData(real_output, internals.GlobalFieldsNode,
+      vtkConduitArrayUtilities::MemorySpaceTypes::Serial, /*isAMReX=*/false);
   }
 
   if (internals.Node.has_path("state/fields"))
   {
-    vtkConduitToDataObject::AddFieldData(real_output, internals.Node["state/fields"]);
+    vtkConduitToDataObject::AddFieldData(
+      real_output, internals.Node["state/fields"], this->MemorySpace);
   }
 
   return 1;

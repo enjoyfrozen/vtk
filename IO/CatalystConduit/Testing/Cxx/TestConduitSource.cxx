@@ -661,7 +661,6 @@ inline unsigned int calc(unsigned int i, unsigned int j, unsigned int k, unsigne
 
 void CreateMixedUnstructuredMesh2D(unsigned int npts_x, unsigned int npts_y, conduit_cpp::Node& res)
 {
-  conduit_cpp::Node mesh;
   CreateCoords(npts_x, npts_y, 1, res);
 
   const unsigned int nele_x = npts_x - 1;
@@ -799,7 +798,6 @@ bool ValidateMeshTypeMixed2D()
 void CreateMixedUnstructuredMesh(
   unsigned int nptsX, unsigned int nptsY, unsigned int nptsZ, conduit_cpp::Node& res)
 {
-  conduit_cpp::Node mesh;
   CreateCoords(nptsX, nptsY, nptsZ, res);
 
   res["state/time"] = 3.1415;
