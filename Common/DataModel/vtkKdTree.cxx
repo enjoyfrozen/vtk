@@ -463,7 +463,7 @@ int vtkKdTree::GetDataSetIndex(vtkDataSet* set)
 }
 
 //------------------------------------------------------------------------------
-vtkDataSet* vtkKdTree::GetDataSet(int index)
+vtkDataSet* vtkKdTree::GetDataSet(int index) VTK_FUTURE_CONST
 {
   return this->DataSets->GetItem(index);
 }
