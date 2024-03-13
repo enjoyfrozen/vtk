@@ -273,6 +273,14 @@
         CMAKE_CONFIGURATION: fedora34_kits_mpi_offscreen_osmesa_python
         VTK_INSTALL: 1
 
+.fedora34_kits_mpi_offscreen_osmesa_python_ext_vtk:
+    extends:
+        - .fedora34
+        - .fedora_mpich_addon
+
+    variables:
+        CMAKE_CONFIGURATION: fedora34_kits_mpi_offscreen_osmesa_python_ext_vtk
+
 .fedora34_mpi_offscreen_osmesa_python:
     extends:
         - .fedora34
