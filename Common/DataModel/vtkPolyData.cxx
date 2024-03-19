@@ -948,6 +948,11 @@ vtkIdType vtkPolyData::InsertNextCell(int type, int npts, const vtkIdType ptsIn[
   // Insert next cell into the lookup map:
   TaggedCellId& tag = this->Cells->InsertNextCell(VTKCellType(type));
   vtkCellArray* cells = this->GetCellArrayInternal(tag);
+  if (this->LastTarget > tag.GetTarget())
+  {
+    vtkErrorMacro("Order is not correct. Insert first Verts, then Lines, then Polys, then Strips.");
+    return -1;
+  }
 
   // Validate and update the internal cell id:
   const vtkIdType internalCellId = cells->InsertNextCell(npts, pts);
@@ -962,6 +967,7 @@ vtkIdType vtkPolyData::InsertNextCell(int type, int npts, const vtkIdType ptsIn[
     return -1;
   }
   tag.SetCellId(internalCellId);
+  this->LastTarget = tag.GetTarget();
 
   // Return the dataset cell id:
   return this->Cells->GetNumberOfCells() - 1;
