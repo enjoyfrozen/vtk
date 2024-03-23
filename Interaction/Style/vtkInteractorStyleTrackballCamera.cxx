@@ -10,15 +10,13 @@
 #include "vtkRenderWindow.h"
 #include "vtkRenderWindowInteractor.h"
 #include "vtkRenderer.h"
+#include "vtkTransform.h"
 
 VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkInteractorStyleTrackballCamera);
 
 //------------------------------------------------------------------------------
-vtkInteractorStyleTrackballCamera::vtkInteractorStyleTrackballCamera()
-{
-  this->MotionFactor = 10.0;
-}
+vtkInteractorStyleTrackballCamera::vtkInteractorStyleTrackballCamera() = default;
 
 //------------------------------------------------------------------------------
 vtkInteractorStyleTrackballCamera::~vtkInteractorStyleTrackballCamera() = default;
@@ -73,8 +71,10 @@ void vtkInteractorStyleTrackballCamera::OnLeftButtonDown()
     return;
   }
 
+  this->SetLeftButtonDownPosition(this->Interactor->GetEventPosition());
   this->GrabFocus(this->EventCallbackCommand);
-  if (this->Interactor->GetShiftKey())
+
+  if (this->Interactor->GetShiftKey() || !this->RotationEnabled)
   {
     if (this->Interactor->GetControlKey())
     {
@@ -120,11 +120,24 @@ void vtkInteractorStyleTrackballCamera::OnLeftButtonUp()
       break;
   }
 
+  double startPoint[3] = { static_cast<double>(this->LeftButtonDownPosition[0]),
+    static_cast<double>(this->LeftButtonDownPosition[1]), 0.0 };
+  double endPoint[3] = { static_cast<double>(this->Interactor->GetEventPosition()[0]),
+    static_cast<double>(this->Interactor->GetEventPosition()[1]), 0.0 };
+  double distanceSquared = vtkMath::Distance2BetweenPoints(startPoint, endPoint);
+  if (distanceSquared <= this->ClickTolerance * this->ClickTolerance)
+  {
+    this->OnLeftButtonSingleClick();
+  }
+
   if (this->Interactor)
   {
     this->ReleaseFocus();
   }
 }
+
+//------------------------------------------------------------------------------
+void vtkInteractorStyleTrackballCamera::OnLeftButtonSingleClick() {}
 
 //------------------------------------------------------------------------------
 void vtkInteractorStyleTrackballCamera::OnMiddleButtonDown()
@@ -136,6 +149,7 @@ void vtkInteractorStyleTrackballCamera::OnMiddleButtonDown()
     return;
   }
 
+  this->SetMiddleButtonDownPosition(this->Interactor->GetEventPosition());
   this->GrabFocus(this->EventCallbackCommand);
   this->StartPan();
 }
@@ -153,7 +167,20 @@ void vtkInteractorStyleTrackballCamera::OnMiddleButtonUp()
       }
       break;
   }
+
+  double startPoint[3] = { static_cast<double>(this->MiddleButtonDownPosition[0]),
+    static_cast<double>(this->MiddleButtonDownPosition[1]), 0.0 };
+  double endPoint[3] = { static_cast<double>(this->Interactor->GetEventPosition()[0]),
+    static_cast<double>(this->Interactor->GetEventPosition()[1]), 0.0 };
+  double distanceSquared = vtkMath::Distance2BetweenPoints(startPoint, endPoint);
+  if (distanceSquared <= this->ClickTolerance * this->ClickTolerance)
+  {
+    this->OnMiddleButtonSingleClick();
+  }
 }
+
+//------------------------------------------------------------------------------
+void vtkInteractorStyleTrackballCamera::OnMiddleButtonSingleClick() {}
 
 //------------------------------------------------------------------------------
 void vtkInteractorStyleTrackballCamera::OnRightButtonDown()
@@ -165,6 +192,7 @@ void vtkInteractorStyleTrackballCamera::OnRightButtonDown()
     return;
   }
 
+  this->SetRightButtonDownPosition(this->Interactor->GetEventPosition());
   this->GrabFocus(this->EventCallbackCommand);
 
   if (this->Interactor->GetShiftKey())
@@ -191,6 +219,16 @@ void vtkInteractorStyleTrackballCamera::OnRightButtonUp()
       break;
   }
 
+  double startPoint[3] = { static_cast<double>(this->RightButtonDownPosition[0]),
+    static_cast<double>(this->RightButtonDownPosition[1]), 0.0 };
+  double endPoint[3] = { static_cast<double>(this->Interactor->GetEventPosition()[0]),
+    static_cast<double>(this->Interactor->GetEventPosition()[1]), 0.0 };
+  double distanceSquared = vtkMath::Distance2BetweenPoints(startPoint, endPoint);
+  if (distanceSquared <= this->ClickTolerance * this->ClickTolerance)
+  {
+    this->OnRightButtonSingleClick();
+  }
+
   if (this->Interactor)
   {
     this->ReleaseFocus();
@@ -198,26 +236,23 @@ void vtkInteractorStyleTrackballCamera::OnRightButtonUp()
 }
 
 //------------------------------------------------------------------------------
+void vtkInteractorStyleTrackballCamera::OnRightButtonSingleClick() {}
+
+//------------------------------------------------------------------------------
 void vtkInteractorStyleTrackballCamera::OnMouseWheelForward()
 {
-  this->FindPokedRenderer(
-    this->Interactor->GetEventPosition()[0], this->Interactor->GetEventPosition()[1]);
-  if (this->CurrentRenderer == nullptr)
-  {
-    return;
-  }
-
-  this->GrabFocus(this->EventCallbackCommand);
-  this->StartDolly();
-  double factor = this->MotionFactor * 0.2 * this->MouseWheelMotionFactor;
-  this->Dolly(pow(1.1, factor));
-  this->EndDolly();
-  this->ReleaseFocus();
+  this->OnMouseWheelAction(1.0);
 }
 
 //------------------------------------------------------------------------------
 void vtkInteractorStyleTrackballCamera::OnMouseWheelBackward()
 {
+  this->OnMouseWheelAction(-1.0);
+}
+
+//------------------------------------------------------------------------------
+void vtkInteractorStyleTrackballCamera::OnMouseWheelAction(double direction)
+{
   this->FindPokedRenderer(
     this->Interactor->GetEventPosition()[0], this->Interactor->GetEventPosition()[1]);
   if (this->CurrentRenderer == nullptr)
@@ -227,14 +262,136 @@ void vtkInteractorStyleTrackballCamera::OnMouseWheelBackward()
 
   this->GrabFocus(this->EventCallbackCommand);
   this->StartDolly();
-  double factor = this->MotionFactor * -0.2 * this->MouseWheelMotionFactor;
-  this->Dolly(pow(1.1, factor));
+  double factor = this->MotionFactor * direction * 0.2 * this->MouseWheelMotionFactor;
+  factor = pow(1.1, factor);
+  if (this->MouseWheelInvertDirection && factor != 0.0)
+  {
+    factor = 1.0f / factor;
+  }
+  if (vtkInteractorStyleCameraUtils::IsParallelProjectionZoomingValid(this->CurrentRenderer,
+        (direction > 0.0 ? vtkZoomDirection::ZoomingIn : vtkZoomDirection::ZoomingOut)))
+  {
+    vtkCamera* camera = this->CurrentRenderer->GetActiveCamera();
+    if (camera != nullptr && camera->GetParallelProjection() &&
+      this->DollyModel == vtkDollyModel::Targeted)
+    {
+      vtkInteractorStyleCameraUtils::DollyTargeted(this->Interactor, this->CurrentRenderer, factor);
+    }
+    else
+    {
+      this->Dolly(factor);
+    }
+  }
   this->EndDolly();
   this->ReleaseFocus();
+
+  vtkRenderWindowInteractor* rwi = this->Interactor;
+  if (this->AutoAdjustCameraClippingRange)
+  {
+    this->CurrentRenderer->ResetCameraClippingRange();
+  }
+  if (rwi->GetLightFollowCamera())
+  {
+    this->CurrentRenderer->UpdateLightsGeometryToFollowCamera();
+  }
+  rwi->Render();
 }
 
 //------------------------------------------------------------------------------
 void vtkInteractorStyleTrackballCamera::Rotate()
+{
+  if (this->CurrentRenderer == nullptr)
+  {
+    return;
+  }
+
+  switch (this->RotationModel)
+  {
+    case vtkTrackballRotationModel::Singularity:
+      this->RotateSingularityCalculateAxisAndAngle();
+      this->RotateSingularity();
+      break;
+    case vtkTrackballRotationModel::WorldZ_ScreenX:
+      this->RotateWorldZScreenX();
+      break;
+    case vtkTrackballRotationModel::AzimuthElevation:
+    default:
+      this->RotateAzimuthElevation();
+      break;
+  }
+
+  vtkRenderWindowInteractor* rwi = this->Interactor;
+  if (this->AutoAdjustCameraClippingRange)
+  {
+    this->CurrentRenderer->ResetCameraClippingRange();
+  }
+  if (rwi->GetLightFollowCamera())
+  {
+    this->CurrentRenderer->UpdateLightsGeometryToFollowCamera();
+  }
+  rwi->Render();
+}
+
+//------------------------------------------------------------------------------
+bool vtkInteractorStyleTrackballCamera::CanRepeatRotation()
+{
+  if (this->CurrentRenderer == nullptr)
+  {
+    return false;
+  }
+
+  switch (this->RotationModel)
+  {
+    case vtkTrackballRotationModel::Singularity:
+      return (std::abs(this->SingularityRotationAngle) >= (std::numeric_limits<float>::min)() &&
+        std::isnormal(this->SingularityRotationAngle));
+    case vtkTrackballRotationModel::WorldZ_ScreenX:
+      return (std::abs(this->ConstrainedRotationPhi) >= std::numeric_limits<float>::min()) ||
+        (std::abs(this->ConstrainedRotationTheta) >= std::numeric_limits<float>::min());
+    case vtkTrackballRotationModel::AzimuthElevation:
+    default:
+      return false;
+  }
+}
+
+//------------------------------------------------------------------------------
+void vtkInteractorStyleTrackballCamera::RepeatRotation()
+{
+  if (this->CurrentRenderer == nullptr)
+  {
+    return;
+  }
+
+  switch (this->RotationModel)
+  {
+    case vtkTrackballRotationModel::Singularity:
+      this->RotateSingularity();
+      break;
+    case vtkTrackballRotationModel::WorldZ_ScreenX:
+      vtkInteractorStyleCameraUtils::RotateCameraAroundWorldZScreenX(this->CurrentRenderer,
+        this->ConstrainedRotationPhi, this->ConstrainedRotationTheta, false, false);
+      break;
+    case vtkTrackballRotationModel::AzimuthElevation:
+    default:
+      vtkErrorMacro("RotateAgain not implemented for this RotationModel "
+                    "(vtkTrackballRotationModel::AzimuthElevation)");
+      break;
+  }
+
+  vtkRenderWindowInteractor* rwi = this->Interactor;
+  if (this->AutoAdjustCameraClippingRange)
+  {
+    this->CurrentRenderer->ResetCameraClippingRange();
+  }
+  if (rwi->GetLightFollowCamera())
+  {
+    this->CurrentRenderer->UpdateLightsGeometryToFollowCamera();
+  }
+  rwi->Render();
+}
+
+//------------------------------------------------------------------------------
+void vtkInteractorStyleTrackballCamera::RotateAzimuthElevation()
 {
   if (this->CurrentRenderer == nullptr)
   {
@@ -258,18 +415,181 @@ void vtkInteractorStyleTrackballCamera::Rotate()
   camera->Azimuth(rxf);
   camera->Elevation(ryf);
   camera->OrthogonalizeViewUp();
+}
 
-  if (this->AutoAdjustCameraClippingRange)
+//------------------------------------------------------------------------------
+void vtkInteractorStyleTrackballCamera::RotateSingularity()
+{
+  if (this->CurrentRenderer == nullptr)
   {
-    this->CurrentRenderer->ResetCameraClippingRange();
+    return;
   }
 
-  if (rwi->GetLightFollowCamera())
+  // Ignoring rotation angles that are too small or invalid
+  if (CanRepeatRotation() == false)
   {
-    this->CurrentRenderer->UpdateLightsGeometryToFollowCamera();
+    return;
   }
 
-  rwi->Render();
+  vtkCamera* camera = this->CurrentRenderer->GetActiveCamera();
+
+  // NOTE: Retrieving the camera light transform matrix in order to transform the rotation axis to
+  //       the camera coordinate frame instead of the model view matrix. This makes the rotation
+  //       code simpler and more reliable, as there were issues when the VTK model view matrix was
+  //       used as below.
+  // NOTE: The model view matrix needs to be inverted in order to obtain the camera transformation
+  //       (see https://www.3dgep.com/understanding-the-view-matrix/). This is needed because VTK
+  //       calculates the model view matrix from the camera settings (position, focal point, and up
+  //       vector) and overwrites the matrix when these change. So the camera settings have to
+  //       updated instead of directly changing the model view matrix. In order to do this, the
+  //       previously calculated axis of rotation has to be transformed from the world coordinate
+  //       frame to the camera's, given by the camera transformation.
+  vtkNew<vtkMatrix4x4> modelViewMatrix;
+  modelViewMatrix->DeepCopy(camera->GetCameraLightTransformMatrix());
+
+  // Creating the rotation transform to be applied to the camera parameters by applying the rotation
+  // about the trackball rotation axis to the camera frame matrix
+  vtkNew<vtkTransform> rotationTransform;
+  rotationTransform->SetMatrix(modelViewMatrix);
+  rotationTransform->RotateWXYZ(this->SingularityRotationAngle, this->SingularityRotationAxis[0],
+    this->SingularityRotationAxis[1], this->SingularityRotationAxis[2]);
+
+  // Calculating the new camera position
+  double canonicalCameraPosition[3] = { 0.0, 0.0, 1.0 };
+  double newCameraPosition[3] = { 0.0, 0.0, 0.0 };
+  rotationTransform->TransformPoint(canonicalCameraPosition, newCameraPosition);
+
+  // Calculating the new view up vector
+  double canonicalViewUp[3] = { 0.0, 1.0, 0.0 };
+  double newViewUp[3] = { 0.0, 0.0, 0.0 };
+  rotationTransform->TransformVector(canonicalViewUp, newViewUp);
+  vtkMath::Normalize(newViewUp);
+
+  // Making sure the new camera position is valid before assigning it to the camera
+  if (std::isnan(newCameraPosition[0]) || std::isnan(newCameraPosition[1]) ||
+    std::isnan(newCameraPosition[2]))
+  {
+    this->SingularityRotationAngle = 0.0f;
+    return;
+  }
+
+  // Updating the camera with the new position and view up vector
+  camera->SetPosition(newCameraPosition);
+  camera->SetViewUp(newViewUp);
+}
+
+//------------------------------------------------------------------------------
+void vtkInteractorStyleTrackballCamera::RotateSingularityCalculateAxisAndAngle()
+{
+  if (this->CurrentRenderer == nullptr)
+  {
+    return;
+  }
+
+  // Getting the viewport dimensions
+  int* viewportSize = this->CurrentRenderer->GetRenderWindow()->GetSize();
+  const int viewportWidth = viewportSize[0];
+  const int viewportHeight = viewportSize[1];
+
+  // Obtaining the center of the viewport as the origin
+  const double halfWidth = viewportWidth * 0.5;
+  const double halfHeight = viewportHeight * 0.5;
+
+  // Getting the adjusted position of the previous and current mouse events
+  const int previousX = this->Interactor->GetLastEventPosition()[0];
+  const int previousY = this->Interactor->GetLastEventPosition()[1];
+  const int currentX = this->Interactor->GetEventPosition()[0];
+  const int currentY = this->Interactor->GetEventPosition()[1];
+
+  // If the mouse cursor has not really moved, do nothing
+  if ((currentX - previousX == 0) && (currentY - previousY == 0))
+  {
+    return;
+  }
+
+  // Using the diagonal of the viewport as the radius of the trackball hemisphere (to avoid dead
+  // zones at the corners, resulting from the hemiellipsoid given by distinct width and height
+  // values)
+  const double halfDiagonalLength = std::sqrt(halfWidth * halfWidth + halfHeight * halfHeight);
+
+  // Projecting previous coordinates on a hemisphere with unit radius
+  const double x1 = (static_cast<double>(previousX) - halfWidth) / halfDiagonalLength;
+  const double y1 = (static_cast<double>(previousY) - halfHeight) / halfDiagonalLength;
+  double z1 = 1.0 - x1 * x1 - y1 * y1;
+  // Checking for a negative number in the square root
+  z1 = (z1 <= 0.0 ? 0.0 : std::sqrt(z1));
+
+  // Projecting current coordinates on a hemisphere with unit radius
+  const double x2 = (static_cast<double>(currentX) - halfWidth) / halfDiagonalLength;
+  const double y2 = (static_cast<double>(currentY) - halfHeight) / halfDiagonalLength;
+  double z2 = 1.0 - x2 * x2 - y2 * y2;
+  // Checking for a negative number in the square root
+  z2 = (z2 <= 0.0 ? 0.0 : std::sqrt(z2));
+
+  // Taking the cross-product between the vectors defined by the two
+  // previous projections to find the axis of rotation (it is normal to
+  // the plane defined by the vectors between the center of the
+  // hemisphere and the projected points).
+  this->SingularityRotationAxis[0] = y1 * z2 - y2 * z1;
+  this->SingularityRotationAxis[1] = z1 * x2 - z2 * x1;
+  this->SingularityRotationAxis[2] = x1 * y2 - x2 * y1;
+
+  // Calculating the square of the rotation axis length
+  double rotationAxisSquaredLength = vtkMath::SquaredNorm(this->SingularityRotationAxis);
+  if (rotationAxisSquaredLength < 0.0)
+  {
+    rotationAxisSquaredLength = 0.0;
+  }
+  // Calculating the rotation angle in degrees from the magnitude of the
+  // (pseudo) vector resulting from the cross-product (since both
+  // vectors have unit length, i.e., are already normalized).
+  const double norm = std::sqrt(rotationAxisSquaredLength);
+  this->SingularityRotationAngle = static_cast<double>(std::asin(norm) * 180.0 / vtkMath::Pi());
+
+  // Normalizing the rotation axis
+  if (norm != 0.0)
+  {
+    vtkMath::MultiplyScalar(this->SingularityRotationAxis, 1.0 / norm);
+  }
+
+  // The rotation angle needs to be inverted because it is the camera position that is being
+  // rotated, not the viewed object.
+  this->SingularityRotationAngle *= -1.0;
+
+  // Adjusting the rotation sensitivity by applying the motion factor to the rotation angle
+  this->SingularityRotationAngle *= this->MotionFactorSingularityRotation;
+}
+
+//------------------------------------------------------------------------------
+void vtkInteractorStyleTrackballCamera::RotateWorldZScreenX()
+{
+  if (this->CurrentRenderer == nullptr)
+  {
+    return;
+  }
+
+  vtkRenderWindowInteractor* rwi = this->Interactor;
+
+  int* size = this->CurrentRenderer->GetRenderWindow()->GetSize();
+  double vpWidth = size[0];
+  double vpHeight = size[1];
+  if (vpWidth == 0.0 || vpHeight == 0.0)
+  {
+    this->ConstrainedRotationTheta = 0.0;
+    this->ConstrainedRotationPhi = 0.0;
+    return;
+  }
+
+  int plx = rwi->GetLastEventPosition()[0];
+  int ply = static_cast<int>(vpHeight) - rwi->GetLastEventPosition()[1];
+  int pcx = rwi->GetEventPosition()[0];
+  int pcy = static_cast<int>(vpHeight) - rwi->GetEventPosition()[1];
+
+  this->ConstrainedRotationTheta = -2.0 * static_cast<double>(plx - pcx) / vpWidth * 180.0;
+  this->ConstrainedRotationPhi = static_cast<double>(pcy - ply) / vpHeight * 180.0;
+
+  vtkInteractorStyleCameraUtils::RotateCameraAroundWorldZScreenX(this->CurrentRenderer,
+    this->ConstrainedRotationPhi, this->ConstrainedRotationTheta, false, false);
 }
 
 //------------------------------------------------------------------------------
@@ -360,7 +680,12 @@ void vtkInteractorStyleTrackballCamera::Dolly()
   double* center = this->CurrentRenderer->GetCenter();
   int dy = rwi->GetEventPosition()[1] - rwi->GetLastEventPosition()[1];
   double dyf = this->MotionFactor * dy / center[1];
-  this->Dolly(pow(1.1, dyf));
+  double factor = pow(1.1, dyf);
+  if (this->MouseWheelInvertDirection && factor != 0.0)
+  {
+    factor = 1.0f / factor;
+  }
+  this->Dolly(factor);
 }
 
 //------------------------------------------------------------------------------
@@ -455,6 +780,16 @@ void vtkInteractorStyleTrackballCamera::EnvironmentRotate()
 void vtkInteractorStyleTrackballCamera::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
+  os << indent << "ClickTolerance: " << this->ClickTolerance << "\n";
+  os << indent
+     << "DollyModel: " << vtkInteractorStyleCameraUtils::DollyModelToString(this->DollyModel)
+     << endl;
   os << indent << "MotionFactor: " << this->MotionFactor << "\n";
+  os << indent << "MotionFactorSingularityRotation: " << this->MotionFactorSingularityRotation
+     << "\n";
+  os << indent << "MouseWheelInvertDirection: " << this->MouseWheelInvertDirection << "\n";
+  os << indent << "RotationEnabled: " << this->RotationEnabled << "\n";
+  os << indent << "RotationModel: "
+     << vtkInteractorStyleCameraUtils::TrackballRotationModelToString(this->RotationModel) << endl;
 }
 VTK_ABI_NAMESPACE_END

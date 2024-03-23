@@ -15,6 +15,7 @@
 
 #include "vtkInteractionStyleModule.h" // For export macro
 #include "vtkInteractorStyle.h"
+#include "vtkInteractorStyleCameraUtils.h"
 #include "vtkRect.h" // for vtkRecti
 
 VTK_ABI_NAMESPACE_BEGIN
@@ -55,6 +56,34 @@ public:
 
   ///@{
   /**
+   * Which dolly model should be used to map user interaction into a camera dolly.
+   * Default: vtkDollyModel::Centered
+   */
+  vtkSetEnumMacro(DollyModel, vtkDollyModel);
+  vtkGetEnumMacro(DollyModel, vtkDollyModel);
+  ///@}
+
+  ///@{
+  /**
+   * Set the apparent sensitivity of the interactor style to mouse motion.
+   * Default: 10.0
+   */
+  vtkSetMacro(MotionFactor, double);
+  vtkGetMacro(MotionFactor, double);
+  ///@}
+
+  ///@{
+  /**
+   * Invert the direction of mouse wheel movement. This switches from camera-centric to
+   * model-centric scroll wheel movement.
+   * Default: false
+   */
+  vtkSetMacro(MouseWheelInvertDirection, bool);
+  vtkGetMacro(MouseWheelInvertDirection, bool);
+  ///@}
+
+  ///@{
+  /**
    * If camera is in perspective projection mode, this interactor style uses
    * vtkCamera::Dolly to dolly the camera ahead for zooming. However, that can
    * have unintended consequences such as the camera entering into the data.
@@ -73,6 +102,8 @@ public:
    * Event bindings
    */
   void OnMouseMove() override;
+  void OnMouseWheelForward() override;
+  void OnMouseWheelBackward() override;
   void OnLeftButtonDown() override;
   void OnLeftButtonUp() override;
   ///@}
@@ -81,8 +112,9 @@ protected:
   vtkInteractorStyleRubberBandZoom();
   ~vtkInteractorStyleRubberBandZoom() override;
 
-  void Zoom() override;
+  virtual void OnMouseWheelAction(double direction);
 
+  void Zoom() override;
   virtual void ZoomTraditional(const vtkRecti& box);
 
   /**
@@ -96,6 +128,9 @@ protected:
   int Moving;
   bool LockAspectToViewport;
   bool CenterAtStartPosition;
+  vtkDollyModel DollyModel = vtkDollyModel::Centered;
+  double MotionFactor = 10.0;
+  bool MouseWheelInvertDirection = false;
   bool UseDollyForPerspectiveProjection;
   vtkUnsignedCharArray* PixelArray;
 
@@ -113,3 +148,5 @@ private:
 
 VTK_ABI_NAMESPACE_END
 #endif
+
+// VTK-HeaderTest-Exclude: vtkInteractorStyleRubberBandZoom.h
