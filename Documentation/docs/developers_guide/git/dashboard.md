@@ -4,7 +4,7 @@ Dashboard Scripts
 This page documents how to use the VTK `dashboard` branch in [Git][].
 See the [README](README.md) for more information.
 
-[Git]: http://git-scm.com
+[Git]: https://git-scm.com
 
 Using the Dashboard Scripts
 ---------------------------

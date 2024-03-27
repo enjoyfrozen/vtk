@@ -2,7 +2,7 @@
 
 ##  Testing and dashboard submitter setup
 
-Regression testing in VTK takes the form of a set of programs, that are included  in the VTK source code and enabled in builds configured through CMake to have the `VTK_BUILD_TESTING` flag turned on. Test pass/fail results are returned to CTest via a test program's exit code. VTK contains helper classes that do specific checks, such as comparing a produced image against a known valid one, that are used in many of the regression tests.  Test results may be submitted to Kitware's CDash instance, were they will be gathered and displayed at <http://open.cdash.org/index.php?project=VTK>
+Regression testing in VTK takes the form of a set of programs, that are included  in the VTK source code and enabled in builds configured through CMake to have the `VTK_BUILD_TESTING` flag turned on. Test pass/fail results are returned to CTest via a test program's exit code. VTK contains helper classes that do specific checks, such as comparing a produced image against a known valid one, that are used in many of the regression tests.  Test results may be submitted to Kitware's CDash instance, were they will be gathered and displayed at <https://open.cdash.org/index.php?project=VTK>
 
 All proposed changes to VTK are automatically tested on Windows, Mac and Linux machines. All changes that are merged into the master branch are subsequently tested again by more rigorously configured Windows, Mac and Linux continuous dashboard submitters. After 9PM Eastern Time, the master branch is again tested by a wider set of machines and platforms. These results appear in the next day's page.
 

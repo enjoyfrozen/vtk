@@ -11,7 +11,7 @@ Inspired by [This video](https://www.youtube.com/watch?v=IgvbhyDh8r0)
 
 For this guide you will need to following:
 
-1. CMake [CMake](http://www.cmake.org/) version 3.10 or higher and a working compiler.
+1. CMake [CMake](https://www.cmake.org/) version 3.10 or higher and a working compiler.
 2. Visual Studio with C++ support
 3. The VTK Source-code
 

@@ -157,11 +157,11 @@ co-developer, revamping 2D charting and information visualization in VTK.
 
 Many institutions have taken part in the development of VTK. Some of the most fundamental work came from the following:
 - [Kitware](https://www.kitware.com)
-- [Los Alamos National Lab (LANL)](http://www.lanl.gov)
-- [National Library of Medicine (NLM)](http://www.nlm.nih.gov)
-- [Department of Energy (DOE) ASC Program](http://www.cio.energy.gov/high-performance-computing.htm)
-- [Sandia National Laboratories](http://www.sandia.gov)
-- [Army Research Laboratory (ARL)](http://www.arl.army.mil/www/default.htm)
+- [Los Alamos National Lab (LANL)](https://www.lanl.gov)
+- [National Library of Medicine (NLM)](https://www.nlm.nih.gov)
+- [Department of Energy (DOE) ASC Program](https://www.cio.energy.gov/high-performance-computing.htm)
+- [Sandia National Laboratories](https://www.sandia.gov)
+- [Army Research Laboratory (ARL)](https://www.arl.army.mil/www/default.htm)
 
 Special thanks to all the [contributors](https://github.com/Kitware/VTK/graphs/contributors) !
 

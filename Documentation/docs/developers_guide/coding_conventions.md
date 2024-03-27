@@ -121,7 +121,7 @@ rules that say "All code".
     vtkGetMacro(IgnoreZero, int);
     ```
 
-    Rationale: Doxygen generated documentation (http://www.vtk.org/doc/nightly/html/) is generated from these comments and should be consistently readable.
+    Rationale: Doxygen generated documentation (https://www.vtk.org/doc/nightly/html/) is generated from these comments and should be consistently readable.
 
 1. Public and even Protected instance variables are allowed only in exceptional situations. Private variables should be used instead with public access given via Set/Get macro methods when needed.
    Rationale: Consistent API, ease of deprecation, and SetMacro takes part in reference counting.
@@ -201,17 +201,17 @@ rules that say "All code".
 
 ### C++ Language Features Required when using VTK
 
-* [*nullptr*](http://en.cppreference.com/w/cpp/language/nullptr) Use `nullptr` instead of `0` and `NULL` when dealing with pointer types
-* [*override*](http://en.cppreference.com/w/cpp/language/override)  `VTK_OVERRIDE` will be replaced with the override keyword
-* [*final*](http://en.cppreference.com/w/cpp/language/final)  `VTK_FINAL` will be replaced with the final keyword
-* [*delete*](http://en.cppreference.com/w/cpp/language/function#Deleted_functions) The use of delete is preferred over making default members private and unimplemented.
+* [*nullptr*](https://en.cppreference.com/w/cpp/language/nullptr) Use `nullptr` instead of `0` and `NULL` when dealing with pointer types
+* [*override*](https://en.cppreference.com/w/cpp/language/override)  `VTK_OVERRIDE` will be replaced with the override keyword
+* [*final*](https://en.cppreference.com/w/cpp/language/final)  `VTK_FINAL` will be replaced with the final keyword
+* [*delete*](https://en.cppreference.com/w/cpp/language/function#Deleted_functions) The use of delete is preferred over making default members private and unimplemented.
 
 ### C++11 Features allowed throughout VTK
 
-* [*default*](http://en.cppreference.com/w/cpp/language/default_constructor)  The use of default is encouraged in preference to empty destructor implementations
-* [*static_assert*](http://en.cppreference.com/w/cpp/language/static_assert) Must use the static_assert ( `bool_constexpr` , `message` ) signature. The signature without the message in c++17
-* [*non static data member initializers*](http://en.cppreference.com/w/cpp/language/data_members)
-* [*strongly typed enums*](http://en.cppreference.com/w/cpp/language/enum)
+* [*default*](https://en.cppreference.com/w/cpp/language/default_constructor)  The use of default is encouraged in preference to empty destructor implementations
+* [*static_assert*](https://en.cppreference.com/w/cpp/language/static_assert) Must use the static_assert ( `bool_constexpr` , `message` ) signature. The signature without the message in c++17
+* [*non static data member initializers*](https://en.cppreference.com/w/cpp/language/data_members)
+* [*strongly typed enums*](https://en.cppreference.com/w/cpp/language/enum)
   VTK prefers the usage of strongly typed enums over classic weakly
   typed enums.
 
@@ -232,7 +232,7 @@ rules that say "All code".
 
 ### C++11 Features acceptable in VTK implementation files, private headers, and template implementations
 
-* [*auto*](http://en.cppreference.com/w/cpp/language/auto)
+* [*auto*](https://en.cppreference.com/w/cpp/language/auto)
   Use auto to avoid type names that are noisy, obvious, or unimportant - cases where the type doesn't aid in clarity for the reader.
   auto is permitted when it increases readability, particularly as described below. **Never initialize an auto-typed variable with a braced initializer list.**
 
@@ -252,7 +252,7 @@ rules that say "All code".
     ```
   - (Discouraged) When iterating in integer space. `for (auto i=0; i < grid->GetNumberOfPoints(); ++i)`. Because vtk data structures usually contain more than 2 billion elements, iterating using 32bit integer is discouraged (and often doesn’t match the type used)
 
-* [*braced initializer list*](http://en.cppreference.com/w/cpp/language/list_initialization)
+* [*braced initializer list*](https://en.cppreference.com/w/cpp/language/list_initialization)
    Braced initializer list are allowed as they prevent implicit narrowing conversions, and “most vexing parse” errors. They can be used when constructing POD’s  and other containers.
 
    **Braced initializer lists are not allowed to be used as the right hand side for auto:**
@@ -261,7 +261,7 @@ rules that say "All code".
     auto a = { 10, 20 }; //not allowed as a is std::initializer_list<int>
   ```
 
-* [*lambda expressions*](http://en.cppreference.com/w/cpp/language/lambda)
+* [*lambda expressions*](https://en.cppreference.com/w/cpp/language/lambda)
 
   Usage of lambda expressions are allowed with the following guidelines.
 
@@ -270,16 +270,16 @@ rules that say "All code".
    - Keep unnamed lambdas short. If a lambda body is more than maybe five lines long, prefer using a named function instead of a lambda.
    - Specify the return type of the lambda explicitly if that will make it more obvious to readers.
 
-* [*shared_ptr*](http://en.cppreference.com/w/cpp/memory/shared_ptr)
+* [*shared_ptr*](https://en.cppreference.com/w/cpp/memory/shared_ptr)
   - **Do not combine shared_ptr and vtk derived objects.** VTK internal reference counting makes the shared_ptr reference counting ( and destructor tracking ) pointless.
 
 
-* [*unique_ptr*](http://en.cppreference.com/w/cpp/memory/unique_ptr)
+* [*unique_ptr*](https://en.cppreference.com/w/cpp/memory/unique_ptr)
   -   Do not combine unique_ptr and vtk derived objects.  We prefer using vtkNew as VTK objects use internal reference counting and custom deletion logic, the ownership semantics of unique_ptr are invalid.
   -   `make_unique` is not part of c++11 
 
 
-* [*template alias*](http://en.cppreference.com/w/cpp/language/type_alias)
+* [*template alias*](https://en.cppreference.com/w/cpp/language/type_alias)
   - The use of alias templates is preferred over using 'typedefs'. They provide the same language pattern of normal declarations, and reduce the need for helper template structs. For example ( Scott Meyers, Effective Modern C++ )
 
   ```cpp
@@ -288,17 +288,17 @@ rules that say "All code".
 
 * universal references (&&) / std::move / std::forward
 
-* [*extern templates*](http://en.cppreference.com/w/cpp/language/class_template)
+* [*extern templates*](https://en.cppreference.com/w/cpp/language/class_template)
 
   - Note: This should be investigated as an update to the current infrastructure used to export explicit template instantiations used within VTK 
 
-* [*unordered maps*](http://en.cppreference.com/w/cpp/concept/UnorderedAssociativeContainer)
+* [*unordered maps*](https://en.cppreference.com/w/cpp/concept/UnorderedAssociativeContainer)
 
-* [*std::array* ](http://en.cppreference.com/w/cpp/container/array)
+* [*std::array* ](https://en.cppreference.com/w/cpp/container/array)
 
    - The use of std::array is preferred over using raw fixed sized arrays. They offer compile time bounds checking without any runtime cost. 
 
-* [*range based for loop*](http://en.cppreference.com/w/cpp/language/range-for)
+* [*range based for loop*](https://en.cppreference.com/w/cpp/language/range-for)
 
 ### C++11 Features allowed under certain conditions
 
@@ -310,11 +310,11 @@ rules that say "All code".
 
   Note: Thread local storage has not been supported on OSX previously to XCode 8. VTK offers the following classes that should be used instead:
 
-  -   [vtkSMPThreadLocalObject](http://www.vtk.org/doc/release/7.0/html/classvtkSMPThreadLocalObject.html)
+  -   [vtkSMPThreadLocalObject](https://www.vtk.org/doc/release/7.0/html/classvtkSMPThreadLocalObject.html)
 
-  -   [vtkSMPThreadLocal](http://www.vtk.org/doc/release/6.3/html/classvtkSMPThreadLocal.html)
+  -   [vtkSMPThreadLocal](https://www.vtk.org/doc/release/6.3/html/classvtkSMPThreadLocal.html)
 
-* [*std::isnan*](http://en.cppreference.com/w/cpp/numeric/math/isnan), [*std::isfinite*](http://en.cppreference.com/w/cpp/numeric/math/isfinite), [*std::isinf*](http://en.cppreference.com/w/cpp/numeric/math/isinf)
+* [*std::isnan*](https://en.cppreference.com/w/cpp/numeric/math/isnan), [*std::isfinite*](https://en.cppreference.com/w/cpp/numeric/math/isfinite), [*std::isinf*](https://en.cppreference.com/w/cpp/numeric/math/isinf)
 
     These functions should not be called directly,  instead the wrapped versions provided by vtk should be used instead. 
 
@@ -326,47 +326,47 @@ rules that say "All code".
 
     The reason for these wrappings is to work around compiler performance issues. For example,  some clang version would convert integral types to double and do the operation on the double value, instead of simply returning false/true.
 
-* [*std::future*](http://en.cppreference.com/w/cpp/thread/future)/ [*std::async*](http://en.cppreference.com/w/cpp/thread/async)
+* [*std::future*](https://en.cppreference.com/w/cpp/thread/future)/ [*std::async*](https://en.cppreference.com/w/cpp/thread/async)
 
     Future/Async based programming inside of vtk should be handled on a case by case basis. In general the use cases for this kind of execution model is best applied at the vtkExecutive / vtkPipeline level, or at the File IO level. 
 
     In these cases the recommendation is to extending or adding support classes so that these design patterns can be utilized in the future.
 
-* [*variadic templates*](http://en.cppreference.com/w/cpp/language/parameter_pack)
+* [*variadic templates*](https://en.cppreference.com/w/cpp/language/parameter_pack)
 
   Variadic Templates are not allowed in VTK unless they are the only solution to the given problem. 
 
 ### C++11 Features that are not allowed
 
-* [std::regex](http://en.cppreference.com/w/cpp/regex)
+* [std::regex](https://en.cppreference.com/w/cpp/regex)
 
   - Not supported by GCC 4.8 (can be used once GCC 4.9 is required)
 
-* [constexpr](http://en.cppreference.com/w/cpp/language/constexpr)
+* [constexpr](https://en.cppreference.com/w/cpp/language/constexpr)
 
   - [Not supported by VS2013](https://msdn.microsoft.com/en-us/library/hh567368.aspx)
 
-* [unicode string literals](http://en.cppreference.com/w/cpp/language/string_literal)  [(n2442)](http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2442.htm)
+* [unicode string literals](https://en.cppreference.com/w/cpp/language/string_literal)  [(n2442)](https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2442.htm)
 
   - [Not supported by VS2013](https://msdn.microsoft.com/en-us/library/hh567368.aspx)
 
-* [universal character names in literals](http://en.cppreference.com/w/cpp/language/character_literal)  [(n2170)](http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2170.html)
+* [universal character names in literals](https://en.cppreference.com/w/cpp/language/character_literal)  [(n2170)](https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2170.html)
 
    - [Not supported by VS2013](https://msdn.microsoft.com/en-us/library/hh567368.aspx)
 
-* [user-defined literals](http://en.cppreference.com/w/cpp/language/user_literal)  [(n2765)](http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2008/n2765.pdf)
+* [user-defined literals](https://en.cppreference.com/w/cpp/language/user_literal)  [(n2765)](https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2008/n2765.pdf)
 
    - [Not supported by VS2013](https://msdn.microsoft.com/en-us/library/hh567368.aspx)
 
-* Extended sizeof [(n2253)](http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2253.html)
+* Extended sizeof [(n2253)](https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2253.html)
 
    - [Not supported by VS2013](https://msdn.microsoft.com/en-us/library/hh567368.aspx)
 
-* [Unrestricted Unions](http://en.cppreference.com/w/cpp/language/union)  [(n2544)](http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2008/n2544.pdf)
+* [Unrestricted Unions](https://en.cppreference.com/w/cpp/language/union)  [(n2544)](https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2008/n2544.pdf)
 
     - [Not supported by VS2013](https://msdn.microsoft.com/en-us/library/hh567368.aspx)
 
-* [Noexcept](http://en.cppreference.com/w/cpp/language/noexcept)  [(n3050)](http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2010/n3050.html)
+* [Noexcept](https://en.cppreference.com/w/cpp/language/noexcept)  [(n3050)](https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2010/n3050.html)
 
     - [Not supported by VS2013](https://msdn.microsoft.com/en-us/library/hh567368.aspx)
 

@@ -12,7 +12,7 @@ listing the module in the current directory.  For more information on
 adding a new module to the list of new modules, see the page that
 describes the policy and procedures for adding a new module:
 
-[Adding Remote Modules to VTK](http://www.vtk.org/Wiki/VTK/Remote_Modules)
+[Adding Remote Modules to VTK](https://www.vtk.org/Wiki/VTK/Remote_Modules)
 
 __NOTE__ that in each `<remote module name>.remote.cmake`, the first
 argument of the function vtk_fetch_module() is the name of the remote
