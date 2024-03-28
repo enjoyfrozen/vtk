@@ -11,6 +11,7 @@
 #include "vtkMatrix4x4.h"
 #include "vtkObjectFactory.h"
 #include "vtkPointData.h"
+#include "vtkProfiler.h"
 #include "vtkPropCollection.h"
 #include "vtkProperty.h"
 #include "vtkRenderWindow.h"
@@ -75,6 +76,7 @@ vtkActor::~vtkActor()
 // Shallow copy of an actor.
 void vtkActor::ShallowCopy(vtkProp* prop)
 {
+  vtkProfileScoped;
   vtkActor* a = vtkActor::SafeDownCast(prop);
   if (a != nullptr)
   {
@@ -97,6 +99,7 @@ void vtkActor::GetActors(vtkPropCollection* ac)
 
 vtkTypeBool vtkActor::HasOpaqueGeometry()
 {
+  vtkProfileScoped;
   if (this->ForceOpaque)
   {
     return 1;
@@ -125,6 +128,7 @@ vtkTypeBool vtkActor::HasOpaqueGeometry()
 
 vtkTypeBool vtkActor::HasTranslucentPolygonalGeometry()
 {
+  vtkProfileScoped;
   if (this->ForceOpaque)
   {
     return 0;
@@ -163,6 +167,7 @@ vtkTypeBool vtkActor::HasTranslucentPolygonalGeometry()
 // should be called from the render methods only
 int vtkActor::GetIsOpaque()
 {
+  vtkProfileScoped;
   return this->HasOpaqueGeometry();
 }
 
@@ -173,6 +178,7 @@ int vtkActor::GetIsOpaque()
 // side effect of this method is that the visualization network is updated.
 int vtkActor::RenderOpaqueGeometry(vtkViewport* vp)
 {
+  vtkProfileScoped;
   int renderedSomething = 0;
   vtkRenderer* ren = static_cast<vtkRenderer*>(vp);
 
@@ -237,6 +243,7 @@ int vtkActor::RenderOpaqueGeometry(vtkViewport* vp)
 //------------------------------------------------------------------------------
 int vtkActor::RenderTranslucentPolygonalGeometry(vtkViewport* vp)
 {
+  vtkProfileScoped;
   int renderedSomething = 0;
   vtkRenderer* ren = static_cast<vtkRenderer*>(vp);
 
@@ -352,6 +359,7 @@ vtkProperty* vtkActor::GetProperty()
 // Get the bounds for this Actor as (Xmin,Xmax,Ymin,Ymax,Zmin,Zmax).
 double* vtkActor::GetBounds()
 {
+  vtkProfileScoped;
   int i, n;
   double bbox[24], *fptr;
 
@@ -463,6 +471,7 @@ double* vtkActor::GetBounds()
 //------------------------------------------------------------------------------
 vtkMTimeType vtkActor::GetMTime()
 {
+  vtkProfileScoped;
   vtkMTimeType mTime = this->Superclass::GetMTime();
   vtkMTimeType time;
 
@@ -490,6 +499,7 @@ vtkMTimeType vtkActor::GetMTime()
 //------------------------------------------------------------------------------
 vtkMTimeType vtkActor::GetRedrawMTime()
 {
+  vtkProfileScoped;
   vtkMTimeType mTime = this->GetMTime();
   vtkMTimeType time;
 
@@ -571,6 +581,7 @@ bool vtkActor::GetSupportsSelection()
 void vtkActor::ProcessSelectorPixelBuffers(
   vtkHardwareSelector* sel, std::vector<unsigned int>& pixeloffsets)
 {
+  vtkProfileScoped;
   if (this->Mapper)
   {
     this->Mapper->ProcessSelectorPixelBuffers(sel, pixeloffsets, this);

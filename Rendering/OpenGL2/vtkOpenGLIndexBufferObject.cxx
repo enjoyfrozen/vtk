@@ -10,6 +10,7 @@
 #include "vtkDataArrayRange.h"
 #include "vtkPoints.h"
 #include "vtkPolygon.h"
+#include "vtkProfiler.h"
 #include "vtkProperty.h"
 #include "vtkUnsignedCharArray.h"
 
@@ -137,6 +138,7 @@ void vtkOpenGLIndexBufferObject::AppendTriangleIndexBuffer(std::vector<unsigned 
   vtkCellArray* cells, vtkPoints* points, vtkIdType vOffset, std::vector<unsigned char>* edgeArray,
   vtkDataArray* edgeFlags)
 {
+  vtkProfileScoped;
   if (cells->GetNumberOfConnectivityIds() > cells->GetNumberOfCells() * 3)
   {
     size_t targetSize =
@@ -182,6 +184,7 @@ void vtkOpenGLIndexBufferObject::AppendTriangleIndexBuffer(std::vector<unsigned 
 size_t vtkOpenGLIndexBufferObject::CreateTriangleIndexBuffer(vtkCellArray* cells, vtkPoints* points,
   std::vector<unsigned char>* edgeValues, vtkDataArray* edgeFlags)
 {
+  vtkProfileScoped;
   if (!cells->GetNumberOfCells())
   {
     this->IndexCount = 0;
@@ -198,6 +201,7 @@ size_t vtkOpenGLIndexBufferObject::CreateTriangleIndexBuffer(vtkCellArray* cells
 void vtkOpenGLIndexBufferObject::AppendPointIndexBuffer(
   std::vector<unsigned int>& indexArray, vtkCellArray* cells, vtkIdType vOffset)
 {
+  vtkProfileScoped;
   const vtkIdType* indices(nullptr);
   vtkIdType npts(0);
   size_t targetSize = indexArray.size() + cells->GetNumberOfConnectivityIds();
@@ -222,6 +226,7 @@ void vtkOpenGLIndexBufferObject::AppendPointIndexBuffer(
 // used to create an IBO for triangle primitives
 size_t vtkOpenGLIndexBufferObject::CreatePointIndexBuffer(vtkCellArray* cells)
 {
+  vtkProfileScoped;
   if (!cells->GetNumberOfCells())
   {
     this->IndexCount = 0;
@@ -241,6 +246,7 @@ size_t vtkOpenGLIndexBufferObject::CreatePointIndexBuffer(vtkCellArray* cells)
 void vtkOpenGLIndexBufferObject::AppendTriangleLineIndexBuffer(
   std::vector<unsigned int>& indexArray, vtkCellArray* cells, vtkIdType vOffset)
 {
+  vtkProfileScoped;
   const vtkIdType* indices(nullptr);
   vtkIdType npts(0);
   size_t targetSize = indexArray.size() + 2 * cells->GetNumberOfConnectivityIds();
@@ -269,6 +275,7 @@ void vtkOpenGLIndexBufferObject::AppendTriangleLineIndexBuffer(
 // but... line loops are slower than line segments.
 size_t vtkOpenGLIndexBufferObject::CreateTriangleLineIndexBuffer(vtkCellArray* cells)
 {
+  vtkProfileScoped;
   if (!cells->GetNumberOfCells())
   {
     this->IndexCount = 0;
@@ -287,6 +294,7 @@ size_t vtkOpenGLIndexBufferObject::CreateTriangleLineIndexBuffer(vtkCellArray* c
 void vtkOpenGLIndexBufferObject::AppendLineIndexBuffer(
   std::vector<unsigned int>& indexArray, vtkCellArray* cells, vtkIdType vOffset)
 {
+  vtkProfileScoped;
   const vtkIdType* indices(nullptr);
   vtkIdType npts(0);
 
@@ -319,6 +327,7 @@ void vtkOpenGLIndexBufferObject::AppendLineIndexBuffer(
 // line segments out
 size_t vtkOpenGLIndexBufferObject::CreateLineIndexBuffer(vtkCellArray* cells)
 {
+  vtkProfileScoped;
   if (!cells->GetNumberOfCells())
   {
     this->IndexCount = 0;
@@ -335,6 +344,7 @@ size_t vtkOpenGLIndexBufferObject::CreateLineIndexBuffer(vtkCellArray* cells)
 size_t vtkOpenGLIndexBufferObject::CreateStripIndexBuffer(
   vtkCellArray* cells, bool wireframeTriStrips)
 {
+  vtkProfileScoped;
   if (!cells->GetNumberOfCells())
   {
     this->IndexCount = 0;
@@ -390,6 +400,7 @@ void vtkOpenGLIndexBufferObject::AppendStripIndexBuffer(std::vector<unsigned int
 void vtkOpenGLIndexBufferObject::AppendEdgeFlagIndexBuffer(
   std::vector<unsigned int>& indexArray, vtkCellArray* cells, vtkIdType vOffset, vtkDataArray* ef)
 {
+  vtkProfileScoped;
   const vtkIdType* pts(nullptr);
   vtkIdType npts(0);
 
@@ -427,6 +438,7 @@ void vtkOpenGLIndexBufferObject::AppendEdgeFlagIndexBuffer(
 // used to create an IBO for polys in wireframe with edge flags
 size_t vtkOpenGLIndexBufferObject::CreateEdgeFlagIndexBuffer(vtkCellArray* cells, vtkDataArray* ef)
 {
+  vtkProfileScoped;
   if (!cells->GetNumberOfCells())
   {
     this->IndexCount = 0;
@@ -443,6 +455,7 @@ size_t vtkOpenGLIndexBufferObject::CreateEdgeFlagIndexBuffer(vtkCellArray* cells
 void vtkOpenGLIndexBufferObject::AppendVertexIndexBuffer(
   std::vector<unsigned int>& indexArray, vtkCellArray** cells, vtkIdType vOffset)
 {
+  vtkProfileScoped;
   const vtkIdType* indices(nullptr);
   vtkIdType npts(0);
 
@@ -479,6 +492,7 @@ void vtkOpenGLIndexBufferObject::AppendVertexIndexBuffer(
 // used to create an IBO for triangle primitives
 size_t vtkOpenGLIndexBufferObject::CreateVertexIndexBuffer(vtkCellArray** cells)
 {
+  vtkProfileScoped;
   unsigned long totalCells = 0;
   for (int i = 0; i < 4; i++)
   {

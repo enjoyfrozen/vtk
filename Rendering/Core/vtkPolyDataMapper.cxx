@@ -8,6 +8,7 @@
 #include "vtkMath.h"
 #include "vtkObjectFactory.h"
 #include "vtkPolyData.h"
+#include "vtkProfiler.h"
 #include "vtkRenderWindow.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
 
@@ -74,6 +75,7 @@ vtkPolyData* vtkPolyDataMapper::GetInput()
 vtkTypeBool vtkPolyDataMapper::ProcessRequest(
   vtkInformation* request, vtkInformationVector** inputVector, vtkInformationVector*)
 {
+  vtkProfileScoped;
   if (request->Has(vtkStreamingDemandDrivenPipeline::REQUEST_UPDATE_EXTENT()))
   {
     vtkInformation* inInfo = inputVector[0]->GetInformationObject(0);
@@ -92,6 +94,7 @@ vtkTypeBool vtkPolyDataMapper::ProcessRequest(
 // (Xmin,Xmax,Ymin,Ymax,Zmin,Zmax).
 double* vtkPolyDataMapper::GetBounds()
 {
+  vtkProfileScoped;
   // do we have an input
   if (!this->GetNumberOfInputConnections(0))
   {
@@ -126,6 +129,7 @@ double* vtkPolyDataMapper::GetBounds()
 //------------------------------------------------------------------------------
 void vtkPolyDataMapper::ComputeBounds()
 {
+  vtkProfileScoped;
   vtkPolyData* input = this->GetInput();
   if (input && input->GetNumberOfCells())
   {
@@ -145,6 +149,7 @@ void vtkPolyDataMapper::ComputeBounds()
 //------------------------------------------------------------------------------
 void vtkPolyDataMapper::ShallowCopy(vtkAbstractMapper* mapper)
 {
+  vtkProfileScoped;
   vtkPolyDataMapper* m = vtkPolyDataMapper::SafeDownCast(mapper);
   if (m != nullptr)
   {
@@ -211,6 +216,7 @@ int vtkPolyDataMapper::FillInputPortInformation(int vtkNotUsed(port), vtkInforma
 //------------------------------------------------------------------------------
 void vtkPolyDataMapper::Update(int port)
 {
+  vtkProfileScoped;
   if (this->Static)
   {
     return;
@@ -221,6 +227,7 @@ void vtkPolyDataMapper::Update(int port)
 //------------------------------------------------------------------------------
 void vtkPolyDataMapper::Update()
 {
+  vtkProfileScoped;
   if (this->Static)
   {
     return;
@@ -231,6 +238,7 @@ void vtkPolyDataMapper::Update()
 //------------------------------------------------------------------------------
 vtkTypeBool vtkPolyDataMapper::Update(int port, vtkInformationVector* requests)
 {
+  vtkProfileScoped;
   if (this->Static)
   {
     return 1;
@@ -241,6 +249,7 @@ vtkTypeBool vtkPolyDataMapper::Update(int port, vtkInformationVector* requests)
 //------------------------------------------------------------------------------
 vtkTypeBool vtkPolyDataMapper::Update(vtkInformation* requests)
 {
+  vtkProfileScoped;
   if (this->Static)
   {
     return 1;

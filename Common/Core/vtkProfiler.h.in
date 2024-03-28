@@ -1,0 +1,74 @@
+// SPDX-FileCopyrightText: Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+// SPDX-License-Identifier: BSD-3-Clause
+#ifndef vtkProfiler_h
+#define vtkProfiler_h
+
+/**
+ * @brief   a collection of macros that enable real-time performance profiling
+ *
+ * This header file enables real time profiling with Tracy client.
+ * In order to benefit, download tracy from https://github.com/wolfpld/tracy,
+ * build and install with CMake. Set TRACY_STATIC=OFF, TRACY_ENABLE=ON and TRACY_ON_DEMAND=ON
+ *
+ * Then, build VTK with proflier enabled. Set the CMake flag VTK_ENABLE_PROFILER=ON
+ *
+ * Start a tracy server on your machine or any other machine (any platform).
+ * After that, the server UI will list discovered clients. Then,
+ * connect to the listed machines which run your VTK based application.
+ * Refer to documentation in https://github.com/wolfpld/tracy/releases/latest/download/tracy.pdf
+ */
+
+#cmakedefine01 VTK_ENABLE_PROFILER
+
+#if VTK_ENABLE_PROFILER
+#include "tracy/Tracy.hpp"
+// Use this to insert an automatically named scoped zone in the trace.
+#define vtkProfileScoped ZoneScoped
+// Use this for nested zones, it lets you distinguish zones with custom names.
+#define vtkProfileScopedN(name) ZoneScopedN(name)
+// Use this to tag a scoped zone.
+#define vtkProfileScopedTag(tag) ZoneText(tag, strlen(tag))
+// Use this to append a custom message to the scoped zone.
+#define vtkProfileScopedLog(text, size) TracyMessage(text, size)
+// Use this to send a value for plotting a custom value to the scoped zone.
+// Ex: to count draw calls and plot over time:
+//   vtkProfileScopedValue("DrawCallCount", ++drawCallCount);
+#define vtkProfileScopedValue(text, value) TracyPlot(text, value)
+// Use this to track an allocation. By default, retains upto 12 methods in the call stack
+#define vtkProfileAlloc(p, size) TracyAllocS(p, size, 12)
+// Must be used when a tracked allocation was freed! By default, retains upto 12 methods in the call
+// stack
+#define vtkProfileFree(p) TracyFreeS(p, 12)
+// Use this to track an allocation retaining `depth` number of methods in the call stack upto this
+// allocation.
+#define vtkProfileAllocWithStackDepth(p, size, depth) TracyAllocS(p, size, depth)
+// Use this to track an allocation retaining `depth` number of methods in the call stack upto this
+// free.
+#define vtkProfileFreeWithStackDepth(p, depth) TracyFreeS(p, depth)
+#else
+// Use this for automatically named scoped zone.
+#define vtkProfileScoped
+// Use this for nested zones, it lets you distinguish zones with custom names.
+#define vtkProfileScopedN(name)
+// Use this to tag a scoped zone.
+#define vtkProfileScopedTag(tag)
+// Use this to append a custom message to the scoped zone.
+#define vtkProfileScopedLog(text, size)
+// Use this to send a value for plotting a custom value to the scoped zone.
+// Ex: to count draw calls and plot over time:
+//   vtkProfileScopedValue("DrawCallCount", ++drawCallCount);
+#define vtkProfileScopedValue(text, value)
+// Use this to track an allocation. By default, retains upto 12 methods in the call stack
+#define vtkProfileAlloc(p, size)
+// Must be used when a tracked allocation was freed! By default, retains upto 12 methods in the call
+// stack
+#define vtkProfileFree(p)
+// Use this to track an allocation retaining `depth` number of methods in the call stack upto this
+// allocation.
+#define vtkProfileAllocWithStackDepth(p, size, depth)
+// Use this to track an allocation retaining `depth` number of methods in the call stack upto this
+// free.
+#define vtkProfileFreeWithStackDepth(p, depth)
+#endif // VTK_ENABLE_PROFILER
+#endif // vtkProfiler_h
+// VTK-HeaderTest-Exclude: vtkProfiler.h

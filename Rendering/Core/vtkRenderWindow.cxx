@@ -10,6 +10,7 @@
 #include "vtkMath.h"
 #include "vtkNew.h"
 #include "vtkObjectFactory.h"
+#include "vtkProfiler.h"
 #include "vtkPropCollection.h"
 #include "vtkRenderTimerLog.h"
 #include "vtkRenderWindowInteractor.h"
@@ -261,6 +262,7 @@ void vtkRenderWindow::SetStereoRender(vtkTypeBool stereo)
 // synchronize this process.
 void vtkRenderWindow::Render()
 {
+  vtkProfileScoped;
   // if we are in the middle of an abort check then return now
   if (this->InAbortCheck)
   {

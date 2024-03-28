@@ -142,7 +142,7 @@ void vtkPointLocator::ComputePerformanceFactors()
 {
   this->HX = this->H[0];
   this->HY = this->H[1];
-  this->HZ = this->H[2];
+  this->HZ_ = this->H[2];
   this->FX = 1.0 / this->H[0];
   this->FY = 1.0 / this->H[1];
   this->FZ = 1.0 / this->H[2];
@@ -1567,7 +1567,7 @@ void vtkPointLocator::GenerateFace(
   // define first corner
   origin[0] = this->Bounds[0] + i * this->HX;
   origin[1] = this->Bounds[2] + j * this->HY;
-  origin[2] = this->Bounds[4] + k * this->HZ;
+  origin[2] = this->Bounds[4] + k * this->HZ_;
   ids[0] = pts->InsertNextPoint(origin);
 
   if (face == 0) // x face
@@ -1579,12 +1579,12 @@ void vtkPointLocator::GenerateFace(
 
     x[0] = origin[0];
     x[1] = origin[1] + this->HY;
-    x[2] = origin[2] + this->HZ;
+    x[2] = origin[2] + this->HZ_;
     ids[2] = pts->InsertNextPoint(x);
 
     x[0] = origin[0];
     x[1] = origin[1];
-    x[2] = origin[2] + this->HZ;
+    x[2] = origin[2] + this->HZ_;
     ids[3] = pts->InsertNextPoint(x);
   }
 
@@ -1597,12 +1597,12 @@ void vtkPointLocator::GenerateFace(
 
     x[0] = origin[0] + this->HX;
     x[1] = origin[1];
-    x[2] = origin[2] + this->HZ;
+    x[2] = origin[2] + this->HZ_;
     ids[2] = pts->InsertNextPoint(x);
 
     x[0] = origin[0];
     x[1] = origin[1];
-    x[2] = origin[2] + this->HZ;
+    x[2] = origin[2] + this->HZ_;
     ids[3] = pts->InsertNextPoint(x);
   }
 
@@ -1641,8 +1641,8 @@ double vtkPointLocator::Distance2ToBucket(const double x[3], const int nei[3])
   bounds[1] = (nei[0] + 1) * this->HX + this->BX;
   bounds[2] = nei[1] * this->HY + this->BY;
   bounds[3] = (nei[1] + 1) * this->HY + this->BY;
-  bounds[4] = nei[2] * this->HZ + this->BZ;
-  bounds[5] = (nei[2] + 1) * this->HZ + this->BZ;
+  bounds[4] = nei[2] * this->HZ_ + this->BZ;
+  bounds[5] = (nei[2] + 1) * this->HZ_ + this->BZ;
 
   return this->Distance2ToBounds(x, bounds);
 }

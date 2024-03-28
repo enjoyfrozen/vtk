@@ -5,12 +5,14 @@
 
 #include "vtkOpenGLHelper.h"
 
+#include "vtkCallbackCommand.h"
 #include "vtkFloatArray.h"
 #include "vtkImageData.h"
 #include "vtkJPEGReader.h"
 #include "vtkNew.h"
 #include "vtkObjectFactory.h"
 #include "vtkOpenGLActor.h"
+#include "vtkOpenGLAsyncFrameRecorder.h"
 #include "vtkOpenGLBufferObject.h"
 #include "vtkOpenGLCamera.h"
 #include "vtkOpenGLError.h"
@@ -18,6 +20,7 @@
 #include "vtkOpenGLLight.h"
 #include "vtkOpenGLProperty.h"
 #include "vtkOpenGLQuadHelper.h"
+#include "vtkOpenGLRealtimeFrameProfiler.h"
 #include "vtkOpenGLRenderUtilities.h"
 #include "vtkOpenGLRenderer.h"
 #include "vtkOpenGLResourceFreeCallback.h"
@@ -415,6 +418,27 @@ vtkOpenGLRenderWindow::vtkOpenGLRenderWindow()
   this->DepthFramebuffer = vtkOpenGLFramebufferObject::New();
   this->DepthFramebuffer->SetContext(this);
 
+  this->FrameRecorder = vtkOpenGLAsyncFrameRecorder::New();
+#if VTK_ENABLE_PROFILER
+  // notify profiler about frames.
+  vtkNew<vtkCallbackCommand> notifier;
+  notifier->SetCallback([](vtkObject* caller, unsigned long eid, void*, void* calldata) {
+    if (eid == vtkAsyncFrameRecorder::FrameCapturedEvent)
+    {
+      auto recorder = reinterpret_cast<vtkAsyncFrameRecorder*>(caller);
+      auto image = reinterpret_cast<vtkImageData*>(calldata);
+      int dims[3];
+      image->GetDimensions(dims);
+      // cast parameters to expected types of
+      //  void tracy::Profiler::SendFrameImage(const void*, uint16_t, uint16_t, uint8_t, bool)
+      vtkProfileFrameImage(image->GetScalarPointer(), static_cast<uint16_t>(dims[0]),
+        static_cast<uint16_t>(dims[1]), static_cast<uint8_t>(recorder->GetBacklogSize()),
+        /*flip=*/true);
+    }
+  });
+  this->FrameRecorder->AddObserver(vtkAsyncFrameRecorder::FrameCapturedEvent, notifier);
+#endif
+
   this->DrawPixelsTextureObject = nullptr;
 
   this->OwnContext = 1;
@@ -480,6 +504,10 @@ vtkOpenGLRenderWindow::~vtkOpenGLRenderWindow()
   if (this->NoiseTextureObject)
   {
     this->NoiseTextureObject->Delete();
+  }
+  if (this->FrameRecorder)
+  {
+    this->FrameRecorder->Delete();
   }
 
   delete[] this->Capabilities;
@@ -550,6 +578,8 @@ void vtkOpenGLRenderWindow::ReleaseGraphicsResources(vtkWindow* renWin)
   this->DisplayFramebuffer->ReleaseGraphicsResources(renWin);
   this->ResolveFramebuffer->ReleaseGraphicsResources(renWin);
   this->DepthFramebuffer->ReleaseGraphicsResources(renWin);
+
+  this->FrameRecorder->ReleaseGraphicsResources(renWin);
 
   // release the registered resources
   if (this->NoiseTextureObject)
@@ -622,6 +652,7 @@ vtkOpenGLVertexBufferObjectCache* vtkOpenGLRenderWindow::GetVBOCache()
 void vtkOpenGLRenderWindow::OpenGLInit()
 {
   this->OpenGLInitContext();
+  vtkProfileOpenGLGPUContextReady;
   if (this->Initialized)
   {
     this->OpenGLInitState();
@@ -970,6 +1001,7 @@ int vtkOpenGLRenderWindow::GetColorBufferInternalFormat(int attachmentPoint)
 unsigned char* vtkOpenGLRenderWindow::GetPixelData(
   int x1, int y1, int x2, int y2, int front, int right)
 {
+  vtkProfileScoped;
   int y_low, y_hi;
   int x_low, x_hi;
 
@@ -1008,6 +1040,7 @@ unsigned char* vtkOpenGLRenderWindow::GetPixelData(
 int vtkOpenGLRenderWindow::GetPixelData(
   int x1, int y1, int x2, int y2, int front, vtkUnsignedCharArray* data, int right)
 {
+  vtkProfileScoped;
   int y_low, y_hi;
   int x_low, x_hi;
 
@@ -1063,6 +1096,7 @@ bool vtkOpenGLRenderWindow::GetBufferNeedsResolving()
 int vtkOpenGLRenderWindow::ReadPixels(
   const vtkRecti& rect, int front, int glformat, int gltype, void* data, int right)
 {
+  vtkProfileScoped;
   // set the current window
   this->MakeCurrent();
 
@@ -1243,6 +1277,7 @@ void vtkOpenGLRenderWindow::End()
 void vtkOpenGLRenderWindow::TextureDepthBlit(vtkTextureObject* source, int srcX, int srcY,
   int srcX2, int srcY2, int destX, int destY, int destX2, int destY2)
 {
+  vtkProfileScoped;
   // blit upper right is exclusive
   vtkOpenGLState::ScopedglViewport viewportSaver(this->GetState());
   this->GetState()->vtkglViewport(destX, destY, destX2 - destX, destY2 - destY);
@@ -1251,12 +1286,14 @@ void vtkOpenGLRenderWindow::TextureDepthBlit(vtkTextureObject* source, int srcX,
 
 void vtkOpenGLRenderWindow::TextureDepthBlit(vtkTextureObject* source)
 {
+  vtkProfileScoped;
   this->TextureDepthBlit(source, 0, 0, source->GetWidth(), source->GetHeight());
 }
 
 void vtkOpenGLRenderWindow::TextureDepthBlit(
   vtkTextureObject* source, int srcX, int srcY, int srcX2, int srcY2)
 {
+  vtkProfileScoped;
   assert("pre: must have both source and destination FO" && source);
 
   if (!this->DepthBlitQuad)
@@ -1337,6 +1374,7 @@ void vtkOpenGLRenderWindow::StereoMidpoint()
 //------------------------------------------------------------------------------
 void vtkOpenGLRenderWindow::Frame()
 {
+  vtkProfileScoped;
   if (this->SwapBuffers)
   {
     this->GetState()->PushFramebufferBindings();
@@ -1383,6 +1421,12 @@ void vtkOpenGLRenderWindow::Frame()
       {
         this->BlitDisplayFramebufferColorAndDepth();
       }
+#if VTK_ENABLE_PROFILER
+      // Capture only when built with profiler.
+      this->FrameRecorder->RetrieveAvailableFrames();
+      this->FrameRecorder->Capture(this, this->Size[0], this->Size[1], 320, 180);
+      vtkProfileFrame;
+#endif
     }
   }
 }
@@ -1390,6 +1434,7 @@ void vtkOpenGLRenderWindow::Frame()
 //------------------------------------------------------------------------------
 bool vtkOpenGLRenderWindow::ResolveFlipRenderFramebuffer()
 {
+  vtkProfileScoped;
   bool copiedColor = false;
 
   // Some linux drivers have issues reading a multisampled texture
@@ -1488,6 +1533,7 @@ bool vtkOpenGLRenderWindow::ResolveFlipRenderFramebuffer()
 //------------------------------------------------------------------------------
 bool vtkOpenGLRenderWindow::ReadDepthComponent(int depthSize)
 {
+  vtkProfileScoped;
   bool readDepthBuffer = false;
   if (!this->DepthReadQuad)
   {
@@ -1529,6 +1575,7 @@ bool vtkOpenGLRenderWindow::ReadDepthComponent(int depthSize)
 //------------------------------------------------------------------------------
 void vtkOpenGLRenderWindow::BlitDisplayFramebuffersToHardware()
 {
+  vtkProfileScoped;
   auto ostate = this->GetState();
   ostate->PushFramebufferBindings();
   ostate->vtkglViewport(0, 0, this->Size[0], this->Size[1]);
@@ -1564,6 +1611,7 @@ void vtkOpenGLRenderWindow::BlitDisplayFramebuffersToHardware()
 
 void vtkOpenGLRenderWindow::BlitDisplayFramebuffer()
 {
+  vtkProfileScoped;
   this->BlitDisplayFramebuffer(0, 0, 0, this->Size[0], this->Size[1], 0, 0, this->Size[0],
     this->Size[1], GL_COLOR_BUFFER_BIT, GL_NEAREST);
 }
@@ -1578,6 +1626,7 @@ void vtkOpenGLRenderWindow::BlitDisplayFramebuffer(int right, int srcX, int srcY
   int srcHeight, int destX, int destY, int destWidth, int destHeight, int bufferMode,
   int interpolation)
 {
+  vtkProfileScoped;
   // ON APPLE OSX you must turn off scissor test for DEPTH blits to work
   auto ostate = this->GetState();
   vtkOpenGLState::ScopedglEnableDisable stsaver(ostate, GL_SCISSOR_TEST);
@@ -1595,6 +1644,7 @@ void vtkOpenGLRenderWindow::BlitDisplayFramebuffer(int right, int srcX, int srcY
 
 void vtkOpenGLRenderWindow::BlitToRenderFramebuffer(bool includeDepth)
 {
+  vtkProfileScoped;
   this->BlitToRenderFramebuffer(0, 0, this->Size[0], this->Size[1], 0, 0, this->Size[0],
     this->Size[1], GL_COLOR_BUFFER_BIT | (includeDepth ? GL_DEPTH_BUFFER_BIT : 0), GL_NEAREST);
 }
@@ -1602,6 +1652,7 @@ void vtkOpenGLRenderWindow::BlitToRenderFramebuffer(bool includeDepth)
 void vtkOpenGLRenderWindow::BlitToRenderFramebuffer(int srcX, int srcY, int srcWidth, int srcHeight,
   int destX, int destY, int destWidth, int destHeight, int bufferMode, int interpolation)
 {
+  vtkProfileScoped;
   // Ensure the offscreen framebuffer is created and updated to the right size
   this->CreateFramebuffers(this->Size[0], this->Size[1]);
 
@@ -1682,6 +1733,7 @@ void vtkOpenGLRenderWindow::Start()
 int vtkOpenGLRenderWindow::SetPixelData(
   int x1, int y1, int x2, int y2, vtkUnsignedCharArray* data, int front, int right)
 {
+  vtkProfileScoped;
   int y_low, y_hi;
   int x_low, x_hi;
 
@@ -1725,6 +1777,7 @@ int vtkOpenGLRenderWindow::SetPixelData(
 void vtkOpenGLRenderWindow::DrawPixels(
   int srcWidth, int srcHeight, int numComponents, int dataType, void* data)
 {
+  vtkProfileScoped;
   this->GetState()->vtkglDisable(GL_SCISSOR_TEST);
   this->GetState()->vtkglDisable(GL_DEPTH_TEST);
   if (!this->DrawPixelsTextureObject)
@@ -1747,6 +1800,7 @@ void vtkOpenGLRenderWindow::DrawPixels(int dstXmin, int dstYmin, int dstXmax, in
   int srcXmin, int srcYmin, int srcXmax, int srcYmax, int srcWidth, int srcHeight,
   int numComponents, int dataType, void* data)
 {
+  vtkProfileScoped;
   this->GetState()->vtkglDisable(GL_SCISSOR_TEST);
   this->GetState()->vtkglDisable(GL_DEPTH_TEST);
   if (!this->DrawPixelsTextureObject)
@@ -1769,6 +1823,7 @@ void vtkOpenGLRenderWindow::DrawPixels(int dstXmin, int dstYmin, int dstXmax, in
 void vtkOpenGLRenderWindow::DrawPixels(
   int x1, int y1, int x2, int y2, int numComponents, int dataType, void* data)
 {
+  vtkProfileScoped;
   int y_low, y_hi;
   int x_low, x_hi;
 
@@ -1806,6 +1861,7 @@ void vtkOpenGLRenderWindow::DrawPixels(
 int vtkOpenGLRenderWindow::SetPixelData(
   int x1, int y1, int x2, int y2, unsigned char* data, int front, int right)
 {
+  vtkProfileScoped;
   // set the current window
   this->MakeCurrent();
 
@@ -1851,6 +1907,7 @@ int vtkOpenGLRenderWindow::SetPixelData(
 //------------------------------------------------------------------------------
 float* vtkOpenGLRenderWindow::GetRGBAPixelData(int x1, int y1, int x2, int y2, int front, int right)
 {
+  vtkProfileScoped;
 
   int y_low, y_hi;
   int x_low, x_hi;
@@ -1891,6 +1948,7 @@ float* vtkOpenGLRenderWindow::GetRGBAPixelData(int x1, int y1, int x2, int y2, i
 int vtkOpenGLRenderWindow::GetRGBAPixelData(
   int x1, int y1, int x2, int y2, int front, vtkFloatArray* data, int right)
 {
+  vtkProfileScoped;
   int y_low, y_hi;
   int x_low, x_hi;
   int width, height;
@@ -1934,6 +1992,7 @@ int vtkOpenGLRenderWindow::GetRGBAPixelData(
 //------------------------------------------------------------------------------
 void vtkOpenGLRenderWindow::ReleaseRGBAPixelData(float* data)
 {
+  vtkProfileScoped;
   delete[] data;
 }
 
@@ -1941,6 +2000,7 @@ void vtkOpenGLRenderWindow::ReleaseRGBAPixelData(float* data)
 int vtkOpenGLRenderWindow::SetRGBAPixelData(
   int x1, int y1, int x2, int y2, vtkFloatArray* data, int front, int blend, int right)
 {
+  vtkProfileScoped;
   int y_low, y_hi;
   int x_low, x_hi;
   int width, height;
@@ -1984,6 +2044,7 @@ int vtkOpenGLRenderWindow::SetRGBAPixelData(
 int vtkOpenGLRenderWindow::SetRGBAPixelData(
   int x1, int y1, int x2, int y2, float* data, int front, int blend, int right)
 {
+  vtkProfileScoped;
   // set the current window
   this->MakeCurrent();
 
@@ -2039,6 +2100,7 @@ int vtkOpenGLRenderWindow::SetRGBAPixelData(
 unsigned char* vtkOpenGLRenderWindow::GetRGBACharPixelData(
   int x1, int y1, int x2, int y2, int front, int right)
 {
+  vtkProfileScoped;
   int y_low, y_hi;
   int x_low, x_hi;
   int width, height;
@@ -2078,6 +2140,7 @@ unsigned char* vtkOpenGLRenderWindow::GetRGBACharPixelData(
 int vtkOpenGLRenderWindow::GetRGBACharPixelData(
   int x1, int y1, int x2, int y2, int front, vtkUnsignedCharArray* data, int right)
 {
+  vtkProfileScoped;
   int y_low, y_hi;
   int x_low, x_hi;
 
@@ -2122,6 +2185,7 @@ int vtkOpenGLRenderWindow::GetRGBACharPixelData(
 int vtkOpenGLRenderWindow::SetRGBACharPixelData(
   int x1, int y1, int x2, int y2, vtkUnsignedCharArray* data, int front, int blend, int right)
 {
+  vtkProfileScoped;
   int y_low, y_hi;
   int x_low, x_hi;
   int width, height;
@@ -2166,6 +2230,7 @@ int vtkOpenGLRenderWindow::SetRGBACharPixelData(
 int vtkOpenGLRenderWindow::SetRGBACharPixelData(
   int x1, int y1, int x2, int y2, unsigned char* data, int front, int blend, int right)
 {
+  vtkProfileScoped;
   // set the current window
   this->MakeCurrent();
 
@@ -2222,6 +2287,7 @@ int vtkOpenGLRenderWindow::SetRGBACharPixelData(
 //------------------------------------------------------------------------------
 int vtkOpenGLRenderWindow::GetZbufferData(int x1, int y1, int x2, int y2, float* z_data)
 {
+  vtkProfileScoped;
   int y_low;
   int x_low;
   int width, height;
@@ -2349,6 +2415,7 @@ int vtkOpenGLRenderWindow::GetZbufferData(int x1, int y1, int x2, int y2, float*
 //------------------------------------------------------------------------------
 float* vtkOpenGLRenderWindow::GetZbufferData(int x1, int y1, int x2, int y2)
 {
+  vtkProfileScoped;
   float* z_data;
 
   int width, height;
@@ -2364,6 +2431,7 @@ float* vtkOpenGLRenderWindow::GetZbufferData(int x1, int y1, int x2, int y2)
 //------------------------------------------------------------------------------
 int vtkOpenGLRenderWindow::GetZbufferData(int x1, int y1, int x2, int y2, vtkFloatArray* buffer)
 {
+  vtkProfileScoped;
   int width, height;
   width = abs(x2 - x1) + 1;
   height = abs(y2 - y1) + 1;
@@ -2380,6 +2448,7 @@ int vtkOpenGLRenderWindow::GetZbufferData(int x1, int y1, int x2, int y2, vtkFlo
 //------------------------------------------------------------------------------
 int vtkOpenGLRenderWindow::SetZbufferData(int x1, int y1, int x2, int y2, vtkFloatArray* buffer)
 {
+  vtkProfileScoped;
   int width, height;
   width = abs(x2 - x1) + 1;
   height = abs(y2 - y1) + 1;
@@ -2395,6 +2464,7 @@ int vtkOpenGLRenderWindow::SetZbufferData(int x1, int y1, int x2, int y2, vtkFlo
 //------------------------------------------------------------------------------
 int vtkOpenGLRenderWindow::SetZbufferData(int x1, int y1, int x2, int y2, float* buffer)
 {
+  vtkProfileScoped;
   vtkOpenGLState* ostate = this->GetState();
   ostate->vtkglDisable(GL_SCISSOR_TEST);
   ostate->vtkglEnable(GL_DEPTH_TEST);
@@ -2593,12 +2663,14 @@ vtkTextureUnitManager* vtkOpenGLRenderWindow::GetTextureUnitManager()
 // Useful for measurement only.
 void vtkOpenGLRenderWindow::WaitForCompletion()
 {
+  vtkProfileScoped;
   glFinish();
 }
 
 //------------------------------------------------------------------------------
 void vtkOpenGLRenderWindow::SaveGLState()
 {
+  vtkProfileScoped;
   // For now just query the active texture unit
   if (this->Initialized)
   {
@@ -2613,6 +2685,7 @@ void vtkOpenGLRenderWindow::SaveGLState()
 //------------------------------------------------------------------------------
 void vtkOpenGLRenderWindow::RestoreGLState()
 {
+  vtkProfileScoped;
   // Prevent making GL calls unless we have a valid context
   if (this->Initialized)
   {
@@ -2707,6 +2780,7 @@ int vtkOpenGLRenderWindow::SupportsOpenGL()
 //------------------------------------------------------------------------------
 vtkOpenGLBufferObject* vtkOpenGLRenderWindow::GetTQuad2DVBO()
 {
+  vtkProfileScoped;
   if (!this->TQuad2DVBO || !this->TQuad2DVBO->GetHandle())
   {
     if (!this->TQuad2DVBO)
@@ -2729,6 +2803,7 @@ vtkOpenGLBufferObject* vtkOpenGLRenderWindow::GetTQuad2DVBO()
 //------------------------------------------------------------------------------
 int vtkOpenGLRenderWindow::GetNoiseTextureUnit()
 {
+  vtkProfileScoped;
   if (!this->NoiseTextureObject)
   {
     this->NoiseTextureObject = vtkTextureObject::New();
@@ -2777,11 +2852,13 @@ int vtkOpenGLRenderWindow::GetNoiseTextureUnit()
 //------------------------------------------------------------------------------
 void vtkOpenGLRenderWindow::Render()
 {
+  vtkProfileScoped;
   if (this->Initialized)
   {
     vtkOpenGLRenderUtilities::MarkDebugEvent("Starting vtkOpenGLRenderWindow::Render");
   }
   this->Superclass::Render();
+  vtkProfileOpenGLGPUCollect;
 
   if (this->FirstRenderTime < 0)
   {

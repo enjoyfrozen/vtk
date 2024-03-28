@@ -9,6 +9,7 @@
 #include "vtkMatrix4x4.h"
 #include "vtkOpenGLVertexBufferObjectCache.h"
 #include "vtkPoints.h"
+#include "vtkProfiler.h"
 #include "vtkProp3D.h"
 
 #include "vtk_glew.h"
@@ -277,6 +278,7 @@ template <typename destType>
 template <typename ValueType>
 void vtkAppendVBOWorker<destType>::operator()(vtkAOSDataArrayTemplate<ValueType>* src)
 {
+  vtkProfileScoped;
   // Check if shift&scale
   if (this->VBO->GetCoordShiftAndScaleEnabled() &&
     (this->Shift.empty() || this->Scale.empty() || (this->Shift.size() != this->Scale.size())))
@@ -331,6 +333,7 @@ template <typename destType>
 template <typename DataArray>
 void vtkAppendVBOWorker<destType>::operator()(DataArray* array)
 {
+  vtkProfileScoped;
   // Check if shift&scale
   if (this->VBO->GetCoordShiftAndScaleEnabled() &&
     (this->Shift.empty() || this->Scale.empty() || (this->Shift.size() != this->Scale.size())))
@@ -408,6 +411,7 @@ void vtkOpenGLVertexBufferObject::SetProp3D(vtkProp3D* prop)
 // update shift scale for methods that are computed such as auto or camera
 void vtkOpenGLVertexBufferObject::UpdateShiftScale(vtkDataArray* array)
 {
+  vtkProfileScoped;
   // first consider auto
   bool useSS = false;
   if (this->GetCoordShiftAndScaleMethod() == ShiftScaleMethod::AUTO_SHIFT_SCALE)
@@ -522,6 +526,7 @@ void vtkOpenGLVertexBufferObject::UpdateShiftScale(vtkDataArray* array)
 
 void vtkOpenGLVertexBufferObject::UploadDataArray(vtkDataArray* array)
 {
+  vtkProfileScoped;
   if (array == nullptr || array->GetNumberOfTuples() == 0)
   {
     return;
@@ -595,6 +600,7 @@ void vtkOpenGLVertexBufferObject::UploadDataArray(vtkDataArray* array)
 
 void vtkOpenGLVertexBufferObject::AppendDataArray(vtkDataArray* array)
 {
+  vtkProfileScoped;
   if (array == nullptr || array->GetNumberOfTuples() == 0)
   {
     return;
@@ -663,6 +669,7 @@ void vtkOpenGLVertexBufferObject::AppendDataArray(vtkDataArray* array)
 //------------------------------------------------------------------------------
 void vtkOpenGLVertexBufferObject::UploadVBO()
 {
+  vtkProfileScoped;
   this->Upload(this->PackedVBO, vtkOpenGLBufferObject::ArrayBuffer);
   this->PackedVBO.resize(0);
   this->UploadTime.Modified();

@@ -14,6 +14,7 @@
 #include "vtkInformationKeyVectorKey.h"
 #include "vtkInformationVector.h"
 #include "vtkObjectFactory.h"
+#include "vtkProfiler.h"
 #include "vtkSmartPointer.h"
 
 #include <sstream>
@@ -279,6 +280,7 @@ void vtkExecutive::ReportReferences(vtkGarbageCollector* collector)
 //------------------------------------------------------------------------------
 vtkTypeBool vtkExecutive::Update()
 {
+  vtkProfileScoped;
   if (this->Algorithm->GetNumberOfOutputPorts())
   {
     return this->Update(0);
@@ -289,6 +291,7 @@ vtkTypeBool vtkExecutive::Update()
 //------------------------------------------------------------------------------
 vtkTypeBool vtkExecutive::Update(int)
 {
+  vtkProfileScoped;
   vtkErrorMacro("This class does not implement Update.");
   return 0;
 }
@@ -499,6 +502,7 @@ vtkDataObject* vtkExecutive::GetInputData(int port, int index, vtkInformationVec
 vtkTypeBool vtkExecutive::ProcessRequest(
   vtkInformation* request, vtkInformationVector** inInfo, vtkInformationVector* outInfo)
 {
+  vtkProfileScoped;
   if (request->Has(FORWARD_DIRECTION()))
   {
     // Request will be forwarded.
@@ -566,6 +570,7 @@ int vtkExecutive::ForwardDownstream(vtkInformation*)
 //------------------------------------------------------------------------------
 int vtkExecutive::ForwardUpstream(vtkInformation* request)
 {
+  vtkProfileScoped;
   // Do not forward upstream if the input is shared with another
   // executive.
   if (this->SharedInputInformation)
@@ -617,6 +622,7 @@ int vtkExecutive::ForwardUpstream(vtkInformation* request)
 void vtkExecutive::CopyDefaultInformation(vtkInformation* request, int direction,
   vtkInformationVector** inInfoVec, vtkInformationVector* outInfoVec)
 {
+  vtkProfileScoped;
   if (direction == vtkExecutive::RequestDownstream)
   {
     // Copy information from the first input to all outputs.
@@ -715,6 +721,7 @@ void vtkExecutive::CopyDefaultInformation(vtkInformation* request, int direction
 int vtkExecutive::CallAlgorithm(vtkInformation* request, int direction,
   vtkInformationVector** inInfo, vtkInformationVector* outInfo)
 {
+  vtkProfileScoped;
   // Copy default information in the direction of information flow.
   this->CopyDefaultInformation(request, direction, inInfo, outInfo);
 
@@ -736,6 +743,7 @@ int vtkExecutive::CallAlgorithm(vtkInformation* request, int direction,
 //------------------------------------------------------------------------------
 int vtkExecutive::CheckAlgorithm(const char* method, vtkInformation* request)
 {
+  vtkProfileScoped;
   if (this->InAlgorithm)
   {
     if (request)
@@ -772,6 +780,7 @@ int vtkExecutive::CheckAlgorithm(const char* method, vtkInformation* request)
 // Otherwise return false.
 bool vtkExecutive::CheckAbortedInput(vtkInformationVector** inInfoVec)
 {
+  vtkProfileScoped;
   for (int i = 0; i < this->GetNumberOfInputPorts(); i++)
   {
     for (int j = 0; j < inInfoVec[i]->GetNumberOfInformationObjects(); j++)

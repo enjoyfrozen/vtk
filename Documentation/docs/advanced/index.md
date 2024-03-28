@@ -9,6 +9,7 @@ build_python_wheels
 build_wasm_emscripten
 build_for_mobile
 build_documentation
+builtin_profiler
 PythonWrappers
 WrappingTools
 migration_guides/index

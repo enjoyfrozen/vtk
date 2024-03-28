@@ -16,6 +16,8 @@
 #include "vtkObject.h"
 #include "vtkObjectFactory.h" // New() implementation
 
+#include "vtkProfiler.h"
+
 #include <algorithm> // for std::min and std::copy
 
 VTK_ABI_NAMESPACE_BEGIN
@@ -120,6 +122,7 @@ void vtkBuffer<ScalarT>::SetBuffer(typename vtkBuffer<ScalarT>::ScalarType* arra
   {
     if (this->DeleteFunction)
     {
+      vtkProfileFree(this->Pointer);
       this->DeleteFunction(this->Pointer);
     }
     this->Pointer = array;
@@ -172,6 +175,7 @@ bool vtkBuffer<ScalarT>::Allocate(vtkIdType size)
     }
     if (newArray)
     {
+      vtkProfileAlloc(newArray, size * sizeof(ScalarType));
       this->SetBuffer(newArray, size);
       if (!this->MallocFunction)
       {
@@ -219,6 +223,7 @@ bool vtkBuffer<ScalarT>::Reallocate(vtkIdType newsize)
     {
       return false;
     }
+    vtkProfileAlloc(newArray, newsize * sizeof(ScalarType));
     std::copy(this->Pointer, this->Pointer + (std::min)(this->Size, newsize), newArray);
     // now save the new array and release the old one too.
     this->SetBuffer(newArray, newsize);
@@ -232,6 +237,7 @@ bool vtkBuffer<ScalarT>::Reallocate(vtkIdType newsize)
     // Try to reallocate with minimal memory usage and possibly avoid
     // copying.
     ScalarType* newArray = nullptr;
+    vtkProfileFree(this->Pointer);
     if (this->ReallocFunction)
     {
       newArray = static_cast<ScalarType*>(
@@ -241,6 +247,7 @@ bool vtkBuffer<ScalarT>::Reallocate(vtkIdType newsize)
     {
       newArray = static_cast<ScalarType*>(realloc(this->Pointer, newsize * sizeof(ScalarType)));
     }
+    vtkProfileAlloc(newArray, newsize * sizeof(ScalarType));
     if (!newArray)
     {
       return false;

@@ -261,7 +261,7 @@ protected:
   double InsertionLevel;
 
   // These are inlined methods and data members for performance reasons
-  double HX, HY, HZ;
+  double HX, HY, HZ_; // HZ is already defined in /usr/include/asm-generic/param.h
   double FX, FY, FZ, BX, BY, BZ;
   vtkIdType XD, YD, ZD, SliceSize;
 

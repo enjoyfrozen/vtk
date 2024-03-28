@@ -561,6 +561,7 @@ set(generated_headers
   vtkLegacy.h
   vtkOptions.h
   vtkPlatform.h
+  vtkProfiler.h
   vtkSMP.h
   vtkThreads.h
   vtkVersionFull.h
@@ -700,3 +701,11 @@ vtk_module_link(VTK::CommonCore
 vtk_module_compile_features(VTK::CommonCore
   PUBLIC
     cxx_std_11)
+
+if (VTK_ENABLE_PROFILER)
+  vtk_module_find_package(
+    PACKAGE Tracy)
+  vtk_module_link(VTK::CommonCore
+    PUBLIC
+      Tracy::TracyClient)
+endif ()

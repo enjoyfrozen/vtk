@@ -31,6 +31,7 @@
 
 #include "vtkCommonCoreModule.h" // For export macro
 #include "vtkObjectBase.h"
+#include "vtkProfiler.h"
 #include "vtkSetGet.h"
 #include "vtkTimeStamp.h"
 #include "vtkWeakPointerBase.h" // needed for vtkWeakPointer
@@ -50,8 +51,8 @@ public:
    */
   static vtkObject* New();
 
-#ifdef _WIN32
-  // avoid dll boundary problems
+#if defined(_WIN32) || VTK_ENABLE_PROFILER
+  // avoid dll boundary problems or track vtk object allocations when profiler is enabled.
   void* operator new(size_t tSize);
   void operator delete(void* p);
 #endif

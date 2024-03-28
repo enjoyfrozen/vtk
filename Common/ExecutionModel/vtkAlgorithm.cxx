@@ -28,6 +28,7 @@
 #include "vtkNew.h"
 #include "vtkObjectFactory.h"
 #include "vtkPointData.h"
+#include "vtkProfiler.h"
 #include "vtkProgressObserver.h"
 #include "vtkSmartPointer.h"
 #include "vtkTable.h"
@@ -173,6 +174,7 @@ void vtkAlgorithm::UpdateProgress(double amount)
 // algorithm's AbortExecute is set. If either is set, return true.
 bool vtkAlgorithm::CheckAbort()
 {
+  vtkProfileScoped;
   if (this->GetAbortExecute())
   {
     this->LastAbortCheckTime.Modified();
@@ -214,6 +216,7 @@ bool vtkAlgorithm::CheckAbort()
 // Set AbortExecute flag and update LastAbortTime.
 void vtkAlgorithm::SetAbortExecuteAndUpdateTime()
 {
+  vtkProfileScoped;
   this->AbortExecute = 1;
   this->LastAbortTime.Modified();
 }
@@ -225,6 +228,7 @@ void vtkAlgorithm::SetAbortExecuteAndUpdateTime()
 // setting any variables.
 bool vtkAlgorithm::CheckUpstreamAbort()
 {
+  vtkProfileScoped;
   if (this->GetAbortExecute())
   {
     this->LastAbortCheckTime.Modified();
@@ -1509,6 +1513,8 @@ vtkAlgorithmOutput* vtkAlgorithm::GetInputConnection(int port, int index)
 //------------------------------------------------------------------------------
 void vtkAlgorithm::Update()
 {
+  vtkProfileScoped;
+  vtkProfileScopedTag(this->GetClassNameInternal());
   int port = -1;
   if (this->GetNumberOfOutputPorts())
   {
@@ -1520,12 +1526,16 @@ void vtkAlgorithm::Update()
 //------------------------------------------------------------------------------
 void vtkAlgorithm::Update(int port)
 {
+  vtkProfileScoped;
+  vtkProfileScopedTag(this->GetClassNameInternal());
   this->GetExecutive()->Update(port);
 }
 
 //------------------------------------------------------------------------------
 vtkTypeBool vtkAlgorithm::Update(int port, vtkInformationVector* requests)
 {
+  vtkProfileScoped;
+  vtkProfileScopedTag(this->GetClassNameInternal());
   vtkStreamingDemandDrivenPipeline* sddp =
     vtkStreamingDemandDrivenPipeline::SafeDownCast(this->GetExecutive());
   if (sddp)
@@ -1541,6 +1551,8 @@ vtkTypeBool vtkAlgorithm::Update(int port, vtkInformationVector* requests)
 //------------------------------------------------------------------------------
 vtkTypeBool vtkAlgorithm::Update(vtkInformation* requests)
 {
+  vtkProfileScoped;
+  vtkProfileScopedTag(this->GetClassNameInternal());
   vtkNew<vtkInformationVector> reqs;
   reqs->SetInformationObject(0, requests);
   return this->Update(0, reqs);
@@ -1549,6 +1561,8 @@ vtkTypeBool vtkAlgorithm::Update(vtkInformation* requests)
 //------------------------------------------------------------------------------
 int vtkAlgorithm::UpdatePiece(int piece, int numPieces, int ghostLevels, const int extents[6])
 {
+  vtkProfileScoped;
+  vtkProfileScopedTag(this->GetClassNameInternal());
   typedef vtkStreamingDemandDrivenPipeline vtkSDDP;
 
   vtkNew<vtkInformation> reqs;
@@ -1565,6 +1579,8 @@ int vtkAlgorithm::UpdatePiece(int piece, int numPieces, int ghostLevels, const i
 //------------------------------------------------------------------------------
 int vtkAlgorithm::UpdateExtent(const int extents[6])
 {
+  vtkProfileScoped;
+  vtkProfileScopedTag(this->GetClassNameInternal());
   typedef vtkStreamingDemandDrivenPipeline vtkSDDP;
 
   vtkNew<vtkInformation> reqs;
@@ -1576,6 +1592,8 @@ int vtkAlgorithm::UpdateExtent(const int extents[6])
 int vtkAlgorithm::UpdateTimeStep(
   double time, int piece, int numPieces, int ghostLevels, const int extents[6])
 {
+  vtkProfileScoped;
+  vtkProfileScopedTag(this->GetClassNameInternal());
   typedef vtkStreamingDemandDrivenPipeline vtkSDDP;
 
   vtkNew<vtkInformation> reqs;
@@ -1596,6 +1614,8 @@ int vtkAlgorithm::UpdateTimeStep(
 //------------------------------------------------------------------------------
 void vtkAlgorithm::PropagateUpdateExtent()
 {
+  vtkProfileScoped;
+  vtkProfileScopedTag(this->GetClassNameInternal());
   this->UpdateInformation();
 
   vtkStreamingDemandDrivenPipeline* sddp =
@@ -1609,6 +1629,8 @@ void vtkAlgorithm::PropagateUpdateExtent()
 //------------------------------------------------------------------------------
 void vtkAlgorithm::UpdateInformation()
 {
+  vtkProfileScoped;
+  vtkProfileScopedTag(this->GetClassNameInternal());
   vtkDemandDrivenPipeline* ddp = vtkDemandDrivenPipeline::SafeDownCast(this->GetExecutive());
   if (ddp)
   {
@@ -1619,6 +1641,8 @@ void vtkAlgorithm::UpdateInformation()
 //------------------------------------------------------------------------------
 void vtkAlgorithm::UpdateDataObject()
 {
+  vtkProfileScoped;
+  vtkProfileScopedTag(this->GetClassNameInternal());
   vtkDemandDrivenPipeline* ddp = vtkDemandDrivenPipeline::SafeDownCast(this->GetExecutive());
   if (ddp)
   {
@@ -1629,6 +1653,8 @@ void vtkAlgorithm::UpdateDataObject()
 //------------------------------------------------------------------------------
 void vtkAlgorithm::UpdateWholeExtent()
 {
+  vtkProfileScoped;
+  vtkProfileScopedTag(this->GetClassNameInternal());
   vtkStreamingDemandDrivenPipeline* sddp =
     vtkStreamingDemandDrivenPipeline::SafeDownCast(this->GetExecutive());
   if (sddp)

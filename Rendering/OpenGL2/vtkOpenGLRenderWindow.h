@@ -36,6 +36,7 @@ class vtkTextureObject;
 class vtkTextureUnitManager;
 class vtkGenericOpenGLResourceFreeCallback;
 class vtkOpenGLState;
+class vtkOpenGLAsyncFrameRecorder;
 
 class VTKRENDERINGOPENGL2_EXPORT vtkOpenGLRenderWindow : public vtkRenderWindow
 {
@@ -498,6 +499,9 @@ protected:
   // a FSQ we use to read depth component on platforms with OpenGL ES implementations
   // because `glReadPixels` cannot be used to read GL_DEPTH_COMPONENT
   vtkOpenGLQuadHelper* DepthReadQuad;
+
+  // Records frames asynchronously when profiling.
+  vtkOpenGLAsyncFrameRecorder* FrameRecorder;
 
   // flip quad helpers Y tcoord
   bool FramebufferFlipY;

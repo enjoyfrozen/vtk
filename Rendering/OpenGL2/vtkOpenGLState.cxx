@@ -5,6 +5,7 @@
 
 #include "vtkObjectFactory.h"
 #include "vtkOpenGLFramebufferObject.h"
+#include "vtkOpenGLRealtimeFrameProfiler.h"
 #include "vtkOpenGLRenderUtilities.h"
 #include "vtkOpenGLRenderWindow.h"
 #include "vtkOpenGLShaderCache.h"
@@ -1735,6 +1736,7 @@ void vtkOpenGLState::ResetGLActiveTexture()
 
 void vtkOpenGLState::vtkglClear(GLbitfield val)
 {
+  vtkProfileOpenGLGPUZone("glClear");
   ::glClear(val);
 }
 
@@ -1745,6 +1747,7 @@ void vtkOpenGLState::vtkglBlitFramebuffer(int srcX0, int srcY0, int srcX1, int s
   vtkOpenGLState::ScopedglEnableDisable stsaver(this, GL_SCISSOR_TEST);
   this->vtkglDisable(GL_SCISSOR_TEST);
 
+  vtkProfileOpenGLGPUZone("glBlitFramebuffer");
   ::glBlitFramebuffer(srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter);
   vtkCheckOpenGLErrorsWithStack("glBlitFramebuffer");
 }

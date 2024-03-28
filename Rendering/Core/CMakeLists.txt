@@ -14,6 +14,7 @@ set(classes
   vtkActor2D
   vtkActor2DCollection
   vtkActorCollection
+  vtkAsyncFrameRecorder
   vtkAssembly
   vtkAvatar
   vtkBackgroundColorMonitor
@@ -184,6 +185,7 @@ set(headers
   vtkTDxMotionEventInfo.h)
 
 set(nowrap_headers
+  vtkRealtimeFrameProfiler.h
   vtkNoise200x200.h)
 
 vtk_module_add_module(VTK::RenderingCore

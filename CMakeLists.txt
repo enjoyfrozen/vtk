@@ -52,6 +52,9 @@ cmake_dependent_option(VTK_ENABLE_WEBGPU "Enable the WebGPU experimental renderi
   "NOT CMAKE_SYSTEM_NAME STREQUAL \"Emscripten\"" ON)
 mark_as_advanced(VTK_ENABLE_WEBGPU)
 
+option(VTK_ENABLE_PROFILER "Enable live telemetry for performance profiles with Tracy" OFF)
+mark_as_advanced(VTK_ENABLE_PROFILER)
+
 include(GNUInstallDirs)
 
 add_library(vtkbuild INTERFACE)
