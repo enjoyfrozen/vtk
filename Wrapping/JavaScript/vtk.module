@@ -1,0 +1,7 @@
+NAME
+  VTK::WrappingJavaScript
+LIBRARY_NAME
+  vtkWrappingJavaScript
+DEPENDS
+  VTK::CommonCore
+EXCLUDE_WRAP
