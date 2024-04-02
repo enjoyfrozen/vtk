@@ -107,7 +107,7 @@
 
 .fedora34:
     extends: .linux
-    image: "kitware/vtk:ci-fedora34-20230324"
+    image: "vbolea/vtk:ci-fedora34-20240806"
 
 .el7_mindeps:
     extends: .linux
@@ -217,13 +217,15 @@
     variables:
         CMAKE_CONFIGURATION: fedora34_mpi_renderless_ext_vtk
 
-.fedora34_java_mpi_qt_tbb:
+.fedora34_java:
     extends:
         - .fedora34
         - .fedora_mpich_addon
 
     variables:
-        CMAKE_CONFIGURATION: fedora34_java_mpi_qt_tbb
+        CMAKE_BUILD_TYPE: Release
+        CMAKE_CONFIGURATION: fedora34_java
+        VTK_INSTALL: 1
 
 .fedora34_mpi_python_qt_tbb:
     extends:
@@ -391,6 +393,12 @@
     - '[ -n "$MODULES" ] && . /etc/profile.d/modules.sh && module load $MODULES'
     # Enable the Intel compiler if required.
     - '[ "$CC" = "icx" ] && source /opt/intel/oneapi/setvars.sh || true'
+    - cmake -P .gitlab/ci/download_maven.cmake
+    - export PATH="$PWD/.gitlab/maven/bin:$PATH"
+    - 'mvn dependency:get "-DrepoUrl=http://download.java.net/maven/2/" "-Dartifact=org.jogamp.gluegen:gluegen-rt:2.3.2"'
+    - 'mvn dependency:get "-DrepoUrl=http://download.java.net/maven/2/" "-Dartifact=org.jogamp.gluegen:gluegen-rt:2.3.2:jar:natives-linux-amd64"'
+    - 'mvn dependency:get "-DrepoUrl=http://download.java.net/maven/2/" "-Dartifact=org.jogamp.jogl:jogl-all:2.3.2"'
+    - 'mvn dependency:get "-DrepoUrl=http://download.java.net/maven/2/" "-Dartifact=org.jogamp.jogl:jogl-all:2.3.2:jar:natives-linux-amd64"'
 
 .cmake_build_linux:
     stage: build
