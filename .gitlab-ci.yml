@@ -188,27 +188,27 @@ vtk:fedora34-mpi-offscreen-osmesa-python:test-ext:
         - fedora34-mpi-offscreen-osmesa-python:test
     timeout: 90 minutes
 
-# fedora34-java-mpi-qt-tbb:build:
-#     extends:
-#         - .fedora34_java_mpi_qt_tbb
-#         - .cmake_build_linux
-#         - .linux_builder_tags
-#         - .cmake_build_artifacts
-#         - .run_manually
-#     # The Java build extends the build time considerably.
-#     timeout: 2 hours
+fedora34-java:build:
+    extends:
+        - .fedora34_java
+        - .cmake_build_linux
+        - .linux_builder_tags
+        - .cmake_build_artifacts
+        - .run_manually
+    # The Java build extends the build time considerably.
+    timeout: 4 hours
 
-# fedora34-java-mpi-qt-tbb:test:
-#     extends:
-#         - .fedora34_java_mpi_qt_tbb
-#         - .cmake_test_linux
-#         - .linux_tester_tags
-#         - .cmake_test_artifacts
-#         - .run_automatically
-#     dependencies:
-#         - fedora34-java-mpi-qt-tbb:build
-#     needs:
-#         - fedora34-java-mpi-qt-tbb:build
+#fedora34-java:test:
+#    extends:
+#        - .fedora34_java
+#        - .cmake_test_linux
+#        - .linux_tester_tags
+#        - .cmake_test_artifacts
+#        - .run_automatically
+#    dependencies:
+#        - fedora34-java:build
+#    needs:
+#        - fedora34-java:build
 
 fedora34-mpi-python-qt-tbb:build:
     extends:
