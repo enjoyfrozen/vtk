@@ -6,8 +6,10 @@ from vtkmodules.vtkRenderingCore import (
     vtkRenderWindow,
     vtkRenderer,
 )
-import vtkmodules.vtkRenderingFreeType
-import vtkmodules.vtkRenderingOpenGL2
+
+import vtkmodules.vtkRenderingFreeType  # noqa
+import vtkmodules.vtkRenderingOpenGL2  # noqa
+
 from vtkmodules.web import render_window_serializer as rws
 from vtkmodules.test import Testing
 

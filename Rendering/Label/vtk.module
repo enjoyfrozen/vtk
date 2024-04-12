@@ -34,6 +34,7 @@ TEST_DEPENDS
   VTK::FiltersSources
   VTK::IOXML
   VTK::InteractionStyle
+  VTK::RenderingFreeType
   VTK::RenderingOpenGL2
   VTK::TestingCore
   VTK::TestingRendering
