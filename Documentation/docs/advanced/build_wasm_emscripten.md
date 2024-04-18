@@ -39,15 +39,17 @@ For this guide, you will need the following:
    For more detailed instructions see  [emsdk/README.md](https://github.com/emscripten-core/emsdk#readme).
 
 3. **VTK source-code**: If you have these then you can skip the rest of this section and proceed to [Build project](#build-project).
-   Download VTK source for the version you want from
-   [https://vtk.org/download/](https://vtk.org/download/)  (zip or tar.gz (Do
-   NOT download the exe - this is not the VTK library.) ) You will probably
-   want the latest one (highest version number) unless you have a specific
-   reason to use an older one.
+   As VTK-WebAssembly features are frequently updated, you are encouraged to use
+   the [git repository](https://gitlab.kitware.com/vtk/vtk) version of VTK.
+   This is a more up-to-date version used by developers containing unreleased features.
+   You can either click the download button to get an archive containing the latest
+   version of VTK-git or clone the repository
+   (only recommended if you wish to contribute to VTK). In the last case, see [git/develop.md](../developers_guide/git/develop.md).
 
-   Alternatively the source-code can be obtained from the repository as well.
-   This is recommended only if you intent to make changes and contribute to
-   VTK. Please refer to [git/develop.md](../developers_guide/git/develop.md) for help with `git`.
+   You might also want to download the source code from [VTK Releases](https://vtk.org/download/)
+   (look for a zip or tar.gz file with the version number you wish to use) but
+   be aware that you will need to disable some more modules to have it build
+   and work properly.
 
 ## Build project
 
@@ -75,11 +77,7 @@ $ emcmake cmake \
 -DCMAKE_BUILD_TYPE:STRING=Release \
 -DVTK_ENABLE_LOGGING:BOOL=OFF \
 -DVTK_ENABLE_WRAPPING:BOOL=OFF \
--DVTK_MODULE_ENABLE_VTK_hdf5:STRING=NO \
--DVTK_MODULE_ENABLE_VTK_RenderingContextOpenGL2:STRING=DONT_WANT \
 -DVTK_MODULE_ENABLE_VTK_RenderingLICOpenGL2:STRING=DONT_WANT \
--DVTK_MODULE_ENABLE_VTK_RenderingCellGrid:STRING=NO \
--DVTK_MODULE_ENABLE_VTK_sqlite:STRING=NO \
 -DCMAKE_INSTALL_PREFIX=/install
 ```
 
