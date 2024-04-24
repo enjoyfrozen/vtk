@@ -214,7 +214,7 @@ static int isGetMaxValueMethod(const char* name)
  * If shortForm in on, then suffixes such as On, Off, AsString,
  * and ToSomething are considered while doing the categorization */
 
-static unsigned int methodCategory(MethodAttributes* meth, int shortForm)
+static unsigned int methodCategory(const MethodAttributes* meth, int shortForm)
 {
   size_t n;
   const char* name;
@@ -729,7 +729,7 @@ static int getMethodAttributes(FunctionInfo* func, MethodAttributes* attrs)
  * was part of the name match. */
 
 static int methodMatchesProperty(
-  const HierarchyInfo* hinfo, PropertyInfo* property, MethodAttributes* meth, int* longMatch)
+  const HierarchyInfo* hinfo, const PropertyInfo* property, MethodAttributes* meth, int* longMatch)
 {
   size_t n;
   int propertyType, methType;
@@ -907,7 +907,7 @@ static int methodMatchesProperty(
   /* if vtkObject, check that classes match or atleast one is derived from the other */
   if ((methType & VTK_PARSE_BASE_TYPE) == VTK_PARSE_OBJECT)
   {
-    HierarchyEntry* methEntry = vtkParseHierarchy_FindEntry(hinfo, meth->ClassName);
+    const HierarchyEntry* methEntry = vtkParseHierarchy_FindEntry(hinfo, meth->ClassName);
     if (meth->IsMultiValue || (methType & VTK_PARSE_POINTER_MASK) == 0 || meth->Count != 0 ||
       meth->ClassName == 0 || property->ClassName == 0 ||
       (strcmp(meth->ClassName, property->ClassName) != 0 &&
@@ -927,18 +927,15 @@ static int methodMatchesProperty(
  * On/Off, AsString, ToSomething, RemoveAllSomethings, etc. */
 
 static void initializePropertyInfo(
-  PropertyInfo* property, MethodAttributes* meth, unsigned int methodBit)
+  PropertyInfo* property, const MethodAttributes* meth, unsigned int methodBit)
 {
   unsigned int type;
-  const char* typeClass;
   type = meth->Type;
-  typeClass = meth->ClassName;
 
   /* for ValueOn()/Off() or SetValueToEnum() methods, set type to int */
   if (meth->IsBoolean || meth->IsEnumerated)
   {
     type = VTK_PARSE_INT;
-    typeClass = "int";
   }
 
   property->Name = nameWithoutPrefix(meth->Name);
@@ -946,7 +943,6 @@ static void initializePropertyInfo(
   /* get property type, but don't include "ref" as part of type,
    * and use a pointer if the method is multi-valued */
   property->Type = (type & VTK_PARSE_BASE_TYPE);
-  property->ClassName = typeClass;
   if ((!meth->IsMultiValue && (type & VTK_PARSE_POINTER_MASK) == VTK_PARSE_POINTER) ||
     (meth->IsMultiValue && (type & VTK_PARSE_POINTER_MASK) == 0))
   {

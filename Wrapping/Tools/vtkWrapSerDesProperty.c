@@ -796,7 +796,7 @@ void vtkWrapSerDes_Properties(
       continue;
     }
     /* Is this method associated with a property? */
-    if (properties && properties->MethodHasProperty[i])
+    if (properties->MethodHasProperty[i])
     {
       /* Get the property associated with this method */
       j = properties->MethodProperties[i];
