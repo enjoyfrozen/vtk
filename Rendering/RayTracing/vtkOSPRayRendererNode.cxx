@@ -1339,11 +1339,20 @@ void vtkOSPRayRendererNode::Render(bool prepass)
           | OSP_FB_NORMAL | OSP_FB_ALBEDO
 #endif
       );
+#ifdef VTKOSPRAY_ENABLE_DENOISER
+#if OSPRAY_VERSION_MAJOR < 3
       this->DenoisedBuffer.resize(size);
       this->ColorBuffer.resize(size);
       this->NormalBuffer.resize(size);
       this->AlbedoBuffer.resize(size);
+#else
+      this->DenoisedBuffer = this->DenoiserDevice.newBuffer(size * 4 * sizeof(float));
+      this->ColorBuffer = this->DenoiserDevice.newBuffer(size * 4 * sizeof(float));
+      this->NormalBuffer = this->DenoiserDevice.newBuffer(size * 3 * sizeof(float));
+      this->AlbedoBuffer = this->DenoiserDevice.newBuffer(size * 3 * sizeof(float));
+#endif
       this->DenoiserDirty = true;
+#endif
       ospSetFloat(this->OFrameBuffer, "gamma", 1.0f);
       ospCommit(this->OFrameBuffer);
       ospFrameBufferClear(this->OFrameBuffer);
@@ -1614,12 +1623,20 @@ void vtkOSPRayRendererNode::Render(bool prepass)
       const void* rgba = ospMapFrameBuffer(this->OFrameBuffer, OSP_FB_COLOR);
 #ifdef VTKOSPRAY_ENABLE_DENOISER
       const osp::vec4f* rgba4f = reinterpret_cast<const osp::vec4f*>(rgba);
+#if OSPRAY_VERSION_MAJOR < 3
       this->ColorBuffer.assign(rgba4f, rgba4f + this->Size[0] * this->Size[1]);
+#else
+      this->ColorBuffer.write(0, 4 * sizeof(float) * this->Size[0] * this->Size[1], rgba4f);
+#endif
       if (useDenoiser)
       {
         this->Denoise();
       }
+#if OSPRAY_VERSION_MAJOR < 3
       const float* color = reinterpret_cast<const float*>(this->ColorBuffer.data());
+#else
+      const float* color = reinterpret_cast<const float*>(this->ColorBuffer.getData());
+#endif
       this->Buffer.assign(color, color + this->ImageX * this->ImageY * 4);
 #else
       const float* rgbaf = reinterpret_cast<const float*>(rgba);
@@ -1664,6 +1681,7 @@ void vtkOSPRayRendererNode::Denoise()
   this->DenoisedBuffer = this->ColorBuffer;
   if (this->DenoiserDirty)
   {
+#if OSPRAY_VERSION_MAJOR < 3
     this->DenoiserFilter.setImage("color", (void*)this->ColorBuffer.data(), oidn::Format::Float3,
       this->ImageX, this->ImageY, 0, sizeof(osp::vec4f));
 
@@ -1675,7 +1693,19 @@ void vtkOSPRayRendererNode::Denoise()
 
     this->DenoiserFilter.setImage("output", (void*)this->DenoisedBuffer.data(),
       oidn::Format::Float3, this->ImageX, this->ImageY, 0, sizeof(osp::vec4f));
+#else
+    this->DenoiserFilter.setImage("color", this->ColorBuffer, oidn::Format::Float3, this->ImageX,
+      this->ImageY, 0, sizeof(osp::vec4f));
 
+    this->DenoiserFilter.setImage("normal", this->NormalBuffer, oidn::Format::Float3, this->ImageX,
+      this->ImageY, 0, sizeof(osp::vec3f));
+
+    this->DenoiserFilter.setImage("albedo", this->AlbedoBuffer, oidn::Format::Float3, this->ImageX,
+      this->ImageY, 0, sizeof(osp::vec3f));
+
+    this->DenoiserFilter.setImage("output", this->DenoisedBuffer, oidn::Format::Float3,
+      this->ImageX, this->ImageY, 0, sizeof(osp::vec4f));
+#endif
     this->DenoiserFilter.commit();
     this->DenoiserDirty = false;
   }
@@ -1683,15 +1713,27 @@ void vtkOSPRayRendererNode::Denoise()
   const auto size = this->ImageX * this->ImageY;
   const osp::vec4f* rgba =
     static_cast<const osp::vec4f*>(ospMapFrameBuffer(this->OFrameBuffer, OSP_FB_COLOR));
+#if OSPRAY_VERSION_MAJOR < 3
   std::copy(rgba, rgba + size, this->ColorBuffer.begin());
+#else
+  this->ColorBuffer.write(0, size * 4 * sizeof(float), rgba);
+#endif
   ospUnmapFrameBuffer(rgba, this->OFrameBuffer);
   const osp::vec3f* normal =
     static_cast<const osp::vec3f*>(ospMapFrameBuffer(this->OFrameBuffer, OSP_FB_NORMAL));
+#if OSPRAY_VERSION_MAJOR < 3
   std::copy(normal, normal + size, this->NormalBuffer.begin());
+#else
+  this->NormalBuffer.write(0, size * 3 * sizeof(float), normal);
+#endif
   ospUnmapFrameBuffer(normal, this->OFrameBuffer);
   const osp::vec3f* albedo =
     static_cast<const osp::vec3f*>(ospMapFrameBuffer(this->OFrameBuffer, OSP_FB_ALBEDO));
+#if OSPRAY_VERSION_MAJOR < 3
   std::copy(albedo, albedo + size, this->AlbedoBuffer.begin());
+#else
+  this->AlbedoBuffer.write(0, size * 3 * sizeof(float), albedo);
+#endif
   ospUnmapFrameBuffer(albedo, this->OFrameBuffer);
 
   this->DenoiserFilter.execute();

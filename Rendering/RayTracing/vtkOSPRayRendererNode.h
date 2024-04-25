@@ -393,12 +393,19 @@ protected:
 #ifdef VTKOSPRAY_ENABLE_DENOISER
   oidn::DeviceRef DenoiserDevice;
   oidn::FilterRef DenoiserFilter;
-#endif
   bool DenoiserDirty{ true };
+#if OSPRAY_VERSION_MAJOR < 3
   std::vector<osp::vec4f> ColorBuffer;
   std::vector<osp::vec3f> NormalBuffer;
   std::vector<osp::vec3f> AlbedoBuffer;
   std::vector<osp::vec4f> DenoisedBuffer;
+#else
+  oidn::BufferRef ColorBuffer;
+  oidn::BufferRef NormalBuffer;
+  oidn::BufferRef AlbedoBuffer;
+  oidn::BufferRef DenoisedBuffer;
+#endif
+#endif
 
   vtkOSPRayCache<vtkOSPRayCacheItemObject>* Cache;
   std::set<OSPWorld> CacheContents;
