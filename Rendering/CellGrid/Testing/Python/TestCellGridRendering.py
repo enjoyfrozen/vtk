@@ -7,6 +7,7 @@ from vtkmodules import vtkImagingCore as ic
 from vtkmodules import vtkInteractionStyle as ii
 from vtkmodules import vtkIOCellGrid as io
 from vtkmodules import vtkFiltersCellGrid as fc
+from vtkmodules import vtkRenderingAnnotation as ra
 from vtkmodules import vtkRenderingCore as rr
 from vtkmodules import vtkRenderingCellGrid as rg
 from vtkmodules import vtkInteractionWidgets as iw
@@ -24,9 +25,99 @@ import sys
 # Register render responder for DG cells:
 rg.vtkRenderingCellGrid.RegisterCellsAndResponders()
 
+class CellGridInteractorStyle(ii.vtkInteractorStyleTrackballCamera):
+    """
+    Used to toggle visibility of parametric coordinate, tessellated geometry.
+    """
+
+    def __init__(self, rw):
+        self._toggles = dict()
+        self._actions = dict()
+
+        self.add_toggle('c', "Color by parametric coordinate", 0, value_to_str_fn=lambda i: self.scalar_vis_types[i][0])
+        self.add_toggle('t', "Show tessellation", False, value_to_str_fn=lambda v: "On/Off" if v else "Off/Off")
+        self.add_action('r', "Reset")
+
+        ren2D = rr.vtkRenderer()
+        ren2D.EraseOff()
+        ren2D.InteractiveOff()
+        rw.AddRenderer(ren2D)
+
+        self.shortcutActor = iw.vtkTextRepresentation()
+
+        self.shortcutActor.SetText(self.get_shortcuts_as_string())
+        self.shortcutActor.SetRenderer(ren2D)
+        self.shortcutActor.BuildRepresentation()
+        self.shortcutActor.SetWindowLocation(iw.vtkTextRepresentation.UpperLeftCorner)
+        self.shortcutActor.GetTextActor().SetTextScaleModeToNone()
+        self.shortcutActor.GetTextActor().GetTextProperty().SetBackgroundRGBA(0.1, 0.1, 0.1, 0.2)
+        self.shortcutActor.SetShowBorder(True)
+        self.shortcutActor.SetBorderColor(0.84313725, 0.75686275, 0.90980392)
+        self.shortcutActor.SetCornerRadiusStrength(0.1)
+        self.shortcutActor.SetPadding(4)
+        self.shortcutActor.GetTextActor().GetTextProperty().SetFontFamilyToCourier()
+        self.shortcutActor.GetTextActor().GetTextProperty().SetFontSize(24)
+        self.shortcutActor.GetTextActor().GetTextProperty().SetJustificationToLeft()
+        self.shortcutActor.SetVisibility(True)
+        ren2D.AddActor(self.shortcutActor)
+
+        rg.vtkDGRenderResponder.SetScalarVisualizationOverrideType(self.scalar_vis_types[0][1])
+        rg.vtkDGRenderResponder.SetVisualizeTessellation(False)
+
+        self.AddObserver("KeyPressEvent", self.keyPress)
+
+    def add_action(self, key: str, doc: str):
+        self._actions.update({key: doc})
+
+    def add_toggle(self, key: str, doc: str, current_value, value_to_str_fn = str):
+        self._toggles.update({key: [doc, current_value, value_to_str_fn]})
+
+    def get_toggle_value(self, key: str):
+        return self._toggles.get(key)[1]
+
+    def set_toggle_value(self, key: str, value):
+        self._toggles.get(key)[1] = value
+
+    def get_shortcuts_as_string(self):
+        result = ""
+        for key, doc in self._actions.items():
+            result += f"{key}: {doc}\n"
+        for key, (doc, current, value_to_str_fn) in self._toggles.items():
+            result += f"{key}: {doc} [{value_to_str_fn(current)}] \n"
+        return result
+
+    @property
+    def scalar_vis_types(self):
+        return (
+            ("NONE", rg.vtkDGRenderResponder.ScalarVisualizationOverrideType.NONE),
+            ("R", rg.vtkDGRenderResponder.ScalarVisualizationOverrideType.R),
+            ("S", rg.vtkDGRenderResponder.ScalarVisualizationOverrideType.S),
+            ("T", rg.vtkDGRenderResponder.ScalarVisualizationOverrideType.T),
+            ("L2_NORM_R_S", rg.vtkDGRenderResponder.ScalarVisualizationOverrideType.L2_NORM_R_S),
+            ("L2_NORM_S_T", rg.vtkDGRenderResponder.ScalarVisualizationOverrideType.L2_NORM_S_T),
+            ("L2_NORM_T_R", rg.vtkDGRenderResponder.ScalarVisualizationOverrideType.L2_NORM_T_R),
+        )
+
+    def keyPress(self, obj, event):
+        interactor = obj.GetInteractor()
+        key = interactor.GetKeySym().lower()
+        if key == 'c':
+            self.set_toggle_value(key, (self.get_toggle_value(key) + 1) % len(self.scalar_vis_types))
+        elif key == "t":
+            self.set_toggle_value(key, not self.get_toggle_value(key))
+        elif key == "r":
+            self.set_toggle_value('c', 0)
+            self.set_toggle_value('t', False)
+        vis_type = self.scalar_vis_types[self.get_toggle_value('c')][1]
+        rg.vtkDGRenderResponder.SetScalarVisualizationOverrideType(vis_type)
+        rg.vtkDGRenderResponder.SetVisualizeTessellation(self.get_toggle_value('t'))
+        self.shortcutActor.SetText(self.get_shortcuts_as_string())
+        interactor.Render()
+
+
 class TestCellGridRendering(Testing.vtkTest):
 
-    def runCase(self, dataFile, colorArray, imageFile, cell2D = False, angles = (0, 0, 0)):
+    def runCase(self, dataFile, colorArray, imageFile, cell2D = False, angles = (0, 0, 0), colorArrayComponent=0):
         rh = io.vtkCellGridReader()
         rh.SetFileName(dataFile)
         fh = fc.vtkCellGridComputeSurface()
@@ -54,6 +145,8 @@ class TestCellGridRendering(Testing.vtkTest):
             mi.ScalarVisibilityOn()
             mi.SetScalarMode(rr.VTK_SCALAR_MODE_USE_CELL_FIELD_DATA)
             mi.SetArrayName(colorArray)
+            if colorArrayComponent != 0:
+                mi.SetArrayComponent(colorArrayComponent)
         ai.SetMapper(mi)
         rw = rr.vtkRenderWindow()
         rn = rr.vtkRenderer()
@@ -61,6 +154,7 @@ class TestCellGridRendering(Testing.vtkTest):
         ow = iw.vtkCameraOrientationWidget()
         rw.SetInteractor(ri)
         rw.AddRenderer(rn)
+        rw.SetWindowName(imageFile.replace("TestCellGridRendering-", "").replace(".png", ""))
         rn.AddActor(ai)
         ow.SetParentRenderer(rn)
         ow.On()
@@ -72,13 +166,31 @@ class TestCellGridRendering(Testing.vtkTest):
         rn.ResetCamera()
         rw.SetSize(300, 300)
         rw.Render()
-        Testing.compareImage(rw, Testing.getAbsImagePath(imageFile), threshold=25)
         if "-I" in sys.argv:
-            rs = ii.vtkInteractorStyleSwitch()
-            rs.SetCurrentStyleToMultiTouchCamera()
+            rw.SetSize(1000, 800)
+            rs = CellGridInteractorStyle(rw)
             ri.SetInteractorStyle(rs)
+
+            # In interactive mode, it helps to visualize the point IDs for debugging purpose.
+            if cell2D:
+                inputData = rh.GetOutput()
+            else:
+                inputData = fh.GetOutput()
+            points = inputData.FindAttributes("coordinates").GetArray(0)
+            for i in range(points.GetNumberOfTuples()):
+                point = points.GetTuple3(i)
+                ca = ra.vtkCaptionActor2D()
+                ca.SetAttachmentPoint(point)
+                ca.SetCaption(f"{i}")
+                ca.SetBorder(False)
+                ca.GetTextActor().SetTextScaleModeToNone()
+                ca.GetCaptionTextProperty().SetFontSize(12)
+                ca.GetCaptionTextProperty().SetColor(1, 1, 0)
+                rn.AddActor(ca)
             rw.Render()
             ri.Start()
+        else:
+            Testing.compareImage(rw, Testing.getAbsImagePath(imageFile), threshold=25)
 
     def testDGWdgRendering(self):
         dataFile = os.path.join(VTK_DATA_ROOT, 'Data', 'dgWedges.dg')
@@ -97,11 +209,10 @@ class TestCellGridRendering(Testing.vtkTest):
 
     def testDGHexRendering(self):
         dataFile = os.path.join(VTK_DATA_ROOT, 'Data', 'dgHexahedra.dg')
-        # Disabled until the vertex shader is fixed.
-        # # Run with HCurl coloring turned on:
-        # testFile = 'TestCellGridRendering-Hexahedra-curl1.png'
-        # self.runCase(dataFile, 'curl1', testFile, False, angles=(10, 20, 30))
-        # Run once with cell coloring turned on:
+        # Run with HCurl coloring turned on:
+        testFile = 'TestCellGridRendering-Hexahedra-curl1.png'
+        self.runCase(dataFile, 'curl1', testFile, False, angles=(0, 180, -20), colorArrayComponent=2)
+        # # Run once with cell coloring turned on:
         testFile = 'TestCellGridRendering-Hexahedra.png'
         self.runCase(dataFile, 'scalar1', testFile, False, angles=(10, 20, 30))
         # Run once coloring by a solid color:
@@ -120,6 +231,9 @@ class TestCellGridRendering(Testing.vtkTest):
         dataFile = os.path.join(VTK_DATA_ROOT, 'Data', 'dgQuadrilateral.dg')
         testFile = 'TestCellGridRendering-Quadrilateral.png'
         self.runCase(dataFile, 'scalar1', testFile, True, angles=(10, 20, 30))
+        dataFile = os.path.join(VTK_DATA_ROOT, 'Data', 'dgQuadraticQuadrilaterals.dg')
+        testFile = 'TestCellGridRendering-Quadrilaterals-quadratic.png'
+        self.runCase(dataFile, 'scalar2', testFile, True, angles=(10, -30, 0))
 
     def testDGTriRendering(self):
         dataFile = os.path.join(VTK_DATA_ROOT, 'Data', 'dgTriangle.dg')

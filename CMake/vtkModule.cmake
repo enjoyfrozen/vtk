@@ -130,6 +130,66 @@ function (_vtk_module_split_module_name name prefix)
 endfunction ()
 
 #[==[.rst:
+.. cmake:command:: _vtk_module_optional_dependency_exists
+
+ Detect whether an optional dependency exists or not.
+ |module-internal|
+
+ Optional dependencies need to be detected
+ namespace and target name part.
+
+ .. code-block:: cmake
+
+    _vtk_module_optional_dependency_exists(<dependency>
+      SATISFIED_VAR <var>)
+
+ The result will be returned in the variable specified by ``SATISFIED_VAR``.
+#]==]
+function (_vtk_module_optional_dependency_exists dependency)
+  cmake_parse_arguments(_vtk_optional_dep
+    ""
+    "SATISFIED_VAR;PACKAGE"
+    ""
+    ${ARGN})
+
+  if (_vtk_optional_dep_UNPARSED_ARGUMENTS)
+    message(FATAL_ERROR
+      "Unparsed arguments for `_vtk_module_optional_dependency_exists`: "
+      "${_vtk_optional_dep_UNPARSED_ARGUMENTS}")
+  endif ()
+
+  if (NOT _vtk_optional_dep_SATISFIED_VAR)
+    message(FATAL_ERROR
+      "The `SATISFIED_VAR` argument is required.")
+  endif ()
+
+  set(_vtk_optional_dep_satisfied 0)
+  if (TARGET "${dependency}")
+    # If the target is imported, we check its `_FOUND` variable. If it is not
+    # imported, we assume it is set up properly as a normal target (or an
+    # `ALIAS`).
+    get_property(_vtk_optional_dep_is_imported
+      TARGET    "${dependency}"
+      PROPERTY  IMPORTED)
+    if (_vtk_optional_dep_is_imported)
+      _vtk_module_split_module_name("${dependency}" _vtk_optional_dep_parse)
+      set(_vtk_optional_dep_found_var
+        "${_vtk_optional_dep_parse_NAMESPACE}_${_vtk_optional_dep_parse_TARGET_NAME}_FOUND")
+      if (DEFINED "${_vtk_optional_dep_found_var}" AND
+          ${_vtk_optional_dep_found_var})
+        set(_vtk_optional_dep_satisfied 1)
+      endif ()
+    else ()
+      set(_vtk_optional_dep_satisfied 1)
+    endif ()
+  endif ()
+
+  set("${_vtk_optional_dep_SATISFIED_VAR}"
+    "${_vtk_optional_dep_satisfied}"
+    PARENT_SCOPE)
+endfunction ()
+
+#[==[.rst:
 
 .. _module-parse-module:
 
@@ -203,6 +263,9 @@ supported:
   module name is applied as a label.
 * ``EXCLUDE_WRAP``: If present, this module should not be wrapped in any
   language.
+* ``INCLUDE_MARSHAL``: If present, this module opts into automatic code generation
+  of (de)serializers. This option requires that the module is not excluded from wrapping
+  with `EXCLUDE_WRAP`.
 * ``THIRD_PARTY``: If present, this module is a third party module.
 * ``LICENSE_FILES``: A list of license files to install for the module.
 * ``SPDX_LICENSE_IDENTIFIER``: A license identifier for SPDX file generation.
@@ -260,7 +323,7 @@ macro (_vtk_module_parse_module_args name_output)
   set("${name_output}" "${_name_NAME}")
 
   cmake_parse_arguments("${_name_NAME}"
-    "IMPLEMENTABLE;EXCLUDE_WRAP;THIRD_PARTY"
+    "IMPLEMENTABLE;EXCLUDE_WRAP;THIRD_PARTY;INCLUDE_MARSHAL"
     "LIBRARY_NAME;NAME;KIT;SPDX_DOWNLOAD_LOCATION;SPDX_CUSTOM_LICENSE_FILE;SPDX_CUSTOM_LICENSE_NAME"
     "GROUPS;DEPENDS;PRIVATE_DEPENDS;OPTIONAL_DEPENDS;ORDER_DEPENDS;TEST_DEPENDS;TEST_OPTIONAL_DEPENDS;TEST_LABELS;DESCRIPTION;CONDITION;IMPLEMENTS;LICENSE_FILES;SPDX_LICENSE_IDENTIFIER;SPDX_COPYRIGHT_TEXT"
     ${ARGN})
@@ -663,6 +726,11 @@ function (vtk_module_scan)
             "declare `EXCLUDE_WRAP` also.")
         endif ()
       endif ()
+      if (${_vtk_scan_module_name}_INCLUDE_MARSHAL)
+        message(FATAL_ERROR
+          "The third party ${_vtk_scan_module_name} module may not opt-in to "
+          "`INCLUDE_MARSHAL`.")
+      endif ()
       if (${_vtk_scan_module_name}_IMPLEMENTABLE)
         message(FATAL_ERROR
           "The third party ${_vtk_scan_module_name} module may not be "
@@ -680,6 +748,12 @@ function (vtk_module_scan)
       endif ()
     endif ()
 
+    # Throw error when mutually exclusive options are present.
+    # When a module opts into marshalling, it requries the hierarchy
+    if (${_vtk_scan_module_name}_EXCLUDE_WRAP AND ${_vtk_scan_module_name}_INCLUDE_MARSHAL)
+      message(FATAL_ERROR
+        "The ${_vtk_scan_module_name} module can not declare `EXCLUDE_WRAP` and `INCLUDE_MARSHAL` at the same time.")
+    endif ()
     if (${_vtk_scan_module_name}_KIT)
       if (NOT ${_vtk_scan_module_name}_KIT IN_LIST _vtk_scan_all_kits)
         message(FATAL_ERROR
@@ -803,6 +877,7 @@ function (vtk_module_scan)
       ${${_vtk_scan_module_name}_PRIVATE_DEPENDS})
 
     if (${_vtk_scan_module_name}_THIRD_PARTY)
+      set("${_vtk_scan_module_name}_INCLUDE_MARSHAL" FALSE)
       set("${_vtk_scan_module_name}_EXCLUDE_WRAP" TRUE)
       set("${_vtk_scan_module_name}_IMPLEMENTABLE" FALSE)
       set("${_vtk_scan_module_name}_IMPLEMENTS")
@@ -861,6 +936,9 @@ function (vtk_module_scan)
     set_property(GLOBAL
       PROPERTY
         "_vtk_module_${_vtk_scan_module_name}_implementable" "${${_vtk_scan_module_name}_IMPLEMENTABLE}")
+    set_property(GLOBAL
+      PROPERTY
+        "_vtk_module_${_vtk_scan_module_name}_include_marshal" "${${_vtk_scan_module_name}_INCLUDE_MARSHAL}")
     # create absolute path for license files
     set(_license_files)
     foreach (_license_file IN LISTS ${_vtk_scan_module_name}_LICENSE_FILES)
@@ -1796,16 +1874,23 @@ endfunction ()
   function does extra work in kit builds, so circumventing it may break in kit
   builds.
 
+  The ``NO_KIT_EXPORT_IF_SHARED`` argument may be passed to additionally prevent
+  leaking ``PRIVATE`` link targets from kit builds. Intended to be used for
+  targets coming from a ``vtk_module_find_package(PRIVATE_IF_SHARED)`` call.
+  Applies to all ``PRIVATE`` arguments; if different treatment is needed for
+  subsets of these arguments, use a separate call to ``vtk_module_link``.
+
   .. code-block:: cmake
 
     vtk_module_link(<module>
+      [NO_KIT_EXPORT_IF_SHARED]
       [PUBLIC     <link item>...]
       [PRIVATE    <link item>...]
       [INTERFACE  <link item>...])
 #]==]
 function (vtk_module_link module)
   cmake_parse_arguments(PARSE_ARGV 1 _vtk_link
-    ""
+    "NO_KIT_EXPORT_IF_SHARED"
     ""
     "INTERFACE;PUBLIC;PRIVATE")
 
@@ -1826,9 +1911,15 @@ function (vtk_module_link module)
         CREATE_IF_NEEDED
         SETUP_TARGET_NAME _vtk_link_private_kit_link_target)
       foreach (_vtk_link_private IN LISTS _vtk_link_PRIVATE)
+        set(_vtk_link_private
+          "$<LINK_ONLY:${_vtk_link_private}>")
+        if (_vtk_link_NO_KIT_EXPORT_IF_SHARED AND BUILD_SHARED_LIBS)
+          set(_vtk_link_private
+            "$<BUILD_INTERFACE:${_vtk_link_private}>")
+        endif ()
         target_link_libraries("${_vtk_link_private_kit_link_target}"
           INTERFACE
-            "$<LINK_ONLY:${_vtk_link_private}>")
+            "${_vtk_link_private}")
       endforeach ()
     endif ()
   endif ()
@@ -1954,6 +2045,9 @@ whether to wrap or not, etc.). The properties all have the
   classes for use in language wrappers.
 * ``forward_link``: Usage requirements that must be forwarded even though the
     module is linked to privately.
+* ``include_marshal``: If set, the whole module opts into automatic code generation
+  of (de)serializers. Note that only classes annotated with VTK_MARSHALAUTO are
+  considered for code generation.
 
 Kits have the following properties available (but only if kits are enabled):
 
@@ -2350,6 +2444,7 @@ include("${CMAKE_CURRENT_LIST_DIR}/vtkModuleTesting.cmake")
       [BUILD_WITH_KITS  <ON|OFF>]
 
       [ENABLE_WRAPPING <ON|OFF>]
+      [ENABLE_SERIALIZATION <ON|OFF>]
 
       [USE_EXTERNAL <ON|OFF>]
 
@@ -2406,6 +2501,8 @@ include("${CMAKE_CURRENT_LIST_DIR}/vtkModuleTesting.cmake")
   * ``ENABLE_WRAPPING``: (Default depends on the existence of
     ``VTK::WrapHierarchy`` or ``VTKCompileTools::WrapHierarchy`` targets) If
     enabled, wrapping will be available to the modules built in this call.
+  * ``ENABLE_SERIALIZATION``: (Defaults to ``OFF``) If enabled, (de)serialization
+    code will be autogenerated for classes with the correct wrapping hints.
   * ``USE_EXTERNAL``: (Defaults to ``OFF``) Whether third party modules should find
     external copies rather than building their own copy.
   * ``INSTALL_HEADERS``: (Defaults to ``ON``) Whether or not to install public headers.
@@ -2519,7 +2616,7 @@ function (vtk_module_build)
 
   cmake_parse_arguments(PARSE_ARGV 0 _vtk_build
     ""
-    "BUILD_WITH_KITS;USE_EXTERNAL;TARGET_SPECIFIC_COMPONENTS;LIBRARY_NAME_SUFFIX;VERSION;SOVERSION;PACKAGE;ENABLE_WRAPPING;${_vtk_build_install_arguments};${_vtk_build_test_arguments};${_vtk_spdx_arguments}"
+    "BUILD_WITH_KITS;USE_EXTERNAL;TARGET_SPECIFIC_COMPONENTS;LIBRARY_NAME_SUFFIX;VERSION;SOVERSION;PACKAGE;ENABLE_WRAPPING;ENABLE_SERIALIZATION;${_vtk_build_install_arguments};${_vtk_build_test_arguments};${_vtk_spdx_arguments}"
     "MODULES;KITS")
 
   if (_vtk_build_UNPARSED_ARGUMENTS)
@@ -2571,6 +2668,15 @@ function (vtk_module_build)
     else ()
       set(_vtk_build_ENABLE_WRAPPING OFF)
     endif ()
+  endif ()
+
+  if (NOT DEFINED _vtk_build_ENABLE_SERIALIZATION)
+    set(_vtk_build_ENABLE_SERIALIZATION OFF)
+  endif ()
+
+  if (_vtk_build_ENABLE_SERIALIZATION AND NOT _vtk_build_ENABLE_WRAPPING)
+    message(FATAL_ERROR
+      "ENABLE_SERIALIZATION requires that ENABLE_WRAPPING is turned ON.")
   endif ()
 
   if (NOT DEFINED _vtk_build_TARGET_NAMESPACE)
@@ -2841,8 +2947,12 @@ function (vtk_module_build)
         get_property(_vtk_build_kit_module_optional_depends GLOBAL
           PROPERTY "_vtk_module_${_vtk_build_kit_module}_optional_depends")
         foreach (_vtk_build_kit_module_private_depend IN LISTS _vtk_build_kit_module_private_depends _vtk_build_kit_module_optional_depends)
-          if (NOT TARGET "${_vtk_build_kit_module_private_depend}")
-            continue ()
+          if (_vtk_build_kit_module_private_depend IN_LIST _vtk_build_kit_module_optional_depends)
+            _vtk_module_optional_dependency_exists("${_vtk_build_kit_module_private_depend}"
+              SATISFIED_VAR _vtk_build_kit_module_has_optional_dep)
+            if (NOT _vtk_build_kit_module_has_optional_dep)
+              continue ()
+            endif ()
           endif ()
 
           # But we don't need to link to modules that are part of the kit we are
@@ -2924,7 +3034,8 @@ function (vtk_module_build)
         PROPERTIES
           # Export whether a module is third party or not.
           INTERFACE_vtk_module_third_party
-          INTERFACE_vtk_module_exclude_wrap)
+          INTERFACE_vtk_module_exclude_wrap
+          INTERFACE_vtk_module_include_marshal)
       continue ()
     endif ()
 
@@ -2955,6 +3066,8 @@ function (vtk_module_build)
       FROM_GLOBAL_PROPERTIES
         # Export whether the module should be excluded from wrapping or not.
         exclude_wrap
+        # Export whether the module opts into automatic marshalling or not.
+        include_marshal
         # Export the dependencies of a module.
         depends
         private_depends
@@ -3049,6 +3162,8 @@ function (vtk_module_build)
     if (NOT _vtk_build_test_has_depends)
       continue ()
     endif ()
+
+    _vtk_module_debug(testing "@_vtk_build_test@ testing enabled")
 
     get_property(_vtk_build_module_file GLOBAL
       PROPERTY  "_vtk_module_${_vtk_build_test}_file")
@@ -3843,6 +3958,7 @@ function (_vtk_module_add_file_set target)
 endfunction ()
 
 include(GenerateExportHeader)
+include("${CMAKE_CURRENT_LIST_DIR}/vtkModuleSerialization.cmake")
 
 #[==[.rst:
 .. cmake:command:: vtk_module_add_module
@@ -4015,6 +4131,23 @@ function (vtk_module_add_module name)
       "${CMAKE_CURRENT_BINARY_DIR}/${_vtk_add_module_module_header_name}")
     list(APPEND _vtk_add_module_NOWRAP_HEADERS
       "${_vtk_add_module_generated_header}")
+  endif ()
+
+  get_property(_vtk_add_module_include_marshal GLOBAL
+    PROPERTY  "_vtk_module_${_vtk_build_module}_include_marshal")
+  if (_vtk_build_ENABLE_SERIALIZATION AND _vtk_add_module_include_marshal)
+    set(_vtk_add_module_serdes_registrar_header_name
+      "${_vtk_add_module_library_name}SerDes.h")
+    set(_vtk_add_module_serdes_registrar_source_name
+      "${_vtk_add_module_library_name}SerDes.cxx")
+    set(_vtk_add_module_serdes_registrar_header
+      "${CMAKE_CURRENT_BINARY_DIR}/${_vtk_add_module_serdes_registrar_header_name}")
+    set(_vtk_add_module_serdes_registrar_source
+      "${CMAKE_CURRENT_BINARY_DIR}/${_vtk_add_module_serdes_registrar_source_name}")
+    list(APPEND _vtk_add_module_PRIVATE_HEADERS
+      "${_vtk_add_module_serdes_registrar_header}")
+    list(APPEND _vtk_add_module_SOURCES
+      "${_vtk_add_module_serdes_registrar_source}")
   endif ()
 
   set(_vtk_add_module_use_relative_paths)
@@ -4317,7 +4450,9 @@ function (vtk_module_add_module name)
     get_property(_vtk_add_module_optional_depends GLOBAL
       PROPERTY  "_vtk_module_${_vtk_build_module}_optional_depends")
     foreach (_vtk_add_module_optional_depend IN LISTS _vtk_add_module_optional_depends)
-      if (TARGET "${_vtk_add_module_optional_depend}")
+      _vtk_module_optional_dependency_exists("${_vtk_add_module_optional_depend}"
+        SATISFIED_VAR _vtk_add_module_optional_depend_exists)
+      if (_vtk_add_module_optional_depend_exists)
         set(_vtk_add_module_optional_depend_link "${_vtk_add_module_optional_depend}")
         if (_vtk_add_module_build_with_kit)
           get_property(_vtk_add_module_optional_depend_kit GLOBAL
@@ -4342,7 +4477,7 @@ function (vtk_module_add_module name)
       string(REPLACE "::" "_" _vtk_add_module_optional_depend_safe "${_vtk_add_module_optional_depend}")
       target_compile_definitions("${_vtk_add_module_real_target}"
         PRIVATE
-          "VTK_MODULE_ENABLE_${_vtk_add_module_optional_depend_safe}=$<TARGET_EXISTS:${_vtk_add_module_optional_depend}>")
+          "VTK_MODULE_ENABLE_${_vtk_add_module_optional_depend_safe}=$<BOOL:${_vtk_add_module_optional_depend_exists}>")
     endforeach ()
 
     if (_vtk_add_module_private_depends_forward_link)
@@ -4398,6 +4533,9 @@ function (vtk_module_add_module name)
         "INTERFACE_vtk_module_headers_install" "${_vtk_add_module_headers_install}")
   endif ()
 
+  set_property(TARGET "${_vtk_add_module_real_target}"
+    PROPERTY
+      "INTERFACE_vtk_module_include_marshal" "${_vtk_add_module_include_marshal}")
   get_property(_vtk_add_module_exclude_wrap GLOBAL
     PROPERTY  "_vtk_module_${_vtk_build_module}_exclude_wrap")
   set_property(TARGET "${_vtk_add_module_real_target}"
@@ -4558,6 +4696,21 @@ VTK_MODULE_AUTOINIT(${_vtk_add_module_library_name})
         DESTINATION "${_vtk_build_SPDX_DESTINATION}"
         COMPONENT   "${_vtk_build_SPDX_COMPONENT}")
     endif ()
+  endif ()
+  if (_vtk_build_ENABLE_SERIALIZATION AND _vtk_add_module_include_marshal)
+    vtk_module_serdes(
+      MODULE             ${_vtk_build_module}
+      EXPORT_MACRO_NAME  "${_vtk_add_module_EXPORT_MACRO_PREFIX}_EXPORT"
+      EXPORT_FILE_NAME   "${_vtk_add_module_module_header_name}"
+      REGISTRAR_HEADER   "${_vtk_add_module_serdes_registrar_header}"
+      REGISTRAR_SOURCE   "${_vtk_add_module_serdes_registrar_source}"
+      SERDES_SOURCES     _vtk_add_module_serdes_sources)
+    vtk_module_sources(${_vtk_build_module}
+      PRIVATE "${_vtk_add_module_serdes_sources}")
+    # FIXME: The sources are generated, however their build rules are not.
+    # _vtk_module_add_file_set("${_vtk_add_module_real_target}"
+    #   NAME  vtk_module_serdes_sources
+    #   FILES ${_vtk_add_module_serdes_sources})
   endif ()
 endfunction ()
 
@@ -5032,10 +5185,12 @@ function (vtk_module_add_executable name)
     get_property(_vtk_add_executable_optional_depends GLOBAL
       PROPERTY  "_vtk_module_${_vtk_build_module}_optional_depends")
     foreach (_vtk_add_executable_optional_depend IN LISTS _vtk_add_executable_optional_depends)
+      _vtk_module_optional_dependency_exists("${_vtk_add_executable_optional_depend}"
+        SATISFIED_VAR _vtk_add_executable_optional_depend_exists)
       string(REPLACE "::" "_" _vtk_add_executable_optional_depend_safe "${_vtk_add_executable_optional_depend}")
       target_compile_definitions("${_vtk_add_executable_target_name}"
         PRIVATE
-          "VTK_MODULE_ENABLE_${_vtk_add_executable_optional_depend_safe}=$<TARGET_EXISTS:{_vtk_add_executable_optional_depend}>")
+          "VTK_MODULE_ENABLE_${_vtk_add_executable_optional_depend_safe}=$<BOOL:{_vtk_add_executable_optional_depend_exists}>")
     endforeach ()
 
     if (_vtk_module_warnings)
@@ -5365,6 +5520,12 @@ while (_vtk_module_find_package_components_to_check)
   endif ()
   list(APPEND _vtk_module_find_package_components_checked
     \"\${_vtk_module_component}\")
+
+  # Any 'components' with `::` are not from our package and must have been
+  # provided/satisfied elsewhere.
+  if (_vtk_module_find_package_components MATCHES \"::\")
+    continue ()
+  endif ()
 
   list(APPEND _vtk_module_find_package_components
     \"\${_vtk_module_component}\")
@@ -5720,8 +5881,9 @@ function (_vtk_module_mark_third_party target)
   # TODO: `_vtk_module_set_module_property` instead.
   set_target_properties("${target}"
     PROPERTIES
-      "INTERFACE_vtk_module_exclude_wrap" 1
-      "INTERFACE_vtk_module_third_party"  1)
+      "INTERFACE_vtk_module_exclude_wrap"    1
+      "INTERFACE_vtk_module_include_marshal" 0
+      "INTERFACE_vtk_module_third_party"     1)
 endfunction ()
 
 #[==[.rst:

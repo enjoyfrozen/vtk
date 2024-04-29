@@ -43,6 +43,8 @@ public:
 
   // Specify the required D3D version
   D3D_FEATURE_LEVEL MinFeatureLevel = D3D_FEATURE_LEVEL_11_1;
+
+  UINT ColorTextureFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 };
 
 vtkStandardNewMacro(vtkWin32OpenGLDXRenderWindow);
@@ -55,6 +57,19 @@ vtkWin32OpenGLDXRenderWindow::vtkWin32OpenGLDXRenderWindow()
 
 //------------------------------------------------------------------------------
 vtkWin32OpenGLDXRenderWindow::~vtkWin32OpenGLDXRenderWindow() = default;
+
+//------------------------------------------------------------------------------
+void vtkWin32OpenGLDXRenderWindow::SetD3DDeviceContext(ID3D11DeviceContext* context)
+{
+  context->GetDevice(this->Impl->Device.GetAddressOf());
+  this->Impl->D3DDeviceContext = context;
+}
+
+//------------------------------------------------------------------------------
+void vtkWin32OpenGLDXRenderWindow::SetD3DDeviceContext(void* context)
+{
+  this->SetD3DDeviceContext(static_cast<ID3D11DeviceContext*>(context));
+}
 
 //------------------------------------------------------------------------------
 void vtkWin32OpenGLDXRenderWindow::Initialize()
@@ -73,50 +88,55 @@ void vtkWin32OpenGLDXRenderWindow::InitializeDX()
     return;
   }
 
-  // Create the DXGI adapter.
-  Microsoft::WRL::ComPtr<IDXGIFactory1> dxgiFactory;
-  CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void**)(&dxgiFactory));
-  Microsoft::WRL::ComPtr<IDXGIAdapter1> DXGIAdapter;
-  for (UINT adapterIndex = 0;; adapterIndex++)
+  if (!this->Impl->Device)
   {
-    // Return when there are no more adapters to enumerate
-    HRESULT hr = dxgiFactory->EnumAdapters1(adapterIndex, DXGIAdapter.GetAddressOf());
-    if (hr == DXGI_ERROR_NOT_FOUND)
+    // Create the DXGI adapter.
+    Microsoft::WRL::ComPtr<IDXGIFactory1> dxgiFactory;
+    CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void**)(&dxgiFactory));
+    Microsoft::WRL::ComPtr<IDXGIAdapter1> DXGIAdapter;
+    for (UINT adapterIndex = 0;; adapterIndex++)
     {
-      vtkWarningMacro("No DXGI adapter found");
-      break;
+      // Return when there are no more adapters to enumerate
+      HRESULT hr = dxgiFactory->EnumAdapters1(adapterIndex, DXGIAdapter.GetAddressOf());
+      if (hr == DXGI_ERROR_NOT_FOUND)
+      {
+        vtkWarningMacro("No DXGI adapter found");
+        break;
+      }
+
+      DXGI_ADAPTER_DESC1 adapterDesc;
+      DXGIAdapter->GetDesc1(&adapterDesc);
+      // Choose the adapter matching the internal adapter id or
+      // return the first adapter that is available if AdapterId is not set.
+      if ((!this->Impl->AdapterId.HighPart && !this->Impl->AdapterId.LowPart) ||
+        memcmp(&adapterDesc.AdapterLuid, &this->Impl->AdapterId, sizeof(this->Impl->AdapterId)) ==
+          0)
+      {
+        break;
+      }
     }
 
-    DXGI_ADAPTER_DESC1 adapterDesc;
-    DXGIAdapter->GetDesc1(&adapterDesc);
-    // Choose the adapter matching the internal adapter id or
-    // return the first adapter that is available if AdapterId is not set.
-    if ((!this->Impl->AdapterId.HighPart && !this->Impl->AdapterId.LowPart) ||
-      memcmp(&adapterDesc.AdapterLuid, &this->Impl->AdapterId, sizeof(this->Impl->AdapterId)) == 0)
+    // Use unknown driver type with DXGI adapters
+    D3D_DRIVER_TYPE driverType =
+      DXGIAdapter == nullptr ? D3D_DRIVER_TYPE_HARDWARE : D3D_DRIVER_TYPE_UNKNOWN;
+
+    // Create the D3D API device object and a corresponding context.
+    auto result = D3D11CreateDevice(DXGIAdapter.Get(), driverType, 0,
+      D3D11_CREATE_DEVICE_BGRA_SUPPORT | D3D11_CREATE_DEVICE_DEBUG, &this->Impl->MinFeatureLevel, 1,
+      D3D11_SDK_VERSION, this->Impl->Device.GetAddressOf(), nullptr,
+      this->Impl->D3DDeviceContext.GetAddressOf());
+    if (result != S_OK)
     {
-      break;
+      vtkErrorMacro("D3D11CreateDevice failed in Initialize().");
+      return;
     }
-  }
-
-  // Use unknown driver type with DXGI adapters
-  D3D_DRIVER_TYPE driverType =
-    DXGIAdapter == nullptr ? D3D_DRIVER_TYPE_HARDWARE : D3D_DRIVER_TYPE_UNKNOWN;
-
-  // Create the D3D API device object and a corresponding context.
-  auto result = D3D11CreateDevice(DXGIAdapter.Get(), driverType, 0,
-    D3D11_CREATE_DEVICE_BGRA_SUPPORT, &this->Impl->MinFeatureLevel, 1, D3D11_SDK_VERSION,
-    this->Impl->Device.GetAddressOf(), nullptr, this->Impl->D3DDeviceContext.GetAddressOf());
-  if (result != S_OK)
-  {
-    vtkErrorMacro("D3D11CreateDevice failed in Initialize().");
-    return;
   }
 
   // Acquire a handle to the D3D device for use in OpenGL
   this->Impl->DeviceHandle = wglDXOpenDeviceNV(this->Impl->Device.Get());
 
   // Create D3D Texture2D
-  this->CreateTexture(DXGI_FORMAT_R8G8B8A8_UNORM,
+  this->CreateTexture(this->Impl->ColorTextureFormat,
     D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE, &this->Impl->D3DSharedColorTexture);
   this->CreateTexture(
     DXGI_FORMAT_D32_FLOAT, D3D11_BIND_DEPTH_STENCIL, &this->Impl->D3DSharedDepthTexture);
@@ -177,7 +197,7 @@ void vtkWin32OpenGLDXRenderWindow::UpdateTextures()
 
   this->UnregisterSharedTexture();
 
-  this->CreateTexture(DXGI_FORMAT_R8G8B8A8_UNORM,
+  this->CreateTexture(this->Impl->ColorTextureFormat,
     D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE,
     this->Impl->D3DSharedColorTexture.ReleaseAndGetAddressOf());
 
@@ -199,7 +219,8 @@ void vtkWin32OpenGLDXRenderWindow::Lock()
   std::array<HANDLE, 2> sharedTextureHandles = { this->Impl->ColorTexture.Handle,
     this->Impl->DepthTexture.Handle };
 
-  if (!wglDXLockObjectsNV(this->Impl->DeviceHandle, 2, sharedTextureHandles.data()))
+  if (!wglDXLockObjectsNV(this->Impl->DeviceHandle, this->Impl->DepthTexture.Handle ? 2 : 1,
+        sharedTextureHandles.data()))
   {
     vtkErrorMacro("Failed to lock shared texture.");
   }
@@ -275,6 +296,13 @@ void vtkWin32OpenGLDXRenderWindow::RegisterSharedTexture(unsigned int colorId, u
 }
 
 //------------------------------------------------------------------------------
+void vtkWin32OpenGLDXRenderWindow::RegisterSharedTexture()
+{
+  this->RegisterSharedTexture(
+    this->GetRenderFramebuffer()->GetColorAttachmentAsTextureObject(0)->GetHandle());
+}
+
+//------------------------------------------------------------------------------
 void vtkWin32OpenGLDXRenderWindow::UnregisterSharedTexture()
 {
   if (!this->Impl->DeviceHandle || !this->Impl->ColorTexture.Handle)
@@ -341,6 +369,12 @@ void vtkWin32OpenGLDXRenderWindow::BlitToTexture(ID3D11Texture2D* color, ID3D11T
 }
 
 //------------------------------------------------------------------------------
+void vtkWin32OpenGLDXRenderWindow::BlitToTexture(void* color, void* depth)
+{
+  this->BlitToTexture(static_cast<ID3D11Texture2D*>(color), static_cast<ID3D11Texture2D*>(depth));
+}
+
+//------------------------------------------------------------------------------
 ID3D11Device* vtkWin32OpenGLDXRenderWindow::GetDevice()
 {
   return this->Impl->Device.Get();
@@ -361,6 +395,16 @@ ID3D11Texture2D* vtkWin32OpenGLDXRenderWindow::GetD3DSharedDepthTexture()
 void vtkWin32OpenGLDXRenderWindow::SetAdapterId(LUID uid)
 {
   this->Impl->AdapterId = uid;
+}
+
+//------------------------------------------------------------------------------
+void vtkWin32OpenGLDXRenderWindow::SetColorTextureFormat(UINT format)
+{
+  if (format != this->Impl->ColorTextureFormat)
+  {
+    this->Impl->ColorTextureFormat = format;
+    this->UpdateTextures();
+  }
 }
 
 //------------------------------------------------------------------------------

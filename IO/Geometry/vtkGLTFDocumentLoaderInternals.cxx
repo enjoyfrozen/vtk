@@ -110,11 +110,12 @@ bool vtkGLTFDocumentLoaderInternals::LoadFileMetaData(nlohmann::json& gltfRoot)
   try
   {
     const auto& stream = this->Self->GetInternalModel()->Stream;
-    stream->Seek(0, vtkResourceStream::SeekDirection::Begin);
+    stream->Seek(this->Self->GetGLBStart(), vtkResourceStream::SeekDirection::Begin);
 
     // Determine the format
     std::string magic;
     magic.resize(4);
+    // NOLINTNEXTLINE(readability-container-data-pointer)
     stream->Read(&magic[0], magic.size());
 
     if (magic == "glTF")
@@ -122,7 +123,8 @@ bool vtkGLTFDocumentLoaderInternals::LoadFileMetaData(nlohmann::json& gltfRoot)
       std::uint32_t version;
       std::uint32_t fileLength;
       std::vector<vtkGLTFUtils::ChunkInfoType> chunkInfo;
-      if (vtkGLTFUtils::ExtractGLBFileInformation(stream, version, fileLength, chunkInfo))
+      if (vtkGLTFUtils::ExtractGLBFileInformation(
+            stream, version, fileLength, this->Self->GetGLBStart(), chunkInfo))
       {
         if (!vtkGLTFUtils::ValidateGLBFile(magic, version, fileLength, chunkInfo))
         {
@@ -134,7 +136,8 @@ bool vtkGLTFDocumentLoaderInternals::LoadFileMetaData(nlohmann::json& gltfRoot)
         vtkGLTFUtils::ChunkInfoType& JSONChunkInfo = chunkInfo[0];
 
         // Jump to chunk data start
-        stream->Seek(vtkGLTFUtils::GLBHeaderSize + vtkGLTFUtils::GLBChunkHeaderSize,
+        stream->Seek(this->Self->GetGLBStart() + vtkGLTFUtils::GLBHeaderSize +
+            vtkGLTFUtils::GLBChunkHeaderSize,
           vtkResourceStream::SeekDirection::Begin);
         // Read chunk data
         std::vector<char> JSONDataBuffer;
@@ -152,8 +155,8 @@ bool vtkGLTFDocumentLoaderInternals::LoadFileMetaData(nlohmann::json& gltfRoot)
     {
       // Text gltf
       stream->Seek(0, vtkResourceStream::SeekDirection::End);
-      const auto fileSize = static_cast<std::size_t>(stream->Tell());
-      stream->Seek(0, vtkResourceStream::SeekDirection::Begin);
+      const auto fileSize = static_cast<std::size_t>(stream->Tell()) - this->Self->GetGLBStart();
+      stream->Seek(this->Self->GetGLBStart(), vtkResourceStream::SeekDirection::Begin);
 
       std::vector<char> fileData;
       fileData.resize(fileSize);

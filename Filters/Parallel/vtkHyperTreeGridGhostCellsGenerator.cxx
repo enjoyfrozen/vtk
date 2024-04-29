@@ -27,22 +27,26 @@ void CopyInputTreeToOutput(vtkHyperTreeGridNonOrientedCursor* inCursor,
   vtkHyperTreeGridNonOrientedCursor* outCursor, vtkCellData* inCellData, vtkCellData* outCellData,
   vtkBitArray* inMask, vtkBitArray* outMask)
 {
-  vtkIdType outIdx = outCursor->GetGlobalNodeIndex(), inIdx = inCursor->GetGlobalNodeIndex();
-  outCellData->InsertTuple(outIdx, inIdx, inCellData);
+  vtkIdType outIdx = outCursor->GetGlobalNodeIndex();
+  vtkIdType inIdx = inCursor->GetGlobalNodeIndex();
   if (inMask)
   {
     outMask->InsertTuple1(outIdx, inMask->GetValue(inIdx));
   }
-  if (!inCursor->IsLeaf())
+  if (!inCursor->IsMasked())
   {
-    outCursor->SubdivideLeaf();
-    for (int ichild = 0; ichild < inCursor->GetNumberOfChildren(); ++ichild)
+    outCellData->InsertTuple(outIdx, inIdx, inCellData);
+    if (!inCursor->IsLeaf())
     {
-      outCursor->ToChild(ichild);
-      inCursor->ToChild(ichild);
-      ::CopyInputTreeToOutput(inCursor, outCursor, inCellData, outCellData, inMask, outMask);
-      outCursor->ToParent();
-      inCursor->ToParent();
+      outCursor->SubdivideLeaf();
+      for (int ichild = 0; ichild < inCursor->GetNumberOfChildren(); ++ichild)
+      {
+        outCursor->ToChild(ichild);
+        inCursor->ToChild(ichild);
+        ::CopyInputTreeToOutput(inCursor, outCursor, inCellData, outCellData, inMask, outMask);
+        outCursor->ToParent();
+        inCursor->ToParent();
+      }
     }
   }
 }
@@ -57,6 +61,7 @@ vtkIdType CopyInputHyperTreeToOutput(
   vtkHyperTreeGrid* input, vtkHyperTreeGrid* output, vtkBitArray* outputMask)
 {
   vtkBitArray* inputMask = input->HasMask() ? input->GetMask() : nullptr;
+
   vtkNew<vtkHyperTreeGridNonOrientedCursor> outCursor, inCursor;
   vtkHyperTreeGrid::vtkHyperTreeGridIterator inputIterator;
   vtkIdType inTreeIndex = 0, totalVertices = 0;
@@ -123,7 +128,8 @@ int vtkHyperTreeGridGhostCellsGenerator::ProcessTrees(
     output->GetCellData()->CopyStructure(input->GetCellData());
   }
 
-  vtkBitArray* outputMask = input->HasMask() ? vtkBitArray::New() : nullptr;
+  vtkSmartPointer<vtkBitArray> outputMask =
+    input->HasMask() ? vtkSmartPointer<vtkBitArray>::Take(vtkBitArray::New()) : nullptr;
   vtkIdType totalVertices = ::CopyInputHyperTreeToOutput(input, output, outputMask);
   this->UpdateProgress(0.1);
 
@@ -148,8 +154,8 @@ int vtkHyperTreeGridGhostCellsGenerator::ProcessTrees(
   controller->Barrier();
   this->UpdateProgress(0.4);
 
-  vtkDebugMacro("Exchange masks with neighbors");
-  if (subroutines.ExchangeMasks() == 0)
+  vtkDebugMacro("Exchange tree decomposition and masks with neighbors");
+  if (subroutines.ExchangeTreeDecomposition() == 0)
   {
     vtkErrorMacro("Failure during mask exchange, aborting.");
     return 0;
@@ -168,7 +174,7 @@ int vtkHyperTreeGridGhostCellsGenerator::ProcessTrees(
   this->UpdateProgress(0.8);
 
   vtkDebugMacro("Create ghost array and set output mask");
-  subroutines.AppendGhostArray();
+  subroutines.AppendGhostArray(totalVertices);
   output->SetMask(outputMask);
 
   this->UpdateProgress(1.);

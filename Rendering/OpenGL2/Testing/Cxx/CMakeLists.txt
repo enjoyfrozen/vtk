@@ -96,6 +96,7 @@ vtk_add_test_cxx(vtkRenderingOpenGL2CxxTests tests
   TestSSAOPass.cxx
   TestSSAOPassWithRenderer.cxx
   TestSurfaceInterpolationSwitch.cxx
+  TestTessellationShader.cxx,NO_DATA
   TestTexture16Bits.cxx,NO_DATA
   TestTexture32Bits.cxx,NO_DATA
   TestTextureBufferEmulation.cxx,NO_DATA,NO_VALID,NO_OUTPUT
@@ -103,6 +104,7 @@ vtk_add_test_cxx(vtkRenderingOpenGL2CxxTests tests
   TestToneMappingPass.cxx,NO_DATA
   TestUserShader.cxx
   TestUserShader2.cxx
+  TestUserShader2D.cxx,NO_DATA
   TestValuePassFloatingPoint.cxx
   TestVBOPLYMapper.cxx
   TestVBOPointsLines.cxx

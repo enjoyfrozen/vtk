@@ -16,6 +16,7 @@ vtk_module_test_data(
   Data/test_poly_data.hdf
   Data/test_transient_poly_data.hdf
   Data/test_transient_poly_data_offset.vtkhdf
+  Data/test_transient_poly_data_field_data.vtkhdf
   Data/transient_sphere.hdf
   Data/transient_cube.hdf
   Data/transient_harmonics.hdf
@@ -33,6 +34,66 @@ vtk_module_test_data(
   Data/hdf_transient_poly_data_twin/hdf_transient_poly_data_twin_007.vtp
   Data/hdf_transient_poly_data_twin/hdf_transient_poly_data_twin_008.vtp
   Data/hdf_transient_poly_data_twin/hdf_transient_poly_data_twin_009.vtp
+  Data/hdf_transient_partitioned_poly_data_twin/transient_sphere_0.vtpd
+  Data/hdf_transient_partitioned_poly_data_twin/transient_sphere_1.vtpd
+  Data/hdf_transient_partitioned_poly_data_twin/transient_sphere_2.vtpd
+  Data/hdf_transient_partitioned_poly_data_twin/transient_sphere_3.vtpd
+  Data/hdf_transient_partitioned_poly_data_twin/transient_sphere_4.vtpd
+  Data/hdf_transient_partitioned_poly_data_twin/transient_sphere_5.vtpd
+  Data/hdf_transient_partitioned_poly_data_twin/transient_sphere_6.vtpd
+  Data/hdf_transient_partitioned_poly_data_twin/transient_sphere_7.vtpd
+  Data/hdf_transient_partitioned_poly_data_twin/transient_sphere_8.vtpd
+  Data/hdf_transient_partitioned_poly_data_twin/transient_sphere_9.vtpd
+  Data/hdf_transient_partitioned_poly_data_twin/transient_sphere_0/transient_sphere_0_0.vtp
+  Data/hdf_transient_partitioned_poly_data_twin/transient_sphere_0/transient_sphere_0_1.vtp
+  Data/hdf_transient_partitioned_poly_data_twin/transient_sphere_1/transient_sphere_1_0.vtp
+  Data/hdf_transient_partitioned_poly_data_twin/transient_sphere_1/transient_sphere_1_1.vtp
+  Data/hdf_transient_partitioned_poly_data_twin/transient_sphere_2/transient_sphere_2_0.vtp
+  Data/hdf_transient_partitioned_poly_data_twin/transient_sphere_2/transient_sphere_2_1.vtp
+  Data/hdf_transient_partitioned_poly_data_twin/transient_sphere_3/transient_sphere_3_0.vtp
+  Data/hdf_transient_partitioned_poly_data_twin/transient_sphere_3/transient_sphere_3_1.vtp
+  Data/hdf_transient_partitioned_poly_data_twin/transient_sphere_4/transient_sphere_4_0.vtp
+  Data/hdf_transient_partitioned_poly_data_twin/transient_sphere_4/transient_sphere_4_1.vtp
+  Data/hdf_transient_partitioned_poly_data_twin/transient_sphere_5/transient_sphere_5_0.vtp
+  Data/hdf_transient_partitioned_poly_data_twin/transient_sphere_5/transient_sphere_5_1.vtp
+  Data/hdf_transient_partitioned_poly_data_twin/transient_sphere_6/transient_sphere_6_0.vtp
+  Data/hdf_transient_partitioned_poly_data_twin/transient_sphere_6/transient_sphere_6_1.vtp
+  Data/hdf_transient_partitioned_poly_data_twin/transient_sphere_7/transient_sphere_7_0.vtp
+  Data/hdf_transient_partitioned_poly_data_twin/transient_sphere_7/transient_sphere_7_1.vtp
+  Data/hdf_transient_partitioned_poly_data_twin/transient_sphere_8/transient_sphere_8_0.vtp
+  Data/hdf_transient_partitioned_poly_data_twin/transient_sphere_8/transient_sphere_8_1.vtp
+  Data/hdf_transient_partitioned_poly_data_twin/transient_sphere_9/transient_sphere_9_0.vtp
+  Data/hdf_transient_partitioned_poly_data_twin/transient_sphere_9/transient_sphere_9_1.vtp
+  Data/hdf_transient_partitioned_ug_twin/transient_sphere_0.vtpd
+  Data/hdf_transient_partitioned_ug_twin/transient_sphere_1.vtpd
+  Data/hdf_transient_partitioned_ug_twin/transient_sphere_2.vtpd
+  Data/hdf_transient_partitioned_ug_twin/transient_sphere_3.vtpd
+  Data/hdf_transient_partitioned_ug_twin/transient_sphere_4.vtpd
+  Data/hdf_transient_partitioned_ug_twin/transient_sphere_5.vtpd
+  Data/hdf_transient_partitioned_ug_twin/transient_sphere_6.vtpd
+  Data/hdf_transient_partitioned_ug_twin/transient_sphere_7.vtpd
+  Data/hdf_transient_partitioned_ug_twin/transient_sphere_8.vtpd
+  Data/hdf_transient_partitioned_ug_twin/transient_sphere_9.vtpd
+  Data/hdf_transient_partitioned_ug_twin/transient_sphere_0/transient_sphere_0_0.vtu
+  Data/hdf_transient_partitioned_ug_twin/transient_sphere_0/transient_sphere_0_1.vtu
+  Data/hdf_transient_partitioned_ug_twin/transient_sphere_1/transient_sphere_1_0.vtu
+  Data/hdf_transient_partitioned_ug_twin/transient_sphere_1/transient_sphere_1_1.vtu
+  Data/hdf_transient_partitioned_ug_twin/transient_sphere_2/transient_sphere_2_0.vtu
+  Data/hdf_transient_partitioned_ug_twin/transient_sphere_2/transient_sphere_2_1.vtu
+  Data/hdf_transient_partitioned_ug_twin/transient_sphere_3/transient_sphere_3_0.vtu
+  Data/hdf_transient_partitioned_ug_twin/transient_sphere_3/transient_sphere_3_1.vtu
+  Data/hdf_transient_partitioned_ug_twin/transient_sphere_4/transient_sphere_4_0.vtu
+  Data/hdf_transient_partitioned_ug_twin/transient_sphere_4/transient_sphere_4_1.vtu
+  Data/hdf_transient_partitioned_ug_twin/transient_sphere_5/transient_sphere_5_0.vtu
+  Data/hdf_transient_partitioned_ug_twin/transient_sphere_5/transient_sphere_5_1.vtu
+  Data/hdf_transient_partitioned_ug_twin/transient_sphere_6/transient_sphere_6_0.vtu
+  Data/hdf_transient_partitioned_ug_twin/transient_sphere_6/transient_sphere_6_1.vtu
+  Data/hdf_transient_partitioned_ug_twin/transient_sphere_7/transient_sphere_7_0.vtu
+  Data/hdf_transient_partitioned_ug_twin/transient_sphere_7/transient_sphere_7_1.vtu
+  Data/hdf_transient_partitioned_ug_twin/transient_sphere_8/transient_sphere_8_0.vtu
+  Data/hdf_transient_partitioned_ug_twin/transient_sphere_8/transient_sphere_8_1.vtu
+  Data/hdf_transient_partitioned_ug_twin/transient_sphere_9/transient_sphere_9_0.vtu
+  Data/hdf_transient_partitioned_ug_twin/transient_sphere_9/transient_sphere_9_1.vtu
   Data/elements.vtu
   Data/explicitStructuredGrid.vtu
   Data/explicitStructuredGridEmpty.vtu
@@ -54,6 +115,18 @@ vtk_module_test_data(
   Data/vtkHDF/test_multiblock_hdf/test_multiblock_hdf_0_0.vtp
   Data/vtkHDF/test_multiblock_hdf/test_multiblock_hdf_1_0.vtp
   Data/vtkHDF/test_multiblock_hdf/test_multiblock_hdf_2_0.vtu
+
+  Data/vtkHDF/test_transient_overlapping_amr.vtkhdf
+  Data/vtkHDF/Transient/transient_expected_overlapping_amr_0.vthb
+  Data/vtkHDF/Transient/transient_expected_overlapping_amr_0/transient_expected_overlapping_amr_0_0.vti
+  Data/vtkHDF/Transient/transient_expected_overlapping_amr_0/transient_expected_overlapping_amr_0_1.vti
+  Data/vtkHDF/Transient/transient_expected_overlapping_amr_0/transient_expected_overlapping_amr_0_2.vti
+  Data/vtkHDF/Transient/transient_expected_overlapping_amr_1.vthb
+  Data/vtkHDF/Transient/transient_expected_overlapping_amr_1/transient_expected_overlapping_amr_1_0.vti
+  Data/vtkHDF/Transient/transient_expected_overlapping_amr_1/transient_expected_overlapping_amr_1_1.vti
+  Data/vtkHDF/Transient/transient_expected_overlapping_amr_2.vthb
+  Data/vtkHDF/Transient/transient_expected_overlapping_amr_2/transient_expected_overlapping_amr_2_0.vti
+  Data/vtkHDF/Transient/transient_expected_overlapping_amr_2/transient_expected_overlapping_amr_2_1.vti
 )
 
 add_subdirectory(Cxx)

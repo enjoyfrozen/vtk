@@ -28,6 +28,7 @@
 #include "vtkDeprecation.h" // for deprecation
 #include "vtkProp.h"
 #include "vtkRenderingAnnotationModule.h" // For export macro
+#include "vtkWrappingHints.h"             // For VTK_MARSHALAUTO
 
 #include "vtkNew.h" // for vtkNew
 
@@ -43,7 +44,7 @@ class vtkPoints;
 class vtkCoordinate;
 class vtkAxisGridActorPrivate;
 
-class VTKRENDERINGANNOTATION_EXPORT vtkLegendScaleActor : public vtkProp
+class VTKRENDERINGANNOTATION_EXPORT VTK_MARSHALAUTO vtkLegendScaleActor : public vtkProp
 {
 public:
   /**
@@ -256,8 +257,22 @@ public:
   /// Set the axes to get font size from text property.
   void SetUseFontSizeFromProperty(bool sizeFromProp);
 
-  /// Set the axes to adjust labels position to a "nice" one.
+  /**
+   * Set the axes to adjust labels to a "nice" one.
+   * As this does not respect the number of labels, prefer SnapToGrid.
+   * It is ignored if SnapToGrid is true.
+   * Default is false.
+   */
+  VTK_DEPRECATED_IN_9_4_0(
+    "This does not respect the number of labels. Please use SetSnapToGrid instead.")
   void SetAdjustLabels(bool adjust);
+
+  /**
+   * If on, labels are positioned on rounded values.
+   * When on it ignores `AdjustLabels`.
+   * Default is false.
+   */
+  void SetSnapToGrid(bool snap);
   ///@}
 
   ///@{

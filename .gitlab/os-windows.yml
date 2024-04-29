@@ -6,6 +6,8 @@
     variables:
         GIT_SUBMODULE_STRATEGY: none
         GIT_CLONE_PATH: "$CI_BUILDS_DIR\\vtk-ci-ext\\$CI_CONCURRENT_ID"
+        # Turn off direct mode until we test it.
+        BUILDCACHE_DIRECT_MODE: "false"
 
 .wheel_windows_x86_64:
     extends: .windows
@@ -15,34 +17,6 @@
         VCVARSPLATFORM: "x64"
         VCVARSVERSION: "14.35.32215"
         VTK_INSTALL: 1
-
-.wheel_windows36_x86_64:
-    extends: .wheel_windows_x86_64
-
-    variables:
-        CMAKE_CONFIGURATION: wheel_windows36_x86_64
-        VTK_DISABLE_PYI_TESTING: 1
-        EXTRA_PYTHON_PATH: "build\\lib.win-amd64-3.6"
-
-.wheel_windows36_x86_64_osmesa:
-    extends: .wheel_windows36_x86_64
-
-    variables:
-        CMAKE_CONFIGURATION: wheel_windows36_x86_64_osmesa
-
-.wheel_windows37_x86_64:
-    extends: .wheel_windows_x86_64
-
-    variables:
-        CMAKE_CONFIGURATION: wheel_windows37_x86_64
-        VTK_DISABLE_PYI_TESTING: 1
-        EXTRA_PYTHON_PATH: "build\\lib.win-amd64-3.7"
-
-.wheel_windows37_x86_64_osmesa:
-    extends: .wheel_windows37_x86_64
-
-    variables:
-        CMAKE_CONFIGURATION: wheel_windows37_x86_64_osmesa
 
 .wheel_windows38_x86_64:
     extends: .wheel_windows_x86_64

@@ -16,6 +16,7 @@
 #include "vtkOpenGLQuadHelper.h"       // for ivar
 #include "vtkRenderingOpenGL2Module.h" // For export macro
 #include "vtkSmartPointer.h"           // For vtkSmartPointer
+#include "vtkWrappingHints.h"          // For VTK_MARSHALAUTO
 #include <memory>                      // for unique_ptr
 #include <string>                      // Ivars
 #include <vector>                      // STL Header
@@ -35,8 +36,11 @@ class vtkPBRPrefilterTexture;
 class vtkShaderProgram;
 class vtkShadowMapPass;
 class vtkSSAOPass;
+class vtkPolyData;
+class vtkTexturedActor2D;
+class vtkPolyDataMapper2D;
 
-class VTKRENDERINGOPENGL2_EXPORT vtkOpenGLRenderer : public vtkRenderer
+class VTKRENDERINGOPENGL2_EXPORT VTK_MARSHALAUTO vtkOpenGLRenderer : public vtkRenderer
 {
 public:
   static vtkOpenGLRenderer* New();
@@ -244,8 +248,12 @@ protected:
   vtkSmartPointer<vtkPBRIrradianceTexture> EnvMapIrradiance;
   vtkSmartPointer<vtkPBRPrefilterTexture> EnvMapPrefiltered;
   vtkSmartPointer<vtkFloatArray> SphericalHarmonics;
-  std::unique_ptr<vtkOpenGLQuadHelper> BackgroundRenderer;
   bool UseSphericalHarmonics;
+
+  vtkSmartPointer<vtkTexturedActor2D> BackgroundTextureActor;
+  vtkSmartPointer<vtkTexturedActor2D> BackgroundGradientActor;
+  vtkSmartPointer<vtkPolyDataMapper2D> BackgroundMapper;
+  vtkSmartPointer<vtkPolyData> BackgroundQuad;
 
 private:
   vtkOpenGLRenderer(const vtkOpenGLRenderer&) = delete;

@@ -102,6 +102,12 @@ public:
   virtual void EndFrame() = 0;
   ///@}
 
+  /**
+   * Shutdown the zSpace SDK (clean its internal state).
+   * Useful to re-initialize the zSpace SDK from a clean state.
+   */
+  virtual void ShutDown(){};
+
   ///@{
   /**
    * These functions are overriden by vtkZSpaceCoreCompatibility (specific to zSpace Inspire).
@@ -110,6 +116,8 @@ public:
   virtual void EnableGraphicsBinding(){};
   virtual void SubmitFrame(unsigned int vtkNotUsed(leftText), unsigned int vtkNotUsed(rightText)){};
   virtual void GetPerEyeImageResolution(int* vtkNotUsed(width), int* vtkNotUsed(height)){};
+  virtual void SetStereoDisplayEnabled(bool vtkNotUsed(enabled)){};
+  virtual bool GetStereoDisplayEnabled() { return false; };
   ///@}
 
   enum StereoDisplayMode
