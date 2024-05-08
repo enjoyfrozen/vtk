@@ -114,6 +114,10 @@ class TestCameraOrientationWidget(vtkmodules.test.Testing.vtkTest):
 
     def testCameraOrientationWidget(self):
         self.camOrientManipulator = vtkCameraOrientationWidget()
+        self.camOrientManipulator.CreateDefaultRepresentation()
+        rep = self.camOrientManipulator.GetRepresentation()
+        rep.SetSize(60, 60)
+        rep.SetPadding(0, 0)
         self.renderer = vtkRenderer()
         self.renWin = vtkRenderWindow()
         self.interactor = vtkRenderWindowInteractor()
