@@ -237,6 +237,11 @@ mark_as_advanced(VTK_ENABLE_CATALYST)
 option(VTK_GENERATE_SPDX "Generate SPDX file for each module." OFF)
 mark_as_advanced(VTK_GENERATE_SPDX)
 
+#-----------------------------------------------------------------------------
+# Add an option to enable/disable programmatic debug breakpoint macros
+option(VTK_ENABLE_DEBUG_BREAKPOINT "Provides macro to programmatically break in a debugger" OFF)
+mark_as_advanced(VTK_ENABLE_DEBUG_BREAKPOINT)
+
 include(vtkEncodeString)
 
 # Set up our directory structure for output libraries and binaries
@@ -347,6 +352,15 @@ else ()
 endif ()
 set("_vtk_module_reason_VTK::RenderingWebGPU"
   "via `VTK_ENABLE_WEBGPU`")
+if (VTK_ENABLE_DEBUG_BREAKPOINT)
+  list(APPEND vtk_requested_modules
+    VTK::debugging)
+else ()
+  list(APPEND vtk_rejected_modules
+    VTK::debugging)
+endif ()
+set("_vtk_module_reason_VTK::debugging"
+  "via `VTK_ENABLE_DEBUG_BREAKPOINT`")
 
 if (VTK_BUILD_TESTING)
   list(APPEND vtk_requested_modules
