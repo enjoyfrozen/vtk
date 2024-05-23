@@ -91,7 +91,7 @@ void vtkIVExporter::WriteData()
   }
 
   // try opening the files
-  fp = vtksys::SystemTools::Fopen(this->FileName, "w");
+  fp = vtksys::SystemTools::Fopen(this->FileName, "wb");
   if (!fp)
   {
     vtkErrorMacro(<< "unable to open OpenInventor file " << this->FileName);

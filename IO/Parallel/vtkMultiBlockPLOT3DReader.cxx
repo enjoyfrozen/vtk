@@ -2590,7 +2590,7 @@ int vtkMultiBlockPLOT3DReader::OpenFileForDataRead(void*& fp, const char* fname)
   }
   else
   {
-    fp = vtksys::SystemTools::Fopen(fname, "r");
+    fp = vtksys::SystemTools::Fopen(fname, "rb");
   }
   if (fp == nullptr)
   {
@@ -2614,7 +2614,7 @@ int vtkMultiBlockPLOT3DReader::CheckFile(FILE*& fp, const char* fname)
   }
   else
   {
-    fp = vtksys::SystemTools::Fopen(fname, "r");
+    fp = vtksys::SystemTools::Fopen(fname, "rb");
   }
   if (fp == nullptr)
   {
