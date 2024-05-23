@@ -104,7 +104,7 @@ if (VTK_USE_SDL2 AND (VTK_USE_X OR VTK_USE_COCOA OR VTK_USE_WIN32_OPENGL))
 endif ()
 set(has_vtkRenderWindow_override 0)
 set(vtk_webgpu_factory_override_classname "")
-if (VTK_USE_SDL2)
+if (VTK_USE_SDL2 AND CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
   # By default Emscripten system enables VTK_USE_SDL2. See vtkOpenGLOptions.cmake
   set(vtk_webgpu_factory_override_classname "vtkSDL2WebGPURenderWindow")
   set(has_vtkRenderWindow_override 1)
@@ -154,6 +154,8 @@ vtk_module_compile_features(VTK::RenderingWebGPU
   PUBLIC
     cxx_std_14)
 
+set(use_dawn_native 0)
+
 if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
   vtk_module_include(VTK::RenderingWebGPU
     PUBLIC
@@ -171,10 +173,10 @@ else ()
     vtk_module_link(VTK::RenderingWebGPU PUBLIC X11::X11)
     if (TARGET X11::Xcursor)
       vtk_module_link(VTK::RenderingWebGPU PRIVATE X11::Xcursor)
-    else()
+    else ()
       message(WARNING "X11::Xcursor not found; custom cursors will be ignored.")
-    endif()
-    set_property(SOURCE vtkXOpenGLRenderWindow.cxx APPEND
+    endif ()
+    set_property(SOURCE vtkXWebGPURenderWindow.cxx APPEND
       PROPERTY
         COMPILE_DEFINITIONS "VTK_HAVE_XCURSOR=$<TARGET_EXISTS:X11::Xcursor>"
     )
@@ -184,14 +186,15 @@ else ()
     # TODO
   endif ()
   vtk_module_find_package(PACKAGE Dawn)
-  # Must include these source files here.
-  vtk_module_sources(VTK::RenderingWebGPU PRIVATE
-    "${DAWN_GEN_SRC_DIR}/dawn/webgpu_cpp.cpp"
-    "${DAWN_GEN_SRC_DIR}/dawn/dawn_proc.c")
   vtk_module_link(VTK::RenderingWebGPU
-    PRIVATE
-      ${DAWN_LIBRARIES})
-  vtk_module_include(VTK::RenderingWebGPU
     PUBLIC
-      ${DAWN_INCLUDE_DIRS})
+      Dawn::Native
+      Dawn::Proc
+      Dawn::Cpp
+  )
+  set(use_dawn_native 1)
 endif ()
+
+vtk_module_definitions(VTK::RenderingWebGPU
+  PUBLIC
+    "VTK_USE_DAWN_NATIVE=$<BOOL:${use_dawn_native}>")
