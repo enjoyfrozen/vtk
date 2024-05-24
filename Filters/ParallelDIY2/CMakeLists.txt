@@ -17,7 +17,9 @@ set(classes
   vtkPResampleWithDataSet
   vtkProbeLineFilter
   vtkRedistributeDataSetFilter
-  vtkStitchImageDataWithGhosts)
+  vtkStitchImageDataWithGhosts
+  vtkTextureAtlasGenerator
+  )
 
 set(nowrap_classes
   vtkDIYKdTreeUtilities)

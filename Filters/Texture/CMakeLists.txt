@@ -1,9 +1,11 @@
 set(classes
   vtkImplicitTextureCoords
+  vtkLSCMFilter
   vtkScalarsToTextureFilter
   vtkTextureMapToCylinder
   vtkTextureMapToPlane
   vtkTextureMapToSphere
+  vtkTexturePackingFilter
   vtkThresholdTextureCoords
   vtkTransformTextureCoords
   vtkTriangularTCoords)
