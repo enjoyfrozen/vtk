@@ -702,7 +702,22 @@ void vtkOpenGLRenderWindow::OpenGLInitContext()
   {
 #ifdef GLEW_OK
     GLenum result = glewInit();
-    this->GlewInitValid = (result == GLEW_OK);
+    if (result == GLEW_ERROR_NO_GLX_DISPLAY && getenv("WAYLAND_DISPLAY"))
+    {
+      // Workaround for non-fatal GLX error when running under Wayland
+      // See: https://github.com/nigels-com/glew/issues/172
+      vtkWarningMacro("got GLEW_ERROR_NO_GLX_DISPLAY, but it's usually "
+                      "not fatal and has been ignored under Wayland as "
+                      "a workaround. This should allow VTK OpenGL2 backend "
+                      "to run under Wayland now. Still, Wayland is not "
+                      "officially supported, use X11 if it's not working "
+                      "as expected.");
+      this->GlewInitValid = true;
+    }
+    else
+    {
+      this->GlewInitValid = (result == GLEW_OK);
+    }
     if (!this->GlewInitValid)
     {
       const char* errorMsg = reinterpret_cast<const char*>(glewGetErrorString(result));
