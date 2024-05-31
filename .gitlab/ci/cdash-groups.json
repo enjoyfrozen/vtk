@@ -1,6 +1,5 @@
 {
     "latest-master": [
-        { "group": "master", "site": "gitlab-ci", "buildname": "[el7_mindeps_python_qt5]" },
         { "group": "master", "site": "gitlab-ci", "buildname": "[el8_icc_python]" },
         { "group": "master", "site": "gitlab-ci", "buildname": "[fedora39_cuda_mpi_offscreen_osmesa]" },
         { "group": "master", "site": "gitlab-ci", "buildname": "[fedora39_cuda_mpi_offscreen_osmesa_ext_vtk]" },
