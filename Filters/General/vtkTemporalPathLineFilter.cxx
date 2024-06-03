@@ -224,7 +224,7 @@ void vtkTemporalPathLineFilter::SetBackwardTime(bool backward)
   {
     this->LatestTime = backward ? 0 : LATEST_TIME_MAX;
     this->BackwardTime = backward;
-    this->RunBackward = backward;
+    this->SetRunBackward(backward);
     this->Modified();
   }
 }

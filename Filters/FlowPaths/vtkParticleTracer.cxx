@@ -28,16 +28,16 @@ int vtkParticleTracer::Finalize(
   auto output = vtkPolyData::SafeDownCast(vtkDataObject::GetData(outInfo));
 
   vtkNew<vtkPoints> points;
-  points->DeepCopy(this->OutputCoordinates);
+  points->DeepCopy(this->GetCurrentParticles());
 
-  for (vtkIdType id = 0; id < this->OutputCoordinates->GetNumberOfPoints(); ++id)
+  for (vtkIdType id = 0; id < points->GetNumberOfPoints(); ++id)
   {
     double p[3];
-    this->OutputCoordinates->GetPoint(id, p);
+    this->GetCurrentParticles()->GetPoint(id, p);
   }
 
   output->SetPoints(points);
-  output->GetPointData()->DeepCopy(this->OutputPointData);
+  output->GetPointData()->DeepCopy(this->GetCurrentPointData());
 
   return retVal;
 }

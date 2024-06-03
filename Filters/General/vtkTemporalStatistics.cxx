@@ -177,7 +177,7 @@ vtkTemporalStatistics::vtkTemporalStatistics()
   this->ComputeMinimum = 1;
   this->ComputeMaximum = 1;
   this->ComputeStandardDeviation = 1;
-  this->IntegrateFullTimeSeries = true;
+  this->IntegrateFullTimeSeriesOn();
 
   this->GeneratedChangingTopologyWarning = false;
   this->Internal = new vtkTemporalStatisticsInternal;

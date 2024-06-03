@@ -65,7 +65,7 @@ int vtkParticlePathFilter::Initialize(
   this->Points = vtkSmartPointer<vtkPointSet>::New();
   vtkNew<vtkPoints> points;
   this->Points->SetPoints(points);
-  this->Points->GetPointData()->CopyAllocate(this->OutputPointData);
+  this->Points->GetPointData()->CopyAllocate(this->GetCurrentPointData());
 
   return retVal;
 }
@@ -78,29 +78,29 @@ int vtkParticlePathFilter::Execute(
 
   // First, for every particle that we receive, we need to ask the original rank for its Path data
   // so we can reconstruct the paths.
-  if (this->Controller && this->Controller->GetNumberOfProcesses() > 1)
+  if (this->GetController() && this->GetController()->GetNumberOfProcesses() > 1)
   {
-    int myRank = this->Controller ? this->Controller->GetLocalProcessId() : 0;
+    int myRank = this->GetController() ? this->GetController()->GetLocalProcessId() : 0;
 
     vtkIdType startId = this->Points->GetNumberOfPoints();
     vtkIdType endId = startId;
 
     // We map points using InjectedPointId
-    vtkIdType nParticlesSentLocal = static_cast<vtkIdType>(this->MPIRecvList.size());
+    vtkIdType nParticlesSentLocal = static_cast<vtkIdType>(this->GetMPIRecvList().size());
     std::vector<vtkIdType> particleRequests(nParticlesSentLocal);
     vtkIdType counter = 0;
-    for (const auto& pair : this->MPIRecvList)
+    for (const auto& pair : this->GetMPIRecvList())
     {
       const auto& info = pair.second;
       particleRequests[counter++] = info.InjectedPointId;
     }
 
-    std::vector<vtkIdType> allNumParticles(this->Controller->GetNumberOfProcesses());
+    std::vector<vtkIdType> allNumParticles(this->GetController()->GetNumberOfProcesses());
 
-    this->Controller->AllGather(&nParticlesSentLocal, allNumParticles.data(), 1);
+    this->GetController()->AllGather(&nParticlesSentLocal, allNumParticles.data(), 1);
 
     vtkIdType nParticlesSent = 0;
-    std::vector<vtkIdType> offsets(this->Controller->GetNumberOfProcesses() + 1);
+    std::vector<vtkIdType> offsets(this->GetController()->GetNumberOfProcesses() + 1);
     offsets.front() = 0;
 
     for (std::size_t i = 0; i < allNumParticles.size(); ++i)
@@ -113,14 +113,14 @@ int vtkParticlePathFilter::Execute(
 
     // We share with everyone the particles that we require. The processes owning the relevant Paths
     // data will know what we want and we can exchange data.
-    this->Controller->AllGatherV(particleRequests.data(), allParticleRequests.data(),
+    this->GetController()->AllGatherV(particleRequests.data(), allParticleRequests.data(),
       nParticlesSentLocal, allNumParticles.data(), offsets.data());
 
-    std::vector<vtkNew<vtkIdList>> sendLists(this->Controller->GetNumberOfProcesses());
+    std::vector<vtkNew<vtkIdList>> sendLists(this->GetController()->GetNumberOfProcesses());
     counter = 0;
     int rank = 0;
 
-    while (rank < this->Controller->GetNumberOfProcesses())
+    while (rank < this->GetController()->GetNumberOfProcesses())
     {
       if (allParticleRequests.empty())
       {
@@ -161,7 +161,7 @@ int vtkParticlePathFilter::Execute(
       }
     }
 
-    for (rank = 0; rank < this->Controller->GetNumberOfProcesses(); ++rank)
+    for (rank = 0; rank < this->GetController()->GetNumberOfProcesses(); ++rank)
     {
       // Let's construct a poly data to send with all the data needed to reconstruct the requested
       // paths.
@@ -177,17 +177,17 @@ int vtkParticlePathFilter::Execute(
       pd->CopyData(this->Points->GetPointData(), sendList);
       ps->SetPoints(points);
 
-      this->Controller->Send(ps, rank, TAG);
+      this->GetController()->Send(ps, rank, TAG);
     }
 
     // We send points to other processe and receive new ones. We could replace the data from the
     // sent points by data from received points or / and current particles. We would need to keep
     // track of available slots in a container and prioritize flushing it.
-    for (rank = 0; rank < this->Controller->GetNumberOfProcesses(); ++rank)
+    for (rank = 0; rank < this->GetController()->GetNumberOfProcesses(); ++rank)
     {
       // Receiving the polydata containing the paths we requested.
       vtkNew<vtkPolyData> ps;
-      this->Controller->Receive(ps, rank, TAG);
+      this->GetController()->Receive(ps, rank, TAG);
 
       if (!ps->GetNumberOfPoints())
       {
@@ -232,17 +232,17 @@ int vtkParticlePathFilter::Execute(
   // From there on, we have all the past data for the paths for which we hold a currently living
   // particle. We just need to add the particles to the relevant path.
   vtkIdType startId = this->Points->GetNumberOfPoints();
-  vtkIdType n = this->OutputCoordinates->GetNumberOfPoints();
+  vtkIdType n = this->GetCurrentParticles()->GetNumberOfPoints();
   vtkIdType endId = startId;
 
-  this->Points->GetPoints()->InsertPoints(startId, n, 0, this->OutputCoordinates);
+  this->Points->GetPoints()->InsertPoints(startId, n, 0, this->GetCurrentParticles());
 
   for (auto& particle : this->ParticleHistories)
   {
     this->Paths[particle.InjectedPointId].push_back(endId++);
   }
 
-  this->Points->GetPointData()->CopyData(this->OutputPointData, startId, n, 0);
+  this->Points->GetPointData()->CopyData(this->GetCurrentPointData(), startId, n, 0);
 
   return retVal;
 }

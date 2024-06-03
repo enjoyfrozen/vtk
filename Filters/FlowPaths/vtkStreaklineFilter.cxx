@@ -61,7 +61,7 @@ int vtkStreaklineFilter::Initialize(
   vtkInformation* request, vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
   int retVal = this->Superclass::Initialize(request, inputVector, outputVector);
-  this->ForceReinjectionEveryNSteps = 1;
+  this->SetForceReinjectionEveryNSteps(1);
   return retVal;
 }
 
@@ -74,24 +74,24 @@ int vtkStreaklineFilter::Finalize(
   vtkNew<vtkPointData> pd;
   vtkNew<vtkPoints> points;
 
-  pd->CopyAllocate(this->OutputPointData, this->OutputPointData->GetNumberOfTuples());
-  pd->CopyData(this->OutputPointData, 0, this->OutputPointData->GetNumberOfTuples(), 0);
-  points->DeepCopy(this->OutputCoordinates);
+  pd->CopyAllocate(this->GetCurrentPointData(), this->GetCurrentPointData()->GetNumberOfTuples());
+  pd->CopyData(this->GetCurrentPointData(), 0, this->GetCurrentPointData()->GetNumberOfTuples(), 0);
+  points->DeepCopy(this->GetCurrentParticles());
 
   // Strategy: we send all the particles to the root node
-  if (this->Controller && this->Controller->GetNumberOfProcesses() > 1)
+  if (this->GetController() && this->GetController()->GetNumberOfProcesses() > 1)
   {
     vtkNew<vtkPolyData> ps;
-    if (this->Controller->GetLocalProcessId() != 0)
+    if (this->GetController()->GetLocalProcessId() != 0)
     {
-      ps->GetPointData()->ShallowCopy(this->OutputPointData);
-      ps->SetPoints(this->OutputCoordinates);
+      ps->GetPointData()->ShallowCopy(this->GetCurrentPointData());
+      ps->SetPoints(this->GetCurrentParticles());
     }
     std::vector<vtkSmartPointer<vtkDataObject>> recvBuffer;
-    this->Controller->Gather(ps, recvBuffer, 0);
+    this->GetController()->Gather(ps, recvBuffer, 0);
 
     // Non root ranks have nothing to do
-    if (this->Controller->GetLocalProcessId() != 0)
+    if (this->GetController()->GetLocalProcessId() != 0)
     {
       return retVal;
     }
@@ -135,8 +135,8 @@ int vtkStreaklineFilter::Finalize(
 
   auto ageArray = this->GetParticleAge(pd);
 
-  // We sort streaks by age, addoing points as they come, indexed as seen by OutputPointData
-  // and OutputCoordinates
+  // We sort streaks by age, addoing points as they come, indexed as seen by GetCurrentPointData()
+  // and GetCurrentParticles()
   for (vtkIdType pointId = 0; pointId < ageArray->GetNumberOfValues(); ++pointId)
   {
     streaks[this->GetCurrentTimeIndex() - ageArray->GetValue(pointId)].emplace_back(pointId);
