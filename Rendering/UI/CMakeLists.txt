@@ -35,7 +35,8 @@ elseif (VTK_USE_COCOA)
   endif ()
   list(APPEND sources vtkCocoaRenderWindowInteractor.mm)
   list(APPEND headers
-    vtkCocoaRenderWindowInteractor.h)
+    vtkCocoaRenderWindowInteractor.h
+    vtkCocoaAutoreleasePool.h)
   list(APPEND nowrap_headers
     vtkCocoaMacOSXSDKCompatibility.h)
   # Set specified Objective-C++ flags, if any.
