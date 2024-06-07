@@ -34,17 +34,17 @@ void vtkDGInterpolateCalculator::PrintSelf(ostream& os, vtkIndent indent)
 void vtkDGInterpolateCalculator::Evaluate(
   vtkIdType cellId, const vtkVector3d& rst, std::vector<double>& value)
 {
-  /* static thread_local */ vtkDGInvokeOperator computeValue;
+  static thread_local vtkDGInvokeOperator computeValue;
   std::array<double, 3> arst{ rst[0], rst[1], rst[2] };
   // value.resize(this->FieldBasisOp.OperatorSize * );
   computeValue.Invoke(
     this->FieldBasisOp, this->FieldCellInfo, 1, &cellId, arst.data(), value.data());
 
-  // Now, for H(curl) and H(div) elements, transform the resulting vectors
-  // by the inverse Jacobian of the cell's *shape* function.
-  static std::unordered_set<vtkStringToken> needsInverseJacobian{ { "HGRAD"_token, "HCURL"_token,
-    "HGrad"_token, "HCurl"_token, "Hgrad"_token, "Hcurl"_token, "hgrad"_token, "hcurl"_token } };
-  if (needsInverseJacobian.find(this->FieldCellInfo.FunctionSpace) != needsInverseJacobian.end())
+  // Now, for H(curl) elements, transform the resulting vectors by the inverse Jacobian
+  // (of the cell's *shape* function).
+  static std::unordered_set<vtkStringToken> isCurl( { "HCURL"_token, "HCurl"_token, "Hcurl"_token,
+    "hcurl"_token } );
+  if (isCurl.find(this->FieldCellInfo.FunctionSpace) != isCurl.end())
   {
     /* static thread_local */ std::vector<double> spatialDeriv;
     this->InternalDerivative<true>(cellId, rst, spatialDeriv, 1e-3);
@@ -65,15 +65,44 @@ void vtkDGInterpolateCalculator::Evaluate(
       }
     }
   }
+
+  // For H(div) elements, transform the resulting vectors by the forward Jacobian
+  // (of the cell's *shape* function) divided by the determinant of the Jacobian.
+  static std::unordered_set<vtkStringToken> isDiv( { "HDIV"_token, "HDiv"_token, "Hdiv"_token,
+    "hdiv"_token } );
+  if (isDiv.find(this->FieldCellInfo.FunctionSpace) != isDiv.end())
+  {
+    static thread_local std::vector<double> jac;
+    this->InternalDerivative<true>(cellId, rst, jac, 1e-3);
+    double jdet;
+    double diag = std::abs(jac[0]) + std::abs(jac[4]) + std::abs(jac[8]);
+    if (this->Dimension == 3)
+    {
+      jdet =
+        jac[0] * (jac[4] * jac[8] - jac[7] * jac[5]) -
+        jac[1] * (jac[3] * jac[8] - jac[6] * jac[5]) +
+        jac[2] * (jac[3] * jac[7] - jac[6] * jac[4]);
+    }
+    else
+    {
+      jdet = jac[0] * jac[4] - jac[3] * jac[1];
+    }
+    double ijdet = (std::abs(jdet/diag) > 1e-7) ? 1.0 / jdet : 0.0;
+
+    std::size_t numValueVectors = value.size() / 3;
+    for (std::size_t ii = 0; ii < numValueVectors; ++ii)
+    {
+      std::array<double, 3> xx{{ value[3 * ii], value[3 * ii + 1], value[3 * ii + 2] }};
+      value[3 * ii    ] = (jac[0] * xx[0] + jac[1] * xx[1] + jac[2] * xx[2]) * ijdet;
+      value[3 * ii + 1] = (jac[3] * xx[0] + jac[4] * xx[1] + jac[5] * xx[2]) * ijdet;
+      value[3 * ii + 2] = (jac[6] * xx[0] + jac[7] * xx[1] + jac[8] * xx[2]) * ijdet;
+    }
+  }
 }
 
 void vtkDGInterpolateCalculator::Evaluate(
   vtkIdTypeArray* cellIds, vtkDataArray* rst, vtkDataArray* result)
 {
-  // For H(curl) and H(div) elements, transform the resulting vectors
-  // by the inverse Jacobian of the cell's *shape* function.
-  static std::unordered_set<vtkStringToken> needsInverseJacobian{ { "HGRAD"_token, "HCURL"_token,
-    "HGrad"_token, "HCurl"_token, "Hgrad"_token, "Hcurl"_token, "hgrad"_token, "hcurl"_token } };
   static thread_local vtkDGInvokeOperator computeValue;
   static thread_local vtkNew<vtkDoubleArray> localRST;
   static thread_local vtkNew<vtkDoubleArray> localField;
@@ -90,57 +119,72 @@ void vtkDGInterpolateCalculator::Evaluate(
     dresult = localField.GetPointer();
   }
 
-  bool invJac =
-    (needsInverseJacobian.find(this->FieldCellInfo.FunctionSpace) != needsInverseJacobian.end());
   assert(cellIds->GetNumberOfTuples() == rst->GetNumberOfTuples());
   vtkIdType numEvals = cellIds->GetNumberOfTuples();
   dresult->SetNumberOfComponents(this->Field->GetNumberOfComponents());
   dresult->SetNumberOfTuples(cellIds->GetNumberOfTuples());
   computeValue.Invoke(this->FieldBasisOp, this->FieldCellInfo, numEvals, cellIds->GetPointer(0),
     drst->GetPointer(0), dresult->GetPointer(0));
-
-  if (invJac)
+#if 0
+  // Now, for H(curl) elements, transform the resulting vectors by the inverse Jacobian
+  // (of the cell's *shape* function).
+  static std::unordered_set<vtkStringToken> isCurl( { "HCURL"_token, "HCurl"_token, "Hcurl"_token,
+    "hcurl"_token } );
+  if (isCurl.find(this->FieldCellInfo.FunctionSpace) != isCurl.end())
   {
-    if (!this->ShapeGradientOp)
-    {
-      throw std::runtime_error("No shape gradient.");
-    }
+    /* static thread_local */ std::vector<double> spatialDeriv;
+    this->InternalDerivative<true>(cellId, rst, spatialDeriv, 1e-3);
 
-    auto& cellInfo(this->ShapeCellInfo);
-    static thread_local vtkDGInvokeOperator computeGradient;
-    static thread_local vtkNew<vtkDoubleArray> jacobian;
-    jacobian->SetNumberOfComponents(9); // really 3 * this->Dimension, but we promote 2D to 3D.
-    jacobian->SetNumberOfTuples(numEvals);
-    computeGradient.Invoke(this->ShapeGradientOp, cellInfo, numEvals, cellIds->GetPointer(0),
-      drst->GetPointer(0), jacobian->GetPointer(0));
-
-    // Now we need to invert each Jacobian and multiply each result
-    // value by its respective inverse Jacobian.
-    int nn = dresult->GetNumberOfComponents() / 3;
-    double* dresultP = dresult->GetPointer(0);
-    for (vtkIdType jj = 0; jj < numEvals; ++jj)
+    // Use spatialDeriv as Jacobian and solve J * xx = value (which transforms "value"
+    // from the parameter space into world coordinates), then write the results
+    // back into value.
+    Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>> map(spatialDeriv.data());
+    Eigen::HouseholderQR<Eigen::Matrix3d> solver(map);
+    std::size_t numValueVectors = value.size() / 3;
+    for (std::size_t ii = 0; ii < numValueVectors; ++ii)
     {
-      // Treat each tuple of jacobian as a matrix and solve J * xx = dresult[jj] (which
-      // transforms "result" from the parameter space into world coordinates), then
-      // write the results back into "dresult".
-      Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>> map(jacobian->GetPointer(9 * jj));
-      Eigen::HouseholderQR<Eigen::Matrix3d> solver(map);
-      for (int ii = 0; ii < nn; ++ii)
+      Eigen::Vector3d edelt(value[3 * ii + 0], value[3 * ii + 1], value[3 * ii + 2]);
+      auto xx = solver.solve(edelt);
+      for (int jj = 0; jj < 3; ++jj)
       {
-        Eigen::Vector3d edelt(dresultP[3 * (ii + nn * jj) + 0], dresultP[3 * (ii + nn * jj) + 1],
-          dresultP[3 * (ii + nn * jj) + 2]);
-        auto xx = solver.solve(edelt);
-        for (int kk = 0; kk < 3; ++kk)
-        {
-          dresultP[3 * (ii + nn * jj) + kk] = xx[kk];
-        }
+        value[3 * ii + jj] = xx[jj];
       }
     }
-    if (dresult == localField.GetPointer())
+  }
+
+  // For H(div) elements, transform the resulting vectors by the forward Jacobian
+  // (of the cell's *shape* function) divided by the determinant of the Jacobian.
+  static std::unordered_set<vtkStringToken> isDiv( { "HDIV"_token, "HDiv"_token, "Hdiv"_token,
+    "hdiv"_token } );
+  if (isDiv.find(this->FieldCellInfo.FunctionSpace) != isDiv.end())
+  {
+    static thread_local std::vector<double> jac;
+    this->InternalDerivative<true>(cellId, rst, jac, 1e-3);
+    double jdet;
+    double diag = std::abs(jac[0]) + std::abs(jac[4]) + std::abs(jac[8]);
+    if (this->Dimension == 3)
     {
-      result->DeepCopy(dresult);
+      jdet =
+        jac[0] * (jac[4] * jac[8] - jac[7] * jac[5]) -
+        jac[1] * (jac[3] * jac[8] - jac[6] * jac[5]) +
+        jac[2] * (jac[3] * jac[7] - jac[6] * jac[4]);
+    }
+    else
+    {
+      jdet = jac[0] * jac[4] - jac[3] * jac[1];
+    }
+    double ijdet = (std::abs(jdet/diag) > 1e-7) ? 1.0 / jdet : 0.0;
+
+    std::size_t numValueVectors = value.size() / 3;
+    for (std::size_t ii = 0; ii < numValueVectors; ++ii)
+    {
+      std::array<double, 3> xx{{ value[3 * ii], value[3 * ii + 1], value[3 * ii + 2] }};
+      value[3 * ii    ] = (jac[0] * xx[0] + jac[1] * xx[1] + jac[2] * xx[2]) * ijdet;
+      value[3 * ii + 1] = (jac[3] * xx[0] + jac[4] * xx[1] + jac[5] * xx[2]) * ijdet;
+      value[3 * ii + 2] = (jac[6] * xx[0] + jac[7] * xx[1] + jac[8] * xx[2]) * ijdet;
     }
   }
+#endif
 }
 
 bool vtkDGInterpolateCalculator::AnalyticDerivative() const
