@@ -3,6 +3,7 @@ set(classes
   vtkFiltersCellGrid
 
   # Algorithms
+  vtkCellGridCellCenters
   vtkCellGridComputeSides
   vtkCellGridElevation
   vtkCellGridPointProbe
@@ -13,6 +14,7 @@ set(classes
 
   # Responders
   vtkDGBoundsResponder
+  vtkDGCellCenterResponder
   vtkDGCopyResponder
   vtkDGElevationResponder
   vtkDGEvaluator
