@@ -1,4 +1,5 @@
 vtk_add_test_python(
+  TestCellGridCellCenters.py,NO_RT
   TestCellGridRange.py,NO_RT
   TestCellGridSideInfo.py,NO_RT
   TestCopyCellGrid.py,NO_RT

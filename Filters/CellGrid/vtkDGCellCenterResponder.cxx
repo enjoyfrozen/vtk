@@ -89,6 +89,7 @@ bool vtkDGCellCenterResponder::Query(
   vtkNew<vtkDoubleArray> rst;
   cellIds->SetNumberOfTuples(nn);
   cellIds->SetName(idsname.c_str());
+  rst->SetNumberOfComponents(3);
   rst->SetNumberOfTuples(nn);
   rst->SetName(rstname.c_str());
   static vtkNew<vtkDGInterpolateCalculator> interpolateProto;
@@ -128,7 +129,7 @@ bool vtkDGCellCenterResponder::Query(
   //       but we should support DG ones, especially for point clouds.
   verts->GetCellSpec().Connectivity = vconn;
   verts->GetCellSpec().SourceShape = vtkDGCell::Shape::Vertex;
-  auto* vtxGroup = grid->GetAttributes(vtkStringToken(vcnname));
+  auto* vtxGroup = request->GetOutput()->GetAttributes(vtkStringToken(vcnname));
   vtxGroup->AddArray(vconn);
   vtxGroup->AddArray(cellIds);
   vtxGroup->AddArray(rst);
