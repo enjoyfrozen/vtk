@@ -9,7 +9,9 @@
 #include "vtkFiltersCellGridModule.h" // For export macro.
 
 #include <array>
-#include <cstring> // For std::memset.
+#include <cassert> // For assert().
+#include <cstring> // For std::memset().
+#include <functional>
 #include <vector>
 
 VTK_ABI_NAMESPACE_BEGIN
@@ -52,6 +54,8 @@ public:
   vtkDGInvokeOperator() = default;
   vtkDGInvokeOperator(const vtkDGInvokeOperator&) = default;
 
+  using ParameterLambda = std::function<std::array<double,3>(vtkIdType)>;
+
   struct FetchUnsharedCellDOF
   {
     vtkDataArray* Coefficients{ nullptr };
@@ -93,6 +97,73 @@ public:
     void operator()(vtkIdType ii, std::vector<double>& tuple)
     {
       this->Connectivity->GetIntegerTuple(ii, this->ConnTuple.data());
+      auto valIt = tuple.begin();
+      for (const auto& valId : this->ConnTuple)
+      {
+        this->Coefficients->GetTuple(valId, &(*valIt));
+        valIt += this->Stride;
+      }
+    }
+  };
+
+  struct FetchUnsharedSideDOF
+  {
+    vtkDataArray* Sides{ nullptr };
+    vtkDataArray* Coefficients{ nullptr };
+    std::array<vtkTypeInt64, 2> SideTuple;
+
+    FetchUnsharedSideDOF() = default;
+    FetchUnsharedSideDOF(vtkDataArray* sides, vtkDataArray* vals, vtkDataArray* conn)
+    {
+      this->Initialize(sides, vals, conn);
+    }
+
+    void Initialize(vtkDataArray* sides, vtkDataArray* vals, vtkDataArray* conn = nullptr)
+    {
+      (void)conn;
+      assert(sides && sides->GetNumberOfComponents() == 2);
+      this->Sides = sides;
+      this->Coefficients = vals;
+    }
+
+    void operator()(vtkIdType ii, std::vector<double>& tuple)
+    {
+      this->Sides->GetIntegerTuple(ii, this->SideTuple.data());
+      // tuple.resize(this->Coefficients->GetNumberOfComponents());
+      this->Coefficients->GetTuple(static_cast<vtkIdType>(this->SideTuple[0]), tuple.data());
+    }
+  };
+
+  struct FetchSharedSideDOF
+  {
+    vtkDataArray* Sides{ nullptr };
+    vtkDataArray* Coefficients{ nullptr };
+    vtkDataArray* Connectivity{ nullptr };
+    vtkIdType Stride{ 0 };
+    std::array<vtkTypeInt64, 2> SideTuple;
+    std::vector<vtkTypeInt64> ConnTuple;
+
+    FetchSharedSideDOF() = default;
+    FetchSharedSideDOF(vtkDataArray* sides, vtkDataArray* vals, vtkDataArray* conn)
+    {
+      this->Initialize(sides, vals, conn);
+    }
+
+    void Initialize(vtkDataArray* sides, vtkDataArray* vals, vtkDataArray* conn)
+    {
+      assert(sides && sides->GetNumberOfComponents() == 2);
+      this->Sides = sides;
+      this->Coefficients = vals;
+      this->Connectivity = conn;
+      this->Stride = vals->GetNumberOfComponents();
+      this->ConnTuple.resize(conn->GetNumberOfComponents());
+    }
+
+    void operator()(vtkIdType ii, std::vector<double>& tuple)
+    {
+      this->Sides->GetIntegerTuple(ii, this->SideTuple.data());
+      this->Connectivity->GetIntegerTuple(
+        static_cast<vtkIdType>(this->SideTuple[0]), this->ConnTuple.data());
       auto valIt = tuple.begin();
       for (const auto& valId : this->ConnTuple)
       {
@@ -145,6 +216,15 @@ public:
   bool Invoke(const vtkDGOperatorEntry& op, const vtkCellAttribute::CellTypeInfo& info,
     std::size_t num, const vtkIdType* cellIds, const double* rst, double* result);
 
+  /// This is a convenience method that makes invoking the operator on a list
+  /// of cells but with a procedural set of (r,s,t)-coordinates possible.
+  ///
+  /// Unlike the templated iterator-based methods above, this requires the
+  /// cell IDs to be repeated even if only one varies over the \a num requested
+  /// invocations.
+  bool Invoke(const vtkDGOperatorEntry& op, const vtkCellAttribute::CellTypeInfo& info,
+    std::size_t num, const vtkIdType* cellIds, ParameterLambda rstLambda, double* result);
+
   /// Hold the function coefficients for a single cell.
   std::vector<double> CoeffTuple;
 
@@ -154,8 +234,14 @@ public:
   /// Fetch values into CoeffTuple when DOF are shared among cells by connectivity.
   FetchSharedCellDOF SharedFetcher;
 
+  /// Fetch values into CoeffTuple when DOF are shared among cells by connectivity.
+  FetchSharedSideDOF SharedSideFetcher;
+
   /// Fetch values into CoeffTuple when DOF are not shared.
   FetchUnsharedCellDOF DiscontinuousFetcher;
+
+  /// Fetch values into CoeffTuple when DOF are not shared.
+  FetchUnsharedSideDOF DiscontinuousSideFetcher;
 };
 
 template <typename InputIterator, typename OutputIterator>
