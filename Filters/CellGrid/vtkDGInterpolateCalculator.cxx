@@ -46,19 +46,20 @@ void vtkDGInterpolateCalculator::Evaluate(
     "hcurl"_token } );
   if (isCurl.find(this->FieldCellInfo.FunctionSpace) != isCurl.end())
   {
-    /* static thread_local */ std::vector<double> spatialDeriv;
+    static thread_local std::vector<double> spatialDeriv;
     this->InternalDerivative<true>(cellId, rst, spatialDeriv, 1e-3);
 
     // Use spatialDeriv as Jacobian and solve J * xx = value (which transforms "value"
     // from the parameter space into world coordinates), then write the results
     // back into value.
     Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>> map(spatialDeriv.data());
-    Eigen::HouseholderQR<Eigen::Matrix3d> solver(map);
+    // Eigen::HouseholderQR<Eigen::Matrix3d> solver(map);
     std::size_t numValueVectors = value.size() / 3;
     for (std::size_t ii = 0; ii < numValueVectors; ++ii)
     {
       Eigen::Vector3d edelt(value[3 * ii + 0], value[3 * ii + 1], value[3 * ii + 2]);
-      auto xx = solver.solve(edelt);
+      auto xx = map * edelt;
+      // auto xx = solver.solve(edelt);
       for (int jj = 0; jj < 3; ++jj)
       {
         value[3 * ii + jj] = xx[jj];
@@ -291,7 +292,7 @@ void vtkDGInterpolateCalculator::EvaluateDerivative(
       for (int kk = 0; kk < 3; ++kk)
       {
         resultP[3 * (ii + nn * jj) + kk] = xx[kk];
-      } 
+      }
     }
   }
 #endif
