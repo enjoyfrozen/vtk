@@ -302,7 +302,8 @@ int vtkGaussianCubeReader2::RequestInformation(vtkInformation* vtkNotUsed(reques
   dataInfo->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(), 0, header.xDimension - 1, 0,
     header.yDimension - 1, 0, header.zDimension - 1);
 
-  dataInfo->Set(vtkDataObject::ORIGIN(), 0, 0, 0);
+  dataInfo->Set(
+    vtkDataObject::ORIGIN(), header.dataOrigin[0], header.dataOrigin[1], header.dataOrigin[2]);
 
   const double xSpacing = Magnitude(header.xDirection);
   const double ySpacing = Magnitude(header.yDirection);
