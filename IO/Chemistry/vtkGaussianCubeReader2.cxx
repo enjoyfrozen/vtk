@@ -102,7 +102,7 @@ struct HeaderData
 {
   std::string name;
   std::size_t nAtoms;
-  std::array<double, 3> moleculeOrigin;
+  std::array<double, 3> dataOrigin;
   std::size_t nDatasets;
   std::size_t xDimension;
   std::array<double, 3> xDirection;
@@ -175,11 +175,11 @@ bool ParseHeader(std::ifstream& fileStream, HeaderData& data, std::string& error
 
   std::stringstream lineStream(line);
   VTK_EXTRACT_AND_CHECK(lineStream, nAtoms);
-  VTK_EXTRACT_AND_CHECK(lineStream, data.moleculeOrigin[0]);
-  VTK_EXTRACT_AND_CHECK(lineStream, data.moleculeOrigin[1]);
-  VTK_EXTRACT_AND_CHECK(lineStream, data.moleculeOrigin[2]);
+  VTK_EXTRACT_AND_CHECK(lineStream, data.dataOrigin[0]);
+  VTK_EXTRACT_AND_CHECK(lineStream, data.dataOrigin[1]);
+  VTK_EXTRACT_AND_CHECK(lineStream, data.dataOrigin[2]);
 
-  VTK_VECTOR_BOHR_TO_ANGSTROM(data.moleculeOrigin);
+  VTK_VECTOR_BOHR_TO_ANGSTROM(data.dataOrigin);
 
   if (lineStream)
   {
@@ -360,9 +360,6 @@ int vtkGaussianCubeReader2::RequestData(
     coords[0] *= BohrToAngstrom;
     coords[1] *= BohrToAngstrom;
     coords[2] *= BohrToAngstrom;
-    coords[0] -= header.moleculeOrigin[0];
-    coords[1] -= header.moleculeOrigin[1];
-    coords[2] -= header.moleculeOrigin[2];
     output->AppendAtom(atomType, coords[0], coords[1], coords[2]);
   }
 
@@ -418,7 +415,7 @@ int vtkGaussianCubeReader2::RequestData(
     vtkNew<vtkImageData> image;
 
     image->SetExtent(outInfo->Get(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT()));
-    image->SetOrigin(0, 0, 0);
+    image->SetOrigin(header.dataOrigin[0], header.dataOrigin[1], header.dataOrigin[2]);
     image->SetSpacing(
       Magnitude(header.xDirection), Magnitude(header.yDirection), Magnitude(header.zDirection));
 
