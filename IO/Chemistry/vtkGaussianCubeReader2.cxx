@@ -98,6 +98,13 @@ vtkPartitionedDataSet* vtkGaussianCubeReader2::GetDataOutput()
   return vtkPartitionedDataSet::SafeDownCast(this->GetOutputDataObject(1));
 }
 
+struct Atom
+{
+  int type;
+  float nuclearCharge;
+  std::array<double, 3> coords;
+};
+
 struct HeaderData
 {
   std::string name;
@@ -111,6 +118,7 @@ struct HeaderData
   std::size_t zDimension;
   std::array<double, 3> zDirection;
   bool containsDatasetIDs;
+  std::vector<Atom> molecularGeometry;
 };
 
 bool ParseHeader(std::ifstream& fileStream, HeaderData& data, std::string& errorMessage)
@@ -223,6 +231,30 @@ bool ParseHeader(std::ifstream& fileStream, HeaderData& data, std::string& error
   VTK_EXTRACT_AND_CHECK(fileStream, data.zDirection[1]);
   VTK_EXTRACT_AND_CHECK(fileStream, data.zDirection[2]);
   VTK_VECTOR_BOHR_TO_ANGSTROM(data.zDirection);
+
+  // Extract geometry
+  data.molecularGeometry.resize(nAtoms);
+
+  for (std::size_t i = 0; i < data.nAtoms; ++i)
+  {
+
+    VTK_EXTRACT_AND_CHECK(fileStream, data.molecularGeometry[i].type);
+    // Nuclear charge can be different from atomic number if an effective core potential
+    // (ECP) has been used for this nucleus
+    VTK_EXTRACT_AND_CHECK(fileStream, data.molecularGeometry[i].nuclearCharge);
+    VTK_EXTRACT_AND_CHECK(fileStream, data.molecularGeometry[i].coords[0]);
+    VTK_EXTRACT_AND_CHECK(fileStream, data.molecularGeometry[i].coords[1]);
+    VTK_EXTRACT_AND_CHECK(fileStream, data.molecularGeometry[i].coords[2]);
+
+    VTK_VECTOR_BOHR_TO_ANGSTROM(data.molecularGeometry[i].coords);
+  }
+
+  if (data.containsDatasetIDs)
+  {
+    // Extract number of datasets from explicitly specified dataset IDs
+    // After the geometry, there should be an integer indicating the amount of data sets per voxel
+    VTK_EXTRACT_AND_CHECK(fileStream, data.nDatasets);
+  }
 
 #undef VTK_EXTRACT_AND_CHECK
 #undef VTK_VECTOR_BOHR_TO_ANGSTROM
@@ -341,26 +373,10 @@ int vtkGaussianCubeReader2::RequestData(
   vtkDebugMacro(<< "Grid Size " << header.xDimension << " " << header.yDimension << " "
                 << header.zDimension);
 
-  // Parse and construct vtkMolecule
-  int atomType;
-  std::array<double, 3> coords;
-  // Nuclear charge can be different from atomic number if an effective core potential
-  // (ECP) has been used for this nucleus
-  float nuclearCharge;
-
-  for (std::size_t i = 0; i < header.nAtoms; ++i)
+  // Construct vtkMolecule
+  for (const Atom& atom : header.molecularGeometry)
   {
-    if (!(fileStream >> atomType >> nuclearCharge >> coords[0] >> coords[1] >> coords[2]))
-    {
-      vtkErrorMacro("GaussianCubeReader2 error reading file: "
-        << this->FileName << " Premature EOF while reading molecule.");
-      fileStream.close();
-      return 0;
-    }
-    coords[0] *= BohrToAngstrom;
-    coords[1] *= BohrToAngstrom;
-    coords[2] *= BohrToAngstrom;
-    output->AppendAtom(atomType, coords[0], coords[1], coords[2]);
+    output->AppendAtom(atom.type, atom.coords[0], atom.coords[1], atom.coords[2]);
   }
 
   // Parse grid data
@@ -372,23 +388,13 @@ int vtkGaussianCubeReader2::RequestData(
 
   if (header.containsDatasetIDs)
   {
-    std::size_t numberOfDatasets;
-    if (!(fileStream >> numberOfDatasets))
-    {
-      vtkErrorMacro("GaussianCubeReader error reading file: "
-        << this->FileName << " Premature EOF while reading number of dataset IDs.");
-      fileStream.close();
-      return 0;
-    }
-    assert(numberOfDatasets == header.nDatasets);
-
-    for (int k = 0; k < numberOfDatasets; k++)
+    for (int k = 0; k < header.nDatasets; k++)
     {
       if (!(fileStream >> dataSetIDs[k]))
       {
         vtkErrorMacro("GaussianCubeReader error reading file: "
           << this->FileName << " Premature EOF while reading data set ID #" << k << "/"
-          << numberOfDatasets);
+          << header.nDatasets);
         fileStream.close();
         return 0;
       }
