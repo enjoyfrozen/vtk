@@ -49,7 +49,7 @@ public:
   /**
    * Get the parsed data set(s)
    */
-  vtkPartitionedDataSet* GetDataOutput();
+  vtkDataSet* GetDataOutput();
 
   ///@{
   /**

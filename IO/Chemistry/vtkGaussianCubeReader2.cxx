@@ -12,7 +12,6 @@
 #include "vtkMolecule.h"
 #include "vtkNew.h"
 #include "vtkObjectFactory.h"
-#include "vtkPartitionedDataSet.h"
 #include "vtkPeriodicTable.h"
 #include "vtkPointData.h"
 #include "vtkPoints.h"
@@ -43,8 +42,6 @@ vtkGaussianCubeReader2::vtkGaussianCubeReader2()
 {
   this->SetNumberOfInputPorts(0);
   this->SetNumberOfOutputPorts(2);
-
-  this->GetExecutive()->SetOutputData(1, vtkSmartPointer<vtkPartitionedDataSet>::New());
 }
 
 //------------------------------------------------------------------------------
@@ -74,28 +71,19 @@ vtkImageData* vtkGaussianCubeReader2::GetGridOutput()
   }
 
   // This is an attempt to retain compatibility with old code that expects this function to return
-  // a vtkImageData object. In cases where there is only a single data set inside the cube file and
-  // that set happens to be of type vtkImageData (which is not guaranteed, but probably the most
-  // likely use case), return that. Otherwise, return nullptr.
-  vtkPartitionedDataSet* partitioned =
-    vtkPartitionedDataSet::SafeDownCast(this->GetOutputDataObject(1));
-  if (!partitioned || partitioned->GetNumberOfPartitions() != 1)
-  {
-    return nullptr;
-  }
-
-  return vtkImageData::SafeDownCast(partitioned->GetPartition(0));
+  // a vtkImageData object.
+  return vtkImageData::SafeDownCast(this->GetOutputDataObject(1));
 }
 
 //------------------------------------------------------------------------------
-vtkPartitionedDataSet* vtkGaussianCubeReader2::GetDataOutput()
+vtkDataSet* vtkGaussianCubeReader2::GetDataOutput()
 {
   if (this->GetNumberOfOutputPorts() < 2)
   {
     return nullptr;
   }
 
-  return vtkPartitionedDataSet::SafeDownCast(this->GetOutputDataObject(1));
+  return vtkDataSet::SafeDownCast(this->GetOutputDataObject(1));
 }
 
 struct Atom
@@ -523,7 +511,7 @@ int vtkGaussianCubeReader2::FillOutputPortInformation(int port, vtkInformation* 
     return this->Superclass::FillOutputPortInformation(port, info);
   }
   // TODO: Shouldn't we be more concrete?
-  info->Set(vtkDataObject::DATA_TYPE_NAME(), "vtkDataObject");
+  info->Set(vtkDataObject::DATA_TYPE_NAME(), "vtkDataSet");
   // info->Set(vtkDataObject::DATA_TYPE_NAME(), "vtkImageData");
   return 1;
 }
