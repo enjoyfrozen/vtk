@@ -490,9 +490,9 @@ int vtkGaussianCubeReader2::RequestData(
           }
 
           vtkAbstractArray* array = pointData->GetAbstractArray(dset);
-          vtkDoubleArray* floatArray = vtkDoubleArray::SafeDownCast(array);
-          assert(floatArray);
-          floatArray->InsertValue(valueID, value);
+          vtkDoubleArray* doubleArray = vtkDoubleArray::SafeDownCast(array);
+          assert(doubleArray);
+          doubleArray->InsertValue(valueID, value);
         }
       }
     }
