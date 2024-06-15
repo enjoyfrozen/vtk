@@ -208,9 +208,10 @@ bool ParseHeader(std::ifstream& fileStream, HeaderData& data, std::string& error
   }
   data.nAtoms = nAtoms;
 
-  if (!data.containsDatasetIDs && data.nDatasets != 1)
+  if (data.containsDatasetIDs && data.nDatasets != 1)
   {
-    errorMessage = "The number of values per voxel must be zero if no data set IDs are specified";
+    errorMessage = "The number of data points per voxel is inferred from the amount of data set "
+                   "IDs - no explicit specification allowed in this case";
     return false;
   }
 
