@@ -172,7 +172,7 @@ struct CountPoints
   template <typename CellStateT, typename TIds>
   void operator()(CellStateT& state, TIds* linkOffsets)
   {
-    using ValueType = typename CellStateT::ValueType;
+    using ValueType = typename CellStateT::ConnectivityValueType;
     const auto cellConnectivity = vtk::DataArrayValueRange<1>(state.GetConnectivity());
 
     // Count number of point uses

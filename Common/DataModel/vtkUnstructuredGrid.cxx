@@ -669,7 +669,7 @@ struct GetPolyhedronNPts
     const vtkIdType beginOffset = state.GetBeginOffset(cellId);
     const vtkIdType endOffset = state.GetEndOffset(cellId);
     const vtkIdType NumberOfFaces = endOffset - beginOffset;
-    const auto cellFaces = state.GetConnectivity()->GetPointer(beginOffset);
+    const auto cellFaces = state.GetConnectivityRange().data() + beginOffset;
 
     for (vtkIdType faceNum = 0; faceNum < NumberOfFaces; ++faceNum)
     {
@@ -686,17 +686,25 @@ struct InsertNextCellPoints
   template <typename CellStateT>
   vtkIdType operator()(CellStateT& state, const vtkIdType npts, const PointType pts[])
   {
-    using ValueType = typename CellStateT::ValueType;
+    using OffsetsArrayType = typename CellStateT::OffsetsArrayType;
+    using ConnectivityArrayType = typename CellStateT::ConnectivityArrayType;
+    using OffsetsValueType = typename CellStateT::OffsetsValueType;
+    using ConnectivityValueType = typename CellStateT::ConnectivityValueType;
+
+    using OffsetsInserterType = vtkCellArray_detail::vtkDataArrayInserter<OffsetsArrayType>;
+    using ConnectivityInserterType =
+      vtkCellArray_detail::vtkDataArrayInserter<ConnectivityArrayType>;
     auto* conn = state.GetConnectivity();
     auto* offsets = state.GetOffsets();
 
     const vtkIdType cellId = offsets->GetNumberOfValues() - 1;
 
-    offsets->InsertNextValue(static_cast<ValueType>(conn->GetNumberOfValues() + npts));
+    OffsetsInserterType::InsertNextValue(
+      offsets, static_cast<OffsetsValueType>(conn->GetNumberOfValues() + npts));
 
     for (vtkIdType i = 0; i < npts; ++i)
     {
-      conn->InsertNextValue(static_cast<ValueType>(pts[i]));
+      ConnectivityInserterType::InsertNextValue(conn, static_cast<ConnectivityValueType>(pts[i]));
     }
 
     return cellId;
@@ -711,14 +719,14 @@ struct CopyPolyhedronFaces
   void operator()(CellStateT& state, const vtkIdType NumberOfFaces, const FaceIdType* cellFaces,
     vtkCellArray* faces)
   {
-    using ValueType = typename CellStateT::ValueType;
+    using ValueType = typename CellStateT::ConnectivityValueType;
     using TInsertNextCellPoints = InsertNextCellPoints<ValueType>;
     for (vtkIdType faceNum = 0; faceNum < NumberOfFaces; ++faceNum)
     {
       const vtkIdType beginOffset = state.GetBeginOffset(cellFaces[faceNum]);
       const vtkIdType endOffset = state.GetEndOffset(cellFaces[faceNum]);
       const vtkIdType NumberOfPoints = endOffset - beginOffset;
-      const auto cellPoints = state.GetConnectivity()->GetPointer(beginOffset);
+      const auto cellPoints = state.GetConnectivityRange().data() + beginOffset;
 
       faces->Visit(TInsertNextCellPoints{}, NumberOfPoints, cellPoints);
     }
@@ -731,12 +739,12 @@ struct CopyPolyhedronCell
   template <typename CellStateT>
   void operator()(CellStateT& state, const vtkIdType cellId, vtkCellArray* src, vtkCellArray* tgt)
   {
-    using ValueType = typename CellStateT::ValueType;
+    using ValueType = typename CellStateT::ConnectivityValueType;
     using TCopyPolyhedronFaces = CopyPolyhedronFaces<ValueType>;
     const vtkIdType beginOffset = state.GetBeginOffset(cellId);
     const vtkIdType endOffset = state.GetEndOffset(cellId);
     const vtkIdType NumberOfFaces = endOffset - beginOffset;
-    const auto cellFaces = state.GetConnectivity()->GetPointer(beginOffset);
+    const auto cellFaces = state.GetConnectivityRange().data() + beginOffset;
 
     src->Visit(TCopyPolyhedronFaces{}, NumberOfFaces, cellFaces, tgt);
   }
@@ -787,7 +795,7 @@ struct InsertFaceStreamVisitor
       const vtkIdType beginOffset = state.GetBeginOffset(cellFaces[faceNum]);
       const vtkIdType endOffset = state.GetEndOffset(cellFaces[faceNum]);
       const vtkIdType NumberOfPoints = endOffset - beginOffset;
-      const auto cellPoints = state.GetConnectivity()->GetPointer(beginOffset);
+      const auto cellPoints = state.GetConnectivityRange().data() + beginOffset;
 
       faceStream->InsertNextValue(NumberOfPoints);
       for (vtkIdType ptIdx = 0; ptIdx < NumberOfPoints; ++ptIdx)
@@ -808,7 +816,7 @@ struct InsertPolyLocationVisitor
     vtkIdTypeArray* faceLocation)
   {
 
-    using ValueType = typename CellStateT::ValueType;
+    using ValueType = typename CellStateT::ConnectivityValueType;
     using TInsertFaceStream = InsertFaceStreamVisitor<ValueType>;
 
     const vtkIdType numCells = state.GetNumberOfCells();
@@ -825,7 +833,7 @@ struct InsertPolyLocationVisitor
         return;
       }
       faceLocation->InsertNextValue(loc);
-      const auto cellFaces = state.GetConnectivity()->GetPointer(beginOffset);
+      const auto cellFaces = state.GetConnectivityRange().data() + beginOffset;
       loc += faceArray->Visit(TInsertFaceStream{}, NumberOfFaces, cellFaces, faceStream);
     }
   }
@@ -1220,7 +1228,7 @@ struct GetFaceStreamVisitor
       const vtkIdType beginOffset = state.GetBeginOffset(cellFaces[faceNum]);
       const vtkIdType endOffset = state.GetEndOffset(cellFaces[faceNum]);
       const vtkIdType NumberOfPoints = endOffset - beginOffset;
-      const auto cellPoints = state.GetConnectivity()->GetPointer(beginOffset);
+      const auto cellPoints = state.GetConnectivityRange().data() + beginOffset;
 
       faceStream->InsertNextId(NumberOfPoints);
       for (vtkIdType ptIdx = 0; ptIdx < NumberOfPoints; ++ptIdx)
@@ -1239,7 +1247,7 @@ struct GetPolyFaceStreamVisitor
     CellStateT& state, const vtkIdType cellId, vtkCellArray* faceArray, vtkIdList* faceStream)
   {
 
-    using ValueType = typename CellStateT::ValueType;
+    using ValueType = typename CellStateT::ConnectivityValueType;
     using TGetFaceStream = GetFaceStreamVisitor<ValueType>;
 
     const vtkIdType beginOffset = state.GetBeginOffset(cellId);
@@ -1250,7 +1258,7 @@ struct GetPolyFaceStreamVisitor
     {
       return;
     }
-    const auto cellFaces = state.GetConnectivity()->GetPointer(beginOffset);
+    const auto cellFaces = state.GetConnectivityRange().data() + beginOffset;
     faceArray->Visit(TGetFaceStream{}, NumberOfFaces, cellFaces, faceStream);
   }
 };
@@ -2250,13 +2258,13 @@ struct ConvertVisitor
   template <typename CellStateT>
   void operator()(CellStateT& state, vtkIdType* idMap)
   {
-    using ValueType = typename CellStateT::ValueType;
-    auto* conn = state.GetConnectivity();
-    const vtkIdType nids = conn->GetNumberOfValues();
+    using ValueType = typename CellStateT::ConnectivityValueType;
+    auto conn = state.GetConnectivityRange();
+    const vtkIdType nids = conn.size();
     for (vtkIdType i = 0; i < nids; ++i)
     {
-      ValueType tmp = conn->GetValue(i);
-      conn->SetValue(i, idMap[tmp]);
+      ValueType tmp = conn[i];
+      conn[i] = idMap[tmp];
     }
   }
 };
