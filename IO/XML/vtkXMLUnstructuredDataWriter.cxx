@@ -369,7 +369,7 @@ struct FaceStreamVisitor
       const vtkIdType beginOffset = state.GetBeginOffset(faceNum);
       const vtkIdType endOffset = state.GetEndOffset(faceNum);
       const vtkIdType nFaceVerts = endOffset - beginOffset;
-      const auto facePoints = state.GetConnectivity()->GetPointer(beginOffset);
+      const auto facePoints = state.GetConnectivityRange().data() + beginOffset;
       faceStream->InsertNextValue(nFaceVerts);
       count += nFaceVerts;
       for (vtkIdType j = 0; j < nFaceVerts; ++j)
