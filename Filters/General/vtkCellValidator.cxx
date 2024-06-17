@@ -317,13 +317,13 @@ struct MappingFunctor
   void operator()(CellStateT& state, std::unordered_map<int, int>& node_mapping)
   {
 
-    using ValueType = typename CellStateT::ValueType;
-    auto* conn = state.GetConnectivity();
-    const vtkIdType nids = conn->GetNumberOfValues();
+    using ValueType = typename CellStateT::ConnectivityValueType;
+    auto conn = state.GetConnectivityRange();
+    const vtkIdType nids = conn.size();
     for (vtkIdType i = 0; i < nids; ++i)
     {
-      ValueType tmp = conn->GetValue(i);
-      conn->SetValue(i, node_mapping.at(tmp));
+      ValueType tmp = conn[i];
+      conn[i] = node_mapping.at(tmp);
     }
   }
 };
