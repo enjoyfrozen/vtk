@@ -41,6 +41,9 @@ set(MPI_find_package_vars
 set(OpenVR_find_package_vars
   OpenVR_INCLUDE_DIR
   OpenVR_LIBRARY)
+set(OpenXRRemoting_find_package_vars
+  OpenXRRemoting_BIN_DIR
+  OpenXRRemoting_INCLUDE_DIR)
 set(OSMesa_find_package_vars
   OSMESA_INCLUDE_DIR
   OSMESA_LIBRARY)
