@@ -9,6 +9,7 @@
 
 #include "vtkObjectFactory.h"
 
+#include <vtkAOSDataArrayTemplate.h>
 #include <vtkm/cont/ArrayCopy.h>
 #include <vtkm/cont/ArrayHandleRuntimeVec.h>
 #include <vtkm/cont/ArrayHandleTransform.h>
@@ -663,6 +664,16 @@ bool vtkmDataArray<T>::ReallocateTuples(vtkIdType numberOfTuples)
     }
   }
   return false;
+}
+
+template <typename T>
+void* vtkmDataArray<T>::GetVoidPointer(vtkIdType valueIdx)
+{
+  if (this->Helper)
+  {
+    return reinterpret_cast<void*>(this->Helper->GetPointer(valueIdx, this));
+  }
+  return nullptr;
 }
 
 VTK_ABI_NAMESPACE_END

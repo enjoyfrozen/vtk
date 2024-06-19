@@ -16,6 +16,7 @@
 #include <vtkm/cont/ArrayHandleCast.h>
 #include <vtkm/cont/ArrayHandleGroupVec.h>
 #include <vtkm/cont/ArrayHandleTransform.h>
+#include <vtkm/cont/CellSetExplicit.h>
 #include <vtkm/cont/CellSetSingleType.h>
 #include <vtkm/cont/TryExecute.h>
 
@@ -26,9 +27,11 @@
 
 #include "vtkCellArray.h"
 #include "vtkCellType.h"
+#include "vtkDataArrayRange.h"
 #include "vtkIdTypeArray.h"
 #include "vtkNew.h"
 #include "vtkUnsignedCharArray.h"
+#include "vtkmDataArray.h"
 
 namespace tovtkm
 {
@@ -48,29 +51,66 @@ struct ReorderHex : vtkm::worklet::WorkletMapField
   }
 };
 
+#define SINGLE_TYPE_CELLSET_FROM_VTK_GENERIC_DATA_ARRAY(arrayCls, dataType)                        \
+  if (auto asConcreteArray = arrayCls<dataType>::SafeDownCast(connectivity))                       \
+  {                                                                                                \
+    constexpr bool IsVtkmIdType = std::is_same<dataType, vtkm::Id>::value;                         \
+    using DirectConverter = tovtkm::DataArrayToArrayHandle<arrayCls<dataType>, 1>;                 \
+    auto connHandleDirect = DirectConverter::Wrap(asConcreteArray);                                \
+    auto connHandle = IsVtkmIdType ? connHandleDirect                                              \
+                                   : vtkm::cont::make_ArrayHandleCast<vtkm::Id>(connHandleDirect); \
+    using ConnHandleType = typename std::decay<decltype(connHandle)>::type;                        \
+    using ConnectivityStorageTag = typename ConnHandleType::StorageTag;                            \
+    using CellSetType = vtkm::cont::CellSetSingleType<ConnectivityStorageTag>;                     \
+    CellSetType cellSet;                                                                           \
+    cellSet.Fill(static_cast<vtkm::Id>(numPoints), cellType, cellSize, connHandle);                \
+    return cellSet;                                                                                \
+  }
+
 struct BuildSingleTypeCellSetVisitor
 {
   template <typename CellStateT>
   vtkm::cont::UnknownCellSet operator()(
     CellStateT& state, vtkm::UInt8 cellType, vtkm::IdComponent cellSize, vtkIdType numPoints)
   {
-    using VTKIdT = typename CellStateT::ValueType; // might not be vtkIdType...
-    static constexpr bool IsVtkmIdType = std::is_same<VTKIdT, vtkm::Id>::value;
-
-    // Construct an arrayhandle that holds the connectivity array
-    auto connHandleDirect = tovtkm::vtkAOSDataArrayToFlatArrayHandle(state.GetConnectivity());
-
-    // Cast if necessary:
-    auto connHandle = IsVtkmIdType ? connHandleDirect
-                                   : vtkm::cont::make_ArrayHandleCast<vtkm::Id>(connHandleDirect);
-
-    using ConnHandleType = typename std::decay<decltype(connHandle)>::type;
-    using ConnStorageTag = typename ConnHandleType::StorageTag;
-    using CellSetType = vtkm::cont::CellSetSingleType<ConnStorageTag>;
-
-    CellSetType cellSet;
-    cellSet.Fill(static_cast<vtkm::Id>(numPoints), cellType, cellSize, connHandle);
-    return cellSet;
+    auto connectivity = state.GetConnectivity();
+    SINGLE_TYPE_CELLSET_FROM_VTK_GENERIC_DATA_ARRAY(vtkmDataArray, vtkm::UInt8);
+    SINGLE_TYPE_CELLSET_FROM_VTK_GENERIC_DATA_ARRAY(vtkmDataArray, vtkm::UInt16);
+    SINGLE_TYPE_CELLSET_FROM_VTK_GENERIC_DATA_ARRAY(vtkmDataArray, vtkm::UInt32);
+    SINGLE_TYPE_CELLSET_FROM_VTK_GENERIC_DATA_ARRAY(vtkmDataArray, vtkm::UInt64);
+    SINGLE_TYPE_CELLSET_FROM_VTK_GENERIC_DATA_ARRAY(vtkmDataArray, vtkm::Int8);
+    SINGLE_TYPE_CELLSET_FROM_VTK_GENERIC_DATA_ARRAY(vtkmDataArray, vtkm::Int16);
+    SINGLE_TYPE_CELLSET_FROM_VTK_GENERIC_DATA_ARRAY(vtkmDataArray, vtkm::Int32);
+    SINGLE_TYPE_CELLSET_FROM_VTK_GENERIC_DATA_ARRAY(vtkmDataArray, vtkm::Int64);
+    SINGLE_TYPE_CELLSET_FROM_VTK_GENERIC_DATA_ARRAY(vtkAOSDataArrayTemplate, vtkm::UInt8);
+    SINGLE_TYPE_CELLSET_FROM_VTK_GENERIC_DATA_ARRAY(vtkAOSDataArrayTemplate, vtkm::UInt16);
+    SINGLE_TYPE_CELLSET_FROM_VTK_GENERIC_DATA_ARRAY(vtkAOSDataArrayTemplate, vtkm::UInt32);
+    SINGLE_TYPE_CELLSET_FROM_VTK_GENERIC_DATA_ARRAY(vtkAOSDataArrayTemplate, vtkm::UInt64);
+    SINGLE_TYPE_CELLSET_FROM_VTK_GENERIC_DATA_ARRAY(vtkAOSDataArrayTemplate, vtkm::Int8);
+    SINGLE_TYPE_CELLSET_FROM_VTK_GENERIC_DATA_ARRAY(vtkAOSDataArrayTemplate, vtkm::Int16);
+    SINGLE_TYPE_CELLSET_FROM_VTK_GENERIC_DATA_ARRAY(vtkAOSDataArrayTemplate, vtkm::Int32);
+    SINGLE_TYPE_CELLSET_FROM_VTK_GENERIC_DATA_ARRAY(vtkAOSDataArrayTemplate, vtkm::Int64);
+    SINGLE_TYPE_CELLSET_FROM_VTK_GENERIC_DATA_ARRAY(vtkSOADataArrayTemplate, vtkm::UInt8);
+    SINGLE_TYPE_CELLSET_FROM_VTK_GENERIC_DATA_ARRAY(vtkSOADataArrayTemplate, vtkm::UInt16);
+    SINGLE_TYPE_CELLSET_FROM_VTK_GENERIC_DATA_ARRAY(vtkSOADataArrayTemplate, vtkm::UInt32);
+    SINGLE_TYPE_CELLSET_FROM_VTK_GENERIC_DATA_ARRAY(vtkSOADataArrayTemplate, vtkm::UInt64);
+    SINGLE_TYPE_CELLSET_FROM_VTK_GENERIC_DATA_ARRAY(vtkSOADataArrayTemplate, vtkm::Int8);
+    SINGLE_TYPE_CELLSET_FROM_VTK_GENERIC_DATA_ARRAY(vtkSOADataArrayTemplate, vtkm::Int16);
+    SINGLE_TYPE_CELLSET_FROM_VTK_GENERIC_DATA_ARRAY(vtkSOADataArrayTemplate, vtkm::Int32);
+    SINGLE_TYPE_CELLSET_FROM_VTK_GENERIC_DATA_ARRAY(vtkSOADataArrayTemplate, vtkm::Int64);
+    {
+      // Fallback if none of the above worked.
+      // Construct an arrayhandle that holds the connectivity array
+      auto connRange = state.GetConnectivityRange();
+      auto connHandleDirect = vtkm::cont::make_ArrayHandle(
+        reinterpret_cast<vtkm::Id*>(connRange.data()), connRange.size(), vtkm::CopyFlag::Off);
+      using ConnHandleType = vtkm::cont::ArrayHandle<typename CellStateT::ConnectivityValueType>;
+      using ConnectivityStorageTag = typename ConnHandleType::StorageTag;
+      using CellSetType = vtkm::cont::CellSetSingleType<ConnectivityStorageTag>;
+      CellSetType cellSet;
+      cellSet.Fill(static_cast<vtkm::Id>(numPoints), cellType, cellSize, connHandleDirect);
+      return cellSet;
+    }
   }
 };
 
@@ -79,24 +119,44 @@ struct BuildSingleTypeVoxelCellSetVisitor
   template <typename CellStateT>
   vtkm::cont::UnknownCellSet operator()(CellStateT& state, vtkIdType numPoints)
   {
-    vtkm::cont::ArrayHandle<vtkm::Id> connHandle;
+    using VTKIdT = typename CellStateT::ConnectivityValueType; // might not be vtkIdType...
+    if (auto connAsVtkmArray = vtkmDataArray<VTKIdT>::SafeDownCast(state.GetConnectivity()))
     {
-      auto* conn = state.GetConnectivity();
-      const auto* origData = conn->GetPointer(0);
-      const vtkm::Id numIds = conn->GetNumberOfValues();
-      vtkm::cont::ArrayCopy(
-        vtkm::cont::make_ArrayHandle(origData, numIds, vtkm::CopyFlag::Off), connHandle);
+      vtkm::cont::ArrayHandle<vtkm::Id> connHandle;
+      {
+        vtkm::cont::ArrayCopy(connAsVtkmArray->GetVtkmUnknownArrayHandle(), connHandle);
+        // reorder cells from voxel->hex
+        vtkm::cont::Invoker invoke;
+        invoke(ReorderHex{}, vtkm::cont::make_ArrayHandleGroupVec<8>(connHandle));
+      }
 
-      // reorder cells from voxel->hex
-      vtkm::cont::Invoker invoke;
-      invoke(ReorderHex{}, vtkm::cont::make_ArrayHandleGroupVec<8>(connHandle));
+      using CellSetType = vtkm::cont::CellSetSingleType<>;
+
+      CellSetType cellSet;
+      cellSet.Fill(numPoints, vtkm::CELL_SHAPE_HEXAHEDRON, 8, connHandle);
+      return cellSet;
     }
+    else
+    {
+      vtkm::cont::ArrayHandle<vtkm::Id> connHandle;
+      {
+        auto range = state.GetConnectivityRange();
+        vtkm::cont::ArrayCopy(
+          vtkm::cont::make_ArrayHandle<VTKIdT>(
+            reinterpret_cast<VTKIdT*>(range.data()), range.size(), vtkm::CopyFlag::Off),
+          connHandle);
 
-    using CellSetType = vtkm::cont::CellSetSingleType<>;
+        // reorder cells from voxel->hex
+        vtkm::cont::Invoker invoke;
+        invoke(ReorderHex{}, vtkm::cont::make_ArrayHandleGroupVec<8>(connHandle));
+      }
 
-    CellSetType cellSet;
-    cellSet.Fill(numPoints, vtkm::CELL_SHAPE_HEXAHEDRON, 8, connHandle);
-    return cellSet;
+      using CellSetType = vtkm::cont::CellSetSingleType<>;
+
+      CellSetType cellSet;
+      cellSet.Fill(numPoints, vtkm::CELL_SHAPE_HEXAHEDRON, 8, connHandle);
+      return cellSet;
+    }
   }
 };
 
@@ -161,28 +221,123 @@ struct BuildExplicitCellSetVisitor
   vtkm::cont::UnknownCellSet operator()(CellStateT& state,
     const vtkm::cont::ArrayHandle<vtkm::UInt8, S>& shapes, vtkm::Id numPoints) const
   {
-    using VTKIdT = typename CellStateT::ValueType; // might not be vtkIdType...
-    static constexpr bool IsVtkmIdType = std::is_same<VTKIdT, vtkm::Id>::value;
+    using ConnectivityValueType =
+      typename CellStateT::ConnectivityValueType;                   // might not be vtkIdType...
+    using OffsetsValueType = typename CellStateT::OffsetsValueType; // might not be vtkIdType...
+    static constexpr bool ConnIsVtkmIdType = std::is_same<ConnectivityValueType, vtkm::Id>::value;
+    static constexpr bool OffstIsVtkmIdType = std::is_same<OffsetsValueType, vtkm::Id>::value;
 
+    if (auto connAsVtkmArray =
+          vtkmDataArray<ConnectivityValueType>::SafeDownCast(state.GetConnectivity()))
+    {
+      if (auto offsetsAsVtkmArray =
+            vtkmDataArray<OffsetsValueType>::SafeDownCast(state.GetOffsets()))
+      {
+        // Construct arrayhandles to hold the arrays
+        using OffstDirectConverter =
+          tovtkm::DataArrayToArrayHandle<vtkmDataArray<OffsetsValueType>, 1>;
+        using ConnDirectConverter =
+          tovtkm::DataArrayToArrayHandle<vtkmDataArray<ConnectivityValueType>, 1>;
+        auto offsetsHandleDirect = OffstDirectConverter::Wrap(offsetsAsVtkmArray);
+        auto connHandleDirect = ConnDirectConverter::Wrap(connAsVtkmArray);
+
+        // Cast if necessary:
+        auto connHandle = ConnIsVtkmIdType
+          ? connHandleDirect
+          : vtkm::cont::make_ArrayHandleCast<vtkm::Id>(connHandleDirect);
+        auto offsetsHandle = OffstIsVtkmIdType
+          ? offsetsHandleDirect
+          : vtkm::cont::make_ArrayHandleCast<vtkm::Id>(offsetsHandleDirect);
+
+        using ConnectivityStorageTag = typename decltype(connHandle)::StorageTag;
+        using OffsetsStorageTag = typename decltype(offsetsHandle)::StorageTag;
+        using CellSetType =
+          vtkm::cont::CellSetExplicit<S, ConnectivityStorageTag, OffsetsStorageTag>;
+
+        CellSetType cellSet;
+        cellSet.Fill(numPoints, shapes, connHandle, offsetsHandle);
+        return cellSet;
+      }
+    }
+    else if (auto connAsAosArray = vtkAOSDataArrayTemplate<ConnectivityValueType>::SafeDownCast(
+               state.GetConnectivity()))
+    {
+      if (auto offsetsAsAosArray =
+            vtkAOSDataArrayTemplate<OffsetsValueType>::SafeDownCast(state.GetOffsets()))
+      {
+        // Construct arrayhandles to hold the arrays
+        using OffstDirectConverter =
+          tovtkm::DataArrayToArrayHandle<vtkAOSDataArrayTemplate<OffsetsValueType>, 1>;
+        using ConnDirectConverter =
+          tovtkm::DataArrayToArrayHandle<vtkAOSDataArrayTemplate<ConnectivityValueType>, 1>;
+        auto offsetsHandleDirect = OffstDirectConverter::Wrap(offsetsAsAosArray);
+        auto connHandleDirect = ConnDirectConverter::Wrap(connAsAosArray);
+
+        // Cast if necessary:
+        auto connHandle = ConnIsVtkmIdType
+          ? connHandleDirect
+          : vtkm::cont::make_ArrayHandleCast<vtkm::Id>(connHandleDirect);
+        auto offsetsHandle = OffstIsVtkmIdType
+          ? offsetsHandleDirect
+          : vtkm::cont::make_ArrayHandleCast<vtkm::Id>(offsetsHandleDirect);
+
+        using ConnectivityStorageTag = typename decltype(connHandle)::StorageTag;
+        using OffsetsStorageTag = typename decltype(offsetsHandle)::StorageTag;
+        using CellSetType =
+          vtkm::cont::CellSetExplicit<S, ConnectivityStorageTag, OffsetsStorageTag>;
+
+        CellSetType cellSet;
+        cellSet.Fill(numPoints, shapes, connHandle, offsetsHandle);
+        return cellSet;
+      }
+    }
+    else if (auto connAsSoaArray = vtkSOADataArrayTemplate<ConnectivityValueType>::SafeDownCast(
+               state.GetConnectivity()))
+    {
+      if (auto offsetsAsSoaArray =
+            vtkSOADataArrayTemplate<OffsetsValueType>::SafeDownCast(state.GetOffsets()))
+      {
+        // Construct arrayhandles to hold the arrays
+        using OffstDirectConverter =
+          tovtkm::DataArrayToArrayHandle<vtkSOADataArrayTemplate<OffsetsValueType>, 1>;
+        using ConnDirectConverter =
+          tovtkm::DataArrayToArrayHandle<vtkSOADataArrayTemplate<ConnectivityValueType>, 1>;
+        auto offsetsHandleDirect = OffstDirectConverter::Wrap(offsetsAsSoaArray);
+        auto connHandleDirect = ConnDirectConverter::Wrap(connAsSoaArray);
+
+        // Cast if necessary:
+        auto connHandle = ConnIsVtkmIdType
+          ? connHandleDirect
+          : vtkm::cont::make_ArrayHandleCast<vtkm::Id>(connHandleDirect);
+        auto offsetsHandle = OffstIsVtkmIdType
+          ? offsetsHandleDirect
+          : vtkm::cont::make_ArrayHandleCast<vtkm::Id>(offsetsHandleDirect);
+
+        using ConnectivityStorageTag = typename decltype(connHandle)::StorageTag;
+        using OffsetsStorageTag = typename decltype(offsetsHandle)::StorageTag;
+        using CellSetType =
+          vtkm::cont::CellSetExplicit<S, ConnectivityStorageTag, OffsetsStorageTag>;
+
+        CellSetType cellSet;
+        cellSet.Fill(numPoints, shapes, connHandle, offsetsHandle);
+        return cellSet;
+      }
+    }
+    // Fallback to vtkDataArray
     // Construct arrayhandles to hold the arrays
-    auto offsetsHandleDirect = tovtkm::vtkAOSDataArrayToFlatArrayHandle(state.GetOffsets());
-    auto connHandleDirect = tovtkm::vtkAOSDataArrayToFlatArrayHandle(state.GetConnectivity());
+    auto offsetsRange = state.GetOffsetsRange();
+    auto connRange = state.GetConnectivityRange();
+    auto offsetsHandleDirect = vtkm::cont::make_ArrayHandle(
+      reinterpret_cast<vtkm::Id*>(offsetsRange.data()), offsetsRange.size(), vtkm::CopyFlag::Off);
+    auto connHandleDirect = vtkm::cont::make_ArrayHandle(
+      reinterpret_cast<vtkm::Id*>(connRange.data()), offsetsRange.size(), vtkm::CopyFlag::Off);
 
-    // Cast if necessary:
-    auto connHandle = IsVtkmIdType ? connHandleDirect
-                                   : vtkm::cont::make_ArrayHandleCast<vtkm::Id>(connHandleDirect);
-    auto offsetsHandle = IsVtkmIdType
-      ? offsetsHandleDirect
-      : vtkm::cont::make_ArrayHandleCast<vtkm::Id>(offsetsHandleDirect);
-
-    using ShapesStorageTag = typename std::decay<decltype(shapes)>::type::StorageTag;
-    using ConnStorageTag = typename decltype(connHandle)::StorageTag;
-    using OffsetsStorageTag = typename decltype(offsetsHandle)::StorageTag;
-    using CellSetType =
-      vtkm::cont::CellSetExplicit<ShapesStorageTag, ConnStorageTag, OffsetsStorageTag>;
+    using ConnectivityStorageTag = typename decltype(connHandleDirect)::StorageTag;
+    using OffsetsStorageTag = typename decltype(offsetsHandleDirect)::StorageTag;
+    using CellSetType = vtkm::cont::CellSetExplicit<S, ConnectivityStorageTag, OffsetsStorageTag>;
 
     CellSetType cellSet;
-    cellSet.Fill(numPoints, shapes, connHandle, offsetsHandle);
+    cellSet.Fill(numPoints, shapes, connHandleDirect, offsetsHandleDirect);
     return cellSet;
   }
 };
@@ -225,10 +380,53 @@ bool Convert(const vtkm::cont::UnknownCellSet& toConvert, vtkCellArray* cells,
   vtkUnsignedCharArray* typesArray)
 {
   const auto* cellset = toConvert.GetCellSetBase();
+  const vtkm::Id numCells = cellset->GetNumberOfCells();
 
+  if (toConvert.CanConvert<vtkm::cont::CellSetSingleType<>>())
+  {
+    vtkm::cont::CellSetSingleType<> single;
+    toConvert.AsCellSet(single);
+    auto connectivity = vtk::TakeSmartPointer(make_vtkmDataArray(single.GetConnectivityArray(
+      vtkm::TopologyElementTagCell(), vtkm::TopologyElementTagPoint())));
+    cells->SetData(single.GetNumberOfPointsInCell(0), connectivity);
+    if (typesArray != nullptr)
+    {
+      typesArray->SetNumberOfComponents(1);
+      typesArray->SetNumberOfTuples(static_cast<vtkIdType>(numCells));
+      for (vtkm::Id cellId = 0; cellId < numCells; ++cellId)
+      {
+        const vtkIdType vtkCellId = static_cast<vtkIdType>(cellId);
+        typesArray->SetValue(vtkCellId, cellset->GetCellShape(cellId));
+      }
+    }
+    return true;
+  }
+  else if (toConvert.CanConvert<vtkm::cont::CellSetExplicit<>>())
+  {
+    vtkm::cont::CellSetExplicit<> explicitCS;
+    toConvert.AsCellSet(explicitCS);
+    auto connectivity = vtk::TakeSmartPointer(make_vtkmDataArray(explicitCS.GetConnectivityArray(
+      vtkm::TopologyElementTagCell(), vtkm::TopologyElementTagPoint())));
+    auto offsets = vtk::TakeSmartPointer(make_vtkmDataArray(
+      explicitCS.GetOffsetsArray(vtkm::TopologyElementTagCell(), vtkm::TopologyElementTagPoint())));
+    cells->SetData(offsets, connectivity);
+    auto shapesArray =
+      explicitCS.GetShapesArray(vtkm::TopologyElementTagCell(), vtkm::TopologyElementTagPoint());
+    if (typesArray != nullptr)
+    {
+      typesArray->SetNumberOfComponents(1);
+      typesArray->SetNumberOfTuples(static_cast<vtkIdType>(numCells));
+      for (vtkm::Id cellId = 0; cellId < numCells; ++cellId)
+      {
+        const vtkIdType vtkCellId = static_cast<vtkIdType>(cellId);
+        typesArray->SetValue(vtkCellId, cellset->GetCellShape(cellId));
+      }
+    }
+    return true;
+  }
+  vtkGenericWarningMacro(<< "Zero copy in fromvtkm::Convert failed!");
   // small hack as we can't compute properly the number of cells
   // instead we will pre-allocate and than shrink
-  const vtkm::Id numCells = cellset->GetNumberOfCells();
   const vtkm::Id maxSize = numCells * 8; // largest cell type is hex
 
   // TODO this could steal the guts out of explicit cellsets as a future
