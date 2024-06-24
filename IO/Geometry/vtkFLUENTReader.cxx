@@ -134,7 +134,7 @@ ChunkBlock ReadChunkBlock(const std::string& chunkBuffer, size_t startIdx)
 }
 
 //------------------------------------------------------------------------------
-int ReadInt(const std::string& chunkBuffer, size_t ptr, bool swapBytes)
+int ReadInt(const std::string& chunkBuffer, size_t& ptr, bool swapBytes)
 {
   union mix_i {
     int i;
@@ -152,11 +152,13 @@ int ReadInt(const std::string& chunkBuffer, size_t ptr, bool swapBytes)
       mi.c[j] = chunkBuffer.at(ptr + j);
     }
   }
+
+  ptr += 4;
   return mi.i;
 }
 
 //------------------------------------------------------------------------------
-float ReadFloat(const std::string& chunkBuffer, size_t ptr, bool swapBytes)
+float ReadFloat(const std::string& chunkBuffer, size_t& ptr, bool swapBytes)
 {
   union mix_f {
     float f;
@@ -174,11 +176,13 @@ float ReadFloat(const std::string& chunkBuffer, size_t ptr, bool swapBytes)
       mf.c[j] = chunkBuffer.at(ptr + j);
     }
   }
+
+  ptr += 4;
   return mf.f;
 }
 
 //------------------------------------------------------------------------------
-double ReadDouble(const std::string& chunkBuffer, size_t ptr, bool swapBytes)
+double ReadDouble(const std::string& chunkBuffer, size_t& ptr, bool swapBytes)
 {
   union mix_i {
     double d;
@@ -196,6 +200,8 @@ double ReadDouble(const std::string& chunkBuffer, size_t ptr, bool swapBytes)
       md.c[j] = chunkBuffer.at(ptr + j);
     }
   }
+
+  ptr += 8;
   return md.d;
 }
 
@@ -2452,13 +2458,9 @@ void vtkFLUENTReader::ReadNodesSinglePrecision(const std::string& chunkBuffer)
     for (unsigned int i = firstIndex; i <= lastIndex; i++)
     {
       x = ::ReadFloat(chunkBuffer, ptr, this->GetSwapBytes());
-      ptr = ptr + 4;
-
       y = ::ReadFloat(chunkBuffer, ptr, this->GetSwapBytes());
-      ptr = ptr + 4;
-
       z = ::ReadFloat(chunkBuffer, ptr, this->GetSwapBytes());
-      ptr = ptr + 4;
+
       this->Points->InsertPoint(i - 1, x, y, z);
     }
   }
@@ -2467,11 +2469,7 @@ void vtkFLUENTReader::ReadNodesSinglePrecision(const std::string& chunkBuffer)
     for (unsigned int i = firstIndex; i <= lastIndex; i++)
     {
       x = ::ReadFloat(chunkBuffer, ptr, this->GetSwapBytes());
-      ptr = ptr + 4;
-
       y = ::ReadFloat(chunkBuffer, ptr, this->GetSwapBytes());
-      ptr = ptr + 4;
-
       z = 0.0;
 
       this->Points->InsertPoint(i - 1, x, y, z);
@@ -2495,13 +2493,9 @@ void vtkFLUENTReader::ReadNodesDoublePrecision(const std::string& chunkBuffer)
     for (unsigned int i = firstIndex; i <= lastIndex; i++)
     {
       double x = ::ReadDouble(chunkBuffer, ptr, this->GetSwapBytes());
-      ptr = ptr + 8;
-
       double y = ::ReadDouble(chunkBuffer, ptr, this->GetSwapBytes());
-      ptr = ptr + 8;
-
       double z = ::ReadDouble(chunkBuffer, ptr, this->GetSwapBytes());
-      ptr = ptr + 8;
+
       this->Points->InsertPoint(i - 1, x, y, z);
     }
   }
@@ -2510,10 +2504,7 @@ void vtkFLUENTReader::ReadNodesDoublePrecision(const std::string& chunkBuffer)
     for (unsigned int i = firstIndex; i <= lastIndex; i++)
     {
       double x = ::ReadDouble(chunkBuffer, ptr, this->GetSwapBytes());
-      ptr = ptr + 8;
-
       double y = ::ReadDouble(chunkBuffer, ptr, this->GetSwapBytes());
-      ptr = ptr + 8;
 
       this->Points->InsertPoint(i - 1, x, y, 0.0);
     }
@@ -2590,8 +2581,6 @@ void vtkFLUENTReader::ReadCellsBinary(const std::string& chunkBuffer)
       cell.zoneId = zoneId;
       cell.parent = 0;
       cell.child = 0;
-
-      ptr = ptr + 4;
     }
   }
   else
@@ -2707,7 +2696,6 @@ void vtkFLUENTReader::ReadFacesBinary(const std::string& chunkBuffer)
     if ((faceType == 0) || (faceType == 5))
     {
       numberOfNodesInFace = ::ReadInt(chunkBuffer, ptr, this->GetSwapBytes());
-      ptr = ptr + 4;
     }
     else
     {
@@ -2722,13 +2710,10 @@ void vtkFLUENTReader::ReadFacesBinary(const std::string& chunkBuffer)
     {
       face.nodeIndices[k] = ::ReadInt(chunkBuffer, ptr, this->GetSwapBytes());
       face.nodeIndices[k]--;
-      ptr = ptr + 4;
     }
 
     face.c0 = ::ReadInt(chunkBuffer, ptr, this->GetSwapBytes());
-    ptr = ptr + 4;
     face.c1 = ::ReadInt(chunkBuffer, ptr, this->GetSwapBytes());
-    ptr = ptr + 4;
     face.c0--;
     face.c1--;
     face.type = numberOfNodesInFace;
@@ -2819,9 +2804,7 @@ void vtkFLUENTReader::ReadPeriodicShadowFacesBinary(const std::string& chunkBuff
   for (unsigned int i = firstIndex; i <= lastIndex; i++)
   {
     ::ReadInt(chunkBuffer, ptr, this->GetSwapBytes());
-    ptr = ptr + 4;
     ::ReadInt(chunkBuffer, ptr, this->GetSwapBytes());
-    ptr = ptr + 4;
   }
 }
 
@@ -2864,11 +2847,9 @@ void vtkFLUENTReader::ReadCellTreeBinary(const std::string& chunkBuffer)
   {
     this->Cells[i - 1].parent = 1;
     numberOfKids = ::ReadInt(chunkBuffer, ptr, this->GetSwapBytes());
-    ptr = ptr + 4;
     for (int j = 0; j < numberOfKids; j++)
     {
       kid = ::ReadInt(chunkBuffer, ptr, this->GetSwapBytes());
-      ptr = ptr + 4;
       this->Cells[kid - 1].child = 1;
     }
   }
@@ -2912,11 +2893,9 @@ void vtkFLUENTReader::ReadFaceTreeBinary(const std::string& chunkBuffer)
   {
     this->Faces[i - 1].parent = 1;
     numberOfKids = ::ReadInt(chunkBuffer, ptr, this->GetSwapBytes());
-    ptr = ptr + 4;
     for (int j = 0; j < numberOfKids; j++)
     {
       kid = ::ReadInt(chunkBuffer, ptr, this->GetSwapBytes());
-      ptr = ptr + 4;
       this->Faces[kid - 1].child = 1;
     }
   }
@@ -2957,9 +2936,7 @@ void vtkFLUENTReader::ReadInterfaceFaceParentsBinary(const std::string& chunkBuf
   for (unsigned int i = faceId0; i <= faceId1; i++)
   {
     parentId0 = ::ReadInt(chunkBuffer, ptr, this->GetSwapBytes());
-    ptr = ptr + 4;
     parentId1 = ::ReadInt(chunkBuffer, ptr, this->GetSwapBytes());
-    ptr = ptr + 4;
     this->Faces[parentId0 - 1].interfaceFaceParent = 1;
     this->Faces[parentId1 - 1].interfaceFaceParent = 1;
     this->Faces[i - 1].interfaceFaceChild = 1;
@@ -3002,9 +2979,7 @@ void vtkFLUENTReader::ReadNonconformalGridInterfaceFaceInformationBinary(
   for (int i = 0; i < numberOfFaces; i++)
   {
     child = ::ReadInt(chunkBuffer, ptr, this->GetSwapBytes());
-    ptr = ptr + 4;
     parent = ::ReadInt(chunkBuffer, ptr, this->GetSwapBytes());
-    ptr = ptr + 4;
     this->Faces[child - 1].ncgChild = 1;
     this->Faces[parent - 1].ncgParent = 1;
   }
@@ -3759,12 +3734,10 @@ void vtkFLUENTReader::ReadData(const std::string& dataBuffer, int dataType)
       else if (dataType == 2)
       {
         temp = ::ReadFloat(dataBuffer, ptr, this->GetSwapBytes());
-        ptr = ptr + 4;
       }
       else
       {
         temp = ::ReadDouble(dataBuffer, ptr, this->GetSwapBytes());
-        ptr = ptr + 8;
       }
       this->ScalarDataChunks[this->ScalarDataChunks.size() - 1].scalarData.push_back(temp);
     }
@@ -3788,20 +3761,14 @@ void vtkFLUENTReader::ReadData(const std::string& dataBuffer, int dataType)
       else if (dataType == 2)
       {
         tempx = ::ReadFloat(dataBuffer, ptr, this->GetSwapBytes());
-        ptr = ptr + 4;
         tempy = ::ReadFloat(dataBuffer, ptr, this->GetSwapBytes());
-        ptr = ptr + 4;
         tempz = ::ReadFloat(dataBuffer, ptr, this->GetSwapBytes());
-        ptr = ptr + 4;
       }
       else
       {
         tempx = ::ReadDouble(dataBuffer, ptr, this->GetSwapBytes());
-        ptr = ptr + 8;
         tempy = ::ReadDouble(dataBuffer, ptr, this->GetSwapBytes());
-        ptr = ptr + 8;
         tempz = ::ReadDouble(dataBuffer, ptr, this->GetSwapBytes());
-        ptr = ptr + 8;
       }
       this->VectorDataChunks[this->VectorDataChunks.size() - 1].iComponentData.push_back(tempx);
       this->VectorDataChunks[this->VectorDataChunks.size() - 1].jComponentData.push_back(tempy);
