@@ -108,8 +108,30 @@ struct vtkFLUENTReader::SubSection
   std::vector<int> zoneIds;
 };
 
+struct ChunkBlock
+{
+  size_t StartIdx;
+  size_t EndIdx;
+  std::string Buffer;
+};
+
 namespace
 {
+
+//------------------------------------------------------------------------------
+/**
+ * @brief Extract a parenthesis-delimited block,
+ * starting after `startIdx` in `chunkBuffer`.
+ */
+ChunkBlock ReadChunkBlock(const std::string& chunkBuffer, size_t startIdx)
+{
+  ChunkBlock info;
+  info.StartIdx = chunkBuffer.find('(', startIdx);
+  info.EndIdx = chunkBuffer.find(')', startIdx + 1);
+  info.Buffer = chunkBuffer.substr(info.StartIdx + 1, info.EndIdx - info.StartIdx - 1);
+
+  return info;
+}
 
 //------------------------------------------------------------------------------
 int ReadInt(const std::string& chunkBuffer, size_t ptr, bool swapBytes)
@@ -2359,11 +2381,9 @@ bool vtkFLUENTReader::ParseCaseFile()
 //------------------------------------------------------------------------------
 void vtkFLUENTReader::ReadLittleEndianFlag(const std::string& chunkBuffer)
 {
-  size_t start = chunkBuffer.find('(', 1);
-  size_t end = chunkBuffer.find(')', 1);
-  std::string info = chunkBuffer.substr(start + 1, end - start - 1);
+  ChunkBlock info = ::ReadChunkBlock(chunkBuffer, 1);
   int flag;
-  sscanf(info.c_str(), "%d", &flag);
+  sscanf(info.Buffer.c_str(), "%d", &flag);
 
   if (flag == 60)
   {
@@ -2378,13 +2398,10 @@ void vtkFLUENTReader::ReadLittleEndianFlag(const std::string& chunkBuffer)
 //------------------------------------------------------------------------------
 void vtkFLUENTReader::ReadNodesAscii(const std::string& chunkBuffer)
 {
-  size_t infoStart = chunkBuffer.find('(', 1);
-  size_t infoEnd = chunkBuffer.find(')', 1);
-  std::string info = chunkBuffer.substr(infoStart + 1, infoEnd - infoStart - 1);
-
+  ChunkBlock info = ::ReadChunkBlock(chunkBuffer, 1);
   unsigned int zoneId, firstIndex, lastIndex;
   int type, nd;
-  sscanf(info.c_str(), "%x %x %x %d %d", &zoneId, &firstIndex, &lastIndex, &type, &nd);
+  sscanf(info.Buffer.c_str(), "%x %x %x %d %d", &zoneId, &firstIndex, &lastIndex, &type, &nd);
 
   if (zoneId == 0)
   {
@@ -2392,10 +2409,8 @@ void vtkFLUENTReader::ReadNodesAscii(const std::string& chunkBuffer)
   }
   else
   {
-    size_t dstart = chunkBuffer.find('(', infoEnd);
-    size_t dend = chunkBuffer.find(')', dstart + 1);
-    std::string pdata = chunkBuffer.substr(dstart + 1, dend - infoStart - 1);
-    std::stringstream pdatastream(pdata);
+    ChunkBlock dataBlock = ::ReadChunkBlock(chunkBuffer, info.EndIdx);
+    std::stringstream pdatastream(dataBlock.Buffer);
 
     double x, y, z;
     if (this->GridDimension == 3)
@@ -2423,15 +2438,12 @@ void vtkFLUENTReader::ReadNodesAscii(const std::string& chunkBuffer)
 //------------------------------------------------------------------------------
 void vtkFLUENTReader::ReadNodesSinglePrecision(const std::string& chunkBuffer)
 {
-  size_t infoStart = chunkBuffer.find('(', 1);
-  size_t infoEnd = chunkBuffer.find(')', 1);
-  std::string info = chunkBuffer.substr(infoStart + 1, infoEnd - infoStart - 1);
-
+  ChunkBlock info = ::ReadChunkBlock(chunkBuffer, 1);
   unsigned int zoneId, firstIndex, lastIndex;
   int type;
-  sscanf(info.c_str(), "%x %x %x %d", &zoneId, &firstIndex, &lastIndex, &type);
+  sscanf(info.Buffer.c_str(), "%x %x %x %d", &zoneId, &firstIndex, &lastIndex, &type);
 
-  size_t dstart = chunkBuffer.find('(', infoEnd);
+  size_t dstart = chunkBuffer.find('(', info.EndIdx);
   size_t ptr = dstart + 1;
 
   double x, y, z;
@@ -2470,15 +2482,12 @@ void vtkFLUENTReader::ReadNodesSinglePrecision(const std::string& chunkBuffer)
 //------------------------------------------------------------------------------
 void vtkFLUENTReader::ReadNodesDoublePrecision(const std::string& chunkBuffer)
 {
-  size_t infoStart = chunkBuffer.find('(', 1);
-  size_t infoEnd = chunkBuffer.find(')', 1);
-  std::string info = chunkBuffer.substr(infoStart + 1, infoEnd - infoStart - 1);
-
+  ChunkBlock info = ::ReadChunkBlock(chunkBuffer, 1);
   unsigned int zoneId, firstIndex, lastIndex;
   int type;
-  sscanf(info.c_str(), "%x %x %x %d", &zoneId, &firstIndex, &lastIndex, &type);
+  sscanf(info.Buffer.c_str(), "%x %x %x %d", &zoneId, &firstIndex, &lastIndex, &type);
 
-  size_t dstart = chunkBuffer.find('(', infoEnd);
+  size_t dstart = chunkBuffer.find('(', info.EndIdx);
   size_t ptr = dstart + 1;
 
   if (this->GridDimension == 3)
@@ -2514,29 +2523,26 @@ void vtkFLUENTReader::ReadNodesDoublePrecision(const std::string& chunkBuffer)
 //------------------------------------------------------------------------------
 void vtkFLUENTReader::ReadCellsAscii(const std::string& chunkBuffer)
 {
-  size_t infoStart = chunkBuffer.find('(', 1);
-  size_t infoEnd = chunkBuffer.find(')', 1);
-  std::string info = chunkBuffer.substr(infoStart + 1, infoEnd - infoStart - 1);
+  ChunkBlock info = ::ReadChunkBlock(chunkBuffer, 1);
 
-  if (info[0] == '0')
+  if (info.Buffer[0] == '0')
   { // Cell Info
     unsigned int zoneId, firstIndex, lastIndex;
     int type;
-    sscanf(info.c_str(), "%x %x %x %d", &zoneId, &firstIndex, &lastIndex, &type);
+    sscanf(info.Buffer.c_str(), "%x %x %x %d", &zoneId, &firstIndex, &lastIndex, &type);
     this->Cells.resize(lastIndex);
   }
   else
   { // Cell Definitions
     unsigned int zoneId, firstIndex, lastIndex;
     int type, elementType;
-    sscanf(info.c_str(), "%x %x %x %d %d", &zoneId, &firstIndex, &lastIndex, &type, &elementType);
+    sscanf(
+      info.Buffer.c_str(), "%x %x %x %d %d", &zoneId, &firstIndex, &lastIndex, &type, &elementType);
 
     if (elementType == 0)
     {
-      size_t dstart = chunkBuffer.find('(', infoEnd);
-      size_t dend = chunkBuffer.find(')', dstart + 1);
-      std::string pdata = chunkBuffer.substr(dstart + 1, dend - infoStart - 1);
-      std::stringstream pdatastream(pdata);
+      ChunkBlock dataBlock = ::ReadChunkBlock(chunkBuffer, info.EndIdx);
+      std::stringstream pdatastream(dataBlock.Buffer);
       for (unsigned int i = firstIndex; i <= lastIndex; i++)
       {
         int cellType;
@@ -2566,16 +2572,14 @@ void vtkFLUENTReader::ReadCellsAscii(const std::string& chunkBuffer)
 //------------------------------------------------------------------------------
 void vtkFLUENTReader::ReadCellsBinary(const std::string& chunkBuffer)
 {
-  size_t infoStart = chunkBuffer.find('(', 1);
-  size_t infoEnd = chunkBuffer.find(')', 1);
-  std::string info = chunkBuffer.substr(infoStart + 1, infoEnd - infoStart - 1);
-
+  ChunkBlock info = ::ReadChunkBlock(chunkBuffer, 1);
   unsigned int zoneId, firstIndex, lastIndex, type, elementType;
-  sscanf(info.c_str(), "%x %x %x %x %x", &zoneId, &firstIndex, &lastIndex, &type, &elementType);
+  sscanf(
+    info.Buffer.c_str(), "%x %x %x %x %x", &zoneId, &firstIndex, &lastIndex, &type, &elementType);
 
   if (elementType == 0)
   {
-    size_t dstart = chunkBuffer.find('(', infoEnd);
+    size_t dstart = chunkBuffer.find('(', info.EndIdx);
     size_t ptr = dstart + 1;
     for (unsigned int i = firstIndex; i <= lastIndex; i++)
     {
@@ -2606,26 +2610,23 @@ void vtkFLUENTReader::ReadCellsBinary(const std::string& chunkBuffer)
 //------------------------------------------------------------------------------
 bool vtkFLUENTReader::ReadFacesAscii(const std::string& chunkBuffer)
 {
-  size_t infoStart = chunkBuffer.find('(', 1);
-  size_t infoEnd = chunkBuffer.find(')', 1);
-  std::string info = chunkBuffer.substr(infoStart + 1, infoEnd - infoStart - 1);
+  ChunkBlock info = ::ReadChunkBlock(chunkBuffer, 1);
 
-  if (info[0] == '0')
+  if (info.Buffer[0] == '0')
   { // Face Info
     unsigned int zoneId, firstIndex, lastIndex, bcType;
-    sscanf(info.c_str(), "%x %x %x %x", &zoneId, &firstIndex, &lastIndex, &bcType);
+    sscanf(info.Buffer.c_str(), "%x %x %x %x", &zoneId, &firstIndex, &lastIndex, &bcType);
 
     this->Faces.resize(lastIndex);
   }
   else
   { // Face Definitions
     unsigned int zoneId, firstIndex, lastIndex, bcType, faceType;
-    sscanf(info.c_str(), "%x %x %x %x %x", &zoneId, &firstIndex, &lastIndex, &bcType, &faceType);
+    sscanf(
+      info.Buffer.c_str(), "%x %x %x %x %x", &zoneId, &firstIndex, &lastIndex, &bcType, &faceType);
 
-    size_t dstart = chunkBuffer.find('(', infoEnd);
-    size_t dend = chunkBuffer.find(')', dstart + 1);
-    std::string pdata = chunkBuffer.substr(dstart + 1, dend - infoStart - 1);
-    std::stringstream pdatastream(pdata);
+    ChunkBlock dataBlock = ::ReadChunkBlock(chunkBuffer, info.EndIdx);
+    std::stringstream pdatastream(dataBlock.Buffer);
 
     int numberOfNodesInFace = 0;
     for (unsigned int i = firstIndex; i <= lastIndex; i++)
@@ -2693,14 +2694,12 @@ bool vtkFLUENTReader::ReadFacesAscii(const std::string& chunkBuffer)
 //------------------------------------------------------------------------------
 void vtkFLUENTReader::ReadFacesBinary(const std::string& chunkBuffer)
 {
-  size_t infoStart = chunkBuffer.find('(', 1);
-  size_t infoEnd = chunkBuffer.find(')', 1);
-  std::string info = chunkBuffer.substr(infoStart + 1, infoEnd - infoStart - 1);
-
+  ChunkBlock info = ::ReadChunkBlock(chunkBuffer, 1);
   unsigned int zoneId, firstIndex, lastIndex, bcType, faceType;
-  sscanf(info.c_str(), "%x %x %x %x %x", &zoneId, &firstIndex, &lastIndex, &bcType, &faceType);
+  sscanf(
+    info.Buffer.c_str(), "%x %x %x %x %x", &zoneId, &firstIndex, &lastIndex, &bcType, &faceType);
 
-  size_t dstart = chunkBuffer.find('(', infoEnd);
+  size_t dstart = chunkBuffer.find('(', info.EndIdx);
   int numberOfNodesInFace = 0;
   size_t ptr = dstart + 1;
   for (unsigned int i = firstIndex; i <= lastIndex; i++)
@@ -2768,12 +2767,10 @@ void vtkFLUENTReader::ReadFacesBinary(const std::string& chunkBuffer)
 void vtkFLUENTReader::ReadZone(const std::string& chunkBuffer)
 {
   // zones format: (45 (zone-id zone-type zone-name domain-id)())
-  size_t start = chunkBuffer.find('(', 1);
-  size_t end = chunkBuffer.find(')', 1);
-  std::string info = chunkBuffer.substr(start + 1, end - start - 1);
+  ChunkBlock info = ::ReadChunkBlock(chunkBuffer, 1);
 
   std::string zoneIdString, zoneType, zoneName, domainIdString;
-  std::stringstream infoStream(info);
+  std::stringstream infoStream(info.Buffer);
   std::getline(infoStream, zoneIdString, ' ');
   std::getline(infoStream, zoneType, ' ');
   std::getline(infoStream, zoneName, ' ');
@@ -2791,17 +2788,12 @@ void vtkFLUENTReader::ReadZone(const std::string& chunkBuffer)
 //------------------------------------------------------------------------------
 void vtkFLUENTReader::ReadPeriodicShadowFacesAscii(const std::string& chunkBuffer)
 {
-  size_t infoStart = chunkBuffer.find('(', 1);
-  size_t infoEnd = chunkBuffer.find(')', 1);
-  std::string info = chunkBuffer.substr(infoStart + 1, infoEnd - infoStart - 1);
-
+  ChunkBlock info = ::ReadChunkBlock(chunkBuffer, 1);
   unsigned int firstIndex, lastIndex, periodicZone, shadowZone;
-  sscanf(info.c_str(), "%x %x %x %x", &firstIndex, &lastIndex, &periodicZone, &shadowZone);
+  sscanf(info.Buffer.c_str(), "%x %x %x %x", &firstIndex, &lastIndex, &periodicZone, &shadowZone);
 
-  size_t dstart = chunkBuffer.find('(', infoEnd);
-  size_t dend = chunkBuffer.find(')', dstart + 1);
-  std::string pdata = chunkBuffer.substr(dstart + 1, dend - infoStart - 1);
-  std::stringstream pdatastream(pdata);
+  ChunkBlock dataBlock = ::ReadChunkBlock(chunkBuffer, info.EndIdx);
+  std::stringstream pdatastream(dataBlock.Buffer);
 
   int faceIndex1, faceIndex2;
   for (unsigned int i = firstIndex; i <= lastIndex; i++)
@@ -2816,14 +2808,11 @@ void vtkFLUENTReader::ReadPeriodicShadowFacesAscii(const std::string& chunkBuffe
 // Note: Reads data but does nothing with it.
 void vtkFLUENTReader::ReadPeriodicShadowFacesBinary(const std::string& chunkBuffer)
 {
-  size_t infoStart = chunkBuffer.find('(', 1);
-  size_t infoEnd = chunkBuffer.find(')', 1);
-  std::string info = chunkBuffer.substr(infoStart + 1, infoEnd - infoStart - 1);
-
+  ChunkBlock info = ::ReadChunkBlock(chunkBuffer, 1);
   unsigned int firstIndex, lastIndex, periodicZone, shadowZone;
-  sscanf(info.c_str(), "%x %x %x %x", &firstIndex, &lastIndex, &periodicZone, &shadowZone);
+  sscanf(info.Buffer.c_str(), "%x %x %x %x", &firstIndex, &lastIndex, &periodicZone, &shadowZone);
 
-  size_t dstart = chunkBuffer.find('(', infoEnd);
+  size_t dstart = chunkBuffer.find('(', info.EndIdx);
   size_t ptr = dstart + 1;
 
   // int faceIndex1, faceIndex2;
@@ -2839,17 +2828,12 @@ void vtkFLUENTReader::ReadPeriodicShadowFacesBinary(const std::string& chunkBuff
 //------------------------------------------------------------------------------
 void vtkFLUENTReader::ReadCellTreeAscii(const std::string& chunkBuffer)
 {
-  size_t infoStart = chunkBuffer.find('(', 1);
-  size_t infoEnd = chunkBuffer.find(')', 1);
-  std::string info = chunkBuffer.substr(infoStart + 1, infoEnd - infoStart - 1);
-
+  ChunkBlock info = ::ReadChunkBlock(chunkBuffer, 1);
   unsigned int cellId0, cellId1, parentZoneId, childZoneId;
-  sscanf(info.c_str(), "%x %x %x %x", &cellId0, &cellId1, &parentZoneId, &childZoneId);
+  sscanf(info.Buffer.c_str(), "%x %x %x %x", &cellId0, &cellId1, &parentZoneId, &childZoneId);
 
-  size_t dstart = chunkBuffer.find('(', infoEnd);
-  size_t dend = chunkBuffer.find(')', dstart + 1);
-  std::string pdata = chunkBuffer.substr(dstart + 1, dend - infoStart - 1);
-  std::stringstream pdatastream(pdata);
+  ChunkBlock dataBlock = ::ReadChunkBlock(chunkBuffer, info.EndIdx);
+  std::stringstream pdatastream(dataBlock.Buffer);
 
   int numberOfKids, kid;
   for (unsigned int i = cellId0; i <= cellId1; i++)
@@ -2868,14 +2852,11 @@ void vtkFLUENTReader::ReadCellTreeAscii(const std::string& chunkBuffer)
 void vtkFLUENTReader::ReadCellTreeBinary(const std::string& chunkBuffer)
 {
 
-  size_t infoStart = chunkBuffer.find('(', 1);
-  size_t infoEnd = chunkBuffer.find(')', 1);
-  std::string info = chunkBuffer.substr(infoStart + 1, infoEnd - infoStart - 1);
-
+  ChunkBlock info = ::ReadChunkBlock(chunkBuffer, 1);
   unsigned int cellId0, cellId1, parentZoneId, childZoneId;
-  sscanf(info.c_str(), "%x %x %x %x", &cellId0, &cellId1, &parentZoneId, &childZoneId);
+  sscanf(info.Buffer.c_str(), "%x %x %x %x", &cellId0, &cellId1, &parentZoneId, &childZoneId);
 
-  size_t dstart = chunkBuffer.find('(', infoEnd);
+  size_t dstart = chunkBuffer.find('(', info.EndIdx);
   size_t ptr = dstart + 1;
 
   int numberOfKids, kid;
@@ -2896,17 +2877,12 @@ void vtkFLUENTReader::ReadCellTreeBinary(const std::string& chunkBuffer)
 //------------------------------------------------------------------------------
 void vtkFLUENTReader::ReadFaceTreeAscii(const std::string& chunkBuffer)
 {
-  size_t infoStart = chunkBuffer.find('(', 1);
-  size_t infoEnd = chunkBuffer.find(')', 1);
-  std::string info = chunkBuffer.substr(infoStart + 1, infoEnd - infoStart - 1);
-
+  ChunkBlock info = ::ReadChunkBlock(chunkBuffer, 1);
   unsigned int faceId0, faceId1, parentZoneId, childZoneId;
-  sscanf(info.c_str(), "%x %x %x %x", &faceId0, &faceId1, &parentZoneId, &childZoneId);
+  sscanf(info.Buffer.c_str(), "%x %x %x %x", &faceId0, &faceId1, &parentZoneId, &childZoneId);
 
-  size_t dstart = chunkBuffer.find('(', infoEnd);
-  size_t dend = chunkBuffer.find(')', dstart + 1);
-  std::string pdata = chunkBuffer.substr(dstart + 1, dend - infoStart - 1);
-  std::stringstream pdatastream(pdata);
+  ChunkBlock dataBlock = ::ReadChunkBlock(chunkBuffer, info.EndIdx);
+  std::stringstream pdatastream(dataBlock.Buffer);
 
   int numberOfKids, kid;
   for (unsigned int i = faceId0; i <= faceId1; i++)
@@ -2924,14 +2900,11 @@ void vtkFLUENTReader::ReadFaceTreeAscii(const std::string& chunkBuffer)
 //------------------------------------------------------------------------------
 void vtkFLUENTReader::ReadFaceTreeBinary(const std::string& chunkBuffer)
 {
-  size_t infoStart = chunkBuffer.find('(', 1);
-  size_t infoEnd = chunkBuffer.find(')', 1);
-  std::string info = chunkBuffer.substr(infoStart + 1, infoEnd - infoStart - 1);
-
+  ChunkBlock info = ::ReadChunkBlock(chunkBuffer, 1);
   unsigned int faceId0, faceId1, parentZoneId, childZoneId;
-  sscanf(info.c_str(), "%x %x %x %x", &faceId0, &faceId1, &parentZoneId, &childZoneId);
+  sscanf(info.Buffer.c_str(), "%x %x %x %x", &faceId0, &faceId1, &parentZoneId, &childZoneId);
 
-  size_t dstart = chunkBuffer.find('(', infoEnd);
+  size_t dstart = chunkBuffer.find('(', info.EndIdx);
   size_t ptr = dstart + 1;
 
   int numberOfKids, kid;
@@ -2952,17 +2925,12 @@ void vtkFLUENTReader::ReadFaceTreeBinary(const std::string& chunkBuffer)
 //------------------------------------------------------------------------------
 void vtkFLUENTReader::ReadInterfaceFaceParentsAscii(const std::string& chunkBuffer)
 {
-  size_t infoStart = chunkBuffer.find('(', 1);
-  size_t infoEnd = chunkBuffer.find(')', 1);
-  std::string info = chunkBuffer.substr(infoStart + 1, infoEnd - infoStart - 1);
-
+  ChunkBlock info = ::ReadChunkBlock(chunkBuffer, 1);
   unsigned int faceId0, faceId1;
-  sscanf(info.c_str(), "%x %x", &faceId0, &faceId1);
+  sscanf(info.Buffer.c_str(), "%x %x", &faceId0, &faceId1);
 
-  size_t dstart = chunkBuffer.find('(', infoEnd);
-  size_t dend = chunkBuffer.find(')', dstart + 1);
-  std::string pdata = chunkBuffer.substr(dstart + 1, dend - infoStart - 1);
-  std::stringstream pdatastream(pdata);
+  ChunkBlock dataBlock = ::ReadChunkBlock(chunkBuffer, info.EndIdx);
+  std::stringstream pdatastream(dataBlock.Buffer);
 
   int parentId0, parentId1;
   for (unsigned int i = faceId0; i <= faceId1; i++)
@@ -2978,14 +2946,11 @@ void vtkFLUENTReader::ReadInterfaceFaceParentsAscii(const std::string& chunkBuff
 //------------------------------------------------------------------------------
 void vtkFLUENTReader::ReadInterfaceFaceParentsBinary(const std::string& chunkBuffer)
 {
-  size_t infoStart = chunkBuffer.find('(', 1);
-  size_t infoEnd = chunkBuffer.find(')', 1);
-  std::string info = chunkBuffer.substr(infoStart + 1, infoEnd - infoStart - 1);
-
+  ChunkBlock info = ::ReadChunkBlock(chunkBuffer, 1);
   unsigned int faceId0, faceId1;
-  sscanf(info.c_str(), "%x %x", &faceId0, &faceId1);
+  sscanf(info.Buffer.c_str(), "%x %x", &faceId0, &faceId1);
 
-  size_t dstart = chunkBuffer.find('(', infoEnd);
+  size_t dstart = chunkBuffer.find('(', info.EndIdx);
   size_t ptr = dstart + 1;
 
   int parentId0, parentId1;
@@ -3005,17 +2970,12 @@ void vtkFLUENTReader::ReadInterfaceFaceParentsBinary(const std::string& chunkBuf
 void vtkFLUENTReader::ReadNonconformalGridInterfaceFaceInformationAscii(
   const std::string& chunkBuffer)
 {
-  size_t infoStart = chunkBuffer.find('(', 1);
-  size_t infoEnd = chunkBuffer.find(')', 1);
-  std::string info = chunkBuffer.substr(infoStart + 1, infoEnd - infoStart - 1);
-
+  ChunkBlock info = ::ReadChunkBlock(chunkBuffer, 1);
   int kidId, parentId, numberOfFaces;
-  sscanf(info.c_str(), "%d %d %d", &kidId, &parentId, &numberOfFaces);
+  sscanf(info.Buffer.c_str(), "%d %d %d", &kidId, &parentId, &numberOfFaces);
 
-  size_t dstart = chunkBuffer.find('(', infoEnd);
-  size_t dend = chunkBuffer.find(')', dstart + 1);
-  std::string pdata = chunkBuffer.substr(dstart + 1, dend - infoStart - 1);
-  std::stringstream pdatastream(pdata);
+  ChunkBlock dataBlock = ::ReadChunkBlock(chunkBuffer, info.EndIdx);
+  std::stringstream pdatastream(dataBlock.Buffer);
 
   int child, parent;
   for (int i = 0; i < numberOfFaces; i++)
@@ -3031,14 +2991,11 @@ void vtkFLUENTReader::ReadNonconformalGridInterfaceFaceInformationAscii(
 void vtkFLUENTReader::ReadNonconformalGridInterfaceFaceInformationBinary(
   const std::string& chunkBuffer)
 {
-  size_t infoStart = chunkBuffer.find('(', 1);
-  size_t infoEnd = chunkBuffer.find(')', 1);
-  std::string info = chunkBuffer.substr(infoStart + 1, infoEnd - infoStart - 1);
-
+  ChunkBlock info = ::ReadChunkBlock(chunkBuffer, 1);
   int kidId, parentId, numberOfFaces;
-  sscanf(info.c_str(), "%d %d %d", &kidId, &parentId, &numberOfFaces);
+  sscanf(info.Buffer.c_str(), "%d %d %d", &kidId, &parentId, &numberOfFaces);
 
-  size_t dstart = chunkBuffer.find('(', infoEnd);
+  size_t dstart = chunkBuffer.find('(', info.EndIdx);
   size_t ptr = dstart + 1;
 
   int child, parent;
@@ -3707,7 +3664,7 @@ void vtkFLUENTReader::ParseDataFile()
 
       case 300:
         // cout << "Data Section" << endl;
-        ReadData(dataChunkBuffer, 1);
+        this->ReadData(dataChunkBuffer, 1);
         break;
 
       case 301:
@@ -3720,7 +3677,7 @@ void vtkFLUENTReader::ParseDataFile()
 
       case 2300:
         // cout << "Single Precision Data Section" << endl;
-        ReadData(dataChunkBuffer, 2);
+        this->ReadData(dataChunkBuffer, 2);
         break;
 
       case 2301:
@@ -3733,7 +3690,7 @@ void vtkFLUENTReader::ParseDataFile()
 
       case 3300:
         // cout << "Single Precision Data Section" << endl;
-        ReadData(dataChunkBuffer, 3);
+        this->ReadData(dataChunkBuffer, 3);
         break;
 
       case 3301:
@@ -3755,19 +3712,15 @@ void vtkFLUENTReader::ParseDataFile()
 //------------------------------------------------------------------------------
 void vtkFLUENTReader::ReadData(const std::string& dataBuffer, int dataType)
 {
-  size_t infoStart = dataBuffer.find('(', 1);
-  size_t infoEnd = dataBuffer.find(')', 1);
-  std::string info = dataBuffer.substr(infoStart + 1, infoEnd - infoStart - 1);
-  std::stringstream infostream(info);
+  ChunkBlock info = ::ReadChunkBlock(dataBuffer, 1);
+  std::stringstream infostream(info.Buffer);
   int subSectionId, zoneId, size, nTimeLevels, nPhases, firstId, lastId;
   infostream >> subSectionId >> zoneId >> size >> nTimeLevels >> nPhases >> firstId >> lastId;
 
   // Set up stream or pointer to data
-  size_t dstart = dataBuffer.find('(', infoEnd);
-  size_t dend = dataBuffer.find(')', dstart + 1);
-  std::string pdata = dataBuffer.substr(dstart + 1, dend - dstart - 2);
-  std::stringstream pdatastream(pdata);
-  size_t ptr = dstart + 1;
+  ChunkBlock dataBlock = ::ReadChunkBlock(dataBuffer, info.EndIdx);
+  std::stringstream pdatastream(dataBlock.Buffer);
+  size_t ptr = dataBlock.StartIdx;
 
   // Is this a new variable?
   bool subSectionAlreadyExists = false;
