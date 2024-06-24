@@ -169,27 +169,27 @@ private:
   vtkFLUENTReader(const vtkFLUENTReader&) = delete;
   void operator=(const vtkFLUENTReader&) = delete;
 
-  void ReadLittleEndianFlag(const std::string& chunkBuffer);
-  void ReadSpeciesVariableNames(const std::string& chunkBuffer);
-  void ReadNodesAscii(const std::string& chunkBuffer);
-  void ReadNodesSinglePrecision(const std::string& chunkBuffer);
-  void ReadNodesDoublePrecision(const std::string& chunkBuffer);
   void ReadCellsAscii(const std::string& chunkBuffer);
   void ReadCellsBinary(const std::string& chunkBuffer);
-  void ReadZone(const std::string& chunkBuffer);
-  bool ReadFacesAscii(const std::string& chunkBuffer);
-  void ReadFacesBinary(const std::string& chunkBuffer);
-  void ReadPeriodicShadowFacesAscii(const std::string& chunkBuffer);
-  void ReadPeriodicShadowFacesBinary(const std::string& chunkBuffer);
   void ReadCellTreeAscii(const std::string& chunkBuffer);
   void ReadCellTreeBinary(const std::string& chunkBuffer);
+  void ReadData(const std::string& dataBuffer, int dataType);
+  bool ReadFacesAscii(const std::string& chunkBuffer);
+  void ReadFacesBinary(const std::string& chunkBuffer);
   void ReadFaceTreeAscii(const std::string& chunkBuffer);
   void ReadFaceTreeBinary(const std::string& chunkBuffer);
   void ReadInterfaceFaceParentsAscii(const std::string& chunkBuffer);
   void ReadInterfaceFaceParentsBinary(const std::string& chunkBuffer);
+  void ReadLittleEndianFlag(const std::string& chunkBuffer);
+  void ReadNodesAscii(const std::string& chunkBuffer);
+  void ReadNodesDoublePrecision(const std::string& chunkBuffer);
+  void ReadNodesSinglePrecision(const std::string& chunkBuffer);
   void ReadNonconformalGridInterfaceFaceInformationAscii(const std::string& chunkBuffer);
   void ReadNonconformalGridInterfaceFaceInformationBinary(const std::string& chunkBuffer);
-  void ReadData(const std::string& dataBuffer, int dataType);
+  void ReadPeriodicShadowFacesAscii(const std::string& chunkBuffer);
+  void ReadPeriodicShadowFacesBinary(const std::string& chunkBuffer);
+  void ReadSpeciesVariableNames(const std::string& chunkBuffer);
+  void ReadZone(const std::string& chunkBuffer);
 
   //
   //  Variables
