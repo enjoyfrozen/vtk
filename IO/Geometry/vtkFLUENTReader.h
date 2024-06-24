@@ -139,11 +139,8 @@ protected:
 
   virtual bool OpenCaseFile(const char* filename);
   virtual bool OpenDataFile(const char* filename);
-  virtual int GetCaseChunk();
-  virtual int GetCaseIndex();
+
   virtual void LoadVariableNames();
-  virtual int GetDataIndex();
-  virtual int GetDataChunk();
   virtual void GetSpeciesVariableNames();
 
   virtual bool ParseCaseFile();

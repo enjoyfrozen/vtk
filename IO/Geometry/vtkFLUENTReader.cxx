@@ -109,6 +109,113 @@ struct vtkFLUENTReader::SubSection
 };
 
 //------------------------------------------------------------------------------
+bool ReadChunk(std::istream* fileStream, std::string& outChunkBuffer)
+{
+  // Clear buffer
+  outChunkBuffer.clear();
+
+  //
+  // Look for beginning of chunk
+  //
+  while (fileStream->peek() != '(')
+  {
+    fileStream->get();
+    if (fileStream->eof())
+    {
+      return false;
+    }
+  }
+
+  //
+  // Figure out whether this is a binary or ascii chunk.
+  // If the index is 3 digits or more, then binary, otherwise ascii.
+  //
+  std::string index;
+  while (fileStream->peek() != ' ')
+  {
+    if (fileStream->peek() == '(' && !index.empty())
+    {
+      break;
+    }
+
+    index += static_cast<char>(fileStream->peek());
+    outChunkBuffer += static_cast<char>(fileStream->get());
+    if (fileStream->eof())
+    {
+      return false;
+    }
+  }
+
+  index.erase(0, 1); // Get rid of the "("
+
+  //
+  //  Grab the chunk and put it in buffer.
+  //  You have to look for the end of section std::string if it is
+  //  a binary chunk.
+  //
+
+  if (index.size() > 3)
+  {
+    // Binary Chunk
+    // it may be in our best interest to do away with the index portion of the
+    //"end" string - we have found a dataset, that although errant, does work
+    // fine in ensight and the index does not match - maybe just an end string
+    // that contains "End of Binary Section" and and a search to relocate the
+    // file pointer to the "))" entry.
+    char end[120];
+    strcpy(end, "End of Binary Section ");
+    size_t len = strlen(end);
+
+    // Load the case buffer enough to start comparing to the end std::string.
+    while (outChunkBuffer.size() < len)
+    {
+      outChunkBuffer += static_cast<char>(fileStream->get());
+    }
+
+    while (strcmp(outChunkBuffer.c_str() + (outChunkBuffer.size() - len), end) != 0)
+    {
+      outChunkBuffer += static_cast<char>(fileStream->get());
+    }
+  }
+  else
+  { // Ascii Chunk
+    int level = 0;
+    while ((fileStream->peek() != ')') || (level != 0))
+    {
+      outChunkBuffer += static_cast<char>(fileStream->get());
+      if (outChunkBuffer.at(outChunkBuffer.length() - 1) == '(')
+      {
+        level++;
+      }
+      if (outChunkBuffer.at(outChunkBuffer.length() - 1) == ')')
+      {
+        level--;
+      }
+      if (fileStream->eof())
+      {
+        return false;
+      }
+    }
+    outChunkBuffer += static_cast<char>(fileStream->get());
+  }
+
+  return true;
+}
+
+//------------------------------------------------------------------------------
+int ReadIndex(const std::string& chunkBuffer)
+{
+  std::string sindex;
+
+  int i = 1; // '(' at 0
+  while (chunkBuffer.at(i) != ' ' && chunkBuffer.at(i) != '(')
+  {
+    sindex += chunkBuffer.at(i++);
+  }
+  return atoi(sindex.c_str());
+}
+
+//------------------------------------------------------------------------------
 vtkFLUENTReader::vtkFLUENTReader()
 {
   this->SetNumberOfInputPorts(0);
@@ -454,209 +561,6 @@ bool vtkFLUENTReader::OpenDataFile(const char* filename)
 #endif
   this->FluentDataFile = new vtksys::ifstream(dfilename.c_str(), mode);
   return !this->FluentDataFile->fail();
-}
-
-//------------------------------------------------------------------------------
-int vtkFLUENTReader::GetCaseChunk()
-{
-  this->CaseBuffer = ""; // Clear buffer
-
-  //
-  // Look for beginning of chunk
-  //
-  while (this->FluentCaseFile->peek() != '(')
-  {
-    this->FluentCaseFile->get();
-    if (this->FluentCaseFile->eof())
-    {
-      return 0;
-    }
-  }
-
-  //
-  // Figure out whether this is a binary or ascii chunk.
-  // If the index is 3 digits or more, then binary, otherwise ascii.
-  //
-  std::string index;
-  while (this->FluentCaseFile->peek() != ' ')
-  {
-    if (this->FluentCaseFile->peek() == '(' && !index.empty())
-    {
-      break;
-    }
-
-    index += static_cast<char>(this->FluentCaseFile->peek());
-    this->CaseBuffer += static_cast<char>(this->FluentCaseFile->get());
-    if (this->FluentCaseFile->eof())
-    {
-      return 0;
-    }
-  }
-
-  index.erase(0, 1); // Get rid of the "("
-
-  //
-  //  Grab the chunk and put it in buffer.
-  //  You have to look for the end of section std::string if it is
-  //  a binary chunk.
-  //
-
-  if (index.size() > 3)
-  {
-    // Binary Chunk
-    char end[120];
-    strcpy(end, "End of Binary Section ");
-    size_t len = strlen(end);
-
-    // Load the case buffer enough to start comparing to the end std::string.
-    while (this->CaseBuffer.size() < len)
-    {
-      this->CaseBuffer += static_cast<char>(this->FluentCaseFile->get());
-    }
-
-    while (strcmp(this->CaseBuffer.c_str() + (this->CaseBuffer.size() - len), end) != 0)
-    {
-      this->CaseBuffer += static_cast<char>(this->FluentCaseFile->get());
-    }
-  }
-  else
-  { // Ascii Chunk
-    int level = 0;
-    while ((this->FluentCaseFile->peek() != ')') || (level != 0))
-    {
-      this->CaseBuffer += static_cast<char>(this->FluentCaseFile->get());
-      if (this->CaseBuffer.at(this->CaseBuffer.length() - 1) == '(')
-      {
-        level++;
-      }
-      if (this->CaseBuffer.at(this->CaseBuffer.length() - 1) == ')')
-      {
-        level--;
-      }
-      if (this->FluentCaseFile->eof())
-      {
-        return 0;
-      }
-    }
-    this->CaseBuffer += static_cast<char>(this->FluentCaseFile->get());
-  }
-  return 1;
-}
-
-//------------------------------------------------------------------------------
-int vtkFLUENTReader::GetCaseIndex()
-{
-  std::string sindex;
-
-  int i = 1;
-  while (this->CaseBuffer.at(i) != ' ' && this->CaseBuffer.at(i) != '(')
-  {
-    sindex += this->CaseBuffer.at(i++);
-  }
-  return atoi(sindex.c_str());
-}
-
-//------------------------------------------------------------------------------
-int vtkFLUENTReader::GetDataIndex()
-{
-  std::string sindex;
-
-  int i = 1;
-  while (this->DataBuffer.at(i) != ' ' && this->DataBuffer.at(i) != '(')
-  {
-    sindex += this->DataBuffer.at(i++);
-  }
-  return atoi(sindex.c_str());
-}
-
-//------------------------------------------------------------------------------
-int vtkFLUENTReader::GetDataChunk()
-{
-  this->DataBuffer = ""; // Clear buffer
-  //
-  // Look for beginning of chunk
-  //
-  while (this->FluentDataFile->peek() != '(')
-  {
-    this->FluentDataFile->get();
-    if (this->FluentDataFile->eof())
-    {
-      return 0;
-    }
-  }
-
-  //
-  // Figure out whether this is a binary or ascii chunk.
-  // If the index is 3 digits or more, then binary, otherwise ascii.
-  //
-  std::string index;
-  while (this->FluentDataFile->peek() != ' ')
-  {
-    if (this->FluentDataFile->peek() == '(' && !index.empty())
-    {
-      break;
-    }
-
-    index += static_cast<char>(this->FluentDataFile->peek());
-    this->DataBuffer += static_cast<char>(this->FluentDataFile->get());
-    if (this->FluentDataFile->eof())
-    {
-      return 0;
-    }
-  }
-
-  index.erase(0, 1); // Get rid of the "("
-
-  //
-  //  Grab the chunk and put it in buffer.
-  //  You have to look for the end of section std::string if it is
-  //  a binary chunk.
-  //
-  if (index.size() > 3)
-  { // Binary Chunk
-    // it may be in our best interest to do away with the index portion of the
-    //"end" string - we have found a dataset, that although errant, does work
-    // fine in ensight and the index does not match - maybe just an end string
-    // that contains "End of Binary Section" and and a search to relocate the
-    // file pointer to the "))" entry.
-    char end[120];
-    strcpy(end, "End of Binary Section   ");
-    size_t len = strlen(end);
-
-    // Load the data buffer enough to start comparing to the end std::string.
-    while (this->DataBuffer.size() < len)
-    {
-      this->DataBuffer += static_cast<char>(this->FluentDataFile->get());
-    }
-
-    while (strcmp(this->DataBuffer.c_str() + (this->DataBuffer.size() - len), end) != 0)
-    {
-      this->DataBuffer += static_cast<char>(this->FluentDataFile->get());
-    }
-  }
-  else
-  { // Ascii Chunk
-    int level = 0;
-    while ((this->FluentDataFile->peek() != ')') || (level != 0))
-    {
-      this->DataBuffer += static_cast<char>(this->FluentDataFile->get());
-      if (this->DataBuffer.at(this->DataBuffer.length() - 1) == '(')
-      {
-        level++;
-      }
-      if (this->DataBuffer.at(this->DataBuffer.length() - 1) == ')')
-      {
-        level--;
-      }
-      if (this->FluentDataFile->eof())
-      {
-        return 0;
-      }
-    }
-    this->DataBuffer += static_cast<char>(this->FluentDataFile->get());
-  }
-
-  return 1;
 }
 
 struct
@@ -2254,9 +2158,9 @@ bool vtkFLUENTReader::ParseCaseFile()
 
   bool ret = true;
   // XXX: Each of these parsing method should be improved for error reporting and robustness
-  while (this->GetCaseChunk())
+  while (::ReadChunk(this->FluentCaseFile, this->CaseBuffer))
   {
-    int index = this->GetCaseIndex();
+    int index = ::ReadIndex(this->CaseBuffer);
     switch (index)
     {
       case 0:
@@ -3778,9 +3682,9 @@ void vtkFLUENTReader::PopulatePolyhedronCell(size_t cellIdx)
 //------------------------------------------------------------------------------
 void vtkFLUENTReader::ParseDataFile()
 {
-  while (this->GetDataChunk())
+  while (::ReadChunk(this->FluentDataFile, this->DataBuffer))
   {
-    int index = this->GetDataIndex();
+    int index = ::ReadIndex(this->DataBuffer);
     switch (index)
     {
       case 0:
