@@ -42,7 +42,18 @@ vtkStandardNewMacro(vtkFLUENTReader);
 // Structures
 struct vtkFLUENTReader::Cell
 {
-  int type;
+  enum Type
+  {
+    TRIANGLE = 1,
+    TETRA,
+    QUAD,
+    HEXA,
+    PYRAMID,
+    WEDGE,
+    POLY
+  };
+
+  Type type;
   int zoneId;
   std::vector<int> faceIndices;
   int parent;
@@ -170,7 +181,7 @@ int vtkFLUENTReader::RequestData(vtkInformation* vtkNotUsed(request),
 
     switch (cell.type)
     {
-      case 1:
+      case Cell::Type::TRIANGLE:
         for (int j = 0; j < 3; j++)
         {
           triangleBuffer->GetPointIds()->SetId(j, cell.nodeIndices[j]);
@@ -179,7 +190,7 @@ int vtkFLUENTReader::RequestData(vtkInformation* vtkNotUsed(request),
         newCellType = triangleBuffer->GetCellType();
         break;
 
-      case 2:
+      case Cell::Type::TETRA:
         for (int j = 0; j < 4; j++)
         {
           tetraBuffer->GetPointIds()->SetId(j, cell.nodeIndices[j]);
@@ -189,7 +200,7 @@ int vtkFLUENTReader::RequestData(vtkInformation* vtkNotUsed(request),
         newCellType = tetraBuffer->GetCellType();
         break;
 
-      case 3:
+      case Cell::Type::QUAD:
         for (int j = 0; j < 4; j++)
         {
           quadBuffer->GetPointIds()->SetId(j, cell.nodeIndices[j]);
@@ -198,7 +209,7 @@ int vtkFLUENTReader::RequestData(vtkInformation* vtkNotUsed(request),
         newCellType = quadBuffer->GetCellType();
         break;
 
-      case 4:
+      case Cell::Type::HEXA:
         for (int j = 0; j < 8; j++)
         {
           hexahedronBuffer->GetPointIds()->SetId(j, cell.nodeIndices[j]);
@@ -207,7 +218,7 @@ int vtkFLUENTReader::RequestData(vtkInformation* vtkNotUsed(request),
         newCellType = hexahedronBuffer->GetCellType();
         break;
 
-      case 5:
+      case Cell::Type::PYRAMID:
         for (int j = 0; j < 5; j++)
         {
           pyramidBuffer->GetPointIds()->SetId(j, cell.nodeIndices[j]);
@@ -216,7 +227,7 @@ int vtkFLUENTReader::RequestData(vtkInformation* vtkNotUsed(request),
         newCellType = pyramidBuffer->GetCellType();
         break;
 
-      case 6:
+      case Cell::Type::WEDGE:
         for (int j = 0; j < 6; j++)
         {
           wedgeBuffer->GetPointIds()->SetId(j, cell.nodeIndices[j]);
@@ -225,7 +236,7 @@ int vtkFLUENTReader::RequestData(vtkInformation* vtkNotUsed(request),
         newCellType = wedgeBuffer->GetCellType();
         break;
 
-      case 7:
+      case Cell::Type::POLY:
         convexPointSetBuffer->GetPointIds()->SetNumberOfIds(
           static_cast<vtkIdType>(cell.nodeIndices.size()));
         for (size_t j = 0; j < cell.nodeIndices.size(); j++)
@@ -238,7 +249,7 @@ int vtkFLUENTReader::RequestData(vtkInformation* vtkNotUsed(request),
         break;
 
       default:
-        vtkErrorMacro("Error parsing file");
+        vtkErrorMacro("Error parsing file: wrong cell type: " << cell.type);
         break;
     }
 
@@ -429,8 +440,6 @@ void vtkFLUENTReader::DisableAllCellArrays()
 {
   this->CellDataArraySelection->DisableAllArrays();
 }
-
-//------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
 bool vtkFLUENTReader::OpenDataFile(const char* filename)
@@ -2563,9 +2572,11 @@ void vtkFLUENTReader::GetCellsAscii()
       std::stringstream pdatastream(pdata);
       for (unsigned int i = firstIndex; i <= lastIndex; i++)
       {
-        Cell& cell = this->Cells[i - 1];
+        int cellType;
+        pdatastream >> cellType;
 
-        pdatastream >> cell.type;
+        Cell& cell = this->Cells[i - 1];
+        cell.type = (Cell::Type)cellType;
         cell.zoneId = zoneId;
         cell.parent = 0;
         cell.child = 0;
@@ -2576,8 +2587,7 @@ void vtkFLUENTReader::GetCellsAscii()
       for (unsigned int i = firstIndex; i <= lastIndex; i++)
       {
         Cell& cell = this->Cells[i - 1];
-
-        cell.type = elementType;
+        cell.type = (Cell::Type)elementType;
         cell.zoneId = zoneId;
         cell.parent = 0;
         cell.child = 0;
@@ -2603,8 +2613,9 @@ void vtkFLUENTReader::GetCellsBinary()
     for (unsigned int i = firstIndex; i <= lastIndex; i++)
     {
       Cell& cell = this->Cells[i - 1];
+      int cellType = this->GetCaseBufferInt(static_cast<int>(ptr));
 
-      cell.type = this->GetCaseBufferInt(static_cast<int>(ptr));
+      cell.type = (Cell::Type)cellType;
       cell.zoneId = zoneId;
       cell.parent = 0;
       cell.child = 0;
@@ -2617,8 +2628,7 @@ void vtkFLUENTReader::GetCellsBinary()
     for (unsigned int i = firstIndex; i <= lastIndex; i++)
     {
       Cell& cell = this->Cells[i - 1];
-
-      cell.type = elementType;
+      cell.type = (Cell::Type)elementType;
       cell.zoneId = zoneId;
       cell.parent = 0;
       cell.child = 0;
@@ -3082,12 +3092,12 @@ void vtkFLUENTReader::CleanCells()
   std::vector<int> t;
   for (Cell& cell : this->Cells)
   {
-    if (((cell.type == 1) && (cell.faceIndices.size() != 3)) ||
-      ((cell.type == 2) && (cell.faceIndices.size() != 4)) ||
-      ((cell.type == 3) && (cell.faceIndices.size() != 4)) ||
-      ((cell.type == 4) && (cell.faceIndices.size() != 6)) ||
-      ((cell.type == 5) && (cell.faceIndices.size() != 5)) ||
-      ((cell.type == 6) && (cell.faceIndices.size() != 5)))
+    if (((cell.type == Cell::Type::TRIANGLE) && (cell.faceIndices.size() != 3)) ||
+      ((cell.type == Cell::Type::TETRA) && (cell.faceIndices.size() != 4)) ||
+      ((cell.type == Cell::Type::QUAD) && (cell.faceIndices.size() != 4)) ||
+      ((cell.type == Cell::Type::HEXA) && (cell.faceIndices.size() != 6)) ||
+      ((cell.type == Cell::Type::PYRAMID) && (cell.faceIndices.size() != 5)) ||
+      ((cell.type == Cell::Type::WEDGE) && (cell.faceIndices.size() != 5)))
     {
 
       // Copy faces
@@ -3121,31 +3131,31 @@ void vtkFLUENTReader::PopulateCellNodes()
     const Cell& cell = this->Cells[cellIdx];
     switch (cell.type)
     {
-      case 1: // Triangle
+      case Cell::Type::TRIANGLE:
         this->PopulateTriangleCell(cellIdx);
         break;
 
-      case 2: // Tetrahedron
+      case Cell::Type::TETRA:
         this->PopulateTetraCell(cellIdx);
         break;
 
-      case 3: // Quadrilateral
+      case Cell::Type::QUAD:
         this->PopulateQuadCell(cellIdx);
         break;
 
-      case 4: // Hexahedral
+      case Cell::Type::HEXA:
         this->PopulateHexahedronCell(cellIdx);
         break;
 
-      case 5: // Pyramid
+      case Cell::Type::PYRAMID:
         this->PopulatePyramidCell(cellIdx);
         break;
 
-      case 6: // Wedge
+      case Cell::Type::WEDGE:
         this->PopulateWedgeCell(cellIdx);
         break;
 
-      case 7: // Polyhedron
+      case Cell::Type::POLY:
         this->PopulatePolyhedronCell(cellIdx);
         break;
     }
