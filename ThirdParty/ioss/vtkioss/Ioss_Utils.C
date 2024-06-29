@@ -885,12 +885,21 @@ size_t Ioss::Utils::get_memory_info()
 #elif defined(__APPLE__) && defined(__MACH__)
   kern_return_t               error;
   mach_msg_type_number_t      outCount;
+#ifdef MACH_TASK_BASIC_INFO
   mach_task_basic_info_data_t taskinfo{};
 
   taskinfo.virtual_size = 0;
   outCount              = MACH_TASK_BASIC_INFO_COUNT;
   error                 = task_info(mach_task_self(), MACH_TASK_BASIC_INFO,
                                     reinterpret_cast<task_info_t>(&taskinfo), &outCount);
+#else
+  task_basic_info_data_t taskinfo{};
+
+  taskinfo.virtual_size = 0;
+  outCount              = TASK_BASIC_INFO_COUNT;
+  error                 = task_info(mach_task_self(), TASK_BASIC_INFO,
+                                    reinterpret_cast<task_info_t>(&taskinfo), &outCount);
+#endif
   if (error == KERN_SUCCESS) {
     memory_usage = taskinfo.resident_size;
   }

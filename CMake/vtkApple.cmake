@@ -14,5 +14,5 @@ mark_as_advanced(
 
 if (CMAKE_OSX_DEPLOYMENT_TARGET AND
     CMAKE_OSX_DEPLOYMENT_TARGET VERSION_LESS "10.7")
-  message(FATAL_ERROR "Minimum OS X deployment target is 10.7, please update CMAKE_OSX_DEPLOYMENT_TARGET.")
+  message(WARNING "macOS deployment target lower than 10.7 is not supported.")
 endif ()
