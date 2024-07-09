@@ -90,24 +90,23 @@ struct BuildConnectivityImpl
   void operator()(CellStateT& state, vtkIdTypeArray* outOffSets, vtkIdTypeArray* outConnectivity,
     vtkIdType offset, vtkIdType connectivityOffset)
   {
-    using IdType = typename CellStateT::ValueType;
-    const auto inOffsets = state.GetOffsets();
-    const auto inConnectivity = state.GetConnectivity();
-    const vtkIdType connectivitySize = inConnectivity->GetNumberOfValues();
+    using OffsetsValueType = typename CellStateT::OffsetsValueType;
+    const vtkIdType connectivitySize = state.GetConnectivity()->GetNumberOfValues();
     const vtkIdType numCells = state.GetNumberOfCells();
 
     // copy connectivity values
     vtkSMPTools::For(0, connectivitySize, [&](vtkIdType begin, vtkIdType end) {
-      auto inConnPtr = inConnectivity->GetPointer(0);
+      auto inConnRange = state.GetConnectivityRange().GetSubRange(begin, end);
       auto outConnPtr = outConnectivity->GetPointer(connectivityOffset);
-      std::copy(inConnPtr + begin, inConnPtr + end, outConnPtr + begin);
+      std::copy(inConnRange.begin(), inConnRange.end(), outConnPtr + begin);
     });
     // transform offset values
     vtkSMPTools::For(0, numCells, [&](vtkIdType begin, vtkIdType end) {
-      auto inOffPtr = inOffsets->GetPointer(0);
+      auto inOffRange = state.GetOffsetsRange().GetSubRange(begin, end);
       auto outOffPtr = outOffSets->GetPointer(offset);
-      std::transform(inOffPtr + begin, inOffPtr + end, outOffPtr + begin,
-        [&connectivityOffset](IdType val) -> vtkIdType { return val + connectivityOffset; });
+      std::transform(inOffRange.begin(), inOffRange.end(), outOffPtr + begin,
+        [&connectivityOffset](
+          OffsetsValueType val) -> OffsetsValueType { return val + connectivityOffset; });
     });
   }
 };

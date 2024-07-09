@@ -330,17 +330,17 @@ struct ExtractPolyVisitor
   template <typename CellStateT>
   vtkIdType operator()(CellStateT& state, vtkIdType* ptMap, vtkIdType numNewPts)
   {
-    using ValueType = typename CellStateT::ValueType;
-    auto* conn = state.GetConnectivity();
-    const vtkIdType nids = conn->GetNumberOfValues();
+    using ConnectivityValueType = typename CellStateT::ConnectivityValueType;
+    auto conn = state.GetConnectivityRange();
+    const vtkIdType nids = conn.size();
     for (vtkIdType i = 0; i < nids; ++i)
     {
-      ValueType ptId = conn->GetValue(i);
+      ConnectivityValueType ptId = conn[i];
       if (ptMap[ptId] < 0)
       {
         ptMap[ptId] = numNewPts++;
       }
-      conn->SetValue(i, ptMap[ptId]);
+      conn[i] = ptMap[ptId];
     }
     return numNewPts;
   }

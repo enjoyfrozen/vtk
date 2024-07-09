@@ -135,9 +135,8 @@ struct vtkStaticFaceHashLinksTemplate<TInputIdType, TFaceIdType>::CreateFacesInf
     void operator()(
       CellStateT& state, CreateFacesInformation* This, vtkIdType beginBatchId, vtkIdType endBatchId)
     {
-      using ValueType = typename CellStateT::ValueType;
-      const ValueType* connectivityPtr = state.GetConnectivity()->GetPointer(0);
-      const ValueType* offsetsPtr = state.GetOffsets()->GetPointer(0);
+      const auto connectivity = state.GetConnectivityRange();
+      const auto offsets = state.GetOffsetsRange();
       const unsigned char* cellTypes = This->Input->GetCellTypesArray()->GetPointer(0);
 
       auto cell = This->TLCell.Local();
@@ -157,7 +156,7 @@ struct vtkStaticFaceHashLinksTemplate<TInputIdType, TFaceIdType>::CreateFacesInf
         {
           const unsigned char& cellType = cellTypes[cellId];
           // get cell points by just accessing the connectivity/offsets array
-          const ValueType* pts = connectivityPtr + offsetsPtr[cellId];
+          const auto pts = connectivity.GetSubRange(offsets[cellId]);
 
           // the hash value of a face from a 3d cell is the minimum point id
           // the hash value of a face from a 0-1-2d cell is this->NumberOfPoints

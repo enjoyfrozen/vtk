@@ -481,16 +481,14 @@ struct ProduceTriangles
     template <typename CellStateT>
     void operator()(CellStateT& state, vtkIdType triId, vtkIdType endTriId)
     {
-      using ValueType = typename CellStateT::ValueType;
-      auto* offsets = state.GetOffsets();
-      auto* conn = state.GetConnectivity();
+      using OffsetsValueType = typename CellStateT::OffsetsValueType;
 
-      auto offsetRange = vtk::DataArrayValueRange<1>(offsets, triId, endTriId + 1);
-      ValueType offset = 3 * (triId - 1); // Incremented before first use
+      auto offsetRange = state.GetOffsetsRange().GetSubRange(triId, endTriId + 1);
+      OffsetsValueType offset = 3 * (triId - 1); // Incremented before first use
       std::generate(
-        offsetRange.begin(), offsetRange.end(), [&]() -> ValueType { return offset += 3; });
+        offsetRange.begin(), offsetRange.end(), [&]() -> OffsetsValueType { return offset += 3; });
 
-      auto connRange = vtk::DataArrayValueRange<1>(conn, 3 * triId, 3 * endTriId);
+      auto connRange = state.GetConnectivityRange().GetSubRange(3 * triId, 3 * endTriId);
       vtkIdType ptId = 3 * triId;
       std::iota(connRange.begin(), connRange.end(), ptId);
     }
@@ -619,8 +617,8 @@ struct ProduceMergedTriangles
     void operator()(CellStateT& state, vtkIdType ptId, const vtkIdType endPtId,
       const IDType* offsets, const MergeTupleType* mergeArray, vtk3DLinearGridPlaneCutter* filter)
     {
-      using ValueType = typename CellStateT::ValueType;
-      auto* conn = state.GetConnectivity();
+      using ConnectivityValueType = typename CellStateT::ConnectivityValueType;
+      auto connRange = state.GetConnectivityRange();
       bool isFirst = vtkSMPTools::GetSingleThread();
       vtkIdType checkAbortInterval = std::min((endPtId - ptId) / 10 + 1, (vtkIdType)1000);
 
@@ -641,7 +639,7 @@ struct ProduceMergedTriangles
         for (IDType i = 0; i < numPtsInGroup; ++i)
         {
           const IDType connIdx = mergeArray[offsets[ptId] + i].Data.EId;
-          conn->SetValue(connIdx, static_cast<ValueType>(ptId));
+          connRange[connIdx] = static_cast<ConnectivityValueType>(ptId);
         } // for this group of coincident edges
       }   // for all merged points
     }
@@ -660,11 +658,12 @@ struct ProduceMergedTriangles
     template <typename CellStateT>
     void operator()(CellStateT& state, const vtkIdType numTris)
     {
-      using ValueType = typename CellStateT::ValueType;
+      using OffsetsValueType = typename CellStateT::OffsetsValueType;
 
       auto offsets = vtk::DataArrayValueRange<1>(state.GetOffsets(), 0, numTris + 1);
-      ValueType offset = -3; // +=3 on first access
-      std::generate(offsets.begin(), offsets.end(), [&]() -> ValueType { return offset += 3; });
+      long long int offset = -3; // +=3 on first access
+      std::generate(offsets.begin(), offsets.end(),
+        [&]() -> OffsetsValueType { return static_cast<OffsetsValueType>(offset += 3); });
     }
   };
 

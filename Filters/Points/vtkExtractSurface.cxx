@@ -190,25 +190,23 @@ public:
     void operator()(
       CellStateT& state, const unsigned char* edges, int numTris, vtkIdType* eIds, vtkIdType& triId)
     {
-      using ValueType = typename CellStateT::ValueType;
-      auto* offsets = state.GetOffsets();
-      auto* conn = state.GetConnectivity();
+      using OffsetsValueType = typename CellStateT::OffsetsValueType;
 
-      auto offsetRange = vtk::DataArrayValueRange<1>(offsets);
+      auto offsetRange = state.GetOffsetsRange();
       auto offsetIter = offsetRange.begin() + triId;
-      auto connRange = vtk::DataArrayValueRange<1>(conn);
+      auto connRange = state.GetConnectivityRange();
       auto connIter = connRange.begin() + (triId * 3);
 
       while (numTris-- > 0)
       {
-        *offsetIter++ = static_cast<ValueType>(3 * triId++);
+        *offsetIter++ = static_cast<OffsetsValueType>(3 * triId++);
         *connIter++ = eIds[*edges++];
         *connIter++ = eIds[*edges++];
         *connIter++ = eIds[*edges++];
       }
 
       // Write the last offset:
-      *offsetIter = static_cast<ValueType>(3 * triId);
+      *offsetIter = static_cast<OffsetsValueType>(3 * triId);
     }
   };
   void GenerateTris(unsigned char eCase, unsigned char numTris, vtkIdType* eIds, vtkIdType& triId)

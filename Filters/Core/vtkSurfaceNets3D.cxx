@@ -789,13 +789,11 @@ struct SurfaceNets
     void operator()(CellStateT& state, vtkIdType i, vtkIdType row, vtkIdType slice,
       struct SurfaceNets* snet, TriadType triad, vtkIdType* pIds, vtkIdType& quadId)
     {
-      using ValueType = typename CellStateT::ValueType;
-      auto* offsets = state.GetOffsets();
-      auto* conn = state.GetConnectivity();
+      using OffsetsValueType = typename CellStateT::OffsetsValueType;
 
-      auto offsetRange = vtk::DataArrayValueRange<1>(offsets);
+      auto offsetRange = state.GetOffsetsRange();
       auto offsetIter = offsetRange.begin() + quadId;
-      auto connRange = vtk::DataArrayValueRange<1>(conn);
+      auto connRange = state.GetConnectivityRange();
       auto connIter = connRange.begin() + (quadId * 4);
 
       // Prepare to write scalar data. s0 is the triad origin.
@@ -804,7 +802,7 @@ struct SurfaceNets
 
       if (SurfaceNets::GenerateXYQuad(triad))
       {
-        *offsetIter++ = static_cast<ValueType>(4 * quadId);
+        *offsetIter++ = static_cast<OffsetsValueType>(4 * quadId);
         *connIter++ = pIds[4];
         *connIter++ = pIds[4] - 1;
         *connIter++ = pIds[3] - 1;
@@ -816,7 +814,7 @@ struct SurfaceNets
 
       if (SurfaceNets::GenerateXZQuad(triad))
       {
-        *offsetIter++ = static_cast<ValueType>(4 * quadId);
+        *offsetIter++ = static_cast<OffsetsValueType>(4 * quadId);
         *connIter++ = pIds[4];
         *connIter++ = pIds[1];
         *connIter++ = pIds[1] - 1;
@@ -828,7 +826,7 @@ struct SurfaceNets
 
       if (SurfaceNets::GenerateYZQuad(triad))
       {
-        *offsetIter++ = static_cast<ValueType>(4 * quadId);
+        *offsetIter++ = static_cast<OffsetsValueType>(4 * quadId);
         *connIter++ = pIds[4];
         *connIter++ = pIds[3];
         *connIter++ = pIds[0];
@@ -848,11 +846,10 @@ struct SurfaceNets
     template <typename CellStateT>
     void operator()(CellStateT& state, vtkIdType numQuads)
     {
-      using ValueType = typename CellStateT::ValueType;
-      auto* offsets = state.GetOffsets();
-      auto offsetRange = vtk::DataArrayValueRange<1>(offsets);
+      using OffsetsValueType = typename CellStateT::OffsetsValueType;
+      auto offsetRange = state.GetOffsetsRange();
       auto offsetIter = offsetRange.begin() + numQuads;
-      *offsetIter = static_cast<ValueType>(4 * numQuads);
+      *offsetIter = static_cast<OffsetsValueType>(4 * numQuads);
     }
   };
 
@@ -866,12 +863,9 @@ struct SurfaceNets
       // The point on which the stencil operates
       vtkIdType pId = pIds[4];
 
-      auto* offsets = state.GetOffsets();
-      auto* conn = state.GetConnectivity();
-
-      auto offsetRange = vtk::DataArrayValueRange<1>(offsets);
+      auto offsetRange = state.GetOffsetsRange();
       auto offsetIter = offsetRange.begin() + pId;
-      auto connRange = vtk::DataArrayValueRange<1>(conn);
+      auto connRange = state.GetConnectivityRange();
       auto connIter = connRange.begin() + sOffset;
 
       // Create the stencil. Note that for stencils with just one connection
@@ -936,11 +930,10 @@ struct SurfaceNets
     template <typename CellStateT>
     void operator()(CellStateT& state, vtkIdType numPts, vtkIdType numSEdges)
     {
-      using ValueType = typename CellStateT::ValueType;
-      auto* offsets = state.GetOffsets();
-      auto offsetRange = vtk::DataArrayValueRange<1>(offsets);
+      using OffsetsValueType = typename CellStateT::OffsetsValueType;
+      auto offsetRange = state.GetOffsetsRange();
       auto offsetIter = offsetRange.begin() + numPts;
-      *offsetIter = static_cast<ValueType>(numSEdges);
+      *offsetIter = static_cast<OffsetsValueType>(numSEdges);
     }
   };
 
@@ -1833,22 +1826,20 @@ struct ConvertToTrisImpl
   template <typename CellStateT>
   void operator()(CellStateT& state, vtkIdType cellId, vtkIdType* ptIds)
   {
-    using ValueType = typename CellStateT::ValueType;
-    auto* offsets = state.GetOffsets();
-    auto* conn = state.GetConnectivity();
+    using OffsetsValueType = typename CellStateT::OffsetsValueType;
 
-    auto offsetRange = vtk::DataArrayValueRange<1>(offsets);
+    auto offsetRange = state.GetOffsetsRange();
     auto offsetItr = offsetRange.begin() + 2 * cellId;
-    auto connRange = vtk::DataArrayValueRange<1>(conn);
+    auto connRange = state.GetConnectivityRange();
     auto connItr = connRange.begin() + (cellId * 6);
 
     // Add two triangles
-    *offsetItr++ = static_cast<ValueType>(6 * cellId);
+    *offsetItr++ = static_cast<OffsetsValueType>(6 * cellId);
     *connItr++ = ptIds[0];
     *connItr++ = ptIds[1];
     *connItr++ = ptIds[2];
 
-    *offsetItr = static_cast<ValueType>(6 * cellId + 3);
+    *offsetItr = static_cast<OffsetsValueType>(6 * cellId + 3);
     *connItr++ = ptIds[1];
     *connItr++ = ptIds[0];
     *connItr++ = ptIds[3];
@@ -1861,11 +1852,10 @@ struct FinalizeMeshConversionImpl
   template <typename CellStateT>
   void operator()(CellStateT& state, vtkIdType numCells, vtkIdType connSize)
   {
-    using ValueType = typename CellStateT::ValueType;
-    auto* offsets = state.GetOffsets();
-    auto offsetRange = vtk::DataArrayValueRange<1>(offsets);
+    using OffsetsValueType = typename CellStateT::OffsetsValueType;
+    auto offsetRange = state.GetOffsetsRange();
     auto offsetIter = offsetRange.begin() + numCells;
-    *offsetIter = static_cast<ValueType>(connSize);
+    *offsetIter = static_cast<OffsetsValueType>(connSize);
   }
 };
 
@@ -2069,16 +2059,14 @@ struct CopyCellsImpl
   template <typename CellStateT>
   void operator()(CellStateT& state, vtkIdType cellId, int cellSize, const vtkIdType* pts)
   {
-    using ValueType = typename CellStateT::ValueType;
-    auto* offsets = state.GetOffsets();
-    auto* conn = state.GetConnectivity();
+    using OffsetsValueType = typename CellStateT::OffsetsValueType;
 
-    auto offsetRange = vtk::DataArrayValueRange<1>(offsets);
+    auto offsetRange = state.GetOffsetsRange();
     auto offsetIter = offsetRange.begin() + cellId;
-    auto connRange = vtk::DataArrayValueRange<1>(conn);
+    auto connRange = state.GetConnectivityRange();
     auto connIter = connRange.begin() + (cellId * cellSize);
 
-    *offsetIter = static_cast<ValueType>(cellSize * cellId);
+    *offsetIter = static_cast<OffsetsValueType>(cellSize * cellId);
     for (auto i = 0; i < cellSize; ++i)
     {
       *connIter++ = pts[i];
@@ -2093,11 +2081,10 @@ struct FinalizeCopyCellsImpl
   template <typename CellStateT>
   void operator()(CellStateT& state, vtkIdType numCells, int cellSize)
   {
-    using ValueType = typename CellStateT::ValueType;
-    auto* offsets = state.GetOffsets();
-    auto offsetRange = vtk::DataArrayValueRange<1>(offsets);
+    using OffsetsValueType = typename CellStateT::OffsetsValueType;
+    auto offsetRange = state.GetOffsetsRange();
     auto offsetIter = offsetRange.begin() + numCells;
-    *offsetIter = static_cast<ValueType>(cellSize * numCells);
+    *offsetIter = static_cast<OffsetsValueType>(cellSize * numCells);
   }
 };
 

@@ -102,13 +102,13 @@ struct RenumberingVisitor
   template <typename CellStateT>
   void operator()(CellStateT& state, vtkIdType* idMap, vtkIdType offset)
   {
-    using ValueType = typename CellStateT::ValueType;
-    auto* conn = state.GetConnectivity();
-    const vtkIdType nids = conn->GetNumberOfValues();
+    using ValueType = typename CellStateT::ConnectivityValueType;
+    auto conn = state.GetConnectivityRange();
+    const vtkIdType nids = conn.size();
     for (vtkIdType i = 0; i < nids; ++i)
     {
-      ValueType tmp = conn->GetValue(i);
-      conn->SetValue(i, idMap[tmp + offset]);
+      ValueType tmp = conn[i];
+      conn[i] = idMap[tmp + offset];
     }
   }
 };

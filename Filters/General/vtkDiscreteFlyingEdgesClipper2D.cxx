@@ -127,22 +127,22 @@ public:
     void operator()(CellStateT& state, const unsigned char* verts, int numPolys,
       const vtkIdType ptIds[9], vtkIdType& cellOffsetBegin, vtkIdType& cellConnBegin)
     {
-      using ValueType = typename CellStateT::ValueType;
-      auto* offsets = state.GetOffsets();
-      auto* conn = state.GetConnectivity();
+      using OffsetsValueType = typename CellStateT::OffsetsValueType;
 
+      auto offsets = state.GetOffsetsRange();
+      auto conn = state.GetConnectivityRange();
       size_t vid{ 0 };
       while (numPolys-- > 0)
       {
         int nPts = static_cast<int>(*verts++);
-        offsets->SetValue(cellOffsetBegin++, static_cast<ValueType>(cellConnBegin));
+        offsets[cellOffsetBegin++] = static_cast<OffsetsValueType>(cellConnBegin);
         while (nPts-- > 0)
         {
           // Can't just do vtkCellArray::AppendLegacyFormat bc of this funky
           // conversion:
           vid = static_cast<size_t>(*verts++);
           vid = (vid <= 3 ? vid : (vid <= 13 ? (vid - 6) : 8));
-          conn->SetValue(cellConnBegin++, static_cast<ValueType>(ptIds[vid]));
+          conn[cellConnBegin++] = static_cast<OffsetsValueType>(ptIds[vid]);
         }
       }
     }
@@ -154,11 +154,11 @@ public:
     template <typename CellStateT>
     void operator()(CellStateT& state, vtkIdType numPolys, vtkIdType connSize)
     {
-      using ValueType = typename CellStateT::ValueType;
+      using OffsetsValueType = typename CellStateT::OffsetsValueType;
       auto* offsets = state.GetOffsets();
       auto offsetRange = vtk::DataArrayValueRange<1>(offsets);
       auto offsetIter = offsetRange.begin() + numPolys;
-      *offsetIter = static_cast<ValueType>(connSize);
+      *offsetIter = static_cast<OffsetsValueType>(connSize);
     }
   };
   void GeneratePolys(unsigned char dCase, unsigned char numPolys, vtkIdType ptIds[9],

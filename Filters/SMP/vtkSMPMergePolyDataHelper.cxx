@@ -183,29 +183,27 @@ public:
       vtkIdType inCellOffsetEnd, vtkIdType inConnOffset, vtkIdType inConnOffsetEnd,
       vtkIdType outCellOffset, vtkIdType outConnOffset, vtkIdList* map)
     {
-      using InIndexType = typename InCellStateT::ValueType;
-      using OutIndexType = typename OutCellStateT::ValueType;
+      using InConnIndexType = typename InCellStateT::ConnectivityValueType;
+      using OutConnIndexType = typename OutCellStateT::ConnectivityValueType;
+      using InOffsetsIndexType = typename InCellStateT::OffsetsValueType;
+      using OutOffsetsIndexType = typename OutCellStateT::OffsetsValueType;
 
-      const auto inCell =
-        vtk::DataArrayValueRange<1>(inState.GetOffsets(), inCellOffset, inCellOffsetEnd + 1);
-      const auto inConn =
-        vtk::DataArrayValueRange<1>(inState.GetConnectivity(), inConnOffset, inConnOffsetEnd);
-      auto outCell =
-        vtk::DataArrayValueRange<1>(outState.GetOffsets(), outCellOffset + inCellOffset);
-      auto outConn =
-        vtk::DataArrayValueRange<1>(outState.GetConnectivity(), outConnOffset + inConnOffset);
+      const auto inCell = inState.GetOffsetsRange().GetSubRange(inCellOffset, inCellOffsetEnd + 1);
+      const auto inConn = inState.GetConnectivityRange().GetSubRange(inConnOffset, inConnOffsetEnd);
+      auto outCell = outState.GetOffsetsRange().GetSubRange(outCellOffset + inCellOffset);
+      auto outConn = outState.GetConnectivityRange().GetSubRange(outConnOffset + inConnOffset);
 
       // Copy the offsets, adding outConnOffset to adjust for existing
       // connectivity entries:
-      std::transform(
-        inCell.cbegin(), inCell.cend(), outCell.begin(), [&](InIndexType i) -> OutIndexType {
-          return static_cast<OutIndexType>(i + outConnOffset);
+      std::transform(inCell.cbegin(), inCell.cend(), outCell.begin(),
+        [&](InOffsetsIndexType i) -> OutOffsetsIndexType {
+          return static_cast<OutOffsetsIndexType>(i + outConnOffset);
         });
 
       // Copy the connectivities, passing them through the map:
-      std::transform(
-        inConn.cbegin(), inConn.cend(), outConn.begin(), [&](InIndexType i) -> OutIndexType {
-          return static_cast<OutIndexType>(map->GetId(static_cast<vtkIdType>(i)));
+      std::transform(inConn.cbegin(), inConn.cend(), outConn.begin(),
+        [&](InConnIndexType i) -> OutConnIndexType {
+          return static_cast<OutConnIndexType>(map->GetId(static_cast<vtkIdType>(i)));
         });
     }
   };
@@ -299,18 +297,25 @@ struct CopyCellArraysToFront
   template <typename InCellArraysT, typename OutCellArraysT>
   void operator()(InCellArraysT& in, OutCellArraysT& out)
   {
-    using InIndexType = typename InCellArraysT::ValueType;
-    using OutIndexType = typename OutCellArraysT::ValueType;
+    using InConnIndexType = typename InCellArraysT::ConnectivityValueType;
+    using OutConnIndexType = typename OutCellArraysT::ConnectivityValueType;
+    using InOffsetsIndexType = typename InCellArraysT::OffsetsValueType;
+    using OutOffsetsIndexType = typename OutCellArraysT::OffsetsValueType;
 
     const auto inCell = vtk::DataArrayValueRange<1>(in.GetOffsets());
     const auto inConn = vtk::DataArrayValueRange<1>(in.GetConnectivity());
     auto outCell = vtk::DataArrayValueRange<1>(out.GetOffsets());
     auto outConn = vtk::DataArrayValueRange<1>(out.GetConnectivity());
 
-    auto cast = [](InIndexType i) -> OutIndexType { return static_cast<OutIndexType>(i); };
+    auto offsetsCast = [](InOffsetsIndexType i) -> OutOffsetsIndexType {
+      return static_cast<OutOffsetsIndexType>(i);
+    };
+    auto connectivityCast = [](InConnIndexType i) -> OutConnIndexType {
+      return static_cast<OutConnIndexType>(i);
+    };
 
-    std::transform(inCell.cbegin(), inCell.cend(), outCell.begin(), cast);
-    std::transform(inConn.cbegin(), inConn.cend(), outConn.begin(), cast);
+    std::transform(inCell.cbegin(), inCell.cend(), outCell.begin(), offsetsCast);
+    std::transform(inConn.cbegin(), inConn.cend(), outConn.begin(), connectivityCast);
   }
 };
 

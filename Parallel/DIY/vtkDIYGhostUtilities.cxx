@@ -1942,7 +1942,7 @@ struct GetPolyhedronNPts
     const vtkIdType beginOffset = state.GetBeginOffset(cellId);
     const vtkIdType endOffset = state.GetEndOffset(cellId);
     const vtkIdType NumberOfFaces = endOffset - beginOffset;
-    const auto cellFaces = state.GetConnectivity()->GetPointer(beginOffset);
+    const auto cellFaces = state.GetConnectivityRange().data() + beginOffset;
 
     for (vtkIdType faceNum = 0; faceNum < NumberOfFaces; ++faceNum)
     {
