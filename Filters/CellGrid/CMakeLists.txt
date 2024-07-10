@@ -48,6 +48,7 @@ set(classes
   vtkDGHCurlOperators
   vtkDGHDivOperators
   vtkDGOperatorEntry
+  vtkDGOperation
   vtkDGInvokeOperator
 )
 

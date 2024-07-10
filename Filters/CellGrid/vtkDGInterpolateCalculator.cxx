@@ -26,6 +26,16 @@ vtkStandardNewMacro(vtkDGInterpolateCalculator);
 void vtkDGInterpolateCalculator::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
+  vtkIndent i2 = indent.GetNextIndent();
+  os << indent << "FieldEvaluator:\n";
+  this->FieldEvaluator.PrintSelf(os, i2);
+  os << indent << "ShapeEvaluator:\n";
+  this->ShapeEvaluator.PrintSelf(os, i2);
+  os << indent << "FieldDerivative:\n";
+  this->FieldDerivative.PrintSelf(os, i2);
+  os << indent << "ShapeDerivative:\n";
+  this->ShapeDerivative.PrintSelf(os, i2);
+
   os << indent << "FieldValues: " << this->FieldValues << "\n";
   os << indent << "ShapeConnectivity: " << this->ShapeConnectivity << "\n";
   os << indent << "ShapeValues: " << this->ShapeValues << "\n";
@@ -34,11 +44,9 @@ void vtkDGInterpolateCalculator::PrintSelf(ostream& os, vtkIndent indent)
 void vtkDGInterpolateCalculator::Evaluate(
   vtkIdType cellId, const vtkVector3d& rst, std::vector<double>& value)
 {
-  static thread_local vtkDGInvokeOperator computeValue;
   std::array<double, 3> arst{ rst[0], rst[1], rst[2] };
   // value.resize(this->FieldBasisOp.OperatorSize * );
-  computeValue.Invoke(
-    this->FieldBasisOp, this->FieldCellInfo, 1, &cellId, arst.data(), value.data());
+  this->FieldEvaluator.Invoke(1, &cellId, arst.data(), value.data());
 
   // Now, for H(curl) elements, transform the resulting vectors by the inverse Jacobian
   // (of the cell's *shape* function).
@@ -47,7 +55,7 @@ void vtkDGInterpolateCalculator::Evaluate(
   if (isCurl.find(this->FieldCellInfo.FunctionSpace) != isCurl.end())
   {
     static thread_local std::vector<double> spatialDeriv;
-    this->InternalDerivative<true>(cellId, rst, spatialDeriv, 1e-3);
+    this->ShapeDerivative.Invoke(1, &cellId, , arst.data(), spatialDeriv);
 
     // Use spatialDeriv as Jacobian and solve J * xx = value (which transforms "value"
     // from the parameter space into world coordinates), then write the results
@@ -74,7 +82,8 @@ void vtkDGInterpolateCalculator::Evaluate(
   if (isDiv.find(this->FieldCellInfo.FunctionSpace) != isDiv.end())
   {
     static thread_local std::vector<double> jac;
-    this->InternalDerivative<true>(cellId, rst, jac, 1e-3);
+    this->ShapeDerivative(1, &cellId, arst, jac.data());
+
     double jdet;
     double diag = std::abs(jac[0]) + std::abs(jac[4]) + std::abs(jac[8]);
     if (this->Dimension == 3)
@@ -104,51 +113,54 @@ void vtkDGInterpolateCalculator::Evaluate(
 void vtkDGInterpolateCalculator::Evaluate(
   vtkIdTypeArray* cellIds, vtkDataArray* rst, vtkDataArray* result)
 {
-  static thread_local vtkDGInvokeOperator computeValue;
-  static thread_local vtkNew<vtkDoubleArray> localRST;
-  static thread_local vtkNew<vtkDoubleArray> localField;
   vtkDoubleArray* drst = vtkDoubleArray::SafeDownCast(rst);
   // Convert parameters to doubles as needed.
   if (!drst)
   {
-    localRST->DeepCopy(rst);
-    drst = localRST.GetPointer();
+    this->LocalRST->DeepCopy(rst);
+    drst = this->LocalRST.GetPointer();
   }
   vtkDoubleArray* dresult = vtkDoubleArray::SafeDownCast(result);
   if (!dresult)
   {
-    dresult = localField.GetPointer();
+    dresult = this->LocalField.GetPointer();
   }
 
   assert(cellIds->GetNumberOfTuples() == rst->GetNumberOfTuples());
+
   vtkIdType numEvals = cellIds->GetNumberOfTuples();
   dresult->SetNumberOfComponents(this->Field->GetNumberOfComponents());
   dresult->SetNumberOfTuples(cellIds->GetNumberOfTuples());
-  computeValue.Invoke(this->FieldBasisOp, this->FieldCellInfo, numEvals, cellIds->GetPointer(0),
-    drst->GetPointer(0), dresult->GetPointer(0));
-#if 0
+  this->FieldEvaluator.Invoke(numEvals, cellIds->GetPointer(0), drst->GetPointer(0),
+    dresult->GetPointer(0));
+
   // Now, for H(curl) elements, transform the resulting vectors by the inverse Jacobian
   // (of the cell's *shape* function).
   static std::unordered_set<vtkStringToken> isCurl( { "HCURL"_token, "HCurl"_token, "Hcurl"_token,
     "hcurl"_token } );
   if (isCurl.find(this->FieldCellInfo.FunctionSpace) != isCurl.end())
   {
-    /* static thread_local */ std::vector<double> spatialDeriv;
-    this->InternalDerivative<true>(cellId, rst, spatialDeriv, 1e-3);
+    static thread_local std::vector<double> spatialDeriv;
+    spatialDeriv.resize(9 * numEvals);
+    this->ShapeDerivative.Invoke(
+      numEval, cellIds->GetPointer(0), drst->GetPointer(0), spatialDeriv.data());
 
     // Use spatialDeriv as Jacobian and solve J * xx = value (which transforms "value"
     // from the parameter space into world coordinates), then write the results
     // back into value.
-    Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>> map(spatialDeriv.data());
-    Eigen::HouseholderQR<Eigen::Matrix3d> solver(map);
-    std::size_t numValueVectors = value.size() / 3;
-    for (std::size_t ii = 0; ii < numValueVectors; ++ii)
+    vtkIdType numVecPerEval = this->Field->GetNumberOfComponents() / 3;
+    // We could parallelize this, but vtkDGInterpolateCalculator is intended to be
+    // called from within threaded code, which could cause problems.
+    for (vtkIdType ee = 0; ee < numEvals; ++ee)
     {
-      Eigen::Vector3d edelt(value[3 * ii + 0], value[3 * ii + 1], value[3 * ii + 2]);
-      auto xx = solver.solve(edelt);
-      for (int jj = 0; jj < 3; ++jj)
+      Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>> map(spatialDeriv.data() + 9 * ee);
+      Eigen::HouseholderQR<Eigen::Matrix3d> solver(map);
+      for (vtkIdType vv = 0; vv < numVecPerEval; ++vv)
       {
-        value[3 * ii + jj] = xx[jj];
+        Eigen::Vector3d edelt;
+        dresult->GetTuple(vv, edelt.data());
+        auto xx = solver.solve(edelt);
+        dresult->SetTuple(vv, xx.data());
       }
     }
   }
@@ -159,33 +171,50 @@ void vtkDGInterpolateCalculator::Evaluate(
     "hdiv"_token } );
   if (isDiv.find(this->FieldCellInfo.FunctionSpace) != isDiv.end())
   {
-    static thread_local std::vector<double> jac;
-    this->InternalDerivative<true>(cellId, rst, jac, 1e-3);
-    double jdet;
-    double diag = std::abs(jac[0]) + std::abs(jac[4]) + std::abs(jac[8]);
-    if (this->Dimension == 3)
+    static thread_local std::vector<double> spatialDeriv;
+    spatialDeriv.resize(9 * numEvals);
+    this->ShapeDerivative.Invoke(
+      numEval, cellIds->GetPointer(0), drst->GetPointer(0), spatialDeriv.data());
+    // Evaluate the determinant of each Jacobian matrix in spatialDeriv and
+    // transform the vectors computed above.
+    vtkIdType numVecPerEval = this->Field->GetNumberOfComponents() / 3;
+    // We could parallelize this, but vtkDGInterpolateCalculator is intended to be
+    // called from within threaded code, which could cause problems.
+    for (vtkIdType ee = 0; ee < numEvals; ++ee)
     {
-      jdet =
-        jac[0] * (jac[4] * jac[8] - jac[7] * jac[5]) -
-        jac[1] * (jac[3] * jac[8] - jac[6] * jac[5]) +
-        jac[2] * (jac[3] * jac[7] - jac[6] * jac[4]);
-    }
-    else
-    {
-      jdet = jac[0] * jac[4] - jac[3] * jac[1];
-    }
-    double ijdet = (std::abs(jdet/diag) > 1e-7) ? 1.0 / jdet : 0.0;
+      double* jac = spatialDeriv.data() + 9 * ee;
+      double jdet;
+      double diag = std::abs(jac[0]) + std::abs(jac[4]) + std::abs(jac[8]);
+      if (this->Dimension == 3)
+      {
+        jdet =
+          jac[0] * (jac[4] * jac[8] - jac[7] * jac[5]) -
+          jac[1] * (jac[3] * jac[8] - jac[6] * jac[5]) +
+          jac[2] * (jac[3] * jac[7] - jac[6] * jac[4]);
+      }
+      else
+      {
+        jdet = jac[0] * jac[4] - jac[3] * jac[1];
+      }
+      double ijdet = (std::abs(jdet/diag) > 1e-7) ? 1.0 / jdet : 0.0;
 
-    std::size_t numValueVectors = value.size() / 3;
-    for (std::size_t ii = 0; ii < numValueVectors; ++ii)
-    {
-      std::array<double, 3> xx{{ value[3 * ii], value[3 * ii + 1], value[3 * ii + 2] }};
-      value[3 * ii    ] = (jac[0] * xx[0] + jac[1] * xx[1] + jac[2] * xx[2]) * ijdet;
-      value[3 * ii + 1] = (jac[3] * xx[0] + jac[4] * xx[1] + jac[5] * xx[2]) * ijdet;
-      value[3 * ii + 2] = (jac[6] * xx[0] + jac[7] * xx[1] + jac[8] * xx[2]) * ijdet;
+      double* value = dresult->GetPointer(0) + ee * numVecPerEval * 3;
+      for (int vv = 0; vv < numVecPerEval; ++vv)
+      {
+        std::array<double, 3> xx{{ value[3 * vv], value[3 * vv + 1], value[3 * vv + 2] }};
+        value[3 * vv    ] = (jac[0] * xx[0] + jac[1] * xx[1] + jac[2] * xx[2]) * ijdet;
+        value[3 * vv + 1] = (jac[3] * xx[0] + jac[4] * xx[1] + jac[5] * xx[2]) * ijdet;
+        value[3 * vv + 2] = (jac[6] * xx[0] + jac[7] * xx[1] + jac[8] * xx[2]) * ijdet;
+      }
     }
   }
-#endif
+
+  // Finally, if we were given a non-vtkDoubleArray, copy the results
+  // back into the output array.
+  if (dresult != result)
+  {
+    result->DeepCopy(dresult);
+  }
 }
 
 bool vtkDGInterpolateCalculator::AnalyticDerivative() const
@@ -208,94 +237,49 @@ bool vtkDGInterpolateCalculator::AnalyticDerivative() const
   return false;
 }
 
-template <bool UseShape>
-void vtkDGInterpolateCalculator::InternalDerivative(
-  vtkIdType cellId, const vtkVector3d& rst, std::vector<double>& jacobian, double neighborhood)
-{
-  auto& gradOp(UseShape ? this->ShapeGradientOp : this->FieldGradientOp);
-  if (!gradOp.Op)
-  {
-    // The basis does not provide an analytical derivative; approximate it numerically.
-    return this->Superclass::EvaluateDerivative(cellId, rst, jacobian, neighborhood);
-  }
-
-  auto& cellInfo(UseShape ? this->ShapeCellInfo : this->FieldCellInfo);
-  static thread_local vtkDGInvokeOperator computeGradient;
-  jacobian.resize(
-    UseShape ? 3 * this->Dimension : this->FieldBasisOp.OperatorSize * this->Dimension);
-  computeGradient.Invoke(gradOp, cellInfo, 1, &cellId, &rst[0], jacobian.data());
-}
-
 void vtkDGInterpolateCalculator::EvaluateDerivative(
   vtkIdType cellId, const vtkVector3d& rst, std::vector<double>& jacobian, double neighborhood)
 {
-  this->InternalDerivative<false>(cellId, rst, jacobian, neighborhood);
+  if (!this->FieldGradientOp || !this->AnalyticDerivative())
+  {
+    // We don't have an analytic derivative; approximate it.
+    return this->Superclass::EvaluateDerivative(cellId, rst, jacobian, neighborhood);
+  }
+
+  this->FieldDerivative.Invoke(1, &cellId, rst.GetData(), jacobian.data());
+  // TODO: Transform gradient if needed by HCurl/HDiv shape-gradient?
+  //       That is already approximated above because of AnalyticDerivative()…
 }
 
 void vtkDGInterpolateCalculator::EvaluateDerivative(
   vtkIdTypeArray* cellIds, vtkDataArray* rst, vtkDataArray* result)
 {
-  if (!this->FieldGradientOp)
+  if (!this->FieldGradientOp || !this->AnalyticDerivative())
   {
-    throw std::runtime_error("No shape gradient.");
+    // We don't have an analytic derivative; approximate it.
+    return this->Superclass::EvaluateDerivative(cellIds, rst, result);
   }
 
   vtkIdType numEvals = cellIds->GetNumberOfTuples();
-  static thread_local vtkNew<vtkDoubleArray> localRST;
   vtkDoubleArray* drst = vtkDoubleArray::SafeDownCast(rst);
   // Convert parameters to doubles as needed.
   if (!drst)
   {
-    localRST->DeepCopy(rst);
-    drst = localRST.GetPointer();
+    this->LocalRST->DeepCopy(rst);
+    drst = this->LocalRST.GetPointer();
   }
-  static thread_local vtkNew<vtkDoubleArray> localField;
   vtkDoubleArray* dresult = vtkDoubleArray::SafeDownCast(result);
   if (!dresult)
   {
-    dresult = localField.GetPointer();
+    dresult = this->LocalField.GetPointer();
   }
 
-  auto& cellInfo(this->FieldCellInfo);
-  static thread_local vtkDGInvokeOperator computeGradient;
-  static thread_local vtkNew<vtkDoubleArray> jacobian;
-  jacobian->SetNumberOfComponents(9); // really 3 * this->Dimension, but we promote 2D to 3D.
-  jacobian->SetNumberOfTuples(numEvals);
-  computeGradient.Invoke(this->FieldGradientOp, cellInfo, numEvals, cellIds->GetPointer(0),
-    drst->GetPointer(0), dresult->GetPointer(0));
+  this->FieldDerivative.Invoke(numEvals, cellIds, drst, dresult);
 
-  if (dresult == localField.GetPointer())
+  if (dresult != result)
   {
     result->DeepCopy(dresult);
   }
-
-  // We may wish to multiple the result by the inverse Jacobian of the
-  // shape attribute to get derivatives in world coordinates.
-  // That should be an option to EvaluateDerivative().
-#if 0
-  // Now we need to invert each Jacobian and multiply each result
-  // value by its respective inverse Jacobian.
-  int nn = result->GetNumberOfComponents() / 3;
-  double* resultP = result->GetPointer(0);
-  for (vtkIdType jj = 0; jj < numEvals; ++jj)
-  {
-    // Treat each tuple of jacobian as a matrix and solve J * xx = result[jj] (which
-    // transforms "result" from the parameter space into world coordinates), then
-    // write the results back into "result".
-    Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>> map(jacobian->GetPointer(9 * jj));
-    Eigen::HouseholderQR<Eigen::Matrix3d> solver(map);
-    std::size_t numValueVectors = value.size() / 3;
-    for (int ii = 0; ii < nn; ++ii)
-    {
-      Eigen::Vector3d edelt(resultP[3 * (ii + nn * jj) + 0], resultP[3 * (ii + nn * jj) + 1], resultP[3 * (ii + nn * jj) + 2]);
-      auto xx = solver.solve(edelt);
-      for (int kk = 0; kk < 3; ++kk)
-      {
-        resultP[3 * (ii + nn * jj) + kk] = xx[kk];
-      }
-    }
-  }
-#endif
 }
 
 vtkSmartPointer<vtkCellAttributeCalculator> vtkDGInterpolateCalculator::PrepareForGrid(

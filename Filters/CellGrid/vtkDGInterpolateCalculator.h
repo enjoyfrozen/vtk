@@ -8,12 +8,13 @@
 #ifndef vtkDGInterpolateCalculator_h
 #define vtkDGInterpolateCalculator_h
 
-#include "vtkCellAttribute.h"   // For CellTypeInfo.
-#include "vtkDGCell.h"          // For ivar.
-#include "vtkDGOperatorEntry.h" // For ivar.
+#include "vtkCellAttribute.h"          // For CellTypeInfo.
+#include "vtkDGCell.h"                 // For ivar.
+#include "vtkDGInvokeOperator.h"       // For ivars.
+#include "vtkDGOperatorEntry.h"        // For ivar.
 #include "vtkInterpolateCalculator.h"
-#include "vtkSmartPointer.h" // For ivar.
-#include "vtkStringToken.h"  // For ivar.
+#include "vtkSmartPointer.h"           // For ivar.
+#include "vtkStringToken.h"            // For ivar.
 
 VTK_ABI_NAMESPACE_BEGIN
 
@@ -53,6 +54,32 @@ protected:
   void InternalDerivative(
     vtkIdType cellId, const vtkVector3d& rst, std::vector<double>& jacobian, double neighborhood);
 
+  /// The cell-type for which interpolation will be performed.
+  ///
+  /// This is set by PrepareForGrid().
+  vtkDGCell* CellType{ nullptr };
+  /// The cell-attribute for which interpolation will be performed.
+  ///
+  /// This is set by PrepareForGrid().
+  vtkCellAttribute* Field{ nullptr };
+
+  /// Used to compute an (untransformed) field value for a cell.
+  vtkDGInvokeOperator FieldEvaluator;
+  /// Used to compute the shape field for a cell (when transformation is required).
+  vtkDGInvokeOperator ShapeEvaluator;
+  /// Used to compute an (untransformed) field derivative for a cell.
+  vtkDGInvokeOperator FieldDerivative;
+  /// Used to compute the shape jacobian for a cell (when transformation is required).
+  vtkDGInvokeOperator ShapeDerivative;
+
+  /// Used when an array passed to Evaluate()/EvaluateDerivative() is not a double-array.
+  ///
+  /// The basis operators only process doubles (on the CPU).
+  /// If needed, we copy the parameter and/or output arrays to/from a "local"
+  /// double-valued array into what was passed.
+  vtkNew<vtkDoubleArray> LocalRST;
+  vtkNew<vtkDoubleArray> LocalField;
+
   /// Array pointers populated by PrepareForGrid.
   ///
   /// These arrays are used to look up values used to interpolate within cells.
@@ -62,7 +89,6 @@ protected:
   vtkSmartPointer<vtkDataArray> ShapeConnectivity;
   vtkSmartPointer<vtkDataArray> ShapeValues;
 
-  vtkCellAttribute* Field{ nullptr };
 
   /// The parametric dimension of the current cell-type.
   int Dimension{ 3 };

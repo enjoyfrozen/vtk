@@ -111,7 +111,98 @@ struct ArrayOfCellIdsLambdaRST
   std::function<std::array<double, 3>(IdType)> ParameterLambda;
 };
 
+void dumpTuples(std::ostream& os, vtkIndent indent, vtkDataArray* array)
+{
+  if (array)
+  {
+    std::vector<double> tuple(array->GetNumberOfComponents());
+    for (vtkIdType ii = 0; ii < array->GetNumberOfTuples(); ++ii)
+    {
+      os << indent;
+      array->GetTuple(ii, tuple.data());
+      for (const auto& xx : tuple)
+      {
+        os << " " << xx;
+      }
+      os << "\n";
+    }
+  }
+}
+
+template<typename T>
+std::ostream& dumpContainer(std::ostream& os, const T& container)
+{
+  for (const auto& id : container)
+  {
+    os << " " << id;
+  }
+  return os;
+}
+
 } // anonymous namespace
+
+void vtkDGInvokeOperator::FetchUnsharedCellDOF::PrintSelf(std::ostream& os, vtkIndent indent) const
+{
+  vtkIndent i2 = indent.GetNextIndent();
+  os << indent << "Coefficients: " << this->Coefficients << "\n";
+  dumpTuples(os, i2, this->Coefficients);
+}
+
+void vtkDGInvokeOperator::FetchSharedCellDOF::PrintSelf(std::ostream& os, vtkIndent indent) const
+{
+  vtkIndent i2 = indent.GetNextIndent();
+  os << indent << "Coefficients: " << this->Coefficients << "\n";
+  dumpTuples(os, i2, this->Coefficients);
+  os << indent << "Connectivity: " << this->Connectivity << "\n";
+  dumpTuples(os, i2, this->Connectivity);
+  os << indent << "Stride: " << this->Stride << "\n";
+  os << indent << "ConnTuple: ";
+  dumpContainer(os, this->ConnTuple) << "\n";
+}
+
+void vtkDGInvokeOperator::FetchUnsharedSideDOF::PrintSelf(std::ostream& os, vtkIndent indent) const
+{
+  vtkIndent i2 = indent.GetNextIndent();
+  os << indent << "Coefficients: " << this->Coefficients << "\n";
+  dumpTuples(os, i2, this->Coefficients);
+  os << indent << "Sides: " << this->Sides << "\n";
+  dumpTuples(os, i2, this->Sides);
+  os << indent << "SideTuple: ";
+  dumpContainer(os, this->SideTuple) << "\n";
+}
+
+void vtkDGInvokeOperator::FetchSharedSideDOF::PrintSelf(std::ostream& os, vtkIndent indent) const
+{
+  vtkIndent i2 = indent.GetNextIndent();
+  os << indent << "Coefficients: " << this->Coefficients << "\n";
+  dumpTuples(os, i2, this->Coefficients);
+  os << indent << "Connectivity: " << this->Connectivity << "\n";
+  dumpTuples(os, i2, this->Connectivity);
+  os << indent << "Stride: " << this->Stride << "\n";
+  os << indent << "Sides: " << this->Sides << "\n";
+  dumpTuples(os, i2, this->Sides);
+  os << indent << "SideTuple: ";
+  dumpContainer(os, this->SideTuple) << "\n";
+  os << indent << "ConnTuple: ";
+  dumpContainer(os, this->ConnTuple) << "\n";
+}
+
+void vtkDGInvokeOperator::PrintSelf(std::ostream& os, vtkIndent indent)
+{
+  vtkIndent i2 = indent.GetNextIndent();
+  os << indent << "CoeffTuple: " << this->CoeffTuple.size() << "\n";
+  for (const auto& xx : this->CoeffTuple) { os << i2 << xx << "\n"; }
+  os << indent << "OperatorTuple: " << this->OperatorTuple.size() << "\n";
+  for (const auto& xx : this->OperatorTuple) { os << i2 << xx << "\n"; }
+  os << indent << "SharedFetcher:\n";
+  this->SharedFetcher.PrintSelf(os, i2);
+  os << indent << "SharedSideFetcher:\n";
+  this->SharedSideFetcher.PrintSelf(os, i2);
+  os << indent << "DiscontinuousFetcher:\n";
+  this->DiscontinuousFetcher.PrintSelf(os, i2);
+  os << indent << "DiscontinuousSideFetcher:\n";
+  this->DiscontinuousSideFetcher.PrintSelf(os, i2);
+}
 
 bool vtkDGInvokeOperator::Invoke(const vtkDGOperatorEntry& op,
   const vtkCellAttribute::CellTypeInfo& info, std::size_t num, const vtkIdType* cellIds,

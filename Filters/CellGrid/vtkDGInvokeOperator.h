@@ -16,6 +16,8 @@
 
 VTK_ABI_NAMESPACE_BEGIN
 
+class vtkDGCell;
+
 /**
  * @class   vtkDGInvokeOperator
  * @brief   Invoke a DG-cell operator, weighting basis functions by coefficients.
@@ -52,7 +54,9 @@ class VTKFILTERSCELLGRID_EXPORT vtkDGInvokeOperator
 {
 public:
   vtkDGInvokeOperator() = default;
+  vtkDGInvokeOperator(vtkDGCell* cell, vtkCellAttribute* attribute, vtkStringToken operation);
   vtkDGInvokeOperator(const vtkDGInvokeOperator&) = default;
+  virtual void PrintSelf(std::ostream& os, vtkIndent indent);
 
   using ParameterLambda = std::function<std::array<double,3>(vtkIdType)>;
 
@@ -62,6 +66,7 @@ public:
 
     FetchUnsharedCellDOF() = default;
     FetchUnsharedCellDOF(vtkDataArray* vals, vtkDataArray* conn) { this->Initialize(vals, conn); }
+    void PrintSelf(std::ostream& os, vtkIndent indent) const;
 
     void Initialize(vtkDataArray* vals, vtkDataArray* conn = nullptr)
     {
@@ -85,6 +90,7 @@ public:
 
     FetchSharedCellDOF() = default;
     FetchSharedCellDOF(vtkDataArray* vals, vtkDataArray* conn) { this->Initialize(vals, conn); }
+    void PrintSelf(std::ostream& os, vtkIndent indent) const;
 
     void Initialize(vtkDataArray* vals, vtkDataArray* conn)
     {
@@ -117,6 +123,7 @@ public:
     {
       this->Initialize(sides, vals, conn);
     }
+    void PrintSelf(std::ostream& os, vtkIndent indent) const;
 
     void Initialize(vtkDataArray* sides, vtkDataArray* vals, vtkDataArray* conn = nullptr)
     {
@@ -148,6 +155,7 @@ public:
     {
       this->Initialize(sides, vals, conn);
     }
+    void PrintSelf(std::ostream& os, vtkIndent indent) const;
 
     void Initialize(vtkDataArray* sides, vtkDataArray* vals, vtkDataArray* conn)
     {
@@ -172,6 +180,13 @@ public:
       }
     }
   };
+
+  /// Prepare to process the given attribute on cells of the given type.
+  ///
+  /// This method looks up cell ID ranges covered by each vtkDGCell::Source
+  /// object and arrays to be used from vtkCellAttribute::CellTypeInfo for
+  /// each source.
+  bool Initialize(vtkDGCell* cell, vtkCellAttribute* attribute, vtkStringToken operation);
 
   /// Given input cells and parametric coordinates to iterate, evaluate the operator
   /// and store the results in the output iterator.
