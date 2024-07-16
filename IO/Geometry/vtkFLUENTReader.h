@@ -139,40 +139,11 @@ protected:
 
   virtual bool OpenCaseFile(const char* filename);
   virtual bool OpenDataFile(const char* filename);
-  virtual int GetCaseChunk();
-  virtual int GetCaseIndex();
   virtual void LoadVariableNames();
-  virtual int GetDataIndex();
-  virtual int GetDataChunk();
-  virtual void GetSpeciesVariableNames();
-
   virtual bool ParseCaseFile();
-  virtual int GetDimension();
-  virtual void GetLittleEndianFlag();
-  virtual void GetNodesAscii();
-  virtual void GetNodesSinglePrecision();
-  virtual void GetNodesDoublePrecision();
-  virtual void GetCellsAscii();
-  virtual void GetCellsBinary();
-  virtual void ReadZone();
-  virtual bool GetFacesAscii();
-  virtual void GetFacesBinary();
-  virtual void GetPeriodicShadowFacesAscii();
-  virtual void GetPeriodicShadowFacesBinary();
-  virtual void GetCellTreeAscii();
-  virtual void GetCellTreeBinary();
-  virtual void GetFaceTreeAscii();
-  virtual void GetFaceTreeBinary();
-  virtual void GetInterfaceFaceParentsAscii();
-  virtual void GetInterfaceFaceParentsBinary();
-  virtual void GetNonconformalGridInterfaceFaceInformationAscii();
-  virtual void GetNonconformalGridInterfaceFaceInformationBinary();
   virtual void GetPartitionInfo() {}
   virtual void CleanCells();
   virtual void PopulateCellNodes();
-  virtual int GetCaseBufferInt(int ptr);
-  virtual float GetCaseBufferFloat(int ptr);
-  virtual double GetCaseBufferDouble(int ptr);
   virtual void PopulateTriangleCell(size_t cellIdx);
   virtual void PopulateTetraCell(size_t cellIdx);
   virtual void PopulateQuadCell(size_t cellIdx);
@@ -181,10 +152,6 @@ protected:
   virtual void PopulateWedgeCell(size_t cellIdx);
   virtual void PopulatePolyhedronCell(size_t cellIdx);
   virtual void ParseDataFile();
-  virtual int GetDataBufferInt(int ptr);
-  virtual float GetDataBufferFloat(int ptr);
-  virtual double GetDataBufferDouble(int ptr);
-  virtual void GetData(int dataType);
   virtual bool ParallelCheckCell(int vtkNotUsed(i)) { return true; }
 
 private:
@@ -202,6 +169,28 @@ private:
   vtkFLUENTReader(const vtkFLUENTReader&) = delete;
   void operator=(const vtkFLUENTReader&) = delete;
 
+  void ReadCellsAscii(const std::string& chunkBuffer);
+  void ReadCellsBinary(const std::string& chunkBuffer);
+  void ReadCellTreeAscii(const std::string& chunkBuffer);
+  void ReadCellTreeBinary(const std::string& chunkBuffer);
+  void ReadData(const std::string& dataBuffer, int dataType);
+  bool ReadFacesAscii(const std::string& chunkBuffer);
+  void ReadFacesBinary(const std::string& chunkBuffer);
+  void ReadFaceTreeAscii(const std::string& chunkBuffer);
+  void ReadFaceTreeBinary(const std::string& chunkBuffer);
+  void ReadInterfaceFaceParentsAscii(const std::string& chunkBuffer);
+  void ReadInterfaceFaceParentsBinary(const std::string& chunkBuffer);
+  void ReadLittleEndianFlag(const std::string& chunkBuffer);
+  void ReadNodesAscii(const std::string& chunkBuffer);
+  void ReadNodesDoublePrecision(const std::string& chunkBuffer);
+  void ReadNodesSinglePrecision(const std::string& chunkBuffer);
+  void ReadNonconformalGridInterfaceFaceInformationAscii(const std::string& chunkBuffer);
+  void ReadNonconformalGridInterfaceFaceInformationBinary(const std::string& chunkBuffer);
+  void ReadPeriodicShadowFacesAscii(const std::string& chunkBuffer);
+  void ReadPeriodicShadowFacesBinary(const std::string& chunkBuffer);
+  void ReadSpeciesVariableNames(const std::string& chunkBuffer);
+  void ReadZone(const std::string& chunkBuffer);
+
   //
   //  Variables
   //
@@ -211,8 +200,6 @@ private:
 
   istream* FluentCaseFile = nullptr;
   istream* FluentDataFile = nullptr;
-  std::string CaseBuffer;
-  std::string DataBuffer;
 
   // File data cache
   vtkNew<vtkPoints> Points;
