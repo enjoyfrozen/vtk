@@ -144,6 +144,20 @@
     variables:
         CMAKE_CONFIGURATION: macos_x86_64_kits_python_qt_ext_vtk
 
+.macos_x86_64_java:
+    extends: .macos_build
+    variables:
+        CMAKE_BUILD_TYPE: Release
+        CMAKE_CONFIGURATION: macos_x86_64_java
+        VTK_INSTALL: 1
+
+.macos_arm64_java:
+    extends: .macos_build
+    variables:
+        CMAKE_BUILD_TYPE: Release
+        CMAKE_CONFIGURATION: macos_arm64_java
+        VTK_INSTALL: 1
+
 ## Tags
 
 .macos_builder_tags:
@@ -197,6 +211,8 @@
     # Download Qt
     - cmake -P .gitlab/ci/download_qt.cmake
     - export CMAKE_PREFIX_PATH=$PWD/.gitlab/qt
+    - cmake -P .gitlab/ci/download_java.cmake
+    - export JAVA_HOME=$PWD/.gitlab/jdk/Contents/Home/
     - "git submodule update --init --recursive || :"
     - git submodule foreach --recursive cmake -P "$PWD/.gitlab/ci/fetch_submodule.cmake"
     - git submodule sync --recursive

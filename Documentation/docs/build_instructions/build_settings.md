@@ -31,6 +31,8 @@ Less common, but variables which may be of interest to some:
     available or not.
   * `VTK_WRAP_JAVA` (default `OFF`; requires `VTK_ENABLE_WRAPPING`):
     Whether Java support will be available or not.
+  * `VTK_JAVA_INSTALL` (default `OFF`; requires `VTK_WRAP_JAVA`):
+    Whether to build the Java Maven package for VTK.
   * `VTK_SMP_IMPLEMENTATION_TYPE` (default `Sequential`): Set which SMPTools
     will be implemented by default. Must be either `Sequential`, `STDThread`,
     `OpenMP` or `TBB`. The backend can be changed at runtime if the desired

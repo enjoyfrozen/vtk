@@ -173,6 +173,13 @@
     variables:
         CMAKE_CONFIGURATION: windows_vs2022_mpi_python_qt_static
 
+.windows_vs2022_java:
+    extends: .windows_vs2022
+    variables:
+        CMAKE_BUILD_TYPE: Release
+        CMAKE_CONFIGURATION: windows_vs2022_java
+        VTK_INSTALL: 1
+
 ## Tags
 
 .windows_builder_tags:
@@ -239,6 +246,15 @@
     - cmake -P .gitlab/ci/download_tbb.cmake
     - Set-Item -Force -Path "env:CMAKE_PREFIX_PATH" -Value "$pwdpath\.gitlab\tbb;$env:CMAKE_PREFIX_PATH"
     - Set-Item -Force -Path "env:PATH" -Value "$pwdpath\.gitlab\tbb\redist\$env:TBB_REDIST_DIR;$env:PATH"
+    - cmake -P .gitlab/ci/download_java.cmake
+    - Set-Item -Force -Path "env:PATH" -Value "$pwdpath\.gitlab\jdk\bin\;$env:PATH"
+    - Set-Item -Force -Path "env:JAVA_HOME" -Value "$pwdpath\.gitlab\jdk\"
+    - cmake -P .gitlab/ci/download_maven.cmake
+    - Set-Item -Force -Path "env:PATH" -Value "$pwdpath\.gitlab\maven\bin\;$env:PATH"
+    - 'mvn dependency:get "-DrepoUrl=http://download.java.net/maven/2/" "-Dartifact=org.jogamp.gluegen:gluegen-rt:2.3.2"'
+    - 'mvn dependency:get "-DrepoUrl=http://download.java.net/maven/2/" "-Dartifact=org.jogamp.gluegen:gluegen-rt:2.3.2:jar:natives-windows-amd64"'
+    - 'mvn dependency:get "-DrepoUrl=http://download.java.net/maven/2/" "-Dartifact=org.jogamp.jogl:jogl-all:2.3.2"'
+    - 'mvn dependency:get "-DrepoUrl=http://download.java.net/maven/2/" "-Dartifact=org.jogamp.jogl:jogl-all:2.3.2:jar:natives-windows-amd64"'
 
 .cmake_build_windows:
     stage: build

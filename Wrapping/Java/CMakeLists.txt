@@ -1,10 +1,14 @@
-set(CMAKE_INSTALL_JNILIBDIR ""
-  CACHE PATH "JNI libraries (LIBDIR/java/vtk-${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}")
+set(VTK_INSTALL_JAVA_DIR "${CMAKE_INSTALL_LIBDIR}/java" CACHE STRING "")
+mark_as_advanced(VTK_INSTALL_JAVA_DIR)
+
+set(CMAKE_INSTALL_JNILIBDIR "${VTK_INSTALL_JAVA_DIR}/vtk-${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}"
+  CACHE STRING "JNI libraries (LIBDIR/java/vtk-${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}")
 mark_as_advanced(CMAKE_INSTALL_JNILIBDIR)
-if (NOT CMAKE_INSTALL_JNILIBDIR)
-  set(CMAKE_INSTALL_JNILIBDIR
-    "${CMAKE_INSTALL_LIBDIR}/java/vtk-${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}")
-endif ()
+
+if (CMAKE_INSTALL_JNILIBDIR STREQUAL "")
+  set(CMAKE_INSTALL_JNILIBDIR "${CMAKE_INSTALL_LIBDIR}")
+endif()
+
 if (IS_ABSOLUTE "${CMAKE_INSTALL_JNILIBDIR}")
   message(FATAL_ERROR
     "The `CMAKE_INSTALL_JNILIBDIR` must not be an absolute path.")
@@ -229,6 +233,7 @@ string(REPLACE ";" "${classpath_separator}" java_classpath "${java_classpath}")
 
 add_library(vtkjava STATIC
   ${java_input_files})
+set_source_files_properties(${java_input_files} PROPERTIES GENERATED TRUE)
 add_library(VTK::vtkjava ALIAS vtkjava)
 set_property(TARGET vtkjava
   PROPERTY
@@ -267,6 +272,134 @@ install(
   DESTINATION "${vtk_cmake_destination}"
   COMPONENT "development")
 
+# We need this for targets that depends in vtkjava to
+# delay its source code compilation until the vtkjava JAR file is
+# generated.
+add_custom_target(vtkjava_jar DEPENDS "$<TARGET_FILE:vtkjava>")
+
 if (VTK_BUILD_TESTING AND TARGET VTK::TestingRendering)
   add_subdirectory(Testing)
 endif ()
+
+# Add the option to package VTK for custom Java packaging
+option(VTK_JAVA_INSTALL "Use the Java rules to build the native libraries." OFF)
+
+if (VTK_JAVA_INSTALL)
+  # Make sure we embed the runtime libraries when packaging the Java binaries
+  if (WIN32)
+    # install system runtimes.
+    set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION "bin")
+    include(InstallRequiredSystemLibraries)
+  endif ()
+
+  if (APPLE)
+    set(CMAKE_INSTALL_NAME_DIR @loader_path CACHE STRING "" FORCE)
+    mark_as_advanced(CMAKE_INSTALL_NAME_DIR)
+  endif ()
+  if (NOT MAVEN_LOCAL_NATIVE_NAME)
+    # We ignore CMAKE_SYSTEM_PROCESSOR since classifier field in maven only accept charaters strings (no numbers)
+    set(MAVEN_LOCAL_NATIVE_NAME "${CMAKE_SYSTEM_NAME}" CACHE STRING "")
+  endif ()
+  if (NOT MAVEN_NATIVE_ARTIFACTS)
+    set(MAVEN_NATIVE_ARTIFACTS "${MAVEN_LOCAL_NATIVE_NAME}" CACHE STRING "")
+  endif ()
+  if (NOT MAVEN_LOCAL_REPOSITORY)
+    set(MAVEN_LOCAL_REPOSITORY "\${user.home}/vtk-maven-repos" CACHE STRING "")
+  endif ()
+  if (NOT MAVEN_VTK_GROUP_ID)
+    set(MAVEN_VTK_GROUP_ID "org.vtk" CACHE STRING "")
+  endif ()
+  if (NOT MAVEN_VTK_ARTIFACT_SUFFIX)
+    set(MAVEN_VTK_ARTIFACT_SUFFIX "" CACHE STRING "")
+  endif ()
+
+  if (NOT MAVEN_VTK_SNAPSHOT)
+    set(MAVEN_VTK_SNAPSHOT "" CACHE STRING "")
+  endif ()
+
+  mark_as_advanced(
+    VTK_JAVA_INSTALL
+    MAVEN_LOCAL_REPOSITORY
+    MAVEN_NATIVE_ARTIFACTS
+    MAVEN_LOCAL_NATIVE_NAME
+    MAVEN_VTK_ARTIFACT_SUFFIX
+    MAVEN_VTK_SNAPSHOT
+    MAVEN_VTK_GROUP_ID)
+  set(MAVEN_DEPENDENCY_XML)
+endif ()
+
+if (VTK_JAVA_JOGL_COMPONENT OR VTK_JAVA_SWT_COMPONENT)
+  set(MAVEN_REPO "$ENV{HOME}/.m2/repository")
+  find_file(JOGL_LIB jogl-all-${JOGL_VERSION}.jar PATHS ${MAVEN_REPO}/org/jogamp/jogl/jogl-all/${JOGL_VERSION} )
+  find_file(JOGL_GLUE gluegen-rt-${JOGL_VERSION}.jar PATHS ${MAVEN_REPO}/org/jogamp/gluegen/gluegen-rt/${JOGL_VERSION})
+  mark_as_advanced(JOGL_LIB JOGL_GLUE)
+  set(vars)
+  if (VTK_JAVA_JOGL_COMPONENT)
+    list(APPEND vars VTK_JAVA_JOGL_COMPONENT)
+  endif ()
+  if (VTK_JAVA_SWT_COMPONENT)
+    list(APPEND vars VTK_JAVA_SWT_COMPONENT)
+  endif ()
+  string(REPLACE ";" ", " vars "${vars}")
+  if (NOT JOGL_LIB)
+    message(SEND_ERROR
+      "CMake can not build VTK with ${vars} ON if the jar JOGL file is not "
+      "provided. Please set the JOGL_LIB variable.")
+  endif ()
+  if (NOT JOGL_GLUE)
+    message(SEND_ERROR
+      "CMake can not build VTK with ${vars} ON if the jar GLUE file is not "
+      "provided. Please set the JOGL_GLUE variable.")
+  endif ()
+endif ()
+
+# javac runs out memory on Mac so increase heapsize
+if (APPLE)
+  set(JAVAC_OPTIONS -J-Xmx512m)
+endif ()
+
+if (NOT VTK_JAR_PATH)
+  set(VTK_JAR_PATH "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
+endif ()
+
+if (JAVA_AWT_LIBRARY)
+  foreach (__java_library IN LISTS JAVA_AWT_LIBRARY)
+    get_filename_component(JAVA_LIB_DIR ${__java_library} PATH)
+    if (EXISTS ${JAVA_LIB_DIR}/xawt)
+      link_directories(${JAVA_LIB_DIR}/xawt)
+    endif ()
+    if (EXISTS ${JAVA_LIB_DIR}/client)
+      link_directories(${JAVA_LIB_DIR}/client)
+    endif ()
+    if (EXISTS ${JAVA_LIB_DIR}/server)
+      link_directories(${JAVA_LIB_DIR}/server)
+    endif ()
+  endforeach ()
+endif ()
+
+if(WIN32)
+  set(SEPARATOR "\\;")
+else()
+  set(SEPARATOR ":")
+endif()
+
+#-----------------------------------------------------------------------------
+# Post-Install script for Custom Java Packaging
+# This install rule MUST stay at the bottom of that CMakeLists file as
+# it has to be the last install rule that get executed
+if(VTK_JAVA_INSTALL)
+  set(MAVEN_NATIVE_ARTIFACT_XML)
+  foreach(native_name ${MAVEN_NATIVE_ARTIFACTS})
+    set(MAVEN_NATIVE_ARTIFACT_XML "${MAVEN_NATIVE_ARTIFACT_XML}\n                                <artifact><file>vtk${MAVEN_VTK_ARTIFACT_SUFFIX}-${VTK_MAJOR_VERSION}.${VTK_MINOR_VERSION}-natives-${native_name}.jar</file><classifier>natives-${native_name}</classifier><type>jar</type></artifact>")
+  endforeach()
+  if(VTK_JAVA_JOGL_COMPONENT)
+    set(MAVEN_DEPENDENCY_XML "${MAVEN_DEPENDENCY_XML}\n      <dependency><groupId>org.jogamp.jogl</groupId><artifactId>jogl-all-main</artifactId><version>${JOGL_VERSION}</version></dependency>\n      <dependency><groupId>org.jogamp.gluegen</groupId><artifactId>gluegen-rt-main</artifactId><version>${JOGL_VERSION}</version></dependency>")
+  endif()
+  configure_file(JavaInstall.cmake.in
+               ${VTK_BINARY_DIR}/JavaInstall.cmake @ONLY)
+  configure_file(Maven/pom.xml.in
+               ${VTK_BINARY_DIR}/pom.xml @ONLY)
+  configure_file(Maven/README.txt.in
+               ${VTK_BINARY_DIR}/MAVEN-README.txt @ONLY)
+  install(SCRIPT ${VTK_BINARY_DIR}/JavaInstall.cmake)
+endif()

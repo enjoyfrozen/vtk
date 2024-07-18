@@ -188,27 +188,27 @@ vtk:fedora34-mpi-offscreen-osmesa-python:test-ext:
         - fedora34-mpi-offscreen-osmesa-python:test
     timeout: 90 minutes
 
-# fedora34-java-mpi-qt-tbb:build:
-#     extends:
-#         - .fedora34_java_mpi_qt_tbb
-#         - .cmake_build_linux
-#         - .linux_builder_tags
-#         - .cmake_build_artifacts
-#         - .run_manually
-#     # The Java build extends the build time considerably.
-#     timeout: 2 hours
+fedora34-java:build:
+    extends:
+        - .fedora34_java
+        - .cmake_build_linux
+        - .linux_builder_tags
+        - .cmake_build_artifacts
+        - .run_manually
+    # The Java build extends the build time considerably.
+    timeout: 4 hours
 
-# fedora34-java-mpi-qt-tbb:test:
-#     extends:
-#         - .fedora34_java_mpi_qt_tbb
-#         - .cmake_test_linux
-#         - .linux_tester_tags
-#         - .cmake_test_artifacts
-#         - .run_automatically
-#     dependencies:
-#         - fedora34-java-mpi-qt-tbb:build
-#     needs:
-#         - fedora34-java-mpi-qt-tbb:build
+fedora34-java:test:
+    extends:
+        - .fedora34_java
+        - .cmake_test_linux
+        - .linux_tester_tags
+        - .cmake_test_artifacts
+        - .run_automatically
+    dependencies:
+        - fedora34-java:build
+    needs:
+        - fedora34-java:build
 
 fedora34-mpi-python-qt-tbb:build:
     extends:
@@ -2015,3 +2015,66 @@ wheel-windows-python312-x86_64-osmesa:test:
         - wheel-windows-python312-x86_64-osmesa:build
     needs:
         - wheel-windows-python312-x86_64-osmesa:build
+
+macos-x86_64-java:build:
+    extends:
+        - .macos_x86_64_java
+        - .cmake_build_macos
+        - .macos_builder_tags
+        - .cmake_build_artifacts
+        - .run_manually
+    timeout: 4 hours
+
+macos-x86_64-java:test:
+    extends:
+        - .macos_x86_64_java
+        - .cmake_test_macos
+        - .macos_builder_tags
+        - .cmake_test_artifacts
+        - .run_automatically
+    dependencies:
+        - macos-x86_64-java:build
+    needs:
+        - macos-x86_64-java:build
+
+macos-arm64-java:build:
+    extends:
+        - .macos_arm64_java
+        - .cmake_build_macos
+        - .macos_arm64_builder_tags
+        - .cmake_build_artifacts
+        - .run_manually
+    timeout: 4 hours
+
+macos-arm64-java:test:
+     extends:
+         - .macos_arm64_java
+         - .cmake_test_macos
+         - .macos_arm64_builder_tags
+         - .cmake_test_artifacts
+         - .run_automatically
+     dependencies:
+         - macos-arm64-java:build
+     needs:
+         - macos-arm64-java:build
+
+windows-x86_64-java:build:
+    extends:
+        - .windows_vs2022_java
+        - .cmake_build_windows
+        - .windows_builder_tags
+        - .cmake_build_artifacts
+        - .run_manually
+    timeout: 4 hours
+
+windows-x86_64-java:test:
+    extends:
+        - .windows_vs2022_java
+        - .cmake_test_windows
+        - .windows_tester_tags
+        - .cmake_test_artifacts
+        - .run_automatically
+    dependencies:
+        - windows-x86_64-java:build
+    needs:
+        - windows-x86_64-java:build

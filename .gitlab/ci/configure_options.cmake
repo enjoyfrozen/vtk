@@ -44,6 +44,17 @@ configuration_flag(VTK_WRAP_PYTHON "python")
 
 # java
 configuration_flag(VTK_WRAP_JAVA "java")
+if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "java")
+  set(CMAKE_INSTALL_JNILIBDIR "" CACHE STRING "")
+  set(VTK_CUSTOM_LIBRARY_SOVERSION "" CACHE STRING "")
+  set(VTK_CUSTOM_LIBRARY_VERSION "" CACHE STRING "")
+  set(VTK_JAVA_INSTALL ON CACHE BOOL "")
+  # Fedora 34 ships with Java 11. Setting this as our version avoids warnings
+  # about not specifying a "bootstrap classpath".
+  set(VTK_JAVA_SOURCE_VERSION 1.8 CACHE STRING "")
+  set(VTK_JAVA_TARGET_VERSION 1.8 CACHE STRING "")
+  set(VTK_VERSIONED_INSTALL "OFF" CACHE BOOL "")
+endif()
 
 # qt
 configuration_flag_module(VTK_GROUP_ENABLE_Qt "qt")

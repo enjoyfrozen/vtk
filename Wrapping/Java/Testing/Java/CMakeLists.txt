@@ -34,8 +34,11 @@ target_compile_options(vtkjava_tests
 target_link_libraries(vtkjava_tests
   PRIVATE
     VTK::vtkjava)
-# Apparently the Java compilation doesn't set up dependencies properly?
-add_dependencies(vtkjava_tests vtkjava)
+# Apparently the Java compilation doesn't set up dependencies properly,
+# Thus we need to depend on vtkjava_jar which symbolized that the vtkjava
+# jar file has been created. This is needed since compiling every java file
+# requires to have the jars in the classpath of its dependencies.
+add_dependencies(vtkjava_tests vtkjava_jar WrapJava)
 
 set(vtk_test_classpath
   "$<TARGET_FILE:vtkjava_tests>"
@@ -48,9 +51,19 @@ if (TARGET VTK::RenderingOpenGL2)
     COMMAND "${Java_JAVA_EXECUTABLE}"
             -classpath "${vtk_test_classpath}"
             vtk.test.Regression
+            -D "vtk.mode.testing"
             -D "${CMAKE_BINARY_DIR}/ExternalData"
             -V "DATA{../Data/Baseline/Cone.png}"
             -T "${CMAKE_BINARY_DIR}/Testing/Temporary")
+
+  if (WIN32)
+    set_property(TEST vtkJavaTests-Regression
+      PROPERTY
+        ENVIRONMENT
+          "PATH=$ENV{PATH};$<SHELL_PATH:${VTK_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}>"
+    )
+  endif()
+
 endif ()
 
 foreach (java_simple_test IN LISTS java_simple_test_names)
@@ -59,5 +72,14 @@ foreach (java_simple_test IN LISTS java_simple_test_names)
     COMMAND "${Java_JAVA_EXECUTABLE}"
             -classpath "${vtk_test_classpath}"
             "vtk.test.${java_simple_test}"
+            -D "vtk.mode.testing"
             -T "${CMAKE_BINARY_DIR}/Testing/Temporary")
+
+  if (WIN32)
+    set_property(TEST "vtkJavaTests-${java_simple_test}"
+      PROPERTY
+        ENVIRONMENT
+          "PATH=$ENV{PATH};$<SHELL_PATH:${VTK_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}>"
+    )
+  endif()
 endforeach ()

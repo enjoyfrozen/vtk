@@ -217,13 +217,15 @@
     variables:
         CMAKE_CONFIGURATION: fedora34_mpi_renderless_ext_vtk
 
-.fedora34_java_mpi_qt_tbb:
+.fedora34_java:
     extends:
         - .fedora34
         - .fedora_mpich_addon
 
     variables:
-        CMAKE_CONFIGURATION: fedora34_java_mpi_qt_tbb
+        CMAKE_BUILD_TYPE: Release
+        CMAKE_CONFIGURATION: fedora34_java
+        VTK_INSTALL: 1
 
 .fedora34_mpi_python_qt_tbb:
     extends:
