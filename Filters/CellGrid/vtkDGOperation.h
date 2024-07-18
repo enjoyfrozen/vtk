@@ -10,17 +10,32 @@ class vtkDoubleArray;
 /**\brief Invoke an operator on DG cells/sides.
   *
   */
-class vtkDGOperation
+class VTKFILTERSCELLGRID_EXPORT vtkDGOperation
 {
 public:
-  /// Construct an operation object.
-  vtkDGOperation();
-  vtkDGOperation(vtkDGCell* cellType, vtkCellAttribute* cellAttribute, vtkStringToken operationName);
+  /// A range of cell IDs handled by a vtkDGCell::Source instance.
+  struct RangeKey
+  {
+    vtkTypeUInt64 Begin;
+    vtkTypeUInt64 End;
+    bool Contains(vtkTypeUInt64 cellId) const;
+    bool ContainedBy(const RangeKey& other) const;
+    bool operator < (const RangeKey& other) const;
+  };
 
   /// Signature for a method to evaluate data on a single vtkDGCell::Source instance.
   using CellRangeEvaluator =
     std::function<void(vtkDataArray* cellIds, vtkDataArray* rst, vtkDoubleArray* result,
       vtkTypeUInt64 begin, vtkTypeUInt64 end)>;
+
+  /// Container for functions that evaluate data on a single vtkDGCell::Source instance.
+  using EvaluatorMap = std::map<RangeKey, CellRangeEvaluator>;
+
+  /// Construct an operation object.
+  vtkDGOperation();
+  vtkDGOperation(vtkDGCell* cellType, vtkCellAttribute* cellAttribute, vtkStringToken operationName);
+
+  virtual void PrintSelf(std::ostream& os, vtkIndent indent);
 
   /// Prepare this instance of vtkDGOperation to evaluate \a operationName on the given \a cellType
   /// and \a cellAttribute.
@@ -64,24 +79,18 @@ public:
   /// is returned (assuming the cells are not blanked).
   CellRangeEvaluator GetEvaluatorForSideSpec(vtkDGCell* cell, int sideSpecId);
 
-protected:
-  struct RangeKey
-  {
-    vtkTypeUInt64 Begin;
-    vtkTypeUInt64 End;
-    bool Contains(vtkTypeUInt64 cellId) const;
-    bool ContainedBy(const RangeKey& other) const;
-    bool operator < (const RangeKey& other) const;
-  };
+  /// Return the number of values generated per tuple each time an input cell-id and parameter-value are evaluated.
+  int GetNumberOfResultComponents() const { return this->NumberOfResultComponents; }
 
+protected:
   void AddSource(
     vtkCellGrid* grid,
     vtkDGCell* cellType, std::size_t sideSpecIdx,
     vtkCellAttribute* cellAtt, const vtkCellAttribute::CellTypeInfo& cellTypeInfo,
     vtkDGOperatorEntry& op, bool includeShape);
 
-  /// The integer key of each entry specifies the starting range
-  std::map<RangeKey, CellRangeEvaluator> Evaluators;
+  int NumberOfResultComponents{ 0 };
+  EvaluatorMap Evaluators;
 };
 
 VTK_ABI_NAMESPACE_END

@@ -54,7 +54,7 @@ class VTKFILTERSCELLGRID_EXPORT vtkDGInvokeOperator
 {
 public:
   vtkDGInvokeOperator() = default;
-  vtkDGInvokeOperator(vtkDGCell* cell, vtkCellAttribute* attribute, vtkStringToken operation);
+  // vtkDGInvokeOperator(vtkDGCell* cell, vtkCellAttribute* attribute, vtkStringToken operation);
   vtkDGInvokeOperator(const vtkDGInvokeOperator&) = default;
   virtual void PrintSelf(std::ostream& os, vtkIndent indent);
 
@@ -186,7 +186,7 @@ public:
   /// This method looks up cell ID ranges covered by each vtkDGCell::Source
   /// object and arrays to be used from vtkCellAttribute::CellTypeInfo for
   /// each source.
-  bool Initialize(vtkDGCell* cell, vtkCellAttribute* attribute, vtkStringToken operation);
+  // bool Initialize(vtkDGCell* cell, vtkCellAttribute* attribute, vtkStringToken operation);
 
   /// Given input cells and parametric coordinates to iterate, evaluate the operator
   /// and store the results in the output iterator.

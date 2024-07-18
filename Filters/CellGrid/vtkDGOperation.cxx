@@ -10,9 +10,57 @@ VTK_ABI_NAMESPACE_BEGIN
 
 using namespace vtk::literals;
 
+namespace
+{
+
+/// Find the evaluator that matches the given \a cellId.
+vtkDGOperation::EvaluatorMap::const_iterator FindEvaluator(
+  vtkDGOperation::RangeKey cellKey, const vtkDGOperation::EvaluatorMap& evaluators)
+{
+  auto cellId = cellKey.Begin;
+  auto it = evaluators.lower_bound(cellKey);
+  if (it == evaluators.end())
+  {
+    // Either \a cellId is past the end of cell-ids covered by \a evaluators
+    // or the final entry in evaluators covers \a cellId.
+    if (evaluators.empty()) { return it; }
+    const auto& lastKey(evaluators.rbegin()->first);
+    if (lastKey.Contains(cellId))
+    {
+      // cellId > lastKey.Begin but cellId < lastKey.End.
+      return evaluators.find(lastKey);
+    }
+    // cellId >= lastKey.End
+    return it;
+  }
+  // If it->first.Begin == cellId, we have a match:
+  if (it->first.Contains(cellId))
+  {
+    return it;
+  }
+  if (it == evaluators.begin())
+  {
+    // The first entry of evaluators doesn't contain \a cellId but
+    // \a cellId >= it->first.Begin and \a cellId < (it++)->first.Begin.
+    // This should only be possible if there is a gap between ranges of cell-ids
+    // covered by \a evaluators. This should not happen.
+    return evaluators.end();
+  }
+  // it->first.Begin >= \a cellId. Back up to see if the previous evaluator
+  // entry contains \a cellId.
+  --it;
+  if (it->first.Contains(cellId))
+  {
+    return it;
+  }
+  return evaluators.end();
+}
+
+} // anonymous namespace
+
 bool vtkDGOperation::RangeKey::Contains(vtkTypeUInt64 cellId) const
 {
-  return this->Begin >= cellId && this->End < cellId;
+  return cellId >= this->Begin && cellId < this->End;
 }
 
 bool vtkDGOperation::RangeKey::ContainedBy(const RangeKey& other) const
@@ -125,6 +173,7 @@ struct OpEval
     // result value, then prepare tuples to hold shape data.
     if (Modifier != None)
     {
+      this->Jacobian.resize(9); // TODO: Handle 2-d Jacobians differently eventually.
       this->ShapeBasisTuple.resize(shapeGradient.NumberOfFunctions * shapeGradient.OperatorSize);
       int nsc = 0;
       if (this->ShapeConnectivity)
@@ -211,7 +260,7 @@ struct OpEval
         int nv = this->ShapeValues->GetNumberOfComponents();
         for (std::size_t jj = 0; jj < nc; ++jj)
         {
-          this->ShapeValues->GetTuple(this->ShapeConnTuple[jj], this->ShapeValueTuple.data() + nc * jj);
+          this->ShapeValues->GetTuple(this->ShapeConnTuple[jj], this->ShapeValueTuple.data() + nv * jj);
         }
         this->LastShapeCellId = this->LastCellId;
       }
@@ -331,7 +380,7 @@ struct OpEval
           int nv = this->CellValues->GetNumberOfComponents();
           for (std::size_t jj = 0; jj < nc; ++jj)
           {
-            this->CellValues->GetTuple(this->ConnTuple[jj], this->ValueTuple.data() + nc * jj);
+            this->CellValues->GetTuple(this->ConnTuple[jj], this->ValueTuple.data() + nv * jj);
           }
           this->LastCellId = currId;
         }
@@ -410,10 +459,21 @@ vtkDGOperation::vtkDGOperation(vtkDGCell* cellType, vtkCellAttribute* cellAttrib
   }
 }
 
+void vtkDGOperation::PrintSelf(std::ostream& os, vtkIndent indent)
+{
+  os << indent << "Evaluators: " << this->Evaluators.size() << "\n";
+  vtkIndent i2 = indent.GetNextIndent();
+  for (const auto& entry : this->Evaluators)
+  {
+    os << i2 << "[" << entry.first.Begin << ", " << entry.first.End << "[  " << (entry.second ? "non-null" : "null") << "\n";
+  }
+}
+
 bool vtkDGOperation::Prepare(
   vtkDGCell* cellType, vtkCellAttribute* cellAttribute, vtkStringToken operationName,
   bool includeShape)
 {
+  this->NumberOfResultComponents = 0;
   if (!cellType || !cellAttribute || !operationName.IsValid())
   {
     return false;
@@ -429,6 +489,8 @@ bool vtkDGOperation::Prepare(
   {
     return false;
   }
+
+  this->NumberOfResultComponents = cellAttribute->GetNumberOfComponents();
   this->AddSource(grid, cellType, ~0, cellAttribute, cellTypeInfo, opEntry, includeShape);
   std::size_t numSideSpecs = cellType->GetSideSpecs().size();
   for (std::size_t sideSpecIdx = 0; sideSpecIdx < numSideSpecs; ++sideSpecIdx)
@@ -448,7 +510,8 @@ bool vtkDGOperation::Evaluate(vtkDataArray* cellIds, vtkDataArray* rst, vtkDoubl
   }
   // TODO: Should we do this? Or assume it is set up for us? (It could be that
   //       the caller does not want the array resized.)
-  result->SetNumberOfTuples(nn);
+  assert(result->GetNumberOfComponents() == this->NumberOfResultComponents);
+  // result->SetNumberOfTuples(nn);
 
   bool ok = true;
   CellRangeEvaluator currEval;
@@ -457,7 +520,7 @@ bool vtkDGOperation::Evaluate(vtkDataArray* cellIds, vtkDataArray* rst, vtkDoubl
   for (vtkTypeUInt64 ii = 0; ii < nn; /* do nothing */)
   {
     cellIds->GetUnsignedTuple(ii, &key.Begin);
-    eit = this->Evaluators.lower_bound(key);
+    eit = FindEvaluator(key, this->Evaluators);
     if (eit == this->Evaluators.end() || !eit->first.Contains(key.Begin))
     {
       vtkGenericWarningMacro(
