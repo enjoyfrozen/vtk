@@ -16,6 +16,13 @@ public class vtkJavaTesting {
   public static final int NOT_RUN = 2;
   public static final int DO_INTERACTOR = 3;
 
+  public static String PathToNative(String res) {
+    String sep = System.getProperty("file.separator");
+
+    if (res==null) return null;
+    return (sep.equals("\\")) ?  res.replace("/", sep) : res.replace("\\", sep);
+  }
+
   private static int LoadLib(String lib, boolean verbose) {
     try {
       if (verbose) {
@@ -66,9 +73,12 @@ public class vtkJavaTesting {
     if (lpath != null) {
       String path_separator = System.getProperty("path.separator");
       String s = System.getProperty("java.library.path");
-      s = s + path_separator + lpath;
+      s = s + path_separator + vtkJavaTesting.PathToNative(lpath);
       System.setProperty("java.library.path", s);
     }
+
+    System.out.println("java.library.path=" + System.getProperty("java.library.path"));
+    System.out.println("PATH=" + System.getenv("PATH"));
     // String lname = System.mapLibraryName("vtkCommonJava");
     String[] kits = vtkSettings.GetKits();
     int cc;

@@ -198,17 +198,17 @@ fedora34-java:build:
     # The Java build extends the build time considerably.
     timeout: 4 hours
 
-#fedora34-java:test:
-#    extends:
-#        - .fedora34_java
-#        - .cmake_test_linux
-#        - .linux_tester_tags
-#        - .cmake_test_artifacts
-#        - .run_automatically
-#    dependencies:
-#        - fedora34-java:build
-#    needs:
-#        - fedora34-java:build
+fedora34-java:test:
+    extends:
+        - .fedora34_java
+        - .cmake_test_linux
+        - .linux_tester_tags
+        - .cmake_test_artifacts
+        - .run_automatically
+    dependencies:
+        - fedora34-java:build
+    needs:
+        - fedora34-java:build
 
 fedora34-mpi-python-qt-tbb:build:
     extends:
@@ -2025,17 +2025,17 @@ macos-x86_64-java:build:
         - .run_manually
     timeout: 4 hours
 
-#macos-x86_64-java:test:
-#    extends:
-#        - .macos_x86_64_java
-#        - .cmake_test_macos
-#        - .macos_builder_tags
-#        - .cmake_test_artifacts
-#        - .run_automatically
-#    dependencies:
-#        - macos-x86_64-java:build
-#    needs:
-#        - macos-x86_64-java:build
+macos-x86_64-java:test:
+    extends:
+        - .macos_x86_64_java
+        - .cmake_test_macos
+        - .macos_builder_tags
+        - .cmake_test_artifacts
+        - .run_automatically
+    dependencies:
+        - macos-x86_64-java:build
+    needs:
+        - macos-x86_64-java:build
 
 macos-arm64-java:build:
     extends:
@@ -2046,17 +2046,17 @@ macos-arm64-java:build:
         - .run_manually
     timeout: 4 hours
 
-# macos-arm64-java:test:
-#     extends:
-#         - .macos_arm64_java
-#         - .cmake_test_macos
-#         - .macos_arm64_builder_tags
-#         - .cmake_test_artifacts
-#         - .run_automatically
-#     dependencies:
-#         - macos-arm64-java:build
-#     needs:
-#         - macos-arm64-java:build
+macos-arm64-java:test:
+     extends:
+         - .macos_arm64_java
+         - .cmake_test_macos
+         - .macos_arm64_builder_tags
+         - .cmake_test_artifacts
+         - .run_automatically
+     dependencies:
+         - macos-arm64-java:build
+     needs:
+         - macos-arm64-java:build
 
 windows-x86_64-java:build:
     extends:
@@ -2067,14 +2067,14 @@ windows-x86_64-java:build:
         - .run_manually
     timeout: 4 hours
 
-#windows-x86_64-java:test:
-#    extends:
-#        -  .windows_vs2022_java
-#        - .cmake_test_windows
-#        - .windows_tester_tags
-#        - .cmake_test_artifacts
-#        - .run_automatically
-#    dependencies:
-#        - windows-x86_64-java:build
-#    needs:
-#        - windows-x86_64-java:build
+windows-x86_64-java:test:
+    extends:
+        - .windows_vs2022_java
+        - .cmake_test_windows
+        - .windows_tester_tags
+        - .cmake_test_artifacts
+        - .run_automatically
+    dependencies:
+        - windows-x86_64-java:build
+    needs:
+        - windows-x86_64-java:build

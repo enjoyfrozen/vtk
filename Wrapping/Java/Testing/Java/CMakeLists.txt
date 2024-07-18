@@ -51,9 +51,19 @@ if (TARGET VTK::RenderingOpenGL2)
     COMMAND "${Java_JAVA_EXECUTABLE}"
             -classpath "${vtk_test_classpath}"
             vtk.test.Regression
+            -D "vtk.mode.testing"
             -D "${CMAKE_BINARY_DIR}/ExternalData"
             -V "DATA{../Data/Baseline/Cone.png}"
             -T "${CMAKE_BINARY_DIR}/Testing/Temporary")
+
+  if (WIN32)
+    set_property(TEST vtkJavaTests-Regression
+      PROPERTY
+        ENVIRONMENT
+          "PATH=$ENV{PATH};$<SHELL_PATH:${VTK_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}>"
+    )
+  endif()
+
 endif ()
 
 foreach (java_simple_test IN LISTS java_simple_test_names)
@@ -62,5 +72,14 @@ foreach (java_simple_test IN LISTS java_simple_test_names)
     COMMAND "${Java_JAVA_EXECUTABLE}"
             -classpath "${vtk_test_classpath}"
             "vtk.test.${java_simple_test}"
+            -D "vtk.mode.testing"
             -T "${CMAKE_BINARY_DIR}/Testing/Temporary")
+
+  if (WIN32)
+    set_property(TEST "vtkJavaTests-${java_simple_test}"
+      PROPERTY
+        ENVIRONMENT
+          "PATH=$ENV{PATH};$<SHELL_PATH:${VTK_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}>"
+    )
+  endif()
 endforeach ()

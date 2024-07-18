@@ -25,12 +25,18 @@ public enum vtkNativeLibrary {
    */
   public static boolean LoadAllNativeLibraries() {
     boolean isEveryThingLoaded = true;
+    boolean isTestingMode = System.getProperty("vtk.mode.testing") != null;
+
     for (vtkNativeLibrary lib : values()) {
-      try {
-        lib.LoadLibrary();
-      } catch (UnsatisfiedLinkError e) {
-        isEveryThingLoaded = false;
-        e.printStackTrace();
+      // Do not load testing libraries if we are not in testing mode.
+      if (isTestingMode || !lib.GetLibraryName().toLowerCase().matches("(.*)test(.*)"))
+      {
+        try {
+          lib.LoadLibrary();
+        } catch (UnsatisfiedLinkError e) {
+          isEveryThingLoaded = false;
+          e.printStackTrace();
+        }
       }
     }
 
