@@ -109,7 +109,6 @@ int vtkLegacyCellGridReader::ReadMeshSimple(const std::string& fname, vtkDataObj
       this->CloseVTKFile();
       return 1;
     }
-    std::cout << "\n" << raw << "\n\n";
 
     nlohmann::json jdata;
     try
