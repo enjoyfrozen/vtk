@@ -85,7 +85,8 @@ int vtkLegacyCellGridReader::ReadMeshSimple(const std::string& fname, vtkDataObj
     }
 
     vtkIdType contentLength;
-    if (!this->Read(&contentLength))
+    char dummy; // Consume the newline after the contentLength.
+    if (!this->Read(&contentLength)) //  || !this->Read(&dummy))
     {
       vtkErrorMacro(<< "Cannot read dataset length: " << line);
       this->CloseVTKFile();
@@ -108,6 +109,7 @@ int vtkLegacyCellGridReader::ReadMeshSimple(const std::string& fname, vtkDataObj
       this->CloseVTKFile();
       return 1;
     }
+    std::cout << "\n" << raw << "\n\n";
 
     nlohmann::json jdata;
     try
