@@ -96,6 +96,7 @@ protected:
   /// This is populated by PrepareForGrid.
   vtkCellAttribute::CellTypeInfo FieldCellInfo;
 
+#if 0
   /// The basis-function operator to use.
   vtkDGOperatorEntry FieldBasisOp;
   vtkDGOperatorEntry FieldGradientOp;
@@ -106,6 +107,7 @@ protected:
   /// The shape-basis operators (if any are needed).
   vtkDGOperatorEntry ShapeBasisOp;
   vtkDGOperatorEntry ShapeGradientOp;
+#endif
 
 private:
   vtkDGInterpolateCalculator(const vtkDGInterpolateCalculator&) = delete;

@@ -176,69 +176,13 @@ vtkSmartPointer<vtkCellAttributeCalculator> vtkDGInterpolateCalculator::PrepareF
   // Clone ourselves for this new context.
   vtkNew<vtkDGInterpolateCalculator> result;
 
+  result->CellType = dgCell;
+  result->CellShape = dgCell->GetShape();
+  result->Dimension = dgCell->GetDimension();
+  result->FieldCellInfo = field->GetCellTypeInfo(dgCell->GetClassName());
   result->Field = field;
   result->FieldEvaluator.Prepare(dgCell, field, "Basis"_token, /* includeShape */ true);
   result->FieldDerivative.Prepare(dgCell, field, "BasisGradient"_token, /* includeShape */ true);
-
-#if 0
-  auto* grid = cell->GetCellGrid();
-  auto* shape = grid->GetShapeAttribute();
-  vtkStringToken cellType = dgCell->GetClassName();
-  auto shapeCellInfo = shape->GetCellTypeInfo(cellType);
-  // Shape functions must be (1) continuous and (2) have HGRAD/Lagrange basis
-  // or, if the shape is a vtkDGVert, be constant and have a trivially null gradient.
-  if ((cellType != "vtkDGVert"_token && shapeCellInfo.FunctionSpace != "HGRAD"_token &&
-        shapeCellInfo.FunctionSpace != "Lagrange"_token) ||
-    (cellType == "vtkDGVert"_token && shapeCellInfo.FunctionSpace != "constant"_token))
-  {
-    vtkErrorMacro("Unsupported combination of cell shape function "
-      << "space \"" << shapeCellInfo.FunctionSpace.Data() << "\" and/or "
-      << "DOF sharing (" << (shapeCellInfo.DOFSharing.IsValid() ? "C" : "D") << ").");
-    return nullptr;
-  }
-  result->ShapeBasisOp = dgCell->GetOperatorEntry("Basis"_token, shapeCellInfo);
-  result->ShapeGradientOp = dgCell->GetOperatorEntry("BasisGradient"_token, shapeCellInfo);
-  result->ShapeCellInfo = shapeCellInfo;
-
-  auto fieldCellInfo = field->GetCellTypeInfo(cellType);
-  result->Field = field;
-  result->FieldBasisOp = dgCell->GetOperatorEntry("Basis"_token, fieldCellInfo);
-  result->FieldGradientOp = dgCell->GetOperatorEntry("BasisGradient"_token, fieldCellInfo);
-  result->FieldCellInfo = fieldCellInfo;
-
-  result->Dimension = dgCell->GetDimension();
-  result->CellShape = dgCell->GetShape();
-
-  auto& shapeArrays = shapeCellInfo.ArraysByRole;
-  result->ShapeValues = vtkDataArray::SafeDownCast(shapeArrays["values"_token]);
-  result->ShapeConnectivity = shapeCellInfo.DOFSharing.IsValid()
-    ? vtkDataArray::SafeDownCast(shapeArrays["connectivity"_token])
-    : nullptr;
-
-  auto& fieldArrays = fieldCellInfo.ArraysByRole;
-  result->FieldValues = vtkDataArray::SafeDownCast(fieldArrays["values"_token]);
-  result->FieldConnectivity = fieldCellInfo.DOFSharing.IsValid()
-    ? vtkDataArray::SafeDownCast(fieldArrays["connectivity"_token])
-    : nullptr;
-
-  if (shapeCellInfo.DOFSharing.IsValid())
-  {
-    if (!result->ShapeConnectivity || !result->ShapeConnectivity->IsIntegral())
-    {
-      vtkErrorMacro("Shape connectivity array must exist and be integer-valued.");
-      return nullptr;
-    }
-  }
-
-  if (fieldCellInfo.DOFSharing.IsValid())
-  {
-    if (!result->FieldConnectivity || !result->FieldConnectivity->IsIntegral())
-    {
-      vtkErrorMacro("Field connectivity array must exist and be integer-valued.");
-      return nullptr;
-    }
-  }
-#endif
 
   return result;
 }

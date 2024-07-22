@@ -451,7 +451,9 @@ void vtkDGRenderResponder::CacheEntry::PrepareHelper(
     colorInfo ? colorInfo->GetNumberOfBasisFunctions() * colorInfo->GetBasisValueSize() : 1));
   // When we have a vector-valued basis function, we should scale by the shape's inverse Jacobian.
   store.push_back(fmt::arg(
-    "ColorScaleInverseJacobian", colorInfo ? (colorInfo->GetBasisValueSize() == 3 ? 1 : 0) : 0));
+    "ColorScaleInverseJacobian", this->Color ? (colorTypeInfo.FunctionSpace == "HCURL"_token ? 1 : 0) : 0));
+  store.push_back(fmt::arg(
+    "ColorScaleScaledJacobian", this->Color ? (colorTypeInfo.FunctionSpace == "HDIV"_token ? 1 : 0) : 0));
   this->RenderHelper->SetIncludeColormap(!!this->Color);
 #ifdef vtkDGRenderResponder_DEBUG
   std::cout << "Color cell-attribute: " << this->Color << "\n";
