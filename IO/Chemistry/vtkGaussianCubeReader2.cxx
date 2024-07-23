@@ -109,6 +109,19 @@ struct HeaderData
   std::vector<Atom> molecularGeometry;
 };
 
+// Taken from https://stackoverflow.com/a/6500499
+void trim(std::string& str)
+{
+  str.erase(str.find_last_not_of(' ') + 1); // suffixing spaces
+
+  if (str.empty())
+  {
+    return;
+  }
+
+  str.erase(0, str.find_first_not_of(' ')); // prefixing spaces
+}
+
 bool ParseHeader(std::ifstream& fileStream, HeaderData& data, std::string& errorMessage)
 {
   assert(fileStream.is_open());
@@ -118,6 +131,8 @@ bool ParseHeader(std::ifstream& fileStream, HeaderData& data, std::string& error
   // acts as a kind of (short) title for the stored data whereas the second acts as a comment or
   // long title.
   std::getline(fileStream, data.name);
+
+  trim(data.name);
 
   if (!fileStream)
   {
@@ -129,6 +144,14 @@ bool ParseHeader(std::ifstream& fileStream, HeaderData& data, std::string& error
   {
     // If the first line was empty, we instead take the second line as the data set name
     std::getline(fileStream, data.name);
+
+    trim(data.name);
+
+    if (data.name.empty())
+    {
+      // Some generic default
+      data.name = "Gridded data";
+    }
   }
   else
   {
