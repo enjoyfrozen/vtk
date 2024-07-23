@@ -513,7 +513,7 @@ int vtkGaussianCubeReader2::FillOutputPortInformation(int port, vtkInformation* 
   }
   // TODO: Shouldn't we be more concrete?
   info->Set(vtkDataObject::DATA_TYPE_NAME(), "vtkDataSet");
-  // info->Set(vtkDataObject::DATA_TYPE_NAME(), "vtkImageData");
+  info->Set(vtkDataObject::DATA_TYPE_NAME(), "vtkImageData");
   return 1;
 }
 
