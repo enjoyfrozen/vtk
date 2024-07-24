@@ -212,6 +212,13 @@ class TestCellGridRendering(Testing.vtkTest):
             mi.SetScalarMode(rr.VTK_SCALAR_MODE_USE_CELL_FIELD_DATA)
             mi.SetArrayName(colorArray)
             mi.SetArrayComponent(colorArrayComponent)
+            gg = rh.GetOutputDataObject(0)
+            arange = [0, 0]
+            gg.GetCellAttributeRange(gg.GetCellAttributeByName(colorArray), colorArrayComponent, arange, True)
+            print('test says color range', colorArray, colorArrayComponent, arange)
+            # mi.SetScalarRange(*arange)
+            mi.SetUseLookupTableScalarRange(0)
+            # mi.UseLookupTableScalarRangeOff()
         ai.SetMapper(mi)
         rw = rr.vtkRenderWindow()
         rn = rr.vtkRenderer()

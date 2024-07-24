@@ -586,10 +586,10 @@ void vtkDGRenderResponder::CacheEntry::PrepareHelper(
       }
     }
     compRange[2] = compRange[1] - compRange[0];
-#ifdef vtkDGRenderResponder_DEBUG
+// #ifdef vtkDGRenderResponder_DEBUG
     std::cout << "  Color range: [" << compRange[0] << ", " << compRange[1] << "] delta "
               << compRange[2] << " comp " << colorComp << "\n";
-#endif
+// #endif
     actor->GetShaderProperty()->GetFragmentCustomUniforms()->SetUniformi(
       "color_component", colorComp);
     actor->GetShaderProperty()->GetFragmentCustomUniforms()->SetUniform3f(
