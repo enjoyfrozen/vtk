@@ -192,6 +192,8 @@ public:
   }
 
   vtkCellMetadata* AddCellMetadata(vtkCellMetadata* cellType);
+
+  vtkCellMetadata* AddCellMetadata(vtkStringToken cellTypeName);
   ///@}
 
   ///@{
