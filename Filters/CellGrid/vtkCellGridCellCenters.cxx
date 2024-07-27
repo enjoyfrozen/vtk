@@ -12,17 +12,95 @@
 
 VTK_ABI_NAMESPACE_BEGIN
 
+using namespace vtk::literals;
+
 vtkStandardNewMacro(vtkCellGridCellCenters);
 vtkStandardNewMacro(vtkCellGridCellCenters::Query);
 
 void vtkCellGridCellCenters::Query::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
+  os << indent << "Input: " << this->Input << "\n";
+  os << indent << "Output: " << this->Output << "\n";
+  os << indent << "OutputOffsets: " << this->OutputOffsets.size() << " output cell types\n";
+  vtkIndent i2 = indent.GetNextIndent();
+  for (const auto& entry : this->OutputOffsets)
+  {
+    os << i2 << entry.first.Data() << " from " << entry.second.size() << " input cell types\n";
+  }
+  os << indent << "AttributeMap: " << this->AttributeMap.size() << " entries\n";
 }
 
 bool vtkCellGridCellCenters::Query::Initialize()
 {
+  this->Superclass::Initialize();
+  this->OutputOffsets.clear();
+  this->AttributeMap.clear();
+  if (!this->Input || !this->Output)
+  {
+    return false;
+  }
+
+  // Always create a shape attribute:
+  vtkNew<vtkCellAttribute> shapeAtt;
+  shapeAtt->Initialize("shape"_token, "ℝ³", 3);
+  this->Output->SetShapeAttribute(shapeAtt);
+  this->AttributeMap[this->Input->GetShapeAttribute()] = shapeAtt.GetPointer();
+
+  for (const auto& inputAtt : this->Input->GetCellAttributeList())
+  {
+    if (this->Input->GetShapeAttribute() == inputAtt)
+    {
+      continue;
+    }
+
+    vtkNew<vtkCellAttribute> outputAtt;
+    outputAtt->Initialize(
+      inputAtt->GetName(), inputAtt->GetSpace(), inputAtt->GetNumberOfComponents());
+    this->Output->AddCellAttribute(outputAtt);
+    this->AttributeMap[inputAtt] = outputAtt;
+  }
   return true;
+}
+
+void vtkCellGridCellCenters::Query::StartPass()
+{
+  this->Superclass::StartPass();
+#if 0
+  if (this->GetPass() == PassType::AllocateOutputs)
+  {
+    // Create output cell metdata entries.
+    for (const auto& entry : this->OutputOffsets)
+    {
+      this->Output->AddCellMetadata(entry.first);
+      // NB: While we could attempt to accumulate counts into offsets
+      // in this->OutputOffsets, we allow responders to do this work
+      // in the pass that follows since they may have a preferred ordering.
+    }
+
+  }
+#endif
+}
+
+void vtkCellGridCellCenters::Query::AddOutputCenters(
+  vtkStringToken inputCellType,
+  vtkStringToken outputCellType,
+  vtkIdType numberOfOutputs)
+{
+  this->OutputOffsets[outputCellType][inputCellType] = numberOfOutputs;
+}
+
+vtkCellAttribute* vtkCellGridCellCenters::Query::GetOutputAttribute(
+  vtkCellAttribute* inputAttribute)
+{
+  if (!inputAttribute) { return nullptr; }
+
+  auto nit = this->AttributeMap.find(inputAttribute);
+  if (nit == this->AttributeMap.end())
+  {
+    return nullptr;
+  }
+  return nit->second;
 }
 
 bool vtkCellGridCellCenters::Query::Finalize()
@@ -71,6 +149,7 @@ int vtkCellGridCellCenters::RequestData(
     return 0;
   }
 
+  this->Request->Input = input;
   this->Request->Output = output;
   // Run the cell-center query on the request.
   if (!input->Query(this->Request))

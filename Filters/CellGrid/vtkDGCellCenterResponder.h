@@ -17,6 +17,7 @@
 
 VTK_ABI_NAMESPACE_BEGIN
 class vtkCellMetadata;
+class vtkDGCell;
 
 class VTKFILTERSCELLGRID_EXPORT vtkDGCellCenterResponder
   : public vtkCellGridResponder<vtkCellGridCellCenters::Query>
@@ -32,6 +33,10 @@ public:
 protected:
   vtkDGCellCenterResponder() = default;
   ~vtkDGCellCenterResponder() override = default;
+
+  void AllocateOutputVertices(vtkCellGridCellCenters::Query* request);
+  void AddCellCenters(vtkCellGridCellCenters::Query* request, vtkDGCell* cellType);
+  void GenerateOutputVertices(vtkCellGridCellCenters::Query* request, vtkDGCell* cellType);
 
 private:
   vtkDGCellCenterResponder(const vtkDGCellCenterResponder&) = delete;
