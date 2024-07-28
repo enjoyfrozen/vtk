@@ -35,6 +35,8 @@ void addSourceCenters(
   vtkIdType& vbegin,
   vtkIdType& vend)
 {
+  if (spec.Blanked) { return; }
+
   vtkIdType nn = spec.Connectivity->GetNumberOfTuples();
   vtkIdType off = spec.Offset;
   if (vend - vbegin != nn)
@@ -42,17 +44,39 @@ void addSourceCenters(
     vtkGenericWarningMacro("Interval [" << vbegin << ", " << vend << "[ is"
       " size " << (vend - vbegin) << " numcells " << nn << ".");
   }
-  vtkSMPTools::For(0, nn, [&](vtkIdType beg, vtkIdType end)
-    {
-      vtkVector3d param;
-      for (vtkIdType ii = beg; ii < end; ++ii)
+  if (spec.SideType < 0)
+  {
+    // Compute center of (non-blanked) cell
+    vtkSMPTools::For(0, nn, [&](vtkIdType beg, vtkIdType end)
       {
-        param = cell->GetParametricCenterOfSide(spec.SideType);
-        cellIds->SetValue(vbegin + ii + off, ii + off);
-        rst->SetTuple(vbegin + ii + off, param.GetData());
+        vtkVector3d param;
+        for (vtkIdType ii = beg; ii < end; ++ii)
+        {
+          // param = cell->GetParametricCenterOfSide(spec.SideType);
+          param = cell->GetParametricCenterOfSide(spec.SideType);
+          cellIds->SetValue(vbegin + ii + off, ii + off);
+          rst->SetTuple(vbegin + ii + off, param.GetData());
+        }
       }
-    }
-  );
+    );
+  }
+  else
+  {
+    // Compute center of side of a cell.
+    vtkSMPTools::For(0, nn, [&](vtkIdType beg, vtkIdType end)
+      {
+        vtkVector3d param;
+        std::array<vtkTypeUInt64, 2> sideConn;
+        for (vtkIdType ii = beg; ii < end; ++ii)
+        {
+          spec.Connectivity->GetUnsignedTuple(ii, sideConn.data());
+          param = cell->GetParametricCenterOfSide(sideConn[1]);
+          cellIds->SetValue(vbegin + ii + off, ii + off);
+          rst->SetTuple(vbegin + ii + off, param.GetData());
+        }
+      }
+    );
+  }
   vbegin += nn;
 }
 
@@ -129,8 +153,8 @@ void vtkDGCellCenterResponder::AllocateOutputVertices(vtkCellGridCellCenters::Qu
   vtkTypeUInt64 offset = 0;
   for (const auto& entry : partialOrder)
   {
-    std::cout << "  " << entry.second.Data() << ": " << offset << "\n";
     vtkTypeUInt64 nn = ait->second[entry.second];
+    std::cout << "  " << entry.second.Data() << ": " << offset << "–" << nn << "\n";
     ait->second[entry.second] = offset;
     offset += nn;
   }
@@ -262,7 +286,7 @@ void vtkDGCellCenterResponder::GenerateOutputVertices(vtkCellGridCellCenters::Qu
     int nc = attValues->GetNumberOfComponents();
     vtkNew<vtkDoubleArray> attWindow;
     attWindow->SetNumberOfComponents(nc);
-    attWindow->SetArray(attValues->GetPointer(0) + nc * vertBegin, cellType->GetNumberOfCells(), /* save */1);
+    attWindow->SetArray(attValues->GetPointer(0) + nc * vertBegin, (vertEnd - vertBegin) * nc, /* save */1);
     dgCalc->Evaluate(cellIds, rst, attWindow);
   }
 
