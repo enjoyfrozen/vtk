@@ -360,7 +360,7 @@ public:
           int nv = this->CellValues->GetNumberOfComponents();
           for (std::size_t jj = 0; jj < nc; ++jj)
           {
-            this->CellValues->GetTuple(this->ConnTuple[jj], this->ValueTuple.data() + nc * jj);
+            this->CellValues->GetTuple(this->ConnTuple[jj], this->ValueTuple.data() + nv * jj);
           }
           this->LastCellId = currId;
         }
