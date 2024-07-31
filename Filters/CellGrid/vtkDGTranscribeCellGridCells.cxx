@@ -23,6 +23,7 @@
 #include "vtkUnsignedCharArray.h"
 #include "vtkVectorOperators.h"
 
+#include <sstream>
 #include <unordered_set>
 
 VTK_ABI_NAMESPACE_BEGIN
@@ -124,9 +125,88 @@ void addSourceCenters(
   vbegin += nn;
 }
 
+// The contributions of cell-grid corner points to
+// corner points in the output unstructured grid.
+// Attributes are interpolated using the cell IDs
+// and parametric coordinates, then summed to the
+// output points.
+struct Contributions
+{
+  Contributions()
+  {
+    this->ParametricCoords->SetNumberOfComponents(3);
+  }
+
+  vtkIdType AddContribution(
+    vtkIdType outputPointId,
+    vtkIdType inputCellId,
+    const std::array<double, 3>& pcoord)
+  {
+    vtkIdType nn = this->OutputPointIds->InsertNextValue(outputPointId);
+    this->InputCellIds->InsertNextValue(inputCellId);
+    this->ParametricCoords->InsertNextTuple(pcoord.data());
+    return nn;
+  }
+
+  vtkNew<vtkIdTypeArray> OutputPointIds;
+  vtkNew<vtkIdTypeArray> InputCellIds;
+  vtkNew<vtkDoubleArray> ParametricCoords;
+};
+
+using ContributionMap = std::unordered_map<vtkStringToken, Contributions>;
+
+class TranscribeCellGridPointCache : public vtkObject
+{
+public:
+  vtkTypeMacro(TranscribeCellGridPointCache, vtkObject);
+  virtual void PrintSelf(std::ostream& os, vtkIndent indent)
+  {
+    this->Superclass::PrintSelf(os, indent);
+    os << indent << "ContributionsByType: " << this->ContributionsByType.size() << " entries\n";
+  }
+  static TranscribeCellGridPointCache* New();
+
+  ContributionMap ContributionsByType;
+};
+
+Contributions& FetchPointContributionCache(
+  vtkCellGridToUnstructuredGrid::Query* request,
+  vtkDGCell* cellType,
+  vtkCellGridResponders* caches)
+{
+  std::ostringstream cacheName;
+  cacheName << "TranscribeCellGridPointCache_" << request;
+  vtkStringToken cacheKey(cacheName.str());
+  vtkStringToken cellTypeToken(cellType->GetClassName());
+  auto data = caches->GetCacheDataAs<TranscribeCellGridPointCache>(cacheKey.GetId(), /*createIfAbsent*/ true);
+  return data->ContributionsByType[cellTypeToken];
+};
+
+void FreePointContributionCache(
+  vtkCellGridToUnstructuredGrid::Query* request,
+  vtkDGCell* cellType,
+  vtkCellGridResponders* caches)
+{
+  std::ostringstream cacheName;
+  cacheName << "TranscribeCellGridPointCache_" << request;
+  vtkStringToken cacheKey(cacheName.str());
+  vtkStringToken cellTypeToken(cellType->GetClassName());
+  auto data = caches->GetCacheDataAs<TranscribeCellGridPointCache>(cacheKey.GetId(), /*createIfAbsent*/ false);
+  if (data)
+  {
+    data->ContributionsByType.erase(cellTypeToken);
+    if (data->ContributionsByType.empty())
+    {
+      vtkSmartPointer<TranscribeCellGridPointCache> blank;
+      caches->SetCacheData(cacheKey.GetId(), blank, /*overwrite*/ true);
+    }
+  }
+};
+
 } // anonymous namespace
 
 vtkStandardNewMacro(vtkDGTranscribeCellGridCells);
+vtkStandardNewMacro(TranscribeCellGridPointCache);
 
 void vtkDGTranscribeCellGridCells::PrintSelf(ostream& os, vtkIndent indent)
 {
@@ -159,10 +239,10 @@ bool vtkDGTranscribeCellGridCells::Query(
     }
     break;
   case TranscribeQuery::PassType::GenerateConnectivity:
-    this->GenerateConnectivity(request, dgCell);
+    this->GenerateConnectivity(request, dgCell, caches);
     break;
   case TranscribeQuery::PassType::GeneratePointData:
-    this->GeneratePointData(request, dgCell);
+    this->GeneratePointData(request, dgCell, caches);
     break;
   default:
     vtkErrorMacro("Unknown pass " << request->GetPass());
@@ -172,7 +252,7 @@ bool vtkDGTranscribeCellGridCells::Query(
 }
 
 void vtkDGTranscribeCellGridCells::GenerateConnectivity(
-  TranscribeQuery* request, vtkDGCell* cellType)
+  TranscribeQuery* request, vtkDGCell* cellType, vtkCellGridResponders* caches)
 {
   vtkStringToken cellTypeToken = cellType->GetClassName();
   auto& alloc = request->GetOutputAllocations();
@@ -181,6 +261,7 @@ void vtkDGTranscribeCellGridCells::GenerateConnectivity(
   {
     return;
   }
+  auto& contribs = FetchPointContributionCache(request, cellType, caches);
 
   auto* cellArray = request->GetOutput()->GetCells();
   auto* cellTypes = request->GetOutput()->GetCellTypesArray();
@@ -218,6 +299,7 @@ void vtkDGTranscribeCellGridCells::GenerateConnectivity(
         outConn.clear();
         // source is the CellSpec.
         source.Connectivity->GetUnsignedTuple(cc, inConn.data());
+        int pp = 0;
         for (const auto& inPointId : inConn)
         {
           vtkIdType outPointId;
@@ -228,6 +310,11 @@ void vtkDGTranscribeCellGridCells::GenerateConnectivity(
           }
           ++pointCounts[outPointId];
           outConn.push_back(outPointId);
+          contribs.AddContribution(
+            outPointId,
+            static_cast<vtkIdType>(cc + source.Offset),
+            cellType->GetCornerParameter(pp));
+          ++pp;
         }
         cellArray->InsertNextCell(outConn.size(), outConn.data());
         cellTypes->InsertNextValue(ait->second.CellType);
@@ -259,6 +346,10 @@ void vtkDGTranscribeCellGridCells::GenerateConnectivity(
           }
           ++pointCounts[outPointId];
           outConn.push_back(outPointId);
+          contribs.AddContribution(
+            outPointId,
+            static_cast<vtkIdType>(cc + source.Offset),
+            cellType->GetCornerParameter(sidePointId));
         }
         cellArray->InsertNextCell(outConn.size(), outConn.data());
         cellTypes->InsertNextValue(sideShapeVTK);
@@ -267,43 +358,55 @@ void vtkDGTranscribeCellGridCells::GenerateConnectivity(
   }
 }
 
-void vtkDGTranscribeCellGridCells::GeneratePointData(TranscribeQuery* request, vtkDGCell* cellType)
+void vtkDGTranscribeCellGridCells::GeneratePointData(
+  TranscribeQuery* request, vtkDGCell* cellType, vtkCellGridResponders* caches)
 {
   auto& alloc = request->GetOutputAllocations();
-  auto ait = alloc.find("vtkDGVert"_token);
+  auto ait = alloc.find(cellType->GetClassName());
   if (ait == alloc.end())
   {
     return;
   }
+  auto& contribs = FetchPointContributionCache(request, cellType, caches);
+  vtkIdType nn = contribs.InputCellIds->GetNumberOfTuples();
+  auto& pointWeights = request->GetConnectivityWeights();
 
-#if 0
-  auto* vtxGroup = request->GetOutput()->GetAttributes("vtkDGVert"_token);
-  auto* cellIds = vtkIdTypeArray::SafeDownCast(vtxGroup->GetArray("source id"));
-  auto* rst = vtkDoubleArray::SafeDownCast(vtxGroup->GetArray("center parametric coordinates"));
+  auto* vtxGroup = request->GetOutput()->GetPointData();
   vtkNew<vtkDGInterpolateCalculator> interpolateProto;
   for (const auto& inCellAtt : request->GetInput()->GetCellAttributeList())
   {
-    auto vertBegin = cit->second;
-    auto vertEnd = vertBegin + cellType->GetNumberOfCells();
-
-    auto outCellAtt = request->GetOutputAttribute(inCellAtt);
-    if (!outCellAtt)
+    if (inCellAtt == request->GetInput()->GetShapeAttribute())
     {
-      vtkWarningMacro("No output attribute matching \"" << inCellAtt->GetName().Data() << "\".");
       continue;
     }
-    auto outCellTypeInfo = outCellAtt->GetCellTypeInfo("vtkDGVert"_token);
+    auto* outputArray = request->GetOutputArray(inCellAtt);
     auto rawCalc = interpolateProto->PrepareForGrid(cellType, inCellAtt);
     auto dgCalc = vtkDGInterpolateCalculator::SafeDownCast(rawCalc);
-    vertBegin = cit->second;
-    auto* attValues = outCellTypeInfo.GetArrayForRoleAs<vtkDoubleArray>("values"_token);
-    int nc = attValues->GetNumberOfComponents();
-    vtkNew<vtkDoubleArray> attWindow;
-    attWindow->SetNumberOfComponents(nc);
-    attWindow->SetArray(attValues->GetPointer(0) + nc * vertBegin, (vertEnd - vertBegin) * nc, /* save */1);
-    dgCalc->Evaluate(cellIds, rst, attWindow);
+    vtkNew<vtkDoubleArray> interpResult;
+    int nc = inCellAtt->GetNumberOfComponents();
+    interpResult->SetNumberOfComponents(nc);
+    interpResult->SetNumberOfTuples(nn);
+    dgCalc->Evaluate(contribs.InputCellIds, contribs.ParametricCoords, interpResult);
+    vtkSMPTools::For(0, nn, [&](vtkIdType begin, vtkIdType end)
+      {
+        std::vector<double> outTuple(nc, 0.);
+        std::vector<double> inTuple(nc, 0.);
+        for (vtkIdType ii = begin; ii < end; ++ii)
+        {
+          interpResult->GetTuple(ii, inTuple.data());
+          vtkIdType outputPointId = contribs.OutputPointIds->GetValue(ii);
+          outputArray->GetTuple(outputPointId, outTuple.data());
+          double pw = pointWeights[outputPointId];
+          for (int jj = 0; jj < nc; ++jj)
+          {
+            outTuple[jj] += pw * inTuple[jj];
+          }
+          outputArray->SetTuple(outputPointId, outTuple.data());
+        }
+      }
+    );
   }
-#endif
+  FreePointContributionCache(request, cellType, caches);
 
 #if 0
   auto* vtxGroup = request->GetOutput()->GetAttributes(vtkStringToken(vcnname));

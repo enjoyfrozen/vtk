@@ -118,7 +118,13 @@ void vtkCellGridToUnstructuredGrid::Query::StartPass()
       vtkIdType nn = this->Output->GetPoints()->GetNumberOfPoints();
       for (int ii = 0; ii < numArrays; ++ii)
       {
-        pointData->GetArray(ii)->SetNumberOfTuples(nn);
+        auto* array = pointData->GetArray(ii);
+        int nc = array->GetNumberOfComponents();
+        array->SetNumberOfTuples(nn);
+        for (int jj = 0; jj < nc; ++jj)
+        {
+          array->FillComponent(jj, 0.);
+        }
       }
       // Invert the connectivity counts into weights:
       vtkIdType np = this->ConnectivityCount.rbegin()->first + 1;

@@ -35,8 +35,10 @@ protected:
   vtkDGTranscribeCellGridCells() = default;
   ~vtkDGTranscribeCellGridCells() override = default;
 
-  void GenerateConnectivity(TranscribeQuery* request, vtkDGCell* cellType);
-  void GeneratePointData(TranscribeQuery* request, vtkDGCell* cellType);
+  void GenerateConnectivity(
+    TranscribeQuery* request, vtkDGCell* cellType, vtkCellGridResponders* caches);
+  void GeneratePointData(
+    TranscribeQuery* request, vtkDGCell* cellType, vtkCellGridResponders* caches);
 
 private:
   vtkDGTranscribeCellGridCells(const vtkDGTranscribeCellGridCells&) = delete;
