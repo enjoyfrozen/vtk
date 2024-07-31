@@ -8,6 +8,7 @@ set(classes
   vtkCellGridElevation
   vtkCellGridPointProbe
   vtkUnstructuredGridToCellGrid
+  vtkCellGridToUnstructuredGrid
 
   # Queries
   vtkCellGridElevationQuery
@@ -20,6 +21,7 @@ set(classes
   vtkDGEvaluator
   vtkDGRangeResponder
   vtkDGSidesResponder
+  vtkDGTranscribeCellGridCells
   vtkDGTranscribeUnstructuredCells
 
   # Calculator bases
