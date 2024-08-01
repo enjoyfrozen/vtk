@@ -71,7 +71,7 @@ void colorEvaluateAt(
     shapeGradientAt(rr, shapeData, dxdr, dxds, dxdt);
     // jac = transpose(mat3(dxdr, dxds, dxdt));
     jac = mat3(dxdr, dxds, dxdt);
-    float jdet = det(jac);
+    float jdet = determinant(jac);
     for (int cc = 0; cc < {ColorNumValPP} / 3; ++cc)
     {{
       vec3 unscaled = vec3(value[cc * 3], value[cc * 3 + 1], value[cc * 3 + 2]);
