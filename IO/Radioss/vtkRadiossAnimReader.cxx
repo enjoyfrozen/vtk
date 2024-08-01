@@ -68,6 +68,8 @@ int vtkRadiossAnimReader::RequestData(vtkInformation* vtkNotUsed(request),
     return 0;
   }
 
+  auto& radiossNodes = this->RadiossAnim->GetNodes();
+
   return 1;
 }
 
