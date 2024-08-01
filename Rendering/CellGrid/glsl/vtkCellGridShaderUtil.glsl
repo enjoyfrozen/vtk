@@ -75,7 +75,7 @@ void colorEvaluateAt(
     for (int cc = 0; cc < {ColorNumValPP} / 3; ++cc)
     {{
       vec3 unscaled = vec3(value[cc * 3], value[cc * 3 + 1], value[cc * 3 + 2]);
-      vec3 scaled = jdet * jac * unscaled;
+      vec3 scaled = jac * unscaled / jdet;
       value[cc * 3    ] = scaled.x;
       value[cc * 3 + 1] = scaled.y;
       value[cc * 3 + 2] = scaled.z;

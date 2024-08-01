@@ -321,7 +321,7 @@ public:
     this->ComputeJacobian();
     // Compute the Jacobian's determinant and multiply result's ii-th tuple
     // by both the Jacobian and the scalar determinant.
-    double det = vtkMatrix3x3::Determinant(this->Jacobian.data());
+    double det = 1.0 / vtkMatrix3x3::Determinant(this->Jacobian.data());
     std::array<double, 3> vec;
     double* rr = result->GetPointer(0);
     const int nc = result->GetNumberOfComponents();
