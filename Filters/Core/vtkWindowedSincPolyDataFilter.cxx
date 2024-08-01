@@ -102,7 +102,7 @@ struct LineConnectivity
     // adjust to make the code saner.
     npts = (closedLoop ? (npts - 1) : npts);
 
-    for (auto i = 0; i < npts; i++)
+    for (vtkIdType i = 0; i < npts; i++)
     {
       vtkIdType ptId = pts[i];
 
@@ -211,7 +211,7 @@ struct MeshConnectivity
   {
     PointConnectivity<TIds>* ptConn = this->PtConn;
 
-    for (auto i = 0; i < npts; i++)
+    for (vtkIdType i = 0; i < npts; i++)
     {
       vtkIdType ptId = pts[i];
 
@@ -438,7 +438,7 @@ struct PointConnectivity : PointConnectivityBase
     // end of list of edges, and decremented until eventually they point at
     // the beginning of the list.
     TIds offset = 0;
-    for (auto ptId = 0; ptId < this->NumPts; ++ptId)
+    for (vtkIdType ptId = 0; ptId < this->NumPts; ++ptId)
     {
       offset += this->Offsets[ptId];
       this->Offsets[ptId] = offset;
@@ -620,7 +620,7 @@ EDGE_COUNT_TYPE inline BuildO1Stencil(
     edges[totalEdges++] = edges[eStart];
     if (nmSmoothing && weightNMEdges)
     {
-      for (auto i = 0; i < (num - 1); ++i)
+      for (TIds i = 0; i < (num - 1); ++i)
       {
         edges[totalEdges++] = edges[eStart];
       }
@@ -739,7 +739,7 @@ EDGE_COUNT_TYPE inline BuildO0Stencil(vtkIdType ptId, TIds* edges, TIds nedges,
     edges[totalEdges++] = edges[eStart];
     if (nmSmoothing && weightNMEdges)
     {
-      for (auto i = 0; i < (num - 1); ++i)
+      for (TIds i = 0; i < (num - 1); ++i)
       {
         edges[totalEdges++] = edges[eStart];
       }
@@ -927,7 +927,7 @@ void AnalyzePointTopology(PointConnectivityBase* ptConnBase, vtkWindowedSincPoly
       for (; cellId < endCellId; ++cellId)
       {
         vIter->GetCellAtId(cellId, npts, p);
-        for (auto j = 0; j < npts; ++j)
+        for (vtkIdType j = 0; j < npts; ++j)
         {
           ptConn->SetEdgeCount(p[j], PointType::FIXED);
         }
@@ -1279,7 +1279,7 @@ struct SmoothingWorker
 
         // Calculate the negative laplacian of x1
         deltaX[0] = deltaX[1] = deltaX[2] = 0.0;
-        for (auto j = 0; j < numEdges; j++)
+        for (EDGE_COUNT_TYPE j = 0; j < numEdges; j++)
         {
           auto y = tuples1[edges[j]];
           for (auto k = 0; k < 3; k++)

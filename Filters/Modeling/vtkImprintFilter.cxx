@@ -540,7 +540,7 @@ struct vtkTriEdgeList : public std::vector<vtkTriEdge>
       vtkTriEdge* possibleEdge = nullptr;
       int numPossible = 0;
       // Count the number of non-visited edges
-      for (auto i = 0; i < numEdges; ++i, ++ePtr)
+      for (vtkIdType i = 0; i < numEdges; ++i, ++ePtr)
       {
         if (!ePtr->Visited && !ePtr->IsReverseEdge(nextEdge))
         {
@@ -570,7 +570,7 @@ struct vtkTriEdgeList : public std::vector<vtkTriEdge>
       // Find the emanating edge with the smallest angle around the normal
       // (consistent with right-hand-rule)
       ePtr = edge;
-      for (auto i = 0; i < numEdges; ++i, ++ePtr)
+      for (vtkIdType i = 0; i < numEdges; ++i, ++ePtr)
       {
         if (!ePtr->Visited && !ePtr->IsReverseEdge(nextEdge))
         {
@@ -1061,7 +1061,7 @@ struct vtkTargetPointClassifier
     for (; cellId < endCellId; cellId++)
     {
       targetIter->GetCellAtId(cellId, npts, pts);
-      for (auto i = 0; i < npts; ++i)
+      for (vtkIdType i = 0; i < npts; ++i)
       {
         vtkIdType pId = pts[i];
         std::lock_guard<vtkAtomicMutex> pointLockGuard(this->PtLocks[pId]);
@@ -1180,16 +1180,16 @@ void MarkBoundaryPoints(vtkPolyData* imprint, vtkPointList& pList)
   const vtkIdType* pts;
 
   // Initially mark all points as excluded from processing.
-  for (auto ptId = 0; ptId < numPts; ++ptId)
+  for (vtkIdType ptId = 0; ptId < numPts; ++ptId)
   {
     pList[ptId].Classification = PointClassification::Exclude;
   }
 
   // Now mark boundary points for processing
-  for (auto cellId = 0; cellId < numCells; ++cellId)
+  for (vtkIdType cellId = 0; cellId < numCells; ++cellId)
   {
     iter->GetCellAtId(cellId, npts, pts);
-    for (auto i = 0; i < npts; ++i)
+    for (vtkIdType i = 0; i < npts; ++i)
     {
       vtkIdType viStart = pts[i];
       vtkIdType viEnd = pts[(i + 1) % npts];
@@ -1392,7 +1392,7 @@ void OutputProjectedImprint(vtkPolyData* imprint, vtkPointList* pList, vtkPolyDa
   newPts->SetDataType(outPts->GetDataType());
   newPts->SetNumberOfPoints(numPts);
 
-  for (auto ptId = 0; ptId < numPts; ++ptId)
+  for (vtkIdType ptId = 0; ptId < numPts; ++ptId)
   {
     vtkPointInfo& pt = (*pList)[ptId];
     if (pt.Classification <= PointClassification::Outside)
@@ -1444,7 +1444,7 @@ struct ProduceProjectedPoints
     this->CurrentPtId = numTargetPts; // will be incremented
 
     // Traverse all these projected points, updating information in the candidate cells
-    for (auto ptId = 0; ptId < numImprintPts; ++ptId)
+    for (vtkIdType ptId = 0; ptId < numImprintPts; ++ptId)
     {
       this->Filter->CheckAbort();
       if (this->Filter->GetAbortOutput())
@@ -1745,12 +1745,12 @@ struct ProduceIntersectionPoints
 
     if (numCells0 > 0 && cells0 != nullptr && numCells1 > 0 && cells1 != nullptr)
     {
-      for (auto i = 0; i < numCells0; ++i)
+      for (vtkIdType i = 0; i < numCells0; ++i)
       {
         vtkIdType cell0 = cells0[i];
         if (cell0 >= 0)
         {
-          for (auto j = 0; j < numCells1; ++j)
+          for (vtkIdType j = 0; j < numCells1; ++j)
           {
             vtkIdType cell1 = cells1[j];
             if (cell0 == cell1)
@@ -1827,7 +1827,7 @@ struct ProduceIntersectionPoints
     // fragment.
     vtkIdType outputCellId;
     vtkIdType numFrags = edgeIntList.size() - 1;
-    for (auto i = 0; i < numFrags; ++i)
+    for (vtkIdType i = 0; i < numFrags; ++i)
     {
       vtkPointInfo& pStart = edgeIntList[i].GetPointInfo();
       vtkPointInfo& pEnd = edgeIntList[i + 1].GetPointInfo();
@@ -1974,7 +1974,7 @@ struct ProduceIntersectionPoints
         break;
       }
       imprintIter->GetCellAtId(cellId, iNPts, iPts);
-      for (auto i = 0; i < iNPts; ++i)
+      for (vtkIdType i = 0; i < iNPts; ++i)
       {
         vtkIdType viStart = iPts[i];
         vtkIdType viEnd = iPts[(i + 1) % iNPts];
@@ -2016,11 +2016,11 @@ struct ProduceIntersectionPoints
           loc->FindCellsAlongLine(xStart, xEnd, this->ProjTol, cells);
 
           vtkIdType numCells = cells->GetNumberOfIds();
-          for (auto j = 0; j < numCells; ++j)
+          for (vtkIdType j = 0; j < numCells; ++j)
           {
             vtkIdType targetCellId = cells->GetId(j);
             targetIter->GetCellAtId(targetCellId, tNPts, tPts);
-            for (auto k = 0; k < tNPts; ++k)
+            for (vtkIdType k = 0; k < tNPts; ++k)
             { // process each edge of this target cell
               vtkIdType vtStart = tPts[k];
               vtkIdType vtEnd = tPts[(k + 1) % tNPts];
@@ -2044,7 +2044,7 @@ struct ProduceIntersectionPoints
           edgeIntList.emplace_back(vtkEdgeIntersection(1.0, viEnd, this->PointList));
           const vtkTargetEdgeType* tEdge;
           int produceFragments = 0;
-          for (auto teNum = 0; teNum < numTargetEdges; ++teNum)
+          for (vtkIdType teNum = 0; teNum < numTargetEdges; ++teNum)
           {
             tEdge = tEdges.data() + tOffsets[teNum];
             produceFragments |= this->IntersectEdge(pStart, pEnd, viStart, viEnd, xStart, xEnd,
@@ -2243,7 +2243,7 @@ struct Triangulate
     vtkIdType npts, e[2];
     const vtkIdType* pts;
     this->Candidates->GetCellPoints(cellId, npts, pts);
-    for (auto i = 0; i < npts; ++i)
+    for (vtkIdType i = 0; i < npts; ++i)
     {
       e[0] = pts[i];
       e[1] = pts[(i + 1) % npts];
@@ -2276,7 +2276,7 @@ struct Triangulate
     vtkIdType numCells = static_cast<vtkIdType>(cInfo->OutCellsNPts.size());
     vtkIdType offset = 0;
     vtkIdType* conn = cInfo->OutCellsConn.data();
-    for (auto i = 0; i < numCells; ++i)
+    for (vtkIdType i = 0; i < numCells; ++i)
     {
       npts = cInfo->OutCellsNPts[i];
       pts = conn + offset;
@@ -2329,7 +2329,7 @@ struct Triangulate
 
     // Start by adding original cell points to the perimeter list
     double t, x[3];
-    for (auto i = 0; i < npts; ++i)
+    for (vtkIdType i = 0; i < npts; ++i)
     {
       outPts->GetPoint(pts[i], x);
       t = static_cast<double>(i);
@@ -2340,7 +2340,7 @@ struct Triangulate
     // parametric coordinate.
     vtkIdType pId;
     vtkPointInfo* pInfo;
-    for (auto i = 0; i < numPerimeterPts; ++i)
+    for (vtkIdType i = 0; i < numPerimeterPts; ++i)
     {
       pId = cInfo->PerimeterPoints[i] - targetOffset;
       pInfo = &points[pId];
@@ -2352,7 +2352,7 @@ struct Triangulate
 
     // Now add the perimeter edges. Recall that boundary edges are only used
     // one time, so only one edge use needs to be added.
-    for (auto i = 0; i < totalPerimeterPts; ++i)
+    for (vtkIdType i = 0; i < totalPerimeterPts; ++i)
     {
       triEdges.emplace_back(vtkTriEdge(pList[i].Id, pList[(i + 1) % totalPerimeterPts].Id));
     }
@@ -2399,7 +2399,7 @@ struct Triangulate
   char ClassifyCell(vtkIdType npts, const vtkIdType* pts)
   {
     vtkPointClassifier* pc = this->PtClassifier;
-    for (auto i = 0; i < npts; ++i)
+    for (vtkIdType i = 0; i < npts; ++i)
     {
       if (pc->GetPointClassification(pts[i]) == PointClassification::TargetOutside)
       {
@@ -2457,7 +2457,7 @@ struct Triangulate
       if (this->CellTriangulate(outCell, poly, outTris))
       {
         vtkIdType numTris = outTris->GetNumberOfIds() / 3;
-        for (auto i = 0; i < numTris; ++i)
+        for (vtkIdType i = 0; i < numTris; ++i)
         {
           cInfo->OutCellsNPts.push_back(3);
           cInfo->OutCellsClass.push_back(cellClassification);
@@ -2498,7 +2498,7 @@ struct Triangulate
     // used to choose the correct turn to make.
     vtkTriEdge* edge = triEdgeList.data();
     vtkIdType numEdges = triEdgeList.size();
-    for (auto i = 0; i < numEdges; ++edge, ++i)
+    for (vtkIdType i = 0; i < numEdges; ++edge, ++i)
     {
       if (!edge->Visited)
       {
@@ -2645,7 +2645,7 @@ struct Triangulate
     int outputType = this->OutputType;
     vtkAttributeManager* attrMgr = this->AttributeManager;
 
-    for (auto cellId = 0; cellId < numCandidates; cellId++)
+    for (vtkIdType cellId = 0; cellId < numCandidates; cellId++)
     {
       vtkCandidateInfo*& cInfo = (*this->CandidateList)[cellId];
       // Target cells not requiring triangulation are simply sent to the
@@ -2672,7 +2672,7 @@ struct Triangulate
         vtkIdType numCells = static_cast<vtkIdType>(cInfo->OutCellsNPts.size());
         vtkIdType offset = 0;
         vtkIdType* conn = cInfo->OutCellsConn.data();
-        for (auto i = 0; i < numCells; ++i)
+        for (vtkIdType i = 0; i < numCells; ++i)
         {
           npts = cInfo->OutCellsNPts[i];
           pts = conn + offset;
@@ -2747,7 +2747,7 @@ struct ComputeEdgeLength
     for (; cellId < endCellId; cellId++)
     {
       iter->GetCellAtId(cellId, npts, pts);
-      for (auto i = 0; i < npts; ++i)
+      for (vtkIdType i = 0; i < npts; ++i)
       {
         vtkIdType v0 = pts[i];
         vtkIdType v1 = pts[(i + 1) % npts];

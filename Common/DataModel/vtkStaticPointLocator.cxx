@@ -708,7 +708,7 @@ struct BucketList : public vtkBucketList
         vtkIdType numIds = nearby->GetNumberOfIds();
         if (numIds > 0)
         {
-          for (auto i = 0; i < numIds; ++i)
+          for (vtkIdType i = 0; i < numIds; ++i)
           {
             vtkIdType nearId = nearby->GetId(i);
             if (mergeMap[nearId] < 0)
@@ -856,7 +856,7 @@ struct BucketList : public vtkBucketList
         if (bin >= 0 && (numIds = this->BList->GetNumberOfIds(bin)) > 0)
         {
           const LocatorTuple<TIds>* ids = this->BList->GetIds(bin);
-          for (auto i = 0; i < numIds; ++i)
+          for (vtkIdType i = 0; i < numIds; ++i)
           {
             vtkIdType ptId = ids[i].PtId;
             vtkIdList*& nearby = this->PIds.Local();

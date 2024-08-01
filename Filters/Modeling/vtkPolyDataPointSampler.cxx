@@ -94,7 +94,7 @@ struct GeneratePoints
           break;
         }
         iter->GetCurrentCell(npts, pts);
-        for (auto i = 0; i < (npts - 1); i++)
+        for (vtkIdType i = 0; i < (npts - 1); i++)
         {
           if (this->EdgeTable->IsEdge(pts[i], pts[i + 1]) == -1)
           {
@@ -115,7 +115,7 @@ struct GeneratePoints
           break;
         }
         iter->GetCurrentCell(npts, pts);
-        for (auto i = 0; i < npts; i++)
+        for (vtkIdType i = 0; i < npts; i++)
         {
           p0 = pts[i];
           p1 = pts[(i + 1) % npts];
@@ -149,7 +149,7 @@ struct GeneratePoints
           }
         }
         // Now the other triangles
-        for (auto i = 3; i < npts; i++)
+        for (vtkIdType i = 3; i < npts; i++)
         {
           p0 = pts[i - 2];
           p1 = pts[i];
@@ -197,7 +197,7 @@ struct GeneratePoints
       {
         iter->GetCurrentCell(npts, pts);
         vtkIdType stripPts[3];
-        for (auto i = 0; i < (npts - 2); i++)
+        for (vtkIdType i = 0; i < (npts - 2); i++)
         {
           stripPts[0] = pts[i];
           stripPts[1] = pts[i + 1];
@@ -234,7 +234,7 @@ struct RegularGeneration : public GeneratePoints
     this->OutPts->DeepCopy(this->InPts);
     if (this->InPD)
     {
-      for (auto i = 0; i < this->NumPts; ++i)
+      for (vtkIdType i = 0; i < this->NumPts; ++i)
       {
         this->OutPD->CopyData(this->InPD, i, i);
       }
@@ -420,7 +420,7 @@ struct RandomGeneration : public GeneratePoints
   {
     // First the vertex points
     double ranVal, frac = (this->Distance / std::pow(this->Length, 0.3333));
-    for (auto i = 0; i < this->NumPts; ++i)
+    for (vtkIdType i = 0; i < this->NumPts; ++i)
     {
       ranVal = this->RandomSeq->GetValue();
       this->RandomSeq->Next();
@@ -447,7 +447,7 @@ struct RandomGeneration : public GeneratePoints
       vtkIdType npts = std::ceil(len / this->Distance);
       vtkIdType pId;
       double t, x[3];
-      for (auto i = 0; i < npts; ++i)
+      for (vtkIdType i = 0; i < npts; ++i)
       {
         t = this->RandomSeq->GetValue();
         this->RandomSeq->Next();
@@ -485,7 +485,7 @@ struct RandomGeneration : public GeneratePoints
         this->TriIds->SetId(2, pts[2]);
       }
 
-      for (auto i = 0; i < npts; ++i)
+      for (vtkIdType i = 0; i < npts; ++i)
       {
         s = this->RandomSeq->GetValue();
         this->RandomSeq->Next();
@@ -612,7 +612,7 @@ int vtkPolyDataPointSampler::RequestData(vtkInformation* vtkNotUsed(request),
     numPts = newPts->GetNumberOfPoints();
     verts->AllocateEstimate(numPts + 1, 1);
     verts->InsertNextCell(numPts);
-    for (auto id = 0; id < numPts; id++)
+    for (vtkIdType id = 0; id < numPts; id++)
     {
       verts->InsertCellPoint(id);
     }

@@ -1310,7 +1310,7 @@ struct GenerateAveBinPoints
             xAve[0] = xAve[1] = xAve[2] = 0.0;
             pIds = binTuples + offsets[binNum];
             v.resize(npts);
-            for (auto idx = 0; idx < npts; ++idx)
+            for (TIds idx = 0; idx < npts; ++idx)
             {
               pId = (*(pIds + idx)).PtId;
               v[idx] = pId;

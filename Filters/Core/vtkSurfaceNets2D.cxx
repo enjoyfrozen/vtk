@@ -415,7 +415,7 @@ struct SurfaceNets
     T background = this->BackgroundLabel;
     cout << "Background Label: " << background << "\n";
     T* s = this->NewScalars;
-    for (auto i = 0; i < numScalars; ++i)
+    for (vtkIdType i = 0; i < numScalars; ++i)
     {
       *s++ = label;
       *s++ = background;
@@ -699,7 +699,7 @@ void SurfaceNets<T>::ProduceSquareCases(vtkIdType rowPair, bool odd)
   unsigned char* dPtr = this->DyadCases + row * numDyads;
   unsigned char* dPtrAbove = dPtr + this->DyadDims[0];
 
-  for (auto i = 0; i < (numDyads - 1); ++i)
+  for (vtkIdType i = 0; i < (numDyads - 1); ++i)
   {
     unsigned char lCase = *(dPtr + i);
     unsigned char rCase = *(dPtr + i + 1);

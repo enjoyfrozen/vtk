@@ -401,7 +401,7 @@ struct GeometricDisplacement : public DisplacePoint
     double len, fVec[3];
     vtkIdType neiId;
     double R = this->PackingFactor * this->PackingRadius;
-    for (auto i = 0; i < numNeis; ++i)
+    for (vtkIdType i = 0; i < numNeis; ++i)
     {
       neiId = neis[i];
       // Make sure to have a valid connection within sphere of influence
@@ -455,7 +455,7 @@ struct UniformDisplacement : public DisplacePoint
     double fVec[3];
     vtkIdType neiId;
     disp[0] = disp[1] = disp[2] = 0.0;
-    for (auto i = 0; i < numNeis; ++i)
+    for (vtkIdType i = 0; i < numNeis; ++i)
     {
       neiId = neis[i];
       if (neiId >= 0) // valid connection to another point
@@ -502,7 +502,7 @@ struct ScalarDisplacement : public DisplacePoint
     vtkIdType neiId;
     disp[0] = disp[1] = disp[2] = 0.0;
     this->Data->GetTuple(p0, &s0);
-    for (auto i = 0; i < numNeis; ++i)
+    for (vtkIdType i = 0; i < numNeis; ++i)
     {
       neiId = neis[i];
       if (neiId >= 0) // valid connection to another point
@@ -596,7 +596,7 @@ struct TensorDisplacement : public DisplacePoint
     vtkIdType neiId;
 
     this->Data->GetTuple(pb, tb);
-    for (auto i = 0; i < numNeis; ++i)
+    for (vtkIdType i = 0; i < numNeis; ++i)
     {
       neiId = neis[i];
       if (neiId >= 0) // valid connection to another point
@@ -793,7 +793,7 @@ struct CharacterizeMesh
     double* aveN = this->Constraints->Normals + 3 * ptId;
     aveN[0] = aveN[1] = aveN[2] = 0.0;
     char* classification = this->Constraints->Classification + ptId;
-    for (auto i = 0; i < neiSize; ++i)
+    for (vtkIdType i = 0; i < neiSize; ++i)
     {
       if (neis[i] >= 0) // check for valid neighbor
       {
@@ -817,7 +817,7 @@ struct CharacterizeMesh
     // Now determine angles away from average normal. This provides
     // a classification.
     double dot, minDot = 1.0;
-    for (auto i = 0; i < neiSize; ++i)
+    for (vtkIdType i = 0; i < neiSize; ++i)
     {
       if (neis[i] >= 0)
       {

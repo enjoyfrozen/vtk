@@ -1407,7 +1407,7 @@ struct TracerIntegrator
           vtkPoints* threadPts = offset.ThreadOutput->OutputPoints;
           vtkIdType outPtId = offset.StartingPtId;
           vtkPointData* threadPD = offset.ThreadOutput->OutputPD;
-          for (auto i = 0; i < offset.NumPts; ++i)
+          for (vtkIdType i = 0; i < offset.NumPts; ++i)
           {
             vtkIdType threadId = offset.ThreadPtId + i;
             vtkIdType outId = outPtId + i;
@@ -1424,7 +1424,7 @@ struct TracerIntegrator
             this->CAOffsets[cellId] = offset.CellConnOffset;
             vtkIdType connLoc = offset.CellConnOffset;
             outPtId = offset.StartingPtId;
-            for (auto i = 0; i < offset.NumPts; ++i)
+            for (vtkIdType i = 0; i < offset.NumPts; ++i)
             {
               vtkIdType outId = outPtId + i;
               this->CAConn[connLoc++] = outId;

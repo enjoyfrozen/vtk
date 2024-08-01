@@ -99,7 +99,7 @@ struct vtkSphericalPointIterator::SphericalPointIterator
 
     this->DataSet = ds;
     double a[3];
-    for (auto i = 0; i < numAxes; ++i)
+    for (vtkIdType i = 0; i < numAxes; ++i)
     {
       axes->GetTuple(i, a);
       vtkMath::Normalize(a);
@@ -184,7 +184,7 @@ struct vtkSphericalPointIterator::SphericalPointIterator
     // Project points onto the best axis (with maximum positive dot product)
     double x[3], v[3], dp, dpMax;
     int axis, axisMax = 0;
-    for (auto i = 0; i < numNei; ++i)
+    for (vtkIdType i = 0; i < numNei; ++i)
     {
       vtkIdType ptId = neighborhood[i];
       this->DataSet->GetPoint(ptId, x);

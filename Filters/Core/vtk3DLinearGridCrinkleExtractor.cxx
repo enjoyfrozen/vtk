@@ -337,7 +337,7 @@ struct ExtractCells : public ExtractCellsBase
         lTypes.emplace_back(cellIter->GetCellType(cellId));
         lCells.emplace_back(npts);
         const vtkIdType* pts = cellIter->GetCellIds(cellId);
-        for (auto i = 0; i < npts; ++i)
+        for (vtkIdType i = 0; i < npts; ++i)
         {
           lCells.emplace_back(pts[i]);
         }
@@ -453,7 +453,7 @@ struct ExtractPointsAndCells : public ExtractCellsBase
         lTypes.emplace_back(cellIter->GetCellType(cellId));
         lCells.emplace_back(npts);
         const vtkIdType* pts = cellIter->GetCellIds(cellId);
-        for (auto i = 0; i < npts; ++i)
+        for (vtkIdType i = 0; i < npts; ++i)
         {
           pointMap[pts[i]] = 1; // this point is used
           lCells.emplace_back(pts[i]);
@@ -473,7 +473,7 @@ struct ExtractPointsAndCells : public ExtractCellsBase
     // Generate point map
     vtkIdType globalPtId = 0;
     vtkIdType* ptMap = this->PointMap;
-    for (auto ptId = 0; ptId < this->InputNumPts; ++ptId)
+    for (vtkIdType ptId = 0; ptId < this->InputNumPts; ++ptId)
     {
       if (this->PointMap[ptId] > 0)
       {
@@ -520,11 +520,11 @@ struct ExtractPointsAndCells : public ExtractCellsBase
 
       // Need to do this in a loop since the pointIds are mapped through ptMap:
       auto threadCells = lCells.cbegin();
-      for (auto i = 0; i < numCells; ++i)
+      for (vtkIdType i = 0; i < numCells; ++i)
       {
         const vtkIdType npts = *threadCells++;
         this->Cells->InsertNextCell(static_cast<int>(npts));
-        for (auto j = 0; j < npts; ++j)
+        for (vtkIdType j = 0; j < npts; ++j)
         {
           this->Cells->InsertCellPoint(ptMap[*threadCells++]);
         }

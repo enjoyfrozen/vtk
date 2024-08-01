@@ -184,7 +184,7 @@ void vtkExplicitStructuredGrid::GetPointCells(vtkIdType ptId, vtkIdList* cellIds
   }
 
   cellIds->SetNumberOfIds(numCells);
-  for (auto i = 0; i < numCells; i++)
+  for (vtkIdType i = 0; i < numCells; i++)
   {
     cellIds->SetId(i, cells[i]);
   }

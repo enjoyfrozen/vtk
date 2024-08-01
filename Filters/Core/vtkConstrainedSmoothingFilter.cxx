@@ -65,7 +65,7 @@ struct BuildStencil
     {
       vtkIdType numEdges = links->GetNumberOfCells(ptId);
       vtkIdType* edges = links->GetCells(ptId);
-      for (auto i = 0; i < numEdges; ++i)
+      for (vtkIdType i = 0; i < numEdges; ++i)
       {
         this->Lines->GetCellAtId(edges[i], npts, pts, idList);
         *c++ = (pts[0] != ptId ? pts[0] : pts[1]);
@@ -226,7 +226,7 @@ struct SmoothPoints
 
       // We have a valid stencil, average stencil contributions.
       double xAve[3] = { 0, 0, 0 };
-      for (auto i = 0; i < npts; ++i)
+      for (vtkIdType i = 0; i < npts; ++i)
       {
         const auto xTmp = tmpPts[pts[i]];
         xAve[0] += xTmp[0];
