@@ -32,8 +32,6 @@ class TestCellGridCellCenters(Testing.vtkTest):
 
         rdr = io.vtkCellGridReader()
         rdr.SetFileName(os.path.join(Testing.VTK_DATA_ROOT, 'Data', 'fandisk.dg'))
-        ctr = fc.vtkCellGridCellCenters()
-        ctr.SetInputConnection(rdr.GetOutputPort())
 
         srf = fc.vtkCellGridComputeSides()
         srf.SetInputConnection(rdr.GetOutputPort())
@@ -42,6 +40,12 @@ class TestCellGridCellCenters(Testing.vtkTest):
         # sid.OmitSidesForRenderableInputsOff()
         sid.SetInputConnection(srf.GetOutputPort())
         sid.Update()
+
+        ctr = fc.vtkCellGridCellCenters()
+        ctr.SetInputConnection(rdr.GetOutputPort())
+
+        pdc = fc.vtkCellGridToUnstructuredGrid()
+        pdc.SetInputConnection(ctr.GetOutputPort())
 
         shapeMapper = vtkCellGridMapper()
         shapeMapper.SetInputConnection(sid.GetOutputPort())
@@ -56,6 +60,7 @@ class TestCellGridCellCenters(Testing.vtkTest):
         shapeActor.SetProperty(sppty)
 
         ctr.Update()
+        pdc.Update()
         centerMapper = vtkCellGridMapper()
         centerMapper.SetInputConnection(ctr.GetOutputPort())
         centerMapper.ScalarVisibilityOff()
@@ -97,6 +102,18 @@ class TestCellGridCellCenters(Testing.vtkTest):
         cam.SetPosition(2.21346, 2.24257, -3.66879)
         cam.SetFocalPoint(0.146239, 0.394899, 0.0458881)
         cam.SetDistance(4.63531)
+
+        if '-I' in sys.argv:
+            wri = io.vtkCellGridWriter()
+            wri.SetFileName(os.path.join(Testing.VTK_TEMP_DIR, 'cell-grid-cell-centers.dg'))
+            wri.SetInputConnection(ctr.GetOutputPort())
+            wri.Write()
+
+            wru = ix.vtkXMLUnstructuredGridWriter()
+            wru.SetFileName(os.path.join(Testing.VTK_TEMP_DIR, 'cell-grid-cell-centers.vtu'))
+            wru.SetDataModeToAscii()
+            wru.SetInputConnection(pdc.GetOutputPort())
+            wru.Write()
 
         rwi.Initialize()
         rw.Render()
