@@ -16,6 +16,15 @@
 
 #include <cstdlib>
 
+bool TestCubeShell(const std::string& dataRoot)
+{
+  vtkNew<vtkRadiossAnimReader> reader;
+  reader->SetFileName(dataRoot + "/Data/Radioss/cubeshellA042");
+  reader->Update();
+  auto output = reader->GetOutput();
+  return output != nullptr;
+}
+
 int TestRadiossAnimReader(int argc, char* argv[])
 {
   vtkNew<vtkTesting> testHelper;
@@ -27,16 +36,11 @@ int TestRadiossAnimReader(int argc, char* argv[])
   }
 
   std::string dataRoot = testHelper->GetDataRoot();
-  /*  if (!TestExampleFile(dataRoot))
-    {
-      return EXIT_FAILURE;
-    }*/
-
-  std::string tempDirectory = testHelper->GetTempDirectory();
-  /*  if (!TestEmptyFile(tempDirectory))
-    {
-      return EXIT_FAILURE;
-    }*/
+  // std::string tempDirectory = testHelper->GetTempDirectory();
+  if (!TestCubeShell(dataRoot))
+  {
+    return EXIT_FAILURE;
+  }
 
   return EXIT_SUCCESS;
 }

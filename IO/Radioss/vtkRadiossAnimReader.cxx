@@ -2,13 +2,13 @@
 // SPDX-License-Identifier: BSD-3-Clause
 #include "vtkRadiossAnimReader.h"
 
+#include "RadiossAnim.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
 #include "vtkObjectFactory.h"
 #include "vtkPartitionedDataSetCollection.h"
 
 #include <vtksys/SystemTools.hxx>
-
 
 VTK_ABI_NAMESPACE_BEGIN
 
@@ -40,6 +40,8 @@ int vtkRadiossAnimReader::RequestInformation(vtkInformation* vtkNotUsed(request)
     vtkErrorMacro("RequestInformation called for RadiossAnimReader without file name");
     return 0;
   }
+
+  RadiossAnim radiossAnim(this->FileName);
 
   return 1;
 }
