@@ -6,11 +6,12 @@
 #include "vtkIORadiossModule.h" // For export macro
 #include "vtkPartitionedDataSetCollectionAlgorithm.h"
 
+#include <memory>
 #include <string> // For std::string
 
 VTK_ABI_NAMESPACE_BEGIN
 
-class vtkResourceStream;
+class RadiossAnim;
 /**
  * @class vtkRadiossAnimReader
  *
@@ -44,6 +45,7 @@ private:
   void operator=(const vtkRadiossAnimReader&) = delete;
 
   std::string FileName;
+  std::unique_ptr<class RadiossAnim> RadiossAnim;
 };
 
 VTK_ABI_NAMESPACE_END

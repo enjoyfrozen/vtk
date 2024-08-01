@@ -41,7 +41,16 @@ int vtkRadiossAnimReader::RequestInformation(vtkInformation* vtkNotUsed(request)
     return 0;
   }
 
-  RadiossAnim radiossAnim(this->FileName);
+  try
+  {
+    this->RadiossAnim = std::unique_ptr<class RadiossAnim>(new class RadiossAnim(this->FileName));
+  }
+  catch (const std::runtime_error& exception)
+  {
+    vtkErrorMacro("Exception raised while reading the file: "
+      << this->FileName << "\nException message: " << exception.what());
+    return 0;
+  }
 
   return 1;
 }

@@ -18,7 +18,12 @@ public:
 private:
   void ReadFile(const std::string& animFilePath);
   void ReadAndCheckFileFormat(RadiossAnimFile& file);
-  void Read2DGeometry(RadiossAnimFile& file);
+  void Read2DGeometry(RadiossAnimFile& file, bool isMassSaved, bool isNodeNumberingElementSaved,
+    bool isHierarchySaved);
+  void Read3DGeometry(RadiossAnimFile& file, bool isMassSaved, bool isNodeNumberingElementSaved,
+    bool isHierarchySaved);
+  void Read1DGeometry(RadiossAnimFile& file, bool isMassSaved, bool isNodeNumberingElementSaved,
+    bool isHierarchySaved);
 };
 
 #endif // RADIOSSANIM_H
