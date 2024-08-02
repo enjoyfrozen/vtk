@@ -15,6 +15,11 @@ RadiossAnim::RadiossAnim(const std::string& animFilePath)
 
 RadiossAnim::~RadiossAnim() {}
 
+float RadiossAnim::GetTime() const
+{
+  return this->Time;
+}
+
 const RadiossAnim::Nodes& RadiossAnim::GetNodes() const
 {
   return this->TheNodes;
@@ -27,7 +32,7 @@ void RadiossAnim::ReadFile(const std::string& animFilePath)
   this->ReadAndCheckFileFormat(file);
 
   // Run header.
-  auto time = file.ReadOne<float>();
+  this->Time = file.ReadOne<float>();
   auto timeDescription = file.ReadString(81);
   auto animationDescription = file.ReadString(81);
   auto runDescription = file.ReadString(81);
@@ -75,7 +80,7 @@ void RadiossAnim::ReadAndCheckFileFormat(RadiossAnimFile& file)
 void RadiossAnim::Read2DGeometry(
   RadiossAnimFile& file, bool isMassSaved, bool isNodeNumberingElementSaved, bool isHierarchySaved)
 {
-  this->TheNodes.Count = file.ReadOne<int>();
+  auto numberOfNodes = file.ReadOne<int>();
   auto numberOfQuads = file.ReadOne<int>();
   auto numberOfQuadParts = file.ReadOne<int>();
   auto numberOfNodalScalarArrays = file.ReadOne<int>();
@@ -85,46 +90,38 @@ void RadiossAnim::Read2DGeometry(
   auto numberOfSkews = file.ReadOne<int>();
 
   auto skews = file.ReadFloatVectorFromShorts(numberOfSkews * 6);
-  this->TheNodes.Coordinates = file.ReadVector<float>(this->TheNodes.Count * 3);
+  auto nodeCoordinates = file.ReadVector<float>(numberOfNodes * 3);
   auto quadConnectivity = file.ReadVector<int>(numberOfQuads * 4);
   auto quadErosionArray = file.ReadVector<char>(numberOfQuads);
   auto quadPartLastIndices = file.ReadVector<int>(numberOfQuadParts);
   auto quadPartNames = file.ReadStringVector(numberOfQuadParts, 50);
-
-  // Node Norm array.
-  this->TheNodes.VectorArrays.emplace_back();
-  auto& nodeNormArray = this->TheNodes.VectorArrays.back();
-  nodeNormArray.name = "Norm";
-  nodeNormArray.values = file.ReadFloatVectorFromShorts(this->TheNodes.Count * 3);
+  auto nodeNorms = file.ReadFloatVectorFromShorts(numberOfNodes * 3);
 
   // Arrays
   auto nodeScalarArrayNames = file.ReadStringVector(numberOfNodalScalarArrays, 81);
-  for (auto& name : nodeScalarArrayNames)
-  {
-    this->TheNodes.ScalarFloatArrays.emplace_back(FloatArray{ name, {} });
-  }
   auto quadScalarArrayNames = file.ReadStringVector(numberOfQuadScalarArrays, 81);
+  std::vector<std::vector<float>> nodeScalarArrays;
   for (size_t arrayIndex = 0; arrayIndex < numberOfNodalScalarArrays; ++arrayIndex)
   {
-    this->TheNodes.ScalarFloatArrays[arrayIndex].values =
-      file.ReadVector<float>(this->TheNodes.Count);
+    nodeScalarArrays.push_back(file.ReadVector<float>(numberOfNodes));
   }
-  auto quadScalarArrays = file.ReadVector<float>(numberOfQuadScalarArrays * numberOfQuads);
+  std::vector<std::vector<float>> quadScalarArrays;
+  for (size_t arrayIndex = 0; arrayIndex < numberOfQuadScalarArrays; ++arrayIndex)
+  {
+    quadScalarArrays.push_back(file.ReadVector<float>(numberOfQuads));
+  }
   auto nodeVectorArrayNames = file.ReadStringVector(numberOfNodalVectorArrays, 81);
-  for (auto& name : nodeVectorArrayNames)
+  std::vector<std::vector<float>> nodeVectorArrays;
+  for (size_t arrayIndex = 0; arrayIndex < numberOfNodalVectorArrays; ++arrayIndex)
   {
-    this->TheNodes.VectorArrays.emplace_back(FloatArray{ name, {} });
-  }
-  //  auto nodeVectorArrays = file.ReadVector<float>(3 * this->Nodes.Count *
-  //  numberOfNodalVectorArrays);
-  for (size_t arrayIndex = 1; arrayIndex < numberOfNodalVectorArrays + 1;
-       ++arrayIndex) // +1 because we already put the Norm array.
-  {
-    this->TheNodes.VectorArrays[arrayIndex].values =
-      file.ReadVector<float>(3 * this->TheNodes.Count);
+    nodeVectorArrays.push_back(file.ReadVector<float>(3 * numberOfNodes));
   }
   auto quadTensorArrayNames = file.ReadStringVector(numberOfQuadTensorArrays, 81);
-  auto quadTensorArrays = file.ReadVector<float>(numberOfQuads * 3 * numberOfQuadTensorArrays);
+  std::vector<std::vector<float>> quadTensorArrays;
+  for (size_t arrayIndex = 0; arrayIndex < numberOfQuadTensorArrays; ++arrayIndex)
+  {
+    quadTensorArrays.push_back(file.ReadVector<float>(numberOfQuads * 3));
+  }
 
   // Mass
   std::vector<float> quadMassArray;
@@ -132,9 +129,7 @@ void RadiossAnim::Read2DGeometry(
   if (isMassSaved)
   {
     quadMassArray = file.ReadVector<float>(numberOfQuads);
-
-    this->TheNodes.ScalarFloatArrays.emplace_back(FloatArray{ "Mass", {} });
-    this->TheNodes.ScalarFloatArrays.back().values = file.ReadVector<float>(this->TheNodes.Count);
+    nodeMassArray = file.ReadVector<float>(numberOfNodes);
   }
 
   // Internal element & node numbering
@@ -142,8 +137,7 @@ void RadiossAnim::Read2DGeometry(
   std::vector<int> quadRadiossIDs;
   if (isNodeNumberingElementSaved)
   {
-    this->TheNodes.ScalarIntArrays.emplace_back(IntArray{ "NODE_ID", {} });
-    this->TheNodes.ScalarIntArrays.back().values = file.ReadVector<int>(this->TheNodes.Count);
+    nodeRadiossIDs = file.ReadVector<int>(numberOfNodes);
     quadRadiossIDs = file.ReadVector<int>(numberOfQuads);
   }
 
@@ -154,6 +148,29 @@ void RadiossAnim::Read2DGeometry(
     auto partMaterials = file.ReadVector<int>(numberOfQuadParts);
     auto partProperties = file.ReadVector<int>(numberOfQuadParts);
   }
+
+  // -------------------
+  // Move the data to the Nodes struct.
+  this->TheNodes.Count = numberOfNodes;
+  this->TheNodes.Coordinates = std::move(nodeCoordinates);
+  // Norm
+  this->TheNodes.VectorArrays.push_back({ "Norm", std::move(nodeNorms) });
+  // Scalar arrays
+  for (size_t arrayIndex = 0; arrayIndex < numberOfNodalScalarArrays; ++arrayIndex)
+  {
+    this->TheNodes.ScalarFloatArrays.push_back(
+      { std::move(nodeScalarArrayNames[arrayIndex]), std::move(nodeScalarArrays[arrayIndex]) });
+  }
+  // Vector arrays
+  for (size_t arrayIndex = 0; arrayIndex < numberOfNodalVectorArrays; ++arrayIndex)
+  {
+    this->TheNodes.VectorArrays.push_back(
+      { std::move(nodeVectorArrayNames[arrayIndex]), std::move(nodeVectorArrays[arrayIndex]) });
+  }
+  // Mass
+  this->TheNodes.ScalarFloatArrays.push_back({ "Mass", std::move(nodeMassArray) });
+  // Node numbering
+  this->TheNodes.ScalarIntArrays.push_back({ "NODE_ID", std::move(nodeRadiossIDs) });
 }
 
 void RadiossAnim::Read3DGeometry(

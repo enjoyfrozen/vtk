@@ -37,6 +37,7 @@ public:
     std::vector<FloatArray> VectorArrays;
   };
 
+  float GetTime() const;
   const Nodes& GetNodes() const;
 
 private:
@@ -49,7 +50,8 @@ private:
   void Read1DGeometry(RadiossAnimFile& file, bool isMassSaved, bool isNodeNumberingElementSaved,
     bool isHierarchySaved);
 
-  Nodes TheNodes;
+  float Time = 0.f;
+  Nodes TheNodes = { 0, {}, {}, {}, {} };
 };
 
 #endif // RADIOSSANIM_H
