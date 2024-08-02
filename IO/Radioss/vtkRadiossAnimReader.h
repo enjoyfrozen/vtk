@@ -55,6 +55,7 @@ private:
   void ExtractPartPointData(const RadiossAnimDataModel::Quads& radiossQuads,
     const RadiossAnimDataModel::Nodes& radiossNodes, vtkIntArray* radiossNodeIDs,
     std::vector<vtkSmartPointer<vtkAbstractArray>>& pointDataArrays);
+  std::string ExtractPartName(const std::string& modelPartName);
 
   std::string FileName;
   std::unique_ptr<class RadiossAnimDataModel> RadiossAnimDataModel;

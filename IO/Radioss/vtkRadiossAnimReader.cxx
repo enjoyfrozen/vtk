@@ -3,6 +3,7 @@
 #include "vtkRadiossAnimReader.h"
 
 #include "RadiossAnimDataModel.h"
+#include "vtkDataAssembly.h"
 #include "vtkFloatArray.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
@@ -80,6 +81,9 @@ int vtkRadiossAnimReader::RequestData(vtkInformation* vtkNotUsed(request),
   auto& radiossNodes = this->RadiossAnimDataModel->GetNodes();
   auto& radiossQuads = this->RadiossAnimDataModel->GetQuads();
 
+  vtkNew<vtkDataAssembly> assembly;
+  assembly->Initialize();
+  output->SetDataAssembly(assembly);
   output->SetNumberOfPartitionedDataSets(radiossQuads.Parts.size());
   for (size_t partIndex = 0; partIndex < radiossQuads.Parts.size(); ++partIndex)
   {
@@ -165,6 +169,9 @@ int vtkRadiossAnimReader::RequestData(vtkInformation* vtkNotUsed(request),
     partitionedDataSet->SetNumberOfPartitions(1);
     partitionedDataSet->SetPartition(0, unstructuredGrid);
     output->SetPartitionedDataSet(partIndex, partitionedDataSet);
+    std::string partName = ExtractPartName(part.Name);
+    auto nodeID = assembly->AddNode(partName.c_str());
+    assembly->AddDataSetIndex(nodeID, partIndex);
   }
 
   return 1;
@@ -198,6 +205,16 @@ void vtkRadiossAnimReader::ExtractPartPointData(const RadiossAnimDataModel::Quad
   std::vector<vtkSmartPointer<vtkAbstractArray>>& pointDataArrays)
 {
   // TODO.
+}
+
+std::string vtkRadiossAnimReader::ExtractPartName(const std::string& modelPartName)
+{
+  auto partName = modelPartName.substr(10);
+  if (partName[0] == ' ')
+  {
+    partName = partName.substr(1);
+  }
+  return partName;
 }
 
 VTK_ABI_NAMESPACE_END
