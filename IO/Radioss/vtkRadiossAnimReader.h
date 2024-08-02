@@ -3,15 +3,19 @@
 #ifndef vtkRadiossAnimReader_h
 #define vtkRadiossAnimReader_h
 
+#include "RadiossAnimDataModel.h"
 #include "vtkIORadiossModule.h" // For export macro
 #include "vtkPartitionedDataSetCollectionAlgorithm.h"
 
 #include <memory>
 #include <string> // For std::string
+#include <unordered_map>
 
 VTK_ABI_NAMESPACE_BEGIN
 
-class RadiossAnimDataModel;
+class vtkPoints;
+class vtkIntArray;
+
 /**
  * @class vtkRadiossAnimReader
  *
@@ -43,6 +47,14 @@ protected:
 private:
   vtkRadiossAnimReader(const vtkRadiossAnimReader&) = delete;
   void operator=(const vtkRadiossAnimReader&) = delete;
+
+  void ExtractPartPoints(int minCellIndex, int maxCellIndex,
+    const std::vector<int>& radiossCellConnectivity,
+    const std::vector<float>& radiossPointCoordinates, int numberOfPointsPerCell, vtkPoints* points,
+    vtkIntArray* radiossNodeIDs, std::unordered_map<int, vtkIdType>& radiossPointIdToVTKPointIndex);
+  void ExtractPartPointData(const RadiossAnimDataModel::Quads& radiossQuads,
+    const RadiossAnimDataModel::Nodes& radiossNodes, vtkIntArray* radiossNodeIDs,
+    std::vector<vtkSmartPointer<vtkAbstractArray>>& pointDataArrays);
 
   std::string FileName;
   std::unique_ptr<class RadiossAnimDataModel> RadiossAnimDataModel;
