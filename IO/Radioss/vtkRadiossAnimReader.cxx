@@ -176,7 +176,8 @@ void vtkRadiossAnimReader::ExtractPartPoints(int minCellIndex, int maxCellIndex,
   vtkIntArray* radiossNodeIDs, std::unordered_map<int, vtkIdType>& radiossPointIdToVTKPointIndex)
 {
   std::set<int> partPointIDs;
-  for (int cellIndex = minCellIndex; cellIndex <= maxCellIndex * numberOfPointsPerCell; ++cellIndex)
+  for (int cellIndex = minCellIndex; cellIndex < (maxCellIndex + 1) * numberOfPointsPerCell;
+       ++cellIndex)
   {
     partPointIDs.insert(radiossCellConnectivity[cellIndex]);
   }
