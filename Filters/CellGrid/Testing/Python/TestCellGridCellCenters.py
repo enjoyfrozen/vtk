@@ -27,22 +27,24 @@ vtkRenderingCellGrid.RegisterCellsAndResponders()
 fc.vtkFiltersCellGrid.RegisterCellsAndResponders()
 
 class TestCellGridCellCenters(Testing.vtkTest):
-    def testCellCenters(self):
+
+    def runCase(self, filename, baseline, options):
         bds = [0, 0, 0, 0, 0, 0]
 
         rdr = io.vtkCellGridReader()
-        rdr.SetFileName(os.path.join(Testing.VTK_DATA_ROOT, 'Data', 'fandisk.dg'))
+        rdr.SetFileName(os.path.join(Testing.VTK_DATA_ROOT, 'Data', filename))
 
         srf = fc.vtkCellGridComputeSides()
         srf.SetInputConnection(rdr.GetOutputPort())
         sid = fc.vtkCellGridComputeSides()
         sid.SetOutputDimensionControl(dm.vtkCellGridSidesQuery.EdgesOfInputs)
-        # sid.OmitSidesForRenderableInputsOff()
+        sid.OmitSidesForRenderableInputsOff()
         sid.SetInputConnection(srf.GetOutputPort())
         sid.Update()
 
         ctr = fc.vtkCellGridCellCenters()
-        ctr.SetInputConnection(rdr.GetOutputPort())
+        cport = rdr.GetOutputPort() if 'test-sides' not in options else sid.GetOutputPort()
+        ctr.SetInputConnection(cport)
 
         pdc = fc.vtkCellGridToUnstructuredGrid()
         pdc.SetInputConnection(ctr.GetOutputPort())
@@ -98,10 +100,10 @@ class TestCellGridCellCenters(Testing.vtkTest):
         # dc = ((bds[0]+bds[1])/2, (bds[2]+bds[3])/2, (bds[4] + bds[5])/2)
         # cam.SetFocalPoint(dc[0], dc[1], dc[2] + 1)
         # cam.SetPosition(dc[0]+1, dc[1]+1, dc[2]-1.)
-        cam.SetViewUp(0., 0., -1.)
-        cam.SetPosition(2.21346, 2.24257, -3.66879)
-        cam.SetFocalPoint(0.146239, 0.394899, 0.0458881)
-        cam.SetDistance(4.63531)
+        cam.SetViewUp(*options['camera-vup'])
+        cam.SetPosition(*options['camera-eye'])
+        cam.SetFocalPoint(*options['camera-aim'])
+        cam.SetDistance(options['camera-dst'])
 
         if '-I' in sys.argv:
             wri = io.vtkCellGridWriter()
@@ -117,11 +119,32 @@ class TestCellGridCellCenters(Testing.vtkTest):
 
         rwi.Initialize()
         rw.Render()
+        print('baseline', baseline, Testing.getAbsImagePath(baseline))
         if '-I' in sys.argv:
             rwi.Start()
             print('camera', cam)
-        baseline = 'TestCellGridCellCenters.png'
         Testing.compareImage(rw, Testing.getAbsImagePath(baseline), threshold=25)
+
+    def testSideCenters(self):
+        """Test that the cell-center filter properly computes centers
+        of sides, not just the centers of cells."""
+        options = {
+            'test-sides': True,
+            'camera-eye': (5, 2.5, 2.25),
+            'camera-aim': (2, 1, 1),
+            'camera-vup': (0, 1, 0),
+            'camera-dst': 7 }
+        self.runCase('dgHexahedra.dg', 'TestCellGridCellCenters-EdgeSides.png', options)
+
+    def testCellCenters(self):
+        """Test that the cell-center filter properly computes centers
+        of sides, not just the centers of cells."""
+        options = {
+            'camera-eye': (2.21346, 2.24257, -3.66879),
+            'camera-aim': (0.146239, 0.394899, 0.0458881),
+            'camera-vup': (0, 0, -1),
+            'camera-dst': 4.63531 }
+        self.runCase('fandisk.dg', 'TestCellGridCellCenters-Cells.png', options)
 
 if __name__ == "__main__":
     Testing.main([(TestCellGridCellCenters, 'test')])
