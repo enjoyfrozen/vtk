@@ -16,6 +16,7 @@
 #include "vtkUnstructuredGrid.h"
 
 #include <set>
+#include <unordered_set>
 #include <vtksys/SystemTools.hxx>
 
 VTK_ABI_NAMESPACE_BEGIN
@@ -105,7 +106,7 @@ int vtkRadiossAnimReader::RequestData(vtkInformation* vtkNotUsed(request),
     unstructuredGrid->Allocate(numberOfCells);
     for (int cellIndex = part.FirstCellIndex; cellIndex <= part.LastCellIndex; ++cellIndex)
     {
-      std::set<int> pointIDs;
+      std::unordered_set<int> pointIDs;
       for (int i = 0; i < numberOfPointsPerCell; i++)
       {
         pointIDs.insert(radiossQuads.Connectivity[(numberOfPointsPerCell * cellIndex) + i]);
