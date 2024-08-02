@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 #include "vtkRadiossAnimReader.h"
 
-#include "RadiossAnim.h"
+#include "RadiossAnimDataModel.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
 #include "vtkObjectFactory.h"
@@ -43,7 +43,8 @@ int vtkRadiossAnimReader::RequestInformation(vtkInformation* vtkNotUsed(request)
 
   try
   {
-    this->RadiossAnim = std::unique_ptr<class RadiossAnim>(new class RadiossAnim(this->FileName));
+    this->RadiossAnimDataModel =
+      std::unique_ptr<class RadiossAnimDataModel>(new class RadiossAnimDataModel(this->FileName));
   }
   catch (const std::runtime_error& exception)
   {
@@ -68,7 +69,9 @@ int vtkRadiossAnimReader::RequestData(vtkInformation* vtkNotUsed(request),
     return 0;
   }
 
-  auto& radiossNodes = this->RadiossAnim->GetNodes();
+  float time = this->RadiossAnimDataModel->GetTime();
+  auto& radiossNodes = this->RadiossAnimDataModel->GetNodes();
+  auto& radiossQuads = this->RadiossAnimDataModel->GetQuads();
 
   return 1;
 }

@@ -11,7 +11,7 @@
 
 VTK_ABI_NAMESPACE_BEGIN
 
-class RadiossAnim;
+class RadiossAnimDataModel;
 /**
  * @class vtkRadiossAnimReader
  *
@@ -45,7 +45,7 @@ private:
   void operator=(const vtkRadiossAnimReader&) = delete;
 
   std::string FileName;
-  std::unique_ptr<class RadiossAnim> RadiossAnim;
+  std::unique_ptr<class RadiossAnimDataModel> RadiossAnimDataModel;
 };
 
 VTK_ABI_NAMESPACE_END

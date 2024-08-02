@@ -1,6 +1,6 @@
 set(classes
   vtkRadiossAnimReader
-  RadiossAnim
+  RadiossAnimDataModel
   RadiossAnimFile)
 
 vtk_module_add_module(VTK::IORadioss

@@ -1,4 +1,4 @@
-#include "RadiossAnim.h"
+#include "RadiossAnimDataModel.h"
 
 #include "RadiossAnimFile.h"
 
@@ -8,24 +8,29 @@
 // The fileFormat identifier "FASTMAGI10".
 const int supportedFileFormat = 0x542c;
 
-RadiossAnim::RadiossAnim(const std::string& animFilePath)
+RadiossAnimDataModel::RadiossAnimDataModel(const std::string& animFilePath)
 {
   ReadFile(animFilePath);
 }
 
-RadiossAnim::~RadiossAnim() {}
+RadiossAnimDataModel::~RadiossAnimDataModel() {}
 
-float RadiossAnim::GetTime() const
+float RadiossAnimDataModel::GetTime() const
 {
   return this->Time;
 }
 
-const RadiossAnim::Nodes& RadiossAnim::GetNodes() const
+const RadiossAnimDataModel::Nodes& RadiossAnimDataModel::GetNodes() const
 {
   return this->TheNodes;
 }
 
-void RadiossAnim::ReadFile(const std::string& animFilePath)
+const RadiossAnimDataModel::Quads& RadiossAnimDataModel::GetQuads() const
+{
+  return this->TheQuads;
+}
+
+void RadiossAnimDataModel::ReadFile(const std::string& animFilePath)
 {
   RadiossAnimFile file(animFilePath);
 
@@ -49,16 +54,16 @@ void RadiossAnim::ReadFile(const std::string& animFilePath)
   auto unused1 = file.ReadIntAsBool();
   auto unused2 = file.ReadIntAsBool();
 
-  Read2DGeometry(file, isMassSaved, isNodeNumberingElementSaved, isHierarchySaved);
+  ReadNodesAndQuads(file, isMassSaved, isNodeNumberingElementSaved, isHierarchySaved);
 
   if (is3DGeometrySaved)
   {
-    Read3DGeometry(file, isMassSaved, isNodeNumberingElementSaved, isHierarchySaved);
+    ReadHexahedra(file, isMassSaved, isNodeNumberingElementSaved, isHierarchySaved);
   }
 
   if (is1DGeometrySaved)
   {
-    Read1DGeometry(file, isMassSaved, isNodeNumberingElementSaved, isHierarchySaved);
+    ReadLines(file, isMassSaved, isNodeNumberingElementSaved, isHierarchySaved);
   }
 
   // TODO: Read hierarchy
@@ -66,7 +71,7 @@ void RadiossAnim::ReadFile(const std::string& animFilePath)
   // TODO: Read SPH
 }
 
-void RadiossAnim::ReadAndCheckFileFormat(RadiossAnimFile& file)
+void RadiossAnimDataModel::ReadAndCheckFileFormat(RadiossAnimFile& file)
 {
   auto fileFormat = file.ReadOne<int>();
   if (fileFormat != supportedFileFormat)
@@ -77,7 +82,7 @@ void RadiossAnim::ReadAndCheckFileFormat(RadiossAnimFile& file)
   }
 }
 
-void RadiossAnim::Read2DGeometry(
+void RadiossAnimDataModel::ReadNodesAndQuads(
   RadiossAnimFile& file, bool isMassSaved, bool isNodeNumberingElementSaved, bool isHierarchySaved)
 {
   auto numberOfNodes = file.ReadOne<int>();
@@ -171,9 +176,42 @@ void RadiossAnim::Read2DGeometry(
   this->TheNodes.ScalarFloatArrays.push_back({ "Mass", std::move(nodeMassArray) });
   // Node numbering
   this->TheNodes.ScalarIntArrays.push_back({ "NODE_ID", std::move(nodeRadiossIDs) });
+
+  // ---------------------
+  // Move the data to the Quad struct.
+  this->TheQuads.Count = numberOfQuads;
+  this->TheQuads.Connectivity = std::move(quadConnectivity);
+  for (size_t partIndex = 0; partIndex < numberOfQuadParts; ++partIndex)
+  {
+    int firstCellIndex = 0;
+    if (partIndex > 0)
+    {
+      firstCellIndex = quadPartLastIndices[partIndex - 1];
+    }
+    this->TheQuads.Parts.push_back(
+      { std::move(quadPartNames[partIndex]), firstCellIndex, quadPartLastIndices[partIndex] - 1 });
+  }
+  // Erosion
+  this->TheQuads.ScalarCharArrays.push_back({ "Erosion", std::move(quadErosionArray) });
+  // Scalar arrays
+  for (size_t arrayIndex = 0; arrayIndex < numberOfQuadScalarArrays; ++arrayIndex)
+  {
+    this->TheQuads.ScalarFloatArrays.push_back(
+      { std::move(quadScalarArrayNames[arrayIndex]), std::move(quadScalarArrays[arrayIndex]) });
+  }
+  // Vector arrays
+  for (size_t arrayIndex = 0; arrayIndex < numberOfQuadTensorArrays; ++arrayIndex)
+  {
+    this->TheQuads.VectorArrays.push_back(
+      { std::move(quadTensorArrayNames[arrayIndex]), std::move(quadTensorArrays[arrayIndex]) });
+  }
+  // Mass
+  this->TheQuads.ScalarFloatArrays.push_back({ "Mass", std::move(quadMassArray) });
+  // Node numbering
+  this->TheQuads.ScalarIntArrays.push_back({ "ELEMENT_ID", std::move(quadRadiossIDs) });
 }
 
-void RadiossAnim::Read3DGeometry(
+void RadiossAnimDataModel::ReadHexahedra(
   RadiossAnimFile& file, bool isMassSaved, bool isNodeNumberingElementSaved, bool isHierarchySaved)
 {
   auto numberOfHexahedra = file.ReadOne<int>();
@@ -215,7 +253,7 @@ void RadiossAnim::Read3DGeometry(
   }
 }
 
-void RadiossAnim::Read1DGeometry(
+void RadiossAnimDataModel::ReadLines(
   RadiossAnimFile& file, bool isMassSaved, bool isNodeNumberingElementSaved, bool isHierarchySaved)
 {
   auto numberOfLines = file.ReadOne<int>();
