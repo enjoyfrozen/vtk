@@ -214,7 +214,17 @@ std::string vtkRadiossAnimReader::ExtractPartName(const std::string& modelPartNa
   {
     partName = partName.substr(1);
   }
-  return partName;
+
+  // Sanitize for data assembly node names.
+  if (vtkDataAssembly::IsNodeNameValid(partName.c_str()))
+  {
+    return partName;
+  }
+
+  std::string newName = vtkDataAssembly::MakeValidNodeName(partName.c_str());
+  vtkWarningMacro(
+    "Name " + partName + " is not a valid data assembly node name.\nNew name : " << newName);
+  return newName;
 }
 
 VTK_ABI_NAMESPACE_END
