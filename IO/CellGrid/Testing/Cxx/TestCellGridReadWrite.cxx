@@ -161,6 +161,7 @@ int TestCellGridReadWrite(int argc, char* argv[])
         { "scalar2",   "vtkDGHex",  invalid,      "HGRAD", "C", 1 },
         { "scalar3",   "vtkDGHex", "point-data",  "HGRAD", "C", 1 },
         { "curl1",     "vtkDGHex",  invalid,      "HCURL", "I", 1 },
+        { "div1",      "vtkDGHex",  invalid,      "HDIV",  "I", 1 },
         { "quadratic", "vtkDGHex",  invalid,      "HGRAD", "I", 2 } }))
   {
     return EXIT_FAILURE;
