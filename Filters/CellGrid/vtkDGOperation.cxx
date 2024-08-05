@@ -106,31 +106,6 @@ template<SharingType DOFSharing, SideType SourceType, ShapeModifier Modifier, Sh
 class OpEval : public vtkDGOperation::EvaluationState
 {
 public:
-#if 0
-  vtkDGOperatorEntry OpEntry;
-  vtkDataArray* CellConnectivity;
-  vtkDataArray* CellValues;
-  vtkDataArray* SideConnectivity;
-  vtkTypeUInt64 Offset;
-  mutable std::array<vtkTypeUInt64, 2> SideTuple;
-  mutable std::array<double, 3> RST{{ 0, 0, 0 }};
-  mutable std::vector<vtkTypeUInt64> ConnTuple;
-  mutable std::vector<double> ValueTuple;
-  mutable std::vector<double> BasisTuple;
-  mutable vtkTypeUInt64 LastCellId{ ~0ULL };
-  mutable int NumberOfValuesPerFunction{ 0 };
-
-  vtkDGOperatorEntry ShapeGradientEntry;
-  vtkDataArray* ShapeConnectivity;
-  vtkDataArray* ShapeValues;
-  mutable std::vector<vtkTypeUInt64> ShapeConnTuple;
-  mutable std::vector<double> ShapeValueTuple;
-  mutable std::vector<double> ShapeBasisTuple;
-  mutable std::vector<double> Jacobian;
-  mutable int NumberOfShapeValuesPerFunction{ 0 };
-  mutable vtkTypeUInt64 LastShapeCellId{ ~0ULL };
-#endif
-
   OpEval(
     // Attribute arrays/operation
     vtkDGOperatorEntry& op,
@@ -236,7 +211,8 @@ public:
   /// the result in this->Jacobian.
   void ShapeInnerProduct() const
   {
-    int nc = 9; // TODO: Use cell dimension instead (9 for 3-d, 4 for 2-d)?
+    constexpr int nc = 9; // TODO: Use cell dimension instead (9 for 3-d, 4 for 2-d)?
+    assert(nc == this->ShapeGradientEntry.OperatorSize * this->NumberOfShapeValuesPerFunction);
     // Zero out the tuple:
     for (int ii = 0; ii < nc; ++ii)
     {
@@ -297,6 +273,9 @@ public:
     this->ComputeJacobian();
     // Invert Jacobian and multiply result's ii-th tuple by it.
     std::array<double, 9> inverseJacobian;
+    // Transpose for sanity; oddly, ApplyScaledJacobian and ApplyInverseJacobian
+    // cannot both use the same Jacobian matrix.
+    vtkMatrix3x3::Transpose(this->Jacobian.data(), this->Jacobian.data());
     vtkMatrix3x3::Invert(this->Jacobian.data(), inverseJacobian.data());
     std::array<double, 3> vec;
     double* rr = result->GetPointer(0);
@@ -313,15 +292,15 @@ public:
     }
   }
 
-  // Compute the Jacobian scaled by its determinant and multiply the \a ii-th tuple of result by it.
+  // Compute the Jacobian scaled by its determinant; multiply the \a ii-th tuple of result by it.
   //
   // This performs the multiplication in place.
   void ApplyScaledJacobian(vtkTypeUInt64 ii, vtkDoubleArray* result) const
   {
     this->ComputeJacobian();
-    // Compute the Jacobian's determinant and multiply result's ii-th tuple
-    // by both the Jacobian and the scalar determinant.
-    double det = 1.0 / vtkMatrix3x3::Determinant(this->Jacobian.data());
+    // Compute the Jacobian and multiply result's ii-th tuple
+    // by the Jacobian normalized by its determinant.
+    double norm = 1.0 / vtkMatrix3x3::Determinant(this->Jacobian.data());
     std::array<double, 3> vec;
     double* rr = result->GetPointer(0);
     const int nc = result->GetNumberOfComponents();
@@ -334,10 +313,12 @@ public:
     {
       vtkTypeUInt64 mm = nn + 3 * vv;
       vec = {{rr[mm], rr[mm + 1], rr[mm + 2]}};
-      // TODO: Is this J^T * vec? or J*vec? Depends on whether Jacobian is row-major or column-major.
-      rr[mm    ] = det * (this->Jacobian[0] * vec[0] + this->Jacobian[1] * vec[1] + this->Jacobian[2] * vec[2]);
-      rr[mm + 1] = det * (this->Jacobian[3] * vec[0] + this->Jacobian[4] * vec[1] + this->Jacobian[5] * vec[2]);
-      rr[mm + 2] = det * (this->Jacobian[6] * vec[0] + this->Jacobian[7] * vec[1] + this->Jacobian[8] * vec[2]);
+      // TODO: Is this J^T * vec? or J*vec? Depends on row-major vs column-major Jacobian.
+      // clang-format off
+      rr[mm    ] = norm * (this->Jacobian[0] * vec[0] + this->Jacobian[1] * vec[1] + this->Jacobian[2] * vec[2]);
+      rr[mm + 1] = norm * (this->Jacobian[3] * vec[0] + this->Jacobian[4] * vec[1] + this->Jacobian[5] * vec[2]);
+      rr[mm + 2] = norm * (this->Jacobian[6] * vec[0] + this->Jacobian[7] * vec[1] + this->Jacobian[8] * vec[2]);
+      // clang-format on
     }
   }
 
