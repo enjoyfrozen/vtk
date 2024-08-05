@@ -10,6 +10,7 @@
 #include "vtkCellGridRangeQuery.h"
 #include "vtkCellGridSidesQuery.h"
 #include "vtkCellGridToUnstructuredGrid.h"
+#include "vtkCellGridTransform.h"
 #include "vtkDGAttributeInformation.h"
 #include "vtkDGBoundsResponder.h"
 #include "vtkDGCopyResponder.h"
@@ -26,6 +27,7 @@
 #include "vtkDGTet.h"
 #include "vtkDGTranscribeUnstructuredCells.h"
 #include "vtkDGTranscribeCellGridCells.h"
+#include "vtkDGTransformResponder.h"
 #include "vtkDGTri.h"
 #include "vtkDGVert.h"
 #include "vtkDGWdg.h"
@@ -122,6 +124,7 @@ bool vtkFiltersCellGrid::RegisterCellsAndResponders()
     vtkNew<vtkDGSidesResponder> dgSds;
     vtkNew<vtkDGTranscribeUnstructuredCells> dgTru;
     vtkNew<vtkDGTranscribeCellGridCells> dgTrg;
+    vtkNew<vtkDGTransformResponder> dgTfm;
     vtkNew<vtkDGCopyResponder> dgCpy;
 
     // Attribute calculators
@@ -139,6 +142,7 @@ bool vtkFiltersCellGrid::RegisterCellsAndResponders()
     responders->RegisterQueryResponder<vtkDGCell, vtkCellGridSidesQuery>(dgSds.GetPointer());
     responders->RegisterQueryResponder<vtkDGCell, vtkCellGridTranscribeQuery>(dgTru.GetPointer());
     responders->RegisterQueryResponder<vtkDGCell, vtkCellGridToUnstructuredGrid::Query>(dgTrg.GetPointer());
+    responders->RegisterQueryResponder<vtkDGCell, vtkCellGridTransform::Query>(dgTfm.GetPointer());
 
     // Register calculators
     // # Register vtkInterpolateCalculator responders.
