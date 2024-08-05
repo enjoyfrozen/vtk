@@ -46,6 +46,12 @@ class TestCellGridCellCenters(Testing.vtkTest):
         cport = rdr.GetOutputPort() if 'test-sides' not in options else sid.GetOutputPort()
         ctr.SetInputConnection(cport)
 
+        if 'test-sides' in options:
+            sd2 = (rdr >> fc.vtkCellGridComputeSides(
+                output_dimension_control=options['test-sides'],
+                omit_sides_for_renderable_inputs=False)).last
+            ctr.SetInputConnection(sd2.GetOutputPort())
+
         pdc = fc.vtkCellGridToUnstructuredGrid()
         pdc.SetInputConnection(ctr.GetOutputPort())
 
@@ -125,16 +131,27 @@ class TestCellGridCellCenters(Testing.vtkTest):
             print('camera', cam)
         Testing.compareImage(rw, Testing.getAbsImagePath(baseline), threshold=25)
 
-    def testSideCenters(self):
+    def testEdgeCenters(self):
         """Test that the cell-center filter properly computes centers
         of sides, not just the centers of cells."""
         options = {
-            'test-sides': True,
+            'test-sides': dm.vtkCellGridSidesQuery.EdgesOfInputs,
             'camera-eye': (5, 2.5, 2.25),
             'camera-aim': (2, 1, 1),
             'camera-vup': (0, 1, 0),
             'camera-dst': 7 }
         self.runCase('dgHexahedra.dg', 'TestCellGridCellCenters-EdgeSides.png', options)
+
+    def testAllSideCenters(self):
+        """Test that the cell-center filter properly computes centers
+        of sides, not just the centers of cells."""
+        options = {
+            'test-sides': dm.vtkCellGridSidesQuery.AllSides,
+            'camera-eye': (5, 2.5, 2.25),
+            'camera-aim': (2, 1, 1),
+            'camera-vup': (0, 1, 0),
+            'camera-dst': 7 }
+        self.runCase('dgHexahedra.dg', 'TestCellGridCellCenters-AllSides.png', options)
 
     def testCellCenters(self):
         """Test that the cell-center filter properly computes centers
