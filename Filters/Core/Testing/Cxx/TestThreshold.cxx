@@ -9,12 +9,102 @@
 #include "vtkPointData.h"
 #include "vtkRTAnalyticSource.h"
 #include "vtkSmartPointer.h"
+#include "vtkStructuredData.h"
 #include "vtkThreshold.h"
+#include "vtkType.h"
 #include "vtkUnsignedCharArray.h"
 #include "vtkUnstructuredGrid.h"
+#include <vtkAffineArray.h>
+
+#include <cmath>
+#include <limits>
+
+class MockDataArray : public vtkAffineArray<double>
+{
+public:
+  vtkTypeMacro(MockDataArray, vtkAffineArray<double>);
+  static MockDataArray* New();
+
+  void* GetVoidPointer(vtkIdType idx) override
+  {
+    vtkLogF(ERROR, "Accessed Array::GetVoidPointer");
+    return vtkAffineArray<double>::GetVoidPointer(idx);
+  }
+};
+
+vtkStandardNewMacro(MockDataArray);
+
+class MockLargeImageData : public vtkImageData
+{
+public:
+  vtkTypeMacro(MockLargeImageData, vtkImageData);
+  static MockLargeImageData* New();
+
+  /**
+   * @brief Initialize with dimensions large enough for numberOfCells and numberOfPoints > INT_MAX
+   */
+  MockLargeImageData()
+  {
+    vtkIdType numericLimit = std::numeric_limits<int>::max();
+    vtkIdType desiredNumberOfCells = numericLimit + 1;
+    vtkIdType desiredNumberOfPoints = (desiredNumberOfCells * 2) + 1;
+    vtkIdType dim = std::cbrt(desiredNumberOfPoints);
+
+    assert(dim < numericLimit);
+
+    this->SetDimensions(static_cast<int>(dim), static_cast<int>(dim), static_cast<int>(dim));
+
+    assert(this->GetNumberOfCells() > numericLimit);
+    assert(this->GetNumberOfPoints() > numericLimit);
+  }
+
+  /**
+   * @brief Add an implicit Point Scalar array
+   */
+  void GeneratePointScalarData()
+  {
+    vtkNew<MockDataArray> array;
+    array->ConstructBackend(1, 6); // Make random ?
+    array->SetNumberOfComponents(1);
+    array->SetNumberOfTuples(this->GetNumberOfPoints());
+    array->SetName("Points Scalars");
+    this->GetPointData()->SetScalars(array);
+  }
+
+  void GeneratePointData()
+  {
+    vtkNew<MockDataArray> array;
+    array->ConstructBackend(1, 6);   // Make random ?
+    array->SetNumberOfComponents(3); // Parametric ?
+    array->SetNumberOfTuples(this->GetNumberOfPoints());
+    array->SetName("Point Data"); // Parametric ?
+    this->GetPointData()->AddArray(array);
+  }
+
+  void GenerateCellData()
+  {
+    vtkNew<MockDataArray> array;
+    array->ConstructBackend(1, 6);   // Make random ?
+    array->SetNumberOfComponents(3); // Parametric ?
+    array->SetNumberOfTuples(this->GetNumberOfCells());
+    array->SetName("Point Data"); // Parametric ?
+    this->GetCellData()->AddArray(array);
+  }
+};
+
+vtkStandardNewMacro(MockLargeImageData);
 
 int TestThreshold(int, char*[])
 {
+  // Test large imagedata
+  vtkNew<MockLargeImageData> image;
+  image->GeneratePointScalarData();
+
+  vtkNew<vtkThreshold> threshold;
+  threshold->SetInputData(image);
+
+  threshold->Update();
+
   //---------------------------------------------------
   // Test using different thresholding methods
   //---------------------------------------------------
