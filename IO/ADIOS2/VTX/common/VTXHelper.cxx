@@ -284,7 +284,8 @@ std::string SetToCSV(const std::set<std::string>& input) noexcept
 
 std::size_t TotalElements(const std::vector<std::size_t>& dimensions) noexcept
 {
-  return std::accumulate(dimensions.begin(), dimensions.end(), 1, std::multiplies<std::size_t>());
+  return std::accumulate(dimensions.begin(), dimensions.end(), static_cast<std::size_t>(1),
+    std::multiplies<std::size_t>());
 }
 
 adios2::Box<adios2::Dims> PartitionCart1D(const adios2::Dims& shape)
