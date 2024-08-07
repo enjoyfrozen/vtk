@@ -64,8 +64,9 @@ public:
   /**
    * Explicitly specify the coordinate of the pole.
    */
-  virtual void SetPole(double[3]);
-  virtual void SetPole(double, double, double);
+  // virtual void SetPole(double[3]);
+  // virtual void SetPole(double, double, double);
+  vtkSetVector3Macro(Pole, double);
   vtkGetVector3Macro(Pole, double);
   ///@}
 
@@ -134,7 +135,7 @@ public:
    * Set/Get the minimal radius of the polar coordinates.
    * Default: 0.
    */
-  virtual void SetMinimumRadius(double);
+  vtkSetMacro(MinimumRadius, double);
   vtkGetMacro(MinimumRadius, double);
   ///@}
 
@@ -143,7 +144,7 @@ public:
    * Set/Get the maximum radius of the polar coordinates.
    * Default: 1.
    */
-  virtual void SetMaximumRadius(double);
+  vtkSetClampMacro(MaximumRadius, double, 0., VTK_DOUBLE_MAX);
   vtkGetMacro(MaximumRadius, double);
   ///@}
 
@@ -152,7 +153,7 @@ public:
    * Set/Get the minimum radius of the polar coordinates (in degrees).
    * Default: 0.
    */
-  virtual void SetMinimumAngle(double);
+  vtkSetClampMacro(MinimumAngle, double, -360., 360.);
   vtkGetMacro(MinimumAngle, double);
   ///@}
 
@@ -161,7 +162,7 @@ public:
    * Set/Get the maximum radius of the polar coordinates (in degrees).
    * Default: 90.
    */
-  virtual void SetMaximumAngle(double);
+  vtkSetClampMacro(MaximumAngle, double, -360., 360.);
   vtkGetMacro(MaximumAngle, double);
   ///@}
 
@@ -804,10 +805,6 @@ public:
    * Default: (-1, 1, -1, 1, -1, 1).
    */
   vtkSetVector6Macro(Bounds, double);
-  double* GetBounds() override;
-  void GetBounds(
-    double& xmin, double& xmax, double& ymin, double& ymax, double& zmin, double& zmax);
-  void GetBounds(double bounds[6]);
   ///@}
 
   ///@{
@@ -843,11 +840,6 @@ protected:
    * Determine coordinates, position, etc.
    */
   void BuildAxes(vtkViewport*);
-
-  /**
-   * Calculate bounds based on maximum radius and angular sector
-   */
-  void CalculateBounds();
 
   /**
    * Send attributes which are common to all axes, both polar and radial
