@@ -1,28 +1,38 @@
 cmake_minimum_required(VERSION 3.12)
 
 # Input variables.
-set(adios2_version "2.9.2")
-set(adios2_build_date "20231220.0")
+set(adios2_version "2.10.1")
+set(adios2_build_date "20240725.0")
 
 if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "windows")
-  set(adios2_platform "windows-x86_64")
-  set(adios2_ext "zip")
-  set(adios2_hash "7e071e43f88c373bc664b5c66489f99feadf6019deef30d000e6fc7dd5f0a8da")
+  if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "mpi")
+    set(adios2_prefix "adios2-mpi")
+    set(adios2_platform "windows-x86_64")
+    set(adios2_ext "zip")
+    set(adios2_hash "2184a16bcaad938f793779cc2156a55060713dbd08a13b497208e36242828423")
+  else()
+    set(adios2_prefix "adios2-nompi")
+    set(adios2_platform "windows-x86_64")
+    set(adios2_ext "zip")
+    set(adios2_hash "f016351a1d748fb71cfe1f0b200f4385b4645cc223ce758fbbc787d8beccf356")
+  endif()
 elseif ("$ENV{CMAKE_CONFIGURATION}" MATCHES "macos_arm64")
+  set(adios2_prefix "adios2")
   set(adios2_platform "macos-arm64")
   set(adios2_ext "tar.gz")
-  set(adios2_hash "8e0b86bf9a276743221009ba1c7ad797b24195bdb08b02b843314dcc7eeda548")
+  set(adios2_hash "144dcdfaa35c69b5618ef9f2a97dfe8f1bb48367b7a5418d34b9628751f51292")
 elseif ("$ENV{CMAKE_CONFIGURATION}" MATCHES "macos_x86_64")
+  set(adios2_prefix "adios2")
   set(adios2_platform "macos-x86_64")
   set(adios2_ext "tar.gz")
-  set(adios2_hash "6638a3cf139c106cdc02a4430190d63868446ba3bf48f7e0ecbbf41e9ac5a666")
+  set(adios2_hash "ca63395dc37f115544602cf3ed73d70de8015dfd502248ecd8d98667ac9cd4e4")
 else ()
   message(FATAL_ERROR
-      "Unknown platform for ADIOS2")
+    "Unknown platform for ADIOS2")
 endif ()
 
 set(adios2_url "https://gitlab.kitware.com/api/v4/projects/6955/packages/generic/adios2/v${adios2_version}-${adios2_build_date}")
-set(adios2_file "adios2-v${adios2_version}-${adios2_platform}.${adios2_ext}")
+set(adios2_file "${adios2_prefix}-v${adios2_version}-${adios2_platform}.${adios2_ext}")
 
 # Download the file.
 file(DOWNLOAD
