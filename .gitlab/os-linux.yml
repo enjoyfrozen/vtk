@@ -774,3 +774,14 @@
         - exec .gitlab/ci/check_warnings.sh ./Testing/ExternalWasm
 
     interruptible: true
+
+.java_upload_linux:
+    stage: build
+    script:
+        - *before_script_linux
+        - ls
+        - cd build/install
+        - ls
+        - mvn deploy -Dvtk.snapshots.repo=https://maven.pkg.github.com/vicentebolea/vtk-java -Dvtk.snapshots.repo.id=github
+    environment:
+        name: maven-upload
