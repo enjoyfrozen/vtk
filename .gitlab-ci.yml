@@ -2083,3 +2083,37 @@ windows-x86_64-java11:build:
     variables:
       VTK_JAVA_VERSION: 1.8
     timeout: 4 hours
+
+java8:upload:
+    extends:
+        - .fedora34_java
+        - .java_upload_linux
+        - .linux_builder_tags
+        - .run_automatically
+    dependencies:
+      - fedora34-java8:build
+      - macos-x86_64-java8:build
+      - macos-arm64-java8:build
+      - windows-x86_64-java8:build
+    needs:
+      - fedora34-java8:build
+      - macos-x86_64-java8:build
+      - macos-arm64-java8:build
+      - windows-x86_64-java8:build
+
+java11:upload:
+    extends:
+        - .fedora34_java
+        - .java_upload_linux
+        - .linux_builder_tags
+        - .run_automatically
+    dependencies:
+      - fedora34-java11:build
+      - macos-x86_64-java11:build
+      - macos-arm64-java11:build
+      - windows-x86_64-java11:build
+    needs:
+      - fedora34-java11:build
+      - macos-x86_64-java11:build
+      - macos-arm64-java11:build
+      - windows-x86_64-java11:build
