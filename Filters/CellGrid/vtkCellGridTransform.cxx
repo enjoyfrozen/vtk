@@ -4,6 +4,7 @@
 
 #include "vtkCellGrid.h"
 #include "vtkDoubleArray.h"
+#include "vtkFiltersCellGrid.h"
 #include "vtkFloatArray.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
@@ -74,11 +75,10 @@ vtkDataArray* vtkCellGridTransform::Query::CreateNewDataArray(vtkDataArray* inpu
 
 vtkCellGridTransform::vtkCellGridTransform()
 {
+  vtkFiltersCellGrid::RegisterCellsAndResponders();
 }
 
-vtkCellGridTransform::~vtkCellGridTransform()
-{
-}
+vtkCellGridTransform::~vtkCellGridTransform() = default;
 
 void vtkCellGridTransform::PrintSelf(ostream& os, vtkIndent indent)
 {
