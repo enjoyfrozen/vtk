@@ -94,7 +94,7 @@ public:
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
 protected:
-  vtkCellGridCellCenters() = default;
+  vtkCellGridCellCenters();
   ~vtkCellGridCellCenters() override = default;
 
   int RequestData(

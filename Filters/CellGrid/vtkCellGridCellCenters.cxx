@@ -5,6 +5,7 @@
 
 #include "vtkCellGridCopyQuery.h"
 #include "vtkDataSetAttributes.h"
+#include "vtkFiltersCellGrid.h"
 #include "vtkIdTypeArray.h"
 #include "vtkObjectFactory.h"
 
@@ -106,6 +107,11 @@ vtkCellAttribute* vtkCellGridCellCenters::Query::GetOutputAttribute(
 bool vtkCellGridCellCenters::Query::Finalize()
 {
   return true;
+}
+
+vtkCellGridCellCenters::vtkCellGridCellCenters()
+{
+  vtkFiltersCellGrid::RegisterCellsAndResponders();
 }
 
 void vtkCellGridCellCenters::PrintSelf(ostream& os, vtkIndent indent)
