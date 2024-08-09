@@ -108,8 +108,9 @@ public:
   ///@{
   /**
    * The QFac sets the ordering of the slices in the NIFTI file.
-   * If QFac is -1, then the slice ordering in the file will be reversed
-   * as compared to VTK. Use with caution.
+   * If QFac is -1 and the image DirectionMatrix has a positive determinant,
+   * then the slice ordering in the file will be reversed as compared to VTK.
+   * Use with caution, this method is primarily for backwards compatibility.
    */
   vtkSetMacro(QFac, double);
   vtkGetMacro(QFac, double);
@@ -117,20 +118,20 @@ public:
 
   /**
    * Set the "qform" orientation and offset for the image data.
-   * The 3x3 portion of the matrix must be orthonormal and have a
-   * positive determinant, it will be used to compute the quaternion.
-   * The last column of the matrix will be used for the offset.
-   * In the NIFTI header, the qform_code will be set to 1.
+   * This method exists for backwards compability.  By default the qform will
+   * be set from the Direction and Origin of the input data.  The qform_code
+   * in the NIFTI header will be set to 1.
    */
   void SetQFormMatrix(vtkMatrix4x4*);
   vtkMatrix4x4* GetQFormMatrix() { return this->QFormMatrix; }
 
   /**
    * Set a matrix for the "sform" transformation stored in the file.
-   * Unlike the qform matrix, the sform matrix can contain scaling
-   * information.  Before being stored in the NIFTI header, the
-   * first three columns of the matrix will be multiplied by the voxel
-   * spacing. In the NIFTI header, the sform_code will be set to 2.
+   * This method exists for backwards compability.  By default the qform will
+   * be set from the Direction and Origin of the input data.  Before being
+   * stored in the NIFTI header, the first three columns of the matrix will
+   * be multiplied by the voxel spacing. The sform_code in the NIFTI header
+   * will be set to 2.
    */
   void SetSFormMatrix(vtkMatrix4x4*);
   vtkMatrix4x4* GetSFormMatrix() { return this->SFormMatrix; }
