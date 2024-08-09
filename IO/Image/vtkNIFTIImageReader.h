@@ -111,7 +111,7 @@ public:
 
   ///@{
   /**
-   *  Set the Direction and Origin of the output (Off for compatibility).
+   *  Set the Direction and Origin of the output (On for compatibility).
    *  When this flag is Off, the Direction and the Origin of the output
    *  are left unset, in order to keep compability with old versions of
    *  this class.
@@ -128,7 +128,8 @@ public:
    *  indicates slice ordering) is equal to -1, then the slice order of
    *  the file will be reversed when it is read into VTK, resulting in a
    *  DirectionMatrix that always has a positive determinant.  This is
-   *  on by default to to retain backwards compability of this reader.
+   *  off by default, but can be turned on to provide backwards
+   *  compability with older versions of of this class.
    */
   vtkGetMacro(AllowSliceReordering, bool);
   vtkSetMacro(AllowSliceReordering, bool);

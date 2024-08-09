@@ -73,8 +73,8 @@ vtkNIFTIImageReader::vtkNIFTIImageReader()
   this->SFormMatrix = nullptr;
   this->NIFTIHeader = nullptr;
   this->PlanarRGB = false;
-  this->UseDirectionAndOrigin = false;
-  this->AllowSliceReordering = true;
+  this->UseDirectionAndOrigin = true;
+  this->AllowSliceReordering = false;
 }
 
 //------------------------------------------------------------------------------
