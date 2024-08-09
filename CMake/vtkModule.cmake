@@ -4953,6 +4953,9 @@ function (_vtk_module_apply_properties target)
   set_property(TARGET "${target}"
     PROPERTY
       OUTPUT_NAME "${_vtk_add_module_output_name}")
+  set_property(TARGET "${target}"
+    PROPERTY
+      EXPORT_NAME "${_vtk_add_module_target_name}")
 
   if (_vtk_build_VERSION AND NOT _vtk_add_module_type STREQUAL "EXECUTABLE")
     set_property(TARGET "${target}"
