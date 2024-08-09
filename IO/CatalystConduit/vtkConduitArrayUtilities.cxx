@@ -49,7 +49,7 @@ bool is_contiguous(const conduit_cpp::Node& node)
     return true;
   }
   conduit_index_t nchildren = node.number_of_children();
-  for (auto i = 0; i < nchildren; ++i)
+  for (conduit_index_t i = 0; i < nchildren; ++i)
   {
     auto child = node[i];
     if (!child.is_contiguous())

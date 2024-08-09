@@ -579,7 +579,7 @@ int vtkAttributeSmoothingFilter::RequestData(vtkInformation* vtkNotUsed(request)
     evenPair.AddArrays(numPts, oddPD, evenPD);
 
     // Double buffer attribute smoothing.
-    for (auto iter = 1; iter < numIter; ++iter)
+    for (int iter = 1; iter < numIter; ++iter)
     {
       if ((iter % 2)) // odd
       {

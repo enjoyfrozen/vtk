@@ -1304,7 +1304,7 @@ void vtkFlyingEdgesPlaneCutterAlgorithm<T>::InterpolateCellData(
     const unsigned char numTris = this->GetNumberOfPrimitives(eCase);
     if (numTris > 0)
     {
-      for (auto j = 0; j < numTris; ++j)
+      for (unsigned char j = 0; j < numTris; ++j)
       {
         arrays->Copy(inCellId, outCellId++);
       }

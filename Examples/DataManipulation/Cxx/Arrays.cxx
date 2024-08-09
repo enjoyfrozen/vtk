@@ -40,7 +40,7 @@ int main()
   // These take 1, 2, 3, 4 and 9 components respectively.
   std::array<std::array<double, 3>, 4> pts = { { { { 0.0, 0.0, 0.0 } }, { { 0.0, 1.0, 0.0 } },
     { { 1.0, 0.0, 0.0 } }, { { 1.0, 1.0, 0.0 } } } };
-  for (auto i = 0ul; i < pts.size(); ++i)
+  for (std::size_t i = 0ul; i < pts.size(); ++i)
   {
     pcoords->SetTuple(i, pts[i].data());
   }

@@ -178,7 +178,7 @@ void vtkMagnifierRepresentation::BuildRepresentation()
   }
   int numItems = props->GetNumberOfItems();
   props->InitTraversal();
-  for (auto i = 0; i < numItems; ++i)
+  for (int i = 0; i < numItems; ++i)
   {
     this->MagnificationRenderer->AddViewProp(static_cast<vtkProp*>(props->GetNextItemAsObject()));
   }

@@ -1691,7 +1691,7 @@ void vtkStreamTracer::GenerateNormals(vtkPolyData* output, double* firstNormal, 
       newVectors->GetTuple(ptId, velocity);
       // obtain two unit orthogonal vectors on the plane perpendicular to
       // the streamline
-      for (auto j = 0; j < 3; j++)
+      for (int j = 0; j < 3; j++)
       {
         local1[j] = normal[j];
       }
@@ -1702,7 +1702,7 @@ void vtkStreamTracer::GenerateNormals(vtkPolyData* output, double* firstNormal, 
       rotation->GetTuple(ptId, &theta);
       costheta = std::cos(theta);
       sintheta = std::sin(theta);
-      for (auto j = 0; j < 3; j++)
+      for (int j = 0; j < 3; j++)
       {
         normal[j] = length * (costheta * local1[j] + sintheta * local2[j]);
       }

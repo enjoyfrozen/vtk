@@ -37,7 +37,7 @@ void vtkOpenGLVolumeMaskTransferFunction2D::InternalUpdate(vtkObject* func,
   }
 
   std::fill(this->Table, this->Table + this->TextureWidth * 4, 0.0f);
-  for (auto i = 1; i < this->TextureHeight; ++i)
+  for (int i = 1; i < this->TextureHeight; ++i)
   {
     float* tmpColor = new float[this->TextureWidth * 3];
     std::fill(tmpColor, tmpColor + this->TextureWidth * 3, 1.0f);

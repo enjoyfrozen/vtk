@@ -138,7 +138,7 @@ struct GeneratePoints
         }
         iter->GetCurrentCell(npts, pts);
         // The first triangle
-        for (auto i = 0; i < 3; i++)
+        for (int i = 0; i < 3; i++)
         {
           p0 = pts[i];
           p1 = pts[(i + 1) % 3];

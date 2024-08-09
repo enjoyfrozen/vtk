@@ -525,7 +525,7 @@ EDGE_COUNT_TYPE inline BuildO2Stencil(
   int numPairs = nedges / 2;
   TIds* e = edges;
 
-  for (auto i = 0; i < numPairs; ++i)
+  for (int i = 0; i < numPairs; ++i)
   {
     if (edges[2 * i] == curEdge ||      // if the id is the same as the previous pair
       edges[2 * i] != edges[2 * i + 1]) // or if the id is not the same for this pair
@@ -550,7 +550,7 @@ bool inline ExceedsEdgeAngle(vtkIdType ptId, TIds pt0, TIds pt1, double cosEdgeA
   const auto p2 = inPts[pt1];
   double l1[3], l2[3];
 
-  for (auto k = 0; k < 3; k++)
+  for (int k = 0; k < 3; k++)
   {
     l1[k] = p1[k] - p0[k];
     l2[k] = p2[k] - p1[k];
@@ -1206,16 +1206,16 @@ struct InitSmoothingWorker
         // calculate the negative of the laplacian
         auto x = tuples0[ptId];
         deltaX[0] = deltaX[1] = deltaX[2] = 0.0;
-        for (auto j = 0; j < numEdges; j++)
+        for (EDGE_COUNT_TYPE j = 0; j < numEdges; j++)
         {
           auto y = tuples0[edges[j]];
-          for (auto k = 0; k < 3; k++)
+          for (int k = 0; k < 3; k++)
           {
             deltaX[k] += (x[k] - y[k]) / static_cast<double>(numEdges);
           }
         } // for all connected points
 
-        for (auto k = 0; k < 3; k++)
+        for (int k = 0; k < 3; k++)
         {
           deltaX[k] = x[k] - 0.5 * deltaX[k];
         }
@@ -1224,7 +1224,7 @@ struct InitSmoothingWorker
         dX[1] = deltaX[1];
         dX[2] = deltaX[2];
 
-        for (auto k = 0; k < 3; k++)
+        for (int k = 0; k < 3; k++)
         {
           deltaX[k] = c[0] * x[k] + c[1] * deltaX[k];
         }
@@ -1282,14 +1282,14 @@ struct SmoothingWorker
         for (EDGE_COUNT_TYPE j = 0; j < numEdges; j++)
         {
           auto y = tuples1[edges[j]];
-          for (auto k = 0; k < 3; k++)
+          for (int k = 0; k < 3; k++)
           {
             deltaX[k] += (p_x1[k] - y[k]) / static_cast<double>(numEdges);
           }
         } // for all connected points
 
         // Taubin:  x2 = (x1 - x0) + (x1 - x2)
-        for (auto k = 0; k < 3; k++)
+        for (int k = 0; k < 3; k++)
         {
           deltaX[k] = p_x1[k] - p_x0[k] + p_x1[k] - deltaX[k];
         }
@@ -1300,7 +1300,7 @@ struct SmoothingWorker
 
         // smooth the vertex (x3 = x3 + cj x2)
         auto p_x3 = tuples3[ptId];
-        for (auto k = 0; k < 3; k++)
+        for (int k = 0; k < 3; k++)
         {
           xNew[k] = p_x3[k] + c[iterNum] * deltaX[k];
         }
@@ -1370,7 +1370,7 @@ vtkSmartPointer<vtkPoints> SmoothMesh(
   }
 
   // for the rest of the iterations
-  for (auto iterNum = 2; iterNum <= numIters; iterNum++)
+  for (int iterNum = 2; iterNum <= numIters; iterNum++)
   {
     // Threaded execute smoothing pass
     if (!SmoothingDispatch::Execute(

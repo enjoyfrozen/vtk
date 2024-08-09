@@ -502,7 +502,7 @@ void vtkHull::ComputePlaneDistances(vtkPointSet* input)
   {
     double coord[3];
     inPts->GetPoint(0, coord);
-    for (auto j = 0; j < numPlanes; j++)
+    for (int j = 0; j < numPlanes; j++)
     {
       planes[j * 4 + 3] = -(
         planes[j * 4 + 0] * coord[0] + planes[j * 4 + 1] * coord[1] + planes[j * 4 + 2] * coord[2]);
@@ -531,7 +531,7 @@ void vtkHull::ComputePlaneDistances(vtkPointSet* input)
 
       double v, coord[3];
       inPts->GetPoint(ptId, coord);
-      for (auto j = 0; j < numPlanes; j++)
+      for (int j = 0; j < numPlanes; j++)
       {
         v = -(planes[j * 4 + 0] * coord[0] + planes[j * 4 + 1] * coord[1] +
           planes[j * 4 + 2] * coord[2]);

@@ -450,7 +450,7 @@ void vtkOSPRayVolumeMapperNode::UpdateTransferFunction(
   {
     this->IsoColors.reserve(4 * contours->GetNumberOfContours());
     double* p = contours->GetValues();
-    for (auto i = 0; i < contours->GetNumberOfContours(); ++i)
+    for (int i = 0; i < contours->GetNumberOfContours(); ++i)
     {
       double* ncol = colorTF->GetColor(p[i]);
       this->IsoColors.push_back(ncol[0]);

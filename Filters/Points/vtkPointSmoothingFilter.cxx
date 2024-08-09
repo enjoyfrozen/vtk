@@ -54,7 +54,7 @@ struct PadFrameFieldArray
     const auto tensors = vtk::DataArrayTupleRange<6>(this->InTensors, ptId, endPtId);
     for (const auto tuple : tensors)
     {
-      for (auto i = 0; i < 6; ++i)
+      for (int i = 0; i < 6; ++i)
       {
         tensor[i] = tuple[i];
       }
@@ -96,9 +96,9 @@ struct ExtractEigenfunctions
 
     // We are interested in the symmetrical part of the tensor only, since
     // eigenvalues are real if and only if the matrice of reals is symmetrical
-    for (auto j = 0; j < 3; j++)
+    for (int j = 0; j < 3; j++)
     {
-      for (auto i = 0; i < 3; i++)
+      for (int i = 0; i < 3; i++)
       {
         m[i][j] = 0.5 * (tensor[i + 3 * j] + tensor[j + 3 * i]);
       }
@@ -128,7 +128,7 @@ struct ExtractEigenfunctions
       const auto tensors = vtk::DataArrayTupleRange<9>(this->InTensors, ptId, endPtId);
       for (const auto tuple : tensors)
       {
-        for (auto i = 0; i < 9; ++i)
+        for (int i = 0; i < 9; ++i)
         {
           tensor[i] = tuple[i];
         }
@@ -142,7 +142,7 @@ struct ExtractEigenfunctions
       const auto tensors = vtk::DataArrayTupleRange<6>(this->InTensors, ptId, endPtId);
       for (const auto tuple : tensors)
       {
-        for (auto i = 0; i < 6; ++i)
+        for (int i = 0; i < 6; ++i)
         {
           tensor[i] = tuple[i];
         }
@@ -271,7 +271,7 @@ struct CharacterizeTensors
       double tensor[9];
       for (const auto tuple : tensors)
       {
-        for (auto i = 0; i < 6; ++i)
+        for (int i = 0; i < 6; ++i)
         {
           tensor[i] = tuple[i];
         }
@@ -870,7 +870,7 @@ struct CharacterizeMesh
       x[1] = inPts[ptId][1];
       x[2] = inPts[ptId][2];
       // Gather the coordinates of the points surrounding the point to smooth
-      for (auto i = 0; i < this->NeiSize; ++i)
+      for (int i = 0; i < this->NeiSize; ++i)
       {
         neiId = neis[i];
         if (neiId >= 0) // valid connection to another point
@@ -1016,7 +1016,7 @@ struct SmoothPoints
     for (; ptId < endPtId; ++ptId, neis += this->NeiSize)
     {
       // Gather the coordinates of the points surrounding the point to smooth
-      for (auto i = 0; i < this->NeiSize; ++i)
+      for (int i = 0; i < this->NeiSize; ++i)
       {
         neiId = neis[i];
         if (neiId >= 0) // valid connection to another point

@@ -124,7 +124,7 @@ void updateFunc(vtkObject* caller, unsigned long vtkNotUsed(eventId), void* clie
   }
 
   // Remove the last fluid layer in the x dimension
-  auto oldLayerSize = 0;
+  std::size_t oldLayerSize = 0;
   if (layers > maxLayers)
   {
     oldLayerSize = layerSizeQueue.front();
@@ -133,10 +133,10 @@ void updateFunc(vtkObject* caller, unsigned long vtkNotUsed(eventId), void* clie
   }
 
   // Shift particles to the right (positive x)
-  auto pointsToMove = g_Points->GetNumberOfPoints() - oldLayerSize;
+  vtkIdType pointsToMove = g_Points->GetNumberOfPoints() - oldLayerSize;
   float* pptr = static_cast<float*>(g_Points->GetVoidPointer(0));
-  auto lpptr = pptr + pointsToMove * 3;
-  for (auto i = 0; i < pointsToMove; ++i)
+  vtkIdType lpptr = pptr + pointsToMove * 3;
+  for (vtkIdType i = 0; i < pointsToMove; ++i)
   {
     pptr[i * 3] = pptr[(i + oldLayerSize) * 3] + g_Spacing * stepRatio;
     pptr[i * 3 + 1] = pptr[(i + oldLayerSize) * 3 + 1];

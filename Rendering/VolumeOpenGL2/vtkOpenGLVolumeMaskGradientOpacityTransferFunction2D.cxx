@@ -38,7 +38,7 @@ void vtkOpenGLVolumeMaskGradientOpacityTransferFunction2D::InternalUpdate(vtkObj
 
   std::set<int> labels = prop->GetLabelMapLabels();
   std::fill(this->Table, this->Table + this->TextureWidth * 1, 0.0f);
-  for (auto i = 1; i < this->TextureHeight; ++i)
+  for (int i = 1; i < this->TextureHeight; ++i)
   {
     float* tmpGradOp = new float[this->TextureWidth];
     std::fill(tmpGradOp, tmpGradOp + this->TextureWidth, 1.0f);

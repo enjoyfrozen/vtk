@@ -736,7 +736,7 @@ void ShowColorSeriesNames(ostream& os)
 {
   auto colorSeries = vtkSmartPointer<vtkColorSeries>::New();
   os << "Valid schemes" << std::endl;
-  for (auto i = 0; i < colorSeries->GetNumberOfColorSchemes(); ++i)
+  for (int i = 0; i < colorSeries->GetNumberOfColorSchemes(); ++i)
   {
     colorSeries->SetColorScheme(i);
     os << "  " << colorSeries->GetColorSchemeName() << std::endl;

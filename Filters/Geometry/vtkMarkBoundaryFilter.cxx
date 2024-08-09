@@ -543,7 +543,7 @@ void MarkUGCell(vtkUnstructuredGrid* input, vtkIdType cellId, int cellType, vtkI
       if (cell->GetCellDimension() == 3)
       {
         int numFaces = cell->GetNumberOfFaces();
-        for (auto j = 0; j < numFaces; j++)
+        for (int j = 0; j < numFaces; j++)
         {
           vtkCell* face = cell->GetFace(j);
           numFacePts = face->PointIds->GetNumberOfIds();
@@ -557,7 +557,7 @@ void MarkUGCell(vtkUnstructuredGrid* input, vtkIdType cellId, int cellType, vtkI
       else if (cell->GetCellDimension() == 2)
       {
         int numEdges = cell->GetNumberOfEdges();
-        for (auto j = 0; j < numEdges; j++)
+        for (int j = 0; j < numEdges; j++)
         {
           vtkCell* edge = cell->GetEdge(j);
           numEdgePts = edge->PointIds->GetNumberOfIds();
@@ -901,7 +901,7 @@ struct MarkDataSet : MarkCellBoundary
       {
         // Boundary edges used only once are boundary
         int numEdges = cell->GetNumberOfEdges();
-        for (auto j = 0; j < numEdges; j++)
+        for (int j = 0; j < numEdges; j++)
         {
           vtkCell* edge = cell->GetEdge(j);
           vtkIdType numEdgePts = edge->PointIds->GetNumberOfIds();
@@ -916,7 +916,7 @@ struct MarkDataSet : MarkCellBoundary
       else if (cell->GetCellDimension() == 3)
       {
         int numFaces = cell->GetNumberOfFaces();
-        for (auto j = 0; j < numFaces; j++)
+        for (int j = 0; j < numFaces; j++)
         {
           vtkCell* face = cell->GetFace(j);
           vtkIdType numFacePts = face->PointIds->GetNumberOfIds();

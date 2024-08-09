@@ -81,7 +81,7 @@ int TestConvertType(const std::string& type, const std::string& fileName)
     original = static_cast<T*>(originalPoints->GetVoidPointer(i * 3));
     T* read;
     read = static_cast<T*>(readPoints->GetVoidPointer(i * 3));
-    for (auto j = 0; j < 3; ++j)
+    for (int j = 0; j < 3; ++j)
     {
       if (original[j] != read[j])
       {

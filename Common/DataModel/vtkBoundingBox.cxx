@@ -230,7 +230,7 @@ void vtkBoundingBox::Inflate()
 // least 2*delta thick.
 void vtkBoundingBox::InflateSlice(double delta)
 {
-  for (auto i = 0; i < 3; ++i)
+  for (int i = 0; i < 3; ++i)
   {
     double w = this->MaxPnt[i] - this->MinPnt[i];
     if (w < (2.0 * delta))
@@ -349,7 +349,7 @@ bool vtkBoundingBox::ContainsLine(const double x[3], const double s[3], const do
 {
   double v[3], tMin = VTK_DOUBLE_MAX;
   double halfBox[3] = { s[0] / 2.0, s[1] / 2.0, s[2] / 2.0 };
-  for (auto i = 0; i < 3; ++i)
+  for (int i = 0; i < 3; ++i)
   {
     v[i] = (lineEnd[i] - x[i]);
 

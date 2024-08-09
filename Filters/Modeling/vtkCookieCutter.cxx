@@ -645,7 +645,7 @@ struct vtkAttributeManager
     }
 
     // Check that identical arrays exist in both (name, number of components, order)
-    for (auto arrayNum = 0; arrayNum < numArrays0; ++arrayNum)
+    for (int arrayNum = 0; arrayNum < numArrays0; ++arrayNum)
     {
       const char *name0, *name1;
       vtkDataArray* da0 = dsa0->GetArray(arrayNum);
@@ -674,7 +674,7 @@ struct vtkAttributeManager
     // Loop over the the first attributes determining what data arrays are
     // common.
     int numMeshPDArrays = meshPD->GetNumberOfArrays();
-    for (auto arrayNum = 0; arrayNum < numMeshPDArrays; ++arrayNum)
+    for (int arrayNum = 0; arrayNum < numMeshPDArrays; ++arrayNum)
     {
       vtkDataArray *da0 = meshPD->GetArray(arrayNum), *da1;
       const char* name = meshPD->GetArrayName(arrayNum);
