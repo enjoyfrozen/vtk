@@ -147,6 +147,10 @@ bool ArrayGroupModel::setData(const QModelIndex& index, const QVariant& value, i
   auto* array = colData.Array;
   if (auto* dataArray = vtkDataArray::SafeDownCast(array))
   {
+    if (value.isNull() || value.toString().isEmpty())
+    {
+      return false;
+    }
     std::vector<double> tuple;
     tuple.resize(dataArray->GetNumberOfComponents());
     dataArray->GetTuple(index.row(), tuple.data());
