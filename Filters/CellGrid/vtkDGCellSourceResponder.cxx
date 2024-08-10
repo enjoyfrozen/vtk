@@ -79,12 +79,12 @@ bool vtkDGCellSourceResponder::Query(
   }
   conn->SetUnsignedTuple(0, connTuple.data());
 
-  auto* arrayGroup = grid->GetAttributes(cellTypeToken);
-  arrayGroup->SetScalars(conn);
+  auto* pointArrayGroup = grid->GetAttributes(cellTypeToken);
+  pointArrayGroup->SetScalars(conn);
   dgCell->GetCellSpec().Connectivity = conn;
 
-  arrayGroup = grid->GetAttributes("points"_token);
-  arrayGroup->SetScalars(coords);
+  auto cellArrayGroup = grid->GetAttributes("points"_token);
+  cellArrayGroup->SetScalars(coords);
 
   vtkNew<vtkCellAttribute> shape;
   shape->Initialize("shape"_token, "ℝ³", 3);
@@ -106,7 +106,78 @@ bool vtkDGCellSourceResponder::Query(
   shape->SetCellTypeInfo(cellTypeToken, shapeInfo);
   grid->SetShapeAttribute(shape);
 
+  // clang-format off
+  this->CreateCellAttribute(
+    dgCell, cellTypeToken,
+    "hgrad", "ℝ³", 3,
+    "HGRAD"_token, "C"_token, 1,
+    dgCell->GetNumberOfSidesOfDimension(0) * 3, 1, "point"_token);
+  // clang-format on
+  if (dgCell->IsA("vtkDeRhamCell"))
+  {
+    // clang-format off
+    this->CreateCellAttribute(
+      dgCell, cellTypeToken,
+      "hcurl", "ℝ³", 3,
+      "HCURL"_token, "I"_token, 1,
+      dgCell->GetNumberOfSidesOfDimension(1), 3);
+
+    this->CreateCellAttribute(
+      dgCell, cellTypeToken,
+      "hdiv", "ℝ³", 3,
+      "HDIV"_token, "I"_token, 1,
+      dgCell->GetNumberOfSidesOfDimension(2), 3);
+    // clang-format on
+  }
+
   return true;
+}
+
+void vtkDGCellSourceResponder::CreateCellAttribute(
+  vtkDGCell* dgCell, vtkStringToken cellTypeToken,
+  const std::string& fieldName, vtkStringToken space, int numberOfComponents,
+  vtkStringToken functionSpace, vtkStringToken basis, int order,
+  vtkIdType numberOfValues, int basisSize, vtkStringToken dofSharing)
+{
+  vtkNew<vtkCellAttribute> attrib;
+  vtkNew<vtkDoubleArray> attribVals;
+  attribVals->SetName(fieldName.c_str());
+  attribVals->SetNumberOfComponents(dofSharing.IsValid() ? numberOfComponents / basisSize : numberOfValues);
+  attribVals->SetNumberOfTuples(dofSharing.IsValid() ? numberOfValues * basisSize / numberOfComponents : 1);
+  vtkSMPTools::For(0, attribVals->GetNumberOfValues(),
+    [&attribVals](vtkIdType begin, vtkIdType end)
+    {
+      for (vtkIdType ii = begin; ii < end; ++ii)
+      {
+        attribVals->SetValue(ii, ii == 0 ? 1. : 0.);
+      }
+    }
+  );
+  vtkDataArray* conn = nullptr;
+  if (dofSharing.IsValid())
+  {
+    auto* cellArrayGroup = dgCell->GetCellGrid()->GetAttributes(dofSharing);
+    cellArrayGroup->AddArray(attribVals);
+    conn = dgCell->GetCellSpec().Connectivity;
+  }
+  else
+  {
+    auto* pointArrayGroup = dgCell->GetCellGrid()->GetAttributes(cellTypeToken);
+    pointArrayGroup->AddArray(attribVals);
+  }
+  attrib->Initialize(fieldName, space, numberOfComponents);
+  vtkCellAttribute::CellTypeInfo curlInfo;
+  curlInfo.DOFSharing = dofSharing;
+  curlInfo.FunctionSpace = functionSpace;
+  curlInfo.Basis = basis;
+  curlInfo.Order = order;
+  if (conn)
+  {
+    curlInfo.ArraysByRole["connectivity"_token] = conn;
+  }
+  curlInfo.ArraysByRole["values"_token] = attribVals;
+  attrib->SetCellTypeInfo(cellTypeToken, curlInfo);
+  dgCell->GetCellGrid()->AddCellAttribute(attrib);
 }
 
 VTK_ABI_NAMESPACE_END

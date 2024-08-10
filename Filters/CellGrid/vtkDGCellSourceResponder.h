@@ -34,6 +34,12 @@ protected:
   vtkDGCellSourceResponder() = default;
   ~vtkDGCellSourceResponder() override = default;
 
+  void CreateCellAttribute(
+    vtkDGCell* dgCell, vtkStringToken cellTypeToken,
+    const std::string& fieldName, vtkStringToken space, int numberOfComponents,
+    vtkStringToken functionSpace, vtkStringToken basis, int order,
+    vtkIdType numberOfValues, int basisSize = 1, vtkStringToken dofSharing = vtkStringToken{});
+
 private:
   vtkDGCellSourceResponder(const vtkDGCellSourceResponder&) = delete;
   void operator=(const vtkDGCellSourceResponder&) = delete;
