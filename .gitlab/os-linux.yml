@@ -107,7 +107,7 @@
 
 .fedora34:
     extends: .linux
-    image: "vbolea/vtk:ci-fedora34-20240806"
+    image: "vbolea/vtk:ci-fedora34-20240812"
 
 .el7_mindeps:
     extends: .linux
@@ -551,7 +551,15 @@
     stage: build
     script:
         - *before_script_linux
-        - ls
+        - cp .gitlab/maven/conf/settings.xml "$HOME/.m2/settings.xml"
+        - xmlstarlet ed -O -L
+            -d '/_:settings/_:servers'
+            -s '/_:settings' -t elem -n servers -v ""
+            -s '/_:settings/servers' -t elem -n server -v ""
+            -s '/_:settings/servers/server' -t elem -n id -v "github"
+            -s '/_:settings/servers/server' -t elem -n username -v '${env.MAVEN_USERNAME}'
+            -s '/_:settings/servers/server' -t elem -n password -v '${env.MAVEN_PASSWORD}'
+            "$HOME/.m2/settings.xml"
         - cd build/install
         - ls
         - mvn deploy -Dvtk.snapshots.repo=https://maven.pkg.github.com/vicentebolea/vtk-java -Dvtk.snapshots.repo.id=github
