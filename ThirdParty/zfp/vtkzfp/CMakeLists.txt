@@ -42,17 +42,17 @@ set(sources
 
 vtk_module_add_module(VTK::zfp
   SOURCES ${sources})
-target_include_directories(zfp
+vtk_module_include(VTK::zfp
   PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 if (NOT WIN32 OR CYGWIN)
-  target_link_libraries(zfp
+  vtk_module_link(VTK::zfp
     PRIVATE
       m)
 endif ()
 if (WIN32)
-  target_compile_definitions(zfp
+  vtk_module_definitions(VTK::zfp
     PRIVATE
       ZFP_SOURCE)
 endif ()

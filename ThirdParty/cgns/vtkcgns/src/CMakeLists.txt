@@ -676,7 +676,9 @@ endif(CGNS_BUILD_SHARED)
 else ()
 vtk_module_add_module(VTK::cgns
   SOURCES ${cgns_FILES})
-set_target_properties(cgns PROPERTIES DEFINE_SYMBOL BUILD_DLL)
+vtk_module_set_property(VTK::cgns
+  PROPERTY  DEFINE_SYMBOL
+  VALUE     BUILD_DLL)
 endif ()
 
 # Set the install path of the header files

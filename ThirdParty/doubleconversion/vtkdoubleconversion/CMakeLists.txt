@@ -30,6 +30,6 @@ vtk_module_include(VTK::doubleconversion
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/double-conversion>")
 
 include(GenerateExportHeader)
-generate_export_header(doubleconversion
+generate_export_header(vtkdoubleconversion
   EXPORT_MACRO_NAME VTKDOUBLECONVERSION_EXPORT
   EXPORT_FILE_NAME double-conversion/vtkdoubleconversion_export.h)

@@ -122,6 +122,6 @@ vtk_module_add_module(VTK::jpeg
   HEADERS ${headers}
   HEADERS_SUBDIR "vtkjpeg"
   PRIVATE_HEADERS ${private_headers})
-target_include_directories(jpeg
+vtk_module_include(VTK::jpeg
   PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>")

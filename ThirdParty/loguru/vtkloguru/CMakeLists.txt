@@ -25,7 +25,7 @@ vtk_module_definitions(VTK::loguru
     "LOGURU_STACKTRACES=$<BOOL:${loguru_have_stacktraces}>")
 
 include(GenerateExportHeader)
-generate_export_header(loguru
+generate_export_header(vtkloguru
   EXPORT_MACRO_NAME LOGURU_EXPORT
   EXPORT_FILE_NAME vtkloguru_export.h)
 

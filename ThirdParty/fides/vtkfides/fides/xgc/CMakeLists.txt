@@ -2,14 +2,14 @@ set(xgc_headers
   XGCCommon.h
 )
 
-target_sources(fides PRIVATE
+vtk_module_sources(VTK::fides PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/XGCCommon.cxx)
 
-vtkm_add_target_information(fides
+vtkm_add_target_information(vtkfides
     DROP_UNUSED_SYMBOLS
     DEVICE_SOURCES XGCCommon.cxx)
 
-target_include_directories(fides PRIVATE ${CMAKE_CURRENT_LIST_DIR})
+vtk_module_include(VTK::fides PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 
 install(FILES ${xgc_headers}
-  DESTINATION ${FIDES_INSTALL_INCLUDE_DIR}/xgc)
+  DESTINATION ${_vtk_build_HEADERS_DESTINATION}/vtkfides/fides/xgc)

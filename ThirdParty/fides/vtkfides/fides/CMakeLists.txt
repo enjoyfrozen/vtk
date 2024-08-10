@@ -53,13 +53,13 @@ vtk_module_add_module(VTK::fides
   SOURCES ${srcs}
   HEADERS ${headers}
   HEADERS_SUBDIR "vtkfides/fides")
-vtkm_add_target_information(fides
+vtkm_add_target_information(vtkfides
     DROP_UNUSED_SYMBOLS
     MODIFY_CUDA_FLAGS
     DEVICE_SOURCES ${srcs})
 endif ()
 
-fides_generate_export_header(fides)
+fides_generate_export_header(vtkfides fides)
 
 if (FALSE) # XXX(kitware): use vtk_module system
 target_compile_definitions(fides PRIVATE ${MPI_DEFS} ${ADIOS_DEFS})
@@ -95,7 +95,7 @@ vtk_module_include(VTK::fides
   )
 
 include(GenerateExportHeader)
-generate_export_header(fides
+generate_export_header(vtkfides
   EXPORT_MACRO_NAME VTKFIDES_EXPORT
   EXPORT_FILE_NAME vtkfides_export.h)
 endif()

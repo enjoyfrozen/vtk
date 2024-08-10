@@ -289,16 +289,16 @@ vtk_module_add_module(VTK::netcdf
   SOURCES ${sources}
   HEADERS ${headers}
   HEADERS_SUBDIR "vtknetcdf")
-target_compile_definitions(netcdf
+vtk_module_definitions(VTK::netcdf
   PRIVATE
     HAVE_CONFIG_H)
 if (WIN32 AND BUILD_SHARED_LIBS)
-  target_compile_definitions(netcdf
+  vtk_module_definitions(VTK::netcdf
     PRIVATE
       DLL_EXPORT
       DLL_NETCDF)
 endif ()
-target_include_directories(netcdf
+vtk_module_include(VTK::netcdf
   PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/libdispatch"
@@ -318,7 +318,7 @@ endif ()
 
 if (UNIX)
   # link against the math library.
-  target_link_libraries(netcdf
+  vtk_module_link(VTK::netcdf
     PRIVATE
       m)
 endif ()

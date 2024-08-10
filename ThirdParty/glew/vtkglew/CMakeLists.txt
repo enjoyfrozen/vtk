@@ -12,48 +12,48 @@ vtk_module_add_module(VTK::glew
   SOURCES ${sources}
   HEADERS ${headers}
   HEADERS_SUBDIR "vtkglew")
-target_compile_definitions(glew
+vtk_module_definitions(VTK::glew
   PRIVATE
     GLEW_NO_GLU)
 
 
 if(VTK_OPENGL_HAS_OSMESA)
-  target_compile_definitions(glew
+  vtk_module_definitions(VTK::glew
     PRIVATE
       GLEW_OSMESA)
-  target_link_libraries(glew
+  vtk_module_link(VTK::glew
     PRIVATE
       ${CMAKE_DL_LIBS})
 endif()
 
 if(VTK_OPENGL_HAS_EGL)
-  target_compile_definitions(glew
+  vtk_module_definitions(VTK::glew
     PRIVATE
       GLEW_EGL)
 endif()
 
 if (BUILD_SHARED_LIBS)
   if (WIN32)
-    target_compile_definitions(glew
+    vtk_module_definitions(VTK::glew
       PRIVATE
         GLEW_BUILD)
     if(MINGW)
       # https://github.com/nigels-com/glew/issues/157
-      target_link_libraries(glew
+      vtk_module_link(VTK::glew
         PRIVATE
           -nostdlib)
       # https://discourse.vtk.org/t/1898
-      target_compile_options(glew
+      vtk_module_compile_options(VTK::glew
         PRIVATE
           -minline-all-stringops)
     endif()
   endif ()
 else ()
-  target_compile_definitions(glew
+  vtk_module_definitions(VTK::glew
     PUBLIC
       GLEW_STATIC)
 endif ()
 
-target_include_directories(glew
+vtk_module_include(VTK::glew
   PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/include")

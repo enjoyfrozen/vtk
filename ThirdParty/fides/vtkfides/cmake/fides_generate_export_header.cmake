@@ -1,5 +1,5 @@
 #-----------------------------------------------------------------------------
-function(fides_generate_export_header lib_name)
+function(fides_generate_export_header lib_name header_name)
   # Now generate a header that holds the macros needed to easily export
   # template classes. This
   string(TOUPPER ${lib_name} BASE_NAME_UPPER)
@@ -22,7 +22,7 @@ function(fides_generate_export_header lib_name)
 
   configure_file(
       ${FIDES_SOURCE_DIR}/cmake/FidesExportHeaderTemplate.h.in
-      ${CMAKE_CURRENT_BINARY_DIR}/${lib_name}_export.h
+      ${CMAKE_CURRENT_BINARY_DIR}/${header_name}_export.h
     @ONLY)
 
 endfunction()
