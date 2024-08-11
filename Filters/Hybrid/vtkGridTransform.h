@@ -137,6 +137,8 @@ protected:
 
   void* GridPointer;
   int GridScalarType;
+  bool GridIsRotated;
+  double GridPointToIndex[12];
   double GridSpacing[3];
   double GridOrigin[3];
   int GridExtent[6];
