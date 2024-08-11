@@ -63,6 +63,14 @@ public:
 
   ///@{
   /**
+   * Get/Set the direction of the grid.
+   */
+  vtkSetVectorMacro(GridDirection, double, 9);
+  vtkGetVectorMacro(GridDirection, double, 9);
+  ///@}
+
+  ///@{
+  /**
    * Get/Set the scalar type of the grid.  The default is float.
    */
   vtkSetMacro(GridScalarType, int);
@@ -126,6 +134,7 @@ protected:
   int GridExtent[6];
   double GridOrigin[3];
   double GridSpacing[3];
+  double GridDirection[9];
 
   double DisplacementScale;
   double DisplacementShift;

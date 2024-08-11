@@ -7,8 +7,11 @@
 #include "vtkImageData.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
+#include "vtkMatrix3x3.h"
 #include "vtkObjectFactory.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
+
+#include <algorithm> // std::min, std::max
 
 VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkTransformToGrid);
@@ -28,6 +31,8 @@ vtkTransformToGrid::vtkTransformToGrid()
     this->GridOrigin[i] = 0.0;
     this->GridSpacing[i] = 1.0;
   }
+
+  vtkMatrix3x3::Identity(this->GridDirection);
 
   this->DisplacementScale = 1.0;
   this->DisplacementShift = 0.0;
@@ -54,6 +59,13 @@ void vtkTransformToGrid::PrintSelf(ostream& os, vtkIndent indent)
   for (i = 1; i < 3; ++i)
   {
     os << ", " << this->GridSpacing[i];
+  }
+  os << ")\n";
+
+  os << indent << "GridDirection: (" << this->GridDirection[0];
+  for (i = 1; i < 9; ++i)
+  {
+    os << ", " << this->GridDirection[i];
   }
   os << ")\n";
 
@@ -100,6 +112,7 @@ void vtkTransformToGrid::RequestInformation(vtkInformation* vtkNotUsed(request),
   outInfo->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(), this->GridExtent, 6);
   outInfo->Set(vtkDataObject::SPACING(), this->GridSpacing, 3);
   outInfo->Set(vtkDataObject::ORIGIN(), this->GridOrigin, 3);
+  outInfo->Set(vtkDataObject::DIRECTION(), this->GridDirection, 9);
   vtkDataObject::SetPointDataActiveScalarInfo(outInfo, this->GridScalarType, 3);
 }
 
@@ -120,39 +133,42 @@ static void vtkTransformToGridMinMax(
     return;
   }
 
-  double* spacing = self->GetGridSpacing();
-  double* origin = self->GetGridOrigin();
+  const double* spacing = self->GetGridSpacing();
+  const double* direction = self->GetGridDirection();
+  const double* origin = self->GetGridOrigin();
 
   maxDisplacement = -1e37;
   minDisplacement = +1e37;
 
   double point[3], newPoint[3], displacement;
+  bool directionIsIdentity = vtkMatrix3x3::IsIdentity(direction);
 
   for (int k = extent[4]; k <= extent[5]; k++)
   {
-    point[2] = k * spacing[2] + origin[2];
     for (int j = extent[2]; j <= extent[3]; j++)
     {
-      point[1] = j * spacing[1] + origin[1];
       for (int i = extent[0]; i <= extent[1]; i++)
       {
-        point[0] = i * spacing[0] + origin[0];
+        point[0] = i * spacing[0];
+        point[1] = j * spacing[1];
+        point[2] = k * spacing[2];
+
+        if (!directionIsIdentity)
+        {
+          vtkMatrix3x3::MultiplyPoint(direction, point, point);
+        }
+
+        point[0] += origin[0];
+        point[1] += origin[1];
+        point[2] += origin[2];
 
         transform->InternalTransformPoint(point, newPoint);
 
         for (int l = 0; l < 3; l++)
         {
           displacement = newPoint[l] - point[l];
-
-          if (displacement > maxDisplacement)
-          {
-            maxDisplacement = displacement;
-          }
-
-          if (displacement < minDisplacement)
-          {
-            minDisplacement = displacement;
-          }
+          maxDisplacement = std::max(displacement, maxDisplacement);
+          minDisplacement = std::min(displacement, minDisplacement);
         }
       }
     }
@@ -273,10 +289,13 @@ void vtkTransformToGridExecute(vtkTransformToGrid* self, vtkImageData* grid, T* 
     isIdentity = 1;
   }
 
-  double* spacing = grid->GetSpacing();
-  double* origin = grid->GetOrigin();
+  const double* spacing = self->GetGridSpacing();
+  const double* origin = self->GetGridOrigin();
+  const double* direction = self->GetGridDirection();
   vtkIdType increments[3];
   grid->GetIncrements(increments);
+
+  bool directionIsIdentity = vtkMatrix3x3::IsIdentity(direction);
 
   double invScale = 1.0 / scale;
 
@@ -293,7 +312,6 @@ void vtkTransformToGridExecute(vtkTransformToGrid* self, vtkImageData* grid, T* 
 
   for (int k = extent[4]; k <= extent[5] && !abort; k++)
   {
-    point[2] = k * spacing[2] + origin[2];
     T* gridPtr1 = gridPtr0;
 
     for (int j = extent[2]; j <= extent[3]; j++)
@@ -313,12 +331,22 @@ void vtkTransformToGridExecute(vtkTransformToGrid* self, vtkImageData* grid, T* 
         count++;
       }
 
-      point[1] = j * spacing[1] + origin[1];
       gridPtr = gridPtr1;
 
       for (int i = extent[0]; i <= extent[1]; i++)
       {
-        point[0] = i * spacing[0] + origin[0];
+        point[0] = i * spacing[0];
+        point[1] = j * spacing[1];
+        point[2] = k * spacing[2];
+
+        if (!directionIsIdentity)
+        {
+          vtkMatrix3x3::MultiplyPoint(direction, point, point);
+        }
+
+        point[0] += origin[0];
+        point[1] += origin[1];
+        point[2] += origin[2];
 
         transform->InternalTransformPoint(point, newPoint);
 
@@ -418,10 +446,8 @@ vtkTypeBool vtkTransformToGrid::ProcessRequest(
   if (request->Has(vtkDemandDrivenPipeline::REQUEST_INFORMATION()))
   {
     this->RequestInformation(request, inputVector, outputVector);
-    // after executing set the origin and spacing from the
-    // info
-    int i;
-    for (i = 0; i < this->GetNumberOfOutputPorts(); ++i)
+    // after executing set the origin and spacing from the info
+    for (int i = 0; i < this->GetNumberOfOutputPorts(); ++i)
     {
       vtkInformation* info = outputVector->GetInformationObject(i);
       vtkImageData* output = vtkImageData::SafeDownCast(info->Get(vtkDataObject::DATA_OBJECT()));
@@ -431,10 +457,17 @@ vtkTypeBool vtkTransformToGrid::ProcessRequest(
         info->Set(vtkDataObject::ORIGIN(), 0, 0, 0);
         info->Set(vtkDataObject::SPACING(), 1, 1, 1);
       }
+      // ditto for direction
+      if (!info->Has(vtkDataObject::DIRECTION()))
+      {
+        double identity[9] = { 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0 };
+        info->Set(vtkDataObject::DIRECTION(), identity, 9);
+      }
       if (output)
       {
         output->SetOrigin(info->Get(vtkDataObject::ORIGIN()));
         output->SetSpacing(info->Get(vtkDataObject::SPACING()));
+        output->SetDirectionMatrix(info->Get(vtkDataObject::DIRECTION()));
       }
     }
     return 1;
