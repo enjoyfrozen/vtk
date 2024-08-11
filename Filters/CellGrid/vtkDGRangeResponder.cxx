@@ -380,8 +380,12 @@ struct CoefficientRangeWorker : public BaseRangeWorker<DOFSharing, Exceptions>
 };
 
 // This worker is for DeRham (and perhaps other) attributes that require
-// evaluation of a vector-valued shape-attribute basis to be combined with
-// the attribute's coefficients to produce a valid range.
+// evaluation of (1) a vector-valued shape-attribute basis and (2) a
+// function of the shape Jacobian to be combined with the attribute's
+// coefficients in order to obtain the range.
+//
+// The worker evaluates the attribute at parametric centers of multiple
+// sides to obtain an estimate for the attribute's range.
 template <bool DOFSharing, bool Exceptions>
 struct EvaluatorRangeWorker : public BaseRangeWorker<DOFSharing, Exceptions>
 {
@@ -480,6 +484,17 @@ struct EvaluatorRangeWorker : public BaseRangeWorker<DOFSharing, Exceptions>
     }
     cellRange->SetNumberOfComponents(this->Attribute->GetNumberOfComponents());
     cellRange->SetNumberOfTuples(this->Locations->GetNumberOfTuples());
+  }
+
+  void Finalize()
+  {
+    BaseRangeWorker<DOFSharing, Exceptions>::Initialize();
+
+    auto& calc = this->TLInterp.Local();
+    if (calc)
+    {
+      calc = nullptr;
+    }
   }
 
   void operator()(vtkIdType begin, vtkIdType end)
@@ -583,7 +598,7 @@ bool vtkDGRangeResponder::HCurlRange(vtkDGCell* dgCell, vtkCellAttribute* attrib
 {
   (void)values;
   // NB: This will compute the range of the cells (not sides).
-  vtkIdType numTuples = dgCell->GetCellSpec().Connectivity->GetNumberOfTuples();
+  vtkIdType numTuples = dgCell->GetNumberOfCells();
   EvaluatorRangeWorker<DOFSharing, FiniteRange> computeRange(dgCell, attribute, cellTypeInfo);
   vtkSMPTools::For(0, numTuples, computeRange);
   computeRange.CacheRanges(request);
