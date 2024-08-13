@@ -293,6 +293,11 @@ public:
   vtkMTimeType GetMTime() override;
 
   /**
+   * Get number of errors since last update, for transforms that can fail.
+   */
+  virtual vtkTypeUInt64 GetErrorsSinceUpdate();
+
+  /**
    * Needs a special UnRegister() implementation to avoid
    * circular references.
    */
@@ -301,6 +306,11 @@ public:
 protected:
   vtkAbstractTransform();
   ~vtkAbstractTransform() override;
+
+  /**
+   * Increment the error counter and return the result.
+   */
+  vtkTypeUInt64 IncrementErrorsSinceUpdate();
 
   /**
    * Perform any subclass-specific Update.

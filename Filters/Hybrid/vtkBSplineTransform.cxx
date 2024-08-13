@@ -789,9 +789,12 @@ void vtkBSplineTransform::InverseTransformDerivative(
     inverse[1] = lastInverse[1];
     inverse[2] = lastInverse[2];
 
-    vtkWarningMacro("InverseTransformPoint: no convergence ("
-      << inPoint[0] << ", " << inPoint[1] << ", " << inPoint[2]
-      << ") error = " << sqrt(errorSquared) << " after " << i << " iterations.");
+    if (this->IncrementErrorsSinceUpdate() == 1)
+    {
+      vtkWarningMacro("InverseTransformPoint: no convergence ("
+        << inPoint[0] << ", " << inPoint[1] << ", " << inPoint[2]
+        << ") error = " << sqrt(errorSquared) << " after " << i << " iterations.");
+    }
   }
 
   // output the solution

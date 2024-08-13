@@ -198,10 +198,13 @@ void vtkWarpTransform::InverseTransformDerivative(
     inverse[1] = lastInverse[1];
     inverse[2] = lastInverse[2];
 
-    // print warning: Newton's method didn't converge
-    vtkErrorMacro("InverseTransformPoint: no convergence ("
-      << point[0] << ", " << point[1] << ", " << point[2] << ") error = " << sqrt(errorSquared)
-      << " after " << i << " iterations.");
+    if (this->IncrementErrorsSinceUpdate() == 1)
+    {
+      // print warning: Newton's method didn't converge
+      vtkWarningMacro("InverseTransformPoint: no convergence ("
+        << point[0] << ", " << point[1] << ", " << point[2] << ") error = " << sqrt(errorSquared)
+        << " after " << i << " iterations.");
+    }
   }
 
   output[0] = inverse[0];

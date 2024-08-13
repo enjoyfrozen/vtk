@@ -11,7 +11,8 @@
 #include "vtkObjectFactory.h"
 #include "vtkPoints.h"
 
-#include <mutex> // for std::mutex
+#include <atomic> // for std::atomic
+#include <mutex>  // for std::mutex
 
 VTK_ABI_NAMESPACE_BEGIN
 
@@ -27,6 +28,7 @@ public:
 
   vtkTimeStamp UpdateTime;
   std::mutex UpdateMutex;
+  std::atomic<vtkTypeUInt64> ErrorsSinceUpdate;
   std::mutex InverseMutex;
   int DependsOnInverse;
 
@@ -314,8 +316,23 @@ void vtkAbstractTransform::Update()
     this->InternalUpdate();
   }
 
+  internals.ErrorsSinceUpdate = 0;
   internals.UpdateTime.Modified();
   internals.UpdateMutex.unlock();
+}
+
+//------------------------------------------------------------------------------
+vtkTypeUInt64 vtkAbstractTransform::IncrementErrorsSinceUpdate()
+{
+  auto& internals = *(this->Internals);
+  return ++internals.ErrorsSinceUpdate;
+}
+
+//------------------------------------------------------------------------------
+vtkTypeUInt64 vtkAbstractTransform::GetErrorsSinceUpdate()
+{
+  auto& internals = *(this->Internals);
+  return internals.ErrorsSinceUpdate;
 }
 
 //------------------------------------------------------------------------------
