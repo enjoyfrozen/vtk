@@ -11,6 +11,7 @@ set(classes
   vtkCellGridTransform
   vtkUnstructuredGridToCellGrid
   vtkCellGridToUnstructuredGrid
+  vtkCellGridWarp
 
   # Queries
   vtkCellGridElevationQuery
@@ -27,6 +28,7 @@ set(classes
   vtkDGTranscribeCellGridCells
   vtkDGTranscribeUnstructuredCells
   vtkDGTransformResponder
+  vtkDGWarp
 
   # Calculator bases
   vtkInterpolateCalculator
