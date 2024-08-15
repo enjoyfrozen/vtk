@@ -191,7 +191,7 @@ vtk:fedora34-mpi-offscreen-osmesa-python:test-ext:
 fedora34-java8:build:
     extends:
         - .fedora34_java
-        - .cmake_build_linux
+        - .cmake_build_java_linux
         - .linux_builder_tags
         - .cmake_build_artifacts
         - .run_manually
@@ -203,7 +203,7 @@ fedora34-java8:build:
 fedora34-java11:build:
     extends:
         - .fedora34_java
-        - .cmake_build_linux
+        - .cmake_build_java_linux
         - .linux_builder_tags
         - .cmake_build_artifacts
         - .run_manually
@@ -2021,7 +2021,7 @@ wheel-windows-python312-x86_64-osmesa:test:
 macos-x86_64-java8:build:
     extends:
         - .macos_x86_64_java
-        - .cmake_build_macos
+        - .cmake_build_java_macos
         - .macos_builder_tags
         - .cmake_build_artifacts
         - .run_manually
@@ -2032,7 +2032,7 @@ macos-x86_64-java8:build:
 macos-x86_64-java11:build:
     extends:
         - .macos_x86_64_java
-        - .cmake_build_macos
+        - .cmake_build_java_macos
         - .macos_builder_tags
         - .cmake_build_artifacts
         - .run_manually
@@ -2043,7 +2043,7 @@ macos-x86_64-java11:build:
 macos-arm64-java8:build:
     extends:
         - .macos_arm64_java
-        - .cmake_build_macos
+        - .cmake_build_java_macos
         - .macos_arm64_builder_tags
         - .cmake_build_artifacts
         - .run_manually
@@ -2054,7 +2054,7 @@ macos-arm64-java8:build:
 macos-arm64-java11:build:
     extends:
         - .macos_arm64_java
-        - .cmake_build_macos
+        - .cmake_build_java_macos
         - .macos_arm64_builder_tags
         - .cmake_build_artifacts
         - .run_manually
@@ -2065,7 +2065,7 @@ macos-arm64-java11:build:
 windows-x86_64-java8:build:
     extends:
         - .windows_vs2022_java
-        - .cmake_build_windows
+        - .cmake_build_java_windows
         - .windows_builder_tags
         - .cmake_build_artifacts
         - .run_manually
@@ -2076,7 +2076,7 @@ windows-x86_64-java8:build:
 windows-x86_64-java11:build:
     extends:
         - .windows_vs2022_java
-        - .cmake_build_windows
+        - .cmake_build_java_windows
         - .windows_builder_tags
         - .cmake_build_artifacts
         - .run_manually

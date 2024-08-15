@@ -393,6 +393,9 @@
     - '[ -n "$MODULES" ] && . /etc/profile.d/modules.sh && module load $MODULES'
     # Enable the Intel compiler if required.
     - '[ "$CC" = "icx" ] && source /opt/intel/oneapi/setvars.sh || true'
+
+.before_script_java_linux: &before_script_java_linux
+    - *before_script_linux
     - cmake -P .gitlab/ci/download_maven.cmake
     - export PATH="$PWD/.gitlab/maven/bin:$PATH"
     - 'mvn dependency:get "-DrepoUrl=http://download.java.net/maven/2/" "-Dartifact=org.jogamp.gluegen:gluegen-rt:2.3.2"'
@@ -400,21 +403,22 @@
     - 'mvn dependency:get "-DrepoUrl=http://download.java.net/maven/2/" "-Dartifact=org.jogamp.jogl:jogl-all:2.3.2"'
     - 'mvn dependency:get "-DrepoUrl=http://download.java.net/maven/2/" "-Dartifact=org.jogamp.jogl:jogl-all:2.3.2:jar:natives-linux-amd64"'
 
+.script_linux: &script_linux
+    - .gitlab/ci/clang-tidy-cache.sh
+    - .gitlab/ci/sccache.sh
+    - sccache --start-server
+    - sccache --show-stats
+    - $LAUNCHER ctest -VV -S .gitlab/ci/ctest_configure.cmake
+    - $LAUNCHER ctest -VV -S .gitlab/ci/ctest_build.cmake &> $GIT_CLONE_PATH/compile_output.log
+    - sccache --show-stats
+    - exec .gitlab/ci/check_warnings.sh .
+
 .cmake_build_linux:
     stage: build
     extends: .warning_policy
-
     script:
         - *before_script_linux
-        - .gitlab/ci/clang-tidy-cache.sh
-        - .gitlab/ci/sccache.sh
-        - sccache --start-server
-        - sccache --show-stats
-        - $LAUNCHER ctest -VV -S .gitlab/ci/ctest_configure.cmake
-        - $LAUNCHER ctest -VV -S .gitlab/ci/ctest_build.cmake &> $GIT_CLONE_PATH/compile_output.log
-        - sccache --show-stats
-        - exec .gitlab/ci/check_warnings.sh .
-
+        - *script_linux
     interruptible: true
 
 .cmake_test_linux:
@@ -512,6 +516,13 @@
         - exec .gitlab/ci/check_warnings.sh ./Testing/ExternalWheel
     interruptible: true
 
+.cmake_build_java_linux:
+    extends: .cmake_build_linux
+    script:
+        - *before_script_linux
+        - *before_script_java_linux
+        - *script_linux
+
 .cmake_source_tarballs:
     stage: build
     image: "fedora:34"
@@ -550,7 +561,7 @@
 .java_upload_linux:
     stage: build
     script:
-        - *before_script_linux
+        - *before_script_java_linux
         - cp .gitlab/maven/conf/settings.xml "$HOME/.m2/settings.xml"
         - xmlstarlet ed -O -L
             -d '/_:settings/_:servers'
@@ -561,7 +572,6 @@
             -s '/_:settings/servers/server' -t elem -n password -v '${env.MAVEN_PASSWORD}'
             "$HOME/.m2/settings.xml"
         - cd build/install
-        - ls
         - mvn deploy -Dvtk.snapshots.repo=https://maven.pkg.github.com/vicentebolea/vtk-java -Dvtk.snapshots.repo.id=github
     environment:
         name: maven-upload
