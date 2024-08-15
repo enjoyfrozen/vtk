@@ -22,6 +22,7 @@
 #include "vtkObjectFactory.h"
 #include "vtkPartitionedDataSet.h"
 #include "vtkPartitionedDataSetCollection.h"
+#include "vtkSMPTools.h"
 #include "vtkUnsignedCharArray.h"
 #include "vtkVector.h"
 #include "vtkVectorOperators.h"
@@ -148,12 +149,6 @@ std::vector<vtkSmartPointer<vtkCellGrid>> vtkIOSSCellGridReaderInternal::GetElem
   vtkIOSSCellGridUtilities::GetShape(
     region, group_entity, cellShapeInfo, timestep, dg, grid, &this->Cache);
 
-#ifdef VTK_DBG_IOSS
-  vtkNew<vtkCellGridWriter> wri;
-  wri->SetFileName("/tmp/dgDbg.dg");
-  wri->SetInputDataObject(grid);
-  wri->Write();
-#endif
   // Add per-block attributes.
   // auto blockFieldSelection = self->GetFieldSelection(vtk_entity_type);
   // this->GetCellAttributes(blockFieldSelection, grid, dg, region, group_entity, handle, timestep,
@@ -169,12 +164,19 @@ std::vector<vtkSmartPointer<vtkCellGrid>> vtkIOSSCellGridReaderInternal::GetElem
   this->GetElementAttributes(elementFieldSelection, grid->GetAttributes(dg->GetClassName()), grid,
     dg, group_entity, region, handle, timestep, self->GetReadIds(), "");
 
-#if 0
   // TODO: Support displacements.
   if (self->GetApplyDisplacements())
   {
-    this->ApplyDisplacements(dataset, region, group_entity, handle, timestep);
+    this->ApplyDisplacements(grid, region, group_entity, handle, timestep);
   }
+
+#ifdef VTK_DBG_IOSS
+  vtkNew<vtkCellGridWriter> wri;
+  std::ostringstream dbgName;
+  dbgName << "/tmp/dbg_ioss_" << blockName << ".dg";
+  wri->SetFileName(dbgName.str().c_str());
+  wri->SetInputDataObject(0, grid);
+  wri->Write();
 #endif
 
   return { grid };
@@ -672,6 +674,123 @@ void vtkIOSSCellGridReaderInternal::GetElementAttributes(vtkDataArraySelection* 
       grid->AddCellAttribute(attribute);
     }
   }
+}
+
+bool vtkIOSSCellGridReaderInternal::ApplyDisplacements(
+  vtkCellGrid* grid,
+  Ioss::Region* region,
+  Ioss::GroupingEntity* group_entity,
+  const DatabaseHandle& handle,
+  int timestep)
+{
+  if (!group_entity)
+  {
+    return false;
+  }
+
+  if (group_entity->type() == Ioss::EntityType::STRUCTUREDBLOCK)
+  {
+    // CGNS
+    vtkErrorWithObjectMacro(grid, "CGNS is unsupported.");
+    return false;
+  }
+
+  // We rely on the exodus conventions that (1) points are global across
+  // all blocks; and (2) each grid holds a single type of cell.
+  auto cellTypes = grid->CellTypeArray();
+  if (cellTypes.empty())
+  {
+    vtkWarningWithObjectMacro(grid, "Exodus grid has no cells; thus no points to displace.");
+    return false;
+  }
+  auto shapeAtt = grid->GetShapeAttribute();
+  auto shapeInfo = shapeAtt->GetCellTypeInfo(cellTypes.front());
+  auto* coords = vtkDataArray::SafeDownCast(shapeInfo.ArraysByRole["values"_token]);
+
+  // For now, we only support exodus-formatted data (which has a single block of point coordinates).
+  // So we can look the cache up based on the node_block:
+  auto node_block = region->get_entity("nodeblock_1", Ioss::EntityType::NODEBLOCK);
+  auto& cache = this->Cache;
+  const auto xformPtsCacheKeyEnding =
+    std::to_string(timestep) + std::to_string(std::hash<double>{}(this->DisplacementMagnitude));
+  const auto xformPtsCacheKey = "__vtk_xformed_pts_" + xformPtsCacheKeyEnding;
+  if (auto* xformedPts = vtkDataArray::SafeDownCast(cache.Find(node_block, xformPtsCacheKey)))
+  {
+    auto* pointGroup = grid->GetAttributes("coordinates"_token);
+    assert(xformedPts->GetNumberOfTuples() == pointGroup->GetNumberOfTuples());
+    // Remove the undeflected points:
+    pointGroup->RemoveArray(coords->GetName());
+    // Add the deflected points:
+    pointGroup->SetScalars(xformedPts);
+    for (const auto& cellTypeToken : cellTypes)
+    {
+      shapeInfo = shapeAtt->GetCellTypeInfo(cellTypeToken);
+      shapeInfo.ArraysByRole["values"_token] = xformedPts;
+      if (!shapeAtt->SetCellTypeInfo(cellTypeToken, shapeInfo))
+      {
+        vtkErrorWithObjectMacro(grid, "Failed to update cell-type info for "
+          << cellTypeToken.Data() << " on " << shapeAtt->GetName().Data() << ".");
+      }
+    }
+    return true;
+  }
+
+  vtkSmartPointer<vtkDataArray> array;
+
+  auto displ_array_name = vtkIOSSUtilities::GetDisplacementFieldName(node_block);
+  if (displ_array_name.empty())
+  {
+    // NB: This is not an error; it may be that the simulation simply doesn't deform the mesh.
+    // vtkErrorWithObjectMacro(grid, "No displacement field.");
+    return false;
+  }
+  array = vtkDataArray::SafeDownCast(this->GetField(
+      displ_array_name, region, node_block, handle, timestep, nullptr, std::string()));
+
+  if (coords && array)
+  {
+    vtkIdType npts = coords->GetNumberOfTuples();
+    auto* xformedPts = coords->NewInstance();
+    xformedPts->SetName(coords->GetName());
+    xformedPts->SetNumberOfComponents(3);
+    xformedPts->SetNumberOfTuples(npts);
+    double scale = this->DisplacementMagnitude;
+    vtkSMPTools::For(0, npts, [&](vtkIdType begin, vtkIdType end)
+      {
+        vtkVector3d point{ 0.0 }, displ{ 0.0 };
+        for (vtkIdType ii = begin; ii != end; ++ii)
+        {
+          coords->GetTuple(ii, point.GetData());
+          array->GetTuple(ii, displ.GetData());
+          for (int jj = 0; jj < 3; ++jj)
+          {
+            displ[jj] *= scale;
+          }
+          xformedPts->SetTuple(ii, (point + displ).GetData());
+        }
+      }
+    );
+    auto* pointGroup = grid->GetAttributes("coordinates"_token);
+    // Remove the undeflected points:
+    pointGroup->RemoveArray(coords->GetName());
+    // Add the deflected points:
+    pointGroup->SetScalars(xformedPts);
+    for (const auto& cellTypeToken : cellTypes)
+    {
+      auto cellShapeInfo = shapeAtt->GetCellTypeInfo(cellTypeToken);
+      // auto* coords = cellShapeInfo.ArraysByRole["values"_token];
+      cellShapeInfo.ArraysByRole["values"_token] = xformedPts;
+      if (!shapeAtt->SetCellTypeInfo(cellTypeToken, cellShapeInfo))
+      {
+        vtkErrorWithObjectMacro(grid, "Failed to update cell-type info for "
+          << cellTypeToken.Data() << " on " << shapeAtt->GetName().Data() << ".");
+      }
+    }
+    cache.Insert(node_block, xformPtsCacheKey, xformedPts);
+    xformedPts->FastDelete();
+    return true;
+  }
+  return false;
 }
 
 VTK_ABI_NAMESPACE_END

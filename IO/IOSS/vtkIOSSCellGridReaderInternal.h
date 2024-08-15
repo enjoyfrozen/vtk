@@ -51,6 +51,9 @@ public:
     vtkCellGrid* grid, vtkDGCell* meta, Ioss::GroupingEntity* group_entity, Ioss::Region* region,
     const DatabaseHandle& handle, int timestep, bool read_ioss_ids,
     const std::string& cache_key_suffix);
+
+  bool ApplyDisplacements(vtkCellGrid* grid, Ioss::Region* region,
+    Ioss::GroupingEntity* group_entity, const DatabaseHandle& handle, int timestep);
 };
 
 VTK_ABI_NAMESPACE_END
