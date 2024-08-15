@@ -280,10 +280,10 @@ fedora39-mpi-ospray-python-qt-tbb:test:
     needs:
         - fedora39-mpi-ospray-python-qt-tbb:build
 
-fedora34-java8:build:
+fedora39-java8:build:
     extends:
-        - .fedora34_java
-        - .cmake_build_linux
+        - .fedora39_java
+        - .cmake_build_java_linux
         - .linux_builder_tags
         - .cmake_build_artifacts
         - .run_manually
@@ -292,10 +292,10 @@ fedora34-java8:build:
     variables:
       VTK_JAVA_VERSION: 1.8
 
-fedora34-java11:build:
+fedora39-java11:build:
     extends:
-        - .fedora34_java
-        - .cmake_build_linux
+        - .fedora39_java
+        - .cmake_build_java_linux
         - .linux_builder_tags
         - .cmake_build_artifacts
         - .run_manually
@@ -2275,7 +2275,7 @@ wheel-windows-python312-x86_64-osmesa:test:
 macos-x86_64-java8:build:
     extends:
         - .macos_x86_64_java
-        - .cmake_build_macos
+        - .cmake_build_java_macos
         - .macos_builder_tags
         - .cmake_build_artifacts
         - .run_manually
@@ -2286,7 +2286,7 @@ macos-x86_64-java8:build:
 macos-x86_64-java11:build:
     extends:
         - .macos_x86_64_java
-        - .cmake_build_macos
+        - .cmake_build_java_macos
         - .macos_builder_tags
         - .cmake_build_artifacts
         - .run_manually
@@ -2297,7 +2297,7 @@ macos-x86_64-java11:build:
 macos-arm64-java8:build:
     extends:
         - .macos_arm64_java
-        - .cmake_build_macos
+        - .cmake_build_java_macos
         - .macos_arm64_builder_tags
         - .cmake_build_artifacts
         - .run_manually
@@ -2308,7 +2308,7 @@ macos-arm64-java8:build:
 macos-arm64-java11:build:
     extends:
         - .macos_arm64_java
-        - .cmake_build_macos
+        - .cmake_build_java_macos
         - .macos_arm64_builder_tags
         - .cmake_build_artifacts
         - .run_manually
@@ -2319,7 +2319,7 @@ macos-arm64-java11:build:
 windows-x86_64-java8:build:
     extends:
         - .windows_vs2022_java
-        - .cmake_build_windows
+        - .cmake_build_java_windows
         - .windows_builder_tags
         - .cmake_build_artifacts
         - .run_manually
@@ -2330,7 +2330,7 @@ windows-x86_64-java8:build:
 windows-x86_64-java11:build:
     extends:
         - .windows_vs2022_java
-        - .cmake_build_windows
+        - .cmake_build_java_windows
         - .windows_builder_tags
         - .cmake_build_artifacts
         - .run_manually
@@ -2340,34 +2340,34 @@ windows-x86_64-java11:build:
 
 java8:upload:
     extends:
-        - .fedora34_java
+        - .fedora39_java
         - .java_upload_linux
         - .linux_builder_tags
         - .run_automatically
     dependencies:
-      - fedora34-java8:build
+      - fedora39-java8:build
       - macos-x86_64-java8:build
       - macos-arm64-java8:build
       - windows-x86_64-java8:build
     needs:
-      - fedora34-java8:build
+      - fedora39-java8:build
       - macos-x86_64-java8:build
       - macos-arm64-java8:build
       - windows-x86_64-java8:build
 
 java11:upload:
     extends:
-        - .fedora34_java
+        - .fedora39_java
         - .java_upload_linux
         - .linux_builder_tags
         - .run_automatically
     dependencies:
-      - fedora34-java11:build
+      - fedora39-java11:build
       - macos-x86_64-java11:build
       - macos-arm64-java11:build
       - windows-x86_64-java11:build
     needs:
-      - fedora34-java11:build
+      - fedora39-java11:build
       - macos-x86_64-java11:build
       - macos-arm64-java11:build
       - windows-x86_64-java11:build

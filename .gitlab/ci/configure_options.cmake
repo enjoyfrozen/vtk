@@ -48,6 +48,7 @@ configuration_flag(VTK_WRAP_PYTHON "python")
 # java
 configuration_flag(VTK_WRAP_JAVA "java")
 configuration_flag(VTK_JAVA_INSTALL "java")
+
 if ("$ENV{CMAKE_CONFIGURATION}" MATCHES "java")
   set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
   set(CMAKE_INSTALL_JNILIBDIR "" CACHE STRING "")

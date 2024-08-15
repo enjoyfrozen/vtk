@@ -263,14 +263,14 @@
     variables:
         CMAKE_CONFIGURATION: fedora39_mpi_renderless_ext_vtk
 
-.fedora34_java:
+.fedora39_java:
     extends:
         - .fedora39
         - .fedora_mpich_addon
 
     variables:
         CMAKE_BUILD_TYPE: Release
-        CMAKE_CONFIGURATION: fedora34_java
+        CMAKE_CONFIGURATION: fedora39_java
         VTK_INSTALL: 1
 
 .fedora39_mpi_python_qt_tbb:
@@ -520,6 +520,9 @@
     - '[ -n "$VENV_ROOT" ] && . $VENV_ROOT/bin/activate'
     # Enable the Intel compiler if required.
     - '[ "$CC" = "icx" ] && source /opt/intel/oneapi/setvars.sh || true'
+
+.before_script_java_linux: &before_script_java_linux
+    - *before_script_linux
     - cmake -P .gitlab/ci/download_maven.cmake
     - export PATH="$PWD/.gitlab/maven/bin:$PATH"
     - 'mvn dependency:get "-DrepoUrl=http://download.java.net/maven/2/" "-Dartifact=org.jogamp.gluegen:gluegen-rt:2.3.2"'
@@ -530,22 +533,23 @@
 .before_script_linux_deps: &before_script_linux_deps
     - '[[ "$CMAKE_CONFIGURATION" =~ "webgpu" ]] && cmake -P "$PWD/.gitlab/ci/download_dawn.cmake"'
 
+.script_linux: &script_linux
+    - .gitlab/ci/clang-tidy-cache.sh
+    - .gitlab/ci/sccache.sh
+    - sccache --start-server
+    - sccache --show-stats
+    - $LAUNCHER ctest -VV -S .gitlab/ci/ctest_configure.cmake
+    - $LAUNCHER ctest -VV -S .gitlab/ci/ctest_build.cmake &> $GIT_CLONE_PATH/compile_output.log
+    - sccache --show-stats
+    - exec .gitlab/ci/check_warnings.sh .
+
 .cmake_build_linux:
     stage: build
     extends: .warning_policy
-
     script:
         - *before_script_linux
         - *before_script_linux_deps
-        - .gitlab/ci/clang-tidy-cache.sh
-        - .gitlab/ci/sccache.sh
-        - sccache --start-server
-        - sccache --show-stats
-        - $LAUNCHER ctest -VV -S .gitlab/ci/ctest_configure.cmake
-        - $LAUNCHER ctest -VV -S .gitlab/ci/ctest_build.cmake &> $GIT_CLONE_PATH/compile_output.log
-        - sccache --show-stats
-        - exec .gitlab/ci/check_warnings.sh .
-
+        - *script_linux
     interruptible: true
 
 .cmake_test_linux:
@@ -651,6 +655,14 @@
         - ctest -V --output-on-failure -S .gitlab/ci/ctest_test_external_wheel.cmake
         - exec .gitlab/ci/check_warnings.sh ./Testing/ExternalWheel
     interruptible: true
+
+.cmake_build_java_linux:
+    stage: quick
+    extends: .cmake_build_linux
+    script:
+        - *before_script_linux
+        - *before_script_java_linux
+        - *script_linux
 
 .cmake_source_tarballs:
     stage: build
@@ -776,9 +788,9 @@
     interruptible: true
 
 .java_upload_linux:
-    stage: build
+    stage: quick
     script:
-        - *before_script_linux
+        - *before_script_java_linux
         - cp .gitlab/maven/conf/settings.xml "$HOME/.m2/settings.xml"
         - xmlstarlet ed -O -L
             -d '/_:settings/_:servers'
@@ -789,7 +801,6 @@
             -s '/_:settings/servers/server' -t elem -n password -v '${env.MAVEN_PASSWORD}'
             "$HOME/.m2/settings.xml"
         - cd build/install
-        - ls
         - mvn deploy -Dvtk.snapshots.repo=https://maven.pkg.github.com/vicentebolea/vtk-java -Dvtk.snapshots.repo.id=github
     environment:
         name: maven-upload

@@ -1411,6 +1411,17 @@ int VTK_PARSE_MAIN(int argc, char* argv[])
 
   for (i = 0; i < data->NumberOfSuperClasses; i++)
   {
+    const HierarchyEntry* entry;
+    if (hierarchyInfo)
+    {
+      entry = vtkParseHierarchy_FindEntry(hierarchyInfo, data->SuperClasses[i]);
+
+      if (!vtkParseHierarchy_IsTypeOf(hierarchyInfo, entry, "vtkObjectBase"))
+      {
+        continue;
+      }
+    }
+
     char* safe_name = vtkWrap_SafeSuperclassName(data->SuperClasses[i]);
     const char* safe_superclass = safe_name ? safe_name : data->SuperClasses[i];
 
@@ -1435,6 +1446,16 @@ int VTK_PARSE_MAIN(int argc, char* argv[])
   /* check our superclasses */
   for (i = 0; i < data->NumberOfSuperClasses; i++)
   {
+    const HierarchyEntry* entry;
+    if (hierarchyInfo)
+    {
+      entry = vtkParseHierarchy_FindEntry(hierarchyInfo, data->SuperClasses[i]);
+
+      if (!vtkParseHierarchy_IsTypeOf(hierarchyInfo, entry, "vtkObjectBase"))
+      {
+        continue;
+      }
+    }
     char* safe_name = vtkWrap_SafeSuperclassName(data->SuperClasses[i]);
     const char* safe_superclass = safe_name ? safe_name : data->SuperClasses[i];
 
