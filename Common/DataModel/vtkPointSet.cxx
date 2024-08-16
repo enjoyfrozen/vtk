@@ -29,7 +29,7 @@ vtkCxxSetObjectMacro(vtkPointSet, CellLocator, vtkAbstractCellLocator);
 vtkPointSet::vtkPointSet()
 {
   this->Editable = false;
-  this->Points = nullptr;
+  this->Points = vtkPoints::New();
   this->PointLocator = nullptr;
   this->CellLocator = nullptr;
 }
@@ -37,7 +37,7 @@ vtkPointSet::vtkPointSet()
 //------------------------------------------------------------------------------
 vtkPointSet::~vtkPointSet()
 {
-  this->Cleanup();
+  this->SetPoints(nullptr);
   this->SetPointLocator(nullptr);
   this->SetCellLocator(nullptr);
 }
@@ -64,21 +64,12 @@ void vtkPointSet::CopyStructure(vtkDataSet* ds)
 }
 
 //------------------------------------------------------------------------------
-void vtkPointSet::Cleanup()
-{
-  if (this->Points)
-  {
-    this->Points->UnRegister(this);
-    this->Points = nullptr;
-  }
-}
-
-//------------------------------------------------------------------------------
 void vtkPointSet::Initialize()
 {
   vtkDataSet::Initialize();
 
-  this->Cleanup();
+  // Reset points to new object in case they are being shared.
+  this->SetPoints(vtkNew<vtkPoints>{}.GetPointer());
 
   if (this->PointLocator)
   {
