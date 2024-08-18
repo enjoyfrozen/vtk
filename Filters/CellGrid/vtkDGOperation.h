@@ -2,6 +2,7 @@
 #define vtkDGOperation_h
 
 #include "vtkDGCell.h"
+#include "vtkDGOperationStateEntry.h"
 
 #include <array>
 
@@ -25,85 +26,8 @@ public:
     bool operator < (const RangeKey& other) const;
   };
 
-  /// Signature for a method to evaluate data on a single vtkDGCell::Source instance.
-  using CellRangeEvaluator =
-    std::function<void(vtkDataArray* cellIds, vtkDataArray* rst, vtkDoubleArray* result,
-      vtkTypeUInt64 begin, vtkTypeUInt64 end)>;
-
-  struct EvaluatorEntry;
-
-  /// Encapsulate the state required to evaluate DG cell-attributes.
-  ///
-  /// This object holds input vtkDGOperatorEntry objects, input array
-  /// pointers, and working-space tuples (std::vector/std::array ivars)
-  /// required to evaluate a single vtkCellAttribute on cells corresponding
-  /// to a single vtkDGCell::Source entry. vtkDGOperation holds one instance
-  /// of EvaluationState for each vtkDGCell::Source entry in a particular
-  /// vtkDGCell instance with arrays populated by a single vtkCellAttribute.
-  class EvaluationState
-  {
-  public:
-    EvaluationState(
-      // Attribute arrays/operation
-      vtkDGOperatorEntry& op,
-      vtkDataArray* connectivity,
-      vtkDataArray* values,
-      vtkDataArray* sideConn,
-      vtkTypeUInt64 offset,
-      // Shape arrays/operation
-      vtkDGOperatorEntry shapeGradient = vtkDGOperatorEntry(),
-      vtkDataArray* shapeConnectivity = nullptr,
-      vtkDataArray* shapeValues = nullptr)
-      : OpEntry(op)
-      , CellConnectivity(connectivity)
-      , CellValues(values)
-      , SideConnectivity(sideConn)
-      , Offset(offset)
-      , ShapeGradientEntry(shapeGradient)
-      , ShapeConnectivity(shapeConnectivity)
-      , ShapeValues(shapeValues)
-    {
-    }
-    EvaluationState(const EvaluationState& other) = default;
-
-    virtual void CloneInto(EvaluatorEntry& entry) const = 0;
-
-    vtkDGOperatorEntry OpEntry;
-    vtkDataArray* CellConnectivity;
-    vtkDataArray* CellValues;
-    vtkDataArray* SideConnectivity;
-    vtkTypeUInt64 Offset;
-    mutable std::array<vtkTypeUInt64, 2> SideTuple;
-    mutable std::array<double, 3> RST{{ 0, 0, 0 }};
-    mutable std::vector<vtkTypeUInt64> ConnTuple;
-    mutable std::vector<double> ValueTuple;
-    mutable std::vector<double> BasisTuple;
-    mutable vtkTypeUInt64 LastCellId{ ~0ULL };
-    mutable int NumberOfValuesPerFunction{ 0 };
-
-    vtkDGOperatorEntry ShapeGradientEntry;
-    vtkDataArray* ShapeConnectivity;
-    vtkDataArray* ShapeValues;
-    mutable std::vector<vtkTypeUInt64> ShapeConnTuple;
-    mutable std::vector<double> ShapeValueTuple;
-    mutable std::vector<double> ShapeBasisTuple;
-    mutable std::vector<double> Jacobian;
-    mutable int NumberOfShapeValuesPerFunction{ 0 };
-    mutable vtkTypeUInt64 LastShapeCellId{ ~0ULL };
-  };
-
-  struct EvaluatorEntry
-  {
-    EvaluatorEntry() = default;
-    EvaluatorEntry(const EvaluatorEntry& other);
-    EvaluatorEntry& operator = (EvaluatorEntry&& other) = default;
-    EvaluatorEntry& operator = (const EvaluatorEntry& other);
-    std::unique_ptr<EvaluationState> State;
-    CellRangeEvaluator Function;
-  };
-
   /// Container for functions that evaluate data on a single vtkDGCell::Source instance.
-  using EvaluatorMap = std::map<RangeKey, EvaluatorEntry>;
+  using EvaluatorMap = std::map<RangeKey, vtkDGOperationStateEntry>;
 
   /// Construct an operation object.
   ///
@@ -155,7 +79,7 @@ public:
   ///
   /// If \a sideSpecId == -1, then a function for \a cell->GetCellSpec()
   /// is returned (assuming the cells are not blanked).
-  CellRangeEvaluator GetEvaluatorForSideSpec(vtkDGCell* cell, int sideSpecId);
+  vtkDGCellRangeEvaluator GetEvaluatorForSideSpec(vtkDGCell* cell, int sideSpecId);
 
   /// Return the number of values generated per tuple each time an input cell-id and parameter-value are evaluated.
   int GetNumberOfResultComponents() const { return this->NumberOfResultComponents; }

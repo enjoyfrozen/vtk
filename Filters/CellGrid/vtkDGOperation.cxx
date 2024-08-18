@@ -3,6 +3,7 @@
 #include "vtkCellAttribute.h"
 #include "vtkCellGrid.h"
 #include "vtkDGCell.h"
+#include "vtkDGOperationEvaluator.h"
 #include "vtkDoubleArray.h"
 #include "vtkMatrix3x3.h"
 
@@ -73,415 +74,11 @@ bool vtkDGOperation::RangeKey::operator < (const RangeKey& other) const
   return this->Begin < other.Begin;
 }
 
-vtkDGOperation::EvaluatorEntry& vtkDGOperation::EvaluatorEntry::operator = (
-  vtkDGOperation::EvaluatorEntry const& other)
+vtkDGOperationStateEntry& vtkDGOperationStateEntry::operator = (
+  vtkDGOperationStateEntry const& other)
 {
   other.State->CloneInto(*this);
   return *this;
-}
-
-/// Whether degrees of freedom are shared between cells.
-enum SharingType
-{
-  SharedDOF,    //!< Degrees of freedom (DOF) are shared.
-  Discontinuous //!< Degrees of freedom are not shared.
-};
-
-/// Whether cells are stand-alone or sides of other cells.
-enum SideType
-{
-  Cells,
-  Sides
-};
-
-/// Which type of shape-function post-processing is required.
-enum ShapeModifier
-{
-  InverseJacobian, ///!< For HCURL
-  None, ///!< For HGRAD
-  ScaledJacobian ///!< For HDIV
-};
-
-template<SharingType DOFSharing, SideType SourceType, ShapeModifier Modifier, SharingType ShapeSharing = Discontinuous>
-class OpEval : public vtkDGOperation::EvaluationState
-{
-public:
-  OpEval(
-    // Attribute arrays/operation
-    vtkDGOperatorEntry& op,
-    vtkDataArray* connectivity,
-    vtkDataArray* values,
-    vtkDataArray* sideConn,
-    vtkTypeUInt64 offset,
-    // Shape arrays/operation
-    vtkDGOperatorEntry shapeGradient = vtkDGOperatorEntry(),
-    vtkDataArray* shapeConnectivity = nullptr,
-    vtkDataArray* shapeValues = nullptr)
-    : EvaluationState(op, connectivity, values, sideConn, offset, shapeGradient, shapeConnectivity, shapeValues)
-  {
-    if (!op)
-    {
-      throw std::logic_error("Must have non-null operator.");
-    }
-    if (Modifier != None && !shapeGradient)
-    {
-      throw std::logic_error("Must have non-null shape gradient operator.");
-    }
-    this->BasisTuple.resize(op.NumberOfFunctions * op.OperatorSize);
-    int ncc = 0;
-    if (this->CellConnectivity)
-    {
-      ncc = this->CellConnectivity->GetNumberOfComponents();
-      this->ConnTuple.resize(ncc);
-    }
-    else if (DOFSharing == SharedDOF)
-    {
-      throw std::logic_error("DOF sharing requires a cell-connectivity array.");
-    }
-    int nvc = this->CellValues->GetNumberOfComponents();
-    if (DOFSharing == SharedDOF)
-    {
-      this->NumberOfValuesPerFunction = nvc;
-      this->ValueTuple.resize(nvc * ncc);
-    }
-    else
-    {
-      this->NumberOfValuesPerFunction = nvc / this->OpEntry.NumberOfFunctions;
-      this->ValueTuple.resize(nvc);
-    }
-
-    // If we must also evaluate the shape-attribute modifier for each
-    // result value, then prepare tuples to hold shape data.
-    if (Modifier != None)
-    {
-      this->Jacobian.resize(9); // TODO: Handle 2-d Jacobians differently eventually.
-      this->ShapeBasisTuple.resize(shapeGradient.NumberOfFunctions * shapeGradient.OperatorSize);
-      int nsc = 0;
-      if (this->ShapeConnectivity)
-      {
-        nsc = this->ShapeConnectivity->GetNumberOfComponents();
-        this->ShapeConnTuple.resize(nsc);
-      }
-      else if (ShapeSharing == SharedDOF)
-      {
-        throw std::logic_error("Shape DOF-sharing requires a shape-connectivity array.");
-      }
-      int nvs = this->ShapeValues->GetNumberOfComponents();
-      if (ShapeSharing == SharedDOF)
-      {
-        this->NumberOfShapeValuesPerFunction = nvs;
-        this->ShapeValueTuple.resize(nvs * nsc);
-      }
-      else
-      {
-        this->NumberOfShapeValuesPerFunction = nvs / this->ShapeGradientEntry.NumberOfFunctions;
-        this->ShapeValueTuple.resize(nvs);
-      }
-    }
-  }
-
-  void CloneInto(vtkDGOperation::EvaluatorEntry& entry) const override;
-
-  /// Compute the inner product of this->BasisTuple and this->ValueTuple, storing
-  /// the result in the \a tt-th tuple of \a result.
-  void InnerProduct(vtkTypeUInt64 tt, vtkDoubleArray* result) const
-  {
-    int nc = result->GetNumberOfComponents();
-    double* xx = result->GetPointer(tt * nc);
-    // Zero out the tuple:
-    for (int ii = 0; ii < nc; ++ii)
-    {
-      xx[ii] = 0.;
-    }
-    for (int ii = 0; ii < this->NumberOfValuesPerFunction; ++ii)
-    {
-      for (int jj = 0; jj < this->OpEntry.OperatorSize; ++jj)
-      {
-        for (int kk = 0; kk < this->OpEntry.NumberOfFunctions; ++kk)
-        {
-          xx[ii * this->OpEntry.OperatorSize + jj] +=
-            this->BasisTuple[kk * this->OpEntry.OperatorSize + jj] *
-            this->ValueTuple[kk * this->NumberOfValuesPerFunction + ii];
-        }
-      }
-    }
-  }
-
-  /// Compute the inner product of this->ShapeBasisTuple and this->ShapeValueTuple, storing
-  /// the result in this->Jacobian.
-  void ShapeInnerProduct() const
-  {
-    constexpr int nc = 9; // TODO: Use cell dimension instead (9 for 3-d, 4 for 2-d)?
-    assert(nc == this->ShapeGradientEntry.OperatorSize * this->NumberOfShapeValuesPerFunction);
-    // Zero out the tuple:
-    for (int ii = 0; ii < nc; ++ii)
-    {
-      this->Jacobian[ii] = 0.;
-    }
-    for (int ii = 0; ii < this->NumberOfShapeValuesPerFunction; ++ii)
-    {
-      for (int jj = 0; jj < this->ShapeGradientEntry.OperatorSize; ++jj)
-      {
-        for (int kk = 0; kk < this->ShapeGradientEntry.NumberOfFunctions; ++kk)
-        {
-          this->Jacobian[jj + this->NumberOfShapeValuesPerFunction * ii] +=
-            this->ShapeBasisTuple[kk * this->ShapeGradientEntry.OperatorSize + jj] *
-            this->ShapeValueTuple[kk * this->NumberOfShapeValuesPerFunction + ii];
-        }
-      }
-    }
-  }
-
-  ///  Compute the shape-attribute Jacobian matrix, storing it in this->Jacobian.
-  void ComputeJacobian() const
-  {
-    if (ShapeSharing == SharedDOF)
-    {
-      if (this->LastShapeCellId != this->LastCellId)
-      {
-        this->ShapeConnectivity->GetUnsignedTuple(this->LastCellId, this->ShapeConnTuple.data());
-        std::size_t nc = this->ShapeConnTuple.size();
-        int nv = this->ShapeValues->GetNumberOfComponents();
-        for (std::size_t jj = 0; jj < nc; ++jj)
-        {
-          this->ShapeValues->GetTuple(this->ShapeConnTuple[jj], this->ShapeValueTuple.data() + nv * jj);
-        }
-        this->LastShapeCellId = this->LastCellId;
-      }
-    }
-    else if (ShapeSharing == Discontinuous)
-    {
-      if (this->LastShapeCellId != this->LastCellId)
-      {
-        this->ShapeValues->GetTuple(this->LastCellId, this->ShapeValueTuple.data());
-        this->LastShapeCellId = this->LastCellId;
-      }
-    }
-    else
-    {
-      throw std::logic_error("Invalid shape DOF-sharing enumerant.");
-    }
-    this->ShapeGradientEntry.Op(this->RST, this->ShapeBasisTuple);
-    this->ShapeInnerProduct();
-  }
-
-  // Compute the inverse Jacobian and multiply the \a ii-th tuple of result by it.
-  //
-  // This performs the multiplication in place.
-  void ApplyInverseJacobian(vtkTypeUInt64 ii, vtkDoubleArray* result) const
-  {
-    this->ComputeJacobian();
-    // Invert Jacobian and multiply result's ii-th tuple by it.
-    std::array<double, 9> inverseJacobian;
-    // Transpose for sanity; oddly, ApplyScaledJacobian and ApplyInverseJacobian
-    // cannot both use the same Jacobian matrix.
-    vtkMatrix3x3::Transpose(this->Jacobian.data(), this->Jacobian.data());
-    vtkMatrix3x3::Invert(this->Jacobian.data(), inverseJacobian.data());
-    std::array<double, 3> vec;
-    double* rr = result->GetPointer(0);
-    const int nc = result->GetNumberOfComponents();
-    if (nc % 3 != 0)
-    {
-      throw std::logic_error("Jacobian must apply to vector or matrix values.");
-    }
-    const vtkTypeUInt64 nn = ii * nc;
-    for (int vv = 0; vv < nc / 3; ++vv)
-    {
-      vtkTypeUInt64 mm = nn + 3 * vv;
-      vtkMatrix3x3::MultiplyPoint(inverseJacobian.data(), rr + mm, rr + mm);
-    }
-  }
-
-  // Compute the Jacobian scaled by its determinant; multiply the \a ii-th tuple of result by it.
-  //
-  // This performs the multiplication in place.
-  void ApplyScaledJacobian(vtkTypeUInt64 ii, vtkDoubleArray* result) const
-  {
-    this->ComputeJacobian();
-    // Compute the Jacobian and multiply result's ii-th tuple
-    // by the Jacobian normalized by its determinant.
-    double norm = 1.0 / vtkMatrix3x3::Determinant(this->Jacobian.data());
-    std::array<double, 3> vec;
-    double* rr = result->GetPointer(0);
-    const int nc = result->GetNumberOfComponents();
-    if (nc % 3 != 0)
-    {
-      throw std::logic_error("Jacobian must apply to vector or matrix values.");
-    }
-    const vtkTypeUInt64 nn = ii * nc;
-    for (int vv = 0; vv < nc / 3; ++vv)
-    {
-      vtkTypeUInt64 mm = nn + 3 * vv;
-      vec = {{rr[mm], rr[mm + 1], rr[mm + 2]}};
-      // TODO: Is this J^T * vec? or J*vec? Depends on row-major vs column-major Jacobian.
-      // clang-format off
-      rr[mm    ] = norm * (this->Jacobian[0] * vec[0] + this->Jacobian[1] * vec[1] + this->Jacobian[2] * vec[2]);
-      rr[mm + 1] = norm * (this->Jacobian[3] * vec[0] + this->Jacobian[4] * vec[1] + this->Jacobian[5] * vec[2]);
-      rr[mm + 2] = norm * (this->Jacobian[6] * vec[0] + this->Jacobian[7] * vec[1] + this->Jacobian[8] * vec[2]);
-      // clang-format on
-    }
-  }
-
-  void operator() (
-    vtkDataArray* cellIds, vtkDataArray* rst, vtkDoubleArray* result,
-    vtkTypeUInt64 begin, vtkTypeUInt64 end) const
-  {
-    vtkTypeUInt64 currId;
-    if (DOFSharing == SharedDOF && SourceType == Sides)
-    {
-      for (vtkTypeUInt64 ii = begin; ii != end; ++ii)
-      {
-        cellIds->GetUnsignedTuple(ii, &currId);
-        this->SideConnectivity->GetUnsignedTuple(currId - this->Offset, this->SideTuple.data());
-        currId = this->SideTuple[0];
-        if (this->LastCellId != currId)
-        {
-          this->CellConnectivity->GetUnsignedTuple(currId, this->ConnTuple.data());
-          std::size_t nc = this->ConnTuple.size();
-          int nv = this->CellValues->GetNumberOfComponents();
-          for (std::size_t jj = 0; jj < nc; ++jj)
-          {
-            this->CellValues->GetTuple(this->ConnTuple[jj], this->ValueTuple.data() + nv * jj);
-          }
-          this->LastCellId = currId;
-        }
-        rst->GetTuple(ii, this->RST.data());
-        this->OpEntry.Op(this->RST, this->BasisTuple);
-        this->InnerProduct(ii, result);
-        if (Modifier == InverseJacobian)
-        {
-          this->ApplyInverseJacobian(ii, result);
-        }
-        else if (Modifier == ScaledJacobian)
-        {
-          this->ApplyScaledJacobian(ii, result);
-        }
-      }
-    }
-    else if (DOFSharing == SharedDOF && SourceType == Cells)
-    {
-      for (vtkTypeUInt64 ii = begin; ii != end; ++ii)
-      {
-        cellIds->GetUnsignedTuple(ii, &currId);
-        if (this->LastCellId != currId)
-        {
-          // NB: We could ask for currId - this->Offset here, but perhaps we should
-          //     assume this->Offset will always be 0 for the CellSpec?
-          this->CellConnectivity->GetUnsignedTuple(currId, this->ConnTuple.data());
-          std::size_t nc = this->ConnTuple.size();
-          int nv = this->CellValues->GetNumberOfComponents();
-          for (std::size_t jj = 0; jj < nc; ++jj)
-          {
-            this->CellValues->GetTuple(this->ConnTuple[jj], this->ValueTuple.data() + nv * jj);
-          }
-          this->LastCellId = currId;
-        }
-        rst->GetTuple(ii, this->RST.data());
-        this->OpEntry.Op(this->RST, this->BasisTuple);
-        this->InnerProduct(ii, result);
-        if (Modifier == InverseJacobian)
-        {
-          this->ApplyInverseJacobian(ii, result);
-        }
-        else if (Modifier == ScaledJacobian)
-        {
-          this->ApplyScaledJacobian(ii, result);
-        }
-      }
-    }
-    else if (DOFSharing == Discontinuous && SourceType == Sides)
-    {
-      for (vtkTypeUInt64 ii = begin; ii != end; ++ii)
-      {
-        cellIds->GetUnsignedTuple(ii, &currId);
-        this->SideConnectivity->GetUnsignedTuple(currId - this->Offset, this->SideTuple.data());
-        currId = this->SideTuple[0];
-        if (this->LastCellId != currId)
-        {
-          this->CellValues->GetTuple(currId, this->ValueTuple.data());
-          this->LastCellId = currId;
-        }
-        rst->GetTuple(ii, this->RST.data());
-        this->OpEntry.Op(this->RST, this->BasisTuple);
-        this->InnerProduct(ii, result);
-        if (Modifier == InverseJacobian)
-        {
-          this->ApplyInverseJacobian(ii, result);
-        }
-        else if (Modifier == ScaledJacobian)
-        {
-          this->ApplyScaledJacobian(ii, result);
-        }
-      }
-    }
-    else // DOFSharing == Discontinuous && SourceType == Cells
-    {
-      for (vtkTypeUInt64 ii = begin; ii != end; ++ii)
-      {
-        cellIds->GetUnsignedTuple(ii, &currId);
-        // NB: We could subtract this->Offset from currId, but assume for
-        //     now that CellSpec always has an offset of 0.
-        if (this->LastCellId != currId)
-        {
-          this->CellValues->GetTuple(currId, this->ValueTuple.data());
-          this->LastCellId = currId;
-        }
-        rst->GetTuple(ii, this->RST.data());
-        this->OpEntry.Op(this->RST, this->BasisTuple);
-        this->InnerProduct(ii, result);
-        if (Modifier == InverseJacobian)
-        {
-          this->ApplyInverseJacobian(ii, result);
-        }
-        else if (Modifier == ScaledJacobian)
-        {
-          this->ApplyScaledJacobian(ii, result);
-        }
-      }
-    }
-  }
-};
-
-template<
-  SharingType DOFSharing,
-  SideType SourceType,
-  ShapeModifier Modifier,
-  SharingType ShapeSharing = Discontinuous>
-void prepEntry(
-  vtkDGOperation::EvaluatorEntry& entry,
-  vtkDGOperatorEntry op,
-  vtkDataArray* conn,
-  vtkDataArray* values,
-  vtkDataArray* sides,
-  vtkTypeUInt64 offset,
-  vtkDGOperatorEntry shapeGradient = vtkDGOperatorEntry(),
-  vtkDataArray* shapeConnectivity = nullptr,
-  vtkDataArray* shapeValues = nullptr
-)
-{
-  entry.State = std::unique_ptr<vtkDGOperation::EvaluationState>(
-    new OpEval<DOFSharing, SourceType, Modifier, ShapeSharing>(
-      op, conn, values, sides, offset, shapeGradient, shapeConnectivity, shapeValues));
-  entry.Function = [&entry](vtkDataArray* cellIds, vtkDataArray* rst, vtkDoubleArray* result,
-      vtkTypeUInt64 begin, vtkTypeUInt64 end)
-  {
-    auto* eval = reinterpret_cast<OpEval<DOFSharing, SourceType, Modifier, ShapeSharing>*>(
-      entry.State.get());
-    return (*eval)(cellIds, rst, result, begin, end);
-  };
-}
-
-template<
-  SharingType DOFSharing,
-  SideType SourceType,
-  ShapeModifier Modifier,
-  SharingType ShapeSharing>
-void OpEval<DOFSharing, SourceType, Modifier, ShapeSharing>::CloneInto(vtkDGOperation::EvaluatorEntry& entry) const
-{
-  prepEntry<DOFSharing, SourceType, Modifier, ShapeSharing>(
-    entry, this->OpEntry, this->CellConnectivity, this->CellValues,
-    this->SideConnectivity, this->Offset,
-    this->ShapeGradientEntry, this->ShapeConnectivity, this->ShapeValues);
 }
 
 vtkDGOperation::vtkDGOperation()
@@ -562,9 +159,9 @@ bool vtkDGOperation::Evaluate(vtkDataArray* cellIds, vtkDataArray* rst, vtkDoubl
   // result->SetNumberOfTuples(nn);
 
   bool ok = true;
-  CellRangeEvaluator currEval;
+  vtkDGCellRangeEvaluator currEval;
   RangeKey key;
-  std::map<RangeKey, EvaluatorEntry>::const_iterator eit;
+  std::map<RangeKey, vtkDGOperationStateEntry>::const_iterator eit;
   for (vtkTypeUInt64 ii = 0; ii < nn; /* do nothing */)
   {
     cellIds->GetUnsignedTuple(ii, &key.Begin);
@@ -597,7 +194,7 @@ bool vtkDGOperation::Evaluate(vtkDataArray* cellIds, vtkDataArray* rst, vtkDoubl
   return ok;
 }
 
-vtkDGOperation::CellRangeEvaluator vtkDGOperation::GetEvaluatorForSideSpec(vtkDGCell* cell, int sideSpecId)
+vtkDGCellRangeEvaluator vtkDGOperation::GetEvaluatorForSideSpec(vtkDGCell* cell, int sideSpecId)
 {
   if (!cell || sideSpecId < -1 || sideSpecId >= static_cast<int>(cell->GetSideSpecs().size()))
   {
@@ -637,7 +234,7 @@ void vtkDGOperation::AddSource(
   vtkDataArray* shapeConn = nullptr;
   vtkDataArray* shapeValues = nullptr;
   vtkDGOperatorEntry shapeGradient;
-  ShapeModifier shapeMod = None;
+  vtkDGShapeModifier shapeMod = None;
   if (includeShape)
   {
     if (cellTypeInfo.FunctionSpace == "HCURL")
@@ -661,7 +258,7 @@ void vtkDGOperation::AddSource(
       throw std::logic_error("No gradient operation for shape attribute.");
     }
   }
-  EvaluatorEntry entry;
+  vtkDGOperationStateEntry entry;
   // This is one huge ugly template-parameter dispatch.
   if (isCellSpec)
   {
@@ -672,7 +269,7 @@ void vtkDGOperation::AddSource(
       {
       case None:
         {
-          prepEntry<SharedDOF, Cells, None>(
+          vtkDGOperationEvaluator<SharedDOF, Cells, None>::prepEntry(
             entry, op, cellSpec.Connectivity, values, nullptr, source.Offset);
         }
         break;
@@ -680,13 +277,13 @@ void vtkDGOperation::AddSource(
         {
           if (shapeSharing)
           {
-            prepEntry<SharedDOF, Cells, InverseJacobian, SharedDOF>(
+            vtkDGOperationEvaluator<SharedDOF, Cells, InverseJacobian, SharedDOF>::prepEntry(
               entry, op, cellSpec.Connectivity, values, nullptr, source.Offset,
               shapeGradient, shapeConn, shapeValues);
           }
           else
           {
-            prepEntry<SharedDOF, Cells, InverseJacobian, Discontinuous>(
+            vtkDGOperationEvaluator<SharedDOF, Cells, InverseJacobian, Discontinuous>::prepEntry(
               entry, op, cellSpec.Connectivity, values, nullptr, source.Offset,
               shapeGradient, nullptr, shapeValues);
           }
@@ -696,13 +293,13 @@ void vtkDGOperation::AddSource(
         {
           if (shapeSharing)
           {
-            prepEntry<SharedDOF, Cells, ScaledJacobian, SharedDOF>(
+            vtkDGOperationEvaluator<SharedDOF, Cells, ScaledJacobian, SharedDOF>::prepEntry(
               entry, op, cellSpec.Connectivity, values, nullptr, source.Offset,
               shapeGradient, shapeConn, shapeValues);
           }
           else
           {
-            prepEntry<SharedDOF, Cells, ScaledJacobian, Discontinuous>(
+            vtkDGOperationEvaluator<SharedDOF, Cells, ScaledJacobian, Discontinuous>::prepEntry(
               entry, op, cellSpec.Connectivity, values, nullptr, source.Offset,
               shapeGradient, nullptr, shapeValues);
           }
@@ -717,7 +314,7 @@ void vtkDGOperation::AddSource(
       {
       case None:
         {
-          prepEntry<Discontinuous, Cells, None>(
+          vtkDGOperationEvaluator<Discontinuous, Cells, None>::prepEntry(
             entry, op, nullptr, values, nullptr, source.Offset);
         }
         break;
@@ -725,13 +322,13 @@ void vtkDGOperation::AddSource(
         {
           if (shapeSharing)
           {
-            prepEntry<Discontinuous, Cells, InverseJacobian, SharedDOF>(
+            vtkDGOperationEvaluator<Discontinuous, Cells, InverseJacobian, SharedDOF>::prepEntry(
               entry, op, nullptr, values, nullptr, source.Offset,
               shapeGradient, cellSpec.Connectivity, shapeValues);
           }
           else
           {
-            prepEntry<Discontinuous, Cells, InverseJacobian, Discontinuous>(
+            vtkDGOperationEvaluator<Discontinuous, Cells, InverseJacobian, Discontinuous>::prepEntry(
               entry, op, nullptr, values, nullptr, source.Offset,
               shapeGradient, nullptr, shapeValues);
           }
@@ -741,13 +338,13 @@ void vtkDGOperation::AddSource(
         {
           if (shapeSharing)
           {
-            prepEntry<Discontinuous, Cells, ScaledJacobian, SharedDOF>(
+            vtkDGOperationEvaluator<Discontinuous, Cells, ScaledJacobian, SharedDOF>::prepEntry(
               entry, op, nullptr, values, nullptr, source.Offset,
               shapeGradient, cellSpec.Connectivity, shapeValues);
           }
           else
           {
-            prepEntry<Discontinuous, Cells, ScaledJacobian, Discontinuous>(
+            vtkDGOperationEvaluator<Discontinuous, Cells, ScaledJacobian, Discontinuous>::prepEntry(
               entry, op, nullptr, values, nullptr, source.Offset,
               shapeGradient, nullptr, shapeValues);
           }
@@ -766,7 +363,7 @@ void vtkDGOperation::AddSource(
       {
       case None:
         {
-          prepEntry<SharedDOF, Sides, None>(
+          vtkDGOperationEvaluator<SharedDOF, Sides, None>::prepEntry(
             entry, op, cellSpec.Connectivity, values, source.Connectivity, source.Offset);
         }
         break;
@@ -774,13 +371,13 @@ void vtkDGOperation::AddSource(
         {
           if (shapeSharing)
           {
-            prepEntry<SharedDOF, Sides, InverseJacobian, SharedDOF>(
+            vtkDGOperationEvaluator<SharedDOF, Sides, InverseJacobian, SharedDOF>::prepEntry(
               entry, op, cellSpec.Connectivity, values, source.Connectivity, source.Offset,
               shapeGradient, shapeConn, shapeValues);
           }
           else
           {
-            prepEntry<SharedDOF, Sides, InverseJacobian, Discontinuous>(
+            vtkDGOperationEvaluator<SharedDOF, Sides, InverseJacobian, Discontinuous>::prepEntry(
               entry, op, cellSpec.Connectivity, values, source.Connectivity, source.Offset,
               shapeGradient, nullptr, shapeValues);
           }
@@ -790,13 +387,13 @@ void vtkDGOperation::AddSource(
         {
           if (shapeSharing)
           {
-            prepEntry<SharedDOF, Sides, ScaledJacobian, SharedDOF>(
+            vtkDGOperationEvaluator<SharedDOF, Sides, ScaledJacobian, SharedDOF>::prepEntry(
               entry, op, cellSpec.Connectivity, values, source.Connectivity, source.Offset,
               shapeGradient, shapeConn, shapeValues);
           }
           else
           {
-            prepEntry<SharedDOF, Sides, ScaledJacobian, Discontinuous>(
+            vtkDGOperationEvaluator<SharedDOF, Sides, ScaledJacobian, Discontinuous>::prepEntry(
               entry, op, cellSpec.Connectivity, values, source.Connectivity, source.Offset,
               shapeGradient, nullptr, shapeValues);
           }
@@ -811,7 +408,7 @@ void vtkDGOperation::AddSource(
       {
       case None:
         {
-          prepEntry<Discontinuous, Sides, None>(
+          vtkDGOperationEvaluator<Discontinuous, Sides, None>::prepEntry(
             entry, op, nullptr, values, source.Connectivity, source.Offset);
         }
         break;
@@ -819,13 +416,13 @@ void vtkDGOperation::AddSource(
         {
           if (shapeSharing)
           {
-            prepEntry<Discontinuous, Sides, InverseJacobian, SharedDOF>(
+            vtkDGOperationEvaluator<Discontinuous, Sides, InverseJacobian, SharedDOF>::prepEntry(
               entry, op, nullptr, values, source.Connectivity, source.Offset,
               shapeGradient, shapeConn, shapeValues);
           }
           else
           {
-            prepEntry<Discontinuous, Sides, InverseJacobian, Discontinuous>(
+            vtkDGOperationEvaluator<Discontinuous, Sides, InverseJacobian, Discontinuous>::prepEntry(
               entry, op, nullptr, values, source.Connectivity, source.Offset,
               shapeGradient, nullptr, shapeValues);
           }
@@ -835,13 +432,13 @@ void vtkDGOperation::AddSource(
         {
           if (shapeSharing)
           {
-            prepEntry<Discontinuous, Sides, ScaledJacobian, SharedDOF>(
+            vtkDGOperationEvaluator<Discontinuous, Sides, ScaledJacobian, SharedDOF>::prepEntry(
               entry, op, nullptr, values, source.Connectivity, source.Offset,
               shapeGradient, shapeConn, shapeValues);
           }
           else
           {
-            prepEntry<Discontinuous, Sides, ScaledJacobian, Discontinuous>(
+            vtkDGOperationEvaluator<Discontinuous, Sides, ScaledJacobian, Discontinuous>::prepEntry(
               entry, op, nullptr, values, source.Connectivity, source.Offset,
               shapeGradient, nullptr, shapeValues);
           }
