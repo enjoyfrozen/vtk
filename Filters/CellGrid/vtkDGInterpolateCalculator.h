@@ -11,7 +11,6 @@
 #include "vtkCellAttribute.h"          // For CellTypeInfo.
 #include "vtkDGCell.h"                 // For ivar.
 #include "vtkDGOperation.h"            // For ivars.
-#include "vtkDGOperatorEntry.h"        // For ivar.
 #include "vtkInterpolateCalculator.h"
 #include "vtkSmartPointer.h"           // For ivar.
 #include "vtkStringToken.h"            // For ivar.
@@ -76,16 +75,6 @@ protected:
   vtkNew<vtkDoubleArray> LocalRST;
   vtkNew<vtkDoubleArray> LocalField;
 
-  /// Array pointers populated by PrepareForGrid.
-  ///
-  /// These arrays are used to look up values used to interpolate within cells.
-  /// The Connectivity arrays should return vtkDataArray::IsIntegral() == true.
-  // vtkSmartPointer<vtkDataArray> FieldConnectivity;
-  // vtkSmartPointer<vtkDataArray> FieldValues;
-  // vtkSmartPointer<vtkDataArray> ShapeConnectivity;
-  // vtkSmartPointer<vtkDataArray> ShapeValues;
-
-
   /// The parametric dimension of the current cell-type.
   int Dimension{ 3 };
   /// The shape of the current cell type.
@@ -95,19 +84,6 @@ protected:
   ///
   /// This is populated by PrepareForGrid.
   vtkCellAttribute::CellTypeInfo FieldCellInfo;
-
-#if 0
-  /// The basis-function operator to use.
-  vtkDGOperatorEntry FieldBasisOp;
-  vtkDGOperatorEntry FieldGradientOp;
-
-  /// The function space, basis, etc. of the shape attribute.
-  vtkCellAttribute::CellTypeInfo ShapeCellInfo;
-
-  /// The shape-basis operators (if any are needed).
-  vtkDGOperatorEntry ShapeBasisOp;
-  vtkDGOperatorEntry ShapeGradientOp;
-#endif
 
 private:
   vtkDGInterpolateCalculator(const vtkDGInterpolateCalculator&) = delete;

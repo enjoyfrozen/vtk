@@ -135,7 +135,19 @@ bool vtkDGOperation::Prepare(
     return false;
   }
 
-  this->NumberOfResultComponents = cellAttribute->GetNumberOfComponents();
+  // Figure out the number of components per entry in the result.
+  // When operationName == "Basis", this is simply the number of
+  // components in the cell-attribute. But for "GradientBasis" and
+  // other operators, it depends on the product of two matrices
+  // of varying sizes.
+  vtkAbstractArray* values = cellTypeInfo.ArraysByRole["values"_token];
+  int numValPerFunction = values ? values->GetNumberOfComponents() : cellAttribute->GetNumberOfComponents();
+  if (!cellTypeInfo.DOFSharing.IsValid())
+  {
+    numValPerFunction = numValPerFunction / opEntry.NumberOfFunctions;
+  }
+  this->NumberOfResultComponents = opEntry.OperatorSize * numValPerFunction;
+
   this->AddSource(grid, cellType, ~0, cellAttribute, cellTypeInfo, opEntry, includeShape);
   std::size_t numSideSpecs = cellType->GetSideSpecs().size();
   for (std::size_t sideSpecIdx = 0; sideSpecIdx < numSideSpecs; ++sideSpecIdx)

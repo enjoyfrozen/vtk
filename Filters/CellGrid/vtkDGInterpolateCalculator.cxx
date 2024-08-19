@@ -4,8 +4,6 @@
 #include "vtkCellAttribute.h"
 #include "vtkCellGrid.h"
 #include "vtkCellMetadata.h"
-#include "vtkDGInvokeOperator.h"
-#include "vtkDGOperatorEntry.h"
 #include "vtkDoubleArray.h"
 #include "vtkIdTypeArray.h"
 #include "vtkObjectFactory.h"

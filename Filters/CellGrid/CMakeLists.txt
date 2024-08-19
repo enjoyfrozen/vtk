@@ -57,7 +57,6 @@ set(classes
   vtkDGHDivOperators
   vtkDGOperatorEntry
   vtkDGOperation
-  vtkDGInvokeOperator
 )
 
 # Encode the basis implementations as strings we can
