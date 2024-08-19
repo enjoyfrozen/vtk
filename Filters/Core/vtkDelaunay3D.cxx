@@ -438,16 +438,19 @@ int vtkDelaunay3D::RequestData(vtkInformation* vtkNotUsed(request),
 
   // Initialize; check input
   //
-  if ((inPoints = input->GetPoints()) == nullptr)
-  {
-    vtkWarningMacro("Cannot triangulate; no input points");
-    return 1;
-  }
-
+  inPoints = input->GetPoints();
   numPoints = inPoints->GetNumberOfPoints();
   if (numPoints == 0)
   {
     vtkWarningMacro("Cannot triangulate; no input points");
+    if (this->OutputPointsPrecision == vtkAlgorithm::SINGLE_PRECISION)
+    {
+      output->GetPoints()->SetDataType(VTK_FLOAT);
+    }
+    else if (this->OutputPointsPrecision == vtkAlgorithm::DOUBLE_PRECISION)
+    {
+      output->GetPoints()->SetDataType(VTK_DOUBLE);
+    }
     return 1;
   }
 
