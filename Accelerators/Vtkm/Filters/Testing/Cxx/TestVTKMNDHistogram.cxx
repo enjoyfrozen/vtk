@@ -30,38 +30,40 @@ const std::vector<std::vector<size_t>> resultBins = {
 const std::vector<size_t> resultFrequency = { 2, 1, 1, 1, 1, 1, 1, 2 };
 const int nData = 10;
 const std::vector<size_t> bins = { 4, 5, 6, 7 };
-void AddArrayToVTKData(
-  std::string scalarName, vtkDataSetAttributes* pd, double* data, vtkIdType size)
-{
-  vtkNew<vtkDoubleArray> scalars;
-  scalars->SetArray(data, size, 1);
-  scalars->SetName(scalarName.c_str());
-  pd->AddArray(scalars);
-}
 
-void MakeTestDataset(vtkDataSet* dataset)
+vtkNew<vtkPolyData> MakeTestDataset()
 {
-  static double T0[nData], T1[nData], T2[nData], T3[nData];
-  for (int i = 0; i < nData; i++)
+  vtkNew<vtkPolyData> dataset;
+
+  vtkNew<vtkPoints> points;
+  points->SetNumberOfPoints(nData);
+  for (int i = 0; i < nData; ++i)
   {
-    T0[i] = i * 1.0;
-    T1[i] = i * 2.0;
-    T2[i] = i * 3.0;
-    T3[i] = i * 4.0;
+    points->SetPoint(i, i, 0.0, 0.0);
   }
+  dataset->SetPoints(points);
 
   vtkPointData* pd = dataset->GetPointData();
-  AddArrayToVTKData(arrayNames[0], pd, T0, static_cast<vtkIdType>(nData));
-  AddArrayToVTKData(arrayNames[1], pd, T1, static_cast<vtkIdType>(nData));
-  AddArrayToVTKData(arrayNames[2], pd, T2, static_cast<vtkIdType>(nData));
-  AddArrayToVTKData(arrayNames[3], pd, T3, static_cast<vtkIdType>(nData));
+  for (int field = 0; field < 4; ++field)
+  {
+    vtkNew<vtkDoubleArray> scalars;
+    scalars->SetName(arrayNames[field].c_str());
+    scalars->SetNumberOfComponents(1);
+    scalars->SetNumberOfTuples(nData);
+    for (int i = 0; i < nData; ++i)
+    {
+      scalars->SetTuple1(i, i * (field + 1.0));
+    }
+    pd->AddArray(scalars);
+  }
+
+  return dataset;
 }
 }
 
 int TestVTKMNDHistogram(int, char*[])
 {
-  vtkNew<vtkPolyData> ds;
-  MakeTestDataset(ds);
+  auto ds = MakeTestDataset();
 
   vtkNew<vtkmNDHistogram> filter;
   filter->SetInputData(ds);
