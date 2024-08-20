@@ -1345,7 +1345,7 @@ vtk_module_install_headers(
 
 vtk_module_add_module(VTK::hdf5
   HEADER_ONLY)
-target_link_libraries(hdf5
+vtk_module_link(VTK::hdf5
   INTERFACE
     vtkhdf5_src
     vtkhdf5_hl_src)

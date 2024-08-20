@@ -122,7 +122,9 @@ vtk_module_add_module(VTK::zlib
     HEADERS ${ZLIB_PUBLIC_HDRS}
     PRIVATE_HEADERS ${ZLIB_PRIVATE_HDRS}
     HEADERS_SUBDIR "vtkzlib")
-set_target_properties(zlib PROPERTIES DEFINE_SYMBOL ZLIB_DLL)
+vtk_module_set_property(VTK::zlib
+    PROPERTY    DEFINE_SYMBOL
+    VALUE       ZLIB_DLL)
 
 if (FALSE) # XXX(kitware): skip all the original build/install commands
 

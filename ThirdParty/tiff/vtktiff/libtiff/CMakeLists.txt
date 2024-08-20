@@ -204,8 +204,9 @@ vtk_module_add_module(VTK::tiff
   PRIVATE_HEADERS ${tiff_private_HEADERS})
 endif ()
 if(HAVE_LD_VERSION_SCRIPT)
-  set_target_properties(tiff PROPERTIES LINK_FLAGS
-                        "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/libtiff.map")
+  vtk_module_set_property(VTK::tiff APPEND
+    PROPERTY  LINK_FLAGS
+    VALUE     "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/libtiff.map")
 endif()
 
 if (FALSE) # XXX(kitware): VTK handles installation.

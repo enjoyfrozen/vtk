@@ -42,6 +42,6 @@ vtk_module_include(VTK::h5part
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/src>")
 
 include(GenerateExportHeader)
-generate_export_header(h5part
+generate_export_header(vtkh5part
   EXPORT_MACRO_NAME VTKH5PART_EXPORT
   EXPORT_FILE_NAME src/vtkh5part_export.h)

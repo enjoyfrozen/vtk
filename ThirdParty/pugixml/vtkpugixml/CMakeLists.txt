@@ -228,7 +228,7 @@ vtk_module_add_module(VTK::pugixml
 vtk_module_include(VTK::pugixml
   PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/src>")
-target_compile_features(pugixml
+vtk_module_compile_features(VTK::pugixml
   PUBLIC
     cxx_std_11)
 endif ()
