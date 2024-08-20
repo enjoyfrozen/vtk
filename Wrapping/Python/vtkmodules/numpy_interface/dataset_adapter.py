@@ -588,7 +588,7 @@ class VTKCompositeDataArray(object):
         res = []
         if type(other) == VTKCompositeDataArray:
             for a1, a2 in zip(self._Arrays, other.Arrays):
-                if a1 is not NoneArray and a2 is notNoneArray:
+                if a1 is not NoneArray and a2 is not NoneArray:
                     l = reshape_append_ones(a2,a1)
                     res.append(op(l[0],l[1]))
                 else:
