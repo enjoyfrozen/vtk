@@ -345,6 +345,12 @@ private:
    */
   void SubmitCommandBuffer(int count, wgpu::CommandBuffer* commandBuffer);
 
+  /**
+   * Copies the current framebuffer to the offscreen buffer (used for screenshotting the render
+   * window for example)
+   */
+  void CopyFramebufferToOffscreenBuffer();
+
   // Render textures acquired by the user on this render window. They are kept here in case the
   // render window is resized, in which case, we'll need to resize the render textures --> We need
   // access to the textures
