@@ -1,11 +1,11 @@
 // SPDX-FileCopyrightText: Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
 // SPDX-License-Identifier: BSD-3-Clause
 /**
- * @class   vtkDGArrayOutputIterator
+ * @class   vtkDGArrayOutputAccessor
  * @brief   Store values interpolated from DG cells into a vtkDoubleArray instance.
  */
-#ifndef vtkDGArrayOutputIterator_h
-#define vtkDGArrayOutputIterator_h
+#ifndef vtkDGArrayOutputAccessor_h
+#define vtkDGArrayOutputAccessor_h
 
 #include "vtkVector.h" // For API.
 #include "vtkFiltersCellGridModule.h" // For export macro.
@@ -16,14 +16,14 @@ VTK_ABI_NAMESPACE_BEGIN
 
 class vtkDoubleArray;
 
-class VTKFILTERSCELLGRID_EXPORT vtkDGArrayOutputIterator
+class VTKFILTERSCELLGRID_EXPORT vtkDGArrayOutputAccessor
 {
 public:
-  vtkDGArrayOutputIterator(vtkDoubleArray* result);
-  vtkDGArrayOutputIterator(const vtkDGArrayOutputIterator& other);
-  ~vtkDGArrayOutputIterator();
+  vtkDGArrayOutputAccessor(vtkDoubleArray* result);
+  vtkDGArrayOutputAccessor(const vtkDGArrayOutputAccessor& other);
+  ~vtkDGArrayOutputAccessor();
 
-  vtkDGArrayOutputIterator& operator=(const vtkDGArrayOutputIterator& other);
+  vtkDGArrayOutputAccessor& operator=(const vtkDGArrayOutputAccessor& other);
 
   /// Expose a tuple in a vtkDoubleArray as an object with a size() method
   /// to satisfy requirements of the output iterator API.
@@ -60,7 +60,7 @@ public:
   vtkTypeUInt64 operator++();
   vtkTypeUInt64 operator++(int);
 
-  vtkDGArrayOutputIterator& operator+=(vtkTypeUInt64 count);
+  vtkDGArrayOutputAccessor& operator+=(vtkTypeUInt64 count);
 
 protected:
   vtkTypeUInt64 Key{ 0 };
@@ -69,4 +69,4 @@ protected:
 
 VTK_ABI_NAMESPACE_END
 
-#endif // vtkDGArrayOutputIterator_h
+#endif // vtkDGArrayOutputAccessor_h

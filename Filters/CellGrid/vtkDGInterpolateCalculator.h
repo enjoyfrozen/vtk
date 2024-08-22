@@ -11,8 +11,8 @@
 #include "vtkCellAttribute.h"          // For CellTypeInfo.
 #include "vtkDGCell.h"                 // For ivar.
 #include "vtkDGOperation.h"            // For ivars.
-#include "vtkDGArraysInputIterator.h"  // For ivars.
-#include "vtkDGArrayOutputIterator.h"  // For ivars.
+#include "vtkDGArraysInputAccessor.h"  // For ivars.
+#include "vtkDGArrayOutputAccessor.h"  // For ivars.
 #include "vtkInterpolateCalculator.h"
 #include "vtkSmartPointer.h"           // For ivar.
 #include "vtkStringToken.h"            // For ivar.
@@ -65,9 +65,9 @@ protected:
   vtkCellAttribute* Field{ nullptr };
 
   /// Used to compute a field value for a cell.
-  vtkDGOperation<vtkDGArraysInputIterator, vtkDGArrayOutputIterator> FieldEvaluator;
+  vtkDGOperation<vtkDGArraysInputAccessor, vtkDGArrayOutputAccessor> FieldEvaluator;
   /// Used to compute a field derivative for a cell.
-  vtkDGOperation<vtkDGArraysInputIterator, vtkDGArrayOutputIterator> FieldDerivative;
+  vtkDGOperation<vtkDGArraysInputAccessor, vtkDGArrayOutputAccessor> FieldDerivative;
 
   /// Used when an array passed to Evaluate()/EvaluateDerivative() is not a double-array.
   ///

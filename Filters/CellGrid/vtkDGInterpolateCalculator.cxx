@@ -51,8 +51,8 @@ void vtkDGInterpolateCalculator::Evaluate(
   ids->SetNumberOfTuples(1);
   ids->SetValue(0, cellId);
   // value.resize(this->FieldBasisOp.OperatorSize * );
-  vtkDGArraysInputIterator inIt(ids, vrst);
-  vtkDGArrayOutputIterator outIt(result);
+  vtkDGArraysInputAccessor inIt(ids, vrst);
+  vtkDGArrayOutputAccessor outIt(result);
   this->FieldEvaluator.Evaluate(inIt, outIt, 0, 1);
 }
 
@@ -70,8 +70,8 @@ void vtkDGInterpolateCalculator::Evaluate(
   vtkIdType numEvals = cellIds->GetNumberOfTuples();
   dresult->SetNumberOfComponents(this->Field->GetNumberOfComponents());
   dresult->SetNumberOfTuples(cellIds->GetNumberOfTuples());
-  vtkDGArraysInputIterator inIt(cellIds, rst);
-  vtkDGArrayOutputIterator outIt(dresult);
+  vtkDGArraysInputAccessor inIt(cellIds, rst);
+  vtkDGArrayOutputAccessor outIt(dresult);
   this->FieldEvaluator.Evaluate(inIt, outIt, 0, numEvals);
 
   // Finally, if we were given a non-vtkDoubleArray, copy the results
@@ -121,8 +121,8 @@ void vtkDGInterpolateCalculator::EvaluateDerivative(
   ids->SetNumberOfTuples(1);
   ids->SetValue(0, cellId);
   // value.resize(this->FieldBasisOp.OperatorSize * );
-  vtkDGArraysInputIterator inIt(ids, vrst);
-  vtkDGArrayOutputIterator outIt(result);
+  vtkDGArraysInputAccessor inIt(ids, vrst);
+  vtkDGArrayOutputAccessor outIt(result);
   this->FieldDerivative.Evaluate(inIt, outIt, 0, 1);
 }
 
@@ -143,8 +143,8 @@ void vtkDGInterpolateCalculator::EvaluateDerivative(
     dresult = this->LocalField.GetPointer();
   }
 
-  vtkDGArraysInputIterator inIt(cellIds, rst);
-  vtkDGArrayOutputIterator outIt(dresult);
+  vtkDGArraysInputAccessor inIt(cellIds, rst);
+  vtkDGArrayOutputAccessor outIt(dresult);
   this->FieldDerivative.Evaluate(inIt, outIt, 0, numEvals);
 
   if (dresult != result)

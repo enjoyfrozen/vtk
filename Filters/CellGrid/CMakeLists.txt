@@ -57,8 +57,8 @@ set(classes
   vtkDGHDivOperators
   vtkDGOperatorEntry
   vtkDGOperation
-  vtkDGArraysInputIterator
-  vtkDGArrayOutputIterator
+  vtkDGArraysInputAccessor
+  vtkDGArrayOutputAccessor
 )
 
 # Header-only classes

@@ -5,8 +5,8 @@
 #include "vtkCellAttribute.h"
 #include "vtkCellGrid.h"
 #include "vtkDGCell.h"
-#include "vtkDGArraysInputIterator.h"
-#include "vtkDGArrayOutputIterator.h"
+#include "vtkDGArraysInputAccessor.h"
+#include "vtkDGArrayOutputAccessor.h"
 #include "vtkDGInterpolateCalculator.h"
 #include "vtkDGOperation.h"
 #include "vtkDGOperation.txx"
@@ -237,10 +237,10 @@ bool EvaluateBasisFunctions(vtkCellGrid* grid, vtkDGCell* dgCell)
   result->SetNumberOfTuples(nn);
   vtkNew<vtkDoubleArray> pc2;
   pc2->DeepCopy(pcoords);
-  vtkDGOperation<vtkDGArraysInputIterator, vtkDGArrayOutputIterator> shapeEvaluator;
+  vtkDGOperation<vtkDGArraysInputAccessor, vtkDGArrayOutputAccessor> shapeEvaluator;
   shapeEvaluator.Prepare(dgCell, shape, "Basis"_token);
-  vtkDGArraysInputIterator inIt(cellId, pc2);
-  vtkDGArrayOutputIterator outIt(result);
+  vtkDGArraysInputAccessor inIt(cellId, pc2);
+  vtkDGArrayOutputAccessor outIt(result);
   shapeEvaluator.Evaluate(inIt, outIt, 0, nn);
   std::cout << "  basis   ii: (r,s,t) → (x,y,z)\n";
   std::array<double, 3> params;
@@ -270,10 +270,10 @@ bool EvaluateBasisFunctions(vtkCellGrid* grid, vtkDGCell* dgCell)
   vtkNew<vtkDoubleArray> gradient;
   gradient->SetNumberOfComponents(9);
   gradient->SetNumberOfTuples(nn);
-  vtkDGOperation<vtkDGArraysInputIterator, vtkDGArrayOutputIterator> shapeGradientEvaluator;
+  vtkDGOperation<vtkDGArraysInputAccessor, vtkDGArrayOutputAccessor> shapeGradientEvaluator;
   shapeGradientEvaluator.Prepare(dgCell, shape, "BasisGradient"_token);
   inIt.Restart();
-  vtkDGArrayOutputIterator gradIt(gradient);
+  vtkDGArrayOutputAccessor gradIt(gradient);
   shapeGradientEvaluator.Evaluate(inIt, gradIt, 0, nn);
   std::cout << "  gradient ii: (r,s,t) → ∇(r,s,t)\n";
   std::vector<double> gval(9, 0.0);
@@ -438,10 +438,10 @@ bool TestDeRhamBases(vtkCellGrid* grid, vtkDeRhamCell* drCell)
   vtkNew<vtkDoubleArray> jacobians;
   jacobians->SetNumberOfComponents(9);
   jacobians->SetNumberOfTuples(nn);
-  vtkDGOperation<vtkDGArraysInputIterator, vtkDGArrayOutputIterator> shapeEvaluator;
+  vtkDGOperation<vtkDGArraysInputAccessor, vtkDGArrayOutputAccessor> shapeEvaluator;
   shapeEvaluator.Prepare(drCell, shapeField, "BasisGradient"_token);
-  vtkDGArraysInputIterator inIt(cellId, mspt);
-  vtkDGArrayOutputIterator outIt(jacobians);
+  vtkDGArraysInputAccessor inIt(cellId, mspt);
+  vtkDGArrayOutputAccessor outIt(jacobians);
   shapeEvaluator.Evaluate(inIt, outIt, 0, nn);
 
   // Test evaluation for HCurl and HDiv function spaces.
@@ -450,7 +450,7 @@ bool TestDeRhamBases(vtkCellGrid* grid, vtkDeRhamCell* drCell)
   int ii = 0;
   for (const auto& divField : divFields)
   {
-    vtkDGOperation<vtkDGArraysInputIterator, vtkDGArrayOutputIterator> fieldEvaluator(drCell, divField, "Basis"_token);
+    vtkDGOperation<vtkDGArraysInputAccessor, vtkDGArrayOutputAccessor> fieldEvaluator(drCell, divField, "Basis"_token);
     auto divTypeInfo = divField->GetCellTypeInfo(drCell->GetClassName());
     auto divOp = drCell->GetOperatorEntry("Basis"_token, divTypeInfo);
     if (!divOp)
@@ -467,7 +467,7 @@ bool TestDeRhamBases(vtkCellGrid* grid, vtkDeRhamCell* drCell)
     divVals->SetName(dname.str().c_str());
     std::cout << "  " << divField->GetName().Data() << " ii: (r,s,t) → ∇·f(r,s,t)\n";
     inIt.Restart();
-    vtkDGArrayOutputIterator divIt(divVals);
+    vtkDGArrayOutputAccessor divIt(divVals);
     fieldEvaluator.Evaluate(inIt, divIt, 0, nn);
     testPoints->GetPointData()->AddArray(divVals);
 
@@ -514,9 +514,9 @@ bool TestDeRhamBases(vtkCellGrid* grid, vtkDeRhamCell* drCell)
     curlVals->SetNumberOfComponents(curlOp.OperatorSize);
     curlVals->SetNumberOfTuples(nn);
     std::cout << "  " << curlField->GetName().Data() << " ii: (r,s,t) → ∇×f(r,s,t)\n";
-    vtkDGOperation<vtkDGArraysInputIterator, vtkDGArrayOutputIterator> fieldEvaluator(drCell, curlField, "Basis"_token);
+    vtkDGOperation<vtkDGArraysInputAccessor, vtkDGArrayOutputAccessor> fieldEvaluator(drCell, curlField, "Basis"_token);
     inIt.Restart();
-    vtkDGArrayOutputIterator curlIt(curlVals);
+    vtkDGArrayOutputAccessor curlIt(curlVals);
     fieldEvaluator.Evaluate(inIt, curlIt, 0, nn);
     testPoints->GetPointData()->AddArray(curlVals);
 

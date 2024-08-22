@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
 // SPDX-License-Identifier: BSD-3-Clause
-#include "vtkDGArraysInputIterator.h"
+#include "vtkDGArraysInputAccessor.h"
 
 #include "vtkDataArray.h"
 
 VTK_ABI_NAMESPACE_BEGIN
 
-vtkDGArraysInputIterator::vtkDGArraysInputIterator(vtkDataArray* cellIds, vtkDataArray* rst)
+vtkDGArraysInputAccessor::vtkDGArraysInputAccessor(vtkDataArray* cellIds, vtkDataArray* rst)
   : CellIds(cellIds)
   , RST(rst)
 {
@@ -20,7 +20,7 @@ vtkDGArraysInputIterator::vtkDGArraysInputIterator(vtkDataArray* cellIds, vtkDat
   }
 }
 
-vtkDGArraysInputIterator::vtkDGArraysInputIterator(const vtkDGArraysInputIterator& other)
+vtkDGArraysInputAccessor::vtkDGArraysInputAccessor(const vtkDGArraysInputAccessor& other)
 {
   if (&other == this)
   {
@@ -50,7 +50,7 @@ vtkDGArraysInputIterator::vtkDGArraysInputIterator(const vtkDGArraysInputIterato
   }
 }
 
-vtkDGArraysInputIterator::~vtkDGArraysInputIterator()
+vtkDGArraysInputAccessor::~vtkDGArraysInputAccessor()
 {
   if (this->CellIds)
   {
@@ -64,7 +64,7 @@ vtkDGArraysInputIterator::~vtkDGArraysInputIterator()
   }
 }
 
-vtkDGArraysInputIterator& vtkDGArraysInputIterator::operator=(const vtkDGArraysInputIterator& other)
+vtkDGArraysInputAccessor& vtkDGArraysInputAccessor::operator=(const vtkDGArraysInputAccessor& other)
 {
   if (&other == this)
   {
@@ -95,36 +95,36 @@ vtkDGArraysInputIterator& vtkDGArraysInputIterator::operator=(const vtkDGArraysI
   return *this;
 }
 
-vtkIdType vtkDGArraysInputIterator::GetCellId(vtkTypeUInt64 iteration)
+vtkIdType vtkDGArraysInputAccessor::GetCellId(vtkTypeUInt64 iteration)
 {
   vtkTypeUInt64 cellId;
   this->CellIds->GetUnsignedTuple(iteration, &cellId);
   return static_cast<vtkIdType>(cellId);
 }
 
-vtkVector3d vtkDGArraysInputIterator::GetParameter(vtkTypeUInt64 iteration)
+vtkVector3d vtkDGArraysInputAccessor::GetParameter(vtkTypeUInt64 iteration)
 {
   vtkVector3d rst;
   this->RST->GetTuple(iteration, rst.GetData());
   return rst;
 }
 
-void vtkDGArraysInputIterator::Restart()
+void vtkDGArraysInputAccessor::Restart()
 {
   this->Key = 0;
 }
 
-bool vtkDGArraysInputIterator::IsAtEnd() const
+bool vtkDGArraysInputAccessor::IsAtEnd() const
 {
   return this->Key >= static_cast<vtkTypeUInt64>(this->CellIds->GetNumberOfValues());
 }
 
-std::size_t vtkDGArraysInputIterator::size() const
+std::size_t vtkDGArraysInputAccessor::size() const
 {
   return static_cast<std::size_t>(this->CellIds->GetNumberOfValues());
 }
 
-vtkTypeUInt64 vtkDGArraysInputIterator::operator++()
+vtkTypeUInt64 vtkDGArraysInputAccessor::operator++()
 {
   auto nn = static_cast<vtkTypeUInt64>(this->CellIds->GetNumberOfValues());
   if (this->Key < nn)
@@ -134,7 +134,7 @@ vtkTypeUInt64 vtkDGArraysInputIterator::operator++()
   return this->Key;
 }
 
-vtkTypeUInt64 vtkDGArraysInputIterator::operator++(int)
+vtkTypeUInt64 vtkDGArraysInputAccessor::operator++(int)
 {
   auto nn = static_cast<vtkTypeUInt64>(this->CellIds->GetNumberOfValues());
   auto vv = this->Key;
@@ -145,7 +145,7 @@ vtkTypeUInt64 vtkDGArraysInputIterator::operator++(int)
   return vv;
 }
 
-vtkDGArraysInputIterator& vtkDGArraysInputIterator::operator+=(vtkTypeUInt64 count)
+vtkDGArraysInputAccessor& vtkDGArraysInputAccessor::operator+=(vtkTypeUInt64 count)
 {
   auto nn = static_cast<vtkTypeUInt64>(this->CellIds->GetNumberOfValues());
   if (this->Key + count > nn)

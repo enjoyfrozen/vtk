@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
 // SPDX-License-Identifier: BSD-3-Clause
-#include "vtkDGArrayOutputIterator.h"
+#include "vtkDGArrayOutputAccessor.h"
 
 #include "vtkDoubleArray.h"
 
 VTK_ABI_NAMESPACE_BEGIN
 
-vtkDGArrayOutputIterator::vtkDGArrayOutputIterator(vtkDoubleArray* result)
+vtkDGArrayOutputAccessor::vtkDGArrayOutputAccessor(vtkDoubleArray* result)
   : Result(result)
 {
   if (result)
@@ -15,7 +15,7 @@ vtkDGArrayOutputIterator::vtkDGArrayOutputIterator(vtkDoubleArray* result)
   }
 }
 
-vtkDGArrayOutputIterator::vtkDGArrayOutputIterator(const vtkDGArrayOutputIterator& other)
+vtkDGArrayOutputAccessor::vtkDGArrayOutputAccessor(const vtkDGArrayOutputAccessor& other)
 {
   if (&other == this)
   {
@@ -36,7 +36,7 @@ vtkDGArrayOutputIterator::vtkDGArrayOutputIterator(const vtkDGArrayOutputIterato
   }
 }
 
-vtkDGArrayOutputIterator::~vtkDGArrayOutputIterator()
+vtkDGArrayOutputAccessor::~vtkDGArrayOutputAccessor()
 {
   if (this->Result)
   {
@@ -45,7 +45,7 @@ vtkDGArrayOutputIterator::~vtkDGArrayOutputIterator()
   }
 }
 
-vtkDGArrayOutputIterator& vtkDGArrayOutputIterator::operator=(const vtkDGArrayOutputIterator& other)
+vtkDGArrayOutputAccessor& vtkDGArrayOutputAccessor::operator=(const vtkDGArrayOutputAccessor& other)
 {
   if (&other == this)
   {
@@ -67,7 +67,7 @@ vtkDGArrayOutputIterator& vtkDGArrayOutputIterator::operator=(const vtkDGArrayOu
   return *this;
 }
 
-vtkDGArrayOutputIterator::Tuple vtkDGArrayOutputIterator::operator[](vtkTypeUInt64 tupleId)
+vtkDGArrayOutputAccessor::Tuple vtkDGArrayOutputAccessor::operator[](vtkTypeUInt64 tupleId)
 {
   if (tupleId >= this->Result->GetNumberOfTuples())
   {
@@ -77,7 +77,7 @@ vtkDGArrayOutputIterator::Tuple vtkDGArrayOutputIterator::operator[](vtkTypeUInt
   return Tuple(this->Result->GetPointer(0) + tupleId * sz, sz);
 }
 
-vtkDGArrayOutputIterator::Tuple vtkDGArrayOutputIterator::GetTuple()
+vtkDGArrayOutputAccessor::Tuple vtkDGArrayOutputAccessor::GetTuple()
 {
   if (this->Key >= this->Result->GetNumberOfTuples())
   {
@@ -87,22 +87,22 @@ vtkDGArrayOutputIterator::Tuple vtkDGArrayOutputIterator::GetTuple()
   return Tuple(this->Result->GetPointer(0) + this->Key * sz, sz);
 }
 
-void vtkDGArrayOutputIterator::Restart()
+void vtkDGArrayOutputAccessor::Restart()
 {
   this->Key = 0;
 }
 
-bool vtkDGArrayOutputIterator::IsAtEnd() const
+bool vtkDGArrayOutputAccessor::IsAtEnd() const
 {
   return this->Key >= static_cast<vtkTypeUInt64>(this->Result->GetNumberOfValues());
 }
 
-std::size_t vtkDGArrayOutputIterator::size() const
+std::size_t vtkDGArrayOutputAccessor::size() const
 {
   return static_cast<std::size_t>(this->Result->GetNumberOfValues());
 }
 
-vtkTypeUInt64 vtkDGArrayOutputIterator::operator++()
+vtkTypeUInt64 vtkDGArrayOutputAccessor::operator++()
 {
   auto nn = static_cast<vtkTypeUInt64>(this->Result->GetNumberOfValues());
   if (this->Key < nn)
@@ -112,7 +112,7 @@ vtkTypeUInt64 vtkDGArrayOutputIterator::operator++()
   return this->Key;
 }
 
-vtkTypeUInt64 vtkDGArrayOutputIterator::operator++(int)
+vtkTypeUInt64 vtkDGArrayOutputAccessor::operator++(int)
 {
   auto nn = static_cast<vtkTypeUInt64>(this->Result->GetNumberOfValues());
   auto vv = this->Key;
@@ -123,7 +123,7 @@ vtkTypeUInt64 vtkDGArrayOutputIterator::operator++(int)
   return vv;
 }
 
-vtkDGArrayOutputIterator& vtkDGArrayOutputIterator::operator+=(vtkTypeUInt64 count)
+vtkDGArrayOutputAccessor& vtkDGArrayOutputAccessor::operator+=(vtkTypeUInt64 count)
 {
   auto nn = static_cast<vtkTypeUInt64>(this->Result->GetNumberOfValues());
   if (this->Key + count > nn)

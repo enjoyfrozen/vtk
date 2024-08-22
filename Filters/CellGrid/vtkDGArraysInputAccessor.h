@@ -1,11 +1,11 @@
 // SPDX-FileCopyrightText: Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
 // SPDX-License-Identifier: BSD-3-Clause
 /**
- * @class   vtkDGArraysInputIterator
+ * @class   vtkDGArraysInputAccessor
  * @brief   Evaluate DG cells whose indices and parameters are provided by vtkDataArray instances.
  */
-#ifndef vtkDGArraysInputIterator_h
-#define vtkDGArraysInputIterator_h
+#ifndef vtkDGArraysInputAccessor_h
+#define vtkDGArraysInputAccessor_h
 
 #include "vtkVector.h" // For API.
 #include "vtkFiltersCellGridModule.h" // For export macro.
@@ -14,14 +14,14 @@ VTK_ABI_NAMESPACE_BEGIN
 
 class vtkDataArray;
 
-class VTKFILTERSCELLGRID_EXPORT vtkDGArraysInputIterator
+class VTKFILTERSCELLGRID_EXPORT vtkDGArraysInputAccessor
 {
 public:
-  vtkDGArraysInputIterator(vtkDataArray* cellIds, vtkDataArray* rst);
-  vtkDGArraysInputIterator(const vtkDGArraysInputIterator& other);
-  ~vtkDGArraysInputIterator();
+  vtkDGArraysInputAccessor(vtkDataArray* cellIds, vtkDataArray* rst);
+  vtkDGArraysInputAccessor(const vtkDGArraysInputAccessor& other);
+  ~vtkDGArraysInputAccessor();
 
-  vtkDGArraysInputIterator& operator=(const vtkDGArraysInputIterator& other);
+  vtkDGArraysInputAccessor& operator=(const vtkDGArraysInputAccessor& other);
 
   vtkIdType GetCellId(vtkTypeUInt64 iteration);
   vtkVector3d GetParameter(vtkTypeUInt64 iteration);
@@ -34,7 +34,7 @@ public:
   vtkTypeUInt64 operator++();
   vtkTypeUInt64 operator++(int);
 
-  vtkDGArraysInputIterator& operator+=(vtkTypeUInt64 count);
+  vtkDGArraysInputAccessor& operator+=(vtkTypeUInt64 count);
 
 protected:
   vtkTypeUInt64 Key{ 0 };
@@ -44,4 +44,4 @@ protected:
 
 VTK_ABI_NAMESPACE_END
 
-#endif // vtkDGArraysInputIterator_h
+#endif // vtkDGArraysInputAccessor_h
