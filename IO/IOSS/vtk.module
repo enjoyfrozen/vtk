@@ -20,6 +20,7 @@ PRIVATE_DEPENDS
   VTK::FiltersExtraction
   VTK::fmt
   VTK::ioss
+  VTK::IOCellGrid # For DEBUGGING ONLY DO NOT MERGE
 OPTIONAL_DEPENDS
   VTK::ParallelMPI
   VTK::mpi
