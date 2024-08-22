@@ -6,6 +6,7 @@
 #include "vtkCompiler.h" // For VTK_ALWAYS_EXPORT.
 #include "vtkDGCell.h" // For vtkDGCell::Source used in API.
 #include "vtkDGOperationStateEntry.h" // For API.
+#include "vtkSMPThreadLocal.h" // For API.
 
 VTK_ABI_NAMESPACE_BEGIN
 
@@ -112,6 +113,43 @@ public:
   /// Return the number of values generated per tuple each time an input cell-id
   /// and parameter-value are evaluated.
   int GetNumberOfResultComponents() const { return this->NumberOfResultComponents; }
+
+  /// A vtkSMPTools worker class for evaluating an operation across
+  /// a range of cells.
+  struct Worker
+  {
+    InputIterator& InIter;
+    OutputIterator& OutIter;
+    vtkDGCell* DGCell{ nullptr };
+    vtkCellAttribute* CellAtt{ nullptr };
+    vtkStringToken OpName;
+
+    Worker(
+      InputIterator& inIter, OutputIterator& outIter,
+      vtkDGCell* dgCell, vtkCellAttribute* cellAtt, vtkStringToken opName)
+      : InIter(inIter)
+      , OutIter(outIter)
+      , DGCell(dgCell)
+      , CellAtt(cellAtt)
+      , OpName(opName)
+    {
+    }
+
+    vtkSMPThreadLocal<vtkDGOperation<InputIterator, OutputIterator>> TLOp;
+
+    void Initialize()
+    {
+      if (!TLOp.Local().Prepare(this->DGCell, this->CellAtt, this->OpName))
+      {
+        throw std::runtime_error("Could not initialize operation for evaluation.");
+      }
+    }
+
+    void operator() (vtkIdType begin, vtkIdType end)
+    {
+      TLOp.Local()(this->InIt, this->OutIt, begin, end);
+    }
+  };
 
 protected:
   void AddSource(
