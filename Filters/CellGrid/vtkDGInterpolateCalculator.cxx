@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
 // SPDX-License-Identifier: BSD-3-Clause
 #include "vtkDGInterpolateCalculator.h"
+#include "vtkDGOperation.txx"
 #include "vtkCellAttribute.h"
 #include "vtkCellGrid.h"
 #include "vtkCellMetadata.h"
@@ -50,19 +51,14 @@ void vtkDGInterpolateCalculator::Evaluate(
   ids->SetNumberOfTuples(1);
   ids->SetValue(0, cellId);
   // value.resize(this->FieldBasisOp.OperatorSize * );
-  this->FieldEvaluator.Evaluate(ids, vrst, result);
+  vtkDGArraysInputIterator inIt(ids, vrst);
+  vtkDGArrayOutputIterator outIt(result);
+  this->FieldEvaluator.Evaluate(inIt, outIt, 0, 1);
 }
 
 void vtkDGInterpolateCalculator::Evaluate(
   vtkIdTypeArray* cellIds, vtkDataArray* rst, vtkDataArray* result)
 {
-  vtkDoubleArray* drst = vtkDoubleArray::SafeDownCast(rst);
-  // Convert parameters to doubles as needed.
-  if (!drst)
-  {
-    this->LocalRST->DeepCopy(rst);
-    drst = this->LocalRST.GetPointer();
-  }
   vtkDoubleArray* dresult = vtkDoubleArray::SafeDownCast(result);
   if (!dresult)
   {
@@ -74,7 +70,9 @@ void vtkDGInterpolateCalculator::Evaluate(
   vtkIdType numEvals = cellIds->GetNumberOfTuples();
   dresult->SetNumberOfComponents(this->Field->GetNumberOfComponents());
   dresult->SetNumberOfTuples(cellIds->GetNumberOfTuples());
-  this->FieldEvaluator.Evaluate(cellIds, drst, dresult);
+  vtkDGArraysInputIterator inIt(cellIds, rst);
+  vtkDGArrayOutputIterator outIt(dresult);
+  this->FieldEvaluator.Evaluate(inIt, outIt, 0, numEvals);
 
   // Finally, if we were given a non-vtkDoubleArray, copy the results
   // back into the output array.
@@ -123,7 +121,9 @@ void vtkDGInterpolateCalculator::EvaluateDerivative(
   ids->SetNumberOfTuples(1);
   ids->SetValue(0, cellId);
   // value.resize(this->FieldBasisOp.OperatorSize * );
-  this->FieldDerivative.Evaluate(ids, vrst, result);
+  vtkDGArraysInputIterator inIt(ids, vrst);
+  vtkDGArrayOutputIterator outIt(result);
+  this->FieldDerivative.Evaluate(inIt, outIt, 0, 1);
 }
 
 void vtkDGInterpolateCalculator::EvaluateDerivative(
@@ -137,20 +137,15 @@ void vtkDGInterpolateCalculator::EvaluateDerivative(
   }
 
   vtkIdType numEvals = cellIds->GetNumberOfTuples();
-  vtkDoubleArray* drst = vtkDoubleArray::SafeDownCast(rst);
-  // Convert parameters to doubles as needed.
-  if (!drst)
-  {
-    this->LocalRST->DeepCopy(rst);
-    drst = this->LocalRST.GetPointer();
-  }
   vtkDoubleArray* dresult = vtkDoubleArray::SafeDownCast(result);
   if (!dresult)
   {
     dresult = this->LocalField.GetPointer();
   }
 
-  this->FieldDerivative.Evaluate(cellIds, drst, dresult);
+  vtkDGArraysInputIterator inIt(cellIds, rst);
+  vtkDGArrayOutputIterator outIt(dresult);
+  this->FieldDerivative.Evaluate(inIt, outIt, 0, numEvals);
 
   if (dresult != result)
   {

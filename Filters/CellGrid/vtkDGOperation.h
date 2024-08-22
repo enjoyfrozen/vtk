@@ -1,19 +1,19 @@
+// SPDX-FileCopyrightText: Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+// SPDX-License-Identifier: BSD-3-Clause
 #ifndef vtkDGOperation_h
 #define vtkDGOperation_h
 
-#include "vtkDGCell.h"
-#include "vtkDGOperationStateEntry.h"
-
-#include <array>
+#include "vtkCompiler.h" // For VTK_ALWAYS_EXPORT.
+#include "vtkDGCell.h" // For vtkDGCell::Source used in API.
+#include "vtkDGOperationStateEntry.h" // For API.
 
 VTK_ABI_NAMESPACE_BEGIN
 
 class vtkDoubleArray;
 
-/**\brief Invoke an operator on DG cells/sides.
-  *
+/**\brief A base class for operator evaluators.
   */
-class VTKFILTERSCELLGRID_EXPORT vtkDGOperation
+class VTKFILTERSCELLGRID_EXPORT vtkDGOperationBase
 {
 public:
   /// A range of cell IDs handled by a vtkDGCell::Source instance.
@@ -25,16 +25,32 @@ public:
     bool ContainedBy(const RangeKey& other) const;
     bool operator < (const RangeKey& other) const;
   };
+};
 
+/**\brief Invoke an operator on DG cells/sides.
+  *
+  */
+template<typename InputIterator, typename OutputIterator>
+class VTK_ALWAYS_EXPORT vtkDGOperation : public vtkDGOperationBase
+{
+public:
+  /// Type-alias for other objects matching our own type.
+  using SelfType = vtkDGOperation<InputIterator, OutputIterator>;
+  /// The signature for a function that evaluates iterators over a range.
+  using OpEval = vtkDGCellRangeEvaluator<InputIterator, OutputIterator>;
+  /// Iterators affect the API offered by vtkDGOperationStateEntry, which has an OpEval.
+  using OpEvalEntry = vtkDGOperationStateEntry<InputIterator, OutputIterator>;
+  /// Expose the base-class RangeKey struct.
+  using vtkDGOperationBase::RangeKey;
   /// Container for functions that evaluate data on a single vtkDGCell::Source instance.
-  using EvaluatorMap = std::map<RangeKey, vtkDGOperationStateEntry>;
+  using EvaluatorMap = std::map<RangeKey, OpEvalEntry>;
 
   /// Construct an operation object.
   ///
   /// The copy-constructor variant is what allows you to use
   /// vtkSMPThreadLocal<vtkDGOperation> in vtkSMPTools workers.
-  vtkDGOperation();
-  vtkDGOperation(const vtkDGOperation& other);
+  vtkDGOperation() = default;
+  vtkDGOperation(const SelfType& other);
   vtkDGOperation(vtkDGCell* cellType, vtkCellAttribute* cellAttribute, vtkStringToken operationName);
 
   virtual void PrintSelf(std::ostream& os, vtkIndent indent);
@@ -47,10 +63,10 @@ public:
   ///
   /// This method returns true upon success and false otherwise.
   /// This method returns false if \a operationName does not name an operator; other inputs
-  /// are null pointers; or the cell attribute does not provide information for the given
-  /// cell type.
+  /// are null pointers; or the cell attribute does not provide information on how the
+  /// attribute should be evaluated on the given cell type.
   ///
-  /// You should not call Evaluate() if Prepare() returns false.
+  /// You should not call the parenthesis operator () if Prepare() returns false.
   ///
   /// If \a includeShape is true (the default), then any transformation of \a cellAttribute
   /// by the grid's shape-attribute that is needed will be factored into the evaluators.
@@ -58,7 +74,7 @@ public:
   /// shape attribute) when determining which entry in this->Evaluators to invoke for each ID.
   ///
   /// For HGrad function spaces, \a includeShape has no effect. For HDiv and HCurl function
-  /// spaces, this will transform vector values.
+  /// spaces, this will transform vector values from reference coordinates into world coordinates.
   bool Prepare(
     vtkDGCell* cellType, vtkCellAttribute* cellAttribute, vtkStringToken operationName,
     bool includeShape = true);
@@ -70,7 +86,11 @@ public:
   /// If false is returned, partial results may have been written to \a result
   /// (for example, if an invalid cell ID is encountered after others have been
   /// processed).
-  bool Evaluate(vtkDataArray* cellIds, vtkDataArray* rst, vtkDoubleArray* result);
+  ///
+  /// The \a begin and \a end integers specify a sub-range of the iterators
+  /// to process (allowing this method to be invoked in vtkSMPTools-style loops.
+  bool Evaluate(InputIterator& inIter, OutputIterator& outIter,
+    vtkTypeUInt64 begin = 0, vtkTypeUInt64 end = ~0);
 
   /// Return a function that can be called on the named \a sideSpecId.
   ///
@@ -79,9 +99,18 @@ public:
   ///
   /// If \a sideSpecId == -1, then a function for \a cell->GetCellSpec()
   /// is returned (assuming the cells are not blanked).
-  vtkDGCellRangeEvaluator GetEvaluatorForSideSpec(vtkDGCell* cell, int sideSpecId);
+  ///
+  /// Note that the result may be null and, if non-null, should **only** be
+  /// invoked with integers in the proper range. For example, if
+  /// ```cpp
+  /// auto a = cell->GetCellSource(sideSpecId).Offset;
+  /// auto b = cell->GetCellSource(sideSpecId).Connectivity->GetNumberOfTuples();
+  /// ```
+  /// then you should only call the evaluator with IDs in [a, a+b[.
+  OpEval GetEvaluatorForSideSpec(vtkDGCell* cell, int sideSpecId);
 
-  /// Return the number of values generated per tuple each time an input cell-id and parameter-value are evaluated.
+  /// Return the number of values generated per tuple each time an input cell-id
+  /// and parameter-value are evaluated.
   int GetNumberOfResultComponents() const { return this->NumberOfResultComponents; }
 
 protected:
@@ -91,9 +120,14 @@ protected:
     vtkCellAttribute* cellAtt, const vtkCellAttribute::CellTypeInfo& cellTypeInfo,
     vtkDGOperatorEntry& op, bool includeShape);
 
+  /// Return the first iterator to an entry of \a evaluators that covers \a cellKey.
+  typename EvaluatorMap::const_iterator FindEvaluator(
+    RangeKey cellKey, const EvaluatorMap& evaluators);
+
   int NumberOfResultComponents{ 0 };
   EvaluatorMap Evaluators;
 };
 
 VTK_ABI_NAMESPACE_END
 #endif // vtkDGOperation_h
+// VTK-HeaderTest-Exclude: vtkDGOperation.h

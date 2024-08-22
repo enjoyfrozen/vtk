@@ -8,7 +8,7 @@
 
 VTK_ABI_NAMESPACE_BEGIN
 
-class vtkDGOperationStateEntry;
+class vtkDGOperationStateEntryBase;
 
 /**@class vtkDGOperationState
   * Encapsulate the state required to evaluate DG cell-attributes.
@@ -46,7 +46,7 @@ public:
   }
   vtkDGOperationState(const vtkDGOperationState& other) = default;
 
-  virtual void CloneInto(vtkDGOperationStateEntry& entry) const = 0;
+  virtual void CloneInto(vtkDGOperationStateEntryBase& entry) const = 0;
 
   vtkDGOperatorEntry OpEntry;
   vtkDataArray* CellConnectivity;

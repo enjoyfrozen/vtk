@@ -57,6 +57,15 @@ set(classes
   vtkDGHDivOperators
   vtkDGOperatorEntry
   vtkDGOperation
+  vtkDGArraysInputIterator
+  vtkDGArrayOutputIterator
+)
+
+# Header-only classes
+set(headers
+  vtkDGOperationState.h
+  vtkDGOperationStateEntry.h
+  vtkDGOperation.txx
 )
 
 # Encode the basis implementations as strings we can
@@ -135,6 +144,7 @@ endforeach()
 
 vtk_module_add_module(VTK::FiltersCellGrid
   CLASSES ${classes}
+  HEADERS ${header}
   SOURCES ${sources}
   PRIVATE_HEADERS ${private_headers}
 )

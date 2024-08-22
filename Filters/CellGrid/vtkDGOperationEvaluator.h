@@ -45,6 +45,8 @@ enum vtkDGShapeModifier
   * Evaluate a vtkDGOperationEntry on a provided cell ID at provided parametric coordinates.
   */
 template<
+  typename InputIterator,
+  typename OutputIterator,
   vtkDGSharingType DOFSharing,
   vtkDGSideType SourceType,
   vtkDGShapeModifier Modifier,
@@ -52,6 +54,9 @@ template<
 class vtkDGOperationEvaluator : public vtkDGOperationState
 {
 public:
+  using InputIteratorType = InputIterator;
+  using OutputIteratorType = OutputIterator;
+
   vtkDGOperationEvaluator(
     // Attribute arrays/operation
     vtkDGOperatorEntry& op,
@@ -126,25 +131,32 @@ public:
     }
   }
 
-  void CloneInto(vtkDGOperationStateEntry& entry) const override
+  void CloneInto(vtkDGOperationStateEntryBase& entry) const override
   {
-    vtkDGOperationEvaluator<DOFSharing, SourceType, Modifier, ShapeSharing>::prepEntry(
-      entry, this->OpEntry, this->CellConnectivity, this->CellValues,
-      this->SideConnectivity, this->Offset,
-      this->ShapeGradientEntry, this->ShapeConnectivity, this->ShapeValues);
+    if (auto* typedEntry =
+      dynamic_cast< vtkDGOperationStateEntry<InputIterator, OutputIterator>*>(&entry))
+    {
+      vtkDGOperationEvaluator<
+        InputIterator, OutputIterator, DOFSharing, SourceType, Modifier, ShapeSharing>::prepEntry(
+          *typedEntry, this->OpEntry, this->CellConnectivity, this->CellValues,
+          this->SideConnectivity, this->Offset,
+          this->ShapeGradientEntry, this->ShapeConnectivity, this->ShapeValues);
+    }
+    // TODO: else throw exception?
   }
 
   /// Compute the inner product of this->BasisTuple and this->ValueTuple, storing
   /// the result in the \a tt-th tuple of \a result.
-  void InnerProduct(vtkTypeUInt64 tt, vtkDoubleArray* result) const
+  void InnerProduct(vtkTypeUInt64 tt, OutputIterator& outIter) const
   {
-    int nc = result->GetNumberOfComponents();
-    double* xx = result->GetPointer(tt * nc);
+    auto xx(outIter[tt]);
+    int nc = static_cast<int>(xx.size());
     // Zero out the tuple:
     for (int ii = 0; ii < nc; ++ii)
     {
       xx[ii] = 0.;
     }
+    // Sum the inner product of the basis and the coefficient values into the tuple:
     for (int ii = 0; ii < this->NumberOfValuesPerFunction; ++ii)
     {
       for (int jj = 0; jj < this->OpEntry.OperatorSize; ++jj)
@@ -220,7 +232,7 @@ public:
   // Compute the inverse Jacobian and multiply the \a ii-th tuple of result by it.
   //
   // This performs the multiplication in place.
-  void ApplyInverseJacobian(vtkTypeUInt64 ii, vtkDoubleArray* result) const
+  void ApplyInverseJacobian(vtkTypeUInt64 ii, OutputIterator& outIter) const
   {
     this->ComputeJacobian();
     // Invert Jacobian and multiply result's ii-th tuple by it.
@@ -230,40 +242,39 @@ public:
     vtkMatrix3x3::Transpose(this->Jacobian.data(), this->Jacobian.data());
     vtkMatrix3x3::Invert(this->Jacobian.data(), inverseJacobian.data());
     std::array<double, 3> vec;
-    double* rr = result->GetPointer(0);
-    const int nc = result->GetNumberOfComponents();
+    auto rr(outIter[ii]);
+    const int nc = static_cast<int>(rr.size());
     if (nc % 3 != 0)
     {
       throw std::logic_error("Jacobian must apply to vector or matrix values.");
     }
-    const vtkTypeUInt64 nn = ii * nc;
     for (int vv = 0; vv < nc / 3; ++vv)
     {
-      vtkTypeUInt64 mm = nn + 3 * vv;
-      vtkMatrix3x3::MultiplyPoint(inverseJacobian.data(), rr + mm, rr + mm);
+      vtkTypeUInt64 mm = 3 * vv;
+      double* vec = rr.data() + mm;
+      vtkMatrix3x3::MultiplyPoint(inverseJacobian.data(), vec, vec);
     }
   }
 
   // Compute the Jacobian scaled by its determinant; multiply the \a ii-th tuple of result by it.
   //
   // This performs the multiplication in place.
-  void ApplyScaledJacobian(vtkTypeUInt64 ii, vtkDoubleArray* result) const
+  void ApplyScaledJacobian(vtkTypeUInt64 ii, OutputIterator& outIter) const
   {
     this->ComputeJacobian();
     // Compute the Jacobian and multiply result's ii-th tuple
     // by the Jacobian normalized by its determinant.
     double norm = 1.0 / vtkMatrix3x3::Determinant(this->Jacobian.data());
     std::array<double, 3> vec;
-    double* rr = result->GetPointer(0);
-    const int nc = result->GetNumberOfComponents();
+    auto rr(outIter[ii]);
+    const int nc = static_cast<int>(rr.size());
     if (nc % 3 != 0)
     {
       throw std::logic_error("Jacobian must apply to vector or matrix values.");
     }
-    const vtkTypeUInt64 nn = ii * nc;
     for (int vv = 0; vv < nc / 3; ++vv)
     {
-      vtkTypeUInt64 mm = nn + 3 * vv;
+      vtkTypeUInt64 mm = 3 * vv;
       vec = {{rr[mm], rr[mm + 1], rr[mm + 2]}};
       // TODO: Is this J^T * vec? or J*vec? Depends on row-major vs column-major Jacobian.
       // clang-format off
@@ -275,7 +286,7 @@ public:
   }
 
   void operator() (
-    vtkDataArray* cellIds, vtkDataArray* rst, vtkDoubleArray* result,
+    InputIterator& inIter, OutputIterator& outIter,
     vtkTypeUInt64 begin, vtkTypeUInt64 end) const
   {
     vtkTypeUInt64 currId;
@@ -283,7 +294,7 @@ public:
     {
       for (vtkTypeUInt64 ii = begin; ii != end; ++ii)
       {
-        cellIds->GetUnsignedTuple(ii, &currId);
+        currId = inIter.GetCellId(ii);
         this->SideConnectivity->GetUnsignedTuple(currId - this->Offset, this->SideTuple.data());
         currId = this->SideTuple[0];
         if (this->LastCellId != currId)
@@ -297,16 +308,20 @@ public:
           }
           this->LastCellId = currId;
         }
-        rst->GetTuple(ii, this->RST.data());
+        auto param = inIter.GetParameter(ii);
+        for (int jj = 0; jj < 3; ++jj)
+        {
+          this->RST[jj] = param[jj];
+        }
         this->OpEntry.Op(this->RST, this->BasisTuple);
-        this->InnerProduct(ii, result);
+        this->InnerProduct(ii, outIter);
         if (Modifier == InverseJacobian)
         {
-          this->ApplyInverseJacobian(ii, result);
+          this->ApplyInverseJacobian(ii, outIter);
         }
         else if (Modifier == ScaledJacobian)
         {
-          this->ApplyScaledJacobian(ii, result);
+          this->ApplyScaledJacobian(ii, outIter);
         }
       }
     }
@@ -314,7 +329,7 @@ public:
     {
       for (vtkTypeUInt64 ii = begin; ii != end; ++ii)
       {
-        cellIds->GetUnsignedTuple(ii, &currId);
+        currId = inIter.GetCellId(ii);
         if (this->LastCellId != currId)
         {
           // NB: We could ask for currId - this->Offset here, but perhaps we should
@@ -328,16 +343,20 @@ public:
           }
           this->LastCellId = currId;
         }
-        rst->GetTuple(ii, this->RST.data());
+        auto param = inIter.GetParameter(ii);
+        for (int jj = 0; jj < 3; ++jj)
+        {
+          this->RST[jj] = param[jj];
+        }
         this->OpEntry.Op(this->RST, this->BasisTuple);
-        this->InnerProduct(ii, result);
+        this->InnerProduct(ii, outIter);
         if (Modifier == InverseJacobian)
         {
-          this->ApplyInverseJacobian(ii, result);
+          this->ApplyInverseJacobian(ii, outIter);
         }
         else if (Modifier == ScaledJacobian)
         {
-          this->ApplyScaledJacobian(ii, result);
+          this->ApplyScaledJacobian(ii, outIter);
         }
       }
     }
@@ -345,7 +364,7 @@ public:
     {
       for (vtkTypeUInt64 ii = begin; ii != end; ++ii)
       {
-        cellIds->GetUnsignedTuple(ii, &currId);
+        currId = inIter.GetCellId(ii);
         this->SideConnectivity->GetUnsignedTuple(currId - this->Offset, this->SideTuple.data());
         currId = this->SideTuple[0];
         if (this->LastCellId != currId)
@@ -353,16 +372,20 @@ public:
           this->CellValues->GetTuple(currId, this->ValueTuple.data());
           this->LastCellId = currId;
         }
-        rst->GetTuple(ii, this->RST.data());
+        auto param = inIter.GetParameter(ii);
+        for (int jj = 0; jj < 3; ++jj)
+        {
+          this->RST[jj] = param[jj];
+        }
         this->OpEntry.Op(this->RST, this->BasisTuple);
-        this->InnerProduct(ii, result);
+        this->InnerProduct(ii, outIter);
         if (Modifier == InverseJacobian)
         {
-          this->ApplyInverseJacobian(ii, result);
+          this->ApplyInverseJacobian(ii, outIter);
         }
         else if (Modifier == ScaledJacobian)
         {
-          this->ApplyScaledJacobian(ii, result);
+          this->ApplyScaledJacobian(ii, outIter);
         }
       }
     }
@@ -370,7 +393,7 @@ public:
     {
       for (vtkTypeUInt64 ii = begin; ii != end; ++ii)
       {
-        cellIds->GetUnsignedTuple(ii, &currId);
+        currId = inIter.GetCellId(ii);
         // NB: We could subtract this->Offset from currId, but assume for
         //     now that CellSpec always has an offset of 0.
         if (this->LastCellId != currId)
@@ -378,16 +401,20 @@ public:
           this->CellValues->GetTuple(currId, this->ValueTuple.data());
           this->LastCellId = currId;
         }
-        rst->GetTuple(ii, this->RST.data());
+        auto param = inIter.GetParameter(ii);
+        for (int jj = 0; jj < 3; ++jj)
+        {
+          this->RST[jj] = param[jj];
+        }
         this->OpEntry.Op(this->RST, this->BasisTuple);
-        this->InnerProduct(ii, result);
+        this->InnerProduct(ii, outIter);
         if (Modifier == InverseJacobian)
         {
-          this->ApplyInverseJacobian(ii, result);
+          this->ApplyInverseJacobian(ii, outIter);
         }
         else if (Modifier == ScaledJacobian)
         {
-          this->ApplyScaledJacobian(ii, result);
+          this->ApplyScaledJacobian(ii, outIter);
         }
       }
     }
@@ -400,7 +427,7 @@ public:
   /// given template parameters and passed arrays, then assigns its
   /// ownership (via unique pointer) to the \a entry.
   static void prepEntry(
-    vtkDGOperationStateEntry& entry,
+    vtkDGOperationStateEntry<InputIterator, OutputIterator>& entry,
     vtkDGOperatorEntry op,
     vtkDataArray* conn,
     vtkDataArray* values,
@@ -411,14 +438,15 @@ public:
     vtkDataArray* shapeValues = nullptr)
   {
     entry.State = std::unique_ptr<vtkDGOperationState>(
-      new vtkDGOperationEvaluator<DOFSharing, SourceType, Modifier, ShapeSharing>(
+      new vtkDGOperationEvaluator<InputIterator, OutputIterator, DOFSharing, SourceType, Modifier, ShapeSharing>(
         op, conn, values, sides, offset, shapeGradient, shapeConnectivity, shapeValues));
-    entry.Function = [&entry](vtkDataArray* cellIds, vtkDataArray* rst, vtkDoubleArray* result,
-        vtkTypeUInt64 begin, vtkTypeUInt64 end)
+    entry.Function = [&entry](InputIterator& inIter, OutputIterator& outIter, vtkTypeUInt64 begin, vtkTypeUInt64 end)
     {
-      auto* eval = reinterpret_cast<vtkDGOperationEvaluator<DOFSharing, SourceType, Modifier, ShapeSharing>*>(
+      auto* eval = reinterpret_cast<
+        vtkDGOperationEvaluator<
+          InputIterator, OutputIterator, DOFSharing, SourceType, Modifier, ShapeSharing>*>(
         entry.State.get());
-      return (*eval)(cellIds, rst, result, begin, end);
+      return (*eval)(inIter, outIter, begin, end);
     };
   }
 };
