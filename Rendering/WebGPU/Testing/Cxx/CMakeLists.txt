@@ -37,6 +37,7 @@ vtk_add_test_cxx(vtkRenderingWebGPUCxxTests tests
   TestComputePass.cxx,NO_DATA,NO_VALID
   TestComputePassChained.cxx,NO_DATA,NO_VALID
   TestComputePassUniform.cxx,NO_DATA,NO_VALID
+  TestComputePipelineRelease.cxx,NO_DATA,NO_VALID
   TestComputeTexture.cxx,NO_DATA,NO_VALID
   TestLineRendering.cxx,NO_DATA
   TestLowPowerRenderWindow.cxx,NO_DATA

@@ -194,6 +194,11 @@ public:
   void SetupRenderBuffer(vtkSmartPointer<vtkWebGPUComputeRenderBuffer> renderBuffer);
 
   /**
+   * Releases the buffers & resources held by this buffer storage.
+   */
+  void ReleaseResources();
+
+  /**
    * Internal method used to convert the user friendly BufferMode to the internal enum
    * wgpu::BufferUsage
    */
@@ -208,7 +213,7 @@ public:
 
 protected:
   vtkWebGPUComputePassBufferStorageInternals() = default;
-  ~vtkWebGPUComputePassBufferStorageInternals() override = default;
+  ~vtkWebGPUComputePassBufferStorageInternals() override;
 
 private:
   friend class vtkWebGPUComputePassInternals;
