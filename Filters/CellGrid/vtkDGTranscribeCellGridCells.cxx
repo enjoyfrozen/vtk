@@ -379,6 +379,8 @@ void vtkDGTranscribeCellGridCells::GeneratePointData(
     {
       continue;
     }
+    // TODO: We could handle the "constant"_token function-space differently
+    //       (by creating cell-data, not point-data, arrays).
     auto* outputArray = request->GetOutputArray(inCellAtt);
     auto rawCalc = interpolateProto->PrepareForGrid(cellType, inCellAtt);
     auto dgCalc = vtkDGInterpolateCalculator::SafeDownCast(rawCalc);
@@ -407,54 +409,6 @@ void vtkDGTranscribeCellGridCells::GeneratePointData(
     );
   }
   FreePointContributionCache(request, cellType, caches);
-
-#if 0
-  auto* vtxGroup = request->GetOutput()->GetAttributes(vtkStringToken(vcnname));
-  vtxGroup->AddArray(vconn);
-  vtxGroup->AddArray(cellIds);
-
-  vtxGroup->AddArray(coords);
-  vtkCellAttribute* vertShape = request->GetOutput()->GetCellAttributeByName("vertex shape");
-  if (!vertShape)
-  {
-    vtkNew<vtkCellAttribute> att;
-    att->Initialize("vertex shape", "ℝ³", 3);
-    request->GetOutput()->SetShapeAttribute(att);
-    vertShape = att;
-  }
-  vtkCellAttribute::CellTypeInfo vertShapeInfo;
-  vertShapeInfo.DOFSharing = vtkStringToken(vcnname);
-  vertShapeInfo.FunctionSpace = "constant"_token;
-  vertShapeInfo.Basis = "C"_token;
-  vertShapeInfo.Order = 0;
-  auto& vertShapeArrays = vertShapeInfo.ArraysByRole;
-  vertShapeArrays["connectivity"_token] = vconn;
-  vertShapeArrays["values"_token] = coords;
-  vertShape->SetCellTypeInfo("vtkDGVert"_token, vertShapeInfo);
-
-  vtxGroup->AddArray(rst);
-  vtkCellAttribute* vertRST = request->GetOutput()->GetCellAttributeByName("parametric coordinates");
-  if (!vertRST)
-  {
-    vtkNew<vtkCellAttribute> att;
-    att->Initialize("parametric coordinates", "ℝ³", 3);
-    request->GetOutput()->AddCellAttribute(att);
-    vertRST = att;
-  }
-  vtkCellAttribute::CellTypeInfo vertRSTInfo;
-  vertRSTInfo.DOFSharing = vtkStringToken(vcnname);
-  vertRSTInfo.FunctionSpace = "constant"_token;
-  vertRSTInfo.Basis = "C"_token;
-  vertRSTInfo.Order = 0;
-  auto& vertRSTArrays = vertRSTInfo.ArraysByRole;
-  vertRSTArrays["connectivity"_token] = vconn;
-  vertRSTArrays["values"_token] = rst;
-  vertRST->SetCellTypeInfo("vtkDGVert"_token, vertRSTInfo);
-
-  // Now iterate through other cell attributes
-
-  return true;
-#endif
 }
 
 VTK_ABI_NAMESPACE_END
