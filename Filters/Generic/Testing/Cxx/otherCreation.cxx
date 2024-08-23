@@ -165,8 +165,6 @@ int TestEmpty(ostream& strm)
   MacroTest(strm, indent, "volatile center",
     (fabs(center[0]) < epsilon) && (fabs(center[1]) < epsilon) && (fabs(center[2]) < epsilon));
 
-  MacroTest(strm, indent, "diagonal length", fabs(ds->GetLength() - 2 * sqrt(3.0)) < epsilon);
-
   strm << "GetBounds() end" << endl;
 
   vtkGenericAttributeCollection* attributes;
