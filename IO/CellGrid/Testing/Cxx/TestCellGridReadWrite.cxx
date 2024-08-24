@@ -49,6 +49,10 @@ bool RoundTrip(const char* filename, const std::string& tempDir, vtkIdType numCe
     ok = false;
     return ok;
   }
+  // Force computation of range if it does not already exist.
+  // This let us test whether it gets written and then read back in.
+  std::array<double, 2> range;
+  og->GetCellAttributeRange(og->GetCellAttributeByName("shape"), 2, range.data(), true);
 
   std::cout << "  === Write step ===\n";
   vtkNew<vtkCellGridWriter> writer;
@@ -75,6 +79,13 @@ bool RoundTrip(const char* filename, const std::string& tempDir, vtkIdType numCe
   {
     std::cerr << "ERROR: Expected to have " << numCells << " cells, got " << cg->GetNumberOfCells()
               << ".\n";
+    ok = false;
+  }
+
+  auto shape = cg->GetShapeAttribute();
+  if (cg->GetRangeCache().find(shape) == cg->GetRangeCache().end())
+  {
+    std::cerr << "ERROR: Did not preserve range of shape attribute in round trip.\n";
     ok = false;
   }
 
@@ -170,11 +181,13 @@ int TestCellGridReadWrite(int argc, char* argv[])
   if (!RoundTrip(vtkTestUtilities::ExpandDataFileName(argc, argv, "Data/dgTetrahedra.dg", 0),
         tempDir,
         /* numCells */ 2, {
-        { "shape",   "vtkDGTet", "coordinates", "HGRAD", "C", 1 },
-        { "scalar0", "vtkDGTet",  invalid,      "HGRAD", "C", 1 },
-        { "scalar1", "vtkDGTet",  invalid,      "HGRAD", "C", 1 },
-        { "scalar2", "vtkDGTet",  invalid,      "HGRAD", "C", 1 },
-        { "scalar3", "vtkDGTet", "point-data",  "HGRAD", "C", 1 } }))
+        { "shape",   "vtkDGTet", "coordinates",                 "HGRAD", "C", 1 },
+        { "scalar0", "vtkDGTet",  invalid,                      "HGRAD", "C", 1 },
+        { "scalar1", "vtkDGTet",  invalid,                      "HGRAD", "C", 1 },
+        { "scalar2", "vtkDGTet",  invalid,                      "HGRAD", "C", 1 },
+        { "scalar3", "vtkDGTet", "point-data",                  "HGRAD", "C", 1 },
+        { "curl1",   "vtkDGTet",  invalid,                      "HCURL", "I", 1 },
+        { "div1",    "vtkDGTet",  invalid,                      "HDIV",  "I", 1 } }))
   {
     return EXIT_FAILURE;
   }

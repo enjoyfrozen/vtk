@@ -81,6 +81,42 @@ void AppendArrayData(T* data, const nlohmann::json& values)
   }
 }
 
+void addCachedRange(
+  vtkCellGridRangeQuery::CacheMap& rangeCache,
+  vtkCellAttribute* attribute,
+  const nlohmann::json& rangeInfo)
+{
+  auto& ranges(rangeCache[attribute]);
+  int nc = attribute->GetNumberOfComponents();
+  ranges.resize(nc + 2);
+  for (const auto& entry : rangeInfo.items())
+  {
+    int comp;
+    if (entry.key() == "L₁")
+    {
+      comp = 1;
+    }
+    else if (entry.key() == "L₂")
+    {
+      comp = 0;
+    }
+    else
+    {
+      comp = std::stoi(entry.key()) + 2;
+      if (comp < 2 || comp > attribute->GetNumberOfComponents() + 2)
+      {
+        vtkWarningWithObjectMacro(attribute, "Range for unexpected component "
+          << (comp - 2) << " of " << attribute->GetName().Data() << ".");
+        comp = 0;
+      }
+    }
+    ranges[comp].FiniteRange[0] = entry.value().at("min");
+    ranges[comp].FiniteRange[1] = entry.value().at("max");
+    ranges[comp].FiniteRangeTime.Modified();
+    ranges[comp].EntireRangeTime = vtkTimeStamp();
+  }
+}
+
 } // anonymous namespace
 
 VTK_ABI_NAMESPACE_BEGIN
@@ -287,6 +323,11 @@ bool vtkCellGridReader::FromJSON(const nlohmann::json& jj, vtkCellGrid* output)
     if (attributeIsShape)
     {
       output->SetShapeAttribute(attribute);
+    }
+    auto rangeIt = jAttribute.find("range");
+    if (rangeIt != jAttribute.end())
+    {
+      addCachedRange(output->GetRangeCache(), attribute, *rangeIt);
     }
   }
 
