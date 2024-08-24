@@ -39,11 +39,10 @@ void addSourceCenters(
 
   vtkIdType nn = spec.Connectivity->GetNumberOfTuples();
   vtkIdType off = spec.Offset;
-  if (vend - vbegin != nn)
-  {
-    vtkGenericWarningMacro("Interval [" << vbegin << ", " << vend << "[ is"
-      " size " << (vend - vbegin) << " numcells " << nn << ".");
-  }
+  // Note that vend - vbegin > nn when multiple vtkDGCell::Source instances
+  // contribute to the output for a single cell shape. For example, we may
+  // output face-, edge-, and vertex-sides of a 3D cell shape. Each will
+  // consume a portion of the [vbegin, vend[ range.
   if (spec.SideType < 0)
   {
     // Compute center of (non-blanked) cell
@@ -54,8 +53,8 @@ void addSourceCenters(
         {
           // param = cell->GetParametricCenterOfSide(spec.SideType);
           param = cell->GetParametricCenterOfSide(spec.SideType);
-          cellIds->SetValue(vbegin + ii + off, ii + off);
-          rst->SetTuple(vbegin + ii + off, param.GetData());
+          cellIds->SetValue(vbegin + ii, ii + off);
+          rst->SetTuple(vbegin + ii, param.GetData());
         }
       }
     );
@@ -71,8 +70,8 @@ void addSourceCenters(
         {
           spec.Connectivity->GetUnsignedTuple(ii, sideConn.data());
           param = cell->GetParametricCenterOfSide(sideConn[1]);
-          cellIds->SetValue(vbegin + ii + off, ii + off);
-          rst->SetTuple(vbegin + ii + off, param.GetData());
+          cellIds->SetValue(vbegin + ii, ii + off);
+          rst->SetTuple(vbegin + ii, param.GetData());
         }
       }
     );
