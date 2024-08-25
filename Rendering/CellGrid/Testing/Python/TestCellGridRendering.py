@@ -275,6 +275,17 @@ class TestCellGridRendering(Testing.vtkTest):
         testFile = 'TestCellGridRendering-CurlZ.png'
         self.runCase(dataFile, 'curl1', testFile, False, angles=(0, 180, -20), colorArrayComponent=2)
 
+    def testDivVectorComponents(self):
+        dataFile = os.path.join(VTK_DATA_ROOT, 'Data', 'dgHexahedra.dg')
+        testFile = 'TestCellGridRendering-DivX.png'
+        self.runCase(dataFile, 'div1', testFile, False, angles=(0, 180, -20), colorArrayComponent=0)
+        dataFile = os.path.join(VTK_DATA_ROOT, 'Data', 'dgHexahedra.dg')
+        testFile = 'TestCellGridRendering-DivY.png'
+        self.runCase(dataFile, 'div1', testFile, False, angles=(0, 180, -20), colorArrayComponent=1)
+        dataFile = os.path.join(VTK_DATA_ROOT, 'Data', 'dgHexahedra.dg')
+        testFile = 'TestCellGridRendering-DivZ.png'
+        self.runCase(dataFile, 'div1', testFile, False, angles=(0, 180, -20), colorArrayComponent=2)
+
     def testDGWdgRendering(self):
         dataFile = os.path.join(VTK_DATA_ROOT, 'Data', 'dgWedges.dg')
         # Run once with cell coloring turned on:
