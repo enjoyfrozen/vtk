@@ -153,7 +153,6 @@ void vtkDGCellCenterResponder::AllocateOutputVertices(vtkCellGridCellCenters::Qu
   for (const auto& entry : partialOrder)
   {
     vtkTypeUInt64 nn = ait->second[entry.second];
-    std::cout << "  " << entry.second.Data() << ": " << offset << "–" << nn << "\n";
     ait->second[entry.second] = offset;
     offset += nn;
   }
