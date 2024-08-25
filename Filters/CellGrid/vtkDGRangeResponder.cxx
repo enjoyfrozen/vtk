@@ -597,10 +597,9 @@ bool vtkDGRangeResponder::HCurlRange(vtkDGCell* dgCell, vtkCellAttribute* attrib
   vtkCellGridRangeQuery* request)
 {
   (void)values;
-  // NB: This will compute the range of the cells (not sides).
-  vtkIdType numTuples = dgCell->GetNumberOfCells();
+  vtkIdType numCells = dgCell->GetNumberOfCells();
   EvaluatorRangeWorker<DOFSharing, FiniteRange> computeRange(dgCell, attribute, cellTypeInfo);
-  vtkSMPTools::For(0, numTuples, computeRange);
+  vtkSMPTools::For(0, numCells, computeRange);
   computeRange.CacheRanges(request);
   return true;
 }
@@ -611,10 +610,9 @@ bool vtkDGRangeResponder::HDivRange(vtkDGCell* dgCell, vtkCellAttribute* attribu
   vtkCellGridRangeQuery* request)
 {
   (void)values;
-  // NB: This will compute the range of the cells (not sides).
-  vtkIdType numTuples = dgCell->GetCellSpec().Connectivity->GetNumberOfTuples();
-  CoefficientRangeWorker<DOFSharing, FiniteRange> computeRange(dgCell, attribute, cellTypeInfo);
-  vtkSMPTools::For(0, numTuples, computeRange);
+  vtkIdType numCells = dgCell->GetNumberOfCells();
+  EvaluatorRangeWorker<DOFSharing, FiniteRange> computeRange(dgCell, attribute, cellTypeInfo);
+  vtkSMPTools::For(0, numCells, computeRange);
   computeRange.CacheRanges(request);
   return true;
 }
