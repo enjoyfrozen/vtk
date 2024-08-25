@@ -47,17 +47,17 @@ void colorEvaluateAt(
     vec3 dxdt;
     mat3 jac;
     shapeGradientAt(rr, shapeData, dxdr, dxds, dxdt);
-    // jac = transpose(mat3(dxdr, dxds, dxdt));
-    jac = mat3(dxdr, dxds, dxdt);
+    jac = transpose(mat3(dxdr, dxds, dxdt));
+    // jac = mat3(dxdr, dxds, dxdt);
     mat3 ijac = inverse(jac);
     for (int cc = 0; cc < {ColorNumValPP} / 3; ++cc)
     {{
       vec3 unscaled = vec3(value[cc * 3], value[cc * 3 + 1], value[cc * 3 + 2]);
       vec3 scaled = ijac * unscaled;
       // vec3 scaled = jac * unscaled;
-      value[cc * 3    ] = scaled.x;
-      value[cc * 3 + 1] = scaled.y;
-      value[cc * 3 + 2] = scaled.z;
+      value[cc * 3    ] = scaled[0];
+      value[cc * 3 + 1] = scaled[1];
+      value[cc * 3 + 2] = scaled[2];
     }}
   }}
 #elif {ColorScaleScaledJacobian}
@@ -76,9 +76,9 @@ void colorEvaluateAt(
     {{
       vec3 unscaled = vec3(value[cc * 3], value[cc * 3 + 1], value[cc * 3 + 2]);
       vec3 scaled = jac * unscaled / jdet;
-      value[cc * 3    ] = scaled.x;
-      value[cc * 3 + 1] = scaled.y;
-      value[cc * 3 + 2] = scaled.z;
+      value[cc * 3    ] = scaled[0];
+      value[cc * 3 + 1] = scaled[1];
+      value[cc * 3 + 2] = scaled[2];
     }}
   }}
 #endif
