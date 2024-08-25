@@ -363,6 +363,13 @@ public:
   /// Responders to vtkCellGridRangeQuery are expected to update this.
   vtkCellGridRangeQuery::CacheMap& GetRangeCache() const { return this->RangeCache; }
 
+  /// Clear the cache of cell-attribute range data.
+  ///
+  /// If \a attributeName is empty, the entire cache is cleared.
+  /// Otherwise, attributes with the given name are cleared from the cache.
+  /// This method exists for python scripts.
+  void ClearRangeCache(const std::string& attributeName = std::string());
+
   /// Return the set of cell attribute IDs.
   ///
   /// Values in this set can be passed to GetCellAttributeById().

@@ -543,6 +543,26 @@ bool vtkCellGrid::GetCellAttributeRange(
   return true;
 }
 
+void vtkCellGrid::ClearRangeCache(const std::string& attributeName)
+{
+  if (attributeName.empty())
+  {
+    this->RangeCache.clear();
+    return;
+  }
+  auto* att = this->GetCellAttributeByName(attributeName);
+  if (!att)
+  {
+    return;
+  }
+  auto it = this->RangeCache.find(att);
+  if (it == this->RangeCache.end())
+  {
+    return;
+  }
+  this->RangeCache.erase(it);
+}
+
 std::set<int> vtkCellGrid::GetCellAttributeIds() const
 {
   std::set<int> attributeIds;

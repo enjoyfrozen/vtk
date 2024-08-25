@@ -27,6 +27,7 @@ class TestCellGridRange(Testing.vtkTest):
     def checkRangeForFile(self, filename, expectedRanges):
         self.reader.SetFileName(filename)
         self.reader.Update()
+        self.source.ClearRangeCache()
         validated = {}
         print('\n## Testing range computation on %s.\n' % filename)
         for attribute in self.source.GetCellAttributeList():
