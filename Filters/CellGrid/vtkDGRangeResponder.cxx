@@ -407,31 +407,11 @@ struct EvaluatorRangeWorker : public BaseRangeWorker<DOFSharing, Exceptions>
   {
     // For cells of this shape, generate the parametric points at which
     // we will evaluate the attribute in order to bound its range.
-    // For now, we used a fixed set of points. For HCURL, we sample
-    // mid-edge points (the average parametric coordinate along each
-    // side that is a curve). For HDIV, we sample mid-face points
-    // (the average parametric coordinate along each side that is a
-    // surface).
+    // For now, we used a fixed set of points: the corners of the cell.
+    // To handle nonlinear fields, we need to sample at additional points.
     this->Locations->SetNumberOfComponents(3);
-    int fsDim = 0;
+    int fsDim = 0; // Might also consider 1 for HCURL and (dgCell->GetDimension() - 1) for HDIV
     int numSides = 0;
-    if (fieldInfo.FunctionSpace == "HCURL"_token)
-    {
-      fsDim = 1;
-    }
-    else if (fieldInfo.FunctionSpace == "HDIV"_token)
-    {
-      fsDim = dgCell->GetDimension() - 1;
-    }
-    else if (fieldInfo.FunctionSpace == "HGRAD"_token)
-    {
-      fsDim = 0;
-    }
-    else
-    {
-      vtkGenericWarningMacro("Unhandled function space " << fieldInfo.FunctionSpace.Data() << ".");
-      throw std::runtime_error("Unhandled function space " + fieldInfo.FunctionSpace.Data());
-    }
     numSides = dgCell->GetNumberOfSidesOfDimension(fsDim);
     this->Locations->SetNumberOfTuples(numSides);
     int nst = dgCell->GetNumberOfSideTypes();

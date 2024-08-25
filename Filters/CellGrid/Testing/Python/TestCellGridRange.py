@@ -62,7 +62,8 @@ class TestCellGridRange(Testing.vtkTest):
         tests = {
             # dgHexahedra.dg tests the range-responder for HCurl fields with the curl1 attribute:
             'dgHexahedra.dg': {
-                'curl1':     { 0: [0, 1.39024], 1: [0, 1], 2: [-0.0487805, 0.0701754], -1: [-0.0487805, 1.39024], -2: [0, 1.4448] },
+                'curl1':     { 0: [0, 1.44444], 1: [0, 1], 2: [-0.25, 0.444444], -1: [-0.25, 1.44444], -2: [0, 1.5476] },
+                'div1':      { 0: [-0.25, 1.], 1: [-1.333333, 0.2666667], 2: [-0.444444, 0], -1: [-1.33333, 1 ], -2: [0, 1.47406] },
                 'quadratic': { 0: [0, 6], -1: [0, 6], -2: [0, 6] },
                 'scalar0':   { 0: [0, 1] },
                 'scalar1':   { 0: [0, 3] },
