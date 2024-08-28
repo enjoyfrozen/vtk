@@ -450,9 +450,6 @@ static int isIntegral(const ValueInfo* val)
 static int getMethodAttributes(FunctionInfo* func, MethodAttributes* attrs)
 {
   int i, n;
-  unsigned int tmptype = 0;
-  const char* tmpclass = 0;
-  int allSame = 0;
   int indexed = 0;
 
   attrs->Name = func->Name;
@@ -500,9 +497,8 @@ static int getMethodAttributes(FunctionInfo* func, MethodAttributes* attrs)
       if (!isSetNumberOfMethod(func->Name))
       {
         /* make sure this isn't a multi-value int method */
-        tmptype = func->Parameters[0]->Type;
-        tmpclass = func->Parameters[0]->Class;
-        allSame = 1;
+        unsigned int tmptype = func->Parameters[0]->Type;
+        int allSame = 1;
 
         n = func->NumberOfParameters;
         for (i = 0; i < n; i++)
@@ -611,9 +607,9 @@ static int getMethodAttributes(FunctionInfo* func, MethodAttributes* attrs)
   /* check for multiple arguments of the same type */
   if (func->NumberOfParameters > 1 && !indexed)
   {
-    tmptype = func->Parameters[0]->Type;
-    tmpclass = func->Parameters[0]->Class;
-    allSame = 1;
+    unsigned int tmptype = func->Parameters[0]->Type;
+    const char* tmpclass = func->Parameters[0]->Class;
+    int allSame = 1;
 
     n = func->NumberOfParameters;
     for (i = 0; i < n; i++)
@@ -1147,7 +1143,7 @@ static int searchForRepeatedMethods(
 static void addProperty(const HierarchyInfo* hinfo, ClassProperties* properties,
   ClassPropertyMethods* methods, int i, int matchedMethods[])
 {
-  MethodAttributes* meth = methods->Methods[i];
+  const MethodAttributes* meth = methods->Methods[i];
   PropertyInfo* property;
   unsigned int category;
 
