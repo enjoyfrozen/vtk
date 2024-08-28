@@ -60,11 +60,9 @@ static int isSetNthMethod(const char* name)
 
 static int isSetNumberOfMethod(const char* name)
 {
-  size_t n;
-
   if (isSetMethod(name))
   {
-    n = strlen(name);
+    size_t n = strlen(name);
     return (!strncmp(&name[3], "NumberOf", 8) && n > 11 && isupper(name[11]) && name[n - 1] == 's');
   }
 
@@ -88,11 +86,9 @@ static int isGetNthMethod(const char* name)
 
 static int isGetNumberOfMethod(const char* name)
 {
-  size_t n;
-
   if (isGetMethod(name))
   {
-    n = strlen(name);
+    size_t n = strlen(name);
     return (!strncmp(&name[3], "NumberOf", 8) && n > 11 && isupper(name[11]) && name[n - 1] == 's');
   }
 
@@ -101,11 +97,9 @@ static int isGetNumberOfMethod(const char* name)
 
 static int isBooleanMethod(const char* name)
 {
-  size_t n;
-
   if (name)
   {
-    n = strlen(name);
+    size_t n = strlen(name);
     if (((n > 2) && !strncmp(&name[n - 2], "On", 2)) ||
       ((n > 3) && !strncmp(&name[n - 3], "Off", 3)))
     {
@@ -118,12 +112,10 @@ static int isBooleanMethod(const char* name)
 
 static int isEnumeratedMethod(const char* name)
 {
-  size_t i, n;
-
   if (isSetMethod(name))
   {
-    n = strlen(name) - 3;
-    for (i = 3; i < n; i++)
+    size_t n = strlen(name) - 3;
+    for (size_t i = 3; i < n; i++)
     {
       if (!strncmp(&name[i], "To", 2) && (isupper(name[i + 2]) || isdigit(name[i + 2])))
       {
@@ -137,11 +129,9 @@ static int isEnumeratedMethod(const char* name)
 
 static int isAsStringMethod(const char* name)
 {
-  size_t n;
-
   if (isGetMethod(name))
   {
-    n = strlen(name);
+    size_t n = strlen(name);
     if (!strncmp(&name[n - 8], "AsString", 8))
     {
       return 1;
@@ -165,11 +155,9 @@ static int isRemoveMethod(const char* name)
 
 static int isRemoveAllMethod(const char* name)
 {
-  size_t n;
-
   if (isRemoveMethod(name))
   {
-    n = strlen(name);
+    size_t n = strlen(name);
     return (!strncmp(&name[6], "All", 3) && (n > 9) && isupper(name[9]));
   }
 
@@ -178,11 +166,9 @@ static int isRemoveAllMethod(const char* name)
 
 static int isGetMinValueMethod(const char* name)
 {
-  size_t n;
-
   if (isGetMethod(name))
   {
-    n = strlen(name);
+    size_t n = strlen(name);
     if (n > 11 && strncmp("MinValue", &name[n - 8], 8) == 0)
     {
       return 1;
@@ -194,11 +180,9 @@ static int isGetMinValueMethod(const char* name)
 
 static int isGetMaxValueMethod(const char* name)
 {
-  size_t n;
-
   if (isGetMethod(name))
   {
-    n = strlen(name);
+    size_t n = strlen(name);
     if (n > 11 && strncmp("MaxValue", &name[n - 8], 8) == 0)
     {
       return 1;
@@ -216,7 +200,6 @@ static int isGetMaxValueMethod(const char* name)
 
 static unsigned int methodCategory(const MethodAttributes* meth, int shortForm)
 {
-  size_t n;
   const char* name;
   name = meth->Name;
 
@@ -252,7 +235,7 @@ static unsigned int methodCategory(const MethodAttributes* meth, int shortForm)
   }
   else if (meth->IsBoolean)
   {
-    n = strlen(name);
+    size_t n = strlen(name);
     if (name[n - 1] == 'n')
     {
       return VTK_METHOD_BOOL_ON;
@@ -1098,14 +1081,13 @@ static int searchForRepeatedMethods(
 {
   int i, n;
   MethodAttributes* attrs;
-  MethodAttributes* meth;
   n = methods->NumberOfMethods;
 
   attrs = methods->Methods[j];
 
   for (i = 0; i < n; i++)
   {
-    meth = methods->Methods[i];
+    MethodAttributes* meth = methods->Methods[i];
 
     /* check whether the function name and basic structure are matched */
     if (meth->Name && strcmp(attrs->Name, meth->Name) == 0 &&
@@ -1274,18 +1256,14 @@ static void categorizeProperties(
 
 static void categorizePropertyMethods(ClassInfo* data, ClassPropertyMethods* methods)
 {
-  int i, n;
-  FunctionInfo* func;
-  MethodAttributes* attrs;
-
   methods->NumberOfMethods = 0;
 
   /* build up the ClassPropertyMethods struct */
-  n = data->NumberOfFunctions;
-  for (i = 0; i < n; i++)
+  int n = data->NumberOfFunctions;
+  for (int i = 0; i < n; i++)
   {
-    func = data->Functions[i];
-    attrs = (MethodAttributes*)malloc(sizeof(MethodAttributes));
+    FunctionInfo* func = data->Functions[i];
+    MethodAttributes* attrs = (MethodAttributes*)malloc(sizeof(MethodAttributes));
     methods->Methods[methods->NumberOfMethods++] = attrs;
 
     /* copy the func into a MethodAttributes struct if possible */
