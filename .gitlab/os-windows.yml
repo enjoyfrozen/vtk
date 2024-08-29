@@ -231,6 +231,8 @@
     - Set-Item -Force -Path "env:PATH" -Value "$pwdpath\.gitlab\openxr\x64\bin;$env:PATH"
     - cmake -P .gitlab/ci/download_openxrremoting.cmake
     - Set-Item -Force -Path "env:CMAKE_PREFIX_PATH" -Value "$pwdpath\.gitlab\openxrremoting\build\native;$env:CMAKE_PREFIX_PATH"
+    - cmake -P .gitlab/ci/download_adios2.cmake
+    - Set-Item -Force -Path "env:CMAKE_PREFIX_PATH" -Value "$pwdpath\.gitlab\adios2;$env:CMAKE_PREFIX_PATH"
 
 .cmake_build_windows:
     stage: build
