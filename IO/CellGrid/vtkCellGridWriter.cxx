@@ -169,7 +169,6 @@ bool getCachedRange(
   }
   rangeInfo = nlohmann::json::object();
   int compNum = 0;
-  int maxComp = attribute->GetNumberOfComponents();
   for (const auto& compRange : it->second)
   {
     nlohmann::json entry{

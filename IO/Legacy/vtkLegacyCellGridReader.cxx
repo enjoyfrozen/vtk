@@ -85,8 +85,7 @@ int vtkLegacyCellGridReader::ReadMeshSimple(const std::string& fname, vtkDataObj
     }
 
     vtkIdType contentLength;
-    char dummy; // Consume the newline after the contentLength.
-    if (!this->Read(&contentLength)) //  || !this->Read(&dummy))
+    if (!this->Read(&contentLength))
     {
       vtkErrorMacro(<< "Cannot read dataset length: " << line);
       this->CloseVTKFile();

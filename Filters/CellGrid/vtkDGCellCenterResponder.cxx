@@ -35,6 +35,8 @@ void addSourceCenters(
   vtkIdType& vbegin,
   vtkIdType& vend)
 {
+  (void)vend; // When assert() is a no-op, prevent warnings.
+
   if (spec.Blanked) { return; }
 
   vtkIdType nn = spec.Connectivity->GetNumberOfTuples();
@@ -77,6 +79,7 @@ void addSourceCenters(
     );
   }
   vbegin += nn;
+  assert(vbegin <= vend);
 }
 
 } // anonymous namespace

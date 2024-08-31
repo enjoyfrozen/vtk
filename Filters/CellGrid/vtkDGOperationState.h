@@ -45,6 +45,7 @@ public:
   {
   }
   vtkDGOperationState(const vtkDGOperationState& other) = default;
+  virtual ~vtkDGOperationState() = default;
 
   virtual void CloneInto(vtkDGOperationStateEntryBase& entry) const = 0;
 

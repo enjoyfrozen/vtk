@@ -85,7 +85,7 @@ bool vtkDGOperation<InputIterator, OutputIterator>::Prepare(
   }
   this->NumberOfResultComponents = opEntry.OperatorSize * numValPerFunction;
 
-  this->AddSource(grid, cellType, ~0, cellAttribute, cellTypeInfo, opEntry, includeShape);
+  this->AddSource(grid, cellType, std::numeric_limits<std::size_t>::max(), cellAttribute, cellTypeInfo, opEntry, includeShape);
   std::size_t numSideSpecs = cellType->GetSideSpecs().size();
   for (std::size_t sideSpecIdx = 0; sideSpecIdx < numSideSpecs; ++sideSpecIdx)
   {
@@ -219,11 +219,12 @@ void vtkDGOperation<InputIterator, OutputIterator>::AddSource(
   vtkCellAttribute* cellAtt, const vtkCellAttribute::CellTypeInfo& cellTypeInfo,
   vtkDGOperatorEntry& op, bool includeShape)
 {
+  (void)cellAtt;
   (void)includeShape;
   using namespace vtk::literals;
 
   const auto& cellSpec(cellType->GetCellSpec());
-  bool isCellSpec = sideSpecIdx == ~0;
+  bool isCellSpec = sideSpecIdx == std::numeric_limits<std::size_t>::max();
   const auto& source(isCellSpec ? cellType->GetCellSpec() : cellType->GetSideSpecs()[sideSpecIdx]);
   if (source.Blanked)
   {

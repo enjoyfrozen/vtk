@@ -114,6 +114,8 @@ bool vtkFiltersCellGrid::RegisterCellsAndResponders()
     (void)fsConst;
     (void)dsCoord;
     (void)dsPData;
+    (void)pointsT;
+    (void)shapeT;
 
     // Register the basis function (and some gradient) operators in each of our function spaces.
     vtk::basis::constant::RegisterOperators();

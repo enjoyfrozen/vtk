@@ -8,13 +8,12 @@
 #define vtkDGArrayOutputAccessor_h
 
 #include "vtkVector.h" // For API.
+#include "vtkDoubleArray.h" // For API.
 #include "vtkFiltersCellGridModule.h" // For export macro.
 
 #include <cassert>
 
 VTK_ABI_NAMESPACE_BEGIN
-
-class vtkDoubleArray;
 
 class VTKFILTERSCELLGRID_EXPORT vtkDGArrayOutputAccessor
 {

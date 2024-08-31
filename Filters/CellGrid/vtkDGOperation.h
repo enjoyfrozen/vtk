@@ -54,7 +54,7 @@ public:
   vtkDGOperation(const SelfType& other);
   vtkDGOperation(vtkDGCell* cellType, vtkCellAttribute* cellAttribute, vtkStringToken operationName);
 
-  virtual void PrintSelf(std::ostream& os, vtkIndent indent);
+  void PrintSelf(std::ostream& os, vtkIndent indent);
 
   /// Prepare this instance of vtkDGOperation to evaluate \a operationName on the given \a cellType
   /// and \a cellAttribute.
@@ -147,7 +147,7 @@ public:
 
     void operator() (vtkIdType begin, vtkIdType end)
     {
-      TLOp.Local()(this->InIt, this->OutIt, begin, end);
+      TLOp.Local()(this->InIter, this->OutIter, begin, end);
     }
   };
 

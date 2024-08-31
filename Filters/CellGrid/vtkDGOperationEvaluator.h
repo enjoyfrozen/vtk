@@ -241,7 +241,6 @@ public:
     // cannot both use the same Jacobian matrix.
     vtkMatrix3x3::Transpose(this->Jacobian.data(), this->Jacobian.data());
     vtkMatrix3x3::Invert(this->Jacobian.data(), inverseJacobian.data());
-    std::array<double, 3> vec;
     auto rr(outIter[ii]);
     const int nc = static_cast<int>(rr.size());
     if (nc % 3 != 0)

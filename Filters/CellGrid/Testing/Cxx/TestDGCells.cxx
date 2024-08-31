@@ -142,7 +142,7 @@ bool TestDGCellType()
   // Note that for cells of dimension 2 or less, the input cell's connectivity
   // is reported as the first side in the sideOffs/sideConn arrays so that
   // these cells can be rendered directly. We must account for that by
-  // offsetting ss and sideDim below.
+  // offsetting ss below.
   int ss = haveSelfSide ? -1 : 0;
   for (vtkIdType ii = 0; ii < sideOffs->GetNumberOfTuples() - 1; ++ii)
   {
@@ -155,7 +155,6 @@ bool TestDGCellType()
     // clang-format on
     int nn = vtkDGCell::GetShapeCornerCount(shape);
     int nextOffset = sideOffs->GetTuple(ii + 1)[0];
-    int sideDim = cell->GetDimension() - (haveSelfSide ? ii : ii + 1);
     int numSidesOfType = haveSelfSide ?
       (cell->GetSideRangeForType(ii - 1).second - cell->GetSideRangeForType(ii - 1).first) :
       (cell->GetSideRangeForType(ii).second - cell->GetSideRangeForType(ii).first);

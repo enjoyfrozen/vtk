@@ -160,7 +160,7 @@ protected:
   vtkCellGridToUnstructuredGrid() = default;
   ~vtkCellGridToUnstructuredGrid() override = default;
 
-  int FillInputPortInformation(int port, vtkInformation* info);
+  int FillInputPortInformation(int port, vtkInformation* info) override;
   int RequestData(
     vtkInformation* request, vtkInformationVector** inInfo, vtkInformationVector* ouInfo) override;
 

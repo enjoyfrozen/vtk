@@ -272,7 +272,6 @@ void vtkDGTranscribeCellGridCells::GenerateConnectivity(
   auto shapeInfo = shapeAtt->GetCellTypeInfo(cellTypeToken);
   auto shapePoints = shapeInfo.GetArrayForRoleAs<vtkDataArray>("values"_token);
   auto shapeConn = shapeInfo.GetArrayForRoleAs<vtkDataArray>("connectivity"_token);
-  vtkIdType numCellTuples = shapeConn->GetNumberOfTuples();
   // Insert points, add to map, and write output-cell connectivity
   // NB: We currently assume the shape attribute uses a constant (vertices) or HGRAD
   //     function space. If not, we would need to interpolate values here instead of
@@ -327,7 +326,6 @@ void vtkDGTranscribeCellGridCells::GenerateConnectivity(
       // using the connectivity and side-connectivity.
       auto sideRange = cellType->GetSideRangeForType(source.SideType);
       auto shape = cellType->GetSideShape(sideRange.first);
-      vtkIdType pointsPerSide = vtkDGCell::GetShapeCornerCount(shape);
       unsigned char sideShapeVTK = vtkCellTypeForDGShape(shape);
       for (vtkIdType cc = 0; cc < numSideTuples; ++cc)
       {
@@ -371,7 +369,6 @@ void vtkDGTranscribeCellGridCells::GeneratePointData(
   vtkIdType nn = contribs.InputCellIds->GetNumberOfTuples();
   auto& pointWeights = request->GetConnectivityWeights();
 
-  auto* vtxGroup = request->GetOutput()->GetPointData();
   vtkNew<vtkDGInterpolateCalculator> interpolateProto;
   for (const auto& inCellAtt : request->GetInput()->GetCellAttributeList())
   {

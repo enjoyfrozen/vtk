@@ -51,14 +51,10 @@ const char* vtkCellGridCellSource::GetCellType() const
 }
 
 int vtkCellGridCellSource::RequestData(
-  vtkInformation* vtkNotUsed(request), vtkInformationVector** inInfo, vtkInformationVector* ouInfo)
+  vtkInformation* vtkNotUsed(request),
+  vtkInformationVector** vtkNotUsed(inInfo),
+  vtkInformationVector* ouInfo)
 {
-  // auto* input = vtkCellGrid::GetData(inInfo[0]);
-  // if (!input)
-  // {
-  //   vtkWarningMacro("Empty input.");
-  //   return 1;
-  // }
   auto* output = vtkCellGrid::GetData(ouInfo);
   if (!output)
   {
