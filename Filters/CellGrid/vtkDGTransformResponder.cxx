@@ -101,6 +101,7 @@ bool vtkDGTransformResponder::Query(
     auto* arrayGroup = cellType->GetCellGrid()->GetAttributes(cellTypeInfo.DOFSharing);
     arrayGroup->RemoveArray(values->GetName());
     arrayGroup->AddArray(transformedValues);
+    transformedValues->FastDelete();
   }
   else
   {
@@ -126,9 +127,11 @@ bool vtkDGTransformResponder::Query(
       auto* arrayGroup = cellType->GetCellGrid()->GetAttributes(cellTypeToken);
       arrayGroup->RemoveArray(values->GetName());
       arrayGroup->AddArray(transformedValues);
+      transformedValues->FastDelete();
     }
     else
     {
+      transformedValues->Delete();
       vtkErrorMacro("Invalid function space \"" << cellTypeInfo.FunctionSpace.Data() << "\".");
       ok = false;
     }
