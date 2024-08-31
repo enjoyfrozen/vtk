@@ -148,6 +148,14 @@ std::vector<vtkSmartPointer<vtkCellGrid>> vtkIOSSCellGridReaderInternal::GetElem
   // This must always be a "CG" (continuous) attribute.
   vtkIOSSCellGridUtilities::GetShape(
     region, group_entity, cellShapeInfo, timestep, dg, grid, &this->Cache);
+  // Apply displacements before reading other cell-attributes as
+  // computing the range of HDIV/HCURL attributes **must** use
+  // the actual (deformed) cell shape. Also, note that using a
+  // displacement scale factor other than 1.0 will introduce errors.
+  if (self->GetApplyDisplacements())
+  {
+    this->ApplyDisplacements(grid, region, group_entity, handle, timestep);
+  }
 
   // Add per-block attributes.
   // auto blockFieldSelection = self->GetFieldSelection(vtk_entity_type);
@@ -163,12 +171,6 @@ std::vector<vtkSmartPointer<vtkCellGrid>> vtkIOSSCellGridReaderInternal::GetElem
   auto elementFieldSelection = self->GetElementBlockFieldSelection();
   this->GetElementAttributes(elementFieldSelection, grid->GetAttributes(dg->GetClassName()), grid,
     dg, group_entity, region, handle, timestep, self->GetReadIds(), "");
-
-  // TODO: Support displacements.
-  if (self->GetApplyDisplacements())
-  {
-    this->ApplyDisplacements(grid, region, group_entity, handle, timestep);
-  }
 
 #ifdef VTK_DBG_IOSS
   vtkNew<vtkCellGridWriter> wri;
