@@ -139,6 +139,13 @@ int vtkIOSSCellGridReader::ReadMetaData(vtkInformation* metadata)
   }
 
   metadata->Set(vtkAlgorithm::CAN_HANDLE_PIECE_REQUEST(), 1);
+  if (internals.HaveRestartFiles())
+  {
+    // All meta-data have been read successfully, so we can release all the regions.
+    // Subsequent ReadMesh calls create only the requested regions (if needed) and release previous
+    // regions (if no longer needed).
+    internals.ReleaseRegions();
+  }
   return 1;
 }
 
@@ -186,6 +193,16 @@ int vtkIOSSCellGridReader::ReadMesh(
   // dbaseHandles are handles for individual files this instance will to read to
   // satisfy the request. Can be >= 0.
   const auto dbaseHandles = internals.GetDatabaseHandles(piece, npieces, timestep);
+  // If we have restart files, and the previously read regions are no longer needed.
+  if (internals.HaveRestartFiles() && !internals.HaveCreatedRegions(dbaseHandles))
+  {
+    // … then we need to release them and, if requested, clear their cached information
+    internals.ReleaseRegions();
+    if (!this->GetCaching())
+    {
+      internals.ClearCache();
+    }
+  }
 
   // Read global data. Since this should be same on all ranks, we only read on
   // root node and broadcast it to all. This helps us easily handle the case
@@ -333,7 +350,6 @@ int vtkIOSSCellGridReader::ReadMesh(
   }
 
   internals.ClearCacheUnused();
-  internals.ReleaseRegions();
   return 1;
 }
 
