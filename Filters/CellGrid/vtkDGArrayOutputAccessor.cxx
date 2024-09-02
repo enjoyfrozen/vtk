@@ -69,7 +69,7 @@ vtkDGArrayOutputAccessor& vtkDGArrayOutputAccessor::operator=(const vtkDGArrayOu
 
 vtkDGArrayOutputAccessor::Tuple vtkDGArrayOutputAccessor::operator[](vtkTypeUInt64 tupleId)
 {
-  if (tupleId >= this->Result->GetNumberOfTuples())
+  if (tupleId >= static_cast<vtkTypeUInt64>(this->Result->GetNumberOfTuples()))
   {
     return Tuple();
   }
@@ -79,7 +79,7 @@ vtkDGArrayOutputAccessor::Tuple vtkDGArrayOutputAccessor::operator[](vtkTypeUInt
 
 vtkDGArrayOutputAccessor::Tuple vtkDGArrayOutputAccessor::GetTuple()
 {
-  if (this->Key >= this->Result->GetNumberOfTuples())
+  if (this->Key >= static_cast<vtkTypeUInt64>(this->Result->GetNumberOfTuples()))
   {
     return Tuple();
   }

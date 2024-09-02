@@ -57,7 +57,7 @@ void vtkCellInfoFromDGType(
   alloc.CellType = vtkCellTypeForDGShape(shape);
   alloc.NumberOfCells = 0;
   alloc.NumberOfConnectivityEntries = 0;
-  for (int ii = -1; ii < dgCell->GetNumberOfCellSources(); ++ii)
+  for (int ii = -1; ii < static_cast<int>(dgCell->GetNumberOfCellSources()); ++ii)
   {
     const auto& source(dgCell->GetCellSource(ii));
     if (source.Blanked) { continue; }
@@ -70,59 +70,6 @@ void vtkCellInfoFromDGType(
     alloc.NumberOfCells += numCells;
     alloc.NumberOfConnectivityEntries += (pointsPerSide + 1) * numCells;
   }
-}
-
-void addSourceCenters(
-  vtkDGCell* cell,
-  const vtkDGCell::Source& spec,
-  vtkIdTypeArray* cellIds,
-  vtkDoubleArray* rst,
-  vtkIdType& vbegin,
-  vtkIdType& vend)
-{
-  if (spec.Blanked) { return; }
-
-  vtkIdType nn = spec.Connectivity->GetNumberOfTuples();
-  vtkIdType off = spec.Offset;
-  if (vend - vbegin != nn)
-  {
-    vtkGenericWarningMacro("Interval [" << vbegin << ", " << vend << "[ is"
-      " size " << (vend - vbegin) << " numcells " << nn << ".");
-  }
-  if (spec.SideType < 0)
-  {
-    // Compute center of (non-blanked) cell
-    vtkSMPTools::For(0, nn, [&](vtkIdType beg, vtkIdType end)
-      {
-        vtkVector3d param;
-        for (vtkIdType ii = beg; ii < end; ++ii)
-        {
-          // param = cell->GetParametricCenterOfSide(spec.SideType);
-          param = cell->GetParametricCenterOfSide(spec.SideType);
-          cellIds->SetValue(vbegin + ii + off, ii + off);
-          rst->SetTuple(vbegin + ii + off, param.GetData());
-        }
-      }
-    );
-  }
-  else
-  {
-    // Compute center of side of a cell.
-    vtkSMPTools::For(0, nn, [&](vtkIdType beg, vtkIdType end)
-      {
-        vtkVector3d param;
-        std::array<vtkTypeUInt64, 2> sideConn;
-        for (vtkIdType ii = beg; ii < end; ++ii)
-        {
-          spec.Connectivity->GetUnsignedTuple(ii, sideConn.data());
-          param = cell->GetParametricCenterOfSide(sideConn[1]);
-          cellIds->SetValue(vbegin + ii + off, ii + off);
-          rst->SetTuple(vbegin + ii + off, param.GetData());
-        }
-      }
-    );
-  }
-  vbegin += nn;
 }
 
 // The contributions of cell-grid corner points to
@@ -159,7 +106,7 @@ class TranscribeCellGridPointCache : public vtkObject
 {
 public:
   vtkTypeMacro(TranscribeCellGridPointCache, vtkObject);
-  virtual void PrintSelf(std::ostream& os, vtkIndent indent)
+  void PrintSelf(std::ostream& os, vtkIndent indent) override
   {
     this->Superclass::PrintSelf(os, indent);
     os << indent << "ContributionsByType: " << this->ContributionsByType.size() << " entries\n";

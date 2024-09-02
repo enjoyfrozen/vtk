@@ -18,7 +18,7 @@ class VTKFILTERSCELLGRID_EXPORT vtkDGOperationBase
 {
 public:
   /// A range of cell IDs handled by a vtkDGCell::Source instance.
-  struct RangeKey
+  struct VTKFILTERSCELLGRID_EXPORT RangeKey
   {
     vtkTypeUInt64 Begin;
     vtkTypeUInt64 End;
@@ -116,7 +116,7 @@ public:
 
   /// A vtkSMPTools worker class for evaluating an operation across
   /// a range of cells.
-  struct Worker
+  struct VTK_ALWAYS_EXPORT Worker
   {
     InputIterator& InIter;
     OutputIterator& OutIter;
