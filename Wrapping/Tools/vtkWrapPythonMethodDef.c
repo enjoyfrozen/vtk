@@ -430,7 +430,17 @@ static void vtkWrapPython_ClassMethodDef(FILE* fp, const char* classname, const 
   {
     fprintf(fp,
       "  {\n"
+      "  #if defined(__clang__)\n"
+      "  #pragma clang diagnostic push\n"
+      "  /* This cast is fine because Python knows what is actually happening\n"
+      "   * due to `METH_KEYWORDS`. Ignore the warning.\n"
+      "   */\n"
+      "  #pragma clang diagnostic ignored \"-Wcast-function-type\"\n"
+      "  #endif\n"
       "  \"update\",(PyCFunction)static_cast<PyCFunctionWithKeywords>(\n"
+      "  #if defined(__clang__)\n"
+      "  #pragma clang diagnostic pop\n"
+      "  #endif\n"
       "  [](PyObject* self, PyObject* args, PyObject* kwargs) -> PyObject*\n"
       "  {\n"
       "    vtkPythonArgs ap(self, args, \"update\");\n"
