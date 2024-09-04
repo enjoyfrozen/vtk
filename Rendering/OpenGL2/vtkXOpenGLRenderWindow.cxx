@@ -463,9 +463,12 @@ void vtkXOpenGLRenderWindow::CreateAWindow()
     this->OwnDisplay = 1;
   }
 
+  auto coverable = vtksys::SystemTools::GetEnv("PV_WINDOW_BORDERLESS_COVERABLE");
+
   attr.override_redirect = False;
-  if (this->Borders == 0.0)
+  if (this->Borders == 0.0 && !coverable)
   {
+    // Removes borders, and makes the window appear on top of all other windows
     attr.override_redirect = True;
   }
 
@@ -496,6 +499,16 @@ void vtkXOpenGLRenderWindow::CreateAWindow()
       XCreateWindow(this->DisplayId, this->ParentId, x, y, static_cast<unsigned int>(width),
         static_cast<unsigned int>(height), 0, v->depth, InputOutput, v->visual,
         CWBackPixel | CWBorderPixel | CWColormap | CWOverrideRedirect | CWEventMask, &attr);
+
+    if (this->Borders == 0.0 && coverable)
+    {
+      // Removes borders, while still allowing other windows on top
+      Atom winType = XInternAtom(this->DisplayId, "_NET_WM_WINDOW_TYPE", False);
+      Atom winTypeValue = XInternAtom(this->DisplayId, "_NET_WM_WINDOW_TYPE_SPLASH", False);
+      XChangeProperty(this->DisplayId, this->WindowId, winType, XA_ATOM, 32, PropModeReplace,
+        reinterpret_cast<unsigned char*>(&winTypeValue), 1);
+    }
+
     XStoreName(this->DisplayId, this->WindowId, this->WindowName);
     XSetNormalHints(this->DisplayId, this->WindowId, &xsh);
 
