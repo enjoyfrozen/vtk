@@ -51,6 +51,9 @@
 #include "vtkStdString.h"       // Needed for vtkStdString
 #include "vtkTableAlgorithm.h"
 
+#include <string>
+#include <vector>
+
 VTK_ABI_NAMESPACE_BEGIN
 class VTKIOINFOVIS_EXPORT vtkDelimitedTextReader : public vtkTableAlgorithm
 {
@@ -185,6 +188,7 @@ public:
   /**
    * Specifies the maximum number of records to read from the file.  Limiting the
    * number of records to read is useful for previewing the contents of a file.
+   * Note: see Preview.
    */
   vtkGetMacro(MaxRecords, vtkIdType);
   vtkSetMacro(MaxRecords, vtkIdType);
@@ -307,10 +311,27 @@ public:
   vtkGetMacro(ReplacementCharacter, vtkTypeUInt32);
   ///@}
 
+  /**
+   * Return the first lines as a single string.
+   * Number of read lines is defined by PreviewNumberOfLines
+   * This is updated in RequestInformation pass, so one can use
+   * it before the actual RequestData.
+   */
+  vtkGetMacro(Preview, std::string);
+
+  ///@{
+  /**
+   * Set / Get The number of lines to read for the preview.
+   */
+  vtkSetMacro(PreviewNumberOfLines, vtkIdType);
+  vtkGetMacro(PreviewNumberOfLines, vtkIdType);
+  ///@}
+
 protected:
   vtkDelimitedTextReader();
   ~vtkDelimitedTextReader() override;
 
+  int RequestInformation(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
   int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
   // Read the content of the input file.
@@ -343,6 +364,9 @@ protected:
   bool AddTabFieldDelimiter;
   vtkStdString LastError;
   vtkTypeUInt32 ReplacementCharacter;
+
+  std::string Preview;
+  vtkIdType PreviewNumberOfLines = 0;
 
 private:
   vtkDelimitedTextReader(const vtkDelimitedTextReader&) = delete;
