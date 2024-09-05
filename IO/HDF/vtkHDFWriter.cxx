@@ -1210,13 +1210,14 @@ bool vtkHDFWriter::AppendFieldDataArrays(hid_t baseGroup, vtkDataObject* input, 
     return true;
   }
 
-  if (this->Impl->GetSubFilesReady())
+  if (this->Impl->GetSubFilesReady() && this->NbPieces > 1)
   {
-    vtkWarningMacro("Writing field data arrays is not currently supported in multi-file mode");
+    vtkWarningMacro(
+      "Writing field data arrays is not currently supported for distributed writing.");
     return true;
   }
 
-  // Create the group corresponding to point, cell or field data
+  // Create the group corresponding to field data
   std::string groupName = "FieldData";
   const std::string offsetsGroupName = groupName + "Offsets";
   std::string fieldDataSizeName = "FieldDataSizes";
