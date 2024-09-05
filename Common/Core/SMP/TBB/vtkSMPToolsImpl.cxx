@@ -70,13 +70,6 @@ vtkSMPToolsImplTBBInitialize::~vtkSMPToolsImplTBBInitialize()
 
 //------------------------------------------------------------------------------
 template <>
-vtkSMPToolsImpl<BackendType::TBB>::vtkSMPToolsImpl()
-  : NestedActivated(true)
-{
-}
-
-//------------------------------------------------------------------------------
-template <>
 void vtkSMPToolsImpl<BackendType::TBB>::Initialize(int numThreads)
 {
   vtkSMPToolsCS->lock();
