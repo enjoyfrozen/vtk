@@ -534,12 +534,12 @@ vtkUnsignedCharArray* vtkMapper::MapScalars(vtkDataSet* input, double alpha, int
 
 void vtkMapper::SelectColorArray(int arrayNum)
 {
-  this->ColorByArrayComponent(arrayNum, -1);
+  this->ColorByArrayComponent(arrayNum, 0);
 }
 
 void vtkMapper::SelectColorArray(const char* arrayName)
 {
-  this->ColorByArrayComponent(arrayName, -1);
+  this->ColorByArrayComponent(arrayName, 0);
 }
 
 void vtkMapper::ColorByArrayComponent(int arrayNum, int component)
