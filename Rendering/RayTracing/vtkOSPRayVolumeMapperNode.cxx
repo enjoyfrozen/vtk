@@ -150,7 +150,17 @@ void vtkOSPRayVolumeMapperNode::Render(bool prepass)
         {
           for (vtkIdType t = 0; t < sa->GetNumberOfTuples(); ++t)
           {
-            componentArray->SetTuple1(t, vtkMath::Norm(sa->GetTuple3(t)));
+            // In case of a SeparateOpacityArray, the
+            // `vtkVolumeRepresentation::AppendOpacityComponent()` is called and combine the color
+            // and opacity into a TWO component array. So GetTuple3 will segfault in case of a
+            // separate opacity array As the magnitude is already computed and stored in first
+            // component of the 2 component tuple The second component is the opacity
+            // TODO: check if data is using a separate opacity array, and compute the magnitude
+            // using GetTuple3 If there is no separate opacity array. Else, use this uncommented
+            // line that get the already computed magnitude (by
+            // `vtkVolumeRepresentation::AppendOpacityComponent()`)
+            // componentArray->SetTuple1(t, vtkMath::Norm(sa->GetTuple3(t)));
+            componentArray->SetTuple1(t, sa->GetTuple2(t)[0]);
           }
         }
         sa = componentArray;
@@ -436,7 +446,58 @@ void vtkOSPRayVolumeMapperNode::UpdateTransferFunction(
   ospSetBox1f(this->TransferFunction, "value", tfRange.x, tfRange.y);
 #endif
 
-  OSPData tfAlphaData = ospNewCopyData1D(&this->TFOVals[0], OSP_FLOAT, this->NumColors);
+  // In this function, we set the opacity value to the transfer function.
+  // So when using a separate opacity array, we must get the input data
+  // and its array of colors + opacity
+  // the code below is copied from the render function and is used to get data array sa
+  // ------------------------ Start of code copied from Render()
+  vtkOSPRayRendererNode* orn =
+    static_cast<vtkOSPRayRendererNode*>(this->GetFirstAncestorOfType("vtkOSPRayRendererNode"));
+  vtkVolumeMapper* mapper = vtkVolumeMapper::SafeDownCast(this->GetRenderable());
+  if (!vol->GetProperty())
+  {
+    // this is OK, happens in paraview client side for instance
+    return;
+  }
+  vtkRenderer* ren = vtkRenderer::SafeDownCast(orn->GetRenderable());
+  // make sure that we have scalar input and update the scalar input
+  if (mapper->GetDataSetInput() == nullptr)
+  {
+    // OK - PV cli/srv for instance vtkErrorMacro("VolumeMapper had no input!");
+    return;
+  }
+  mapper->GetInputAlgorithm()->UpdateInformation();
+  mapper->GetInputAlgorithm()->Update();
+  vtkImageData* data = vtkImageData::SafeDownCast(mapper->GetDataSetInput());
+  if (!data)
+  {
+    return;
+  }
+  int fieldAssociation;
+  vtkDataArray* sa = vtkDataArray::SafeDownCast(this->GetArrayToProcess(data, fieldAssociation));
+  // ------------------------ End of code copied from Render()
+  // We now have the input data array (containing the color + opacity)
+  // We modify TFOVals (array that contains the opacity) from the input opacity array
+  // WARNING: sa->GetNumberOfTuples can be too large (we can use less values..)
+  this->TFOVals.resize(sa->GetNumberOfTuples());
+  for (vtkIdType t = 0; t < sa->GetNumberOfTuples(); ++t)
+  {
+    // As we know that a separate opacity is used, the array to process contains the opacity in the
+    // second component (filled in this->Render() function) This scale (/ 10.0) here is just to
+    // better see differences (TODO remove)
+    // TODO: do not do this if UseSeparateOpacityArray is false
+    float op = sa->GetTuple2(t)[1] / 10.0;
+
+    if (op < 0.f)
+    {
+      op = 0.f;
+    }
+
+    this->TFOVals[t] = op;
+  }
+
+  // OSPData tfAlphaData = ospNewCopyData1D(&this->TFOVals[0], OSP_FLOAT, this->NumColors);
+  OSPData tfAlphaData = ospNewCopyData1D(&this->TFOVals[0], OSP_FLOAT, sa->GetNumberOfTuples());
   ospCommit(tfAlphaData);
   ospSetObject(this->TransferFunction, "opacity", tfAlphaData);
 
