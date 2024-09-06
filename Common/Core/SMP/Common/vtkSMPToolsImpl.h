@@ -93,7 +93,11 @@ public:
   void Sort(RandomAccessIterator begin, RandomAccessIterator end, Compare comp);
 
   //--------------------------------------------------------------------------------
-  vtkSMPToolsImpl() = default;
+  vtkSMPToolsImpl()
+    : NestedActivated(Backend == BackendType::TBB)
+    , IsParallel(false)
+  {
+  }
 
   //--------------------------------------------------------------------------------
   vtkSMPToolsImpl(const vtkSMPToolsImpl& other)
@@ -110,7 +114,7 @@ public:
   }
 
 private:
-  bool NestedActivated = true;
+  bool NestedActivated = false;
   std::atomic<bool> IsParallel{ false };
 };
 
