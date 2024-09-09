@@ -28,20 +28,17 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
-#include <vector>
 
 #include <cctype>
 
+VTK_ABI_NAMESPACE_BEGIN
+namespace
+{
 ////////////////////////////////////////////////////////////////////////////////
 // DelimitedTextIterator
 
 /// Output iterator object that parses a stream of Unicode characters into records and
 /// fields, inserting them into a vtkTable.
-
-VTK_ABI_NAMESPACE_BEGIN
-namespace
-{
-
 class DelimitedTextIterator : public vtkTextCodec::OutputIterator
 {
 public:
@@ -513,111 +510,127 @@ int vtkDelimitedTextReader::RequestData(
 }
 
 //------------------------------------------------------------------------------
+std::istream* vtkDelimitedTextReader::OpenStream()
+{
+  if (!this->ReadFromInputString)
+  {
+    if (!this->FileName)
+    {
+      return nullptr;
+    }
+    auto file_stream = new vtksys::ifstream();
+    // Get the total size of the input file in bytes
+    file_stream->open(this->FileName, ios::binary);
+    if (!file_stream->good())
+    {
+      throw std::runtime_error("Unable to open input file " + std::string(this->FileName));
+    }
+
+    file_stream->seekg(0, ios::end);
+    // const vtkIdType total_bytes = file_stream.tellg();
+    file_stream->seekg(0, ios::beg);
+
+    return file_stream;
+  }
+  else
+  {
+    auto string_stream = new std::istringstream();
+    string_stream->str(this->InputString);
+    return string_stream;
+  }
+}
+
+//------------------------------------------------------------------------------
+vtkTextCodec* vtkDelimitedTextReader::CreateTextCodec(std::istream* input_stream)
+{
+  if (this->UnicodeCharacterSet)
+  {
+    return vtkTextCodecFactory::CodecForName(this->UnicodeCharacterSet);
+  }
+  else
+  {
+    return vtkTextCodecFactory::CodecToHandle(*input_stream);
+  }
+}
+
+//------------------------------------------------------------------------------
+void vtkDelimitedTextReader::ReadBOM(std::istream* stream)
+{
+  namespace vtkfs = vtksys::FStream;
+  vtkfs::BOM fBOM = vtkfs::ReadBOM(*stream);
+
+  if (!this->UnicodeCharacterSet)
+  {
+    switch (fBOM)
+    {
+      case vtkfs::BOM_UTF8:
+        this->UnicodeCharacterSet = new char[6];
+        strcpy(this->UnicodeCharacterSet, "UTF-8");
+        break;
+      case vtkfs::BOM_UTF16BE:
+        this->UnicodeCharacterSet = new char[9];
+        strcpy(this->UnicodeCharacterSet, "UTF-16BE");
+        break;
+      case vtkfs::BOM_UTF16LE:
+        this->UnicodeCharacterSet = new char[9];
+        strcpy(this->UnicodeCharacterSet, "UTF-16LE");
+        break;
+      default:
+        break;
+    }
+  }
+}
+
+//------------------------------------------------------------------------------
 int vtkDelimitedTextReader::ReadData(vtkTable* output_table)
 {
   this->LastError = "";
 
+  if (!this->PedigreeIdArrayName)
+  {
+    vtkErrorMacro("You must specify a pedigree id array name");
+    return 1;
+  }
+
+  if (!this->ReadFromInputString && !this->FileName)
+  {
+    vtkWarningMacro("Cannot read from file without a file name set. Nothing read.");
+    return 1;
+  }
+
+  std::unique_ptr<std::istream> input_stream(this->OpenStream());
+  this->ReadBOM(input_stream.get());
+
+  auto transCodec = vtkSmartPointer<vtkTextCodec>::Take(this->CreateTextCodec(input_stream.get()));
+
+  char tstring[2];
+  tstring[1] = '\0';
+  tstring[0] = this->StringDelimiter;
+  // don't use Set* methods since they change the MTime in
+  // RequestData() !!!!!
+  std::string fieldDelimiterCharacters = this->FieldDelimiterCharacters;
+  if (this->AddTabFieldDelimiter)
+  {
+    fieldDelimiterCharacters.push_back('\t');
+  }
+  this->UnicodeFieldDelimiters = fieldDelimiterCharacters;
+  this->UnicodeStringDelimiters = tstring;
+
+  if (nullptr == transCodec)
+  {
+    // should this use the locale instead??
+    return 1;
+  }
+
   try
   {
-    if (!this->PedigreeIdArrayName)
-    {
-      throw std::runtime_error("You must specify a pedigree id array name");
-    }
-
-    istream* input_stream_pt = nullptr;
-    vtksys::ifstream file_stream;
-    std::istringstream string_stream;
-
-    if (!this->ReadFromInputString)
-    {
-      // If the filename hasn't been specified, we're done ...
-      if (!this->FileName)
-      {
-        return 1;
-      }
-      // Get the total size of the input file in bytes
-      file_stream.open(this->FileName, ios::binary);
-      if (!file_stream.good())
-      {
-        throw std::runtime_error("Unable to open input file " + std::string(this->FileName));
-      }
-
-      file_stream.seekg(0, ios::end);
-      // const vtkIdType total_bytes = file_stream.tellg();
-      file_stream.seekg(0, ios::beg);
-
-      input_stream_pt = &file_stream;
-    }
-    else
-    {
-      string_stream.str(this->InputString);
-      input_stream_pt = &string_stream;
-    }
-
-    {
-      namespace vtkfs = vtksys::FStream;
-      vtkfs::BOM fBOM = vtkfs::ReadBOM(*input_stream_pt);
-
-      if (!this->UnicodeCharacterSet)
-      {
-        switch (fBOM)
-        {
-          case vtkfs::BOM_UTF8:
-            this->UnicodeCharacterSet = new char[6];
-            strcpy(this->UnicodeCharacterSet, "UTF-8");
-            break;
-          case vtkfs::BOM_UTF16BE:
-            this->UnicodeCharacterSet = new char[9];
-            strcpy(this->UnicodeCharacterSet, "UTF-16BE");
-            break;
-          case vtkfs::BOM_UTF16LE:
-            this->UnicodeCharacterSet = new char[9];
-            strcpy(this->UnicodeCharacterSet, "UTF-16LE");
-            break;
-          default:
-            break;
-        }
-      }
-    }
-
-    vtkTextCodec* transCodec = nullptr;
-
-    if (this->UnicodeCharacterSet)
-    {
-      transCodec = vtkTextCodecFactory::CodecForName(this->UnicodeCharacterSet);
-    }
-    else
-    {
-      transCodec = vtkTextCodecFactory::CodecToHandle(*input_stream_pt);
-    }
-
-    char tstring[2];
-    tstring[1] = '\0';
-    tstring[0] = this->StringDelimiter;
-    // don't use Set* methods since they change the MTime in
-    // RequestData() !!!!!
-    std::string fieldDelimiterCharacters = this->FieldDelimiterCharacters;
-    if (this->AddTabFieldDelimiter)
-    {
-      fieldDelimiterCharacters.push_back('\t');
-    }
-    this->UnicodeFieldDelimiters = fieldDelimiterCharacters;
-    this->UnicodeStringDelimiters = tstring;
-
-    if (nullptr == transCodec)
-    {
-      // should this use the locale instead??
-      return 1;
-    }
-
     DelimitedTextIterator iterator(this->MaxRecords, this->UnicodeRecordDelimiters,
       this->UnicodeFieldDelimiters, this->UnicodeStringDelimiters, this->UnicodeWhitespace,
       this->UnicodeEscapeCharacter, this->HaveHeaders, this->MergeConsecutiveDelimiters,
       this->UseStringDelimiter, output_table);
 
-    transCodec->ToUnicode(*input_stream_pt, iterator);
+    transCodec->ToUnicode(*input_stream, iterator);
     iterator.ReachedEndOfInput();
-    transCodec->Delete();
 
     if (this->OutputPedigreeIds)
     {

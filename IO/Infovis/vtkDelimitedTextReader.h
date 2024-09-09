@@ -54,6 +54,8 @@
 #include <string>
 #include <vector>
 
+class vtkTextCodec;
+
 VTK_ABI_NAMESPACE_BEGIN
 class VTKIOINFOVIS_EXPORT vtkDelimitedTextReader : public vtkTableAlgorithm
 {
@@ -369,6 +371,12 @@ protected:
   vtkIdType PreviewNumberOfLines = 0;
 
 private:
+  // stream should manually be deleted
+  std::istream* OpenStream();
+
+  void ReadBOM(std::istream* stream);
+  vtkTextCodec* CreateTextCodec(std::istream* input_stream);
+
   vtkDelimitedTextReader(const vtkDelimitedTextReader&) = delete;
   void operator=(const vtkDelimitedTextReader&) = delete;
 };
