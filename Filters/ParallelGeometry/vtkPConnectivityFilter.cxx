@@ -579,6 +579,10 @@ int vtkPConnectivityFilter::RequestData(
     // Map the local and remote ids
     for (int rank = 0; rank < numRanks; ++rank)
     {
+      if (this->CheckAbort())
+      {
+        break;
+      }
       if (rank == myRank || pointsFromMyNeighbors.count(rank) == 0)
       {
         continue;
@@ -795,6 +799,10 @@ int vtkPConnectivityFilter::RequestData(
       vtkIdType largestRegionId = 0;
       for (vtkIdType i = 0; i < this->RegionSizes->GetNumberOfTuples(); ++i)
       {
+        if (this->CheckAbort())
+        {
+          break;
+        }
         vtkIdType candidateCount = this->RegionSizes->GetValue(i);
         if (candidateCount > largestRegionCount)
         {
@@ -811,6 +819,10 @@ int vtkPConnectivityFilter::RequestData(
       vtkIdType minId = 0;
       for (vtkIdType i = 0; i < output->GetNumberOfPoints(); ++i)
       {
+        if (this->CheckAbort())
+        {
+          break;
+        }
         double x[3];
         output->GetPoint(i, x);
         double dist2 = vtkMath::Distance2BetweenPoints(x, this->ClosestPoint);
@@ -881,6 +893,9 @@ int vtkPConnectivityFilter::RequestData(
   {
     this->AddRegionsIds(output, pointRegionIds, cellRegionIds);
   }
+
+  globalController->Barrier();
+  this->CheckAbort();
 
   return 1;
 }
