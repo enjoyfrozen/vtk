@@ -769,6 +769,7 @@ void vtkOSPRayRendererNode::SetAmbientSamples(int value, vtkRenderer* renderer)
   }
   vtkInformation* info = renderer->GetInformation();
   info->Set(vtkOSPRayRendererNode::AMBIENT_SAMPLES(), value);
+  renderer->Modified();
 }
 
 //------------------------------------------------------------------------------
