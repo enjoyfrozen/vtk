@@ -82,6 +82,8 @@ set(classes
   vtkImageTracerWidget
   vtkImplicitAnnulusRepresentation
   vtkImplicitAnnulusWidget
+  vtkImplicitFrustumRepresentation
+  vtkImplicitFrustumWidget
   vtkImplicitConeRepresentation
   vtkImplicitConeWidget
   vtkImplicitCylinderRepresentation
