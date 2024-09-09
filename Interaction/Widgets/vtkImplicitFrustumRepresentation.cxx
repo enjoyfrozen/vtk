@@ -769,33 +769,30 @@ void vtkImplicitFrustumRepresentation::HighlighNearPlaneHandle(bool highlight)
 void vtkImplicitFrustumRepresentation::Rotate(
   double X, double Y, const vtkVector3d& p1, const vtkVector3d& p2, const vtkVector3d& vpn)
 {
-  vtkVector3d v = p2 - p1;         // mouse motion vector in world space
-  vtkVector3d axis = vpn.Cross(v); // axis of rotation
+  // vtkVector3d v = p2 - p1;         // mouse motion vector in world space
+  // vtkVector3d axis = vpn.Cross(v); // axis of rotation
 
-  if (axis.Norm() == 0.0)
-  {
-    return;
-  }
+  // if (axis.Norm() == 0.0)
+  // {
+  //   return;
+  // }
 
-  const int* size = this->Renderer->GetSize();
-  double l2 = (X - this->LastEventPosition[0]) * (X - this->LastEventPosition[0]) +
-    (Y - this->LastEventPosition[1]) * (Y - this->LastEventPosition[1]);
-  double theta = 360.0 * std::sqrt(l2 / (size[0] * size[0] + size[1] * size[1]));
+  // const int* size = this->Renderer->GetSize();
+  // double l2 = (X - this->LastEventPosition[0]) * (X - this->LastEventPosition[0]) +
+  //   (Y - this->LastEventPosition[1]) * (Y - this->LastEventPosition[1]);
+  // double theta = 360.0 * std::sqrt(l2 / (size[0] * size[0] + size[1] * size[1]));
 
-  vtkVector3d frustumOrigin(this->Frustum->GetOrigin());
-  vtkVector3d frustumAxis(this->Frustum->GetAxis());
+  // // Manipulate the transform to reflect the rotation
+  // vtkNew<vtkTransform> transform;
+  // transform->Identity();
+  // transform->Translate(this->Origin.GetData());
+  // transform->RotateWXYZ(theta, axis.GetData());
+  // transform->Translate((-this->Origin).GetData());
 
-  // Manipulate the transform to reflect the rotation
-  vtkNew<vtkTransform> transform;
-  transform->Identity();
-  transform->Translate(frustumOrigin.GetData());
-  transform->RotateWXYZ(theta, axis.GetData());
-  transform->Translate((-frustumOrigin).GetData());
-
-  // Set the new normal
-  vtkVector3d aNew;
-  transform->TransformNormal(frustumAxis.GetData(), aNew.GetData());
-  this->Frustum->SetAxis(aNew.GetData());
+  // // Set the new normal
+  // vtkVector3d aNew;
+  // transform->TransformNormal(frustumAxis.GetData(), aNew.GetData());
+  // this->Frustum->SetAxis(aNew.GetData());
 }
 
 //------------------------------------------------------------------------------
@@ -855,16 +852,17 @@ void vtkImplicitFrustumRepresentation::TranslateOrigin(const vtkVector3d& p1, co
   }
 
   // Translate the current origin
-  vtkVector3d origin(this->Frustum->GetOrigin());
-  vtkVector3d newOrigin = origin + v;
+
+  vtkVector3d newOrigin = this->Origin + v;
 
   // Project back onto plane orthogonal to camera
   vtkVector3d vpn;
   camera->GetViewPlaneNormal(vpn.GetData());
 
-  vtkPlane::ProjectPoint(newOrigin.GetData(), origin.GetData(), vpn.GetData(), newOrigin.GetData());
+  vtkPlane::ProjectPoint(
+    newOrigin.GetData(), this->Origin.GetData(), vpn.GetData(), newOrigin.GetData());
 
-  this->Frustum->SetOrigin(newOrigin.GetData());
+  this->SetOrigin(newOrigin.GetData());
 }
 
 //------------------------------------------------------------------------------
@@ -875,7 +873,7 @@ void vtkImplicitFrustumRepresentation::TranslateOriginOnAxis(
 
   // // Add to the current point, project back down onto plane
   // vtkVector3d origin(this->Frustum->GetOrigin());
-  // vtkVector3d axis(this->Frustum->GetAxis());
+  // vtkVector3d axis(this->ForwardAxis);
   // vtkVector3d newOrigin = origin + v;
 
   // // Normalize the axis vector
@@ -1007,8 +1005,7 @@ void vtkImplicitFrustumRepresentation::AdjustYaw(
 
   std::cout << "yaw" << std::endl;
 
-  vtkVector3d frustumOrigin(this->Frustum->GetOrigin());
-  vtkVector3d frustumAxis(this->Frustum->GetAxis());
+  vtkVector3d frustumAxis(this->ForwardAxis);
 
   auto v = pickPoint - prevPickPoint;
   double theta = v.Norm() * ROTATION_MANIPULATION_FACTOR;
@@ -1021,13 +1018,13 @@ void vtkImplicitFrustumRepresentation::AdjustYaw(
   // Manipulate the transform to reflect the rotation
   vtkNew<vtkTransform> transform;
   transform->Identity();
-  transform->Translate((frustumOrigin).GetData());
+  transform->Translate((-this->Origin).GetData());
   transform->RotateWXYZ(theta, this->UpAxis.GetData());
-  transform->Translate(frustumOrigin.GetData());
+  transform->Translate(this->Origin.GetData());
 
   // Set the new normal
   transform->TransformNormal(frustumAxis.GetData(), frustumAxis.GetData());
-  this->Frustum->SetAxis(frustumAxis.GetData());
+  this->SetForwardAxis(frustumAxis.GetData());
   this->UpdateFrustumTransform();
 }
 
@@ -1036,8 +1033,7 @@ void vtkImplicitFrustumRepresentation::AdjustPitch(
   const vtkVector3d& prevPickPoint, const vtkVector3d& pickPoint)
 {
   std::cout << "pitch!" << std::endl;
-  vtkVector3d frustumOrigin(this->Frustum->GetOrigin());
-  vtkVector3d frustumAxis(this->Frustum->GetAxis());
+  vtkVector3d frustumAxis(this->ForwardAxis);
 
   auto v = pickPoint - prevPickPoint;
   double theta = v.Norm() * ROTATION_MANIPULATION_FACTOR;
@@ -1062,13 +1058,13 @@ void vtkImplicitFrustumRepresentation::AdjustPitch(
   transform->TransformNormal(this->UpAxis.GetData(), this->UpAxis.GetData());
 
   transform->Identity();
-  transform->Translate((-frustumOrigin).GetData());
+  transform->Translate((-this->Origin).GetData());
   transform->RotateWXYZ(theta, axis.GetData());
-  transform->Translate(frustumOrigin.GetData());
+  transform->Translate(this->Origin.GetData());
   transform->TransformNormal(frustumAxis.GetData(), frustumAxis.GetData());
 
   // Set the new normal
-  this->Frustum->SetAxis(frustumAxis.GetData());
+  this->SetForwardAxis(frustumAxis.GetData());
   this->UpdateFrustumTransform();
 
   this->UpAxis = previousViewUp;
@@ -1080,8 +1076,7 @@ void vtkImplicitFrustumRepresentation::AdjustRoll(
 {
   std::cout << "roll!" << std::endl;
 
-  vtkVector3d frustumOrigin(this->Frustum->GetOrigin());
-  vtkVector3d frustumAxis(this->Frustum->GetAxis());
+  vtkVector3d frustumAxis(this->ForwardAxis);
 
   auto v = pickPoint - prevPickPoint;
   double theta = v.Norm() * ROTATION_MANIPULATION_FACTOR;
@@ -1114,7 +1109,7 @@ void vtkImplicitFrustumRepresentation::UpdateFrustumTransform()
   double* viewPlaneNormal = matrix[2];
 
   vtkVector3d origin(this->GetOrigin());
-  vtkVector3d forward(this->GetAxis());
+  vtkVector3d forward(this->GetForwardAxis());
 
   // set the view plane normal from the view vector
   viewPlaneNormal[0] = forward[0];
@@ -1179,20 +1174,21 @@ void vtkImplicitFrustumRepresentation::PlaceWidget(double bds[6])
   this->Box->SetSpacing((bounds[1] - bounds[0]), (bounds[3] - bounds[2]), (bounds[5] - bounds[4]));
   this->Outline->Update();
 
+  // TODO: handle the up axis here
   this->AxisHandle.LineSource->SetPoint1(this->GetOrigin());
   if (this->AlongYAxis)
   {
-    this->SetAxis(0, 1, 0);
+    this->SetForwardAxis(0, 1, 0);
     this->AxisHandle.LineSource->SetPoint2(0, 1, 0);
   }
   else if (this->AlongZAxis)
   {
-    this->SetAxis(0, 0, 1);
+    this->SetForwardAxis(0, 0, 1);
     this->AxisHandle.LineSource->SetPoint2(0, 0, 1);
   }
   else // default or x-normal
   {
-    this->SetAxis(1, 0, 0);
+    this->SetForwardAxis(1, 0, 0);
     this->AxisHandle.LineSource->SetPoint2(1, 0, 0);
   }
 
@@ -1210,59 +1206,113 @@ void vtkImplicitFrustumRepresentation::PlaceWidget(double bds[6])
 }
 
 //------------------------------------------------------------------------------
-void vtkImplicitFrustumRepresentation::SetOrigin(double x, double y, double z)
+void vtkImplicitFrustumRepresentation::SetOrigin(const vtkVector3d& xyz)
 {
-  this->Frustum->SetOrigin(x, y, z);
-}
-
-//------------------------------------------------------------------------------
-void vtkImplicitFrustumRepresentation::SetOrigin(double xyz[3])
-{
-  this->SetOrigin(xyz[0], xyz[1], xyz[2]);
-}
-
-//------------------------------------------------------------------------------
-double* vtkImplicitFrustumRepresentation::GetOrigin()
-{
-  return this->Frustum->GetOrigin();
-}
-
-//------------------------------------------------------------------------------
-void vtkImplicitFrustumRepresentation::GetOrigin(double xyz[3]) const
-{
-  this->Frustum->GetOrigin(xyz);
-}
-
-//------------------------------------------------------------------------------
-void vtkImplicitFrustumRepresentation::SetAxis(double x, double y, double z)
-{
-  vtkVector3d n(x, y, z);
-  n.Normalize();
-
-  vtkVector3d currentAxis(this->Frustum->GetAxis());
-  if (n != currentAxis)
+  if (xyz != this->Origin)
   {
-    this->Frustum->SetAxis(n.GetData());
+    this->Origin = xyz;
     this->Modified();
   }
 }
 
 //------------------------------------------------------------------------------
-void vtkImplicitFrustumRepresentation::SetAxis(double n[3])
+void vtkImplicitFrustumRepresentation::SetOrigin(double x, double y, double z)
 {
-  this->SetAxis(n[0], n[1], n[2]);
+  this->SetOrigin(vtkVector3d(x, y, z));
 }
 
 //------------------------------------------------------------------------------
-double* vtkImplicitFrustumRepresentation::GetAxis()
+void vtkImplicitFrustumRepresentation::SetOrigin(double xyz[3])
 {
-  return this->Frustum->GetAxis();
+  this->SetOrigin(vtkVector3d(xyz));
 }
 
 //------------------------------------------------------------------------------
-void vtkImplicitFrustumRepresentation::GetAxis(double xyz[3]) const
+double* vtkImplicitFrustumRepresentation::GetOrigin()
 {
-  this->Frustum->GetAxis(xyz);
+  return this->Origin.GetData();
+}
+
+//------------------------------------------------------------------------------
+void vtkImplicitFrustumRepresentation::GetOrigin(double xyz[3]) const
+{
+  xyz[0] = this->Origin[0];
+  xyz[1] = this->Origin[1];
+  xyz[2] = this->Origin[2];
+}
+
+//------------------------------------------------------------------------------
+void vtkImplicitFrustumRepresentation::SetForwardAxis(const vtkVector3d& axis)
+{
+  vtkVector3d n = axis.Normalized();
+  if (n != this->ForwardAxis)
+  {
+    this->ForwardAxis = n;
+    this->Modified();
+  }
+}
+
+//------------------------------------------------------------------------------
+void vtkImplicitFrustumRepresentation::SetForwardAxis(double x, double y, double z)
+{
+  this->SetForwardAxis(vtkVector3d(x, y, z));
+}
+
+//------------------------------------------------------------------------------
+void vtkImplicitFrustumRepresentation::SetForwardAxis(double n[3])
+{
+  this->SetForwardAxis(vtkVector3d(n));
+}
+
+//------------------------------------------------------------------------------
+double* vtkImplicitFrustumRepresentation::GetForwardAxis()
+{
+  return this->ForwardAxis.GetData();
+}
+
+//------------------------------------------------------------------------------
+void vtkImplicitFrustumRepresentation::GetForwardAxis(double xyz[3]) const
+{
+  xyz[0] = this->ForwardAxis[0];
+  xyz[1] = this->ForwardAxis[1];
+  xyz[2] = this->ForwardAxis[2];
+}
+
+//------------------------------------------------------------------------------
+void vtkImplicitFrustumRepresentation::SetUpAxis(const vtkVector3d& axis)
+{
+  vtkVector3d n = axis.Normalized();
+  if (n != this->UpAxis)
+  {
+    this->UpAxis = n;
+    this->Modified();
+  }
+}
+
+//------------------------------------------------------------------------------
+void vtkImplicitFrustumRepresentation::SetUpAxis(double x, double y, double z)
+{
+  this->SetUpAxis(vtkVector3d(x, y, z));
+}
+
+//------------------------------------------------------------------------------
+void vtkImplicitFrustumRepresentation::SetUpAxis(double n[3])
+{
+  this->SetUpAxis(vtkVector3d(n));
+}
+
+//------------------------------------------------------------------------------
+double* vtkImplicitFrustumRepresentation::GetUpAxis()
+{
+  return this->UpAxis.GetData();
+}
+
+//------------------------------------------------------------------------------
+void vtkImplicitFrustumRepresentation::GetUpAxis(double xyz[3]) const
+{
+  xyz[0] = this->UpAxis[0];
+  xyz[1] = this->UpAxis[1];
+  xyz[2] = this->UpAxis[2];
 }
 
 //------------------------------------------------------------------------------
@@ -1430,7 +1480,7 @@ void vtkImplicitFrustumRepresentation::BuildRepresentation()
     this->OriginHandle.Actor->SetPropertyKeys(info);
 
     vtkVector3d origin(this->GetOrigin());
-    vtkVector3d axis(this->GetAxis());
+    vtkVector3d axis(this->GetForwardAxis());
 
     vtkVector<double, 6> bounds = this->WidgetBounds;
     if (!this->OutsideBounds)
@@ -1523,7 +1573,7 @@ void vtkImplicitFrustumRepresentation::BuildRepresentation()
 
     // Place the roll control
     this->RollHandle.Source->SetCenter(origin.GetData());
-    this->RollHandle.Source->SetNormal(this->GetAxis());
+    this->RollHandle.Source->SetNormal(this->GetForwardAxis());
     // TODO: Set the size of the roll handle
 
     // Control the look of the edges
@@ -1573,7 +1623,7 @@ void vtkImplicitFrustumRepresentation::SizeHandles()
 //------------------------------------------------------------------------------
 void vtkImplicitFrustumRepresentation::BuildFrustum()
 {
-  const vtkVector3d axis(this->GetAxis());
+  const vtkVector3d axis(this->GetForwardAxis());
   const vtkVector3d origin(this->GetOrigin());
   const double height = this->Outline->GetOutput()->GetLength();
 
@@ -1707,8 +1757,7 @@ void vtkImplicitFrustumRepresentation::GetFrustum(vtkFrustum* frustum) const
     return;
   }
 
-  frustum->SetAxis(this->Frustum->GetAxis());
-  frustum->SetOrigin(this->Frustum->GetOrigin());
+  frustum->SetTransform(frustum->GetTransform());
   frustum->SetHorizontalAngle(this->Frustum->GetHorizontalAngle());
   frustum->SetVerticalAngle(this->Frustum->GetVerticalAngle());
   frustum->SetNearPlaneDistance(this->Frustum->GetNearPlaneDistance());

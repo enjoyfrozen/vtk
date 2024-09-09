@@ -87,6 +87,7 @@ public:
    */
   void SetOrigin(double x, double y, double z);
   void SetOrigin(double x[3]);
+  void SetOrigin(const vtkVector3d& xyz);
   double* GetOrigin() VTK_SIZEHINT(3);
   void GetOrigin(double xyz[3]) const;
   ///@}
@@ -97,10 +98,22 @@ public:
    * specified as a unit vector, it will be normalized.
    * Default is the Y-Axis (0, 1, 0)
    */
-  void SetAxis(double x, double y, double z);
-  void SetAxis(double a[3]);
-  double* GetAxis() VTK_SIZEHINT(3);
-  void GetAxis(double a[3]) const;
+  void SetForwardAxis(const vtkVector3d& xyz);
+  void SetForwardAxis(double x, double y, double z);
+  void SetForwardAxis(double a[3]);
+  double* GetForwardAxis() VTK_SIZEHINT(3);
+  void GetForwardAxis(double a[3]) const;
+  ///@}
+
+  ///@{
+  /**
+   * TODO
+   */
+  void SetUpAxis(const vtkVector3d& xyz);
+  void SetUpAxis(double x, double y, double z);
+  void SetUpAxis(double a[3]);
+  double* GetUpAxis() VTK_SIZEHINT(3);
+  void GetUpAxis(double a[3]) const;
   ///@}
 
   ///@{
@@ -529,8 +542,9 @@ private:
   vtkNew<vtkActor> FrustumActor;
   bool DrawFrustum = true;
 
+  vtkVector3d Origin = { 0, 0, 0 };
+  vtkVector3d ForwardAxis = { 0, 1, 0 };
   vtkVector3d UpAxis = { 0, 0, -1 };
-  vtkNew<vtkOrientationRepresentation> Orientation;
 
   // Optional tubes are represented by extracting boundary edges and tubing
   EdgeHandle FarPlaneVerticalHandle;

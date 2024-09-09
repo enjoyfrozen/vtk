@@ -25,12 +25,9 @@
 #include "vtkCommonDataModelModule.h" // For export macro
 #include "vtkImplicitFunction.h"
 #include "vtkNew.h" // For vtkNew
-#include "vtkPlane.h"
-#include "vtkSetGet.h"
-#include "vtkVector.h" // For vtkVector3d
 
 VTK_ABI_NAMESPACE_BEGIN
-class vtkCylinder;
+class vtkPlane;
 class vtkImplicitBoolean;
 
 class VTKCOMMONDATAMODEL_EXPORT vtkFrustum : public vtkImplicitFunction
@@ -44,33 +41,6 @@ public:
   double EvaluateFunction(double x[3]) override;
 
   void EvaluateGradient(double x[3], double g[3]) override;
-
-  ///@{
-  /**
-   * Set/Get the frustum origin. Default is (0, 0, 0).
-   */
-  void SetOrigin(double x, double y, double z);
-  void SetOrigin(const double xyz[3]);
-  void SetOrigin(const vtkVector3d& xyz);
-  void GetOrigin(double& x, double& y, double& z);
-  void GetOrigin(double xyz[3]);
-  double* GetOrigin() VTK_SIZEHINT(3);
-  ///@}
-
-  ///@{
-  /**
-   * Set/Get the forward axis of the frustum. If the axis is not specified as
-   * a unit vector, it will be normalized. If zero-length axis vector
-   * is used as input to this method, it will be ignored.
-   * Default is the Y-axis (0, 1, 0)
-   */
-  void SetAxis(double x, double y, double z);
-  void SetAxis(double axis[3]);
-  void SetAxis(const vtkVector3d& axis);
-  void GetAxis(double& x, double& y, double& z);
-  void GetAxis(double xyz[3]);
-  double* GetAxis() VTK_SIZEHINT(3);
-  ///@}
 
   vtkGetMacro(NearPlaneDistance, double)
   void SetNearPlaneDistance(double distance);
@@ -89,12 +59,13 @@ private:
   vtkFrustum(const vtkFrustum&) = delete;
   void operator=(const vtkFrustum&) = delete;
 
-  void UpdateTransform();
+  // void UpdateTransform();
   void CalculateHorizontalPlanesNormal();
   void CalculateVerticalPlanesNormal();
 
-  vtkVector3d Origin = { 0.0, 0.0, 0.0 };
-  vtkVector3d Axis = { 0.0, 1.0, 0.0 };
+  // TODO: Position + Rotation ?
+  // vtkVector3d Origin = { 0.0, 0.0, 0.0 };
+  // vtkVector3d Axis = { 0.0, 1.0, 0.0 };
   double NearPlaneDistance = 0.5;
   double VerticalAngle = 30;
   double HorizontalAngle = 30;
