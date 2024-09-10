@@ -31,6 +31,7 @@
 #include "vtkOrientationRepresentation.h"
 #include "vtkOrientationWidget.h"
 #include "vtkSphereHandleRepresentation.h"
+#include "vtkTransform.h"
 #include "vtkVector.h" // For vtkVector3d
 #include "vtkWidgetRepresentation.h"
 #include "vtkWrappingHints.h" // For VTK_MARSHALAUTO
@@ -62,7 +63,6 @@ public:
   {
     Outside = 0,
     Moving, // Generic state set by the widget
-    MovingOutline,
     MovingOrigin,
     RotatingAxis,
     Scaling,
@@ -183,40 +183,6 @@ public:
 
   ///@{
   /**
-   * Turn on/off tubing of the wire outline of the frustum
-   * intersection (against the bounding box). The tube thickens the
-   * line by wrapping with a vtkTubeFilter.
-   * Defaults to true.
-   */
-  vtkSetMacro(Tubing, bool);
-  vtkGetMacro(Tubing, bool);
-  vtkBooleanMacro(Tubing, bool);
-  ///@}
-
-  ///@{
-  /**
-   * Turn on/off the ability to translate the bounding box by moving it
-   * with the mouse.
-   * Defaults to true.
-   */
-  vtkSetMacro(OutlineTranslation, bool);
-  vtkGetMacro(OutlineTranslation, bool);
-  vtkBooleanMacro(OutlineTranslation, bool);
-  ///@}
-
-  ///@{
-  /**
-   * Turn on/off the ability to move the widget outside of the bounds
-   * specified in the PlaceWidget() invocation.
-   * Defaults to true.
-   */
-  vtkSetMacro(OutsideBounds, bool);
-  vtkGetMacro(OutsideBounds, bool);
-  vtkBooleanMacro(OutsideBounds, bool);
-  ///@}
-
-  ///@{
-  /**
    * Set/Get the bounds of the widget representation. PlaceWidget can also be
    * used to set the bounds of the widget but it may also have other effects
    * on the internal state of the representation. Use this function when only
@@ -224,19 +190,6 @@ public:
    */
   vtkSetVector6Macro(WidgetBounds, double);
   double* GetWidgetBounds();
-  ///@}
-
-  ///@{
-  /**
-   * Turn on/off whether the frustum should be constrained to the widget bounds.
-   * If on, the origin will not be allowed to move outside the set widget bounds.
-   * This is the default behaviour.
-   * If off, the origin can be freely moved. The widget outline will change accordingly.
-   * Defaults to true.
-   */
-  vtkSetMacro(ConstrainToWidgetBounds, bool);
-  vtkGetMacro(ConstrainToWidgetBounds, bool);
-  vtkBooleanMacro(ConstrainToWidgetBounds, bool);
   ///@}
 
   ///@{
@@ -289,14 +242,6 @@ public:
 
   ///@{
   /**
-   * Get the property of the outline.
-   */
-  vtkGetObjectMacro(OutlineProperty, vtkProperty);
-  vtkGetObjectMacro(SelectedOutlineProperty, vtkProperty);
-  ///@}
-
-  ///@{
-  /**
    * Set the color of all the widgets handles (edges, axis, selected frustum)
    * and their color during interaction. Foreground color applies to the outlines and unselected
    * frustum.
@@ -332,34 +277,6 @@ public:
   int RenderTranslucentPolygonalGeometry(vtkViewport*) override;
   vtkTypeBool HasTranslucentPolygonalGeometry() override;
   ///@}
-
-  ///@{
-  /**
-   * Specify a translation distance used by the BumpFrustum() method. Note that the
-   * distance is normalized; it is the fraction of the length of the bounding
-   * box of the wire outline.
-   * Defaults to 0.01.
-   */
-  vtkSetClampMacro(BumpDistance, double, 0.000001, 1);
-  vtkGetMacro(BumpDistance, double);
-  ///@}
-
-  /**
-   * Translate the frustum in the direction of the view vector by the
-   * specified BumpDistance. The dir parameter controls which
-   * direction the pushing occurs, either in the same direction as the
-   * view vector, or when negative, in the opposite direction. The factor
-   * controls what percentage of the bump is used.
-   */
-  void BumpFrustum(int dir, double factor);
-
-  /**
-   * Push the frustum the distance specified along the view
-   * vector. Positive values are in the direction of the view vector;
-   * negative values are in the opposite direction. The distance value
-   * is expressed in world coordinates.
-   */
-  void PushFrustum(double distance);
 
   /**
    * The interaction state may be set from a widget (e.g.,
@@ -475,16 +392,12 @@ private:
   void HighlightFrustum(bool highlight);
   void HighlightOriginHandle(bool highlight);
   void HighlightAxis(bool highlight);
-  void HighlightOutline(bool highlight);
   void HighlightFarPlaneVerticalHandle(bool highlight);
   void HighlightFarPlaneHorizontalHandle(bool highlight);
   void HighlighNearPlaneHandle(bool highlight);
 
   // Methods to manipulate the frustum
-  void Rotate(
-    double X, double Y, const vtkVector3d& p1, const vtkVector3d& p2, const vtkVector3d& vpn);
   void TranslateFrustum(const vtkVector3d& p1, const vtkVector3d& p2);
-  void TranslateOutline(const vtkVector3d& p1, const vtkVector3d& p2);
   void TranslateOrigin(const vtkVector3d& p1, const vtkVector3d& p2);
   void TranslateOriginOnAxis(const vtkVector3d& p1, const vtkVector3d& p2);
   void AdjustHorizontalAngle(
@@ -493,9 +406,9 @@ private:
     const vtkVector2d& eventPosition, const vtkVector3d& p1, const vtkVector3d& p2);
   void AdjustNearPlaneDistance(
     const vtkVector2d& eventPosition, const vtkVector3d& p1, const vtkVector3d& p2);
-  void AdjustYaw(const vtkVector3d& prevPickPoint, const vtkVector3d& pickPoint);
-  void AdjustPitch(const vtkVector3d& prevPickPoint, const vtkVector3d& pickPoint);
-  void AdjustRoll(const vtkVector3d& prevPickPoint, const vtkVector3d& pickPoint);
+
+  void RotateOrientation(
+    const vtkVector3d& prevPickPoint, const vtkVector3d& pickPoint, const vtkVector3d& axis);
 
   void Scale(const vtkVector3d& p1, const vtkVector3d& p2, double X, double Y);
 
@@ -503,8 +416,6 @@ private:
 
   // Generate the frustum polydata, cropped by the bounding box
   void BuildFrustum();
-
-  void UpdateFrustumTransform();
 
   // The actual frustum we're manipulating
   vtkNew<vtkFrustum> Frustum;
@@ -526,14 +437,7 @@ private:
   // The facet resolution for rendering purposes.
   int Resolution = 128;
 
-  // The bounding box is represented by a single voxel image data
-  vtkNew<vtkImageData> Box;
-  vtkNew<vtkOutlineFilter> Outline;
-  vtkNew<vtkPolyDataMapper> OutlineMapper;
-  vtkNew<vtkActor> OutlineActor;
-  bool OutlineTranslation = true; // whether the outline can be moved
-  bool ScaleEnabled = true;       // whether the widget can be scaled
-  bool OutsideBounds = true;      // whether the widget can be moved outside input's bounds
+  bool ScaleEnabled = true; // whether the widget can be scaled
   vtkVector<double, 6> WidgetBounds;
   bool ConstrainToWidgetBounds = true;
 
@@ -545,13 +449,13 @@ private:
   vtkVector3d Origin = { 0, 0, 0 };
   vtkVector3d ForwardAxis = { 0, 1, 0 };
   vtkVector3d UpAxis = { 0, 0, -1 };
+  vtkNew<vtkTransform> OrientationTransform;
 
   // Optional tubes are represented by extracting boundary edges and tubing
   EdgeHandle FarPlaneVerticalHandle;
   EdgeHandle FarPlaneHorizontalHandle;
   EdgeHandle NearPlaneEdgesHandle;
   SphereHandle NearPlaneCenterHandle;
-  bool Tubing = true; // control whether tubing is on
 
   ArrowHandle ViewUpHandle;
 
@@ -572,8 +476,6 @@ private:
   vtkNew<vtkProperty> SelectedAxisProperty;
   vtkNew<vtkProperty> FrustumProperty;
   vtkNew<vtkProperty> SelectedFrustumProperty;
-  vtkNew<vtkProperty> OutlineProperty;
-  vtkNew<vtkProperty> SelectedOutlineProperty;
   vtkNew<vtkProperty> EdgeHandleProperty;
   vtkNew<vtkProperty> SelectedEdgeHandleProperty;
   vtkNew<vtkProperty> OriginHandleProperty;

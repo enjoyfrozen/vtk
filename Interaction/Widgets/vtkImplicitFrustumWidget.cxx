@@ -315,14 +315,14 @@ void vtkImplicitFrustumWidget::MoveFrustumAction(vtkAbstractWidget* w)
   char* cKeySym = self->Interactor->GetKeySym();
   std::string keySym = cKeySym != nullptr ? cKeySym : "";
 
-  if (keySym == "Down" || keySym == "Left")
-  {
-    self->GetFrustumRepresentation()->BumpFrustum(-1, factor);
-  }
-  else
-  {
-    self->GetFrustumRepresentation()->BumpFrustum(1, factor);
-  }
+  // if (keySym == "Down" || keySym == "Left")
+  // {
+  //   self->GetFrustumRepresentation()->BumpFrustum(-1, factor);
+  // }
+  // else
+  // {
+  //   self->GetFrustumRepresentation()->BumpFrustum(1, factor);
+  // }
   self->InvokeEvent(vtkCommand::InteractionEvent, nullptr);
 
   self->EventCallbackCommand->SetAbortFlag(true);
@@ -355,10 +355,6 @@ bool vtkImplicitFrustumWidget::UpdateCursorShape(int state)
     if (state == vtkImplicitFrustumRepresentation::Outside)
     {
       return this->RequestCursorShape(VTK_CURSOR_DEFAULT);
-    }
-    else if (state == vtkImplicitFrustumRepresentation::MovingOutline)
-    {
-      return this->RequestCursorShape(VTK_CURSOR_SIZEALL);
     }
     else
     {
