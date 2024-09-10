@@ -131,8 +131,8 @@ bool TestDelimiters(int argc, char* argv[])
 //------------------------------------------------------------------------------
 bool TestNumericsDefaultToString()
 {
-  std::string inputString = "Int, Str, Double\n";
-  inputString += "1, _2_, 3.1";
+  std::string inputString = "Int,Str,Double\n";
+  inputString += "1,_a2_,3.1";
   vtkNew<vtkDelimitedTextReader> reader;
   reader->SetHaveHeaders(true);
   reader->SetStringDelimiter('_');
@@ -145,7 +145,7 @@ bool TestNumericsDefaultToString()
   Int->InsertNextValue("1");
   vtkNew<vtkStringArray> Str;
   Str->SetName("Str");
-  Str->InsertNextValue("2");
+  Str->InsertNextValue("a2");
   vtkNew<vtkStringArray> Double;
   Double->SetName("Double");
   Double->InsertNextValue("3.1");
@@ -163,8 +163,8 @@ bool TestNumericsDefaultToString()
 //------------------------------------------------------------------------------
 bool TestNumericsDetectType()
 {
-  std::string inputString = "Int, Str, Double\n";
-  inputString += "1, _2_, 3.1\n";
+  std::string inputString = "Int,Str,Double\n";
+  inputString += "1,_a2_,3.1\n";
   vtkNew<vtkDelimitedTextReader> reader;
   reader->SetHaveHeaders(true);
   reader->SetStringDelimiter('_');
@@ -178,7 +178,7 @@ bool TestNumericsDetectType()
   Int->InsertNextValue(1);
   vtkNew<vtkStringArray> Str;
   Str->SetName("Str");
-  Str->InsertNextValue("2");
+  Str->InsertNextValue("a2");
   vtkNew<vtkDoubleArray> Double;
   Double->SetName("Double");
   Double->InsertNextValue(3.1);
@@ -188,18 +188,19 @@ bool TestNumericsDetectType()
   expectedTable->AddColumn(Double);
 
   vtkTable* output = reader->GetOutput();
+
   return vtkTestUtilities::CompareDataObjects(output, expectedTable);
 }
 
 //------------------------------------------------------------------------------
 bool TestNumericsConvertType()
 {
-  std::string inputString = "Double1, Str, Double\n";
-  inputString += "1, 2, 3.1\n";
+  std::string inputString = "Double1,Str,Double\n";
+  inputString += "1,2,3.1\n";
   // second col becomes string
-  inputString += "1, _2_, 3.1\n";
+  inputString += "1,_a2_,3.1\n";
   // first col becomes double
-  inputString += "1.1, 2.2, 3\n";
+  inputString += "1.1,2.2,3\n";
   vtkNew<vtkDelimitedTextReader> reader;
   reader->SetHaveHeaders(true);
   reader->SetStringDelimiter('_');
@@ -217,7 +218,7 @@ bool TestNumericsConvertType()
   vtkNew<vtkStringArray> Str;
   Str->SetName("Str");
   Str->InsertNextValue("2");
-  Str->InsertNextValue("2");
+  Str->InsertNextValue("a2");
   Str->InsertNextValue("2.2");
   vtkNew<vtkDoubleArray> Double;
   Double->SetName("Double");
@@ -227,6 +228,40 @@ bool TestNumericsConvertType()
   vtkNew<vtkTable> expectedTable;
   expectedTable->AddColumn(Double1);
   expectedTable->AddColumn(Str);
+  expectedTable->AddColumn(Double);
+
+  vtkTable* output = reader->GetOutput();
+  return vtkTestUtilities::CompareDataObjects(output, expectedTable);
+}
+
+//------------------------------------------------------------------------------
+bool TestNumericsOverflow()
+{
+  std::string inputString = "Int,Int1,Double\n";
+  inputString += "1,2,3.1\n";
+  inputString += "1234567890123,-1234567890123,3.1e7\n";
+  vtkNew<vtkDelimitedTextReader> reader;
+  reader->SetHaveHeaders(true);
+  reader->SetReadFromInputString(true);
+  reader->SetInputString(inputString);
+  reader->SetDetectNumericColumns(true);
+  reader->Update();
+
+  vtkNew<vtkDoubleArray> Int;
+  Int->SetName("Int");
+  Int->InsertNextValue(1);
+  Int->InsertNextValue(1234567890123);
+  vtkNew<vtkDoubleArray> Int1;
+  Int1->SetName("Int1");
+  Int1->InsertNextValue(2);
+  Int1->InsertNextValue(-1234567890123);
+  vtkNew<vtkDoubleArray> Double;
+  Double->SetName("Double");
+  Double->InsertNextValue(3.1);
+  Double->InsertNextValue(3.1e7);
+  vtkNew<vtkTable> expectedTable;
+  expectedTable->AddColumn(Int);
+  expectedTable->AddColumn(Int1);
   expectedTable->AddColumn(Double);
 
   vtkTable* output = reader->GetOutput();
@@ -249,6 +284,11 @@ bool TestNumerics()
   else if (!::TestNumericsConvertType())
   {
     std::cout << "Test column type conversion failed.\n";
+    return false;
+  }
+  else if (!::TestNumericsOverflow())
+  {
+    std::cout << "Test overflow failed.\n";
     return false;
   }
 
