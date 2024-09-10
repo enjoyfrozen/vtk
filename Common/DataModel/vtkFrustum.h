@@ -62,9 +62,6 @@ private:
   void CalculateHorizontalPlanesNormal();
   void CalculateVerticalPlanesNormal();
 
-  // TODO: Position + Rotation ?
-  // vtkVector3d Origin = { 0.0, 0.0, 0.0 };
-  // vtkVector3d Axis = { 0.0, 1.0, 0.0 };
   double NearPlaneDistance = 0.5;
   double VerticalAngle = 30;
   double HorizontalAngle = 30;
