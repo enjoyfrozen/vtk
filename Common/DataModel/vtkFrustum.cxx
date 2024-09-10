@@ -76,7 +76,7 @@ void vtkFrustum::SetVerticalAngle(double angleInDegrees)
 //------------------------------------------------------------------------------
 void vtkFrustum::SetNearPlaneDistance(double distance)
 {
-  distance = std::min(distance, 0.0);
+  distance = std::max(distance, 0.0);
   if (this->NearPlaneDistance == distance)
   {
     return;
