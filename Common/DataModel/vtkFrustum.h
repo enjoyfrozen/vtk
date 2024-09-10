@@ -59,7 +59,6 @@ private:
   vtkFrustum(const vtkFrustum&) = delete;
   void operator=(const vtkFrustum&) = delete;
 
-  // void UpdateTransform();
   void CalculateHorizontalPlanesNormal();
   void CalculateVerticalPlanesNormal();
 
