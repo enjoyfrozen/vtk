@@ -1226,7 +1226,7 @@ void vtkImplicitFrustumRepresentation::BuildRepresentation()
     this->SetOrigin(origin.GetData());
 
     // Setup the forward and up axis handles
-    double d = 10;
+    double d = 2;
     vtkVector3d p2 = origin + this->ForwardAxis * 0.3 * d;
     this->AxisHandle.LineSource->SetPoint1(origin.GetData());
     this->AxisHandle.LineSource->SetPoint2(p2.GetData());
