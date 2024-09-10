@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include <vtkDelimitedTextReader.h>
+#include <vtkDoubleArray.h>
+#include <vtkIntArray.h>
 #include <vtkNew.h>
 #include <vtkStringArray.h>
 #include <vtkTable.h>
@@ -33,7 +35,7 @@ bool TestReadFromString()
                        "3,UK\r\nDavid,2,100,UK\r\nGrace,4,20,US\r\nIlknur,6,5,Turkey\r\n";
   vtkNew<vtkDelimitedTextReader> reader;
   reader->SetHaveHeaders(true);
-  reader->SetReadFromInputString(1);
+  reader->SetReadFromInputString(true);
   reader->SetInputString(inputString);
   reader->SetDetectNumericColumns(true);
   reader->Update();
@@ -127,6 +129,133 @@ bool TestDelimiters(int argc, char* argv[])
 }
 
 //------------------------------------------------------------------------------
+bool TestNumericsDefaultToString()
+{
+  std::string inputString = "Int, Str, Double\n";
+  inputString += "1, _2_, 3.1";
+  vtkNew<vtkDelimitedTextReader> reader;
+  reader->SetHaveHeaders(true);
+  reader->SetStringDelimiter('_');
+  reader->SetReadFromInputString(true);
+  reader->SetInputString(inputString);
+  reader->Update();
+
+  vtkNew<vtkStringArray> Int;
+  Int->SetName("Int");
+  Int->InsertNextValue("1");
+  vtkNew<vtkStringArray> Str;
+  Str->SetName("Str");
+  Str->InsertNextValue("2");
+  vtkNew<vtkStringArray> Double;
+  Double->SetName("Double");
+  Double->InsertNextValue("3.1");
+  vtkNew<vtkTable> expectedTable;
+  expectedTable->SetNumberOfRows(1);
+  expectedTable->AddColumn(Int);
+  expectedTable->AddColumn(Str);
+  expectedTable->AddColumn(Double);
+
+  vtkTable* output = reader->GetOutput();
+
+  return vtkTestUtilities::CompareDataObjects(output, expectedTable);
+}
+
+//------------------------------------------------------------------------------
+bool TestNumericsDetectType()
+{
+  std::string inputString = "Int, Str, Double\n";
+  inputString += "1, _2_, 3.1\n";
+  vtkNew<vtkDelimitedTextReader> reader;
+  reader->SetHaveHeaders(true);
+  reader->SetStringDelimiter('_');
+  reader->SetReadFromInputString(true);
+  reader->SetInputString(inputString);
+  reader->SetDetectNumericColumns(true);
+  reader->Update();
+
+  vtkNew<vtkIntArray> Int;
+  Int->SetName("Int");
+  Int->InsertNextValue(1);
+  vtkNew<vtkStringArray> Str;
+  Str->SetName("Str");
+  Str->InsertNextValue("2");
+  vtkNew<vtkDoubleArray> Double;
+  Double->SetName("Double");
+  Double->InsertNextValue(3.1);
+  vtkNew<vtkTable> expectedTable;
+  expectedTable->AddColumn(Int);
+  expectedTable->AddColumn(Str);
+  expectedTable->AddColumn(Double);
+
+  vtkTable* output = reader->GetOutput();
+  return vtkTestUtilities::CompareDataObjects(output, expectedTable);
+}
+
+//------------------------------------------------------------------------------
+bool TestNumericsConvertType()
+{
+  std::string inputString = "Double1, Str, Double\n";
+  inputString += "1, 2, 3.1\n";
+  // second col becomes string
+  inputString += "1, _2_, 3.1\n";
+  // first col becomes double
+  inputString += "1.1, 2.2, 3\n";
+  vtkNew<vtkDelimitedTextReader> reader;
+  reader->SetHaveHeaders(true);
+  reader->SetStringDelimiter('_');
+  reader->SetReadFromInputString(true);
+  reader->SetInputString(inputString);
+  reader->SetDetectNumericColumns(true);
+
+  reader->Update();
+
+  vtkNew<vtkDoubleArray> Double1;
+  Double1->SetName("Double1");
+  Double1->InsertNextValue(1);
+  Double1->InsertNextValue(1);
+  Double1->InsertNextValue(1.1);
+  vtkNew<vtkStringArray> Str;
+  Str->SetName("Str");
+  Str->InsertNextValue("2");
+  Str->InsertNextValue("2");
+  Str->InsertNextValue("2.2");
+  vtkNew<vtkDoubleArray> Double;
+  Double->SetName("Double");
+  Double->InsertNextValue(3.1);
+  Double->InsertNextValue(3.1);
+  Double->InsertNextValue(3.);
+  vtkNew<vtkTable> expectedTable;
+  expectedTable->AddColumn(Double1);
+  expectedTable->AddColumn(Str);
+  expectedTable->AddColumn(Double);
+
+  vtkTable* output = reader->GetOutput();
+  return vtkTestUtilities::CompareDataObjects(output, expectedTable);
+}
+
+//------------------------------------------------------------------------------
+bool TestNumerics()
+{
+  if (!::TestNumericsDefaultToString())
+  {
+    std::cout << "Test default to string failed.\n";
+    return false;
+  }
+  else if (!::TestNumericsDetectType())
+  {
+    std::cout << "Test column type detection failed.\n";
+    return false;
+  }
+  else if (!::TestNumericsConvertType())
+  {
+    std::cout << "Test column type conversion failed.\n";
+    return false;
+  }
+
+  return true;
+}
+
+//------------------------------------------------------------------------------
 bool TestCharSets(int argc, char* argv[])
 {
   char* filepath = vtkTestUtilities::ExpandDataFileName(argc, argv, "Data/delimitedUTF16LE.txt");
@@ -175,6 +304,10 @@ int TestDelimitedTextReader(int argc, char* argv[])
   else if (!::TestCharSets(argc, argv))
   {
     std::cout << "Test CharSets failed.\n";
+  }
+  else if (!::TestNumerics())
+  {
+    std::cout << "Test Numerics failed.\n";
   }
   else
   {
