@@ -1280,7 +1280,7 @@ void vtkImplicitFrustumRepresentation::BuildFrustum()
   const vtkVector3d& forwardAxis = this->ForwardAxis;
   const vtkVector3d& upAxis = this->UpAxis;
   const vtkVector3d& origin = this->Origin;
-  const double height = 10; // TODO
+  const double height = 1.5; // TODO
 
   // Generate frustum polydata
   this->FrustumPD->Reset();
