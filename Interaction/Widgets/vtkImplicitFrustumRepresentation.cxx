@@ -94,6 +94,23 @@ vtkImplicitFrustumRepresentation::ArrowHandle::ArrowHandle()
 }
 
 //------------------------------------------------------------------------------
+void vtkImplicitFrustumRepresentation::ArrowHandle::Update(
+  const vtkVector3d& origin, const vtkVector3d& direction, double length)
+{
+  vtkVector3d p2 = origin + direction * length;
+  this->LineSource->SetPoint1(origin.GetData());
+  this->LineSource->SetPoint2(p2.GetData());
+  this->HeadSource->SetCenter(p2.GetData());
+  this->HeadSource->SetDirection(direction.GetData());
+}
+
+void vtkImplicitFrustumRepresentation::ArrowHandle::SizeHandle(double radius)
+{
+  this->HeadSource->SetHeight(2.0 * radius);
+  this->HeadSource->SetRadius(radius);
+}
+
+//------------------------------------------------------------------------------
 vtkImplicitFrustumRepresentation::EllipseHandle::EllipseHandle()
 {
   this->Source->SetClose(true);
@@ -500,6 +517,15 @@ void vtkImplicitFrustumRepresentation::GetActors(vtkPropCollection* pc)
 
   this->ViewUpHandle.HeadActor->GetActors(pc);
   this->ViewUpHandle.LineActor->GetActors(pc);
+
+  this->TopNormalHandle.HeadActor->GetActors(pc);
+  this->TopNormalHandle.LineActor->GetActors(pc);
+  this->BottomNormalHandle.HeadActor->GetActors(pc);
+  this->BottomNormalHandle.LineActor->GetActors(pc);
+  this->RightNormalHandle.HeadActor->GetActors(pc);
+  this->RightNormalHandle.LineActor->GetActors(pc);
+  this->LeftNormalHandle.HeadActor->GetActors(pc);
+  this->LeftNormalHandle.LineActor->GetActors(pc);
 }
 
 //------------------------------------------------------------------------------
@@ -531,6 +557,16 @@ int vtkImplicitFrustumRepresentation::RenderOpaqueGeometry(vtkViewport* v)
   count += this->RollHandle.Actor->RenderOpaqueGeometry(v);
   count += this->ViewUpHandle.LineActor->RenderOpaqueGeometry(v);
   count += this->ViewUpHandle.HeadActor->RenderOpaqueGeometry(v);
+
+  count += this->TopNormalHandle.LineActor->RenderOpaqueGeometry(v);
+  count += this->TopNormalHandle.HeadActor->RenderOpaqueGeometry(v);
+  count += this->BottomNormalHandle.LineActor->RenderOpaqueGeometry(v);
+  count += this->BottomNormalHandle.HeadActor->RenderOpaqueGeometry(v);
+  count += this->RightNormalHandle.LineActor->RenderOpaqueGeometry(v);
+  count += this->RightNormalHandle.HeadActor->RenderOpaqueGeometry(v);
+  count += this->LeftNormalHandle.LineActor->RenderOpaqueGeometry(v);
+  count += this->LeftNormalHandle.HeadActor->RenderOpaqueGeometry(v);
+
   if (this->DrawFrustum)
   {
     count += this->FrustumActor->RenderOpaqueGeometry(v);
@@ -1227,17 +1263,10 @@ void vtkImplicitFrustumRepresentation::BuildRepresentation()
 
     // Setup the forward and up axis handles
     double d = 2;
-    vtkVector3d p2 = origin + this->ForwardAxis * 0.3 * d;
-    this->AxisHandle.LineSource->SetPoint1(origin.GetData());
-    this->AxisHandle.LineSource->SetPoint2(p2.GetData());
-    this->AxisHandle.HeadSource->SetCenter(p2.GetData());
-    this->AxisHandle.HeadSource->SetDirection(axis.GetData());
+    this->AxisHandle.Update(origin, axis, d * 0.3);
+    this->ViewUpHandle.Update(origin, axis, d * 0.3);
 
-    vtkVector3d upPoint = origin + this->UpAxis * 0.3 * d;
-    this->ViewUpHandle.LineSource->SetPoint1(origin.GetData());
-    this->ViewUpHandle.LineSource->SetPoint2(upPoint.GetData());
-    this->AxisHandle.HeadSource->SetCenter(upPoint.GetData());
-    this->AxisHandle.HeadSource->SetDirection(this->UpAxis.GetData());
+    // Debug: Set frustum plane normals
 
     // Set up the position handle
     this->OriginHandle.Source->SetCenter(origin.GetData());
@@ -1260,12 +1289,15 @@ void vtkImplicitFrustumRepresentation::SizeHandles()
 {
   double radius = this->SizeHandlesInPixels(1.5, this->OriginHandle.Source->GetCenter());
 
-  this->AxisHandle.HeadSource->SetHeight(2.0 * radius);
-  this->AxisHandle.HeadSource->SetRadius(radius);
+  this->AxisHandle.SizeHandle(radius);
+  this->ViewUpHandle.SizeHandle(radius);
 
-  this->ViewUpHandle.HeadSource->SetHeight(2 * radius);
-  this->ViewUpHandle.HeadSource->SetRadius(radius);
+  this->TopNormalHandle.SizeHandle(radius);
+  this->BottomNormalHandle.SizeHandle(radius);
+  this->LeftNormalHandle.SizeHandle(radius);
+  this->RightNormalHandle.SizeHandle(radius);
 
+  // TMP
   this->OriginHandle.Source->SetRadius(radius);
 
   this->FarPlaneHorizontalHandle.Tuber->SetRadius(0.25 * radius);

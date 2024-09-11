@@ -355,6 +355,8 @@ private:
     vtkNew<vtkActor> HeadActor;
 
     ArrowHandle();
+    void Update(const vtkVector3d& origin, const vtkVector3d& direction, double length);
+    void SizeHandle(double radius);
   };
 
   struct SphereHandle
@@ -458,6 +460,12 @@ private:
   SphereHandle NearPlaneCenterHandle;
 
   ArrowHandle ViewUpHandle;
+
+  // Debug !
+  ArrowHandle TopNormalHandle;
+  ArrowHandle BottomNormalHandle;
+  ArrowHandle LeftNormalHandle;
+  ArrowHandle RightNormalHandle;
 
   // Axis representation
   ArrowHandle AxisHandle;
