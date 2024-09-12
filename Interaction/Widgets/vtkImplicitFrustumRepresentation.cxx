@@ -164,8 +164,6 @@ vtkImplicitFrustumRepresentation::vtkImplicitFrustumRepresentation()
 
   // Manage the picking stuff
   this->Picker->SetTolerance(0.005);
-  this->Picker->AddPickList(this->AxisHandle.LineActor);
-  this->Picker->AddPickList(this->AxisHandle.HeadActor);
   this->Picker->AddPickList(this->OriginHandle.Actor);
   this->Picker->AddPickList(this->NearPlaneEdgesHandle.Actor);
   this->Picker->AddPickList(this->FarPlaneHorizontalHandle.Actor);
@@ -211,8 +209,6 @@ vtkImplicitFrustumRepresentation::vtkImplicitFrustumRepresentation()
 
   // Pass the initial properties to the actors.
   this->FrustumActor->SetProperty(this->FrustumProperty);
-  this->AxisHandle.LineActor->SetProperty(this->AxisProperty);
-  this->AxisHandle.HeadActor->SetProperty(this->AxisProperty);
   this->OriginHandle.Actor->SetProperty(this->OriginHandleProperty);
   this->FrustumActor->SetProperty(this->FrustumProperty);
   this->FarPlaneHorizontalHandle.Actor->SetProperty(this->EdgeHandleProperty);
@@ -255,12 +251,7 @@ int vtkImplicitFrustumRepresentation::ComputeInteractionState(int X, int Y, int 
   if (this->InteractionState == InteractionStateType::Moving)
   {
     vtkProp* prop = path->GetFirstNode()->GetViewProp();
-    if (prop == this->AxisHandle.LineActor || prop == this->AxisHandle.HeadActor)
-    {
-      this->InteractionState = InteractionStateType::RotatingAxis;
-      this->SetRepresentationState(InteractionStateType::RotatingAxis);
-    }
-    else if (prop == this->OriginHandle.Actor)
+    if (prop == this->OriginHandle.Actor)
     {
       this->InteractionState = InteractionStateType::MovingOrigin;
       this->SetRepresentationState(InteractionStateType::MovingOrigin);
@@ -332,7 +323,6 @@ void vtkImplicitFrustumRepresentation::SetRepresentationState(InteractionStateTy
   this->RepresentationState = state;
   this->Modified();
 
-  this->HighlightAxis(false);
   this->HighlightFrustum(false);
   this->HighlightOriginHandle(false);
   this->HighlightFarPlaneHorizontalHandle(false);
@@ -341,10 +331,6 @@ void vtkImplicitFrustumRepresentation::SetRepresentationState(InteractionStateTy
 
   switch (state)
   {
-    case InteractionStateType::RotatingAxis:
-      this->HighlightAxis(true);
-      break;
-
     case InteractionStateType::TranslatingOrigin:
     case InteractionStateType::MovingOrigin:
       this->HighlightOriginHandle(true);
@@ -365,7 +351,6 @@ void vtkImplicitFrustumRepresentation::SetRepresentationState(InteractionStateTy
     case InteractionStateType::Scaling:
       if (this->ScaleEnabled)
       {
-        this->HighlightAxis(true);
         this->HighlightFrustum(true);
         this->HighlightOriginHandle(true);
         this->HighlightFarPlaneHorizontalHandle(true);
@@ -439,12 +424,6 @@ void vtkImplicitFrustumRepresentation::WidgetInteraction(double e[2])
       }
       break;
 
-    case InteractionStateType::RotatingAxis:
-      // vtkVector3d vpn;
-      // camera->GetViewPlaneNormal(vpn.GetData());
-      // this->Rotate(e[0], e[1], prevPickPoint, pickPoint, vpn);
-      break;
-
     case InteractionStateType::AdjustingHorizontalAngle:
       this->AdjustHorizontalAngle(eventPosition, prevPickPoint, pickPoint);
       break;
@@ -489,12 +468,8 @@ double* vtkImplicitFrustumRepresentation::GetBounds()
   this->BoundingBox->AddBounds(this->FarPlaneHorizontalHandle.Actor->GetBounds());
   this->BoundingBox->AddBounds(this->FarPlaneVerticalHandle.Actor->GetBounds());
   this->BoundingBox->AddBounds(this->NearPlaneEdgesHandle.Actor->GetBounds());
-  this->BoundingBox->AddBounds(this->AxisHandle.LineActor->GetBounds());
-  this->BoundingBox->AddBounds(this->AxisHandle.HeadActor->GetBounds());
   this->BoundingBox->AddBounds(this->OriginHandle.Actor->GetBounds());
   this->BoundingBox->AddBounds(this->RollHandle.Actor->GetBounds());
-  this->BoundingBox->AddBounds(this->ViewUpHandle.LineActor->GetBounds());
-  this->BoundingBox->AddBounds(this->ViewUpHandle.HeadActor->GetBounds());
 
   return this->BoundingBox->GetBounds();
 }
@@ -505,13 +480,8 @@ void vtkImplicitFrustumRepresentation::GetActors(vtkPropCollection* pc)
   this->FarPlaneHorizontalHandle.Actor->GetActors(pc);
   this->FarPlaneVerticalHandle.Actor->GetActors(pc);
   this->NearPlaneEdgesHandle.Actor->GetActors(pc);
-  this->AxisHandle.HeadActor->GetActors(pc);
-  this->AxisHandle.LineActor->GetActors(pc);
   this->OriginHandle.Actor->GetActors(pc);
   this->RollHandle.Actor->GetActors(pc);
-
-  this->ViewUpHandle.HeadActor->GetActors(pc);
-  this->ViewUpHandle.LineActor->GetActors(pc);
 }
 
 //------------------------------------------------------------------------------
@@ -521,12 +491,8 @@ void vtkImplicitFrustumRepresentation::ReleaseGraphicsResources(vtkWindow* w)
   this->FarPlaneHorizontalHandle.Actor->ReleaseGraphicsResources(w);
   this->FarPlaneVerticalHandle.Actor->ReleaseGraphicsResources(w);
   this->NearPlaneEdgesHandle.Actor->ReleaseGraphicsResources(w);
-  this->AxisHandle.LineActor->ReleaseGraphicsResources(w);
-  this->AxisHandle.HeadActor->ReleaseGraphicsResources(w);
   this->OriginHandle.Actor->ReleaseGraphicsResources(w);
   this->RollHandle.Actor->ReleaseGraphicsResources(w);
-  this->ViewUpHandle.LineActor->ReleaseGraphicsResources(w);
-  this->ViewUpHandle.HeadActor->ReleaseGraphicsResources(w);
 }
 
 //------------------------------------------------------------------------------
@@ -537,12 +503,8 @@ int vtkImplicitFrustumRepresentation::RenderOpaqueGeometry(vtkViewport* v)
   count += this->FarPlaneHorizontalHandle.Actor->RenderOpaqueGeometry(v);
   count += this->FarPlaneVerticalHandle.Actor->RenderOpaqueGeometry(v);
   count += this->NearPlaneEdgesHandle.Actor->RenderOpaqueGeometry(v);
-  count += this->AxisHandle.LineActor->RenderOpaqueGeometry(v);
-  count += this->AxisHandle.HeadActor->RenderOpaqueGeometry(v);
   count += this->OriginHandle.Actor->RenderOpaqueGeometry(v);
   count += this->RollHandle.Actor->RenderOpaqueGeometry(v);
-  count += this->ViewUpHandle.LineActor->RenderOpaqueGeometry(v);
-  count += this->ViewUpHandle.HeadActor->RenderOpaqueGeometry(v);
 
   if (this->DrawFrustum)
   {
@@ -560,12 +522,8 @@ int vtkImplicitFrustumRepresentation::RenderTranslucentPolygonalGeometry(vtkView
   count += this->FarPlaneHorizontalHandle.Actor->RenderTranslucentPolygonalGeometry(v);
   count += this->FarPlaneVerticalHandle.Actor->RenderTranslucentPolygonalGeometry(v);
   count += this->NearPlaneEdgesHandle.Actor->RenderTranslucentPolygonalGeometry(v);
-  count += this->AxisHandle.LineActor->RenderTranslucentPolygonalGeometry(v);
-  count += this->AxisHandle.HeadActor->RenderTranslucentPolygonalGeometry(v);
   count += this->OriginHandle.Actor->RenderTranslucentPolygonalGeometry(v);
   count += this->RollHandle.Actor->RenderTranslucentPolygonalGeometry(v);
-  count += this->ViewUpHandle.LineActor->RenderTranslucentPolygonalGeometry(v);
-  count += this->ViewUpHandle.HeadActor->RenderTranslucentPolygonalGeometry(v);
   if (this->DrawFrustum)
   {
     count += this->FrustumActor->RenderTranslucentPolygonalGeometry(v);
@@ -581,12 +539,8 @@ vtkTypeBool vtkImplicitFrustumRepresentation::HasTranslucentPolygonalGeometry()
   result |= this->FarPlaneHorizontalHandle.Actor->HasTranslucentPolygonalGeometry();
   result |= this->FarPlaneVerticalHandle.Actor->HasTranslucentPolygonalGeometry();
   result |= this->NearPlaneEdgesHandle.Actor->HasTranslucentPolygonalGeometry();
-  result |= this->AxisHandle.LineActor->HasTranslucentPolygonalGeometry();
-  result |= this->AxisHandle.HeadActor->HasTranslucentPolygonalGeometry();
   result |= this->OriginHandle.Actor->HasTranslucentPolygonalGeometry();
   result |= this->RollHandle.Actor->HasTranslucentPolygonalGeometry();
-  result |= this->ViewUpHandle.LineActor->HasTranslucentPolygonalGeometry();
-  result |= this->ViewUpHandle.HeadActor->HasTranslucentPolygonalGeometry();
 
   if (this->DrawFrustum)
   {
@@ -633,30 +587,12 @@ void vtkImplicitFrustumRepresentation::PrintSelf(ostream& os, vtkIndent indent)
     case MovingOrigin:
       os << "MovingOrigin" << std::endl;
       break;
-    case RotatingAxis:
-      os << "RotatingAxis" << std::endl;
-      break;
     case Scaling:
       os << "Scaling" << std::endl;
       break;
     case TranslatingOrigin:
       os << "TranslatingOrigin" << std::endl;
       break;
-  }
-}
-
-//------------------------------------------------------------------------------
-void vtkImplicitFrustumRepresentation::HighlightAxis(bool highlight)
-{
-  if (highlight)
-  {
-    this->AxisHandle.LineActor->SetProperty(this->SelectedAxisProperty);
-    this->AxisHandle.HeadActor->SetProperty(this->SelectedAxisProperty);
-  }
-  else
-  {
-    this->AxisHandle.LineActor->SetProperty(this->AxisProperty);
-    this->AxisHandle.HeadActor->SetProperty(this->AxisProperty);
   }
 }
 
@@ -946,21 +882,14 @@ void vtkImplicitFrustumRepresentation::PlaceWidget(double bds[6])
   this->AdjustBounds(bds, bounds.GetData(), center.GetData());
 
   // TODO: handle the up axis here
-  this->AxisHandle.LineSource->SetPoint1(this->GetOrigin());
+  this->OrientationTransform->Identity();
   if (this->AlongXAxis)
   {
-    this->SetForwardAxis(1, 0, 0);
-    this->AxisHandle.LineSource->SetPoint2(1, 0, 0);
+    this->OrientationTransform->RotateZ(90);
   }
   else if (this->AlongZAxis)
   {
-    this->SetForwardAxis(0, 0, 1);
-    this->AxisHandle.LineSource->SetPoint2(0, 0, 1);
-  }
-  else // default or x-normal
-  {
-    this->SetForwardAxis(0, 1, 0);
-    this->AxisHandle.LineSource->SetPoint2(0, 1, 0);
+    this->OrientationTransform->RotateX(90);
   }
 
   for (int i = 0; i < 6; i++)
@@ -1012,80 +941,6 @@ void vtkImplicitFrustumRepresentation::GetOrigin(double xyz[3]) const
   xyz[0] = this->Origin[0];
   xyz[1] = this->Origin[1];
   xyz[2] = this->Origin[2];
-}
-
-//------------------------------------------------------------------------------
-void vtkImplicitFrustumRepresentation::SetForwardAxis(const vtkVector3d& axis)
-{
-  vtkVector3d n = axis.Normalized();
-  if (n != this->ForwardAxis)
-  {
-    this->ForwardAxis = n;
-    this->Modified();
-  }
-}
-
-//------------------------------------------------------------------------------
-void vtkImplicitFrustumRepresentation::SetForwardAxis(double x, double y, double z)
-{
-  this->SetForwardAxis(vtkVector3d(x, y, z));
-}
-
-//------------------------------------------------------------------------------
-void vtkImplicitFrustumRepresentation::SetForwardAxis(double n[3])
-{
-  this->SetForwardAxis(vtkVector3d(n));
-}
-
-//------------------------------------------------------------------------------
-double* vtkImplicitFrustumRepresentation::GetForwardAxis()
-{
-  return this->ForwardAxis.GetData();
-}
-
-//------------------------------------------------------------------------------
-void vtkImplicitFrustumRepresentation::GetForwardAxis(double xyz[3]) const
-{
-  xyz[0] = this->ForwardAxis[0];
-  xyz[1] = this->ForwardAxis[1];
-  xyz[2] = this->ForwardAxis[2];
-}
-
-//------------------------------------------------------------------------------
-void vtkImplicitFrustumRepresentation::SetUpAxis(const vtkVector3d& axis)
-{
-  vtkVector3d n = axis.Normalized();
-  if (n != this->UpAxis)
-  {
-    this->UpAxis = n;
-    this->Modified();
-  }
-}
-
-//------------------------------------------------------------------------------
-void vtkImplicitFrustumRepresentation::SetUpAxis(double x, double y, double z)
-{
-  this->SetUpAxis(vtkVector3d(x, y, z));
-}
-
-//------------------------------------------------------------------------------
-void vtkImplicitFrustumRepresentation::SetUpAxis(double n[3])
-{
-  this->SetUpAxis(vtkVector3d(n));
-}
-
-//------------------------------------------------------------------------------
-double* vtkImplicitFrustumRepresentation::GetUpAxis()
-{
-  return this->UpAxis.GetData();
-}
-
-//------------------------------------------------------------------------------
-void vtkImplicitFrustumRepresentation::GetUpAxis(double xyz[3]) const
-{
-  xyz[0] = this->UpAxis[0];
-  xyz[1] = this->UpAxis[1];
-  xyz[2] = this->UpAxis[2];
 }
 
 //------------------------------------------------------------------------------
@@ -1233,8 +1088,6 @@ void vtkImplicitFrustumRepresentation::BuildRepresentation()
     this->FarPlaneHorizontalHandle.Actor->SetPropertyKeys(info);
     this->FarPlaneVerticalHandle.Actor->SetPropertyKeys(info);
     this->NearPlaneEdgesHandle.Actor->SetPropertyKeys(info);
-    this->AxisHandle.LineActor->SetPropertyKeys(info);
-    this->AxisHandle.HeadActor->SetPropertyKeys(info);
     this->OriginHandle.Actor->SetPropertyKeys(info);
 
     vtkVector3d origin(this->GetOrigin());
@@ -1263,9 +1116,6 @@ void vtkImplicitFrustumRepresentation::BuildRepresentation()
 void vtkImplicitFrustumRepresentation::SizeHandles()
 {
   double radius = this->SizeHandlesInPixels(1.5, this->OriginHandle.Source->GetCenter());
-
-  this->AxisHandle.SizeHandle(radius);
-  this->ViewUpHandle.SizeHandle(radius);
 
   this->OriginHandle.Source->SetRadius(radius);
 

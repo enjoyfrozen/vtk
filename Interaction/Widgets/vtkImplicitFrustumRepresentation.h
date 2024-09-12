@@ -64,7 +64,6 @@ public:
     Outside = 0,
     Moving,       // Generic state set by the widget
     MovingOrigin, // TODO: What's the difference w/ translatingOrigin?
-    RotatingAxis, // TODO: Remove
     Scaling,
     AdjustingHorizontalAngle,
     AdjustingVerticalAngle,
@@ -90,31 +89,6 @@ public:
   void SetOrigin(const vtkVector3d& xyz);
   double* GetOrigin() VTK_SIZEHINT(3);
   void GetOrigin(double xyz[3]) const;
-  ///@}
-
-  // TODO: Remove forward/up axis ?
-  ///@{
-  /**
-   * Set/Get the axis of rotation for the frustum. If the axis is not
-   * specified as a unit vector, it will be normalized.
-   * Default is the Y-Axis (0, 1, 0)
-   */
-  void SetForwardAxis(const vtkVector3d& xyz);
-  void SetForwardAxis(double x, double y, double z);
-  void SetForwardAxis(double a[3]);
-  double* GetForwardAxis() VTK_SIZEHINT(3);
-  void GetForwardAxis(double a[3]) const;
-  ///@}
-
-  ///@{
-  /**
-   * TODO
-   */
-  void SetUpAxis(const vtkVector3d& xyz);
-  void SetUpAxis(double x, double y, double z);
-  void SetUpAxis(double a[3]);
-  double* GetUpAxis() VTK_SIZEHINT(3);
-  void GetUpAxis(double a[3]) const;
   ///@}
 
   ///@{
@@ -397,12 +371,12 @@ private:
 
   void HighlightFrustum(bool highlight);
   void HighlightOriginHandle(bool highlight);
-  void HighlightAxis(bool highlight);
   void HighlightFarPlaneVerticalHandle(bool highlight);
   void HighlightFarPlaneHorizontalHandle(bool highlight);
   void HighlighNearPlaneHandle(bool highlight);
 
   // Methods to manipulate the frustum
+  // TODO: Why two ?
   void TranslateFrustum(const vtkVector3d& p1, const vtkVector3d& p2);
   void TranslateOrigin(const vtkVector3d& p1, const vtkVector3d& p2);
   void TranslateOriginOnAxis(const vtkVector3d& p1, const vtkVector3d& p2);
@@ -412,10 +386,8 @@ private:
     const vtkVector2d& eventPosition, const vtkVector3d& p1, const vtkVector3d& p2);
   void AdjustNearPlaneDistance(
     const vtkVector2d& eventPosition, const vtkVector3d& p1, const vtkVector3d& p2);
-
   void Rotate(
     const vtkVector3d& prevPickPoint, const vtkVector3d& pickPoint, const vtkVector3d& axis);
-
   void Scale(const vtkVector3d& p1, const vtkVector3d& p2, double X, double Y);
 
   // Set the frustum transform according to the representation orientation and position
@@ -456,8 +428,6 @@ private:
   bool DrawFrustum = true;
 
   vtkVector3d Origin = { 0, 0, 0 };
-  vtkVector3d ForwardAxis = { 0, 1, 0 };
-  vtkVector3d UpAxis = { 0, 0, -1 };
   vtkNew<vtkTransform> OrientationTransform;
 
   // Optional tubes are represented by extracting boundary edges and tubing
@@ -466,13 +436,10 @@ private:
   EdgeHandle NearPlaneEdgesHandle;
   SphereHandle NearPlaneCenterHandle;
 
-  ArrowHandle ViewUpHandle;
-
-  // Axis representation
-  ArrowHandle AxisHandle;
   EllipseHandle RollHandle;
 
   // Origin positioning handle
+  // TODO: On origin or on the near plane ?
   SphereHandle OriginHandle;
 
   // Do the picking
