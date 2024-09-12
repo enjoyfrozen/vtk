@@ -130,6 +130,13 @@ public:
    * priority commands are called first. A command may set an abort
    * flag to stop processing of the event. (See vtkCommand.h for more
    * information.)
+   *
+   * \warning The behavior of RemoveObserver(), RemoveObservers() and
+   *          RemoveAllObservers() is undefined if they are called during
+   *          InvokeEvent().
+   *          Thus it is strongly recommended to do not remove observers from
+   *          the calling object in vtkCommand, although it is still safe to
+   *          remove observers from any other object.
    */
   unsigned long AddObserver(unsigned long event, vtkCommand*, float priority = 0.0f);
   unsigned long AddObserver(const char* event, vtkCommand*, float priority = 0.0f);

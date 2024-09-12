@@ -534,6 +534,7 @@ vtkTypeBool vtkSubjectHelper::InvokeEvent(unsigned long event, void* callData, v
   while (elem)
   {
     // store the next pointer because elem could disappear due to Command
+    // now is next the one which could disappear though
     next = elem->Next;
     if (elem->Command->GetPassiveObserver() &&
       (elem->Event == event || elem->Event == vtkCommand::AnyEvent) && elem->Tag < maxTag)
