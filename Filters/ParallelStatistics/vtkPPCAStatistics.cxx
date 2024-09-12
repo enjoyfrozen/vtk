@@ -62,6 +62,9 @@ void vtkPPCAStatistics::Learn(
   {
     vtkPMultiCorrelativeStatistics::GatherStatistics(this->Controller, sparseCov);
   }
+
+  this->Controller->Barrier();
+  this->CheckAbort();
 }
 
 //------------------------------------------------------------------------------

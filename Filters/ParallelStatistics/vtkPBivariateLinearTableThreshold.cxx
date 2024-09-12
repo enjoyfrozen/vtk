@@ -99,6 +99,9 @@ int vtkPBivariateLinearTableThreshold::RequestData(
 
   outRowDataTable->ShallowCopy(gatheredTable);
 
+  comm->Barrier();
+  this->CheckAbort();
+
   return 1;
 }
 VTK_ABI_NAMESPACE_END

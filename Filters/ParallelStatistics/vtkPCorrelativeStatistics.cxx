@@ -149,6 +149,9 @@ void vtkPCorrelativeStatistics::Learn(
     delete[] M_g;
   }
   delete[] n_g;
+
+  com->Barrier();
+  this->CheckAbort();
 }
 
 //------------------------------------------------------------------------------
