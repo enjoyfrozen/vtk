@@ -74,4 +74,8 @@ set(VTK_MODULE_ENABLE_VTK_xdmf3 NO CACHE STRING "") # Boost
 set(VTK_MODULE_ENABLE_VTK_IOOCCT NO CACHE STRING "") # occt
 set(VTK_ENABLE_CATALYST OFF CACHE BOOL "") # catalyst
 
+# Enable vtkTkRenderWindowInteractor
+set(VTK_USE_TK ON CACHE BOOL "")
+set(BUILD_SHARED_LIBS ON CACHE BOOL "")
+
 include("${CMAKE_CURRENT_LIST_DIR}/configure_common.cmake")
