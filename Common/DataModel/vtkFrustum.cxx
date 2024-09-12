@@ -6,7 +6,6 @@
 #include "vtkMath.h"
 #include "vtkObjectFactory.h"
 #include "vtkPlane.h"
-#include "vtkTransform.h"
 #include "vtkVector.h"
 
 #include <cmath>
@@ -100,7 +99,6 @@ void vtkFrustum::PrintSelf(ostream& os, vtkIndent indent)
 //------------------------------------------------------------------------------
 void vtkFrustum::CalculateHorizontalPlanesNormal()
 {
-  // Maths!
   double angleRadians = vtkMath::RadiansFromDegrees(this->HorizontalAngle);
   auto cosAngle = std::cos(angleRadians);
   auto sinAngle = std::sin(angleRadians);
@@ -119,8 +117,8 @@ void vtkFrustum::CalculateVerticalPlanesNormal()
   auto cosAngle = std::cos(angleRadians);
   auto sinAngle = std::sin(angleRadians);
 
-  vtkVector3d topPlaneNormal(0, cosAngle, -sinAngle);
-  vtkVector3d bottomPlaneNormal(0, cosAngle, sinAngle);
+  vtkVector3d topPlaneNormal(0, sinAngle, -cosAngle);
+  vtkVector3d bottomPlaneNormal(0, sinAngle, cosAngle);
 
   this->TopPlane->SetNormal(topPlaneNormal.GetData());
   this->BottomPlane->SetNormal(bottomPlaneNormal.GetData());

@@ -458,20 +458,15 @@ void vtkImplicitFrustumRepresentation::WidgetInteraction(double e[2])
       break;
 
     case InteractionStateType::AdjustingYaw:
-      // this->AdjustYaw(prevPickPoint, pickPoint);
-      this->RotateOrientation(prevPickPoint, pickPoint, vtkVector3d(0, 0, 1));
+      this->Rotate(prevPickPoint, pickPoint, vtkVector3d(0, 0, 1));
       break;
 
     case InteractionStateType::AdjustingPitch:
-      // this->AdjustPitch(prevPickPoint, pickPoint);
-      this->RotateOrientation(prevPickPoint, pickPoint, vtkVector3d(1, 0, 0));
-
+      this->Rotate(prevPickPoint, pickPoint, vtkVector3d(1, 0, 0));
       break;
 
     case InteractionStateType::AdjustingRoll:
-      // this->AdjustRoll(prevPickPoint, pickPoint);
-      this->RotateOrientation(prevPickPoint, pickPoint, vtkVector3d(0, 1, 0));
-
+      this->Rotate(prevPickPoint, pickPoint, vtkVector3d(0, 1, 0));
       break;
   }
 
@@ -517,15 +512,6 @@ void vtkImplicitFrustumRepresentation::GetActors(vtkPropCollection* pc)
 
   this->ViewUpHandle.HeadActor->GetActors(pc);
   this->ViewUpHandle.LineActor->GetActors(pc);
-
-  this->TopNormalHandle.HeadActor->GetActors(pc);
-  this->TopNormalHandle.LineActor->GetActors(pc);
-  this->BottomNormalHandle.HeadActor->GetActors(pc);
-  this->BottomNormalHandle.LineActor->GetActors(pc);
-  this->RightNormalHandle.HeadActor->GetActors(pc);
-  this->RightNormalHandle.LineActor->GetActors(pc);
-  this->LeftNormalHandle.HeadActor->GetActors(pc);
-  this->LeftNormalHandle.LineActor->GetActors(pc);
 }
 
 //------------------------------------------------------------------------------
@@ -557,15 +543,6 @@ int vtkImplicitFrustumRepresentation::RenderOpaqueGeometry(vtkViewport* v)
   count += this->RollHandle.Actor->RenderOpaqueGeometry(v);
   count += this->ViewUpHandle.LineActor->RenderOpaqueGeometry(v);
   count += this->ViewUpHandle.HeadActor->RenderOpaqueGeometry(v);
-
-  count += this->TopNormalHandle.LineActor->RenderOpaqueGeometry(v);
-  count += this->TopNormalHandle.HeadActor->RenderOpaqueGeometry(v);
-  count += this->BottomNormalHandle.LineActor->RenderOpaqueGeometry(v);
-  count += this->BottomNormalHandle.HeadActor->RenderOpaqueGeometry(v);
-  count += this->RightNormalHandle.LineActor->RenderOpaqueGeometry(v);
-  count += this->RightNormalHandle.HeadActor->RenderOpaqueGeometry(v);
-  count += this->LeftNormalHandle.LineActor->RenderOpaqueGeometry(v);
-  count += this->LeftNormalHandle.HeadActor->RenderOpaqueGeometry(v);
 
   if (this->DrawFrustum)
   {
@@ -781,7 +758,6 @@ void vtkImplicitFrustumRepresentation::TranslateOrigin(const vtkVector3d& p1, co
   }
 
   // Translate the current origin
-
   vtkVector3d newOrigin = this->Origin + v;
 
   // Project back onto plane orthogonal to camera
@@ -791,7 +767,8 @@ void vtkImplicitFrustumRepresentation::TranslateOrigin(const vtkVector3d& p1, co
   vtkPlane::ProjectPoint(
     newOrigin.GetData(), this->Origin.GetData(), vpn.GetData(), newOrigin.GetData());
 
-  this->SetOrigin(newOrigin.GetData());
+  this->Origin = newOrigin;
+  this->UpdateFrustumTransform();
 }
 
 //------------------------------------------------------------------------------
@@ -856,6 +833,21 @@ void vtkImplicitFrustumRepresentation::Scale(
   // this->Box->SetOrigin(oNew.GetData());
   // this->Box->SetSpacing((pNew - oNew).GetData());
   // this->Box->GetBounds(this->WidgetBounds.GetData());
+}
+
+//------------------------------------------------------------------------------
+void vtkImplicitFrustumRepresentation::UpdateFrustumTransform()
+{
+  vtkNew<vtkTransform> transform;
+  transform->Identity();
+  transform->Translate(this->Origin.GetData());
+  transform->Concatenate(this->OrientationTransform);
+
+  if (this->Frustum->GetTransform() != transform)
+  {
+    this->Frustum->SetTransform(transform);
+    this->Modified();
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -992,7 +984,7 @@ void vtkImplicitFrustumRepresentation::SetOrigin(const vtkVector3d& xyz)
   if (xyz != this->Origin)
   {
     this->Origin = xyz;
-    this->Modified();
+    this->UpdateFrustumTransform();
   }
 }
 
@@ -1096,11 +1088,12 @@ void vtkImplicitFrustumRepresentation::GetUpAxis(double xyz[3]) const
   xyz[2] = this->UpAxis[2];
 }
 
-void vtkImplicitFrustumRepresentation::RotateOrientation(
+//------------------------------------------------------------------------------
+void vtkImplicitFrustumRepresentation::Rotate(
   const vtkVector3d& prevPickPoint, const vtkVector3d& pickPoint, const vtkVector3d& axis)
 {
-  const vtkVector3d centeredP1 = prevPickPoint - this->Origin;
-  const vtkVector3d centeredP2 = pickPoint - this->Origin;
+  const vtkVector3d centeredP1 = prevPickPoint;
+  const vtkVector3d centeredP2 = pickPoint;
 
   vtkVector3d rotationAxis(this->OrientationTransform->TransformVector(axis.GetData()));
   double rotationAngle = vtkMath::SignedAngleBetweenVectors(
@@ -1109,18 +1102,7 @@ void vtkImplicitFrustumRepresentation::RotateOrientation(
   this->OrientationTransform->RotateWXYZ(
     vtkMath::DegreesFromRadians(rotationAngle), rotationAxis.GetData());
 
-  vtkNew<vtkTransform> transform;
-  transform->Identity();
-  transform->Concatenate(this->OrientationTransform);
-  // transform->Translate(this->Origin.GetData());
-  this->Frustum->SetTransform(transform);
-
-  // Just debugging stuff
-  vtkVector3d up(0, 0, -1);
-  this->UpAxis = vtkVector3d(transform->TransformPoint(up.GetData()));
-
-  vtkVector3d forward(0, 1, 0);
-  this->ForwardAxis = vtkVector3d(transform->TransformPoint(forward.GetData()));
+  this->UpdateFrustumTransform();
 }
 
 //------------------------------------------------------------------------------
@@ -1256,24 +1238,17 @@ void vtkImplicitFrustumRepresentation::BuildRepresentation()
     this->OriginHandle.Actor->SetPropertyKeys(info);
 
     vtkVector3d origin(this->GetOrigin());
-    vtkVector3d axis(this->GetForwardAxis());
-
-    // Update the adjusted origin
-    this->SetOrigin(origin.GetData());
-
-    // Setup the forward and up axis handles
-    double d = 2;
-    this->AxisHandle.Update(origin, axis, d * 0.3);
-    this->ViewUpHandle.Update(origin, axis, d * 0.3);
-
-    // Debug: Set frustum plane normals
+    vtkVector3d forwardAxis(0, 1, 0);
+    this->OrientationTransform->TransformVector(forwardAxis.GetData(), forwardAxis.GetData());
 
     // Set up the position handle
-    this->OriginHandle.Source->SetCenter(origin.GetData());
+    this->OriginHandle.Source->SetCenter(
+      (origin + forwardAxis * this->Frustum->GetNearPlaneDistance()).GetData());
 
     // Place the roll control
     this->RollHandle.Source->SetCenter(origin.GetData());
-    this->RollHandle.Source->SetNormal(this->GetForwardAxis());
+    this->RollHandle.Source->SetNormal(forwardAxis.GetData());
+
     // TODO: Set the size of the roll handle
 
     // Construct frustum
@@ -1292,12 +1267,6 @@ void vtkImplicitFrustumRepresentation::SizeHandles()
   this->AxisHandle.SizeHandle(radius);
   this->ViewUpHandle.SizeHandle(radius);
 
-  this->TopNormalHandle.SizeHandle(radius);
-  this->BottomNormalHandle.SizeHandle(radius);
-  this->LeftNormalHandle.SizeHandle(radius);
-  this->RightNormalHandle.SizeHandle(radius);
-
-  // TMP
   this->OriginHandle.Source->SetRadius(radius);
 
   this->FarPlaneHorizontalHandle.Tuber->SetRadius(0.25 * radius);
@@ -1309,43 +1278,36 @@ void vtkImplicitFrustumRepresentation::SizeHandles()
 //------------------------------------------------------------------------------
 void vtkImplicitFrustumRepresentation::BuildFrustum()
 {
-  const vtkVector3d& forwardAxis = this->ForwardAxis;
-  const vtkVector3d& upAxis = this->UpAxis;
-  const vtkVector3d& origin = this->Origin;
   const double height = 1.5; // TODO
 
-  // Generate frustum polydata
   this->FrustumPD->Reset();
 
-  double verticalAngle = vtkMath::RadiansFromDegrees(this->Frustum->GetVerticalAngle());
-  double horizontalAngle = vtkMath::RadiansFromDegrees(this->Frustum->GetHorizontalAngle());
-
-  // TODO: Make sure we're drawing right
-  double sinVertical = std::sin(verticalAngle);
-  double cosVertical = std::cos(verticalAngle);
-  double sinHorizontal = std::sin(horizontalAngle);
-  double cosHorizontal = std::cos(horizontalAngle);
+  vtkVector3d rightNormal(this->Frustum->GetRightPlane()->GetNormal());
+  vtkVector3d leftNormal(this->Frustum->GetLeftPlane()->GetNormal());
+  vtkVector3d bottomNormal(this->Frustum->GetBottomPlane()->GetNormal());
+  vtkVector3d topNormal(this->Frustum->GetTopPlane()->GetNormal());
 
   std::array<vtkVector3d, 4> edgeDirections;
-  edgeDirections[1] = vtkVector3d(cosHorizontal, 1, cosVertical).Normalized();   // bottom-right
-  edgeDirections[0] = vtkVector3d(-cosHorizontal, 1, cosVertical).Normalized();  // bottom-left
-  edgeDirections[3] = vtkVector3d(-cosHorizontal, 1, -cosVertical).Normalized(); // top-left
-  edgeDirections[2] = vtkVector3d(cosHorizontal, 1, -cosVertical).Normalized();  // top-right
+  edgeDirections[0] = bottomNormal.Cross(leftNormal).Normalized();  // bottom-left
+  edgeDirections[1] = rightNormal.Cross(bottomNormal).Normalized(); // bottom-right
+  edgeDirections[2] = topNormal.Cross(rightNormal).Normalized();    // top-right
+  edgeDirections[3] = leftNormal.Cross(topNormal).Normalized();     // top-left
 
   vtkNew<vtkIdList> nearPlanePointIndices;
   nearPlanePointIndices->Allocate(4);
   vtkNew<vtkIdList> farPlanePointIndices;
   farPlanePointIndices->Allocate(4);
 
-  // Annulus base points
-  auto transform = this->Frustum->GetTransform();
-
+  // Generate frustum points
   vtkPoints* frustumPoints = this->FrustumPD->GetPoints();
   for (const vtkVector3d& direction : edgeDirections)
   {
-    vtkVector3d nearPoint = origin + direction * this->Frustum->GetNearPlaneDistance();
-    vtkVector3d farPoint = origin + direction * height;
+    // Scale the vector so that y in on the far or near plane
+    vtkVector3d nearPoint = direction * (this->Frustum->GetNearPlaneDistance() / direction.GetY());
+    vtkVector3d farPoint = direction * (height / direction.GetY());
 
+    // Apply frustum transform
+    auto transform = this->Frustum->GetTransform();
     transform->TransformPoint(nearPoint.GetData(), nearPoint.GetData());
     transform->TransformPoint(farPoint.GetData(), farPoint.GetData());
 

@@ -7,10 +7,8 @@
  *
  * vtkFrustum represents a 4-sided frustum, with a near plane but infinite on the far side. Opposite
  * sides of its base are always the same length. vtkFrustum is a concrete implementation of
- * vtkImplicitFunction. You can redefine the origin and axis of rotation by setting the Origin and
- * Axis data members. (Note that it is also possible to use the superclass' vtkImplicitFunction
- * transformation matrix if necessary to reposition by using FunctionValue() and
- * FunctionGradient().)
+ * vtkImplicitFunction. The frustum is oriented toward the Y Axis (0,1,0) ; its top face facing
+ * toward the Z Axis and its "right" face facing the X Axis.
  *
  * @warning
  * The frustum is infinite in extent. To truncate the frustum in
@@ -50,6 +48,12 @@ public:
 
   vtkGetMacro(HorizontalAngle, double)
   void SetHorizontalAngle(double angleInDegrees);
+
+  vtkPlane* GetTopPlane() { return this->TopPlane; }
+  vtkPlane* GetBottomPlane() { return this->BottomPlane; }
+  vtkPlane* GetRightPlane() { return this->RightPlane; }
+  vtkPlane* GetLeftPlane() { return this->LeftPlane; }
+  vtkPlane* GetNearPlane() { return this->NearPlane; }
 
 protected:
   vtkFrustum();

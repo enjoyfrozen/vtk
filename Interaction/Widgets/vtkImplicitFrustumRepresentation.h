@@ -62,9 +62,9 @@ public:
   enum InteractionStateType
   {
     Outside = 0,
-    Moving, // Generic state set by the widget
-    MovingOrigin,
-    RotatingAxis,
+    Moving,       // Generic state set by the widget
+    MovingOrigin, // TODO: What's the difference w/ translatingOrigin?
+    RotatingAxis, // TODO: Remove
     Scaling,
     AdjustingHorizontalAngle,
     AdjustingVerticalAngle,
@@ -92,6 +92,7 @@ public:
   void GetOrigin(double xyz[3]) const;
   ///@}
 
+  // TODO: Remove forward/up axis ?
   ///@{
   /**
    * Set/Get the axis of rotation for the frustum. If the axis is not
@@ -118,6 +119,7 @@ public:
 
   ///@{
   /**
+   * TODO
    */
   double GetHorizontalAngle() const;
   void SetHorizontalAngle(double angle);
@@ -125,6 +127,7 @@ public:
 
   ///@{
   /**
+   * TODO
    */
   double GetVerticalAngle() const;
   void SetVerticalAngle(double angle);
@@ -132,6 +135,7 @@ public:
 
   ///@{
   /**
+   * TODO
    */
   double GetNearPlaneDistance() const;
   void SetNearPlaneDistance(double angle);
@@ -409,10 +413,13 @@ private:
   void AdjustNearPlaneDistance(
     const vtkVector2d& eventPosition, const vtkVector3d& p1, const vtkVector3d& p2);
 
-  void RotateOrientation(
+  void Rotate(
     const vtkVector3d& prevPickPoint, const vtkVector3d& pickPoint, const vtkVector3d& axis);
 
   void Scale(const vtkVector3d& p1, const vtkVector3d& p2, double X, double Y);
+
+  // Set the frustum transform according to the representation orientation and position
+  void UpdateFrustumTransform();
 
   void SizeHandles();
 
@@ -460,12 +467,6 @@ private:
   SphereHandle NearPlaneCenterHandle;
 
   ArrowHandle ViewUpHandle;
-
-  // Debug !
-  ArrowHandle TopNormalHandle;
-  ArrowHandle BottomNormalHandle;
-  ArrowHandle LeftNormalHandle;
-  ArrowHandle RightNormalHandle;
 
   // Axis representation
   ArrowHandle AxisHandle;
