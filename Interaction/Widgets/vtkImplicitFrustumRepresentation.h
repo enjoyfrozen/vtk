@@ -433,6 +433,7 @@ private:
   bool ScaleEnabled = true; // whether the widget can be scaled
   vtkVector<double, 6> WidgetBounds;
   bool ConstrainToWidgetBounds = true;
+  double Length = 1;
 
   vtkNew<vtkPolyData> FrustumPD;
   vtkNew<vtkPolyDataMapper> FrustumMapper;

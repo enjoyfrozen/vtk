@@ -882,7 +882,16 @@ void vtkImplicitFrustumRepresentation::PlaceWidget(double bds[6])
   vtkVector3d center;
   this->AdjustBounds(bds, bounds.GetData(), center.GetData());
 
-  // TODO: handle the up axis here
+  for (int i = 0; i < 6; i++)
+  {
+    this->InitialBounds[i] = bounds[i];
+    this->WidgetBounds[i] = bounds[i];
+  }
+
+  vtkBoundingBox bbox(bounds.GetData());
+  this->InitialLength = bbox.GetDiagonalLength();
+  this->Length = this->InitialLength;
+
   this->OrientationTransform->Identity();
   if (this->AlongXAxis)
   {
@@ -892,17 +901,6 @@ void vtkImplicitFrustumRepresentation::PlaceWidget(double bds[6])
   {
     this->OrientationTransform->RotateX(90);
   }
-
-  for (int i = 0; i < 6; i++)
-  {
-    this->InitialBounds[i] = bounds[i];
-    this->WidgetBounds[i] = bounds[i];
-  }
-
-  this->OrientationTransform->Identity();
-
-  vtkBoundingBox bbox(bounds.GetData());
-  this->InitialLength = bbox.GetDiagonalLength();
 
   this->ValidPick = true; // since we have positioned the widget successfully
   this->BuildRepresentation();
@@ -1127,7 +1125,7 @@ void vtkImplicitFrustumRepresentation::UpdatePlacement()
 //------------------------------------------------------------------------------
 void vtkImplicitFrustumRepresentation::BuildRepresentation()
 {
-  if (!this->Renderer || !this->Renderer->GetRenderWindow())
+  if (this->Renderer == nullptr || !this->Renderer->GetRenderWindow())
   {
     return;
   }
@@ -1135,13 +1133,15 @@ void vtkImplicitFrustumRepresentation::BuildRepresentation()
   if (this->GetMTime() > this->BuildTime || this->Frustum->GetMTime() > this->BuildTime ||
     this->Renderer->GetRenderWindow()->GetMTime() > this->BuildTime)
   {
-
     vtkInformation* info = this->GetPropertyKeys();
     this->FrustumActor->SetPropertyKeys(info);
     this->FarPlaneHorizontalHandle.Actor->SetPropertyKeys(info);
     this->FarPlaneVerticalHandle.Actor->SetPropertyKeys(info);
     this->NearPlaneEdgesHandle.Actor->SetPropertyKeys(info);
     this->OriginHandle.Actor->SetPropertyKeys(info);
+
+    vtkBoundingBox bbox(this->WidgetBounds.GetData());
+    this->Length = bbox.GetDiagonalLength();
 
     vtkVector3d origin(this->GetOrigin());
     vtkVector3d forwardAxis(0, 1, 0);
@@ -1181,7 +1181,7 @@ void vtkImplicitFrustumRepresentation::SizeHandles()
 //------------------------------------------------------------------------------
 void vtkImplicitFrustumRepresentation::BuildFrustum()
 {
-  const double height = 1.5; // TODO
+  const double height = this->Length;
 
   this->FrustumPD->Reset();
 
