@@ -4,7 +4,7 @@ set -e
 
 readonly mindeps_version="3.12.4"
 readonly mindeps_prefix="cmake-mindeps"
-readonly latest_version="3.26.3"
+readonly latest_version="3.30.2"
 readonly latest_prefix="cmake"
 
 case "$( uname -s )" in
@@ -12,14 +12,14 @@ case "$( uname -s )" in
         shatool="sha256sum"
         mindeps_sha256sum="486edd6710b5250946b4b199406ccbf8f567ef0e23cfe38f7938b8c78a2ffa5f"
         mindeps_platform="Linux-x86_64"
-        latest_sha256sum="28d4d1d0db94b47d8dfd4f7dec969a3c747304f4a28ddd6fd340f553f2384dc2"
+        latest_sha256sum="cdd7fb352605cee3ae53b0e18b5929b642900e33d6b0173e19f6d4f2067ebf16"
         latest_platform="linux-x86_64"
         ;;
     Darwin)
         shatool="shasum -a 256"
         mindeps_sha256sum="95d76c00ccb9ecb5cb51de137de00965c5e8d34b2cf71556cf8ba40577d1cff3"
         mindeps_platform="Darwin-x86_64"
-        latest_sha256sum="2b44cc892dc68b42123b9517c5d903690785b7ef489af26abf2fe3f3a6f2a112"
+        latest_sha256sum="c6fdda745f9ce69bca048e91955c7d043ba905d6388a62e0ff52b681ac17183c"
         latest_platform="macos-universal"
         ;;
     *)
