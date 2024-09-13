@@ -45,11 +45,6 @@
 VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkImplicitFrustumRepresentation);
 
-namespace
-{
-constexpr int ROTATION_MANIPULATION_FACTOR = 5;
-}
-
 //------------------------------------------------------------------------------
 vtkImplicitFrustumRepresentation::EdgeHandle::EdgeHandle()
 {
@@ -130,6 +125,7 @@ vtkImplicitFrustumRepresentation::vtkImplicitFrustumRepresentation()
   transform->Identity();
   this->Frustum->SetTransform(transform);
 
+  // Orientation transform is in post multiply so we can edit it as we go
   this->OrientationTransform->Identity();
   this->OrientationTransform->PostMultiply();
 
@@ -149,17 +145,8 @@ vtkImplicitFrustumRepresentation::vtkImplicitFrustumRepresentation()
   this->FrustumMapper->SetInputData(this->FrustumPD);
   this->FrustumActor->SetMapper(this->FrustumMapper);
 
-  // Define the point coordinates
-  std::array<double, 6> bounds = {
-    -0.5,
-    0.5,
-    -0.5,
-    0.5,
-    -0.5,
-    0.5,
-  };
-
   // Initial creation of the widget, serves to initialize it
+  std::array<double, 6> bounds = { -0.5, 0.5, -0.5, 0.5, -0.5, 0.5 };
   this->PlaceWidget(bounds.data());
 
   // Manage the picking stuff
@@ -185,15 +172,6 @@ vtkImplicitFrustumRepresentation::vtkImplicitFrustumRepresentation()
   this->SelectedFrustumProperty->SetAmbientColor(0.0, 1.0, 0.0);
   this->SelectedFrustumProperty->SetOpacity(0.25);
 
-  // Frustum axis properties
-  this->AxisProperty->SetAmbient(1.0);
-  this->AxisProperty->SetColor(1, 0, 0);
-  this->AxisProperty->SetLineWidth(2);
-
-  this->SelectedAxisProperty->SetAmbient(1.0);
-  this->SelectedAxisProperty->SetColor(0, 1, 0);
-  this->SelectedAxisProperty->SetLineWidth(2);
-
   // Origin handle properties
   this->OriginHandleProperty->SetAmbient(1.0);
   this->OriginHandleProperty->SetColor(1, 0, 0);
@@ -214,7 +192,7 @@ vtkImplicitFrustumRepresentation::vtkImplicitFrustumRepresentation()
   this->FarPlaneHorizontalHandle.Actor->SetProperty(this->EdgeHandleProperty);
   this->FarPlaneVerticalHandle.Actor->SetProperty(this->EdgeHandleProperty);
   this->NearPlaneEdgesHandle.Actor->SetProperty(this->EdgeHandleProperty);
-  this->RollHandle.Actor->SetProperty(this->OriginHandleProperty); // TODO
+  this->RollHandle.Actor->SetProperty(this->EdgeHandleProperty);
 }
 
 //------------------------------------------------------------------------------
@@ -328,6 +306,7 @@ void vtkImplicitFrustumRepresentation::SetRepresentationState(InteractionStateTy
   this->HighlightFarPlaneHorizontalHandle(false);
   this->HighlightFarPlaneVerticalHandle(false);
   this->HighlighNearPlaneHandle(false);
+  this->HighlightRollHandle(false);
 
   switch (state)
   {
@@ -346,6 +325,10 @@ void vtkImplicitFrustumRepresentation::SetRepresentationState(InteractionStateTy
 
     case InteractionStateType::AdjustingNearPlaneDistance:
       this->HighlighNearPlaneHandle(true);
+      break;
+
+    case InteractionStateType::AdjustingRoll:
+      this->HighlightRollHandle(true);
       break;
 
     case InteractionStateType::Scaling:
@@ -557,8 +540,6 @@ void vtkImplicitFrustumRepresentation::PrintSelf(ostream& os, vtkIndent indent)
 
   os << indent << "Resolution: " << this->Resolution << std::endl;
 
-  os << indent << "Axis Property: " << this->AxisProperty << std::endl;
-  os << indent << "Selected Axis Property: " << this->SelectedAxisProperty << std::endl;
   os << indent << "Frustum Property: " << this->FrustumProperty << std::endl;
   os << indent << "Selected Frustum Property: " << this->SelectedFrustumProperty << std::endl;
   os << indent << "Edges Property: " << this->EdgeHandleProperty << std::endl;
@@ -668,6 +649,19 @@ void vtkImplicitFrustumRepresentation::HighlighNearPlaneHandle(bool highlight)
 }
 
 //------------------------------------------------------------------------------
+void vtkImplicitFrustumRepresentation::HighlightRollHandle(bool highlight)
+{
+  if (highlight)
+  {
+    this->RollHandle.Actor->SetProperty(this->SelectedEdgeHandleProperty);
+  }
+  else
+  {
+    this->RollHandle.Actor->SetProperty(this->EdgeHandleProperty);
+  }
+}
+
+//------------------------------------------------------------------------------
 void vtkImplicitFrustumRepresentation::TranslateOrigin(const vtkVector3d& p1, const vtkVector3d& p2)
 {
   vtkCamera* camera = this->Renderer->GetActiveCamera();
@@ -711,20 +705,20 @@ void vtkImplicitFrustumRepresentation::TranslateOrigin(const vtkVector3d& p1, co
 void vtkImplicitFrustumRepresentation::TranslateOriginOnAxis(
   const vtkVector3d& p1, const vtkVector3d& p2)
 {
-  // vtkVector3d v = p2 - p1;
+  vtkVector3d v = p2 - p1;
 
-  // // Add to the current point, project back down onto plane
-  // vtkVector3d origin(this->Frustum->GetOrigin());
-  // vtkVector3d axis(this->ForwardAxis);
-  // vtkVector3d newOrigin = origin + v;
+  // Add to the current point, project back down onto plane
+  vtkVector3d axis(0, 1, 0);
+  this->OrientationTransform->TransformVector(axis.GetData(), axis.GetData());
+  axis.Normalize();
 
-  // // Normalize the axis vector
-  // axis.Normalize();
+  // Project the point on the axis vector
+  vtkVector3d newOrigin = this->Origin + v;
+  vtkVector3d u = newOrigin - this->Origin;
 
-  // // Project the point on the axis vector
-  // vtkVector3d u = newOrigin - origin;
-  // newOrigin = origin + (axis * axis.Dot(u));
-  // this->Frustum->SetOrigin(newOrigin.GetData());
+  this->Origin = this->Origin + (axis * axis.Dot(u));
+  ;
+  this->UpdateFrustumTransform();
 }
 
 //------------------------------------------------------------------------------
@@ -732,43 +726,26 @@ void vtkImplicitFrustumRepresentation::Scale(
   const vtkVector3d& p1, const vtkVector3d& p2, double vtkNotUsed(X), double Y)
 {
   // Get the motion vector
-  // vtkVector3d v = p2 - p1;
+  vtkVector3d v = p2 - p1;
 
-  // vtkVector3d frustumOrigin(this->Frustum->GetOrigin());
+  // Compute the scale factor
+  vtkBoundingBox bbox(this->WidgetBounds.GetData());
+  double diagonal = bbox.GetDiagonalLength();
+  if (diagonal == 0.)
+  {
+    return;
+  }
+  double sf = v.Norm() / diagonal;
+  if (Y > this->LastEventPosition[1])
+  {
+    sf = 1.0 + sf;
+  }
+  else
+  {
+    sf = 1.0 - sf;
+  }
 
-  // // Compute the scale factor
-  // double diagonal = this->Outline->GetOutput()->GetLength();
-  // if (diagonal == 0.)
-  // {
-  //   return;
-  // }
-  // double sf = v.Norm() / diagonal;
-  // if (Y > this->LastEventPosition[1])
-  // {
-  //   sf = 1.0 + sf;
-  // }
-  // else
-  // {
-  //   sf = 1.0 - sf;
-  // }
-
-  // vtkNew<vtkTransform> transform;
-  // transform->Identity();
-  // transform->Translate(frustumOrigin.GetData());
-  // transform->Scale(sf, sf, sf);
-  // transform->Translate((-frustumOrigin).GetData());
-
-  // vtkVector3d boxCenter(this->Box->GetCenter());
-  // vtkVector3d spacing(this->Box->GetSpacing());
-  // vtkVector3d p = boxCenter + spacing;
-
-  // vtkVector3d oNew, pNew;
-  // transform->TransformPoint(boxCenter.GetData(), oNew.GetData());
-  // transform->TransformPoint(p.GetData(), pNew.GetData());
-
-  // this->Box->SetOrigin(oNew.GetData());
-  // this->Box->SetSpacing((pNew - oNew).GetData());
-  // this->Box->GetBounds(this->WidgetBounds.GetData());
+  // TODO: This does not do anything !!!
 }
 
 //------------------------------------------------------------------------------
@@ -859,14 +836,16 @@ void vtkImplicitFrustumRepresentation::AdjustNearPlaneDistance(
 //------------------------------------------------------------------------------
 void vtkImplicitFrustumRepresentation::SetInteractionColor(double r, double g, double b)
 {
-  this->SelectedAxisProperty->SetColor(r, g, b);
+  this->SelectedEdgeHandleProperty->SetColor(r, g, b);
+  this->SelectedOriginHandleProperty->SetColor(r, g, b);
   this->SelectedFrustumProperty->SetAmbientColor(r, g, b);
 }
 
 //------------------------------------------------------------------------------
 void vtkImplicitFrustumRepresentation::SetHandleColor(double r, double g, double b)
 {
-  this->AxisProperty->SetColor(r, g, b);
+  this->EdgeHandleProperty->SetColor(r, g, b);
+  this->OriginHandleProperty->SetColor(r, g, b);
 }
 
 //------------------------------------------------------------------------------
@@ -1061,8 +1040,8 @@ void vtkImplicitFrustumRepresentation::SetDrawFrustum(bool drawFrustum)
     return;
   }
 
-  this->Modified();
   this->DrawFrustum = drawFrustum;
+  this->Modified();
 }
 
 //------------------------------------------------------------------------------
@@ -1141,21 +1120,27 @@ void vtkImplicitFrustumRepresentation::BuildRepresentation()
     this->OriginHandle.Actor->SetPropertyKeys(info);
 
     vtkBoundingBox bbox(this->WidgetBounds.GetData());
-    this->Length = bbox.GetDiagonalLength();
+    this->Length = std::max(bbox.GetMaxLength(), this->Frustum->GetNearPlaneDistance() * 1.1);
 
     vtkVector3d origin(this->GetOrigin());
     vtkVector3d forwardAxis(0, 1, 0);
     this->OrientationTransform->TransformVector(forwardAxis.GetData(), forwardAxis.GetData());
 
     // Set up the position handle
-    this->OriginHandle.Source->SetCenter(
-      (origin + forwardAxis * this->Frustum->GetNearPlaneDistance()).GetData());
+    vtkVector3d originHandlePosition = origin + forwardAxis * this->Frustum->GetNearPlaneDistance();
+    this->OriginHandle.Source->SetCenter(originHandlePosition.GetData());
 
     // Place the roll control
-    this->RollHandle.Source->SetCenter(origin.GetData());
-    this->RollHandle.Source->SetNormal(forwardAxis.GetData());
+    double minAngle =
+      std::min(this->Frustum->GetHorizontalAngle(), this->Frustum->GetVerticalAngle());
+    double rollHandleRadius = 0.9 * std::sin(vtkMath::RadiansFromDegrees(minAngle));
 
-    // TODO: Set the size of the roll handle
+    // Roll handle is positionned right below the near plane
+    vtkVector3d rollHandleCenter =
+      origin + forwardAxis * (this->Frustum->GetNearPlaneDistance() - 0.1 * this->Length);
+    this->RollHandle.Source->SetMajorRadiusVector(rollHandleRadius, 0, 0);
+    this->RollHandle.Source->SetCenter(rollHandleCenter.GetData());
+    this->RollHandle.Source->SetNormal(forwardAxis.GetData());
 
     // Construct frustum
     this->BuildFrustum();
@@ -1260,8 +1245,8 @@ void vtkImplicitFrustumRepresentation::BuildFrustum()
   frustumPoints->GetPoints(farPlanePointIndices, farPlaneHorizontalPoints);
 
   auto farPlaneHorizontalLines = this->FarPlaneHorizontalHandle.PolyData->GetLines();
-  farPlaneHorizontalLines->InsertNextCell({ 0, 1 });
-  farPlaneHorizontalLines->InsertNextCell({ 2, 3 });
+  farPlaneHorizontalLines->InsertNextCell({ 1, 2 });
+  farPlaneHorizontalLines->InsertNextCell({ 3, 0 });
 
   this->FarPlaneHorizontalHandle.PolyData->Modified();
 
@@ -1269,8 +1254,8 @@ void vtkImplicitFrustumRepresentation::BuildFrustum()
   frustumPoints->GetPoints(farPlanePointIndices, farPlaneVerticalPoints);
 
   auto farPlaneVerticalLines = this->FarPlaneVerticalHandle.PolyData->GetLines();
-  farPlaneVerticalLines->InsertNextCell({ 1, 2 });
-  farPlaneVerticalLines->InsertNextCell({ 3, 0 });
+  farPlaneVerticalLines->InsertNextCell({ 0, 1 });
+  farPlaneVerticalLines->InsertNextCell({ 2, 3 });
 
   this->FarPlaneVerticalHandle.PolyData->Modified();
 }
@@ -1294,7 +1279,7 @@ void vtkImplicitFrustumRepresentation::GetFrustum(vtkFrustum* frustum) const
     return;
   }
 
-  frustum->SetTransform(frustum->GetTransform());
+  frustum->SetTransform(this->Frustum->GetTransform());
   frustum->SetHorizontalAngle(this->Frustum->GetHorizontalAngle());
   frustum->SetVerticalAngle(this->Frustum->GetVerticalAngle());
   frustum->SetNearPlaneDistance(this->Frustum->GetNearPlaneDistance());

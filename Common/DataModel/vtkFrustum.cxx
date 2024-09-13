@@ -49,6 +49,7 @@ void vtkFrustum::EvaluateGradient(double x[3], double g[3])
 //------------------------------------------------------------------------------
 void vtkFrustum::SetHorizontalAngle(double angleInDegrees)
 {
+  angleInDegrees = vtkMath::ClampValue(angleInDegrees, 1., 89.);
   if (this->HorizontalAngle == angleInDegrees)
   {
     return;
@@ -62,6 +63,7 @@ void vtkFrustum::SetHorizontalAngle(double angleInDegrees)
 //------------------------------------------------------------------------------
 void vtkFrustum::SetVerticalAngle(double angleInDegrees)
 {
+  angleInDegrees = vtkMath::ClampValue(angleInDegrees, 1., 89.);
   if (this->VerticalAngle == angleInDegrees)
   {
     return;

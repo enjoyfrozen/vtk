@@ -292,6 +292,7 @@ void vtkImplicitFrustumWidget::EndSelectAction(vtkAbstractWidget* w)
 //------------------------------------------------------------------------------
 void vtkImplicitFrustumWidget::MoveFrustumAction(vtkAbstractWidget* w)
 {
+  // TODO: Not used
   vtkImplicitFrustumWidget* self = reinterpret_cast<vtkImplicitFrustumWidget*>(w);
   vtkImplicitFrustumRepresentation* repr = self->GetFrustumRepresentation();
 

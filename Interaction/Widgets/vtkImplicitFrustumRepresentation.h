@@ -206,14 +206,6 @@ public:
 
   ///@{
   /**
-   * Get the properties on the axis (line and frustum).
-   */
-  vtkGetObjectMacro(AxisProperty, vtkProperty);
-  vtkGetObjectMacro(SelectedAxisProperty, vtkProperty);
-  ///@}
-
-  ///@{
-  /**
    * Get the frustum properties. The properties of the frustum when selected
    * and unselected can be manipulated.
    */
@@ -386,6 +378,7 @@ private:
   void HighlightFarPlaneVerticalHandle(bool highlight);
   void HighlightFarPlaneHorizontalHandle(bool highlight);
   void HighlighNearPlaneHandle(bool highlight);
+  void HighlightRollHandle(bool highlight);
 
   // Methods to manipulate the frustum
   // TODO: Why two ?
@@ -461,8 +454,6 @@ private:
 
   // Properties used to control the appearance of selected objects and
   // the manipulator in general.
-  vtkNew<vtkProperty> AxisProperty;
-  vtkNew<vtkProperty> SelectedAxisProperty;
   vtkNew<vtkProperty> FrustumProperty;
   vtkNew<vtkProperty> SelectedFrustumProperty;
   vtkNew<vtkProperty> EdgeHandleProperty;
