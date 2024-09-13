@@ -776,8 +776,9 @@ void vtkImplicitFrustumRepresentation::UpdateFrustumTransform()
 {
   vtkNew<vtkTransform> transform;
   transform->Identity();
-  transform->Translate(this->Origin.GetData());
   transform->Concatenate(this->OrientationTransform);
+  transform->Translate(this->Origin.GetData());
+  transform->Inverse();
 
   if (this->Frustum->GetTransform() != transform)
   {
@@ -941,6 +942,58 @@ void vtkImplicitFrustumRepresentation::GetOrigin(double xyz[3]) const
   xyz[0] = this->Origin[0];
   xyz[1] = this->Origin[1];
   xyz[2] = this->Origin[2];
+}
+
+//----------------------------------------------------------------------------
+void vtkImplicitFrustumRepresentation::SetOrientation(const vtkVector3d& xyz)
+{
+  vtkVector3d orientation(this->OrientationTransform->GetOrientation());
+  if (orientation != xyz)
+  {
+    // Orientation transform is in Post Multiply mode
+    // so rotation order is YXZ
+    this->OrientationTransform->Identity();
+    this->OrientationTransform->RotateY(xyz.GetY());
+    this->OrientationTransform->RotateX(xyz.GetX());
+    this->OrientationTransform->RotateZ(xyz.GetZ());
+    this->UpdateFrustumTransform();
+  }
+}
+
+//----------------------------------------------------------------------------
+void vtkImplicitFrustumRepresentation::SetOrientation(double x, double y, double z)
+{
+  this->SetOrientation(vtkVector3d(x, y, z));
+}
+
+//----------------------------------------------------------------------------
+void vtkImplicitFrustumRepresentation::SetOrientation(const double xyz[3])
+{
+  this->SetOrientation(vtkVector3d(xyz));
+}
+
+//----------------------------------------------------------------------------
+double* vtkImplicitFrustumRepresentation::GetOrientation()
+{
+  return this->OrientationTransform->GetOrientation();
+}
+
+//----------------------------------------------------------------------------
+void vtkImplicitFrustumRepresentation::GetOrientation(double& x, double& y, double& z)
+{
+  vtkVector3d orientation(this->OrientationTransform->GetOrientation());
+  x = orientation[0];
+  y = orientation[1];
+  z = orientation[2];
+}
+
+//----------------------------------------------------------------------------
+void vtkImplicitFrustumRepresentation::GetOrientation(double xyz[3])
+{
+  vtkVector3d orientation(this->OrientationTransform->GetOrientation());
+  xyz[0] = orientation[0];
+  xyz[1] = orientation[1];
+  xyz[2] = orientation[2];
 }
 
 //------------------------------------------------------------------------------
@@ -1132,6 +1185,8 @@ void vtkImplicitFrustumRepresentation::BuildFrustum()
 
   this->FrustumPD->Reset();
 
+  // The edge between two faces of the frustum is given by the
+  // the cross product between their normals
   vtkVector3d rightNormal(this->Frustum->GetRightPlane()->GetNormal());
   vtkVector3d leftNormal(this->Frustum->GetLeftPlane()->GetNormal());
   vtkVector3d bottomNormal(this->Frustum->GetBottomPlane()->GetNormal());
@@ -1148,6 +1203,11 @@ void vtkImplicitFrustumRepresentation::BuildFrustum()
   vtkNew<vtkIdList> farPlanePointIndices;
   farPlanePointIndices->Allocate(4);
 
+  vtkNew<vtkTransform> transform;
+  transform->Identity();
+  transform->Translate(this->Origin.GetData());
+  transform->Concatenate(this->OrientationTransform);
+
   // Generate frustum points
   vtkPoints* frustumPoints = this->FrustumPD->GetPoints();
   for (const vtkVector3d& direction : edgeDirections)
@@ -1157,7 +1217,6 @@ void vtkImplicitFrustumRepresentation::BuildFrustum()
     vtkVector3d farPoint = direction * (height / direction.GetY());
 
     // Apply frustum transform
-    auto transform = this->Frustum->GetTransform();
     transform->TransformPoint(nearPoint.GetData(), nearPoint.GetData());
     transform->TransformPoint(farPoint.GetData(), farPoint.GetData());
 

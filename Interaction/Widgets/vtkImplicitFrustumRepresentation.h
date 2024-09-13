@@ -93,6 +93,18 @@ public:
 
   ///@{
   /**
+   * Get/Set orientation of the frustum. Defaults to (0,0,0)
+   */
+  void SetOrientation(double x, double y, double z);
+  void SetOrientation(const double xyz[3]);
+  void SetOrientation(const vtkVector3d& xyz);
+  double* GetOrientation() VTK_SIZEHINT(3);
+  void GetOrientation(double& x, double& y, double& z);
+  void GetOrientation(double xyz[3]);
+  ///@}
+
+  ///@{
+  /**
    * TODO
    */
   double GetHorizontalAngle() const;
