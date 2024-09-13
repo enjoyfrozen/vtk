@@ -465,12 +465,14 @@ void vtkChartParallelCoordinates::UpdateGeometry(vtkContext2D* painter)
 {
   vtkVector2i geometry(this->GetScene()->GetSceneWidth(), this->GetScene()->GetSceneHeight());
 
-  if (geometry.GetX() != this->Geometry[0] || geometry.GetY() != this->Geometry[1] ||
-    !this->GeometryValid)
+  if (this->LayoutStrategy == vtkChart::FILL_SCENE &&
+    (geometry.GetX() != this->Geometry[0] || geometry.GetY() != this->Geometry[1]))
   {
-    // Take up the entire window right now, this could be made configurable
-    this->SetGeometry(geometry.GetData());
+    this->SetSize(vtkRectf(0.0, 0.0, geometry[0], geometry[1]));
+  }
 
+  if (!this->GeometryValid)
+  {
     vtkVector2i tileScale = this->Scene->GetLogicalTileScale();
     // if chart legend in not inlined, then we need to reserve space for it at the top right corner
     if (this->Legend->GetVisible() && !this->Legend->GetInline())
@@ -840,6 +842,28 @@ void vtkChartParallelCoordinates::ResetAxesSelection()
   {
     this->ResetAxeSelection(static_cast<int>(i));
   }
+}
+
+//------------------------------------------------------------------------------
+void vtkChartParallelCoordinates::SetSize(const vtkRectf& rect)
+{
+  this->Superclass::SetSize(rect);
+  this->GeometryValid = false;
+  this->Modified();
+}
+
+void vtkChartParallelCoordinates::SetGeometry(int arg1, int arg2)
+{
+  this->Superclass::SetGeometry(arg1, arg2);
+  this->GeometryValid = false;
+  this->Modified();
+}
+
+void vtkChartParallelCoordinates::SetLayoutStrategy(int strategy)
+{
+  this->Superclass::SetLayoutStrategy(strategy);
+  this->GeometryValid = false;
+  this->Modified();
 }
 
 //------------------------------------------------------------------------------

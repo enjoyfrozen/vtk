@@ -156,6 +156,24 @@ public:
   bool MouseWheelEvent(const vtkContextMouseEvent& mouse, int delta) override;
 
   /**
+   * Calls superclass implementation and sets GeometryValid to False, causing
+   * the chart's geometry to be updated on the next Paint call.
+   */
+  virtual void SetSize(const vtkRectf& rect) override;
+
+  /**
+   * Calls superclass implementation and sets GeometryValid to False, causing
+   * the chart's geometry to be updated on the next Paint call.
+   */
+  virtual void SetGeometry(int arg1, int arg2) override;
+
+  /**
+   * Calls superclass implementation and sets GeometryValid to False, causing
+   * the chart's geometry to be updated on the next Paint call.
+   */
+  virtual void SetLayoutStrategy(int strategy) override;
+
+  /**
    * Update the selection of an axis based on the current selectionMode we
    * have previously set.
    */
