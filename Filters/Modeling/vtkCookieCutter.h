@@ -101,6 +101,16 @@ public:
   vtkBooleanMacro(PassPointData, bool);
   ///@}
 
+  ///@{
+  /**
+   * The precision in the parametric coordinate system. Note that nearly coincident
+   * intersection points, and/or parallel segments routinely occur during
+   * processing. The value of this absolute tolerance is used to merge nearly coincident points.
+   */
+  vtkSetMacro(Tolerance, double);
+  vtkGetMacro(Tolerance, double);
+  ///@}
+
   enum PointInterpolationType
   {
     USE_MESH_EDGES = 0,
@@ -146,6 +156,7 @@ protected:
   bool PassCellData;
   bool PassPointData;
   int PointInterpolation;
+  double Tolerance = 1.0e-6;
 
   vtkIncrementalPointLocator* Locator;
 

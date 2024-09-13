@@ -23,11 +23,6 @@ vtkCxxSetObjectMacro(vtkCookieCutter, Locator, vtkIncrementalPointLocator);
 
 // Helper functions------------------------------------------------------------
 
-// Precision in the parametric coordinate system. Note that nearly coincident
-// intersection points, and/or parallel segments routinely occur during
-// processing. This tolerance is used to merge nearly coincident points.
-#define VTK_DEGENERATE_TOL 0.001
-
 namespace
 {
 
@@ -229,10 +224,11 @@ int ClassifySegment(SortedPointsType& sortedPoints, int i, int j, vtkIdType npts
 
 // Merge the list of coincident intersections along a polyline-------------
 // The points are assumed sorted in parametric coordinates, not closed.
-int CleanSortedPolyline(SortedPointsType& sortedPoints)
+int CleanSortedPolyline(SortedPointsType& sortedPoints, const double& tolerance)
 {
   int num, i, ip, j;
   double t, tp;
+  const double tol2 = tolerance * tolerance;
   bool needsAnalysis = false;
   vtkIdType maxId;
 
@@ -248,9 +244,11 @@ int CleanSortedPolyline(SortedPointsType& sortedPoints)
 
     maxId = (sortedPoints[ip].Id > maxId ? sortedPoints[ip].Id : maxId);
 
-    if (fabs(tp - t) <= VTK_DEGENERATE_TOL)
+    if (fabs(tp - t) <= tolerance)
     {
-      needsAnalysis = true;
+      const double* x = sortedPoints[i].X;
+      const double* xp = sortedPoints[ip].X;
+      needsAnalysis = vtkMath::Distance2BetweenPoints(x, xp) < tol2;
     }
   }
 
@@ -278,7 +276,7 @@ int CleanSortedPolyline(SortedPointsType& sortedPoints)
     tp = sortedPoints[ip].T;
 
     // special treatment for first point in the loop
-    while (fabs(tp - t) <= VTK_DEGENERATE_TOL && ip < imax)
+    while (fabs(tp - t) <= tolerance && ip < imax)
     {
       ip++;
       tp = sortedPoints[ip].T;
@@ -355,16 +353,17 @@ int CleanSortedPolyline(SortedPointsType& sortedPoints)
 // The points are assumed sorted in parametric coordinates, closed
 // loop. Nearly coincident points are merged.
 //
-void CleanSortedPolygon(vtkIdType npts, SortedPointsType& sortedPoints)
+void CleanSortedPolygon(vtkIdType npts, SortedPointsType& sortedPoints, const double& tolerance)
 {
   int num, i, im, ip, j;
   double t, tm, tp = 0, moduloOffset = static_cast<double>(npts);
   bool needsAnalysis = false;
+  const double tol2 = tolerance * tolerance;
 
   // First do a quick check. If there are no degenerate situations just
   // return.
   num = static_cast<int>(sortedPoints.size());
-  for (i = 0; i < num; ++i)
+  for (i = 0; i < num && !needsAnalysis; ++i)
   {
     ip = (i + 1) % num;
     t = sortedPoints[i].T;
@@ -373,9 +372,11 @@ void CleanSortedPolygon(vtkIdType npts, SortedPointsType& sortedPoints)
       tp += moduloOffset;
     }
 
-    if (fabs(tp - t) <= VTK_DEGENERATE_TOL)
+    if (fabs(tp - t) <= tolerance)
     {
-      needsAnalysis = true;
+      const double* x = sortedPoints[i].X;
+      const double* xp = sortedPoints[ip].X;
+      needsAnalysis = vtkMath::Distance2BetweenPoints(x, xp) < tol2;
     }
   }
 
@@ -409,7 +410,7 @@ void CleanSortedPolygon(vtkIdType npts, SortedPointsType& sortedPoints)
     {
       im = num - 1;
       tm = npts - sortedPoints[im].T;
-      while (fabs(t - tm) <= VTK_DEGENERATE_TOL)
+      while (fabs(t - tm) <= tolerance)
       {
         im--;
         tm = npts - sortedPoints[im].T;
@@ -419,7 +420,7 @@ void CleanSortedPolygon(vtkIdType npts, SortedPointsType& sortedPoints)
     }
 
     // Now proceed in forward direction
-    while (fabs(tp - t) <= VTK_DEGENERATE_TOL && ip < imax)
+    while (fabs(tp - t) <= tolerance && ip < imax)
     {
       ip++;
       tp = sortedPoints[ip % num].T;
@@ -918,6 +919,7 @@ void vtkCookieCutterHelper::CropLine(vtkIdType cellId, vtkIdType cellOffset, vtk
   double t, u, v, x[3], x0[3], x1[3], y0[3], y1[3];
   int result;
   SortedPointsType sortedPoints;
+  double tolerance = this->Locator->GetTolerance();
 
   // Begin gathering attribute information for this line.
   vtkAttributeManager* attrMgr = this->AttributeManager;
@@ -972,14 +974,14 @@ void vtkCookieCutterHelper::CropLine(vtkIdType cellId, vtkIdType cellOffset, vtk
         {
           vtkIdType onId = i * numLoopPts + j;
           vtkLine::DistanceToLine(x0, y0, y1, u, c);
-          if (-VTK_DEGENERATE_TOL <= u && u <= (1.0 + VTK_DEGENERATE_TOL))
+          if (-tolerance <= u && u <= (1.0 + tolerance))
           {
             sortedPoints.emplace_back(static_cast<double>(i), SortPoint::ON, numInts, onId, c);
             attrMgr->AddPointAttribute(PointAttribute::MeshVertex, m0);
             numInts++;
           }
           vtkLine::DistanceToLine(x1, y0, y1, u, c);
-          if (-VTK_DEGENERATE_TOL <= u && u <= (1.0 + VTK_DEGENERATE_TOL))
+          if (-tolerance <= u && u <= (1.0 + tolerance))
           {
             sortedPoints.emplace_back(
               static_cast<double>(i) + 1.0, SortPoint::ON, numInts, onId, c);
@@ -987,14 +989,14 @@ void vtkCookieCutterHelper::CropLine(vtkIdType cellId, vtkIdType cellOffset, vtk
             numInts++;
           }
           vtkLine::DistanceToLine(y0, x0, x1, u, c);
-          if (-VTK_DEGENERATE_TOL <= u && u <= (1.0 + VTK_DEGENERATE_TOL))
+          if (-tolerance <= u && u <= (1.0 + tolerance))
           {
             sortedPoints.emplace_back(static_cast<double>(i) + u, SortPoint::ON, numInts, onId, c);
             attrMgr->AddPointAttribute(PointAttribute::LoopVertex, l0);
             numInts++;
           }
           vtkLine::DistanceToLine(y1, x0, x1, u, c);
-          if (-VTK_DEGENERATE_TOL <= u && u <= (1.0 + VTK_DEGENERATE_TOL))
+          if (-tolerance <= u && u <= (1.0 + tolerance))
           {
             sortedPoints.emplace_back(static_cast<double>(i) + u, SortPoint::ON, numInts, onId, c);
             attrMgr->AddPointAttribute(PointAttribute::LoopVertex, l1);
@@ -1009,7 +1011,7 @@ void vtkCookieCutterHelper::CropLine(vtkIdType cellId, vtkIdType cellOffset, vtk
   std::sort(sortedPoints.begin(), sortedPoints.end(), &PointSorter);
 
   // Clean up coincident points
-  CleanSortedPolyline(sortedPoints);
+  CleanSortedPolyline(sortedPoints, tolerance);
 
   // Classify the segments of the polyline
   ClassifyPolyline(sortedPoints, numLoopPts, l, loopBds, n);
@@ -1153,6 +1155,7 @@ void vtkCookieCutterHelper::CropPoly(vtkIdType cellId, vtkIdType cellOffset, vtk
   int result;
   SortedPointsType loopPoints, polyPoints;
   vtkIdType numLoopPts = loop->Points->GetNumberOfPoints();
+  double tolerance = this->Locator->GetTolerance();
 
   // Begin gathering attribute information for this polygon
   vtkAttributeManager* attrMgr = this->AttributeManager;
@@ -1221,7 +1224,7 @@ void vtkCookieCutterHelper::CropPoly(vtkIdType cellId, vtkIdType cellOffset, vtk
         {
           vtkIdType onId = i * numLoopPts + j;
           vtkLine::DistanceToLine(x0, y0, y1, u, c);
-          if (-VTK_DEGENERATE_TOL <= u && u <= (1.0 + VTK_DEGENERATE_TOL))
+          if (-tolerance <= u && u <= (1.0 + tolerance))
           {
             polyPoints.emplace_back(static_cast<double>(i), SortPoint::ON, numPts, onId, c);
             loopPoints.emplace_back(static_cast<double>(j) + u, SortPoint::ON, numPts, onId, c);
@@ -1229,7 +1232,7 @@ void vtkCookieCutterHelper::CropPoly(vtkIdType cellId, vtkIdType cellOffset, vtk
             numPts++;
           }
           vtkLine::DistanceToLine(x1, y0, y1, u, c);
-          if (-VTK_DEGENERATE_TOL <= u && u <= (1.0 + VTK_DEGENERATE_TOL))
+          if (-tolerance <= u && u <= (1.0 + tolerance))
           {
             polyPoints.emplace_back(static_cast<double>(i) + 1.0, SortPoint::ON, numPts, onId, c);
             loopPoints.emplace_back(static_cast<double>(j) + u, SortPoint::ON, numPts, onId, c);
@@ -1237,7 +1240,7 @@ void vtkCookieCutterHelper::CropPoly(vtkIdType cellId, vtkIdType cellOffset, vtk
             numPts++;
           }
           vtkLine::DistanceToLine(y0, x0, x1, u, c);
-          if (-VTK_DEGENERATE_TOL <= u && u <= (1.0 + VTK_DEGENERATE_TOL))
+          if (-tolerance <= u && u <= (1.0 + tolerance))
           {
             polyPoints.emplace_back(static_cast<double>(i) + u, SortPoint::ON, numPts, onId, c);
             loopPoints.emplace_back(static_cast<double>(j), SortPoint::ON, numPts, onId, c);
@@ -1245,7 +1248,7 @@ void vtkCookieCutterHelper::CropPoly(vtkIdType cellId, vtkIdType cellOffset, vtk
             numPts++;
           }
           vtkLine::DistanceToLine(y1, x0, x1, u, c);
-          if (-VTK_DEGENERATE_TOL <= u && u <= (1.0 + VTK_DEGENERATE_TOL))
+          if (-tolerance <= u && u <= (1.0 + tolerance))
           {
             polyPoints.emplace_back(static_cast<double>(i) + u, SortPoint::ON, numPts, onId, c);
             loopPoints.emplace_back(static_cast<double>(j) + 1.0, SortPoint::ON, numPts, onId, c);
@@ -1263,8 +1266,8 @@ void vtkCookieCutterHelper::CropPoly(vtkIdType cellId, vtkIdType cellOffset, vtk
   std::sort(loopPoints.begin(), loopPoints.end(), &PointSorter);
 
   // Clean loops of nearly coincident points
-  CleanSortedPolygon(npts, polyPoints);
-  CleanSortedPolygon(numLoopPts, loopPoints);
+  CleanSortedPolygon(npts, polyPoints, tolerance);
+  CleanSortedPolygon(numLoopPts, loopPoints, tolerance);
 
   // If here, we identify the strands from the polygon and the loop. A
   // strand is the "inside" region between two intersection points. Strands
@@ -1486,6 +1489,10 @@ int vtkCookieCutter::RequestData(vtkInformation* vtkNotUsed(request),
   {
     this->CreateDefaultLocator();
   }
+  else
+  {
+    this->Locator->SetTolerance(this->Tolerance);
+  }
   double bds[6];
   bbox.GetBounds(bds);
   this->Locator->InitPointInsertion(outPts, bds);
@@ -1637,6 +1644,7 @@ void vtkCookieCutter::CreateDefaultLocator()
   {
     this->Locator = vtkMergePoints::New();
     this->Locator->Register(this);
+    this->Locator->SetTolerance(this->Tolerance);
     this->Locator->Delete();
   }
 }
