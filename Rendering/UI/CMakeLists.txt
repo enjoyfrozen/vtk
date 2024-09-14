@@ -135,6 +135,9 @@ if (ANDROID)
   vtk_module_link(VTK::RenderingUI
     PRIVATE
       android)
+  vtk_module_link(VTK::RenderingUI
+      PRIVATE
+        VTK::RenderingOpenGL2)
 endif ()
 
 if (APPLE_IOS)
