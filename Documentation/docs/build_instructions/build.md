@@ -215,9 +215,7 @@ Use CMake to generate a Visual Studio solution file (`.sln`).
 :::{tab-item} Linux/macOS
 
 ```sh
-mkdir -p ~/vtk/build
-cd ~/vtk/build
-ccmake -GNinja ../path/to/vtk/source
+ccmake -GNinja -S ~/vtk/source -B ~/vtk/build
 ```
 
 The parameter `-GNinja` may be skipped to use the default generator (e.g `Unix Makefiles`).

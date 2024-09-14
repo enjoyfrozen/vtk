@@ -50,17 +50,15 @@ The `OpenXR` module depends on the [`OpenXR-SDK`](https://github.com/KhronosGrou
 
 ```sh
 > git clone git@github.com:KhronosGroup/OpenXR-SDK.git
-> mkdir OpenXR-SDK-build
-> cd OpenXR-SDK-build
-OpenXR-SDK-build > cmake ../OpenXR-SDK
-OpenXR-SDK-build > cmake --build . --config "Release"
+OpenXR-SDK-build > cmake -B OpenXR-SDK
+OpenXR-SDK-build > cmake --build OpenXR-SDK --config "Release"
 ```
 
 The `OpenXR` is turned off in VTK by default. Run the following steps to build VTK with OpenXR:
 
 ```sh
-VTK-build > cmake -DVTK_MODULE_ENABLE_VTK_RenderingOpenXR:STRING=YES -DOpenXR_INCLUDE_DIR:PATH="path/to/OpenXR-SDK/include/openxr" -DOpenXR_LIBRARY:FILEPATH="path/to/OpenXR-SDK-build/src/loader/Release/openxr_loader.lib" path/to/VTK
-VTK-build > cmake --build . --config "Release"
+VTK-build > cmake -DVTK_MODULE_ENABLE_VTK_RenderingOpenXR:STRING=YES -DOpenXR_INCLUDE_DIR:PATH="path/to/OpenXR-SDK/include/openxr" -DOpenXR_LIBRARY:FILEPATH="path/to/OpenXR-SDK-build/src/loader/Release/openxr_loader.lib" -S ~/vtk/source -B ~/vtk/build
+VTK-build > cmake --build ~/vtk/build --config "Release"
 ```
 
 ## Testing
@@ -70,14 +68,14 @@ Minimum OpenXR examples are available in the [`Testing/Cxx`](https://gitlab.kitw
 To run OpenXR tests, first build VTK with testing enabled.
 
 ```sh
-VTK-build > cmake -DVTK_BUILD_TESTING:BOOL=ON path/to/VTK
-VTK-build > cmake --build . --config "Release"
+VTK-build > cmake -DVTK_BUILD_TESTING:BOOL=ON -S ~/vtk/source -B ~/vtk/build
+VTK-build > cmake --build ~/vtk/build --config "Release"
 ```
 
 Then run the test with CTest.
 
 ```sh
-VTK-build > ctest -C Release -R <name_of_test>
+VTK-build > ctest --test-dir ~/vtk/build -C Release -R <name_of_test>
 ```
 
 ## Additional Notes
