@@ -121,7 +121,8 @@ bool ReadPolyDataPiece(T* impl, std::shared_ptr<CacheT> cache, vtkIdType pointOf
   std::vector<vtkIdType>& numberOfCells, std::vector<vtkIdType>& connectivityOffsets,
   std::vector<vtkIdType>& numberOfConnectivityIds, int filePiece, vtkPolyData* pieceData)
 {
-  auto readFromFileOrCache = [&](int tag, std::string name, vtkIdType offset, vtkIdType size) {
+  auto readFromFileOrCache = [&](int tag, std::string name, vtkIdType offset, vtkIdType size)
+  {
     std::string modifier = "_" + std::to_string(filePiece);
     return ReadFromFileOrCache(impl, cache, tag, name, modifier, offset, size);
   };
@@ -890,8 +891,9 @@ int vtkHDFReader::Read(const std::vector<vtkIdType>& numberOfPoints,
   vtkIdType startingPointOffset, vtkIdType startingCellOffset,
   vtkIdType startingConnectivityIdOffset, int filePiece, vtkUnstructuredGrid* pieceData)
 {
-  auto readFromFileOrCache = [&](int tag, std::string name, vtkIdType offset, vtkIdType size,
-                               bool mData) {
+  auto readFromFileOrCache =
+    [&](int tag, std::string name, vtkIdType offset, vtkIdType size, bool mData)
+  {
     std::string modifier = "_" + std::to_string(filePiece);
     return ::ReadFromFileOrCache(
       this->Impl, this->UseCache ? this->Cache : nullptr, tag, name, modifier, offset, size, mData);
@@ -929,7 +931,7 @@ int vtkHDFReader::Read(const std::vector<vtkIdType>& numberOfPoints,
   vtkIdType offset = std::accumulate(
     numberOfCells.data(), &numberOfCells[filePiece], startingCellOffset + partOffset + filePiece);
   if ((offsetsArray = readFromFileOrCache(vtkHDFUtilities::GEOMETRY_ATTRIBUTE_TAG, "Offsets",
-         offset, numberOfCells[filePiece] + 1, true)) == nullptr)
+         offset, numberOfCells[filePiece] ? numberOfCells[filePiece] + 1 : 0, true)) == nullptr)
   {
     vtkErrorMacro("Cannot read the Offsets array");
     return 0;
@@ -1694,6 +1696,21 @@ int vtkHDFReader::RequestData(vtkInformation* vtkNotUsed(request),
   {
     vtkErrorMacro("HDF dataset type unknown: " << dataSetType);
     return 0;
+  }
+
+  auto ds = vtkDataSet::SafeDownCast(output);
+  auto pds = vtkPartitionedDataSet::SafeDownCast(output);
+  if (ds)
+  {
+    vtkWarningMacro("MeshMTime is " << ds->GetMeshMTime());
+  }
+  else if (pds)
+  {
+    for (int partId = 0; partId < pds->GetNumberOfPartitions(); partId++)
+    {
+      vtkWarningMacro(
+        "MeshMTime is " << pds->GetPartition(partId)->GetMeshMTime() << " for part " << partId);
+    }
   }
   return ok && this->AddFieldArrays(output);
 }

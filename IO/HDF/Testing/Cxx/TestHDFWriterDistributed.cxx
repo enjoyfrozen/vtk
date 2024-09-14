@@ -96,7 +96,7 @@ bool TestDistributedObject(
  * No animals were harmed in the making of this test.
  */
 bool TestDistributedTemporal(vtkMPIController* controller, const std::string& tempDir,
-  const std::string& dataRoot, bool usePolyData, bool staticMesh)
+  const std::string& dataRoot, bool usePolyData, bool staticMesh, bool nullPart)
 {
   int myRank = controller->GetLocalProcessId();
   int nbRanks = controller->GetNumberOfProcesses();
@@ -131,20 +131,45 @@ bool TestDistributedTemporal(vtkMPIController* controller, const std::string& te
   harmonics->AddHarmonic(2.0, 2.0, 0.0, 0.6283, 0.0, 3.1416);
   harmonics->AddHarmonic(1.0, 3.0, 0.0, 0.0, 0.6283, 4.7124);
   harmonics->SetInputConnection(generateTimeSteps->GetOutputPort());
+  // harmonics->Update();
 
   // Warp by scalar
   vtkNew<vtkWarpScalar> warp;
   warp->SetInputConnection(harmonics->GetOutputPort());
 
   // Write data in parallel to disk
-  std::string prefix =
-    tempDir + "/parallel_time_cow" + (usePolyData ? "_PD" : "_UG") + (staticMesh ? "_static" : "");
+  std::string prefix = tempDir + "/parallel_time_cow" + (usePolyData ? "_PD" : "_UG") +
+    (staticMesh ? "_static" : "") + (nullPart ? "_null" : "");
   std::string filePath = prefix + ".vtkhdf";
   std::string filePathPart = prefix + "_part" + std::to_string(myRank) + ".vtkhdf";
 
   {
     vtkNew<vtkHDFWriter> writer;
-    writer->SetInputConnection(staticMesh ? harmonics->GetOutputPort() : warp->GetOutputPort());
+
+    harmonics->Update();
+    warp->Update();
+    vtkDataObject* output =
+      staticMesh ? harmonics->GetOutputDataObject(0) : warp->GetOutputDataObject(0);
+    if (nullPart && myRank == 2)
+    {
+      if (usePolyData)
+      {
+        vtkNew<vtkPolyData> pd;
+        writer->SetInputDataObject(pd);
+      }
+      else
+      {
+        vtkNew<vtkUnstructuredGrid> ug;
+        vtkNew<vtkPoints> points;
+        ug->SetPoints(points);
+        // ug->GetCells()->SetNumberOfCells(0);
+        writer->SetInputDataObject(ug);
+      }
+    }
+    else
+    {
+      writer->SetInputDataObject(output);
+    }
     writer->SetWriteAllTimeSteps(true);
     writer->SetFileName(filePath.c_str());
     writer->SetDebug(true);
@@ -200,7 +225,24 @@ bool TestDistributedTemporal(vtkMPIController* controller, const std::string& te
     vtkDataObject* readPiece = reader->GetOutputDataObject(0);
     vtkDataObject* readPart = readerPart->GetOutputDataObject(0);
 
-    if (!vtkTestUtilities::CompareDataObjects(readPiece, readPart))
+    vtkUnstructuredGrid* readPiece2 =
+      vtkUnstructuredGrid::SafeDownCast(reader->GetOutputDataObject(0));
+    vtkUnstructuredGrid* readPart2 =
+      vtkUnstructuredGrid::SafeDownCast(readerPart->GetOutputDataObject(0));
+
+    if (nullPart && myRank == 2)
+    {
+      if (readPiece->GetNumberOfElements(vtkDataSet::POINT) +
+          readPart->GetNumberOfElements(vtkDataSet::POINT) +
+          readPiece->GetNumberOfElements(vtkDataSet::CELL) +
+          readPart->GetNumberOfElements(vtkDataSet::CELL) !=
+        0)
+      {
+        vtkLog(ERROR, "Read piece or read part do not have 0 elements each when partition is null");
+        return false;
+      }
+    }
+    else if (!vtkTestUtilities::CompareDataObjects(readPiece, readPart))
     {
       vtkLog(ERROR, "Read piece and read part do not match");
       return false;
@@ -221,22 +263,27 @@ bool TestDistributedUnstructuredGrid(vtkMPIController* controller, const std::st
 bool TestDistributedUnstructuredGridTemporal(
   vtkMPIController* controller, const std::string& tempDir, const std::string& dataRoot)
 {
-  return TestDistributedTemporal(controller, tempDir, dataRoot, false, false);
+  return TestDistributedTemporal(controller, tempDir, dataRoot, false, false, false);
 }
 bool TestDistributedUnstructuredGridTemporalStatic(
   vtkMPIController* controller, const std::string& tempDir, const std::string& dataRoot)
 {
-  return TestDistributedTemporal(controller, tempDir, dataRoot, false, true);
+  return TestDistributedTemporal(controller, tempDir, dataRoot, false, true, false);
+}
+bool TestDistributedUnstructuredGridTemporalNullPart(
+  vtkMPIController* controller, const std::string& tempDir, const std::string& dataRoot)
+{
+  return TestDistributedTemporal(controller, tempDir, dataRoot, false, false, true);
 }
 bool TestDistributedPolyDataTemporal(
   vtkMPIController* controller, const std::string& tempDir, const std::string& dataRoot)
 {
-  return TestDistributedTemporal(controller, tempDir, dataRoot, true, false);
+  return TestDistributedTemporal(controller, tempDir, dataRoot, true, false, false);
 }
 bool TestDistributedPolyDataTemporalStatic(
   vtkMPIController* controller, const std::string& tempDir, const std::string& dataRoot)
 {
-  return TestDistributedTemporal(controller, tempDir, dataRoot, true, true);
+  return TestDistributedTemporal(controller, tempDir, dataRoot, true, true, false);
 }
 
 }
@@ -273,6 +320,7 @@ int TestHDFWriterDistributed(int argc, char* argv[])
   res &= ::TestDistributedUnstructuredGrid(controller, tempDir);
   res &= ::TestDistributedUnstructuredGridTemporal(controller, tempDir, dataRoot);
   res &= ::TestDistributedUnstructuredGridTemporalStatic(controller, tempDir, dataRoot);
+  res &= ::TestDistributedUnstructuredGridTemporalNullPart(controller, tempDir, dataRoot);
   res &= ::TestDistributedPolyDataTemporal(controller, tempDir, dataRoot);
   res &= ::TestDistributedPolyDataTemporalStatic(controller, tempDir, dataRoot);
   controller->Finalize();
