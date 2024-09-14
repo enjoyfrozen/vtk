@@ -738,16 +738,16 @@ VTK_ABI_NAMESPACE_BEGIN
 void vtkParticleTracerBase::ResizeArrays(vtkIdType numTuples)
 {
   // resize first so that if you already have data, you don't lose them
-  this->OutputCoordinates->Resize(numTuples);
+  this->CurrentParticles->Resize(numTuples);
   this->ParticleCellsConnectivity->Resize(numTuples);
-  for (int i = 0; i < this->OutputPointData->GetNumberOfArrays(); ++i)
+  for (int i = 0; i < this->CurrentPointData->GetNumberOfArrays(); ++i)
   {
-    this->OutputPointData->GetArray(i)->Resize(numTuples);
+    this->CurrentPointData->GetArray(i)->Resize(numTuples);
   }
   // set number number of tuples because resize does not do that
-  this->OutputCoordinates->SetNumberOfPoints(numTuples);
+  this->CurrentParticles->SetNumberOfPoints(numTuples);
   this->ParticleCellsConnectivity->SetNumberOfValues(numTuples);
-  this->OutputPointData->SetNumberOfTuples(numTuples);
+  this->CurrentPointData->SetNumberOfTuples(numTuples);
 }
 
 //------------------------------------------------------------------------------
@@ -777,7 +777,7 @@ int vtkParticleTracerBase::Initialize(
     this->CachedData[1] = pds;
   }
 
-  this->OutputPointData->InterpolateAllocate(inputs.front()->GetPointData());
+  this->CurrentPointData->InterpolateAllocate(inputs.front()->GetPointData());
 
   this->ParticleAge->Initialize();
   this->InjectedPointIds->Initialize();
@@ -806,20 +806,20 @@ int vtkParticleTracerBase::Initialize(
     this->ParticleRotation->SetName("Rotation");
     this->ParticleAngularVel->SetName("AngularVelocity");
   }
-  this->OutputPointData->AddArray(this->InjectedPointIds);
-  this->OutputPointData->AddArray(this->InjectedStepIds);
-  this->OutputPointData->AddArray(this->ErrorCodeArray);
-  this->OutputPointData->AddArray(this->ParticleAge);
-  this->OutputPointData->AddArray(this->ParticleIds);
-  this->OutputPointData->AddArray(this->ParticleSourceIds);
+  this->CurrentPointData->AddArray(this->InjectedPointIds);
+  this->CurrentPointData->AddArray(this->InjectedStepIds);
+  this->CurrentPointData->AddArray(this->ErrorCodeArray);
+  this->CurrentPointData->AddArray(this->ParticleAge);
+  this->CurrentPointData->AddArray(this->ParticleIds);
+  this->CurrentPointData->AddArray(this->ParticleSourceIds);
   if (this->ComputeVorticity)
   {
-    this->OutputPointData->AddArray(this->ParticleVorticity);
-    this->OutputPointData->AddArray(this->ParticleRotation);
-    this->OutputPointData->AddArray(this->ParticleAngularVel);
+    this->CurrentPointData->AddArray(this->ParticleVorticity);
+    this->CurrentPointData->AddArray(this->ParticleRotation);
+    this->CurrentPointData->AddArray(this->ParticleAngularVel);
   }
 
-  this->InitializeExtraPointDataArrays(this->OutputPointData);
+  this->InitializeExtraPointDataArrays(this->CurrentPointData);
 
   this->AddRestartSeeds(inputVector);
 
@@ -1357,7 +1357,7 @@ void vtkParticleTracerBase::SetParticle(vtkParticleTracerBaseNamespace::Particle
 {
   const double* coord = info.CurrentPosition.x;
   vtkIdType particleId = info.PointId;
-  this->OutputCoordinates->SetPoint(particleId, coord);
+  this->CurrentParticles->SetPoint(particleId, coord);
   // create the cell
   this->ParticleCellsConnectivity->SetValue(particleId, particleId);
   // set the easy scalars for this particle
@@ -1376,11 +1376,11 @@ void vtkParticleTracerBase::SetParticle(vtkParticleTracerBaseNamespace::Particle
   // of the spatially interpolated scalars from T1.
   if (info.LocationState == IDStates::OUTSIDE_T1)
   {
-    interpolator->InterpolatePoint(0, this->OutputPointData, particleId);
+    interpolator->InterpolatePoint(0, this->CurrentPointData, particleId);
   }
   else
   {
-    interpolator->InterpolatePoint(1, this->OutputPointData, particleId);
+    interpolator->InterpolatePoint(1, this->CurrentPointData, particleId);
   }
   // Compute vorticity
   if (this->ComputeVorticity)

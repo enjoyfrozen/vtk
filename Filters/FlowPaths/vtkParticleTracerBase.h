@@ -386,7 +386,7 @@ protected:
 
   /**
    * Moves the particles one time step further.
-   * When this routine has finished, `OutputPointData`, `OutputCoordinates` and `ParticleHistories`
+   * When this routine has finished, `CurrentPointData`, `CurrentParticles` and `ParticleHistories`
    * represent the location / point data / meta data of all particles present in the local rank.
    * `MPIRecvList` represents, at this stage, the list of particles that were received during
    * this time step.
@@ -407,12 +407,6 @@ protected:
 
   // Initialization of input (vector-field) geometry
   int InitializeInterpolator();
-
-  /**
-   * All ranks have the same representation of the seeds. They are gathered to all processes in the
-   * same order.
-   */
-  vtkSmartPointer<vtkDataSet> Seeds;
 
   /**
    * inside our data. Add good ones to passed list and set count to the
@@ -546,6 +540,22 @@ protected:
 
   bool SetTerminationTimeNoModify(double t);
 
+  vtkGetObjectMacro(CurrentParticles, vtkPoints);
+  vtkGetObjectMacro(CurrentPointData, vtkPointData);
+
+  std::unordered_map<vtkIdType, vtkParticleTracerBaseNamespace::ParticleInformation>&
+  GetMPIRecvList() const
+  {
+    return this->MPIRecvList;
+  }
+
+private:
+  /**
+   * All ranks have the same representation of the seeds. They are gathered to all processes in the
+   * same order.
+   */
+  vtkSmartPointer<vtkDataSet> Seeds;
+
   double CachedTimeStep;
 
   // Parameters of tracing
@@ -612,7 +622,7 @@ protected:
 
   vtkSmartPointer<vtkDataSet> DataReferenceT[2];
 
-  vtkNew<vtkPoints> OutputCoordinates;
+  vtkNew<vtkPoints> CurrentParticles;
   vtkNew<vtkIdTypeArray> ParticleCellsConnectivity;
 
   vtkNew<vtkFloatArray> ParticleAge;
@@ -624,7 +634,7 @@ protected:
   vtkNew<vtkFloatArray> ParticleVorticity;
   vtkNew<vtkFloatArray> ParticleRotation;
   vtkNew<vtkFloatArray> ParticleAngularVel;
-  vtkNew<vtkPointData> OutputPointData;
+  vtkNew<vtkPointData> CurrentPointData;
 
   // temp array
   vtkNew<vtkDoubleArray> CellVectors;

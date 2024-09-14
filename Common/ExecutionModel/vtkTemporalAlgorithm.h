@@ -83,6 +83,8 @@
 #include "vtkCommonExecutionModelModule.h" // For export macro
 #include "vtkNew.h"                        // For TimeSteps
 
+#include <vector> // For InputTimeSteps
+
 VTK_ABI_NAMESPACE_BEGIN
 
 class vtkDoubleArray;
@@ -158,31 +160,6 @@ protected:
   double GetCurrentTimeStep() const;
 
   /**
-   * To be set in the constructon. If true, all time steps are requested upstream for any requested
-   * time step dowstream. Downstream effectively lose temporality. Otherwise, the algorithm
-   * integrates inputs up to the requested time step.
-   */
-  bool IntegrateFullTimeSeries = false;
-
-  /**
-   * When turned on, time steps will be requested backward upstream.
-   *
-   * @warning This is deprecated. This is only here for one release cycle for backward compatibility
-   * of some subclasses. Please avoid setting this.
-   */
-  bool RunBackward = false;
-
-  ///@{
-  /**
-   * When the information key `NO_PRIOR_TEMPORAL_ACCESS()` is not set on the input port, this is
-   * used to keep track of which iteration we are currently executing, and when to terminate.
-   */
-  std::vector<double> InputTimeSteps;
-  int TerminationTimeIndex = 0;
-  int CurrentTimeIndex = 0;
-  ///@}
-
-  /**
    * Returns true if the cache must be reinitialized before executing the current time step.
    */
   bool MustReset() const;
@@ -191,6 +168,40 @@ protected:
    * Returns true if there are time steps missing that must be requested upstream.
    */
   bool MustContinue() const;
+
+  /**
+   * Returns the input time steps that were set in `TIME_STEPS` information key.
+   * @sa vtkStreamingDemandDrivenPipeline
+   */
+  std::vector<double>& GetInputTimeSteps() { return this->InputTimeSteps; }
+
+  ///@{
+  /**
+   * To be set in the constructon. If true, all time steps are requested upstream for any requested
+   * time step dowstream. Downstream effectively lose temporality. Otherwise, the algorithm
+   * integrates inputs up to the requested time step.
+   */
+  vtkSetMacro(IntegrateFullTimeSeries, bool);
+  vtkBooleanMacro(IntegrateFullTimeSeries, bool);
+  ///@}
+
+  ///@{
+  /**
+   * When turned on, time steps will be requested backward upstream.
+   *
+   * @warning This is deprecated. This is only here for one release cycle for backward compatibility
+   * of some subclasses. Please avoid setting this.
+   */
+  vtkBooleanMacro(RunBackward, bool);
+  vtkSetMacro(RunBackward, bool);
+  ///@}
+
+private:
+  vtkTemporalAlgorithm(const vtkTemporalAlgorithm&) = delete;
+  void operator=(const vtkTemporalAlgorithm&) = delete;
+
+  bool IntegrateFullTimeSeries = false;
+  bool RunBackward = false;
 
   /**
    * When true, the algorithm calls Finalize at each iteration. It is set to true if the first input
@@ -205,9 +216,15 @@ protected:
    */
   vtkNew<vtkDoubleArray> ProcessedTimeSteps;
 
-private:
-  vtkTemporalAlgorithm(const vtkTemporalAlgorithm&) = delete;
-  void operator=(const vtkTemporalAlgorithm&) = delete;
+  ///@{
+  /**
+   * When the information key `NO_PRIOR_TEMPORAL_ACCESS()` is not set on the input port, this is
+   * used to keep track of which iteration we are currently executing, and when to terminate.
+   */
+  std::vector<double> InputTimeSteps;
+  int TerminationTimeIndex = 0;
+  int CurrentTimeIndex = 0;
+  ///@}
 };
 
 VTK_ABI_NAMESPACE_END
