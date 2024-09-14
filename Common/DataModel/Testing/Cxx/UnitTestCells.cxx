@@ -160,7 +160,7 @@ int UnitTestCells(int, char*[])
     VTK_BIQUADRATIC_QUADRATIC_HEXAHEDRON, MakeBiQuadraticQuadraticHexahedron(randomSequence), 0);
   results["BiQuadraticQuadraticWedge"] = TestOneCell<vtkBiQuadraticQuadraticWedge>(
     VTK_BIQUADRATIC_QUADRATIC_WEDGE, MakeBiQuadraticQuadraticWedge(), 0);
-  results["BiQuadraticTrangle"] =
+  results["BiQuadraticTriangle"] =
     TestOneCell<vtkBiQuadraticTriangle>(VTK_BIQUADRATIC_TRIANGLE, MakeBiQuadraticTriangle(), 0);
   results["CubicLine"] = TestOneCell<vtkCubicLine>(VTK_CUBIC_LINE, MakeCubicLine(), 0);
 
@@ -1263,11 +1263,13 @@ int TestOneCell(VTKCellType cellType, vtkSmartPointer<T> aCell, int linear)
     {
       continue;
     }
-    else if (inOut == 1 && dist2 == 0.0 && inOuts[p] == 1)
+    const double tol = std::numeric_limits<double>::epsilon();
+    bool isDist2AlmostZero = (dist2 < tol * tol);
+    if (inOut == 1 && isDist2AlmostZero && inOuts[p] == 1)
     {
       continue;
     }
-    else if (inOut == 1 && dist2 != 0.0 && inOuts[p] == 0)
+    if (inOut == 1 && !isDist2AlmostZero && inOuts[p] == 0)
     {
       continue;
     }
