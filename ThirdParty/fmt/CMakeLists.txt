@@ -9,7 +9,7 @@ vtk_module_third_party(
   EXTERNAL
     PACKAGE fmt
     TARGETS fmt::fmt
-    VERSION       "9.0.0"
+    VERSION       "10.1.1"
     STANDARD_INCLUDE_DIRS)
 
 configure_file(
