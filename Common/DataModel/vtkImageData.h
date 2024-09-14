@@ -60,7 +60,7 @@ public:
   /**
    * Return what type of dataset this is.
    */
-  int GetDataObjectType() override { return VTK_IMAGE_DATA; }
+  int GetDataObjectType() VTK_FUTURE_CONST override { return VTK_IMAGE_DATA; }
 
   ///@{
   /**
@@ -651,7 +651,7 @@ public:
   /**
    * The extent type is a 3D extent
    */
-  int GetExtentType() override { return VTK_3D_EXTENT; }
+  int GetExtentType() VTK_FUTURE_CONST override { return VTK_3D_EXTENT; }
 
   ///@{
   /**
