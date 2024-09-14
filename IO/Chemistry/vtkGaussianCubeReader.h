@@ -15,6 +15,7 @@
 #ifndef vtkGaussianCubeReader_h
 #define vtkGaussianCubeReader_h
 
+#include "vtkDeprecation.h"
 #include "vtkIOChemistryModule.h" // For export macro
 #include "vtkMoleculeReaderBase.h"
 
@@ -22,6 +23,7 @@ VTK_ABI_NAMESPACE_BEGIN
 class vtkImageData;
 class vtkTransform;
 
+VTK_DEPRECATED_IN_9_4_0("This class is superseded by vtkGaussianCubeReader2");
 class VTKIOCHEMISTRY_EXPORT vtkGaussianCubeReader : public vtkMoleculeReaderBase
 {
 public:
