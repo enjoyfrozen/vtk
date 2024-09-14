@@ -22,7 +22,6 @@ from vtkmodules.vtkFiltersHyperTree import (
     vtkHyperTreeGridDepthLimiter,
     vtkHyperTreeGridGeometry,
 )
-from vtkmodules.vtkFiltersParallel import vtkHyperTreeGridGhostCells
 from vtkmodules.vtkFiltersPython import vtkPythonAlgorithm
 from vtkmodules.vtkIOImage import vtkPNGWriter
 from vtkmodules.vtkIOXML import (
@@ -57,7 +56,7 @@ class Circle:
     return 1
 
   def value(self, geoCursor):
-    bounds = range(6)
+    bounds = [0] * 6
     geoCursor.GetBounds( bounds )
     return self.test(
       bounds[0]+(bounds[1]-bounds[0])/2,
@@ -67,7 +66,7 @@ class Circle:
   def shouldRefine(self, geoCursor):
     if geoCursor.GetLevel() >= TARGET_LEVEL:
         return False
-    bounds = range(6)
+    bounds = [0] * 6
     geoCursor.GetBounds( bounds )
     v0 = self.test(bounds[0],bounds[2],bounds[4])
     v1 = self.test(bounds[1],bounds[2],bounds[4])
@@ -208,11 +207,11 @@ class MyAlgorithm(vta.VTKAlgorithm):
     out = self.GetOutputData(outInfo, 0)
     out.ShallowCopy(inp)
 
-    scalar = inp.GetPointData().GetArray('scalar')
+    scalar = inp.GetCellData().GetArray('scalar')
     assert(scalar)
 
     outMask = vtkBitArray()
-    outMask.SetNumberOfTuples(out.GetNumberOfVertices())
+    outMask.SetNumberOfTuples(out.GetNumberOfCells())
 
     cursor = vtkHyperTreeGridNonOrientedCursor()
     for treeId in range(inp.GetMaxNumberOfTrees()):
@@ -236,9 +235,10 @@ nrep = vtkGetTempDir()
 
 withAscii = False
 if withAscii:
-  filename = nrep+'toto_1_ascii.htg'
+  filename = nrep+'/toto_1_ascii.htg'
 else:
-  filename = nrep+'toto_1_binary.htg'
+  filename = nrep+'/toto_1_binary.htg'
+
 #Avant writer default (1.0)
 writer = vtkXMLHyperTreeGridWriter()
 writer.SetInputConnection(ex.GetOutputPort())
@@ -251,7 +251,7 @@ writer.Write()
 #
 #print("Avant writer 0.?")
 writer.SetDataSetMajorVersion(0)
-writer.SetFileName(nrep+'toto_0.htg')
+writer.SetFileName(nrep+'/toto_0.htg')
 writer.Write()
 #print('Write Forced(0.1)')
 #
@@ -280,9 +280,9 @@ ex.Update()
 writer = vtkXMLHyperTreeGridWriter()
 writer.SetInputConnection(ex.GetOutputPort())
 if withAscii:
-  filename = nrep+'toto_1_ascii_ascii.htg'
+  filename = nrep+'/toto_1_ascii_ascii.htg'
 else:
-  filename = nrep+'toto_1_binary_ascii.htg'
+  filename = nrep+'/toto_1_binary_ascii.htg'
 writer.SetFileName(filename)
 # default c'est en appended, data en fin du fichier
 writer.SetDataModeToAscii()
@@ -290,9 +290,6 @@ writer.Write()
 #print('Write Default(1.0)')
 
 ex.Update() #The format 1.0 (ascii or binary)
-
-gc = vtkHyperTreeGridGhostCells()
-gc.SetInputConnection(ex.GetOutputPort())
 
 ##htg = depth.GetOutput()
 #htg = ex.GetOutput()
@@ -313,7 +310,7 @@ gc.SetInputConnection(ex.GetOutputPort())
 
 #Generate a polygonal representation of a hypertree grid
 geometry = vtkHyperTreeGridGeometry()
-geometry.SetInputConnection(gc.GetOutputPort())
+geometry.SetInputConnection(ex.GetOutputPort())
 
 #Shrink this mesh
 if True:
