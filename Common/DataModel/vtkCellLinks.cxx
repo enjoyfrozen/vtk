@@ -212,7 +212,7 @@ void vtkCellLinks::SelectCells(vtkIdType minMaxDegree[2], unsigned char* cellSel
         if (degree >= minMaxDegree[0] && degree < minMaxDegree[1])
         {
           vtkIdType* cells = this->GetCells(ptId);
-          for (auto i = 0; i < degree; ++i)
+          for (vtkIdType i = 0; i < degree; ++i)
           {
             cellSelection[cells[i]] = 1;
           }

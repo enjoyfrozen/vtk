@@ -519,7 +519,7 @@ bool vtkStaticCellLinksTemplate<TIds>::MatchesCell(TGivenIds npts, const TGivenI
   int minList = 0;
   vtkIdType minNumCells = VTK_INT_MAX;
   TIds numCells;
-  for (auto i = 0; i < npts; ++i)
+  for (TGivenIds i = 0; i < npts; ++i)
   {
     numCells = this->GetNcells(pts[i]);
     if (numCells < minNumCells)
@@ -531,12 +531,12 @@ bool vtkStaticCellLinksTemplate<TIds>::MatchesCell(TGivenIds npts, const TGivenI
 
   // Process the cells in the shortest list
   auto shortCells = this->GetCells(pts[minList]);
-  for (auto j = 0; j < minNumCells; ++j)
+  for (vtkIdType j = 0; j < minNumCells; ++j)
   {
     bool foundCell = true;
     auto cellId = shortCells[j];
     // Loop over all cell lists looking for this cellId
-    for (auto i = 0; i < npts && foundCell; ++i)
+    for (TGivenIds i = 0; i < npts && foundCell; ++i)
     {
       if (i != minList)
       {
@@ -577,7 +577,7 @@ void vtkStaticCellLinksTemplate<TIds>::GetCells(
   int minList = 0;
   vtkIdType minNumCells = VTK_INT_MAX;
   TIds numCells;
-  for (auto i = 0; i < npts; ++i)
+  for (vtkIdType i = 0; i < npts; ++i)
   {
     numCells = this->GetNcells(pts[i]);
     if (numCells < minNumCells)
@@ -589,12 +589,12 @@ void vtkStaticCellLinksTemplate<TIds>::GetCells(
 
   // Process the cells in the shortest list
   auto shortCells = this->GetCells(pts[minList]);
-  for (auto j = 0; j < minNumCells; ++j)
+  for (vtkIdType j = 0; j < minNumCells; ++j)
   {
     bool foundCell = true;
     auto cellId = shortCells[j];
     // Loop over all cell lists looking for this cellId
-    for (auto i = 0; i < npts && foundCell; ++i)
+    for (vtkIdType i = 0; i < npts && foundCell; ++i)
     {
       if (i != minList)
       {
@@ -692,7 +692,7 @@ void vtkStaticCellLinksTemplate<TIds>::SelectCells(
         if (degree >= minMaxDegree[0] && degree < minMaxDegree[1])
         {
           TIds* cells = this->GetCells(ptId);
-          for (auto i = 0; i < degree; ++i)
+          for (vtkIdType i = 0; i < degree; ++i)
           {
             cellSelection[cells[i]] = 1;
           }

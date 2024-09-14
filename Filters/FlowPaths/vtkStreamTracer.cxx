@@ -1409,7 +1409,7 @@ struct TracerIntegrator
           vtkPoints* threadPts = offset.ThreadOutput->OutputPoints;
           vtkIdType outPtId = offset.StartingPtId;
           vtkPointData* threadPD = offset.ThreadOutput->OutputPD;
-          for (auto i = 0; i < offset.NumPts; ++i)
+          for (vtkIdType i = 0; i < offset.NumPts; ++i)
           {
             vtkIdType threadId = offset.ThreadPtId + i;
             vtkIdType outId = outPtId + i;
@@ -1426,7 +1426,7 @@ struct TracerIntegrator
             this->CAOffsets[cellId] = offset.CellConnOffset;
             vtkIdType connLoc = offset.CellConnOffset;
             outPtId = offset.StartingPtId;
-            for (auto i = 0; i < offset.NumPts; ++i)
+            for (vtkIdType i = 0; i < offset.NumPts; ++i)
             {
               vtkIdType outId = outPtId + i;
               this->CAConn[connLoc++] = outId;
@@ -1698,7 +1698,7 @@ void vtkStreamTracer::GenerateNormals(vtkPolyData* output, double* firstNormal, 
       newVectors->GetTuple(ptId, velocity);
       // obtain two unit orthogonal vectors on the plane perpendicular to
       // the streamline
-      for (auto j = 0; j < 3; j++)
+      for (int j = 0; j < 3; j++)
       {
         local1[j] = normal[j];
       }
@@ -1709,7 +1709,7 @@ void vtkStreamTracer::GenerateNormals(vtkPolyData* output, double* firstNormal, 
       rotation->GetTuple(ptId, &theta);
       costheta = std::cos(theta);
       sintheta = std::sin(theta);
-      for (auto j = 0; j < 3; j++)
+      for (int j = 0; j < 3; j++)
       {
         normal[j] = length * (costheta * local1[j] + sintheta * local2[j]);
       }

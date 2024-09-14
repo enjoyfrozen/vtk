@@ -386,7 +386,7 @@ int TestGradient(int* cellTypes, vtkGeneralTransform* transform)
   elevationFilter->SetHighPoint(bounds[1], 0, 0);
   elevationFilter->SetScalarRange(bounds[0], bounds[1]);
 
-  for (auto i = 0; cellTypes[i] != -1; i++)
+  for (int i = 0; cellTypes[i] != -1; i++)
   {
     cellTypeSource->SetCellType(cellTypes[i]);
     gradientFilter->Update();
@@ -399,7 +399,7 @@ int TestGradient(int* cellTypes, vtkGeneralTransform* transform)
       vtkGenericWarningMacro("Incorrect gradient for cell type " << cellTypes[i]);
       return EXIT_FAILURE;
     }
-    for (auto j = 1; j < 3; j++)
+    for (int j = 1; j < 3; j++)
     {
       result->GetRange(range, j);
       if (range[0] < -.01 || range[1] > .01)

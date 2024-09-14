@@ -24,10 +24,10 @@ int UnitTestHausdorffDistancePointSetFilter(int, char*[])
   sphereB->SetPhiResolution(21);
   sphereB->SetThetaResolution(21);
 
-  auto numberOfRandomRuns = 50;
-  for (auto j = 0; j < 2; ++j)
+  int numberOfRandomRuns = 50;
+  for (int j = 0; j < 2; ++j)
   {
-    for (auto i = 0; i < numberOfRandomRuns; ++i)
+    for (int i = 0; i < numberOfRandomRuns; ++i)
     {
       auto hausdorffDistance = vtkSmartPointer<vtkHausdorffDistancePointSetFilter>::New();
       // Generate random radii for the two spheres

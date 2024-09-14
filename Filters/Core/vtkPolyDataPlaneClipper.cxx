@@ -169,7 +169,7 @@ struct EvaluatePoints
     // Prefix sum to create point map of kept (i.e., retained) points.
     vtkIdType numInputPts = this->Points->GetNumberOfTuples();
     vtkIdType npts = 0;
-    for (auto id = 0; id < numInputPts; ++id)
+    for (vtkIdType id = 0; id < numInputPts; ++id)
     {
       if (this->PtMap[id] > 0)
       {
@@ -259,7 +259,7 @@ struct CellCases
   static vtkIdType ComputeCase(vtkIdType npts, const vtkIdType* cell, const vtkIdType* ptMap)
   {
     vtkIdType count = 0;
-    for (auto i = 0; i < npts; ++i)
+    for (vtkIdType i = 0; i < npts; ++i)
     {
       if (ptMap[cell[i]] >= 0)
         count++;
@@ -464,7 +464,7 @@ struct ExtractCells
           cellIter->GetCellAtId(cellId, npts, cell);
           vtkIdType numEdgeClips = 0;
           vtkIdType numCellPts = 0;
-          for (auto i = 0; i < npts; ++i) // loop over all cell points and edges
+          for (vtkIdType i = 0; i < npts; ++i) // loop over all cell points and edges
           {
             vtkIdType ptId = cell[i];
             vtkIdType nextId = cell[(i + 1) % npts];
@@ -672,7 +672,7 @@ struct OutputCells
           }
           vtkIdType numEdges = offsets[newPtId + 1] - offsets[newPtId];
           vtkIdType updatedId = newPtId + numKeptPts;
-          for (auto i = 0; i < numEdges; ++i)
+          for (vtkIdType i = 0; i < numEdges; ++i)
           {
             edge = edges + offsets[newPtId] + i;
             cellsConn[edge->Data.CIdx] = updatedId;

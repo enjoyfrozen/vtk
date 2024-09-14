@@ -49,15 +49,15 @@ int main()
   deltaRad = (rMax - rMin) / (dims[1] - 1);
   float x[3], v[3];
   v[2] = 0.0;
-  for (auto k = 0; k < dims[2]; k++)
+  for (int k = 0; k < dims[2]; k++)
   {
     x[2] = -1.0 + k * deltaZ;
     int kOffset = k * dims[0] * dims[1];
-    for (auto j = 0; j < dims[1]; j++)
+    for (int j = 0; j < dims[1]; j++)
     {
       float radius = rMin + j * deltaRad;
       int jOffset = j * dims[0];
-      for (auto i = 0; i < dims[0]; i++)
+      for (int i = 0; i < dims[0]; i++)
       {
         float theta = i * vtkMath::RadiansFromDegrees(15.0);
         x[0] = radius * cos(theta);

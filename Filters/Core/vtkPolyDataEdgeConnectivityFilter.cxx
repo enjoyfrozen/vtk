@@ -112,7 +112,7 @@ void vtkPolyDataEdgeConnectivityFilter::SortRegionsByArea()
 
   // Create a region map that maps old region ids into new region ids.
   std::vector<vtkIdType> regMap(this->NumberOfRegions);
-  for (auto i = 0; i < this->NumberOfRegions; ++i)
+  for (vtkIdType i = 0; i < this->NumberOfRegions; ++i)
   {
     vtkIdType regId = areaSort[i];
     regMap[regId] = i;
@@ -129,14 +129,14 @@ void vtkPolyDataEdgeConnectivityFilter::SortRegionsByArea()
 
   // Update region classification and areas
   std::vector<char> regionClassification(this->NumberOfRegions);
-  for (auto i = 0; i < this->NumberOfRegions; ++i)
+  for (vtkIdType i = 0; i < this->NumberOfRegions; ++i)
   {
     regionClassification[i] = this->RegionClassification[areaSort[i]];
   }
 
   // Update the area of each region
   std::vector<double> regionAreas(this->NumberOfRegions);
-  for (auto i = 0; i < this->NumberOfRegions; ++i)
+  for (vtkIdType i = 0; i < this->NumberOfRegions; ++i)
   {
     regionAreas[i] = this->RegionAreas[areaSort[i]];
   }
@@ -144,7 +144,7 @@ void vtkPolyDataEdgeConnectivityFilter::SortRegionsByArea()
   // Update the size of each region.
   vtkNew<vtkIdTypeArray> regionSizes;
   regionSizes->SetNumberOfTuples(this->RegionSizes->GetNumberOfTuples());
-  for (auto i = 0; i < this->NumberOfRegions; ++i)
+  for (vtkIdType i = 0; i < this->NumberOfRegions; ++i)
   {
     regionSizes->SetTuple1(i, this->RegionSizes->GetValue(areaSort[i]));
   }
@@ -665,7 +665,7 @@ void vtkPolyDataEdgeConnectivityFilter::GetConnectedNeighbors(
 
   // For each edge of the polygon, add the edge neighbor
   vtkIdType p0, p1, numEdgeNeis, neiId;
-  for (auto i = 0; i < npts; ++i)
+  for (vtkIdType i = 0; i < npts; ++i)
   {
     p0 = pts[i];
     p1 = pts[(i + 1) % npts];
@@ -673,7 +673,7 @@ void vtkPolyDataEdgeConnectivityFilter::GetConnectedNeighbors(
     {
       this->Mesh->GetCellEdgeNeighbors(cellId, p0, p1, this->CellEdgeNeighbors);
       numEdgeNeis = this->CellEdgeNeighbors->GetNumberOfIds();
-      for (auto j = 0; j < numEdgeNeis; ++j)
+      for (vtkIdType j = 0; j < numEdgeNeis; ++j)
       {
         neiId = this->CellEdgeNeighbors->GetId(j);
         // Check scalar connectivity
@@ -891,7 +891,7 @@ void vtkPolyDataEdgeConnectivityFilter::GrowLargeRegions()
   // looping over all cells and just process the cells in small regions.
   this->Wave.clear();
   const vtkIdType numCells = this->Mesh->GetPolys()->GetNumberOfCells();
-  for (auto cellId = 0; cellId < numCells; ++cellId)
+  for (vtkIdType cellId = 0; cellId < numCells; ++cellId)
   {
     vtkIdType regId = this->RegionIds[cellId];
     if (regId >= 0 && this->RegionClassification[regId] == SmallRegion)
@@ -920,7 +920,7 @@ void vtkPolyDataEdgeConnectivityFilter::GrowLargeRegions()
     while (somethingChanged)
     {
       somethingChanged = false;
-      for (auto candidate = 0; candidate < numCandidates; ++candidate)
+      for (vtkIdType candidate = 0; candidate < numCandidates; ++candidate)
       {
         vtkIdType cellId = this->Wave[candidate];
         vtkIdType regId = this->RegionIds[cellId];
@@ -953,7 +953,7 @@ void vtkPolyDataEdgeConnectivityFilter::GrowSmallRegions()
   const vtkIdType numCells = this->Mesh->GetPolys()->GetNumberOfCells();
   std::vector<char> smallVisited(numCells, 0);
 
-  for (auto cellId = 0; cellId < numCells; ++cellId)
+  for (vtkIdType cellId = 0; cellId < numCells; ++cellId)
   {
     vtkIdType regId = this->RegionIds[cellId];
     if (regId >= 0 && this->RegionClassification[regId] == SmallRegion && smallVisited[cellId] == 0)
@@ -968,7 +968,7 @@ void vtkPolyDataEdgeConnectivityFilter::GrowSmallRegions()
     vtkIdType numIds;
     while ((numIds = static_cast<vtkIdType>(this->Wave.size())) > 0)
     {
-      for (auto i = 0; i < numIds; i++)
+      for (vtkIdType i = 0; i < numIds; i++)
       {
         vtkIdType currentCellId = this->Wave[i];
         vtkIdType currentRegionId = this->RegionIds[currentCellId];
@@ -977,14 +977,14 @@ void vtkPolyDataEdgeConnectivityFilter::GrowSmallRegions()
         const vtkIdType* pts;
         vtkIdType npts;
         this->Mesh->GetCellPoints(currentCellId, npts, pts);
-        for (auto j = 0; j < npts; ++j)
+        for (vtkIdType j = 0; j < npts; ++j)
         {
           vtkIdType v0 = pts[j];
           vtkIdType v1 = pts[(j + 1) % npts];
           this->Mesh->GetCellEdgeNeighbors(currentCellId, v0, v1, this->CellNeighbors);
           vtkIdType numNeis = this->CellNeighbors->GetNumberOfIds();
 
-          for (auto k = 0; k < numNeis; ++k)
+          for (vtkIdType k = 0; k < numNeis; ++k)
           {
             vtkIdType neiId = this->CellNeighbors->GetId(k);
             vtkIdType neiRegId = this->RegionIds[neiId];
@@ -1020,7 +1020,7 @@ int vtkPolyDataEdgeConnectivityFilter::AssimilateCell(
   vtkIdType longestAdjacentNum(-1), longestEdgeNum = (-1);
 
   // Loop over all edges
-  for (auto i = 0; i < npts; ++i)
+  for (vtkIdType i = 0; i < npts; ++i)
   {
     p0 = pts[i];
     p1 = pts[(i + 1) % npts];
@@ -1038,7 +1038,7 @@ int vtkPolyDataEdgeConnectivityFilter::AssimilateCell(
     // Find the longest edge with a neighbor cell classified in a large region.
     this->Mesh->GetCellEdgeNeighbors(cellId, p0, p1, this->CellEdgeNeighbors);
     numEdgeNeis = this->CellEdgeNeighbors->GetNumberOfIds();
-    for (auto j = 0; j < numEdgeNeis; ++j)
+    for (vtkIdType j = 0; j < numEdgeNeis; ++j)
     {
       neiId = this->CellEdgeNeighbors->GetId(j);
       regId = this->RegionIds[neiId];

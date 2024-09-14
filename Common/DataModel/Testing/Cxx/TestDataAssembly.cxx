@@ -26,7 +26,7 @@ void Assemble(vtkDataAssembly* assembly, const std::vector<int>& children, int& 
   }
   std::vector<int> subset(children.size() - 1);
   std::copy(std::next(children.begin(), 1), children.end(), subset.begin());
-  for (auto cc = 0; cc < children.front(); ++cc)
+  for (int cc = 0; cc < children.front(); ++cc)
   {
     auto name = ("Child[" + std::to_string(depth) + "]#" + std::to_string(cc));
     auto child =

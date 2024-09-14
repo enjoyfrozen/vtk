@@ -787,7 +787,7 @@ void vtkDataSetAttributesFieldList::BuildPrototype(
   else // an ordering of the data arrays is specified
   {
     vtkIdType numArrays = ordering->GetNumberOfArrays();
-    for (auto arrayNum = 0; arrayNum < numArrays; ++arrayNum)
+    for (vtkIdType arrayNum = 0; arrayNum < numArrays; ++arrayNum)
     {
       detail::FieldInfo* fieldInfo;
       if ((fieldInfo = this->Internals->HasArray(ordering->GetArrayName(arrayNum))) != nullptr)

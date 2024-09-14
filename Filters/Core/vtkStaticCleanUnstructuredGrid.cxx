@@ -32,7 +32,7 @@ using PointUses = unsigned char;
 template <typename UType>
 void MarkUses(vtkIdType numIds, UType* connArray, vtkIdType* mergeMap, PointUses* ptUses)
 {
-  for (auto i = 0; i < numIds; ++i)
+  for (vtkIdType i = 0; i < numIds; ++i)
   {
     ptUses[mergeMap[connArray->GetValue(i)]] = 1;
   }
@@ -65,7 +65,7 @@ struct CopyPointsAlgorithm
     // Since we are copying (not averaging), just find the first point from
     // the input which merged to the output point.
     vtkIdType numInPts = inPts->GetNumberOfTuples();
-    for (auto inPtId = 0; inPtId < numInPts; ++inPtId)
+    for (vtkIdType inPtId = 0; inPtId < numInPts; ++inPtId)
     {
       if (ptMap[inPtId] != -1 && this->ReversePtMap[ptMap[inPtId]] == -1)
       {
@@ -249,7 +249,7 @@ struct AverageAlgorithm
       {
         double x[3] = { 0.0, 0.0, 0.0 };
         double n = static_cast<double>(num);
-        for (auto i = 0; i < num; ++i)
+        for (vtkIdType i = 0; i < num; ++i)
         {
           const auto inP = inPoints[ids[i]];
           x[0] += static_cast<double>(inP[0]);

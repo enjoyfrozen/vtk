@@ -152,7 +152,7 @@ int TestSMPFeatures(int, char*[])
   vtkNew<vtkPoints> pts;
   pts->SetDataTypeToFloat();
   pts->SetNumberOfPoints(numPts);
-  for (auto i = 0; i < numPts; ++i)
+  for (vtkIdType i = 0; i < numPts; ++i)
   {
     pts->SetPoint(i, vtkMath::Random(-1, 1), vtkMath::Random(-1, 1), vtkMath::Random(-1, 1));
   }
@@ -184,7 +184,7 @@ int TestSMPFeatures(int, char*[])
     {
       double v, coord[3];
       pts->GetPoint(ptId, coord);
-      for (auto j = 0; j < numPlanes; j++)
+      for (vtkIdType j = 0; j < numPlanes; j++)
       {
         v = -(planes[j * 4 + 0] * coord[0] + planes[j * 4 + 1] * coord[1] +
           planes[j * 4 + 2] * coord[2]);

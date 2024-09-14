@@ -68,7 +68,7 @@ struct BinPoints
     , BinIds(binIds)
     , Filter(filter)
   {
-    for (auto i = 0; i < 3; ++i)
+    for (int i = 0; i < 3; ++i)
     {
       this->Divisions[i] = dims[i];
       this->Bounds[2 * i] = bounds[2 * i];
@@ -584,9 +584,9 @@ struct CountPoints
         }
       }
       vtkIdType numSlicePts = 0;
-      for (auto j = 0; j < this->Dims[1]; ++j)
+      for (int j = 0; j < this->Dims[1]; ++j)
       {
-        for (auto i = 0; i < this->Dims[0]; ++i)
+        for (int i = 0; i < this->Dims[0]; ++i)
         {
           if (this->PointMap[binOffset] != 0)
           {
@@ -603,7 +603,7 @@ struct CountPoints
   {
     // Prefix sum to roll up total point count across all of the slices.
     TIds numSlicePts, numNewPts = 0;
-    for (auto i = 0; i < this->Dims[2]; ++i)
+    for (int i = 0; i < this->Dims[2]; ++i)
     {
       numSlicePts = this->SliceOffsets[i];
       this->SliceOffsets[i] = numNewPts;
@@ -669,9 +669,9 @@ struct GenerateBinPoints
           break;
         }
       }
-      for (auto j = 0; j < this->Dims[1]; ++j)
+      for (int j = 0; j < this->Dims[1]; ++j)
       {
-        for (auto i = 0; i < this->Dims[0]; ++i)
+        for (int i = 0; i < this->Dims[0]; ++i)
         {
           oldPtId = this->PointMap[binOffset];
           if (oldPtId != 0)
@@ -1213,9 +1213,9 @@ struct CountAvePts
         }
       }
       vtkIdType numSlicePts = 0;
-      for (auto j = 0; j < this->Dims[1]; ++j)
+      for (int j = 0; j < this->Dims[1]; ++j)
       {
-        for (auto i = 0; i < this->Dims[0]; ++i)
+        for (int i = 0; i < this->Dims[0]; ++i)
         {
           if ((this->Offsets[binNum + 1] - this->Offsets[binNum]) > 0)
           {
@@ -1232,7 +1232,7 @@ struct CountAvePts
   {
     // Prefix sum to roll up total point count in each slice
     TIds numSlicePts, numNewPts = 0;
-    for (auto i = 0; i < this->Dims[2]; ++i)
+    for (int i = 0; i < this->Dims[2]; ++i)
     {
       numSlicePts = this->SliceOffsets[i];
       this->SliceOffsets[i] = numNewPts;
@@ -1299,9 +1299,9 @@ struct GenerateAveBinPoints
           break;
         }
       }
-      for (auto j = 0; j < this->Dims[1]; ++j)
+      for (int j = 0; j < this->Dims[1]; ++j)
       {
-        for (auto i = 0; i < this->Dims[0]; ++i)
+        for (int i = 0; i < this->Dims[0]; ++i)
         {
           TIds npts = offsets[binNum + 1] - offsets[binNum];
           if (npts > 0)
@@ -1310,7 +1310,7 @@ struct GenerateAveBinPoints
             xAve[0] = xAve[1] = xAve[2] = 0.0;
             pIds = binTuples + offsets[binNum];
             v.resize(npts);
-            for (auto idx = 0; idx < npts; ++idx)
+            for (TIds idx = 0; idx < npts; ++idx)
             {
               pId = (*(pIds + idx)).PtId;
               v[idx] = pId;

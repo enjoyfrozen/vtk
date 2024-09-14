@@ -51,7 +51,7 @@ int TestNetCDFCAMReader(int argc, char* argv[])
     787.702010000002, 867.160710000001, 929.648975, 970.554785000003, 992.556100000005 };
 
   // Valid that the level values valid
-  for (auto tupleIdx = 0; tupleIdx < numTuples; ++tupleIdx)
+  for (vtkIdType tupleIdx = 0; tupleIdx < numTuples; ++tupleIdx)
   {
     auto level = *lev->GetTuple(tupleIdx);
     if (expectedLevels.count(level) != 1)

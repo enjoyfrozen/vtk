@@ -101,7 +101,7 @@ struct MarkPointIds
       vtkIdType ptId = this->PtIds[idx];
       vtkIdType ncells = this->Links->GetNcells(ptId);
       auto cells = this->Links->GetCells(ptId);
-      for (auto i = 0; i < ncells; ++i)
+      for (vtkIdType i = 0; i < ncells; ++i)
       {
         (*this->CellMap)[cells[i]] = (-1);
       }
@@ -187,7 +187,7 @@ struct MarkCells
       rCellIter->GetCellAtId(cellId, npts, pts);
       this->Links->GetCells(npts, pts, linkedCells);
       auto numLinkedCells = linkedCells->GetNumberOfIds();
-      for (auto i = 0; i < numLinkedCells; ++i)
+      for (vtkIdType i = 0; i < numLinkedCells; ++i)
       {
         cId = linkedCells->GetId(i);
         if (!this->ExactMatch) // any match will do
@@ -274,7 +274,7 @@ struct MarkDeletedCells
       vtkStaticCellLinksTemplate<TIds> links;
       links.ThreadedBuildLinks(numPts, numInVerts, inVerts);
       MarkPointIds<TIds>::Execute(ptIds, &links, cellMap, filter);
-      for (auto i = 1; i < numInputs; ++i)
+      for (int i = 1; i < numInputs; ++i)
       {
         cells = vtkPolyData::GetData(inputVector[0], i)->GetVerts();
         if ((nCells = cells->GetNumberOfCells()) > 0)
@@ -290,7 +290,7 @@ struct MarkDeletedCells
       vtkStaticCellLinksTemplate<TIds> links;
       links.ThreadedBuildLinks(numPts, numInLines, inLines);
       MarkPointIds<TIds>::Execute(ptIds, &links, cellMap, filter);
-      for (auto i = 1; i < numInputs; ++i)
+      for (int i = 1; i < numInputs; ++i)
       {
         cells = vtkPolyData::GetData(inputVector[0], i)->GetLines();
         if ((nCells = cells->GetNumberOfCells()) > 0)
@@ -306,7 +306,7 @@ struct MarkDeletedCells
       vtkStaticCellLinksTemplate<TIds> links;
       links.ThreadedBuildLinks(numPts, numInPolys, inPolys);
       MarkPointIds<TIds>::Execute(ptIds, &links, cellMap, filter);
-      for (auto i = 1; i < numInputs; ++i)
+      for (int i = 1; i < numInputs; ++i)
       {
         cells = vtkPolyData::GetData(inputVector[0], i)->GetPolys();
         if ((nCells = cells->GetNumberOfCells()) > 0)
@@ -322,7 +322,7 @@ struct MarkDeletedCells
       vtkStaticCellLinksTemplate<TIds> links;
       links.ThreadedBuildLinks(numPts, numInStrips, inStrips);
       MarkPointIds<TIds>::Execute(ptIds, &links, cellMap, filter);
-      for (auto i = 1; i < numInputs; ++i)
+      for (int i = 1; i < numInputs; ++i)
       {
         cells = vtkPolyData::GetData(inputVector[0], i)->GetStrips();
         if ((nCells = cells->GetNumberOfCells()) > 0)
@@ -335,7 +335,7 @@ struct MarkDeletedCells
 
     // Assign output cell ids.
     vtkIdType outCellId = 0;
-    for (auto cellId = 0; cellId < inOffsets[4]; ++cellId)
+    for (vtkIdType cellId = 0; cellId < inOffsets[4]; ++cellId)
     {
       if ((*cellMap)[cellId] > 0) // cell has not been deleted
       {
@@ -549,7 +549,7 @@ struct BuildOffsets
   {
     // Prefix sum to roll up the offsets
     vtkIdType offset = 0, npts;
-    for (auto cellId = 0; cellId < this->NumCells; ++cellId)
+    for (vtkIdType cellId = 0; cellId < this->NumCells; ++cellId)
     {
       npts = this->Offsets[cellId];
       this->Offsets[cellId] = offset;
@@ -614,7 +614,7 @@ struct BuildConnectivity
       {
         cellIter->GetCellAtId(cellId, npts, pts);
         connPtr = this->Conn + *(this->Offsets + (outCellId - this->OutCellsIdOffset));
-        for (auto i = 0; i < npts; ++i)
+        for (vtkIdType i = 0; i < npts; ++i)
         {
           *connPtr++ = pts[i];
         }

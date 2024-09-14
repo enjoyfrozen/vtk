@@ -38,7 +38,7 @@ int main()
   vtkNew<vtkFloatArray> scalars;
 
   // Load the point, cell, and data attributes.
-  for (auto i = 0ul; i < pts.size(); ++i)
+  for (std::size_t i = 0ul; i < pts.size(); ++i)
   {
     points->InsertPoint(i, pts[i].data());
     scalars->InsertTuple1(i, i);

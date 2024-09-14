@@ -75,13 +75,13 @@ int TestConvertType(const std::string& type, const std::string& fileName)
   vtkPoints* readPoints = reader->GetOutput()->GetPoints();
 
   unsigned int numberOfMismatches = 0;
-  for (auto i = 0; i < originalPoints->GetNumberOfPoints(); ++i)
+  for (vtkIdType i = 0; i < originalPoints->GetNumberOfPoints(); ++i)
   {
     T* original;
     original = static_cast<T*>(originalPoints->GetVoidPointer(i * 3));
     T* read;
     read = static_cast<T*>(readPoints->GetVoidPointer(i * 3));
-    for (auto j = 0; j < 3; ++j)
+    for (int j = 0; j < 3; ++j)
     {
       if (original[j] != read[j])
       {

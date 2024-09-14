@@ -99,7 +99,7 @@ struct vtkSphericalPointIterator::SphericalPointIterator
 
     this->DataSet = ds;
     double a[3];
-    for (auto i = 0; i < numAxes; ++i)
+    for (vtkIdType i = 0; i < numAxes; ++i)
     {
       axes->GetTuple(i, a);
       vtkMath::Normalize(a);
@@ -184,7 +184,7 @@ struct vtkSphericalPointIterator::SphericalPointIterator
     // Project points onto the best axis (with maximum positive dot product)
     double x[3], v[3], dp, dpMax;
     int axis, axisMax = 0;
-    for (auto i = 0; i < numNei; ++i)
+    for (vtkIdType i = 0; i < numNei; ++i)
     {
       vtkIdType ptId = neighborhood[i];
       this->DataSet->GetPoint(ptId, x);
@@ -362,7 +362,7 @@ void vtkSphericalPointIterator::SetAxes(int axesType, int resolution)
   else if (axesType == XY_CCW_AXES)
   {
     axes->SetNumberOfTuples(res);
-    for (auto i = 0; i < res; ++i)
+    for (int i = 0; i < res; ++i)
     {
       double theta = ((static_cast<double>(i) / res) * 2.0 * vtkMath::Pi());
       axes->SetTuple3(i, cos(theta), sin(theta), 0);
@@ -581,7 +581,7 @@ void vtkSphericalPointIterator::BuildRepresentation(vtkPolyData* pd)
   vtkIdType linePts[2];
   linePts[0] = 0;
   pts->SetPoint(0, center[0], center[1], center[2]);
-  for (auto i = 1; i <= numAxes; ++i)
+  for (int i = 1; i <= numAxes; ++i)
   {
     int axisNum = i - 1;
     double x[3];

@@ -196,7 +196,7 @@ vtkNek5000Reader::~vtkNek5000Reader()
   }
   if (this->num_vars > 0)
   {
-    for (auto i = 0; i < this->num_vars; i++)
+    for (int i = 0; i < this->num_vars; i++)
       if (this->var_names[i])
       {
         free(this->var_names[i]);
@@ -400,7 +400,7 @@ void vtkNek5000Reader::updateVariableStatus()
   this->num_used_scalars = 0;
 
   // if a variable is used, set it to true
-  for (auto i = 0; i < this->num_vars; i++)
+  for (int i = 0; i < this->num_vars; i++)
   {
     if (this->GetPointArrayStatus(i))
     {
@@ -572,7 +572,7 @@ void vtkNek5000Reader::readData(char* dfName)
     scalar_offset *= this->totalBlockSize;
     scalar_offset *= this->precision;
 
-    for (auto i = 0; i < this->num_vars; i++)
+    for (int i = 0; i < this->num_vars; i++)
     {
       if (i < 2)
       { // if Velocity or Velocity Magnitude
@@ -601,7 +601,7 @@ void vtkNek5000Reader::readData(char* dfName)
 
         if (this->precision == 4)
         {
-          for (auto j = 0; j < this->myNumBlocks; j++)
+          for (int j = 0; j < this->myNumBlocks; j++)
           {
             read_location =
               total_header_size + var_offset + long(this->myBlockPositions[j] * l_blocksize);
@@ -633,7 +633,7 @@ void vtkNek5000Reader::readData(char* dfName)
         }
         else // precision == 8
         {
-          for (auto j = 0; j < this->myNumBlocks; j++)
+          for (int j = 0; j < this->myNumBlocks; j++)
           {
             read_location =
               total_header_size + var_offset + long(this->myBlockPositions[j] * l_blocksize);
@@ -644,7 +644,7 @@ void vtkNek5000Reader::readData(char* dfName)
             dfPtr.read((char*)tmpDblPtr, read_size * sizeof(double));
             if (!dfPtr)
               std::cerr << __LINE__ << ": read error\n";
-            for (auto ind = 0; ind < read_size; ind++)
+            for (long ind = 0; ind < read_size; ind++)
             {
               *dataPtr = (float)tmpDblPtr[ind];
               dataPtr++;
@@ -663,11 +663,11 @@ void vtkNek5000Reader::readData(char* dfName)
           float vx, vy, vz;
           int coord_offset =
             this->totalBlockSize; // number of values for one coordinate (X or Y or Z)
-          for (auto j = 0; j < this->myNumBlocks; j++)
+          for (int j = 0; j < this->myNumBlocks; j++)
           {
             int mag_block_offset = j * this->totalBlockSize;
             int comp_block_offset = mag_block_offset * 3;
-            for (auto k = 0; k < this->totalBlockSize; k++)
+            for (int k = 0; k < this->totalBlockSize; k++)
             {
               vx = this->dataArray[i][comp_block_offset + k];
               vy = this->dataArray[i][coord_offset + comp_block_offset + k];
@@ -955,7 +955,7 @@ void vtkNek5000Reader::partitionAndReadMesh()
       if (!dfPtr)
         std::cerr << __LINE__ << ": seekg error at read_location = " << read_location << std::endl;
       dfPtr.read((char*)tmpDblPts, read_size * sizeof(double));
-      for (auto ind = 0; ind < read_size; ind++)
+      for (int ind = 0; ind < read_size; ind++)
       {
         *coordPtr = (float)tmpDblPts[ind];
         coordPtr++;
@@ -1489,13 +1489,13 @@ void vtkNek5000Reader::addCellsToContinuumMesh()
   {
     cellTypes->Fill(VTK_HEXAHEDRON);
     outCells->Allocate(9L * numVTKCells);
-    for (auto e = 0; e < this->myNumBlocks; ++e)
+    for (int e = 0; e < this->myNumBlocks; ++e)
     {
-      for (auto ii = 0; ii < this->blockDims[0] - 1; ++ii)
+      for (int ii = 0; ii < this->blockDims[0] - 1; ++ii)
       {
-        for (auto jj = 0; jj < this->blockDims[1] - 1; ++jj)
+        for (int jj = 0; jj < this->blockDims[1] - 1; ++jj)
         {
-          for (auto kk = 0; kk < this->blockDims[2] - 1; ++kk)
+          for (int kk = 0; kk < this->blockDims[2] - 1; ++kk)
           {
             p =
               kk * (this->blockDims[1]) * (this->blockDims[0]) + jj * (this->blockDims[0]) + ii + n;
@@ -1525,11 +1525,11 @@ void vtkNek5000Reader::addCellsToContinuumMesh()
   {
     cellTypes->Fill(VTK_QUAD);
     outCells->Allocate(5L * numVTKCells);
-    for (auto e = 0; e < this->myNumBlocks; ++e)
+    for (int e = 0; e < this->myNumBlocks; ++e)
     {
-      for (auto ii = 0; ii < this->blockDims[0] - 1; ++ii)
+      for (int ii = 0; ii < this->blockDims[0] - 1; ++ii)
       {
-        for (auto jj = 0; jj < this->blockDims[1] - 1; ++jj)
+        for (int jj = 0; jj < this->blockDims[1] - 1; ++jj)
         {
           p = n + jj * (this->blockDims[0]) + ii;
           pts[0] = p;
@@ -1570,20 +1570,20 @@ void vtkNek5000Reader::addSpectralElementId(int nelements)
   }
 
   int start_index = 0;
-  for (auto i = 0; i < my_rank; i++)
+  for (int i = 0; i < my_rank; i++)
   {
     start_index += this->proc_numBlocks[i];
   }
 
   if (this->MeshIs3D)
   {
-    for (auto e = start_index; e < start_index + this->myNumBlocks; ++e)
+    for (int e = start_index; e < start_index + this->myNumBlocks; ++e)
     {
-      for (auto ii = 0; ii < this->blockDims[0] - 1; ++ii)
+      for (int ii = 0; ii < this->blockDims[0] - 1; ++ii)
       {
-        for (auto jj = 0; jj < this->blockDims[1] - 1; ++jj)
+        for (int jj = 0; jj < this->blockDims[1] - 1; ++jj)
         {
-          for (auto kk = 0; kk < this->blockDims[2] - 1; ++kk)
+          for (int kk = 0; kk < this->blockDims[2] - 1; ++kk)
           {
             spectral_id->SetTuple1(n++, e);
           }
@@ -1593,11 +1593,11 @@ void vtkNek5000Reader::addSpectralElementId(int nelements)
   }
   else // 2D
   {
-    for (auto e = start_index; e < start_index + this->myNumBlocks; ++e)
+    for (int e = start_index; e < start_index + this->myNumBlocks; ++e)
     {
-      for (auto ii = 0; ii < this->blockDims[0] - 1; ++ii)
+      for (int ii = 0; ii < this->blockDims[0] - 1; ++ii)
       {
-        for (auto jj = 0; jj < this->blockDims[1] - 1; ++jj)
+        for (int jj = 0; jj < this->blockDims[1] - 1; ++jj)
         {
           spectral_id->SetTuple1(n++, e);
         }
@@ -1612,11 +1612,11 @@ void vtkNek5000Reader::copyContinuumPoints(vtkPoints* points)
 {
   int index = 0;
   // for each element/block in the continuum mesh
-  for (auto k = 0; k < this->myNumBlocks; ++k)
+  for (int k = 0; k < this->myNumBlocks; ++k)
   {
     int block_offset = k * this->totalBlockSize * 3; // 3 is for X,Y,Z coordinate components
     // for every point in this element/block
-    for (auto i = 0; i < this->totalBlockSize; ++i)
+    for (int i = 0; i < this->totalBlockSize; ++i)
     { /*
        std::cerr<< index << ": " <<
                    this->meshCoords[block_offset+i] << ", " <<
@@ -1652,7 +1652,7 @@ void vtkNek5000Reader::copyContinuumData(vtkUnstructuredGrid* pv_ugrid)
   int num_verts = this->myNumBlocks * this->totalBlockSize;
 
   // for each variable
-  for (auto v_index = 0; v_index < this->num_vars; v_index++)
+  for (int v_index = 0; v_index < this->num_vars; v_index++)
   {
     if (this->GetPointArrayStatus(v_index))
     {

@@ -313,9 +313,9 @@ void vtkTensorRepresentation::SetTensor(double tensor[9])
   v[1] = this->Eigenvectors[1];
   v[2] = this->Eigenvectors[2];
 
-  for (auto j = 0; j < 3; j++)
+  for (int j = 0; j < 3; j++)
   {
-    for (auto i = 0; i < 3; i++)
+    for (int i = 0; i < 3; i++)
     {
       m[i][j] = 0.5 * (tensor[i + 3 * j] + tensor[j + 3 * i]);
     }
@@ -1281,7 +1281,7 @@ void vtkTensorRepresentation::UpdateTensorFromWidget()
   // and the semi-axes vectors. These are the eigenvectors and values of the
   // tensor.
   double tensor[3][3];
-  for (auto i = 0; i < 3; ++i)
+  for (int i = 0; i < 3; ++i)
   {
     tensor[i][0] = x[i] - center[i];
     tensor[i][1] = y[i] - center[i];
@@ -1297,9 +1297,9 @@ void vtkTensorRepresentation::UpdateTensorFromWidget()
 
   // Next scale and rotate the ellipsoid based on the eigenvectors (which are
   // simply the semi-axes of the widget representation).
-  for (auto j = 0; j < 3; ++j)
+  for (int j = 0; j < 3; ++j)
   {
-    for (auto i = 0; i < 3; ++i)
+    for (int i = 0; i < 3; ++i)
     {
       this->EllipsoidMatrix->Element[i][j] = tensor[i][j];
     }
@@ -1362,9 +1362,9 @@ void vtkTensorRepresentation::UpdateWidgetFromTensor()
   this->EllipsoidTransform->Translate(center[0], center[1], center[2]);
   this->EllipsoidTransform->Scale(this->Eigenvalues);
 
-  for (auto j = 0; j < 3; ++j)
+  for (int j = 0; j < 3; ++j)
   {
-    for (auto i = 0; i < 3; ++i)
+    for (int i = 0; i < 3; ++i)
     {
       this->EllipsoidMatrix->Element[i][j] = this->Eigenvectors[i][j];
     }
@@ -1375,7 +1375,7 @@ void vtkTensorRepresentation::UpdateWidgetFromTensor()
   // Transform the 8 corner points
   this->TmpPoints->Reset();
   this->EllipsoidTransform->TransformPoints(this->Points, this->TmpPoints);
-  for (auto i = 0; i < 8; i++)
+  for (int i = 0; i < 8; i++)
   {
     this->Points->SetPoint(i, this->TmpPoints->GetPoint(i));
   }

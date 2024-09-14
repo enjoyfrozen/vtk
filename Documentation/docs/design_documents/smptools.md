@@ -140,7 +140,7 @@ Note that same code can be conveniently and compactly defined inline via a C++ l
     {
       double v, coord[3];
       pts->GetPoint(ptId, coord);
-      for (auto j = 0; j < numPlanes; j++)
+      for (std::size_t j = 0; j < numPlanes; j++)
       {
         v = -(planes[j * 4 + 0] * coord[0] + planes[j * 4 + 1] * coord[1] +
           planes[j * 4 + 2] * coord[2]);

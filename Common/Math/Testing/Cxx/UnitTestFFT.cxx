@@ -488,7 +488,7 @@ int Test_fft_direct_inverse()
   int status = 0;
   std::cout << "Test_fft_direct_inverse..";
 
-  static constexpr auto countIn = 1000;
+  static constexpr int countIn = 1000;
   std::vector<double> input(countIn);
   auto val = 0;
   std::generate(input.begin(), input.end(), [&val]() { return std::sin(val++); });
@@ -497,7 +497,7 @@ int Test_fft_direct_inverse()
 
   auto result = vtkFFT::IRFft(spectrum);
 
-  for (auto i = 0; i < countIn; i++)
+  for (int i = 0; i < countIn; i++)
   {
     if (!vtkMathUtilities::FuzzyCompare(input[i], result[i], 1e-06))
     {

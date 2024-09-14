@@ -2178,7 +2178,7 @@ int vtkDataWriter::WriteCellsLegacy(ostream* fp, vtkCellArray* cells, const char
     {
       iter->GetCurrentCell(npts, pts);
       *fp << static_cast<int>(npts) << " ";
-      for (auto i = 0; i < npts; i++)
+      for (vtkIdType i = 0; i < npts; i++)
       {
         // currently writing vtkIdType as int
         *fp << static_cast<int>(pts[i]) << " ";
@@ -2198,7 +2198,7 @@ int vtkDataWriter::WriteCellsLegacy(ostream* fp, vtkCellArray* cells, const char
     {
       iter->GetCurrentCell(npts, pts);
       *intArrayPtr++ = npts;
-      for (auto i = 0; i < npts; ++i)
+      for (vtkIdType i = 0; i < npts; ++i)
       {
         *intArrayPtr++ = pts[i];
       }

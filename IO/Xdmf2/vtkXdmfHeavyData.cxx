@@ -1285,7 +1285,7 @@ vtkDataArray* vtkXdmfHeavyData::ReadAttribute(
     // Add 0.0 to third component of vector
     auto inputRange = vtk::DataArrayTupleRange<2>(dataArray);
     auto outputRange = vtk::DataArrayTupleRange<3>(vector3D);
-    for (auto i = 0; i < inputRange.size(); ++i)
+    for (vtkIdType i = 0; i < inputRange.size(); ++i)
     {
       outputRange[i][0] = inputRange[i][0];
       outputRange[i][1] = inputRange[i][1];

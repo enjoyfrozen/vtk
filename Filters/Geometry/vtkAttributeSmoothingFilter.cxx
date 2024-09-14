@@ -147,7 +147,7 @@ struct BuildStencil
         // relaxation factor.
         if (forceWeight >= 0) // coincident point
         {
-          for (auto j = 0; j < numEdges; ++j)
+          for (vtkIdType j = 0; j < numEdges; ++j)
           {
             w[j] = 0.0;
           }
@@ -156,7 +156,7 @@ struct BuildStencil
         else
         {
           double f = relax / wSum;
-          for (auto j = 0; j < numEdges; ++j)
+          for (vtkIdType j = 0; j < numEdges; ++j)
           {
             w[j] *= f;
           }
@@ -310,7 +310,7 @@ struct SmoothAttributes
         // stencil when it is initially created).
         pIds[0] = ptId;
         w[0] = relaxF;
-        for (auto i = 0; i < npts; ++i)
+        for (vtkIdType i = 0; i < npts; ++i)
         {
           pIds[i + 1] = pts[i];
           w[i + 1] = weights[i];
@@ -352,7 +352,7 @@ void MarkPDBoundary(vtkPolyData* extractedEdges, vtkPolyData* inPolyData, unsign
 
   // Traverse all edges in the dataset and determine if they
   // are boundary edges.
-  for (auto lineId = 0; lineId < numLines; ++lineId)
+  for (vtkIdType lineId = 0; lineId < numLines; ++lineId)
   {
     iter->GetCellAtId(lineId, npts, pts);
     inPolyData->GetCellEdgeNeighbors((-1), pts[0], pts[1], neis);
@@ -406,7 +406,7 @@ void MarkAdjacent(vtkPolyData* extractedEdges, unsigned char* smooth)
   vtkIdType npts;
   const vtkIdType* pts;
 
-  for (auto lineId = 0; lineId < numLines; ++lineId)
+  for (vtkIdType lineId = 0; lineId < numLines; ++lineId)
   {
     iter->GetCellAtId(lineId, npts, pts);
     unsigned char s0 = smooth[pts[0]];
@@ -582,7 +582,7 @@ int vtkAttributeSmoothingFilter::RequestData(vtkInformation* vtkNotUsed(request)
     evenPair.AddArrays(numPts, oddPD, evenPD);
 
     // Double buffer attribute smoothing.
-    for (auto iter = 1; iter < numIter; ++iter)
+    for (int iter = 1; iter < numIter; ++iter)
     {
       if ((iter % 2)) // odd
       {

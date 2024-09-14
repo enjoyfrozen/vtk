@@ -565,7 +565,7 @@ struct SurfaceNets
     // Determine the trim over the 2x2 bundle of metadata.
     xL = this->TriadDims[0];
     xR = 0;
-    for (auto i = 0; i < 4; ++i)
+    for (int i = 0; i < 4; ++i)
     {
       vtkIdType* eMD = ePtrs[i];
       xL = (eMD[3] < xL ? eMD[3] : xL);
@@ -650,7 +650,7 @@ struct SurfaceNets
     vtkIdType* eMD;
     xL = this->TriadDims[0];
     xR = 0;
-    for (auto i = 0; i < 9; ++i)
+    for (int i = 0; i < 9; ++i)
     {
       eMD = ePtrs[i];
       if (eMD != nullptr)
@@ -674,7 +674,7 @@ struct SurfaceNets
   // probably a compiler optimization hit.)
   void InitRowIterator(vtkIdType* ePtrs[9], vtkIdType pIds[9])
   {
-    for (auto idx = 0; idx < 9; ++idx)
+    for (int idx = 0; idx < 9; ++idx)
     {
       vtkIdType* eMD = ePtrs[idx];
       pIds[idx] = (eMD != nullptr ? eMD[0] : -1);
@@ -1081,7 +1081,7 @@ void SurfaceNets<T>::GenerateFaceStencils(unsigned char stencils[][7])
   for (FaceCaseType faceCase = 0; faceCase < 64; ++faceCase)
   {
     stencils[faceCase][0] = 0;
-    for (auto faceNum = 1; faceNum <= 6; ++faceNum)
+    for (int faceNum = 1; faceNum <= 6; ++faceNum)
     {
       stencils[faceCase][faceNum] = ((faceCase & (1 << (faceNum - 1))) > 0 ? 1 : 0);
       stencils[faceCase][0] += stencils[faceCase][faceNum]; // count the faces/stencil edges
@@ -1098,7 +1098,7 @@ void SurfaceNets<T>::GenerateEdgeStencils(int optLevel)
   // Create the basic stencils without optimization. Basically, convert from
   // the 2^12 edge cases to the 2^6 stencil face cases.
   const int numEdgeCases = 4096;
-  for (auto edgeCase = 0; edgeCase < numEdgeCases; ++edgeCase)
+  for (int edgeCase = 0; edgeCase < numEdgeCases; ++edgeCase)
   {
     this->StencilTable[edgeCase] = this->GetFaceCase(edgeCase);
   }
@@ -1117,7 +1117,7 @@ void SurfaceNets<T>::GenerateEdgeStencils(int optLevel)
   // more intersections, then a different smoothing stencil should be associated
   // with the edge case (i.e., the stencil enhanced surface edge smoothing).
   unsigned char faceCount[6]; // the number of edge intersections on each of the voxels' six faces.
-  for (auto edgeCase = 0; edgeCase < numEdgeCases; ++edgeCase)
+  for (int edgeCase = 0; edgeCase < numEdgeCases; ++edgeCase)
   {
     unsigned char maxInts = this->CountFaceIntersections(edgeCase, faceCount);
     if (maxInts <= 2)
@@ -1127,7 +1127,7 @@ void SurfaceNets<T>::GenerateEdgeStencils(int optLevel)
 
     // Recompute the face stencil lookup
     unsigned char faceStencilCase = 0;
-    for (auto i = 0; i < 6; ++i)
+    for (int i = 0; i < 6; ++i)
     {
       if (faceCount[i] > 2) // JunctionFace, contributes to stencil
       {
@@ -1391,7 +1391,7 @@ void SurfaceNets<T>::ConfigureOutput(
 
   // Process the four edges that compose a group in order. The four edges form
   // a 2x2 bundle, in the order (j,k),(j+1,k),(j,k+1),(j+1,k+1).
-  for (auto edgeNum = 0; edgeNum < 4; ++edgeNum)
+  for (int edgeNum = 0; edgeNum < 4; ++edgeNum)
   {
     // Edge groups consist of four neighboring volume x-edges (+/-y,+/-z). Process
     // in interleaving fashion (i.e., checkerboard) to avoid races (ProduceVoxelCases()
@@ -2079,7 +2079,7 @@ struct CopyCellsImpl
     auto connIter = connRange.begin() + (cellId * cellSize);
 
     *offsetIter = static_cast<ValueType>(cellSize * cellId);
-    for (auto i = 0; i < cellSize; ++i)
+    for (int i = 0; i < cellSize; ++i)
     {
       *connIter++ = pts[i];
     }
@@ -2127,7 +2127,7 @@ struct SelectWorker
     {
       std::vector<double> labels;
       labels.reserve(static_cast<size_t>(self->GetNumberOfSelectedLabels()));
-      for (auto i = 0; i < self->GetNumberOfSelectedLabels(); ++i)
+      for (vtkIdType i = 0; i < self->GetNumberOfSelectedLabels(); ++i)
       {
         labels.push_back(self->GetSelectedLabel(i));
       }

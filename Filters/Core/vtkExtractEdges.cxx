@@ -126,7 +126,7 @@ struct ExtractEdges
           {
             vtkIdType numEdges = edgeOffsets[edgeId + 1] - edgeOffsets[edgeId];
             vtkIdType cellId, minCellId = VTK_ID_MAX;
-            for (auto i = 0; i < numEdges; ++i)
+            for (vtkIdType i = 0; i < numEdges; ++i)
             {
               const EdgeTupleType& edge = edges[edgeOffsets[edgeId] + i];
               cellId = edge.Data;
@@ -200,7 +200,7 @@ struct ExtractPolyDataEdges : public ExtractEdges
     for (; linesId < endLinesId; ++linesId)
     {
       linesIter->GetCellAtId(linesId, npts, pts);
-      for (auto i = 0; i < (npts - 1); ++i)
+      for (vtkIdType i = 0; i < (npts - 1); ++i)
       {
         vtkIdType v0 = pts[i];
         vtkIdType v1 = pts[i + 1];
@@ -214,7 +214,7 @@ struct ExtractPolyDataEdges : public ExtractEdges
     for (; polysId < endPolysId; ++polysId)
     {
       polysIter->GetCellAtId(polysId, npts, pts);
-      for (auto i = 0; i < npts; ++i)
+      for (vtkIdType i = 0; i < npts; ++i)
       {
         vtkIdType v0 = pts[i];
         vtkIdType v1 = pts[(i + 1) % npts];
@@ -231,7 +231,7 @@ struct ExtractPolyDataEdges : public ExtractEdges
       vtkIdType v0 = pts[0];
       vtkIdType v1 = pts[1];
       vtkIdType v2;
-      for (auto i = 0; i < (npts - 2); ++i)
+      for (vtkIdType i = 0; i < (npts - 2); ++i)
       {
         v2 = pts[i + 1];
         edges.emplace_back(v0, v1, stripsId);

@@ -36,7 +36,7 @@ void RunTest(bool use64BitStorage)
   // Insert
   num = 0;
   timer->StartTimer();
-  for (auto i = 0; i < numTris; ++i)
+  for (vtkIdType i = 0; i < numTris; ++i)
   {
     ca->InsertNextCell(3, tri);
     ++num;
@@ -62,7 +62,7 @@ void RunTest(bool use64BitStorage)
   num = 0;
   timer->StartTimer();
   vtkIdType numCells = ca->GetNumberOfCells();
-  for (auto cellId = 0; cellId < numCells; ++cellId)
+  for (vtkIdType cellId = 0; cellId < numCells; ++cellId)
   {
     ca->GetCellAtId(cellId, npts, pts);
     assert(npts == 3);

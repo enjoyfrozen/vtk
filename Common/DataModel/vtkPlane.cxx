@@ -474,14 +474,14 @@ struct ComputeCovariance
     for (auto itr = this->Sum.begin(); itr != iEnd; ++itr)
     {
       double* sum = (*itr).data();
-      for (auto i = 0; i < 6; ++i)
+      for (int i = 0; i < 6; ++i)
       {
         cov[i] += sum[i];
       }
     }
 
     vtkIdType npts = this->Points->GetNumberOfPoints();
-    for (auto i = 0; i < 6; ++i)
+    for (int i = 0; i < 6; ++i)
     {
       this->Covariance[i] = cov[i] / npts;
     }

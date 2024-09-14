@@ -205,7 +205,7 @@ using PointMap = std::vector<vtkIdType>;
 template <typename SType>
 void MarkUses(vtkIdType numIds, SType* connArray, PointMap& ptMap)
 {
-  for (auto i = 0; i < numIds; ++i)
+  for (vtkIdType i = 0; i < numIds; ++i)
   {
     ptMap[connArray->GetValue(i)] = 1;
   }
@@ -230,7 +230,7 @@ void MarkPointUses(vtkCellArray* ca, vtkIdType numConn, PointMap& ptMap)
 template <typename SType>
 void UpdateUses(vtkIdType numIds, SType* connArray, PointMap& ptMap)
 {
-  for (auto i = 0; i < numIds; ++i)
+  for (vtkIdType i = 0; i < numIds; ++i)
   {
     connArray->SetValue(i, ptMap[connArray->GetValue(i)]);
   }
@@ -280,7 +280,7 @@ void CleanOutputPoints(vtkPolyData* output)
   // Renumber points / build the point map
   vtkNew<vtkPoints> newPts;
   vtkIdType newId;
-  for (auto pId = 0; pId < numPts; ++pId)
+  for (vtkIdType pId = 0; pId < numPts; ++pId)
   {
     if (ptMap[pId] != 0)
     {

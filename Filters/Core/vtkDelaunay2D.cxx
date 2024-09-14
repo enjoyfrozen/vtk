@@ -516,7 +516,7 @@ int vtkDelaunay2D::RequestData(vtkInformation* vtkNotUsed(request),
   // traversed in given order, or pseudo-random order.
   //
   GCDTraversal gcdIter(numPoints);
-  for (auto idx = 0; idx < numPoints; idx++)
+  for (vtkIdType idx = 0; idx < numPoints; idx++)
   {
     ptId = (this->RandomPointInsertion ? gcdIter.GetPointId(idx) : idx);
     this->GetPoint(ptId, x);

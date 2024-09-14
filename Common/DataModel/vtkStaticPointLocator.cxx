@@ -708,7 +708,7 @@ struct BucketList : public vtkBucketList
         vtkIdType numIds = nearby->GetNumberOfIds();
         if (numIds > 0)
         {
-          for (auto i = 0; i < numIds; ++i)
+          for (vtkIdType i = 0; i < numIds; ++i)
           {
             vtkIdType nearId = nearby->GetId(i);
             if (mergeMap[nearId] < 0)
@@ -796,7 +796,7 @@ struct BucketList : public vtkBucketList
       // Determine how many blocks there are in the locater, and determine the
       // dimensions of the blocks.
       this->NumBlocks = 1;
-      for (auto i = 0; i < 3; ++i)
+      for (int i = 0; i < 3; ++i)
       {
         double numBlocks =
           static_cast<double>(bl->Divisions[i]) / static_cast<double>(this->CheckerboardDimension);
@@ -828,7 +828,7 @@ struct BucketList : public vtkBucketList
       // Combine the block index with the checkerboard index. Make sure that
       // we are still inside the locator bins (partial blocks may exist at
       // the boundary). Recall that the blocks are composed of d^3 bins.
-      for (auto i = 0; i < 3; ++i)
+      for (int i = 0; i < 3; ++i)
       {
         ijk[i] = ijk[i] * this->CheckerboardDimension + cIdx[i];
         if (ijk[i] >= this->BList->Divisions[i])
@@ -856,7 +856,7 @@ struct BucketList : public vtkBucketList
         if (bin >= 0 && (numIds = this->BList->GetNumberOfIds(bin)) > 0)
         {
           const LocatorTuple<TIds>* ids = this->BList->GetIds(bin);
-          for (auto i = 0; i < numIds; ++i)
+          for (vtkIdType i = 0; i < numIds; ++i)
           {
             vtkIdType ptId = ids[i].PtId;
             vtkIdList*& nearby = this->PIds.Local();
@@ -919,7 +919,7 @@ struct BucketList : public vtkBucketList
 
     bool TuplesEqual(int tupleSize, double* t1, double* t2)
     {
-      for (auto i = 0; i < tupleSize; ++i)
+      for (int i = 0; i < tupleSize; ++i)
       {
         if (t1[i] != t2[i])
         {

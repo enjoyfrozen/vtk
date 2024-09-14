@@ -169,7 +169,7 @@ bool CellIntersectsPlane(
   vtkIdType npts, const vtkIdType* cell, const std::vector<unsigned char>& ptMap)
 {
   bool belowPlane = false, abovePlane = false;
-  for (auto i = 0; i < npts; ++i)
+  for (vtkIdType i = 0; i < npts; ++i)
   {
     unsigned char val = ptMap[cell[i]];
     if (val > 0)
@@ -385,7 +385,8 @@ struct ExtractLines
         {
           cellIter->GetCellAtId(cellId, npts, cell);
           vtkIdType numEdgeCuts = 0;
-          for (auto i = 0; i < npts && numEdgeCuts < 2; ++i) // loop over all cell points and edges
+          for (vtkIdType i = 0; i < npts && numEdgeCuts < 2;
+               ++i) // loop over all cell points and edges
           {
             vtkIdType ptId = cell[i];
             vtkIdType nextId = cell[(i + 1) % npts];
@@ -466,7 +467,7 @@ struct OutputLines
 
           vtkIdType numEdges = offsets[newPtId + 1] - offsets[newPtId];
           vtkIdType updatedId = newPtId;
-          for (auto i = 0; i < numEdges; ++i)
+          for (vtkIdType i = 0; i < numEdges; ++i)
           {
             edge = edges + offsets[newPtId] + i;
             linesConn[edge->Data.LIdx] = updatedId;
