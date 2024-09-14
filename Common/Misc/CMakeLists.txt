@@ -5,7 +5,9 @@ set(classes
   vtkFunctionParser
   vtkHeap
   vtkPolygonBuilder
-  vtkResourceFileLocator)
+  vtkResourceFileLocator
+  vtkSparkline
+)
 
 # ExprTk uses lots of templates and exceeds object file limits
 if (MINGW AND NOT ANDROID) # MINGW is set when cross-compiling for ANDROID, see issue https://gitlab.kitware.com/cmake/cmake/-/issues/22647
