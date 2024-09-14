@@ -9,7 +9,7 @@
 // cppcheck --project=compile_commands.json --platform=unspecified --enable=style -q --library=qt --library=posix --library=gnu --library=bsd --library=windows --check-level=exhaustive --suppressions-list=../VTK/CMake/VTKcppcheckSuppressions.txt --template='{id},{file}:{line},{severity},{message}' -j8
 
 // Suppress everything from ThirdParty.
-*:*/ThirdParty/*
+*:*ThirdParty/*
 *:*H5*
 
 // Similarly, these aren't really part of VTK proper.

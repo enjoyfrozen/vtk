@@ -153,12 +153,11 @@ static int vtkWrapSerDes_IsAllowable(const HierarchyInfo* hinfo, const FunctionI
 void vtkWrapSerDes_WriteBitField(FILE* fp, unsigned int methodBitfield)
 {
   unsigned int i;
-  unsigned int methodType;
   int first = 1;
   fprintf(fp, "methBitflags=");
   for (i = 0; i < 32; i++)
   {
-    methodType = methodBitfield & (1U << i);
+    unsigned int methodType = methodBitfield & (1U << i);
     if (methodType)
     {
       if ((methodType & VTK_METHOD_SET_CLAMP) != 0 &&
@@ -260,7 +259,6 @@ int vtkWrapSerDes_WritePropertySerializer(FILE* fp, const ClassInfo* classInfo,
     return 0;
   }
 
-  int i = 0;
   const int isMappedProperty = functionInfo->MarshalPropertyName != NULL;
   const int isRHSGetter = vtkWrapSerDes_MethodTypeMatches(methodType, VTK_METHOD_GET_RHS);
   const int isMultiGetter = vtkWrapSerDes_MethodTypeMatches(methodType, VTK_METHOD_GET_MULTI);
@@ -298,7 +296,7 @@ int vtkWrapSerDes_WritePropertySerializer(FILE* fp, const ClassInfo* classInfo,
     fprintf(fp, "  {\n");
     fprintf(fp, "    std::vector<%s> values(%d);\n", propertyInfo->ClassName, propertyInfo->Count);
     fprintf(fp, "    object->%s(values[0]", getterName);
-    for (i = 1; i < propertyInfo->Count; ++i)
+    for (int i = 1; i < propertyInfo->Count; ++i)
     {
       fprintf(fp, ", values[%d]", i);
     }
@@ -445,7 +443,7 @@ int vtkWrapSerDes_WritePropertySerializer(FILE* fp, const ClassInfo* classInfo,
   }
   else if (isStdVector)
   {
-    char* arg = vtkWrap_TemplateArg(propertyInfo->ClassName);
+    const char* arg = vtkWrap_TemplateArg(propertyInfo->ClassName);
     size_t n;
     ValueInfo* element = (ValueInfo*)calloc(1, sizeof(ValueInfo));
     size_t l = vtkParse_BasicTypeFromString(arg, &(element->Type), &(element->Class), &n);
@@ -738,7 +736,7 @@ int vtkWrapSerDes_WritePropertyDeserializer(FILE* fp, const ClassInfo* classInfo
   }
   else if (isStdVector)
   {
-    char* arg = vtkWrap_TemplateArg(val->Class);
+    const char* arg = vtkWrap_TemplateArg(val->Class);
     size_t n;
     ValueInfo* element = (ValueInfo*)calloc(1, sizeof(ValueInfo));
     size_t l = vtkParse_BasicTypeFromString(arg, &(element->Type), &(element->Class), &n);
@@ -777,14 +775,13 @@ void vtkWrapSerDes_Properties(
 {
   ClassProperties* properties = vtkParseProperties_Create(classInfo, hinfo);
   int i = 0, j = 0;
-  unsigned int methodType = 0;
   FunctionInfo* theFunc = NULL;
   PropertyInfo* theProp = NULL;
   int* isWritten = calloc(properties->NumberOfProperties, sizeof(int));
   for (i = 0; i < classInfo->NumberOfFunctions; ++i)
   {
     theFunc = classInfo->Functions[i];
-    methodType = properties->MethodTypes[i];
+    unsigned int methodType = properties->MethodTypes[i];
     /* Ignore inaccessible methods*/
     if (!theFunc->IsPublic)
     {
@@ -796,7 +793,7 @@ void vtkWrapSerDes_Properties(
       continue;
     }
     /* Is this method associated with a property? */
-    if (properties && properties->MethodHasProperty[i])
+    if (properties->MethodHasProperty[i])
     {
       /* Get the property associated with this method */
       j = properties->MethodProperties[i];

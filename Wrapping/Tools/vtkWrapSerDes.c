@@ -23,12 +23,10 @@
 /* Get the header file for the specified class */
 static const char* vtkWrapSerDes_ClassHeader(const HierarchyInfo* hinfo, const char* classname)
 {
-  HierarchyEntry* entry;
-
   /* if "hinfo" is present, use it to find the file */
   if (hinfo)
   {
-    entry = vtkParseHierarchy_FindEntry(hinfo, classname);
+    HierarchyEntry* entry = vtkParseHierarchy_FindEntry(hinfo, classname);
     if (entry)
     {
       return entry->HeaderFile;
@@ -46,7 +44,7 @@ static void vtkWrapSerDes_GenerateSpecialHeaders(
   const char** types;
   int numTypes = 0;
   FunctionInfo* currentFunction;
-  int i, j, k, n, m, ii, nn;
+  int i, j, k, m, ii, nn;
   const char* classname;
   const char* ownincfile = "";
   ClassInfo* data;
@@ -67,7 +65,7 @@ static void vtkWrapSerDes_GenerateSpecialHeaders(
   for (ii = 0; ii < nn; ii++)
   {
     data = file_info->Contents->Classes[ii];
-    n = data->NumberOfFunctions;
+    int n = data->NumberOfFunctions;
     hasDeprecatedEntries |= (data->IsDeprecated);
     for (i = 0; i < n; i++)
     {
@@ -232,26 +230,25 @@ int vtkWrapSerDes_IsEnumWrapped(const HierarchyInfo* hinfo, const char* enumname
 static void vtkWrapSerDes_MarkAllEnums(NamespaceInfo* contents, const HierarchyInfo* hinfo)
 {
   FunctionInfo* currentFunction;
-  int i, j, n, m, ii, nn;
   ClassInfo* data;
   ValueInfo* val;
 
-  nn = contents->NumberOfClasses;
-  for (ii = 0; ii < nn; ii++)
+  int nn = contents->NumberOfClasses;
+  for (int ii = 0; ii < nn; ii++)
   {
     data = contents->Classes[ii];
-    n = data->NumberOfFunctions;
-    for (i = 0; i < n; i++)
+    int n = data->NumberOfFunctions;
+    for (int i = 0; i < n; i++)
     {
       currentFunction = data->Functions[i];
       if (!currentFunction->IsExcluded && currentFunction->Access == VTK_ACCESS_PUBLIC)
       {
         /* we start with the return value */
         val = currentFunction->ReturnValue;
-        m = vtkWrap_CountWrappedParameters(currentFunction);
+        int m = vtkWrap_CountWrappedParameters(currentFunction);
 
         /* the -1 is for the return value */
-        for (j = (val ? -1 : 0); j < m; j++)
+        for (int j = (val ? -1 : 0); j < m; j++)
         {
           if (j >= 0)
           {
@@ -277,11 +274,10 @@ int VTK_PARSE_MAIN(int argc, char* argv[])
   ClassInfo* classInfo = NULL;
   NamespaceInfo* contents = NULL;
   const OptionInfo* options = NULL;
-  HierarchyInfo* hinfo = NULL;
+  const HierarchyInfo* hinfo = NULL;
   FileInfo* file_info = NULL;
   FILE* fp = NULL;
   const char* name = NULL;
-  int i = 0;
   size_t k, m = 0;
   char* name_from_file = NULL;
 
@@ -366,11 +362,11 @@ int VTK_PARSE_MAIN(int argc, char* argv[])
   int exitCode = 0;
   if (hinfo)
   {
-    for (i = 0; i < contents->NumberOfClasses; i++)
+    for (int i = 0; i < contents->NumberOfClasses; i++)
     {
       vtkWrap_MergeSuperClasses(contents->Classes[i], file_info, hinfo);
     }
-    for (i = 0; i < contents->NumberOfClasses; i++)
+    for (int i = 0; i < contents->NumberOfClasses; i++)
     {
       vtkWrap_ExpandTypedefs(contents->Classes[i], file_info, hinfo);
     }
@@ -387,7 +383,7 @@ int VTK_PARSE_MAIN(int argc, char* argv[])
         name);
     }
     /* generate serializers and deserializers */
-    for (i = 0; i < contents->NumberOfClasses; ++i)
+    for (int i = 0; i < contents->NumberOfClasses; ++i)
     {
       classInfo = contents->Classes[i];
       const int isVTKObject = vtkWrap_IsTypeOf(hinfo, classInfo->Name, "vtkObjectBase");
@@ -430,7 +426,7 @@ int VTK_PARSE_MAIN(int argc, char* argv[])
       }
     }
     /* generate handler code for templates/unmarshalled classes */
-    for (i = 0; i < contents->NumberOfClasses; ++i)
+    for (int i = 0; i < contents->NumberOfClasses; ++i)
     {
       classInfo = contents->Classes[i];
       const int isVTKObject = vtkWrap_IsTypeOf(hinfo, classInfo->Name, "vtkObjectBase");

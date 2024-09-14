@@ -23,11 +23,9 @@ int vtkParseMethodType_IsSetNthMethod(const char* name)
 
 int vtkParseMethodType_IsSetNumberOfMethod(const char* name)
 {
-  size_t n;
-
   if (vtkParseMethodType_IsSetMethod(name))
   {
-    n = strlen(name);
+    size_t n = strlen(name);
     return (!strncmp(&name[3], "NumberOf", 8) && n > 11 && isupper(name[11]) && name[n - 1] == 's');
   }
 
@@ -51,11 +49,9 @@ int vtkParseMethodType_IsGetNthMethod(const char* name)
 
 int vtkParseMethodType_IsGetNumberOfMethod(const char* name)
 {
-  size_t n;
-
   if (vtkParseMethodType_IsGetMethod(name))
   {
-    n = strlen(name);
+    size_t n = strlen(name);
     return (!strncmp(&name[3], "NumberOf", 8) && n > 11 && isupper(name[11]) && name[n - 1] == 's');
   }
 
@@ -64,11 +60,9 @@ int vtkParseMethodType_IsGetNumberOfMethod(const char* name)
 
 int vtkParseMethodType_IsBooleanMethod(const char* name)
 {
-  size_t n;
-
   if (name)
   {
-    n = strlen(name);
+    size_t n = strlen(name);
     if (((n > 2) && !strncmp(&name[n - 2], "On", 2)) ||
       ((n > 3) && !strncmp(&name[n - 3], "Off", 3)))
     {
@@ -81,12 +75,10 @@ int vtkParseMethodType_IsBooleanMethod(const char* name)
 
 int vtkParseMethodType_IsEnumeratedMethod(const char* name)
 {
-  size_t i, n;
-
   if (vtkParseMethodType_IsSetMethod(name))
   {
-    n = strlen(name) - 3;
-    for (i = 3; i < n; i++)
+    size_t n = strlen(name) - 3;
+    for (size_t i = 3; i < n; i++)
     {
       if (!strncmp(&name[i], "To", 2) && (isupper(name[i + 2]) || isdigit(name[i + 2])))
       {
@@ -100,11 +92,9 @@ int vtkParseMethodType_IsEnumeratedMethod(const char* name)
 
 int vtkParseMethodType_IsAsStringMethod(const char* name)
 {
-  size_t n;
-
   if (vtkParseMethodType_IsGetMethod(name))
   {
-    n = strlen(name);
+    size_t n = strlen(name);
     if (!strncmp(&name[n - 8], "AsString", 8))
     {
       return 1;
@@ -128,11 +118,9 @@ int vtkParseMethodType_IsRemoveMethod(const char* name)
 
 int vtkParseMethodType_IsRemoveAllMethod(const char* name)
 {
-  size_t n;
-
   if (vtkParseMethodType_IsRemoveMethod(name))
   {
-    n = strlen(name);
+    size_t n = strlen(name);
     return (!strncmp(&name[6], "All", 3) && (n > 9) && isupper(name[9]));
   }
 
@@ -141,11 +129,9 @@ int vtkParseMethodType_IsRemoveAllMethod(const char* name)
 
 int vtkParseMethodType_IsGetMinValueMethod(const char* name)
 {
-  size_t n;
-
   if (vtkParseMethodType_IsGetMethod(name))
   {
-    n = strlen(name);
+    size_t n = strlen(name);
     if (n > 11 && strncmp("MinValue", &name[n - 8], 8) == 0)
     {
       return 1;
@@ -157,11 +143,9 @@ int vtkParseMethodType_IsGetMinValueMethod(const char* name)
 
 int vtkParseMethodType_IsGetMaxValueMethod(const char* name)
 {
-  size_t n;
-
   if (vtkParseMethodType_IsGetMethod(name))
   {
-    n = strlen(name);
+    size_t n = strlen(name);
     if (n > 11 && strncmp("MaxValue", &name[n - 8], 8) == 0)
     {
       return 1;

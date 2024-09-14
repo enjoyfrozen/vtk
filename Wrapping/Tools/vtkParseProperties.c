@@ -60,11 +60,9 @@ static int isSetNthMethod(const char* name)
 
 static int isSetNumberOfMethod(const char* name)
 {
-  size_t n;
-
   if (isSetMethod(name))
   {
-    n = strlen(name);
+    size_t n = strlen(name);
     return (!strncmp(&name[3], "NumberOf", 8) && n > 11 && isupper(name[11]) && name[n - 1] == 's');
   }
 
@@ -88,11 +86,9 @@ static int isGetNthMethod(const char* name)
 
 static int isGetNumberOfMethod(const char* name)
 {
-  size_t n;
-
   if (isGetMethod(name))
   {
-    n = strlen(name);
+    size_t n = strlen(name);
     return (!strncmp(&name[3], "NumberOf", 8) && n > 11 && isupper(name[11]) && name[n - 1] == 's');
   }
 
@@ -101,11 +97,9 @@ static int isGetNumberOfMethod(const char* name)
 
 static int isBooleanMethod(const char* name)
 {
-  size_t n;
-
   if (name)
   {
-    n = strlen(name);
+    size_t n = strlen(name);
     if (((n > 2) && !strncmp(&name[n - 2], "On", 2)) ||
       ((n > 3) && !strncmp(&name[n - 3], "Off", 3)))
     {
@@ -118,12 +112,10 @@ static int isBooleanMethod(const char* name)
 
 static int isEnumeratedMethod(const char* name)
 {
-  size_t i, n;
-
   if (isSetMethod(name))
   {
-    n = strlen(name) - 3;
-    for (i = 3; i < n; i++)
+    size_t n = strlen(name) - 3;
+    for (size_t i = 3; i < n; i++)
     {
       if (!strncmp(&name[i], "To", 2) && (isupper(name[i + 2]) || isdigit(name[i + 2])))
       {
@@ -137,11 +129,9 @@ static int isEnumeratedMethod(const char* name)
 
 static int isAsStringMethod(const char* name)
 {
-  size_t n;
-
   if (isGetMethod(name))
   {
-    n = strlen(name);
+    size_t n = strlen(name);
     if (!strncmp(&name[n - 8], "AsString", 8))
     {
       return 1;
@@ -165,11 +155,9 @@ static int isRemoveMethod(const char* name)
 
 static int isRemoveAllMethod(const char* name)
 {
-  size_t n;
-
   if (isRemoveMethod(name))
   {
-    n = strlen(name);
+    size_t n = strlen(name);
     return (!strncmp(&name[6], "All", 3) && (n > 9) && isupper(name[9]));
   }
 
@@ -178,11 +166,9 @@ static int isRemoveAllMethod(const char* name)
 
 static int isGetMinValueMethod(const char* name)
 {
-  size_t n;
-
   if (isGetMethod(name))
   {
-    n = strlen(name);
+    size_t n = strlen(name);
     if (n > 11 && strncmp("MinValue", &name[n - 8], 8) == 0)
     {
       return 1;
@@ -194,11 +180,9 @@ static int isGetMinValueMethod(const char* name)
 
 static int isGetMaxValueMethod(const char* name)
 {
-  size_t n;
-
   if (isGetMethod(name))
   {
-    n = strlen(name);
+    size_t n = strlen(name);
     if (n > 11 && strncmp("MaxValue", &name[n - 8], 8) == 0)
     {
       return 1;
@@ -214,9 +198,8 @@ static int isGetMaxValueMethod(const char* name)
  * If shortForm in on, then suffixes such as On, Off, AsString,
  * and ToSomething are considered while doing the categorization */
 
-static unsigned int methodCategory(MethodAttributes* meth, int shortForm)
+static unsigned int methodCategory(const MethodAttributes* meth, int shortForm)
 {
-  size_t n;
   const char* name;
   name = meth->Name;
 
@@ -252,7 +235,7 @@ static unsigned int methodCategory(MethodAttributes* meth, int shortForm)
   }
   else if (meth->IsBoolean)
   {
-    n = strlen(name);
+    size_t n = strlen(name);
     if (name[n - 1] == 'n')
     {
       return VTK_METHOD_BOOL_ON;
@@ -467,9 +450,6 @@ static int isIntegral(const ValueInfo* val)
 static int getMethodAttributes(FunctionInfo* func, MethodAttributes* attrs)
 {
   int i, n;
-  unsigned int tmptype = 0;
-  const char* tmpclass = 0;
-  int allSame = 0;
   int indexed = 0;
 
   attrs->Name = func->Name;
@@ -517,9 +497,8 @@ static int getMethodAttributes(FunctionInfo* func, MethodAttributes* attrs)
       if (!isSetNumberOfMethod(func->Name))
       {
         /* make sure this isn't a multi-value int method */
-        tmptype = func->Parameters[0]->Type;
-        tmpclass = func->Parameters[0]->Class;
-        allSame = 1;
+        unsigned int tmptype = func->Parameters[0]->Type;
+        int allSame = 1;
 
         n = func->NumberOfParameters;
         for (i = 0; i < n; i++)
@@ -628,9 +607,9 @@ static int getMethodAttributes(FunctionInfo* func, MethodAttributes* attrs)
   /* check for multiple arguments of the same type */
   if (func->NumberOfParameters > 1 && !indexed)
   {
-    tmptype = func->Parameters[0]->Type;
-    tmpclass = func->Parameters[0]->Class;
-    allSame = 1;
+    unsigned int tmptype = func->Parameters[0]->Type;
+    const char* tmpclass = func->Parameters[0]->Class;
+    int allSame = 1;
 
     n = func->NumberOfParameters;
     for (i = 0; i < n; i++)
@@ -729,7 +708,7 @@ static int getMethodAttributes(FunctionInfo* func, MethodAttributes* attrs)
  * was part of the name match. */
 
 static int methodMatchesProperty(
-  const HierarchyInfo* hinfo, PropertyInfo* property, MethodAttributes* meth, int* longMatch)
+  const HierarchyInfo* hinfo, const PropertyInfo* property, MethodAttributes* meth, int* longMatch)
 {
   size_t n;
   int propertyType, methType;
@@ -907,7 +886,7 @@ static int methodMatchesProperty(
   /* if vtkObject, check that classes match or atleast one is derived from the other */
   if ((methType & VTK_PARSE_BASE_TYPE) == VTK_PARSE_OBJECT)
   {
-    HierarchyEntry* methEntry = vtkParseHierarchy_FindEntry(hinfo, meth->ClassName);
+    const HierarchyEntry* methEntry = vtkParseHierarchy_FindEntry(hinfo, meth->ClassName);
     if (meth->IsMultiValue || (methType & VTK_PARSE_POINTER_MASK) == 0 || meth->Count != 0 ||
       meth->ClassName == 0 || property->ClassName == 0 ||
       (strcmp(meth->ClassName, property->ClassName) != 0 &&
@@ -927,18 +906,15 @@ static int methodMatchesProperty(
  * On/Off, AsString, ToSomething, RemoveAllSomethings, etc. */
 
 static void initializePropertyInfo(
-  PropertyInfo* property, MethodAttributes* meth, unsigned int methodBit)
+  PropertyInfo* property, const MethodAttributes* meth, unsigned int methodBit)
 {
   unsigned int type;
-  const char* typeClass;
   type = meth->Type;
-  typeClass = meth->ClassName;
 
   /* for ValueOn()/Off() or SetValueToEnum() methods, set type to int */
   if (meth->IsBoolean || meth->IsEnumerated)
   {
     type = VTK_PARSE_INT;
-    typeClass = "int";
   }
 
   property->Name = nameWithoutPrefix(meth->Name);
@@ -946,7 +922,6 @@ static void initializePropertyInfo(
   /* get property type, but don't include "ref" as part of type,
    * and use a pointer if the method is multi-valued */
   property->Type = (type & VTK_PARSE_BASE_TYPE);
-  property->ClassName = typeClass;
   if ((!meth->IsMultiValue && (type & VTK_PARSE_POINTER_MASK) == VTK_PARSE_POINTER) ||
     (meth->IsMultiValue && (type & VTK_PARSE_POINTER_MASK) == 0))
   {
@@ -1102,14 +1077,13 @@ static int searchForRepeatedMethods(
 {
   int i, n;
   MethodAttributes* attrs;
-  MethodAttributes* meth;
   n = methods->NumberOfMethods;
 
   attrs = methods->Methods[j];
 
   for (i = 0; i < n; i++)
   {
-    meth = methods->Methods[i];
+    MethodAttributes* meth = methods->Methods[i];
 
     /* check whether the function name and basic structure are matched */
     if (meth->Name && strcmp(attrs->Name, meth->Name) == 0 &&
@@ -1169,7 +1143,7 @@ static int searchForRepeatedMethods(
 static void addProperty(const HierarchyInfo* hinfo, ClassProperties* properties,
   ClassPropertyMethods* methods, int i, int matchedMethods[])
 {
-  MethodAttributes* meth = methods->Methods[i];
+  const MethodAttributes* meth = methods->Methods[i];
   PropertyInfo* property;
   unsigned int category;
 
@@ -1278,18 +1252,14 @@ static void categorizeProperties(
 
 static void categorizePropertyMethods(ClassInfo* data, ClassPropertyMethods* methods)
 {
-  int i, n;
-  FunctionInfo* func;
-  MethodAttributes* attrs;
-
   methods->NumberOfMethods = 0;
 
   /* build up the ClassPropertyMethods struct */
-  n = data->NumberOfFunctions;
-  for (i = 0; i < n; i++)
+  int n = data->NumberOfFunctions;
+  for (int i = 0; i < n; i++)
   {
-    func = data->Functions[i];
-    attrs = (MethodAttributes*)malloc(sizeof(MethodAttributes));
+    FunctionInfo* func = data->Functions[i];
+    MethodAttributes* attrs = (MethodAttributes*)malloc(sizeof(MethodAttributes));
     methods->Methods[methods->NumberOfMethods++] = attrs;
 
     /* copy the func into a MethodAttributes struct if possible */
