@@ -7,6 +7,8 @@
 #include "vtkImageData.h"
 #include "vtkImageInterpolatorInternals.h"
 #include "vtkMath.h"
+#include "vtkMatrix3x3.h"
+#include "vtkMatrix4x4.h"
 #include "vtkObjectFactory.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
 #include "vtkTrivialProducer.h"
@@ -26,6 +28,9 @@ public:
 };
 
 vtkStandardNewMacro(vtkGridTransformConnectionHolder);
+
+namespace
+{
 
 //------------------------------------------------------------------------------
 // Nearest-neighbor interpolation of a displacement grid.
@@ -665,6 +670,58 @@ static void vtkTricubicInterpolation(double point[3], double displacement[3],
 }
 
 //------------------------------------------------------------------------------
+// Transformations to handle orientation of grid
+
+inline void vtkMultiplyPoint(
+  const double M4[12], const double pIn[3], double pOut[3], bool isRotated)
+{
+  if (isRotated)
+  {
+    double x = M4[0] * pIn[0] + M4[1] * pIn[1] + M4[2] * pIn[2] + M4[3];
+    double y = M4[4] * pIn[0] + M4[5] * pIn[1] + M4[6] * pIn[2] + M4[7];
+    double z = M4[8] * pIn[0] + M4[9] * pIn[1] + M4[10] * pIn[2] + M4[11];
+    pOut[0] = x;
+    pOut[1] = y;
+    pOut[2] = z;
+  }
+  else
+  {
+    pOut[0] = pIn[0] * M4[0] + M4[3];
+    pOut[1] = pIn[1] * M4[5] + M4[7];
+    pOut[2] = pIn[2] * M4[10] + M4[11];
+  }
+}
+
+inline void vtkMultiplyDerivative(const double M4[12], double M3[3][3], bool isRotated)
+{
+  // apply transposed 3x3 portion of first matrix to rows of second matrix,
+  // (the rows of M3 are covariant vectors that we transform to a new basis)
+  if (isRotated)
+  {
+    for (int i = 0; i < 3; i++)
+    {
+      double x = M4[0] * M3[i][0] + M4[4] * M3[i][1] + M4[8] * M3[i][2];
+      double y = M4[1] * M3[i][0] + M4[5] * M3[i][1] + M4[9] * M3[i][2];
+      double z = M4[2] * M3[i][0] + M4[6] * M3[i][1] + M4[10] * M3[i][2];
+      M3[i][0] = x;
+      M3[i][1] = y;
+      M3[i][2] = z;
+    }
+  }
+  else
+  {
+    for (int i = 0; i < 3; i++)
+    {
+      M3[i][0] *= M4[0];
+      M3[i][1] *= M4[5];
+      M3[i][2] *= M4[10];
+    }
+  }
+}
+
+} // end anonymous namespace
+
+//------------------------------------------------------------------------------
 vtkGridTransform::vtkGridTransform()
 {
   this->InterpolationMode = VTK_LINEAR_INTERPOLATION;
@@ -754,8 +811,6 @@ void vtkGridTransform::ForwardTransformPoint(const double inPoint[3], double out
   void* gridPtr = this->GridPointer;
   int gridType = this->GridScalarType;
 
-  double* spacing = this->GridSpacing;
-  double* origin = this->GridOrigin;
   int* extent = this->GridExtent;
   vtkIdType* increments = this->GridIncrements;
 
@@ -765,11 +820,8 @@ void vtkGridTransform::ForwardTransformPoint(const double inPoint[3], double out
   double point[3];
   double displacement[3];
 
-  // Convert the inPoint to i,j,k indices into the deformation grid
-  // plus fractions
-  point[0] = (inPoint[0] - origin[0]) / spacing[0];
-  point[1] = (inPoint[1] - origin[1]) / spacing[1];
-  point[2] = (inPoint[2] - origin[2]) / spacing[2];
+  // convert the inPoint to the i,j,k indices of the deformation grid
+  vtkMultiplyPoint(this->GridPointToIndex, inPoint, point, this->GridIsRotated);
 
   this->InterpolationFunction(point, displacement, nullptr, gridPtr, gridType, extent, increments);
 
@@ -812,8 +864,6 @@ void vtkGridTransform::ForwardTransformDerivative(
   void* gridPtr = this->GridPointer;
   int gridType = this->GridScalarType;
 
-  double* spacing = this->GridSpacing;
-  double* origin = this->GridOrigin;
   int* extent = this->GridExtent;
   vtkIdType* increments = this->GridIncrements;
 
@@ -823,19 +873,20 @@ void vtkGridTransform::ForwardTransformDerivative(
   double point[3];
   double displacement[3];
 
-  // convert the inPoint to i,j,k indices plus fractions
-  point[0] = (inPoint[0] - origin[0]) / spacing[0];
-  point[1] = (inPoint[1] - origin[1]) / spacing[1];
-  point[2] = (inPoint[2] - origin[2]) / spacing[2];
+  // convert the inPoint to the i,j,k indices of the deformation grid
+  vtkMultiplyPoint(this->GridPointToIndex, inPoint, point, this->GridIsRotated);
 
   this->InterpolationFunction(
     point, displacement, derivative, gridPtr, gridType, extent, increments);
 
+  // apply transpose of PointToIndex matrix to rows of derivative matrix
+  vtkMultiplyDerivative(this->GridPointToIndex, derivative, this->GridIsRotated);
+
   for (int i = 0; i < 3; i++)
   {
-    derivative[i][0] = derivative[i][0] * scale / spacing[0];
-    derivative[i][1] = derivative[i][1] * scale / spacing[1];
-    derivative[i][2] = derivative[i][2] * scale / spacing[2];
+    derivative[i][0] *= scale;
+    derivative[i][1] *= scale;
+    derivative[i][2] *= scale;
     derivative[i][i] += 1.0;
   }
 
@@ -886,20 +937,14 @@ void vtkGridTransform::InverseTransformDerivative(
   void* gridPtr = this->GridPointer;
   int gridType = this->GridScalarType;
 
-  double* spacing = this->GridSpacing;
-  double* origin = this->GridOrigin;
   int* extent = this->GridExtent;
   vtkIdType* increments = this->GridIncrements;
-
-  double invSpacing[3];
-  invSpacing[0] = 1.0 / spacing[0];
-  invSpacing[1] = 1.0 / spacing[1];
-  invSpacing[2] = 1.0 / spacing[2];
 
   double shift = this->DisplacementShift;
   double scale = this->DisplacementScale;
 
-  double point[3], inverse[3], lastInverse[3];
+  double ijkPoint[3];
+  double inverse[3], lastInverse[3];
   double deltaP[3], deltaI[3];
 
   double functionValue = 0;
@@ -914,17 +959,15 @@ void vtkGridTransform::InverseTransformDerivative(
   double a;
 
   // convert the inPoint to i,j,k indices plus fractions
-  point[0] = (inPoint[0] - origin[0]) * invSpacing[0];
-  point[1] = (inPoint[1] - origin[1]) * invSpacing[1];
-  point[2] = (inPoint[2] - origin[2]) * invSpacing[2];
+  vtkMultiplyPoint(this->GridPointToIndex, inPoint, ijkPoint, this->GridIsRotated);
 
   // first guess at inverse point, just subtract displacement
-  // (the inverse point is given in i,j,k indices plus fractions)
-  this->InterpolationFunction(point, deltaP, nullptr, gridPtr, gridType, extent, increments);
+  this->InterpolationFunction(ijkPoint, deltaP, nullptr, gridPtr, gridType, extent, increments);
 
-  inverse[0] = point[0] - (deltaP[0] * scale + shift) * invSpacing[0];
-  inverse[1] = point[1] - (deltaP[1] * scale + shift) * invSpacing[1];
-  inverse[2] = point[2] - (deltaP[2] * scale + shift) * invSpacing[2];
+  inverse[0] = inPoint[0] - (deltaP[0] * scale + shift);
+  inverse[1] = inPoint[1] - (deltaP[1] * scale + shift);
+  inverse[2] = inPoint[2] - (deltaP[2] * scale + shift);
+
   lastInverse[0] = inverse[0];
   lastInverse[1] = inverse[1];
   lastInverse[2] = inverse[2];
@@ -935,19 +978,25 @@ void vtkGridTransform::InverseTransformDerivative(
 
   for (i = 0; i < n; i++)
   {
-    this->InterpolationFunction(inverse, deltaP, derivative, gridPtr, gridType, extent, increments);
+    // convert point to IJK and then interpolate the grid
+    vtkMultiplyPoint(this->GridPointToIndex, inverse, ijkPoint, this->GridIsRotated);
+
+    this->InterpolationFunction(
+      ijkPoint, deltaP, derivative, gridPtr, gridType, extent, increments);
 
     // convert displacement
-    deltaP[0] = (inverse[0] - point[0]) * spacing[0] + deltaP[0] * scale + shift;
-    deltaP[1] = (inverse[1] - point[1]) * spacing[1] + deltaP[1] * scale + shift;
-    deltaP[2] = (inverse[2] - point[2]) * spacing[2] + deltaP[2] * scale + shift;
+    deltaP[0] = (inverse[0] - inPoint[0]) + deltaP[0] * scale + shift;
+    deltaP[1] = (inverse[1] - inPoint[1]) + deltaP[1] * scale + shift;
+    deltaP[2] = (inverse[2] - inPoint[2]) + deltaP[2] * scale + shift;
 
     // convert derivative
+    vtkMultiplyDerivative(this->GridPointToIndex, derivative, this->GridIsRotated);
+
     for (j = 0; j < 3; j++)
     {
-      derivative[j][0] = derivative[j][0] * scale * invSpacing[0];
-      derivative[j][1] = derivative[j][1] * scale * invSpacing[1];
-      derivative[j][2] = derivative[j][2] * scale * invSpacing[2];
+      derivative[j][0] *= scale;
+      derivative[j][1] *= scale;
+      derivative[j][2] *= scale;
       derivative[j][j] += 1.0;
     }
 
@@ -986,9 +1035,9 @@ void vtkGridTransform::InverseTransformDerivative(
         2;
 
       // calculate new inverse point
-      inverse[0] -= deltaI[0] * invSpacing[0];
-      inverse[1] -= deltaI[1] * invSpacing[1];
-      inverse[2] -= deltaI[2] * invSpacing[2];
+      inverse[0] -= deltaI[0];
+      inverse[1] -= deltaI[1];
+      inverse[2] -= deltaI[2];
 
       // reset f to 1.0
       f = 1.0;
@@ -1007,9 +1056,9 @@ void vtkGridTransform::InverseTransformDerivative(
     f *= (a < 0.1 ? 0.1 : (a > 0.5 ? 0.5 : a));
 
     // re-calculate inverse using fractional distance
-    inverse[0] = lastInverse[0] - f * deltaI[0] * invSpacing[0];
-    inverse[1] = lastInverse[1] - f * deltaI[1] * invSpacing[1];
-    inverse[2] = lastInverse[2] - f * deltaI[2] * invSpacing[2];
+    inverse[0] = lastInverse[0] - f * deltaI[0];
+    inverse[1] = lastInverse[1] - f * deltaI[1];
+    inverse[2] = lastInverse[2] - f * deltaI[2];
   }
 
   vtkDebugMacro("Inverse Iterations: " << (i + 1));
@@ -1021,15 +1070,18 @@ void vtkGridTransform::InverseTransformDerivative(
     inverse[1] = lastInverse[1];
     inverse[2] = lastInverse[2];
 
-    vtkWarningMacro("InverseTransformPoint: no convergence ("
-      << inPoint[0] << ", " << inPoint[1] << ", " << inPoint[2]
-      << ") error = " << sqrt(errorSquared) << " after " << i << " iterations.");
+    if (this->IncrementErrorsSinceUpdate() == 1)
+    {
+      vtkWarningMacro("InverseTransformPoint: no convergence ("
+        << inPoint[0] << ", " << inPoint[1] << ", " << inPoint[2]
+        << ") error = " << sqrt(errorSquared) << " after " << i << " iterations.");
+    }
   }
 
-  // convert point
-  outPoint[0] = inverse[0] * spacing[0] + origin[0];
-  outPoint[1] = inverse[1] * spacing[1] + origin[1];
-  outPoint[2] = inverse[2] * spacing[2] + origin[2];
+  // output the solution
+  outPoint[0] = inverse[0];
+  outPoint[1] = inverse[1];
+  outPoint[2] = inverse[2];
 }
 
 //------------------------------------------------------------------------------
@@ -1136,8 +1188,20 @@ void vtkGridTransform::InternalUpdate()
   this->GridPointer = grid->GetScalarPointer();
   this->GridScalarType = grid->GetScalarType();
 
-  grid->GetSpacing(this->GridSpacing);
-  grid->GetOrigin(this->GridOrigin);
+  this->GridIsRotated = false;
+  const double* imageMatrix = grid->GetPhysicalToIndexMatrix()->GetData();
+  for (int i = 0; i < 12; i++)
+  {
+    this->GridPointToIndex[i] = imageMatrix[i];
+    // check if anything but diagonal and last column are nonzero
+    if ((i % 5) != 0 && ((i + 1) % 4) != 0 && imageMatrix[i] != 0.0)
+    {
+      this->GridIsRotated = true;
+    }
+  }
+
+  grid->GetSpacing(this->GridSpacing); // legacy, needed by old subclasses
+  grid->GetOrigin(this->GridOrigin);   // legacy, needed by old subclasses
   grid->GetExtent(this->GridExtent);
   grid->GetIncrements(this->GridIncrements);
 }

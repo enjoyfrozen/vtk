@@ -95,6 +95,7 @@ public:
    * Returns true if this matrix is equal to the identity matrix.
    */
   bool IsIdentity();
+  static bool IsIdentity(const double elements[16]);
 
   /**
    * Matrix Inversion (adapted from Richard Carling in "Graphics Gems,"
@@ -300,12 +301,17 @@ inline void vtkMatrix4x4::SetElement(int i, int j, double value)
 }
 
 //----------------------------------------------------------------------------
-inline bool vtkMatrix4x4::IsIdentity()
+inline bool vtkMatrix4x4::IsIdentity(const double M[16])
 {
-  double* M = *this->Element;
   return M[0] == 1.0 && M[1] == 0.0 && M[2] == 0.0 && M[3] == 0.0 && M[4] == 0.0 && M[5] == 1.0 &&
     M[6] == 0.0 && M[7] == 0.0 && M[8] == 0.0 && M[9] == 0.0 && M[10] == 1.0 && M[11] == 0.0 &&
     M[12] == 0.0 && M[13] == 0.0 && M[14] == 0.0 && M[15] == 1.0;
+}
+
+//----------------------------------------------------------------------------
+inline bool vtkMatrix4x4::IsIdentity()
+{
+  return vtkMatrix4x4::IsIdentity(*this->Element);
 }
 
 VTK_ABI_NAMESPACE_END

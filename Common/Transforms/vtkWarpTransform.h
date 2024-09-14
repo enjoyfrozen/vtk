@@ -15,6 +15,7 @@
 
 #include "vtkAbstractTransform.h"
 #include "vtkCommonTransformsModule.h" // For export macro
+#include "vtkDeprecation.h"            // For deprecation macro
 
 VTK_ABI_NAMESPACE_BEGIN
 class VTKCOMMONTRANSFORMS_EXPORT vtkWarpTransform : public vtkAbstractTransform
@@ -89,34 +90,42 @@ public:
    * Forward/Inverse methods public, is there a decent work around
    * for this sort of thing?)
    */
+  VTK_DEPRECATED_IN_9_4_0("Deprecated internal method, do not use.")
   void TemplateTransformPoint(const float in[3], float out[3])
   {
     this->ForwardTransformPoint(in, out);
   }
+  VTK_DEPRECATED_IN_9_4_0("Deprecated internal method, do not use.")
   void TemplateTransformPoint(const double in[3], double out[3])
   {
     this->ForwardTransformPoint(in, out);
   }
+  VTK_DEPRECATED_IN_9_4_0("Deprecated internal method, do not use.")
   void TemplateTransformPoint(const float in[3], float out[3], float derivative[3][3])
   {
     this->ForwardTransformDerivative(in, out, derivative);
   }
+  VTK_DEPRECATED_IN_9_4_0("Deprecated internal method, do not use.")
   void TemplateTransformPoint(const double in[3], double out[3], double derivative[3][3])
   {
     this->ForwardTransformDerivative(in, out, derivative);
   }
+  VTK_DEPRECATED_IN_9_4_0("Deprecated internal method, do not use.")
   void TemplateTransformInverse(const float in[3], float out[3])
   {
     this->InverseTransformPoint(in, out);
   }
+  VTK_DEPRECATED_IN_9_4_0("Deprecated internal method, do not use.")
   void TemplateTransformInverse(const double in[3], double out[3])
   {
     this->InverseTransformPoint(in, out);
   }
+  VTK_DEPRECATED_IN_9_4_0("Deprecated internal method, do not use.")
   void TemplateTransformInverse(const float in[3], float out[3], float derivative[3][3])
   {
     this->InverseTransformDerivative(in, out, derivative);
   }
+  VTK_DEPRECATED_IN_9_4_0("Deprecated internal method, do not use.")
   void TemplateTransformInverse(const double in[3], double out[3], double derivative[3][3])
   {
     this->InverseTransformDerivative(in, out, derivative);

@@ -157,9 +157,11 @@ public:
    */
   double GetElement(int i, int j) const { return this->Element[i][j]; }
 
-  // Descption:
-  // Returns true if this matrix is equal to the identity matrix.
+  /**
+   *  Returns true if this matrix is equal to the identity matrix.
+   */
   bool IsIdentity();
+  static bool IsIdentity(const double elements[9]);
 
   /**
    * Return a pointer to the first element of the matrix (double[9]).
@@ -196,9 +198,8 @@ inline void vtkMatrix3x3::SetElement(int i, int j, double value)
   }
 }
 
-inline bool vtkMatrix3x3::IsIdentity()
+inline bool vtkMatrix3x3::IsIdentity(const double M[9])
 {
-  double* M = *this->Element;
   if (M[0] == 1.0 && M[4] == 1.0 && M[8] == 1.0 && M[1] == 0.0 && M[2] == 0.0 && M[3] == 0.0 &&
     M[5] == 0.0 && M[6] == 0.0 && M[7] == 0.0)
   {
@@ -208,6 +209,11 @@ inline bool vtkMatrix3x3::IsIdentity()
   {
     return false;
   }
+}
+
+inline bool vtkMatrix3x3::IsIdentity()
+{
+  return vtkMatrix3x3::IsIdentity(*this->Element);
 }
 
 VTK_ABI_NAMESPACE_END
