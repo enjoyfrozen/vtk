@@ -246,10 +246,11 @@ void vtkInteractorStyleTrackballCamera::Rotate()
   int dx = rwi->GetEventPosition()[0] - rwi->GetLastEventPosition()[0];
   int dy = rwi->GetEventPosition()[1] - rwi->GetLastEventPosition()[1];
 
+  double* vp = this->CurrentRenderer->GetViewport();
   const int* size = this->CurrentRenderer->GetRenderWindow()->GetSize();
 
-  double delta_elevation = -20.0 / size[1];
-  double delta_azimuth = -20.0 / size[0];
+  double delta_elevation = -20.0 / ((vp[3] - vp[1]) * size[1]);
+  double delta_azimuth = -20.0 / ((vp[2] - vp[0]) * size[0]);
 
   double rxf = dx * delta_azimuth * this->MotionFactor;
   double ryf = dy * delta_elevation * this->MotionFactor;
@@ -404,7 +405,10 @@ void vtkInteractorStyleTrackballCamera::EnvironmentRotate()
   vtkRenderWindowInteractor* rwi = this->Interactor;
 
   int dx = rwi->GetEventPosition()[0] - rwi->GetLastEventPosition()[0];
-  int sizeX = this->CurrentRenderer->GetRenderWindow()->GetSize()[0];
+
+  double* vp = this->CurrentRenderer->GetViewport();
+  int sizeX =
+    static_cast<int>(this->CurrentRenderer->GetRenderWindow()->GetSize()[0] * (vp[2] - vp[0]));
 
   vtkNew<vtkMatrix3x3> mat;
 
