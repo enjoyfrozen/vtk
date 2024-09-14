@@ -109,21 +109,49 @@ public:
   vtkBooleanMacro(PlanarRGB, bool);
   ///@}
 
+  ///@{
   /**
-   * QFac gives the slice order in the NIFTI file versus the VTK image.
-   * If QFac is -1, then the VTK slice index K is related to the NIFTI
-   * slice index k by the equation K = (num_slices - k - 1).  VTK requires
-   * the slices to be ordered so that the voxel indices (I,J,K) provide a
-   * right-handed coordinate system, whereas NIFTI does not.  Instead,
-   * NIFTI stores a factor called "qfac" in the header to signal when the
-   * (i,j,k) indices form a left-handed coordinate system.  QFac will only
-   * ever have values of +1 or -1.
+   *  Set the Direction and Origin of the output (On for compatibility).
+   *  When this flag is Off, the Direction and the Origin of the output
+   *  are left unset, in order to keep compability with old versions of
+   *  this class.
+   */
+  vtkGetMacro(UseDirectionAndOrigin, bool);
+  vtkSetMacro(UseDirectionAndOrigin, bool);
+  vtkBooleanMacro(UseDirectionAndOrigin, bool);
+  ///@}
+
+  ///@{
+  /**
+   *  Allow image slices to be reordered when the NIFTI QFac is -1.
+   *  When turned on, if the QFac attribute of the NIFTI image (which
+   *  indicates slice ordering) is equal to -1, then the slice order of
+   *  the file will be reversed when it is read into VTK, resulting in a
+   *  DirectionMatrix that always has a positive determinant.  This is
+   *  off by default, but can be turned on to provide backwards
+   *  compability with older versions of of this class.
+   */
+  vtkGetMacro(AllowSliceReordering, bool);
+  vtkSetMacro(AllowSliceReordering, bool);
+  vtkBooleanMacro(AllowSliceReordering, bool);
+  ///@}
+
+  /**
+   * QFac indicates the image slice order in the NIFTI file.
+   * To be more specific, if QFac is -1, then DirectionMatrix would need
+   * a negative determinant (indicating a flip) to store the orientation.
+   * If the AllowSliceReordering option is On, then the slice ordering will
+   * be reversed when the image is read into VTK, allowing DirectionMatrix
+   * to have a positive determinant even when QFac is negative.  QFac will
+   * only ever have values of +1 or -1.
    */
   double GetQFac() { return this->QFac; }
 
   /**
    * Get a matrix that gives the "qform" orientation and offset for the data.
    * If no qform matrix was stored in the file, the return value is nullptr.
+
+
    * This matrix will transform VTK data coordinates into the NIFTI oriented
    * data coordinates, where +X points right, +Y points anterior (toward the
    * front), and +Z points superior (toward the head). The qform matrix will
@@ -138,6 +166,7 @@ public:
   /**
    * Get a matrix that gives the "sform" orientation and offset for the data.
    * If no sform matrix was stored in the file, the return value is nullptr.
+
    * Like the qform matrix, this matrix will transform VTK data coordinates
    * into a NIFTI coordinate system.  Unlike the qform matrix, the sform
    * matrix can contain scaling information and can even (rarely) have
@@ -244,6 +273,16 @@ protected:
    * Use planar RGB instead of the default (packed).
    */
   bool PlanarRGB;
+
+  /**
+   * Flag for backwards compatibility (before image orientation).
+   */
+  bool UseDirectionAndOrigin;
+
+  /**
+   * Flag for forcing a positive determinant in orientation matrix.
+   */
+  bool AllowSliceReordering;
 
 private:
   vtkNIFTIImageReader(const vtkNIFTIImageReader&) = delete;

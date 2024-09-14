@@ -137,10 +137,7 @@ def TestReadWriteRead(infile, outfile):
     # copy most information directory from the header
     writer.SetNIFTIHeader(reader.GetNIFTIHeader())
     # this information will override the reader's header
-    writer.SetQFac(reader.GetQFac())
     writer.SetTimeDimension(reader.GetTimeDimension())
-    writer.SetQFormMatrix(reader.GetQFormMatrix())
-    writer.SetSFormMatrix(reader.GetSFormMatrix())
     writer.Write()
 
     reader2 = vtkNIFTIImageReader()

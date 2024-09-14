@@ -1,5 +1,6 @@
 vtk_add_test_cxx(vtkIOImageCxxTests data_tests
   TestNrrdReader.cxx
+  TestNIFTILegacyAPI.cxx,NO_VALID
   TestNIFTIReaderWriter.cxx
   TestNIFTIReaderAnalyze.cxx
   TestNIFTI2.cxx
