@@ -31,7 +31,7 @@
 #include "vtk_kissfft.h" // kiss_fft_scalar, kiss_fft_cpx
 // clang-format off
 #include VTK_KISSFFT_HEADER(kiss_fft.h)
-#include VTK_KISSFFT_HEADER(tools/kiss_fftr.h)
+#include VTK_KISSFFT_TOOLS_HEADER(kiss_fftr.h)
 // clang-format on
 
 #include <array>       // std::array
