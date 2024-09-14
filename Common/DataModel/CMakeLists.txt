@@ -223,6 +223,7 @@ set(classes
   vtkSpheres
   vtkSphericalPointIterator
   vtkSpline
+  vtkStarIterator
   vtkStaticCellLinks
   vtkStaticCellLocator
   vtkStaticPointLocator

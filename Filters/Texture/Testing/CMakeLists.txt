@@ -8,3 +8,12 @@ if (VTK_WRAP_PYTHON)
 
   add_subdirectory(Python)
 endif ()
+
+vtk_module_test_data(
+  Data/texture_atlas_generator_atlas.vtp
+  Data/texture_atlas_generator_mesh.vtp
+  )
+
+if (NOT vtk_testing_cxx_disabled)
+  add_subdirectory(Cxx)
+endif ()

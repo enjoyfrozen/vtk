@@ -43,6 +43,7 @@ set(classes
   vtkDecimatePro
   vtkDelaunay2D
   vtkDelaunay3D
+  vtkDistanceToFeature
   vtkEdgeSubdivisionCriterion
   vtkElevationFilter
   vtkExecutionTimer
@@ -61,6 +62,7 @@ set(classes
   vtkGlyph2D
   vtkGlyph3D
   vtkGridSynchronizedTemplates3D
+  vtkGrowCharts
   vtkHedgeHog
   vtkHull
   vtkHyperTreeGridProbeFilter
@@ -81,6 +83,7 @@ set(classes
   vtkMergeFilter
   vtkMoleculeAppend
   vtkMultiObjectMassProperties
+  vtkNewFeatureEdges
   vtkOrientPolyData
   vtkPackLabels
   vtkPassThrough
