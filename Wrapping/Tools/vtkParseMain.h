@@ -41,6 +41,7 @@
 typedef struct Warnings_
 {
   int Empty;
+  int Hint;
 } Warnings;
 
 /**

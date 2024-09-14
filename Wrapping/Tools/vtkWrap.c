@@ -755,7 +755,6 @@ void vtkWrap_FindNewInstanceMethods(ClassInfo* data, const HierarchyInfo* hinfo)
 {
   int i;
   FunctionInfo* theFunc;
-  const OptionInfo* options;
 
   for (i = 0; i < data->NumberOfFunctions; i++)
   {
@@ -781,13 +780,8 @@ void vtkWrap_FindNewInstanceMethods(ClassInfo* data, const HierarchyInfo* hinfo)
 
       if (needsNewInstance)
       {
-        /* get the command-line options */
-        options = vtkParse_GetCommandLineOptions();
-        fprintf(stderr, "Warning: %s without VTK_NEWINSTANCE hint in %s\n", theFunc->Name,
-          options->InputFileName);
+        vtkWrap_WarnHint(theFunc->Name, "VTK_NEWINSTANCE");
         theFunc->ReturnValue->Attributes |= VTK_PARSE_NEWINSTANCE;
-        /* Do not finalize `options` here; we're just peeking at global state
-         * to know when to warn. */
       }
     }
   }
@@ -1312,10 +1306,20 @@ char* vtkWrap_TemplateArg(const char* name)
   return arg;
 }
 
-void vtkWrap_WarnEmpty(const OptionInfo* options)
+void vtkWrap_WarnEmpty(void)
 {
+  const OptionInfo* options = vtkParse_GetCommandLineOptions();
   if (options->WarningFlags.Empty)
   {
     fprintf(stderr, "warning: did not wrap anything from %s [-Wempty]\n", options->InputFileName);
+  }
+}
+
+void vtkWrap_WarnHint(const char* meth, const char* hint)
+{
+  const OptionInfo* options = vtkParse_GetCommandLineOptions();
+  if (options->WarningFlags.Empty)
+  {
+    fprintf(stderr, "warning: %s without %s in %s [-Whint]\n", meth, hint, options->InputFileName);
   }
 }

@@ -600,7 +600,7 @@ int VTK_PARSE_MAIN(int argc, char* argv[])
 
   if (!wrapped_anything)
   {
-    vtkWrap_WarnEmpty(options);
+    vtkWrap_WarnEmpty();
   }
 
   return vtkParse_FinalizeMain(0);
