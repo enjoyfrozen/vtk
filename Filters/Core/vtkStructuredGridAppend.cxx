@@ -310,7 +310,7 @@ int vtkStructuredGridAppend::RequestData(
 
         // do the point locations array
         inArray = input->GetPoints()->GetData();
-        if (output->GetPoints() == nullptr)
+        if (output->GetPoints()->GetNumberOfPoints() == 0)
         {
           vtkNew<vtkPoints> points;
           points->SetDataType(inArray->GetDataType());

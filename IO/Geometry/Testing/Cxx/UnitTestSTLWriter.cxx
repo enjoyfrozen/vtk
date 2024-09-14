@@ -203,6 +203,48 @@ int UnitTestSTLWriter(int argc, char* argv[])
   }
   fclose(fp);
 
+  vtkSmartPointer<vtkPolyData> emptyPolyData = vtkSmartPointer<vtkPolyData>::New();
+  writer1->SetFileTypeToASCII();
+  fileName = testDirectory + std::string("/") + std::string("ASCIIEmpty.stl");
+  writer1->SetFileName(fileName.c_str());
+  writer1->SetInputData(emptyPolyData);
+  writer1->Update();
+  writer1->SetFileTypeToBinary();
+  fileName = testDirectory + std::string("/") + std::string("BinaryEmpty.stl");
+  writer1->SetBinaryHeader(longBinaryHeader);
+  writer1->SetFileName(fileName.c_str());
+  writer1->SetInputData(emptyPolyData);
+  writer1->Update();
+
+  // Header: long binary / binary => truncated
+  reader->SetFileName(fileName.c_str());
+  reader->Update();
+  readBinaryHeader = reader->GetBinaryHeader();
+  if (readBinaryHeader->GetNumberOfValues() != 80)
+  {
+    cerr << "Unexpected size of long short binary header: " << readHeader.size();
+    ++status;
+  }
+  for (vtkIdType i = 0; i < 80; i++)
+  {
+    if (readBinaryHeader->GetValue(i) != longBinaryHeader->GetValue(i))
+    {
+      cerr << "Unexpected content of long binary header at position " << i;
+      ++status;
+      break;
+    }
+  }
+  if (reader->GetOutput()->GetNumberOfCells())
+  {
+    cerr << "Empty file has unexpected cells\n";
+    ++status;
+  }
+  if (reader->GetOutput()->GetNumberOfPoints())
+  {
+    cerr << "Empty file has unexpected points\n";
+    ++status;
+  }
+
   // Check error conditions
   //
   vtkSmartPointer<vtkTest::ErrorObserver> errorObserver =
@@ -210,31 +252,11 @@ int UnitTestSTLWriter(int argc, char* argv[])
   vtkSmartPointer<vtkSTLWriter> writer2 = vtkSmartPointer<vtkSTLWriter>::New();
   writer2->AddObserver(vtkCommand::ErrorEvent, errorObserver);
 
-  writer2->SetFileName("foo");
-  vtkSmartPointer<vtkPolyData> emptyPolyData = vtkSmartPointer<vtkPolyData>::New();
-  writer2->SetInputData(emptyPolyData);
-  writer2->SetFileTypeToASCII();
-  writer2->Update();
-  int status1 = errorObserver->CheckErrorMessage("No data to write");
-  if (status1)
-  {
-    ++status;
-  }
-
-  writer2->SetInputData(emptyPolyData);
-  writer2->SetFileTypeToBinary();
-  writer2->Update();
-  status1 = errorObserver->CheckErrorMessage("No data to write");
-  if (status1)
-  {
-    ++status;
-  }
-
   writer2->SetFileName(nullptr);
   writer2->SetInputConnection(sphere->GetOutputPort());
   writer2->SetFileTypeToASCII();
   writer2->Update();
-  status1 = errorObserver->CheckErrorMessage("Please specify FileName to write");
+  int status1 = errorObserver->CheckErrorMessage("Please specify FileName to write");
   if (status1)
   {
     ++status;

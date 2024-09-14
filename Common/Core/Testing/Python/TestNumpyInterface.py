@@ -273,13 +273,6 @@ assert dsa.WrapDataObject(mb).Points is na
 mb = vtkMultiBlockDataSet()
 mb.SetBlock(0, vtkStructuredGrid())
 mb.SetBlock(1, vtkImageData())
-assert dsa.WrapDataObject(mb).Points is na
-
-mb = vtkMultiBlockDataSet()
-sg = vtkStructuredGrid()
-sg.SetPoints(vtkPoints())
-mb.SetBlock(0, sg)
-mb.SetBlock(1, vtkImageData())
 assert dsa.WrapDataObject(mb).Points.Arrays[0] is not na
 assert dsa.WrapDataObject(mb).Points.Arrays[1] is na
 

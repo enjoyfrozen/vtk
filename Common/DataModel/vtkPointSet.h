@@ -269,8 +269,6 @@ protected:
   void ReportReferences(vtkGarbageCollector*) override;
 
 private:
-  void Cleanup();
-
   vtkPointSet(const vtkPointSet&) = delete;
   void operator=(const vtkPointSet&) = delete;
 };
