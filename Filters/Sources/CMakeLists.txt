@@ -7,6 +7,7 @@ set(classes
   vtkConeSource
   vtkCubeSource
   vtkCylinderSource
+  vtkCylindricalGridSource
   vtkDiagonalMatrixSource
   vtkDiskSource
   vtkEllipseArcSource
