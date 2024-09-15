@@ -11,16 +11,12 @@
 #include "vtkCompositeDataGeometryFilter.h"
 #include "vtkCompositeDataPipeline.h"
 #include "vtkContourFilter.h"
-#include "vtkDebugLeaks.h"
 #include "vtkMultiBlockDataSet.h"
-#include "vtkOutlineCornerFilter.h"
-#include "vtkPolyData.h"
 #include "vtkPolyDataMapper.h"
 #include "vtkProperty.h"
 #include "vtkRenderWindow.h"
 #include "vtkRenderWindowInteractor.h"
 #include "vtkRenderer.h"
-#include "vtkShrinkPolyData.h"
 #include "vtkStructuredGrid.h"
 #include "vtkStructuredGridOutlineFilter.h"
 #include "vtkTestUtilities.h"
@@ -43,14 +39,13 @@ int main(int argc, char* argv[])
   // We will read three files and collect them together in one
   // multi-block dataset. I broke the combustor dataset into
   // three pieces and wrote them out separately.
-  int i;
   vtkXMLStructuredGridReader* reader = vtkXMLStructuredGridReader::New();
 
   // vtkMultiBlockDataSet represents multi-block datasets. See
   // the class documentation for more information.
   vtkMultiBlockDataSet* mb = vtkMultiBlockDataSet::New();
 
-  for (i = 0; i < 3; i++)
+  for (unsigned int i = 0; i < 3; i++)
   {
     // Here we load the three separate files (each containing
     // a structured grid dataset)
@@ -62,7 +57,6 @@ int main(int argc, char* argv[])
     // This will read the file and the output of the reader will be
     // a valid structured grid data.
     reader->Update();
-    delete[] cfname;
 
     // We create a copy to avoid adding the same data three
     // times (the output object of the reader does not change
