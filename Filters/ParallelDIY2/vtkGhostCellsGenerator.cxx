@@ -270,6 +270,9 @@ int vtkGhostCellsGenerator::GenerateGhostCells(
     }
   }
 
+  this->Controller->Barrier();
+  this->CheckAbort();
+
   return retVal && !error;
 }
 

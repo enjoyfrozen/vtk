@@ -295,6 +295,9 @@ int vtkAdaptiveResampleToImage::RequestData(
       }
     });
 
+  comm.barrier();
+  this->CheckAbort();
+
   return 1;
 }
 

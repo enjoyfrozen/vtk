@@ -265,6 +265,7 @@ int vtkDIYAggregateDataSetFilter::RequestData(
       vtkNew<vtkXMLImageDataReader> reader;
       reader->ReadFromInputStringOn();
       reader->SetInputString(it);
+      reader->SetContainerAlgorithm(this);
       reader->Update();
       tempDataSet = reader->GetOutput();
     }
@@ -273,6 +274,7 @@ int vtkDIYAggregateDataSetFilter::RequestData(
       vtkNew<vtkXMLRectilinearGridReader> reader;
       reader->ReadFromInputStringOn();
       reader->SetInputString(it);
+      reader->SetContainerAlgorithm(this);
       reader->Update();
       tempDataSet = reader->GetOutput();
     }
@@ -281,6 +283,7 @@ int vtkDIYAggregateDataSetFilter::RequestData(
       vtkNew<vtkXMLStructuredGridReader> reader;
       reader->ReadFromInputStringOn();
       reader->SetInputString(it);
+      reader->SetContainerAlgorithm(this);
       reader->Update();
       tempDataSet = reader->GetOutput();
     }
@@ -292,6 +295,9 @@ int vtkDIYAggregateDataSetFilter::RequestData(
 
     this->ExtractDataSetInformation(tempDataSet, output);
   }
+
+  controller->Barrier();
+  this->CheckAbort();
 
   return retVal;
 }

@@ -937,6 +937,9 @@ int vtkProbeLineFilter::RequestData(
     output->ShallowCopy(multiBlockOutput);
   }
 
+  this->Controller->Barrier();
+  this->CheckAbort();
+
   return 1;
 }
 
