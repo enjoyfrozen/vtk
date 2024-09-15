@@ -83,7 +83,7 @@ def addDataToViewer(dataPath, srcHtmlPath, disableGirder=False):
 # -----------------------------------------------------------------------------
 
 
-def zipAllTimeSteps(directoryPath):
+def zipAllTimeSteps(directoryPath, remove_camera_animation=False):
     if os.path.isfile(directoryPath):
         return
 
@@ -95,6 +95,12 @@ def zipAllTimeSteps(directoryPath):
                 self[name] = str(objNameToUrls.Counter)
                 self.Counter = self.Counter + 1
             return self[name]
+
+    def atoi(text):
+        return int(text) if text.isdigit() else text
+
+    def natural_keys(text):
+        return [ atoi(c) for c in re.split(r'(\d+)', text) ]
 
     def InitIndex(sourcePath, destObj):
         with open(sourcePath, "r") as sourceFile:
@@ -201,7 +207,11 @@ def zipAllTimeSteps(directoryPath):
 
         timeStep = 0
         # zip all timestep directories
-        for folder in sorted(os.listdir(currentDirectory)):
+        # Natural order the folders to avoid changing the order of the timesteps
+        timeFol = os.listdir(currentDirectory)
+        timeFol.sort(key=natural_keys)
+
+        for folder in timeFol:
             fullPath = os.path.join(currentDirectory, folder)
             if os.path.isdir(fullPath) and reg.match(folder):
                 if not isSceneInitialized:
@@ -232,9 +242,18 @@ def zipAllTimeSteps(directoryPath):
             obj["type"] = "vtkHttpDataSetSeriesReader"
             obj["vtkHttpDataSetSeriesReader"] = {}
             obj["vtkHttpDataSetSeriesReader"]["url"] = objNameToUrls[obj["name"]]
+
+        # Added to remove undesired camera behavior
+        if remove_camera_animation:
+            for t in rootIndexObj['animation']['timeSteps']:
+                del t['camera']
+
         zf.writestr(
             "index.json", json.dumps(rootIndexObj, indent=2), compress_type=compression
         )
+
+        # The root index file was not properly closed in the original code
+        rootIndexFile.close()
         os.remove(rootIndexPath)
 
     finally:
