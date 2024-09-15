@@ -34,14 +34,17 @@ vtkCameraOrientationWidget::vtkCameraOrientationWidget()
 
   this->CameraInterpolator->SetInterpolationTypeToSpline();
 
-  vtkNew<vtkRenderer> renderer;
-  this->SetDefaultRenderer(renderer);
-  renderer->SetViewport(0.8, 0.8, 1.0, 1.0);
-  renderer->GetActiveCamera()->ParallelProjectionOff();
-  renderer->GetActiveCamera()->Dolly(0.25);
-  renderer->InteractiveOff();
-  renderer->SetLayer(1);
-  renderer->AddObserver(
+  this->Viewport[0] = 0.8;
+  this->Viewport[1] = 0.8;
+  this->Viewport[2] = 1.0;
+  this->Viewport[3] = 1.0;
+
+  this->SetDefaultRenderer(this->Renderer);
+  this->Renderer->GetActiveCamera()->ParallelProjectionOff();
+  this->Renderer->GetActiveCamera()->Dolly(0.25);
+  this->Renderer->InteractiveOff();
+  this->Renderer->SetLayer(1);
+  this->Renderer->AddObserver(
     vtkCommand::StartEvent, this, &vtkCameraOrientationWidget::OrientWidgetRepresentation);
 }
 
@@ -68,36 +71,41 @@ void vtkCameraOrientationWidget::SetParentRenderer(vtkRenderer* parentRen)
     auto renWin = this->ParentRenderer->GetRenderWindow();
     if (renWin != nullptr)
     {
-      if (renWin->HasRenderer(this->DefaultRenderer))
+      if (renWin->HasRenderer(this->Renderer))
       {
-        renWin->RemoveRenderer(this->DefaultRenderer);
+        renWin->RemoveRenderer(this->Renderer);
       }
       const int& numLayers = renWin->GetNumberOfLayers();
       renWin->SetNumberOfLayers(numLayers - 1);
       renWin->RemoveObserver(this->ResizeObserverTag);
+      renWin->RemoveObserver(this->RenderObserverTag);
     }
   }
 
+  // assign
+  this->ParentRenderer = parentRen;
+
   // attach to given parent.
-  if (parentRen != nullptr)
+  if (this->ParentRenderer != nullptr)
   {
-    auto renWin = parentRen->GetRenderWindow();
+    auto renWin = this->ParentRenderer->GetRenderWindow();
     if (renWin != nullptr)
     {
-      if (!renWin->HasRenderer(this->DefaultRenderer))
+      if (!renWin->HasRenderer(this->Renderer))
       {
-        renWin->AddRenderer(this->DefaultRenderer);
+        renWin->AddRenderer(this->Renderer);
       }
       this->SetInteractor(renWin->GetInteractor());
       const int& numLayers = renWin->GetNumberOfLayers();
       renWin->SetNumberOfLayers(numLayers + 1);
       this->ResizeObserverTag = renWin->AddObserver(
         vtkCommand::WindowResizeEvent, this, &vtkCameraOrientationWidget::SquareResize);
+      this->RenderObserverTag = renWin->AddObserver(
+        vtkCommand::EndEvent, this, &vtkCameraOrientationWidget::FirstFrameResize);
     }
   }
+  this->UpdateInternalViewport();
 
-  // assign
-  this->ParentRenderer = parentRen;
   this->Modified();
 }
 
@@ -391,14 +399,25 @@ void vtkCameraOrientationWidget::InterpolateCamera(int t)
 }
 
 //----------------------------------------------------------------------------
+void vtkCameraOrientationWidget::FirstFrameResize()
+{
+  if (!this->Renderer || !this->ParentRenderer)
+  {
+    return;
+  }
+  this->SquareResize();
+  this->ParentRenderer->GetRenderWindow()->RemoveObserver(this->RenderObserverTag);
+}
+
+//----------------------------------------------------------------------------
 void vtkCameraOrientationWidget::SquareResize()
 {
-  if (this->DefaultRenderer == nullptr)
+  if (this->Renderer == nullptr)
   {
     return;
   }
 
-  auto renWin = this->DefaultRenderer->GetRenderWindow();
+  auto renWin = this->Renderer->GetRenderWindow();
   if (renWin == nullptr)
   {
     return;
@@ -419,11 +438,13 @@ void vtkCameraOrientationWidget::SquareResize()
   const int* const padding = rep->GetPadding();
   const auto& anchoredTo = rep->GetAnchorPosition();
   double xmin = 0., xmax = 0., ymin = 0., ymax = 0.;
+  int vw, vh;
+  this->ParentRenderer->GetTiledSize(&vw, &vh);
   // vp: ViewPort | pad: Padding | w: width | h: height
-  const double vpw = static_cast<double>(maxSz) / renWin->GetActualSize()[0];
-  const double vph = static_cast<double>(maxSz) / renWin->GetActualSize()[1];
-  const double vppadw = static_cast<double>(padding[0]) / renWin->GetActualSize()[0];
-  const double vppadh = static_cast<double>(padding[1]) / renWin->GetActualSize()[1];
+  const double vpw = static_cast<double>(maxSz) / vw;
+  const double vph = static_cast<double>(maxSz) / vh;
+  const double vppadw = static_cast<double>(padding[0]) / vw;
+  const double vppadh = static_cast<double>(padding[1]) / vh;
 
   switch (anchoredTo)
   {
@@ -454,7 +475,11 @@ void vtkCameraOrientationWidget::SquareResize()
     default:
       break;
   }
-  this->DefaultRenderer->SetViewport(xmin, ymin, xmax, ymax);
+  this->Viewport[0] = xmin;
+  this->Viewport[1] = ymin;
+  this->Viewport[2] = xmax;
+  this->Viewport[3] = ymax;
+  this->UpdateInternalViewport();
 }
 
 //----------------------------------------------------------------------------
@@ -484,5 +509,26 @@ void vtkCameraOrientationWidget::PrintSelf(ostream& os, vtkIndent indent)
   this->CameraInterpolator->PrintSelf(os, indent);
   os << indent << "Animate: " << (this->Animate ? "True" : "False");
   os << indent << "AnimatorTotalFrames: " << this->AnimatorTotalFrames;
+}
+
+//------------------------------------------------------------------------------
+void vtkCameraOrientationWidget::UpdateInternalViewport()
+{
+  if (!this->Renderer || !this->ParentRenderer)
+  {
+    return;
+  }
+
+  // Compute the viewport for the widget w.r.t. to the current renderer
+  double currentViewport[4];
+  this->ParentRenderer->GetViewport(currentViewport);
+  double vp[4], currentViewportRange[2];
+  for (int i = 0; i < 2; ++i)
+  {
+    currentViewportRange[i] = currentViewport[i + 2] - currentViewport[i];
+    vp[i] = this->Viewport[i] * currentViewportRange[i] + currentViewport[i];
+    vp[i + 2] = this->Viewport[i + 2] * currentViewportRange[i] + currentViewport[i];
+  }
+  this->Renderer->SetViewport(vp);
 }
 VTK_ABI_NAMESPACE_END

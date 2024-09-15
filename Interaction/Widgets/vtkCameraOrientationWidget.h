@@ -125,6 +125,7 @@ protected:
   };
   WidgetStateType WidgetState = WidgetStateType::Inactive;
 
+  vtkNew<vtkRenderer> Renderer;
   vtkWeakPointer<vtkRenderer> ParentRenderer;
 
   // Store camera interpolations.
@@ -134,6 +135,18 @@ protected:
   int AnimatorTotalFrames = 20;
 
   int ResizeObserverTag = -1;
+  int RenderObserverTag = -1;
+
+  // Single shot callback fired to position/resize the widget in the first frame of the window
+  void FirstFrameResize();
+
+  // viewport to position/size this widget
+  double Viewport[4];
+
+  // Used to compute and set the viewport on the internal renderer based on the
+  // Viewport ivar. The computed viewport will be with respect to the whole
+  // render window
+  void UpdateInternalViewport();
 
 private:
   vtkCameraOrientationWidget(const vtkCameraOrientationWidget&) = delete;
