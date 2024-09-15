@@ -725,7 +725,8 @@ int vtkTesting::RegressionTest(vtkAlgorithm* imageSource, double thresh, ostream
       vtkLog(INFO, "LOOSE_VALID metric (manhattan / earth's mover): " << loose);
       vtkLog(INFO,
         "Note: if the test fails but is visually acceptable, one can make the test pass"
-          << " by changing the method (TIGHT_VALID vs LOOSE_VALID) and the threshold in CMake.");
+          << " by changing the method (TIGHT_VALID vs LOOSE_VALID) in CMake, or changing"
+          << " the threshold with `vtkTesting` in C++ or `rtImageTest.py` in Python.");
 
       switch (imageCompareMethod)
       {
