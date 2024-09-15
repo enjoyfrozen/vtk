@@ -41,6 +41,7 @@ set(classes
   vtkSuperquadricSource
   vtkTessellatedBoxSource
   vtkTextSource
+  vtkTexturedCapsuleSource
   vtkTexturedSphereSource
   vtkUniformHyperTreeGridSource)
 
