@@ -19,6 +19,8 @@
 #ifndef vtkAOSDataArrayTemplate_h
 #define vtkAOSDataArrayTemplate_h
 
+#undef NDEBUG
+#include <cassert>
 #include "vtkBuffer.h"           // For storage buffer.
 #include "vtkBuild.h"            // For VTK_BUILD_SHARED_LIBS
 #include "vtkCommonCoreModule.h" // For export macro
@@ -78,6 +80,8 @@ public:
   ValueType GetValue(vtkIdType valueIdx) const
     VTK_EXPECTS(0 <= valueIdx && valueIdx < GetNumberOfValues())
   {
+    assert(0 <= valueIdx);
+    assert(valueIdx < this->GetNumberOfValues());
     return this->Buffer->GetBuffer()[valueIdx];
   }
 
@@ -87,6 +91,8 @@ public:
   void SetValue(vtkIdType valueIdx, ValueType value)
     VTK_EXPECTS(0 <= valueIdx && valueIdx < GetNumberOfValues())
   {
+    assert(0 <= valueIdx);
+    assert(valueIdx < this->GetNumberOfValues());
     this->Buffer->GetBuffer()[valueIdx] = value;
   }
 
@@ -97,6 +103,8 @@ public:
   void GetTypedTuple(vtkIdType tupleIdx, ValueType* tuple) const
     VTK_EXPECTS(0 <= tupleIdx && tupleIdx < GetNumberOfTuples())
   {
+    assert(0 <= tupleIdx);
+    assert(tupleIdx < this->GetNumberOfTuples());
     const vtkIdType valueIdx = tupleIdx * this->NumberOfComponents;
     std::copy(this->Buffer->GetBuffer() + valueIdx,
       this->Buffer->GetBuffer() + valueIdx + this->NumberOfComponents, tuple);
@@ -110,6 +118,8 @@ public:
   void SetTypedTuple(vtkIdType tupleIdx, const ValueType* tuple)
     VTK_EXPECTS(0 <= tupleIdx && tupleIdx < GetNumberOfTuples())
   {
+    assert(0 <= tupleIdx);
+    assert(tupleIdx < this->GetNumberOfTuples());
     const vtkIdType valueIdx = tupleIdx * this->NumberOfComponents;
     std::copy(tuple, tuple + this->NumberOfComponents, this->Buffer->GetBuffer() + valueIdx);
   }
@@ -162,6 +172,8 @@ public:
     VTK_EXPECTS(0 <= tupleIdx && GetNumberOfComponents() * tupleIdx + comp < GetNumberOfValues())
       VTK_EXPECTS(0 <= comp && comp < GetNumberOfComponents())
   {
+    assert(0 <= comp);
+    assert(comp < this->GetNumberOfComponents());
     return this->Buffer->GetBuffer()[this->NumberOfComponents * tupleIdx + comp];
   }
 
@@ -173,6 +185,8 @@ public:
     VTK_EXPECTS(0 <= tupleIdx && GetNumberOfComponents() * tupleIdx + comp < GetNumberOfValues())
       VTK_EXPECTS(0 <= comp && comp < GetNumberOfComponents())
   {
+    assert(0 <= comp);
+    assert(comp < this->GetNumberOfComponents());
     const vtkIdType valueIdx = tupleIdx * this->NumberOfComponents + comp;
     this->SetValue(valueIdx, value);
   }
