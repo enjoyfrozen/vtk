@@ -213,9 +213,10 @@ void vtkImageWriter::RecursiveWrite(
   }
 
   // Propagate the update extent so we can determine pipeline size
+  int inputOutputPort;
+  vtkAlgorithm* producerAlg = this->GetInputAlgorithm(0, 0, inputOutputPort);
   vtkStreamingDemandDrivenPipeline* inputExec =
-    vtkStreamingDemandDrivenPipeline::SafeDownCast(vtkExecutive::PRODUCER()->GetExecutive(inInfo));
-  int inputOutputPort = vtkExecutive::PRODUCER()->GetPort(inInfo);
+    vtkStreamingDemandDrivenPipeline::SafeDownCast(producerAlg->GetExecutive());
   inputExec->PropagateUpdateExtent(inputOutputPort);
 
   // just get the data and write it out

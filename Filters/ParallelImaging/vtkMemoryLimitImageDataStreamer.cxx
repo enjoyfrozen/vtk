@@ -88,8 +88,9 @@ vtkTypeBool vtkMemoryLimitImageDataStreamer ::ProcessRequest(
           vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT_INITIALIZED(), VTK_UPDATE_EXTENT_REPLACE);
 
         // then propagate it
-        vtkExecutive* exec = vtkExecutive::PRODUCER()->GetExecutive(inInfo);
-        int index = vtkExecutive::PRODUCER()->GetPort(inInfo);
+        int index;
+        vtkAlgorithm* producerAlg = this->GetInputAlgorithm(0, 0, index);
+        vtkExecutive* exec = producerAlg->GetExecutive();
         vtkStreamingDemandDrivenPipeline* sddp =
           vtkStreamingDemandDrivenPipeline::SafeDownCast(exec);
         sddp->PropagateUpdateExtent(index);

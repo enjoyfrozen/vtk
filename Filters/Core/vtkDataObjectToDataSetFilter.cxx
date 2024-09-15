@@ -165,7 +165,7 @@ int vtkDataObjectToDataSetFilter::RequestInformation(vtkInformation* vtkNotUsed(
   vtkInformation* outInfo = outputVector->GetInformationObject(0);
 
   vtkDataObject* input = inInfo->Get(vtkDataObject::DATA_OBJECT());
-  vtkExecutive* inputExec = vtkExecutive::PRODUCER()->GetExecutive(inInfo);
+  vtkExecutive* inputExec = this->GetInputExecutive(0, 0);
 
   switch (this->DataSetType)
   {

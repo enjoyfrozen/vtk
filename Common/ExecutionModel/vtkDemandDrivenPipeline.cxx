@@ -12,8 +12,6 @@
 #include "vtkDataSet.h"
 #include "vtkGarbageCollector.h"
 #include "vtkInformation.h"
-#include "vtkInformationExecutivePortKey.h"
-#include "vtkInformationExecutivePortVectorKey.h"
 #include "vtkInformationIntegerKey.h"
 #include "vtkInformationKeyVectorKey.h"
 #include "vtkInformationRequestKey.h"
@@ -107,12 +105,11 @@ int vtkDemandDrivenPipeline::ComputePipelineMTime(vtkInformation* request,
     {
       for (int j = 0; j < inInfoVec[i]->GetNumberOfInformationObjects(); ++j)
       {
-        vtkInformation* info = inInfoVec[i]->GetInformationObject(j);
         // call ComputePipelineMTime on the input
-        vtkExecutive* e;
         int producerPort;
-        vtkExecutive::PRODUCER()->Get(info, e, producerPort);
-        if (e)
+        vtkAlgorithm* inputAlg = this->Algorithm->GetInputAlgorithm(i, j, producerPort);
+        vtkExecutive* e = nullptr;
+        if (inputAlg && (e = inputAlg->GetExecutive()))
         {
           vtkMTimeType pmtime;
           if (!e->ComputePipelineMTime(request, e->GetInputInformation(), e->GetOutputInformation(),

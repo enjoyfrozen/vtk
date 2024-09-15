@@ -10,8 +10,6 @@
 #include "vtkImageData.h"
 #include "vtkInformation.h"
 #include "vtkInformationDoubleKey.h"
-#include "vtkInformationExecutivePortKey.h"
-#include "vtkInformationExecutivePortVectorKey.h"
 #include "vtkInformationIdTypeKey.h"
 #include "vtkInformationIntegerKey.h"
 #include "vtkInformationIntegerVectorKey.h"
@@ -373,8 +371,9 @@ void vtkCompositeDataPipeline::ExecuteSimpleAlgorithm(vtkInformation* request,
     }
 
     vtkSmartPointer<vtkInformation> r = vtkSmartPointer<vtkInformation>::New();
-
-    r->Set(FROM_OUTPUT_PORT(), PRODUCER()->GetPort(outInfo));
+    int producerPort;
+    this->GetAlgorithm()->GetInputAlgorithm(compositePort, 0, producerPort);
+    r->Set(FROM_OUTPUT_PORT(), producerPort);
 
     // The request is forwarded upstream through the pipeline.
     r->Set(vtkExecutive::FORWARD_DIRECTION(), vtkExecutive::RequestUpstream);
@@ -706,16 +705,14 @@ int vtkCompositeDataPipeline::ForwardUpstream(vtkInformation* request)
   for (int i = 0; i < this->GetNumberOfInputPorts(); ++i)
   {
     int nic = this->Algorithm->GetNumberOfInputConnections(i);
-    vtkInformationVector* inVector = this->GetInputInformation()[i];
     for (int j = 0; j < nic; ++j)
     {
-      vtkInformation* info = inVector->GetInformationObject(j);
       // Get the executive producing this input.  If there is none, then
       // it is a nullptr input.
-      vtkExecutive* e;
       int producerPort;
-      vtkExecutive::PRODUCER()->Get(info, e, producerPort);
-      if (e)
+      vtkAlgorithm* inputAlg = this->Algorithm->GetInputAlgorithm(i, j, producerPort);
+      vtkExecutive* e = nullptr;
+      if (inputAlg && (e = inputAlg->GetExecutive()))
       {
         request->Set(FROM_OUTPUT_PORT(), producerPort);
         if (!e->ProcessRequest(request, e->GetInputInformation(), e->GetOutputInformation()))
@@ -1027,7 +1024,9 @@ std::vector<vtkSmartPointer<vtkDataObject>> vtkCompositeDataPipeline::CreateOutp
       vtkSmartPointer<vtkDataObject> curInput = inInfo->Get(vtkDataObject::DATA_OBJECT());
 
       vtkSmartPointer<vtkInformation> request = vtkSmartPointer<vtkInformation>::New();
-      request->Set(FROM_OUTPUT_PORT(), PRODUCER()->GetPort(inInfo));
+      int producerPort;
+      this->GetAlgorithm()->GetInputAlgorithm(compositePort, 0, producerPort);
+      request->Set(FROM_OUTPUT_PORT(), producerPort);
 
       // Set the input to be vtkUniformGrid.
       inInfo->Remove(vtkDataObject::DATA_OBJECT());
