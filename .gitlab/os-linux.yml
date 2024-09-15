@@ -299,6 +299,7 @@
 
     variables:
         CMAKE_CONFIGURATION: fedora39_mpi_python_qt_tbb
+        CMAKE_BUILD_TYPE: Debug
         VTK_INSTALL: 1
 
 .fedora39_mangling:
