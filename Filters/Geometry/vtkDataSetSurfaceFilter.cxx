@@ -1346,6 +1346,12 @@ int vtkDataSetSurfaceFilter::UnstructuredGridExecute(
     delete info;
   }
 
+  // Avoid leaking the vtkGeometryFilterHelper object with non-linear cells
+  if (info != nullptr)
+  {
+    delete info;
+  }
+
   // If here, the data is gnarly and this filter will process it.
   return this->UnstructuredGridExecuteInternal(input, output, handleSubdivision);
 }
