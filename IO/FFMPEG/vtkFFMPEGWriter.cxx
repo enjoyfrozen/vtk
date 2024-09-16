@@ -42,6 +42,9 @@ public:
 
   int Dim[2];
   int FrameRate;
+  int NumComp;
+
+  bool UseTransparency() { return this->NumComp == 4; }
 
 private:
   vtkFFMPEGWriter* Writer;
@@ -81,6 +84,14 @@ vtkFFMPEGWriterInternal::vtkFFMPEGWriterInternal(vtkFFMPEGWriter* creator)
   this->closedFile = 1;
 
   this->FrameRate = 25;
+  if (auto image = vtkImageData::SafeDownCast(creator->GetInput()))
+  {
+    this->NumComp = image->GetNumberOfScalarComponents();
+  }
+  else
+  {
+    this->NumComp = 3;
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -113,7 +124,7 @@ int vtkFFMPEGWriterInternal::Start()
   }
 
   enum AVCodecID video_codec = this->Writer->GetCompression()
-    ? AV_CODEC_ID_MJPEG // choose a codec that is easily playable on windows
+    ? AV_CODEC_ID_H264 // choose a codec that is easily playable on windows
     : AV_CODEC_ID_RAWVIDEO;
 
   // create the format context that wraps all of the media output structures
@@ -152,11 +163,11 @@ int vtkFFMPEGWriterInternal::Start()
   this->avStream->codecpar->height = this->Dim[1];
   if (this->Writer->GetCompression())
   {
-    this->avStream->codecpar->format = AV_PIX_FMT_YUVJ420P;
+    this->avStream->codecpar->format = AV_PIX_FMT_YUV420P;
   }
   else
   {
-    this->avStream->codecpar->format = AV_PIX_FMT_BGR24;
+    this->avStream->codecpar->format = this->UseTransparency() ? AV_PIX_FMT_BGRA : AV_PIX_FMT_BGR24;
   }
   this->avStream->time_base.den = this->FrameRate;
   this->avStream->time_base.num = 1;
@@ -217,7 +228,7 @@ int vtkFFMPEGWriterInternal::Start()
     vtkGenericWarningMacro(<< "Could not make rgbInput avframe.");
     return 0;
   }
-  this->rgbInput->format = AV_PIX_FMT_RGB24;
+  this->rgbInput->format = this->UseTransparency() ? AV_PIX_FMT_RGBA : AV_PIX_FMT_RGB24;
   this->rgbInput->width = this->avCodecContext->width;
   this->rgbInput->height = this->avCodecContext->height;
   av_frame_get_buffer(this->rgbInput, 1);
@@ -264,16 +275,18 @@ int vtkFFMPEGWriterInternal::Write(vtkImageData* id)
   unsigned char* src;
   for (int y = 0; y < this->avCodecContext->height; y++)
   {
-    src = rgb + (this->avCodecContext->height - y - 1) * this->avCodecContext->width * 3; // flip Y
+    src = rgb +
+      (this->avCodecContext->height - y - 1) * this->avCodecContext->width *
+        this->NumComp; // flip Y
     unsigned char* dest = &this->rgbInput->data[0][y * this->rgbInput->linesize[0]];
-    memcpy((void*)dest, (void*)src, this->avCodecContext->width * 3);
+    memcpy((void*)dest, (void*)src, this->avCodecContext->width * this->NumComp);
   }
 
   // convert that to YUV for input to the codec
-  SwsContext* convert_ctx =
-    sws_getContext(this->avCodecContext->width, this->avCodecContext->height, AV_PIX_FMT_RGB24,
-      this->avCodecContext->width, this->avCodecContext->height, this->avCodecContext->pix_fmt,
-      SWS_BICUBIC, nullptr, nullptr, nullptr);
+  SwsContext* convert_ctx = sws_getContext(this->avCodecContext->width,
+    this->avCodecContext->height, static_cast<AVPixelFormat>(this->rgbInput->format),
+    this->avCodecContext->width, this->avCodecContext->height, this->avCodecContext->pix_fmt,
+    SWS_BICUBIC, nullptr, nullptr, nullptr);
 
   if (convert_ctx == nullptr)
   {
@@ -720,7 +733,7 @@ void vtkFFMPEGWriter::Write()
   vtkImageData* input = this->GetImageDataInput(0);
   this->GetInputAlgorithm(0, 0)->UpdateWholeExtent();
 
-  int dim[4];
+  int dim[3];
   input->GetDimensions(dim);
   if (this->Internals->Dim[0] == 0 && this->Internals->Dim[1] == 0)
   {
