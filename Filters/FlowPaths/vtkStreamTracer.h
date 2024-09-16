@@ -330,7 +330,6 @@ public:
   ///@{
   /**
    * Specify whether streamlines should be computed on a surface.
-   * The input should contains only 2D planar cells for this option to work as expected.
    */
   vtkGetMacro(SurfaceStreamlines, bool);
   vtkSetMacro(SurfaceStreamlines, bool);
@@ -555,6 +554,7 @@ protected:
 private:
   vtkStreamTracer(const vtkStreamTracer&) = delete;
   void operator=(const vtkStreamTracer&) = delete;
+  int InterpType;
 };
 
 VTK_ABI_NAMESPACE_END
