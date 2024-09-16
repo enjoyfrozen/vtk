@@ -68,13 +68,15 @@ struct MapDepthImage
   const TD* Depths;
   TP* Pts;
   const int* Dims;
+  double PixelShift;
   const double* Matrix;
   const vtkIdType* PtMap;
 
-  MapDepthImage(TD* depths, TP* pts, int dims[2], double* m, vtkIdType* ptMap)
+  MapDepthImage(TD* depths, TP* pts, int dims[2], double pixelShift, double* m, vtkIdType* ptMap)
     : Depths(depths)
     , Pts(pts)
     , Dims(dims)
+    , PixelShift(pixelShift)
     , Matrix(m)
     , PtMap(ptMap)
   {
@@ -89,19 +91,15 @@ struct MapDepthImage
     TP* pptr;
     for (; row < end; ++row)
     {
-      drow = -1.0 + (2.0 * static_cast<double>(row) / static_cast<double>(this->Dims[1] - 1));
-      // if pixel origin is pixel center use the two lines below
-      // drow = -1.0 + 2.0*((static_cast<double>(row)+0.5) /
-      //                    static_cast<double>(this->Dims[1]));
+      drow = -1.0 +
+        (2.0 * (static_cast<double>(row) + PixelShift) / static_cast<double>(this->Dims[1] - 1));
       for (vtkIdType i = 0; i < this->Dims[0]; ++dptr, ++mptr, ++i)
       {
         if (*mptr > (-1)) // if not masked
         {
           pptr = this->Pts + *mptr * 3;
-          result[0] = -1.0 + 2.0 * static_cast<double>(i) / static_cast<double>(this->Dims[0] - 1);
-          // if pixel origin is pixel center use the two lines below
-          // result[0] = -1.0 + 2.0*((static_cast<double>(i)+0.5) /
-          //                         static_cast<double>(this->Dims[0]));
+          result[0] = -1.0 +
+            2.0 * (static_cast<double>(i) + PixelShift) / static_cast<double>(this->Dims[0] - 1);
           result[1] = drow;
           result[2] = *dptr;
           result[3] = 1.0;
@@ -118,13 +116,29 @@ struct MapDepthImage
 // Interface to vtkSMPTools. Threading over image rows. Also perform
 // one time calculation/initialization for more efficient processing.
 template <typename TD, typename TP>
-void XFormPoints(TD* depths, vtkIdType* ptMap, TP* pts, int dims[2], vtkCamera* cam)
+void XFormPoints(TD* depths, vtkIdType* ptMap, TP* pts, int dims[2], double pixelShift,
+  int coordinateSystem, vtkCamera* cam)
 {
-  double m[16], aspect = static_cast<double>(dims[0]) / static_cast<double>(dims[1]);
-  vtkMatrix4x4* matrix = cam->GetCompositeProjectionTransformMatrix(aspect, 0, 1);
-  vtkMatrix4x4::Invert(*matrix->Element, m);
+  double m[16]{ 0 };
+  double aspect = static_cast<double>(dims[0]) / static_cast<double>(dims[1]);
+  vtkMatrix4x4* matrix = nullptr;
 
-  MapDepthImage<TD, TP> mapDepths(depths, pts, dims, m, ptMap);
+  if (coordinateSystem == vtkDepthImageToPointCloud::World)
+  {
+    matrix = cam->GetCompositeProjectionTransformMatrix(aspect, 0, 1);
+    vtkMatrix4x4::Invert(*matrix->Element, m);
+  }
+  else if (coordinateSystem == vtkDepthImageToPointCloud::Pose)
+  {
+    matrix = cam->GetModelViewTransformMatrix();
+    vtkMatrix4x4::Invert(*matrix->Element, m);
+  }
+  else
+  {
+    m[0] = m[5] = m[10] = m[15] = 1.0;
+  }
+
+  MapDepthImage<TD, TP> mapDepths(depths, pts, dims, pixelShift, m, ptMap);
   vtkSMPTools::For(0, dims[1], mapDepths);
 }
 
@@ -173,8 +187,9 @@ vtkDepthImageToPointCloud::vtkDepthImageToPointCloud()
   this->CullFarPoints = true;
   this->ProduceColorScalars = true;
   this->ProduceVertexCellArray = true;
+  this->CenterPointsAtPixels = false;
   this->OutputPointsPrecision = vtkAlgorithm::DEFAULT_PRECISION;
-
+  this->OutputCoordinateSystem = vtkDepthImageToPointCloud::World;
   this->SetNumberOfInputPorts(2);
   this->SetNumberOfOutputPorts(1);
 }
@@ -359,6 +374,11 @@ int vtkDepthImageToPointCloud::RequestData(
   points->SetNumberOfPoints(numOutPts);
   outData->SetPoints(points);
 
+  // Offset for centering points at pixels
+  double pixelShift = 0.0;
+  if (this->CenterPointsAtPixels)
+    pixelShift = 0.5;
+
   // Threaded over x-edges (rows). Each depth value is transformed into a
   // world point. Below there is a double allocation based on the depth type
   // and output point type.
@@ -367,8 +387,8 @@ int vtkDepthImageToPointCloud::RequestData(
     float* ptsPtr = static_cast<float*>(points->GetVoidPointer(0));
     switch (depths->GetDataType())
     {
-      vtkTemplateMacro(
-        XFormPoints((VTK_TT*)depthPtr, ptMap, static_cast<float*>(ptsPtr), dims, cam));
+      vtkTemplateMacro(XFormPoints((VTK_TT*)depthPtr, ptMap, static_cast<float*>(ptsPtr), dims,
+        pixelShift, this->OutputCoordinateSystem, cam));
     }
   }
   else
@@ -376,8 +396,8 @@ int vtkDepthImageToPointCloud::RequestData(
     double* ptsPtr = static_cast<double*>(points->GetVoidPointer(0));
     switch (depths->GetDataType())
     {
-      vtkTemplateMacro(
-        XFormPoints((VTK_TT*)depthPtr, ptMap, static_cast<double*>(ptsPtr), dims, cam));
+      vtkTemplateMacro(XFormPoints((VTK_TT*)depthPtr, ptMap, static_cast<double*>(ptsPtr), dims,
+        pixelShift, this->OutputCoordinateSystem, cam));
     }
   }
 
@@ -410,6 +430,23 @@ int vtkDepthImageToPointCloud::RequestData(
 }
 
 //------------------------------------------------------------------------------
+const char* vtkDepthImageToPointCloud::GetOutputCoordinateSystemAsString()
+{
+  if (this->OutputCoordinateSystem == vtkDepthImageToPointCloud::View)
+  {
+    return "View";
+  }
+  else if (this->OutputCoordinateSystem == vtkDepthImageToPointCloud::Pose)
+  {
+    return "Pose";
+  }
+  else
+  {
+    return "View";
+  }
+}
+
+//------------------------------------------------------------------------------
 void vtkDepthImageToPointCloud::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
@@ -434,5 +471,9 @@ void vtkDepthImageToPointCloud::PrintSelf(ostream& os, vtkIndent indent)
      << "Produce Vertex Cell Array: " << (this->ProduceVertexCellArray ? "On\n" : "Off\n");
 
   os << indent << "OutputPointsPrecision: " << this->OutputPointsPrecision << "\n";
+
+  os << indent << "CenterPointsAtPixels: " << (this->CenterPointsAtPixels ? "On\n" : "Off\n");
+
+  os << indent << "OutputCoordinateSystem: " << this->GetOutputCoordinateSystemAsString() << "\n";
 }
 VTK_ABI_NAMESPACE_END

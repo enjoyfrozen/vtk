@@ -29,6 +29,15 @@
  * clipping planes. This may better simulate the generation of a scanned
  * object point cloud.
  *
+ * The option CenterPointsAtPixels can be used for forcing the
+ * generated points to be located at the center of the image pixels
+ * rather the in the lower left corner.
+ *
+ * The option OutputCoordinateSystem can be used for selecting that
+ * the output positions should be given in either, the View coordinate
+ * system, the Pose coordinate system (relative to the camera) or in
+ * World coordinate (default).
+ *
  * @warning
  * For the camera to transform the image depths into a point cloud, this
  * filter makes assumptions about the origin of the depth image (and
@@ -41,7 +50,11 @@
  * are at the center of the pixel versus the lower-left corner of the pixel
  * will make slight differences in how pixels are transformed. (Similarly for
  * the upper right pixel as well). This half pixel difference can cause
- * transformation issues. (The code is commented appropriately.)
+ * transformation issues. (The code is commented appropriately.) To remedy this, the
+ * CenterPointsAtPixels can be enabled.
+ *
+ * Plese not that when using this filter in a pipeline, you need to
+ * explicit call render on the render window(s).
  *
  * @warning
  * This class has been threaded with vtkSMPTools. Using TBB or other
@@ -100,9 +113,9 @@ public:
    * plane. These typically are points that are part of the clipped foreground. By
    * default this is disabled.
    */
-  vtkSetMacro(CullNearPoints, bool);
-  vtkGetMacro(CullNearPoints, bool);
-  vtkBooleanMacro(CullNearPoints, bool);
+  vtkSetMacro(CullNearPoints, vtkTypeBool);
+  vtkGetMacro(CullNearPoints, vtkTypeBool);
+  vtkBooleanMacro(CullNearPoints, vtkTypeBool);
   ///@}
 
   ///@{
@@ -111,9 +124,9 @@ public:
    * plane. These typically are points that are part of the background. By
    * default this is enabled.
    */
-  vtkSetMacro(CullFarPoints, bool);
-  vtkGetMacro(CullFarPoints, bool);
-  vtkBooleanMacro(CullFarPoints, bool);
+  vtkSetMacro(CullFarPoints, vtkTypeBool);
+  vtkGetMacro(CullFarPoints, vtkTypeBool);
+  vtkBooleanMacro(CullFarPoints, vtkTypeBool);
   ///@}
 
   ///@{
@@ -122,9 +135,9 @@ public:
    * point cloud (assuming that the scalar values are available on
    * input). By default this is enabled.
    */
-  vtkSetMacro(ProduceColorScalars, bool);
-  vtkGetMacro(ProduceColorScalars, bool);
-  vtkBooleanMacro(ProduceColorScalars, bool);
+  vtkSetMacro(ProduceColorScalars, vtkTypeBool);
+  vtkGetMacro(ProduceColorScalars, vtkTypeBool);
+  vtkBooleanMacro(ProduceColorScalars, vtkTypeBool);
   ///@}
 
   ///@{
@@ -134,9 +147,41 @@ public:
    * defined in order to execute properly. For example some mappers will
    * only render points if the vertex cells are defined.
    */
-  vtkSetMacro(ProduceVertexCellArray, bool);
-  vtkGetMacro(ProduceVertexCellArray, bool);
-  vtkBooleanMacro(ProduceVertexCellArray, bool);
+  vtkSetMacro(ProduceVertexCellArray, vtkTypeBool);
+  vtkGetMacro(ProduceVertexCellArray, vtkTypeBool);
+  vtkBooleanMacro(ProduceVertexCellArray, vtkTypeBool);
+  ///@}
+
+  ///@{
+  /**
+   * Center points at pixel. When enabled, an offset is added of 0.5
+   * pixels such that points are added using the image value at the
+   * center of the pixels rather than in the lower left corner.
+   */
+  vtkSetMacro(CenterPointsAtPixels, vtkTypeBool);
+  vtkGetMacro(CenterPointsAtPixels, vtkTypeBool);
+  vtkBooleanMacro(CenterPointsAtPixels, vtkTypeBool);
+  ///@}
+
+  ///@{
+  /**
+   * Set the output coordinate system to be either View coordinates,
+   * Pose coordinates or World coordinates (default)
+   */
+
+  enum OutputCoordinateSystemType : int
+  {
+    View = 0,
+    Pose = 1,
+    World = 2
+  };
+
+  vtkSetClampMacro(OutputCoordinateSystem, int, View, World);
+  vtkGetMacro(OutputCoordinateSystem, int);
+  void SetOutputCoordinateSystemToView() { this->SetOutputCoordinateSystem(View); }
+  void SetOutputCoordinateSystemToPose() { this->SetOutputCoordinateSystem(Pose); }
+  void SetOutputCoordinateSystemToWorld() { this->SetOutputCoordinateSystem(World); }
+  const char* GetOutputCoordinateSystemAsString();
   ///@}
 
   ///@{
@@ -154,10 +199,12 @@ protected:
   ~vtkDepthImageToPointCloud() override;
 
   vtkCamera* Camera;
-  bool CullNearPoints;
-  bool CullFarPoints;
-  bool ProduceColorScalars;
-  bool ProduceVertexCellArray;
+  vtkTypeBool CullNearPoints;
+  vtkTypeBool CullFarPoints;
+  vtkTypeBool ProduceColorScalars;
+  vtkTypeBool ProduceVertexCellArray;
+  vtkTypeBool CenterPointsAtPixels;
+  int OutputCoordinateSystem;
   int OutputPointsPrecision;
 
   int RequestInformation(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
