@@ -699,6 +699,7 @@ protected:
 
   using TaggedCellId = vtkPolyData_detail::TaggedCellId;
   using CellMap = vtkPolyData_detail::CellMap;
+  using Target = vtkPolyData_detail::Target;
 
   vtkCellArray* GetCellArrayInternal(TaggedCellId tag);
 
@@ -715,6 +716,7 @@ protected:
   vtkSmartPointer<vtkAbstractCellLinks> Links;
 
   vtkNew<vtkIdList> LegacyBuffer;
+  Target LastTarget = Target::Verts;
 
   // dummy static member below used as a trick to simplify traversal
   static vtkPolyDataDummyContainter DummyContainer;
