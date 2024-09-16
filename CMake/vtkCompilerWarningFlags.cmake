@@ -43,7 +43,6 @@ if (VTK_ENABLE_EXTRA_BUILD_WARNINGS_EVERYTHING)
   # Instead of enabling warnings, this mode *disables* warnings.
   vtk_add_flag(-Wno-cast-align ${langs})
   vtk_add_flag(-Wno-cast-function-type-strict ${langs})
-  vtk_add_flag(-Wno-cast-qual ${langs})
   vtk_add_flag(-Wno-conversion ${langs})
   vtk_add_flag(-Wno-covered-switch-default ${langs})
   vtk_add_flag(-Wno-declaration-after-statement ${langs})
@@ -111,6 +110,7 @@ elseif (VTK_ENABLE_EXTRA_BUILD_WARNINGS)
 
   # C++ flags.
   set(langs CXX)
+  vtk_add_flag(-Wcast-qual ${langs})
   vtk_add_flag(-Winconsistent-missing-destructor-override ${langs})
   vtk_add_flag(-Wnon-virtual-dtor ${langs})
   vtk_add_flag(-Wpessimizing-move ${langs})
