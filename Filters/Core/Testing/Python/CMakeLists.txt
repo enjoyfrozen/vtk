@@ -81,6 +81,7 @@ vtk_add_test_python(
   TestVoronoi2D.py
   TestVoronoi2D2.py
   TestVoronoi2D3.py
+  TestVoronoi3D.py
   TestWindowedSincPolylineSmoothing.py
   capCow.py
   capSphere.py

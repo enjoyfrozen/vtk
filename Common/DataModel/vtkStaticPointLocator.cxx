@@ -479,6 +479,8 @@ struct BucketList : public vtkBucketList
   vtkIdType FindClosestPointWithinRadius(
     double radius, const double x[3], double inputDataLength, double& dist2);
   void FindClosestNPoints(int N, const double x[3], vtkIdList* result);
+  double FindNPointsInShell(int N, const double x[3], vtkIdList* result,
+                            double minDist2=(-0.1), bool sort=true);
   void FindPointsWithinRadius(double R, const double x[3], vtkIdList* result);
   int IntersectWithLine(double a0[3], double a1[3], double tol, double& t, double lineX[3],
     double ptX[3], vtkIdType& ptId);
@@ -1278,6 +1280,8 @@ struct IdTuple
 {
   vtkIdType PtId;
   double Dist2;
+  IdTuple() : PtId(-1), Dist2(0) {}
+  IdTuple(vtkIdType ptId, double d2) : PtId(ptId), Dist2(d2) {}
 
   bool operator<(const IdTuple& tuple) const { return Dist2 < tuple.Dist2; }
 };
@@ -1394,7 +1398,129 @@ void BucketList<TIds>::FindClosestNPoints(int N, const double x[3], vtkIdList* r
 }
 
 //------------------------------------------------------------------------------
-// The Radius defines a block of buckets which the sphere of radius R may
+// This algorithm works by grabbing the first N points it finds (using an
+// expanding wave across nearby bins so this initial set of points is
+// reasonably close to the query point). This operation also determines a
+// maximum maxDist2 defining the radius of the initial nearby set around the query
+// point. Then, resuming the traversal after grabbing this initial initial
+// set / N points, all remaining points whose dist2 <= maxDist2 are added to
+// the results list.  Finally, a single sort operation is performed if
+// requested.
+template <typename TIds> double BucketList<TIds>::
+FindNPointsInShell(int N, const double x[3], vtkIdList* result,
+                   double minDist2, bool sort)
+{
+  // Clear out any previous results
+  result->Reset();
+
+  //  Find the bucket the point is in.
+  int ijk[3];
+  this->GetBucketIndices(x, ijk);
+
+  // Find N points in initial set
+  int level=0;
+  NeighborBuckets buckets;
+  double d2, maxDist2=0.0;
+  double pt[3];
+  int count=0;
+  std::vector<IdTuple> res;
+  vtkIdType ptId, cno, numIds;
+  int i, j, k, *nei;
+  const LocatorTuple<TIds>* ids;
+
+  this->GetBucketNeighbors(&buckets, ijk, this->Divisions, level);
+  while (buckets.GetNumberOfNeighbors() && count < N)
+  {
+    for (i = 0; i < buckets.GetNumberOfNeighbors(); i++)
+    {
+      nei = buckets.GetPoint(i);
+      cno = nei[0] + nei[1] * this->xD + nei[2] * this->xyD;
+
+      if ((numIds = this->GetNumberOfIds(cno)) > 0)
+      {
+        ids = this->GetIds(cno);
+        for (j = 0; j < numIds; j++)
+        {
+          ptId = ids[j].PtId;
+          this->DataSet->GetPoint(ptId, pt);
+          d2 = vtkMath::Distance2BetweenPoints(x, pt);
+          if ( d2 > minDist2 )
+          {
+            maxDist2 = ( d2 > maxDist2 ? d2 : maxDist2 );
+            ++count;
+          }
+        } // for all points in this bucker
+      } // if points exist in this bucket
+    } // for each bucket in this level
+    level++;
+    this->GetBucketNeighbors(&buckets, ijk, this->Divisions, level);
+  } // while looking for an initial set of N points
+
+  // Now populate the set of points. Using the maxDist2, gather all points
+  // (minDist2 < p_d2 <= maxDist2) to return a spherical shell set of points.
+  double R = sqrt(maxDist2);
+  // Determine the range of indices in each direction based on radius R.
+  double xMin[3], xMax[3];
+  xMin[0] = x[0] - R;
+  xMin[1] = x[1] - R;
+  xMin[2] = x[2] - R;
+  xMax[0] = x[0] + R;
+  xMax[1] = x[1] + R;
+  xMax[2] = x[2] + R;
+
+  // Find the rectangular footprint in the locator
+  int ijkMin[3], ijkMax[3];
+  this->GetBucketIndices(xMin, ijkMin);
+  this->GetBucketIndices(xMax, ijkMax);
+
+  // Add points within the footprint and the spherical shell (minDist2,maxDist2]
+  int ii, jOffset, kOffset;
+  for (k = ijkMin[2]; k <= ijkMax[2]; ++k)
+  {
+    kOffset = k * this->xyD;
+    for (j = ijkMin[1]; j <= ijkMax[1]; ++j)
+    {
+      jOffset = j * this->xD;
+      for (i = ijkMin[0]; i <= ijkMax[0]; ++i)
+      {
+        cno = i + jOffset + kOffset;
+
+        if ((numIds = this->GetNumberOfIds(cno)) > 0)
+        {
+          ids = this->GetIds(cno);
+          for (ii = 0; ii < numIds; ii++)
+          {
+            ptId = ids[ii].PtId;
+            this->DataSet->GetPoint(ptId, pt);
+            d2 = vtkMath::Distance2BetweenPoints(x, pt);
+            if (d2 > minDist2 && d2 <= maxDist2)
+            {
+              res.emplace_back(IdTuple(ptId,d2));
+            }
+          } // for all points in bucket
+        }   // if points in bucket
+      }     // i-footprint
+    }       // j-footprint
+  }         // k-footprint
+
+  // Sort if requested
+  if ( sort )
+  {
+    std::sort(res.begin(), res.end());
+  }
+
+  // Fill in the IdList
+  result->SetNumberOfIds(res.size());
+  for (i=0; i < res.size(); ++i)
+  {
+    result->SetId(i, res[i].PtId);
+  }
+
+  return maxDist2;
+}
+
+//------------------------------------------------------------------------------
+// The Radius defines a block of buckets which the sphere of radis R may
 // touch.
 template <typename TIds>
 void BucketList<TIds>::FindPointsWithinRadius(double R, const double x[3], vtkIdList* result)
@@ -2215,6 +2341,28 @@ void vtkStaticPointLocator::FindClosestNPoints(int N, const double x[3], vtkIdLi
   else
   {
     return static_cast<BucketList<int>*>(this->Buckets)->FindClosestNPoints(N, x, result);
+  }
+}
+
+//------------------------------------------------------------------------------
+double vtkStaticPointLocator::
+FindNPointsInShell(int N, const double x[3], vtkIdList* result, double minDist2, bool sort)
+{
+  this->BuildLocator(); // will subdivide if modified; otherwise returns
+  if (!this->Buckets)
+  {
+    return 0.0;
+  }
+
+  if (this->LargeIds)
+  {
+    return static_cast<BucketList<vtkIdType>*>(this->Buckets)->
+      FindNPointsInShell(N, x, result, minDist2, sort);
+  }
+  else
+  {
+    return static_cast<BucketList<int>*>(this->Buckets)->
+      FindNPointsInShell(N, x, result, minDist2, sort);
   }
 }
 
