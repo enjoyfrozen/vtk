@@ -111,7 +111,7 @@ public:
    *
    * For other IntersectWithLine signatures, see vtkAbstractCellLocator.
    */
-  int IntersectWithLine(const double a0[3], const double a1[3], double tol, double& t, double x[3],
+  int IntersectWithLine(const double p1[3], const double p2[3], double tol, double& t, double x[3],
     double pcoords[3], int& subId, vtkIdType& cellId, vtkGenericCell* cell) override;
 
   /**
@@ -169,9 +169,9 @@ public:
    * Reimplemented from vtkAbstractCellLocator to showcase that it's a supported function.
    */
   void FindCellsAlongLine(
-    const double p1[3], const double p2[3], double tolerance, vtkIdList* cellsIds) override
+    const double p1[3], const double p2[3], double tol, vtkIdList* cellsIds) override
   {
-    this->Superclass::FindCellsAlongLine(p1, p2, tolerance, cellsIds);
+    this->Superclass::FindCellsAlongLine(p1, p2, tol, cellsIds);
   }
 
   /**
@@ -181,7 +181,7 @@ public:
    * pointer, then no information is generated for that list.
    */
   void FindCellsAlongPlane(
-    const double o[3], const double n[3], double tolerance, vtkIdList* cells) override;
+    const double o[3], const double n[3], double tol, vtkIdList* cells) override;
 
   /**
    * Find the cell containing a given point. returns -1 if no cell found
@@ -190,14 +190,14 @@ public:
    *
    * For other FindCell signatures, see vtkAbstractCellLocator.
    */
-  vtkIdType FindCell(double x[3], double vtkNotUsed(tol2), vtkGenericCell* GenCell, int& subId,
+  vtkIdType FindCell(double x[3], double tol, vtkGenericCell* GenCell, int& subId,
     double pcoords[3], double* weights) override;
 
   /**
    * Quickly test if a point is inside the bounds of a particular cell.
    * This function should be used ONLY after the locator is built.
    */
-  bool InsideCellBounds(double x[3], vtkIdType cellId) override;
+  bool InsideCellBounds(double x[3], vtkIdType cellId, double tol = 0) override;
 
   ///@{
   /**

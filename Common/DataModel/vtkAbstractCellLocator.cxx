@@ -126,12 +126,10 @@ int vtkAbstractCellLocator::IntersectWithLine(const double vtkNotUsed(p1)[3],
 }
 
 //------------------------------------------------------------------------------
-int vtkAbstractCellLocator::IntersectWithLine(const double vtkNotUsed(p1)[3],
-  const double vtkNotUsed(p2)[3], vtkPoints* vtkNotUsed(points), vtkIdList* vtkNotUsed(cellIds))
+int vtkAbstractCellLocator::IntersectWithLine(
+  const double p1[3], const double p2[3], vtkPoints* points, vtkIdList* cellIds)
 {
-  vtkErrorMacro(<< "The locator class - " << this->GetClassName()
-                << " does not yet support this IntersectWithLine interface");
-  return 0;
+  return this->IntersectWithLine(p1, p2, 0.0, points, cellIds, this->GenericCell);
 }
 
 //------------------------------------------------------------------------------
@@ -231,15 +229,15 @@ vtkIdType vtkAbstractCellLocator::FindCell(double x[3])
 
 //------------------------------------------------------------------------------
 vtkIdType vtkAbstractCellLocator::FindCell(
-  double x[3], double tol2, vtkGenericCell* GenCell, double pcoords[3], double* weights)
+  double x[3], double tol, vtkGenericCell* GenCell, double pcoords[3], double* weights)
 {
   int subId;
-  return this->FindCell(x, tol2, GenCell, subId, pcoords, weights);
+  return this->FindCell(x, tol, GenCell, subId, pcoords, weights);
 }
 
 //------------------------------------------------------------------------------
 vtkIdType vtkAbstractCellLocator::FindCell(
-  double x[3], double tol2, vtkGenericCell* GenCell, int& subId, double pcoords[3], double* weights)
+  double x[3], double tol, vtkGenericCell* GenCell, int& subId, double pcoords[3], double* weights)
 {
   vtkIdType returnVal = -1;
   //
@@ -253,23 +251,23 @@ vtkIdType vtkAbstractCellLocator::FindCell(
   //
   if (this->DataSet)
   {
-    returnVal = this->DataSet->FindCell(x, nullptr, GenCell, 0, tol2, subId, pcoords, weights);
+    returnVal = this->DataSet->FindCell(x, nullptr, GenCell, 0, tol, subId, pcoords, weights);
   }
   return returnVal;
 }
 
 //------------------------------------------------------------------------------
-bool vtkAbstractCellLocator::InsideCellBounds(double x[3], vtkIdType cell_ID)
+bool vtkAbstractCellLocator::InsideCellBounds(double x[3], vtkIdType cell_ID, double tol)
 {
   if (this->CacheCellBounds)
   {
-    return vtkAbstractCellLocator::IsInBounds(&this->CellBounds[cell_ID * 6], x);
+    return vtkAbstractCellLocator::IsInBounds(&this->CellBounds[cell_ID * 6], x, tol);
   }
   else
   {
     double cellBounds[6];
     this->DataSet->GetCellBounds(cell_ID, cellBounds);
-    return vtkAbstractCellLocator::IsInBounds(cellBounds, x);
+    return vtkAbstractCellLocator::IsInBounds(cellBounds, x, tol);
   }
 }
 

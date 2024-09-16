@@ -104,7 +104,7 @@ public:
    * Return intersection point (if any) AND the cell which was intersected by
    * the finite line. The cell is returned as a cell id and as a generic cell.
    */
-  int IntersectWithLine(const double a0[3], const double a1[3], double tol, double& t, double x[3],
+  int IntersectWithLine(const double p1[3], const double p2[3], double tol, double& t, double x[3],
     double pcoords[3], int& subId, vtkIdType& cellId, vtkGenericCell* cell) override;
 
   /**
@@ -134,9 +134,9 @@ public:
    * Reimplemented from vtkAbstractCellLocator to showcase that it's a supported function.
    */
   void FindCellsAlongLine(
-    const double p1[3], const double p2[3], double tolerance, vtkIdList* cellsIds) override
+    const double p1[3], const double p2[3], double tol, vtkIdList* cellsIds) override
   {
-    this->Superclass::FindCellsAlongLine(p1, p2, tolerance, cellsIds);
+    this->Superclass::FindCellsAlongLine(p1, p2, tol, cellsIds);
   }
 
   /**
@@ -144,8 +144,8 @@ public:
    * the cell parameters are copied into the supplied variables, a cell must
    * be provided to store the information.
    */
-  vtkIdType FindCell(double pos[3], double vtkNotUsed(tol2), vtkGenericCell* cell, int& subId,
-    double pcoords[3], double* weights) override;
+  vtkIdType FindCell(double pos[3], double tol, vtkGenericCell* cell, int& subId, double pcoords[3],
+    double* weights) override;
 
   ///@{
   /**

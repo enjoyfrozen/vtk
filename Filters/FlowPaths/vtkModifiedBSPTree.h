@@ -190,9 +190,9 @@ public:
    * Reimplemented from vtkAbstractCellLocator to showcase that it's a supported function.
    */
   void FindCellsAlongLine(
-    const double p1[3], const double p2[3], double tolerance, vtkIdList* cellsIds) override
+    const double p1[3], const double p2[3], double tol, vtkIdList* cellsIds) override
   {
-    this->Superclass::FindCellsAlongLine(p1, p2, tolerance, cellsIds);
+    this->Superclass::FindCellsAlongLine(p1, p2, tol, cellsIds);
   }
 
   /**
@@ -202,7 +202,7 @@ public:
    *
    * For other FindCell signatures, see vtkAbstractCellLocator.
    */
-  vtkIdType FindCell(double x[3], double vtkNotUsed(tol2), vtkGenericCell* GenCell, int& subId,
+  vtkIdType FindCell(double x[3], double tol, vtkGenericCell* GenCell, int& subId,
     double pcoords[3], double* weights) override;
 
   /**
