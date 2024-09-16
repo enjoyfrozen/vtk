@@ -104,7 +104,7 @@ XdmfValuesHDF::Read(XdmfArray *anArray){
                 Coordinates = this->DataDesc->GetCoordinates();
                 RetArray->SetNumberOfElements(NumberOfCoordinates);
                 H5.SelectCoordinates(NumberOfCoordinates, Coordinates);
-                delete Coordinates;
+                delete[] Coordinates;
                 }
             }
         XdmfDebug("Reading " << H5.GetSelectionSize() << " into Array of " << RetArray->GetSelectionSize() );
