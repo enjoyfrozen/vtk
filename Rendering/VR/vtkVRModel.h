@@ -38,9 +38,22 @@ public:
   const std::string& GetName() const { return this->ModelName; }
   void SetName(const std::string& modelName) { this->ModelName = modelName; }
 
-  // show the model
-  void SetVisibility(bool v) { this->Visibility = v; }
+  ///@{
+  /**
+   * @brief Show or hide model and/or ray
+   *
+   * `SetVisibility(bool)` will set both the model and ray visibility. This is the old behavior.
+   *
+   * `SetVisibility(bool, bool)` will independently set model and ray visibility. This is equivalent
+   * to do `SetVisibility(bool)` followed by `SetShowRay(bool)`.
+   *
+   * `GetVisibility` will return the model visibility, regarless or ray visibility.
+   * Use `GetRay()->GetShow()` to query ray visibility.
+   */
+  void SetVisibility(bool modelAndRay);
+  void SetVisibility(bool model, bool ray);
   bool GetVisibility() { return this->Visibility; }
+  ///@}
 
   // Set Ray parameters
   void SetShowRay(bool v);
@@ -61,7 +74,7 @@ protected:
 
   std::string ModelName;
 
-  bool Visibility;
+  bool Visibility = true;
   bool Loaded;
   bool FailedToLoad;
 

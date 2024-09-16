@@ -291,7 +291,7 @@ void vtkOpenXRRenderWindow::RenderModels()
     }
 
     // if we have a model and it is visible
-    if (pRenderModel && pRenderModel->GetVisibility())
+    if (pRenderModel)
     {
       vtkMatrix4x4* tdPose = this->GetDeviceToPhysicalMatrixForDeviceHandle(handle);
       pRenderModel->Render(this, tdPose);

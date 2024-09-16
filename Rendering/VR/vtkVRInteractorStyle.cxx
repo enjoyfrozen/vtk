@@ -26,6 +26,7 @@
 #include "vtkVRMenuRepresentation.h"
 #include "vtkVRMenuWidget.h"
 #include "vtkVRModel.h"
+#include "vtkVRRay.h"
 #include "vtkVRRenderWindow.h"
 #include "vtkVRRenderWindowInteractor.h"
 
@@ -1596,24 +1597,26 @@ bool vtkVRInteractorStyle::HardwareSelect(vtkEventDataDevice controller, bool ac
     return false;
   }
 
-  cmodel->SetVisibility(false);
+  vtkMatrix4x4* devicePose = renWin->GetDeviceToPhysicalMatrixForDevice(controller);
+  if (!devicePose)
+  {
+    return false;
+  }
 
   // Compute controller position and world orientation
   double p0[3];   // Ray start point
   double wxyz[4]; // Controller orientation
   double dummy_ppos[3];
   double wdir[3];
-
-  vtkMatrix4x4* devicePose = renWin->GetDeviceToPhysicalMatrixForDevice(controller);
-
-  if (!devicePose)
-  {
-    return false;
-  }
-
   iren->ConvertPoseToWorldCoordinates(devicePose, p0, wxyz, dummy_ppos, wdir);
+
+  const bool controllerVisibility = cmodel->GetVisibility();
+  const bool rayVisibility = cmodel->GetRay()->GetShow();
+  cmodel->SetVisibility(false, false);
+
   this->HardwarePicker->PickProp(p0, wxyz, ren, ren->GetViewProps(), actorPassOnly);
-  cmodel->SetVisibility(true);
+
+  cmodel->SetVisibility(controllerVisibility, rayVisibility);
 
   return true;
 }
