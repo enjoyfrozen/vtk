@@ -918,7 +918,7 @@ class DataObject(VTKObjectWrapper):
         """Returns the attributes specified by the type as a DataSetAttributes
          instance."""
         if type == ArrayAssociation.FIELD:
-            return DataSetAttributes(self.VTKObject.GetFieldData(), self, type)
+            return self.GetFieldData()
         return DataSetAttributes(self.VTKObject.GetAttributes(type), self, type)
 
     def HasAttributes(self, type):
@@ -1012,23 +1012,28 @@ class CompositeDataSet(DataObject):
         return True
 
     def GetPointData(self):
-        "Returns the point data as a DataSetAttributes instance."
+        "Returns the point data as a CompositeDataSetAttributes instance."
         if self._PointData is None or self._PointData() is None:
             pdata = self.GetAttributes(ArrayAssociation.POINT)
             self._PointData = weakref.ref(pdata)
         return self._PointData()
 
     def GetCellData(self):
-        "Returns the cell data as a DataSetAttributes instance."
+        "Returns the cell data as a CompositeDataSetAttributes instance."
         if self._CellData is None or self._CellData() is None:
             cdata = self.GetAttributes(ArrayAssociation.CELL)
             self._CellData = weakref.ref(cdata)
         return self._CellData()
 
     def GetFieldData(self):
-        "Returns the field data as a DataSetAttributes instance."
+        """
+        :return: The field data as a DataSetAttributes instance, if root node has arrays,
+                 or as a CompositeDataSetAttributes instance, if root node doesn't have arrays.
+        """
         if self._FieldData is None or self._FieldData() is None:
-            fdata = self.GetAttributes(ArrayAssociation.FIELD)
+            fdata = super(CompositeDataSet, self).GetFieldData()
+            if len(fdata.keys()) == 0:
+                fdata = self.GetAttributes(ArrayAssociation.FIELD)
             self._FieldData = weakref.ref(fdata)
         return self._FieldData()
 
