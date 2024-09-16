@@ -358,6 +358,11 @@ bool GetConnectivity(Ioss::GroupingEntity* group_entity, vtkCellGrid* grid, vtkD
       cache->Insert(group_entity, "__vtk_cell_connectivity__", cellSpec.Connectivity);
     }
   }
+  else
+  {
+    // Need to add cached array to grid's vtkDataSetAttributes
+    grid->GetAttributes(meta->GetClassName())->AddArray(cellSpec.Connectivity);
+  }
 
   if (!cellSpec.NodalGhostMarks)
   {
@@ -370,6 +375,10 @@ bool GetConnectivity(Ioss::GroupingEntity* group_entity, vtkCellGrid* grid, vtkD
       cache->Insert(group_entity, "__vtk_cell_connectivity__", cellSpec.NodalGhostMarks);
     }
 #endif
+  }
+  else
+  {
+    grid->GetAttributes("coordinates"_token)->AddArray(cellSpec.NodalGhostMarks);
   }
   return !!cellSpec.Connectivity;
 }

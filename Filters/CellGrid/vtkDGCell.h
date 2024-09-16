@@ -54,7 +54,7 @@ public:
   /// the function space and its order are also indexed.
   ///
   /// vtkDGInterpolateCalculator and other query-responders should use
-  /// this map along with vtkDGInvokeOperator to perform interpolation
+  /// this map along with vtkDGOperation to perform interpolation
   /// or other work requiring basis-function computation.
   using OperatorMap = std::unordered_map<vtkStringToken, // operator name
     std::unordered_map<vtkStringToken,                   // function space
