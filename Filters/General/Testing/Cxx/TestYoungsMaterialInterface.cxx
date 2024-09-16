@@ -15,6 +15,7 @@
 #include "vtkMultiBlockDataSet.h"
 #include "vtkNew.h"
 #include "vtkProperty.h"
+#include "vtkRegressionTestImage.h"
 #include "vtkRenderWindow.h"
 #include "vtkRenderWindowInteractor.h"
 #include "vtkRenderer.h"
@@ -111,6 +112,7 @@ int TestYoungsMaterialInterface(int argc, char* argv[])
   vtkNew<vtkActor> meshActor;
   meshActor->SetMapper(meshMapper);
   meshActor->GetProperty()->SetRepresentationToWireframe();
+  meshActor->GetProperty()->SetLineWidth(2.0);
   renderer->AddViewProp(meshActor);
 
   cellData->SetActiveScalars("frac_pres[1]");
@@ -163,9 +165,17 @@ int TestYoungsMaterialInterface(int argc, char* argv[])
     renderer->AddViewProp(interfaceActor);
   }
 
+  renderer->ResetCamera();
+  renderer->GetActiveCamera()->Zoom(2.5);
+
   // Render and test;
   window->Render();
-  interactor->Start();
+  interactor->Initialize();
+  int retVal = vtkRegressionTestImage(window);
+  if (retVal == vtkRegressionTester::DO_INTERACTOR)
+  {
+    interactor->Start();
+  }
 
-  return EXIT_SUCCESS;
+  return !retVal;
 }
