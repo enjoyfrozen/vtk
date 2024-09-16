@@ -8,6 +8,7 @@ vtk_object_factory_declare(
 set(classes
   vtkAdaptiveResampleToImage
   vtkExtractSubsetWithSeed
+  vtkFieldPartitioningStrategy
   vtkGenerateGlobalIds
   vtkGhostCellsGenerator
   vtkNativePartitioningStrategy
