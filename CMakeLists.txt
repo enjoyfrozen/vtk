@@ -615,7 +615,7 @@ if (VTK_WRAP_PYTHON)
     list(REMOVE_DUPLICATES vtk_required_python_modules)
   endif ()
   string(REPLACE ";" "\n" vtk_required_python_modules "${vtk_required_python_modules}")
-  file(WRITE "${CMAKE_BINARY_DIR}/requirements.txt"
+  file(WRITE "${CMAKE_BINARY_DIR}/${VTK_PYTHON_SITE_PACKAGES_SUFFIX}/requirements.txt"
     "${vtk_required_python_modules}\n")
   get_property(vtk_web_python_modules GLOBAL
     PROPERTY  vtk_web_python_modules)
@@ -623,7 +623,7 @@ if (VTK_WRAP_PYTHON)
     list(REMOVE_DUPLICATES vtk_web_python_modules)
   endif ()
   string(REPLACE ";" "\n" vtk_web_python_modules "${vtk_web_python_modules}")
-  file(WRITE "${CMAKE_BINARY_DIR}/requirements_web.txt"
+  file(WRITE "${CMAKE_BINARY_DIR}/${VTK_PYTHON_SITE_PACKAGES_SUFFIX}/requirements_web.txt"
     "${vtk_web_python_modules}\n")
   get_property(vtk_soabi GLOBAL
     PROPERTY  _vtk_python_soabi)
@@ -682,6 +682,8 @@ if (VTK_WRAP_PYTHON)
     WRAPPED_MODULES vtk_python_wrapped_modules
     TARGET_SPECIFIC_COMPONENTS "${VTK_TARGET_SPECIFIC_COMPONENTS}"
     TARGET          VTK::vtkpythonmodules)
+
+  include(vtkPythonMetadata)
 
   if (APPLE AND VTK_WHEEL_BUILD)
     list(REMOVE_ITEM CMAKE_INSTALL_RPATH
@@ -792,7 +794,7 @@ install(
 
 # TODO: HeaderTest exclusions for memcheck.
 
-if (VTK_WHEEL_BUILD)
+if (VTK_WRAP_PYTHON)
   include(vtkWheelFinalization)
 endif ()
 
