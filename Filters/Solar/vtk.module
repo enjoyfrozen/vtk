@@ -1,0 +1,17 @@
+NAME
+  VTK::FiltersSolar
+LIBRARY_NAME
+  vtkFiltersSolar
+DESCRIPTION
+  Filters and algorithms enabled by accelerated ray tracing facilities
+IMPLEMENTABLE
+DEPENDS
+  VTK::CommonCore
+  VTK::CommonDataModel
+  VTK::CommonExecutionModel
+  VTK::CommonMath
+PRIVATE_DEPENDS
+  VTK::FiltersCore
+TEST_DEPENDS
+  VTK::TestingCore
+  VTK::CommonSystem
