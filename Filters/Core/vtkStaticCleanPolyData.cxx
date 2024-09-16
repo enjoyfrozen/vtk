@@ -37,9 +37,9 @@ vtkStaticCleanPolyData::vtkStaticCleanPolyData()
   this->MergingArray = nullptr;
   this->SetMergingArray("");
 
-  this->ConvertPolysToLines = false;
-  this->ConvertLinesToPoints = false;
-  this->ConvertStripsToPolys = false;
+  this->ConvertPolysToLines = true;
+  this->ConvertLinesToPoints = true;
+  this->ConvertStripsToPolys = true;
 
   this->RemoveUnusedPoints = true;
   this->ProduceMergeMap = false;
@@ -227,6 +227,7 @@ int vtkStaticCleanPolyData::RequestData(vtkInformation* vtkNotUsed(request),
   vtkSmartPointer<vtkCellData> outLineData;
   vtkSmartPointer<vtkCellData> outPolyData;
   vtkSmartPointer<vtkCellData> outStrpData;
+  outCD->CopyAllOn(vtkDataSetAttributes::COPYTUPLE);
   outCD->CopyAllocate(inCD);
 
   // Begin to adjust topology. We need to cull out duplicate points and see
@@ -278,6 +279,7 @@ int vtkStaticCleanPolyData::RequestData(vtkInformation* vtkNotUsed(request),
     newLines.TakeReference(vtkCellArray::New());
     newLines->AllocateEstimate(inLines->GetNumberOfCells(), 2);
     outLineData.TakeReference(vtkCellData::New());
+    outLineData->CopyAllOn(vtkDataSetAttributes::COPYTUPLE);
     outLineData->CopyAllocate(inCD);
     checkAbortInterval = std::min(inLines->GetNumberOfCells() / 10 + 1, (vtkIdType)1000);
     progressCounter = 0;
@@ -327,6 +329,7 @@ int vtkStaticCleanPolyData::RequestData(vtkInformation* vtkNotUsed(request),
     newPolys.TakeReference(vtkCellArray::New());
     newPolys->AllocateCopy(inPolys);
     outPolyData.TakeReference(vtkCellData::New());
+    outPolyData->CopyAllOn(vtkDataSetAttributes::COPYTUPLE);
     outPolyData->CopyAllocate(inCD);
     checkAbortInterval = std::min(inPolys->GetNumberOfCells() / 10 + 1, (vtkIdType)1000);
     progressCounter = 0;
@@ -361,6 +364,7 @@ int vtkStaticCleanPolyData::RequestData(vtkInformation* vtkNotUsed(request),
           newLines.TakeReference(vtkCellArray::New());
           newLines->AllocateEstimate(5, 2);
           outLineData.TakeReference(vtkCellData::New());
+          outLineData->CopyAllOn(vtkDataSetAttributes::COPYTUPLE);
           outLineData->CopyAllocate(inCD);
         }
         newId = newLines->InsertNextCell(cellIds.size(), cellIds.data());
@@ -420,6 +424,7 @@ int vtkStaticCleanPolyData::RequestData(vtkInformation* vtkNotUsed(request),
           newPolys.TakeReference(vtkCellArray::New());
           newPolys->AllocateEstimate(5, 3);
           outPolyData.TakeReference(vtkCellData::New());
+          outPolyData->CopyAllOn(vtkDataSetAttributes::COPYTUPLE);
           outPolyData->CopyAllocate(inCD);
         }
         newId = newPolys->InsertNextCell(cellIds.size(), cellIds.data());
@@ -432,6 +437,7 @@ int vtkStaticCleanPolyData::RequestData(vtkInformation* vtkNotUsed(request),
           newLines.TakeReference(vtkCellArray::New());
           newLines->AllocateEstimate(5, 2);
           outLineData.TakeReference(vtkCellData::New());
+          outLineData->CopyAllOn(vtkDataSetAttributes::COPYTUPLE);
           outLineData->CopyAllocate(inCD);
         }
         newId = newLines->InsertNextCell(cellIds.size(), cellIds.data());
