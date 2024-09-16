@@ -43,7 +43,7 @@ const BackendType DefaultBackend = BackendType::OpenMP;
 #endif
 
 template <BackendType Backend>
-class VTKCOMMONCORE_EXPORT vtkSMPToolsImpl
+class vtkSMPToolsImpl
 {
 public:
   //--------------------------------------------------------------------------------
@@ -62,7 +62,7 @@ public:
   bool GetNestedParallelism() { return this->NestedActivated; }
 
   //--------------------------------------------------------------------------------
-  bool IsParallelScope() { return this->IsParallel; }
+  bool IsParallelScope();
 
   //--------------------------------------------------------------------------------
   bool GetSingleThread();
@@ -117,6 +117,12 @@ private:
   bool NestedActivated = false;
   std::atomic<bool> IsParallel{ false };
 };
+
+template <BackendType Backend>
+bool vtkSMPToolsImpl<Backend>::IsParallelScope()
+{
+  return this->IsParallel;
+}
 
 using ExecuteFunctorPtrType = void (*)(void*, vtkIdType, vtkIdType, vtkIdType);
 
