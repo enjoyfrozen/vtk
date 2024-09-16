@@ -214,11 +214,11 @@ void vtkPlaneSource::SetNormal(double N[3])
   // Note that if normals are parallel then the rotation is either
   // 0 or 180 degrees.
   double dp = vtkMath::Dot(this->Normal, n);
-  if (dp >= 1.0)
+  if (dp > 1.0 || ((dp - 1.0) < 0.000000001 && (dp - 1.0) > -0.000000001))
   {
     return; // zero rotation
   }
-  else if (dp <= -1.0)
+  else if (dp < -1.0 || ((dp + 1.0) < 0.000000001 && (dp + 1.0) > -0.000000001))
   {
     theta = 180.0;
     rotVector[0] = this->Point1[0] - this->Origin[0];
