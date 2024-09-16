@@ -105,7 +105,6 @@ readability-*,\
 -readability-make-member-function-const,\
 -readability-named-parameter,\
 -readability-non-const-parameter,\
--readability-qualified-auto,\
 -readability-redundant-declaration,\
 -readability-redundant-preprocessor,\
 -readability-simplify-boolean-expr,\
