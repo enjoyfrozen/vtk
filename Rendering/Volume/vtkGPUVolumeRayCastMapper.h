@@ -27,6 +27,7 @@ VTK_ABI_NAMESPACE_BEGIN
 class vtkContourValues;
 class vtkRenderWindow;
 class vtkVolumeProperty;
+class vtkPolyData;
 
 class VTKRENDERINGVOLUME_EXPORT vtkGPUVolumeRayCastMapper : public vtkVolumeMapper
 {
@@ -34,6 +35,18 @@ public:
   static vtkGPUVolumeRayCastMapper* New();
   vtkTypeMacro(vtkGPUVolumeRayCastMapper, vtkVolumeMapper);
   void PrintSelf(ostream& os, vtkIndent indent) override;
+
+  ///@{
+  /**
+   * Return bounding box (array of six doubles) of data expressed as
+   * (xmin,xmax, ymin,ymax, zmin,zmax).
+   * When the CPR mode is enabled, the bounds are defined by CprVolumeXYDimensions and
+   * CprVolumeZDimensions (see GetCprVolumeXYDimensions). The volume is also centered on (0, 0, 0),
+   * the origin of the input image is lost.
+   */
+  double* GetBounds() VTK_SIZEHINT(6) override;
+  void GetBounds(double bounds[6]) override { this->vtkVolumeMapper::GetBounds(bounds); }
+  ///@}
 
   ///@{
   /**
@@ -304,6 +317,90 @@ public:
 
   ///@{
   /**
+   * Enable or disable rendering the volume using curved planar reformation (CPR). The CPR mode
+   * needs an oriented PolyLine to be set using `SetCprOrientedPolyLine`. By default this is set to
+   * 0 (off).
+   * It should be noted that it is possible that underlying API specific mapper may not supoport CPR
+   * mode.
+   *
+   * To render the volume, the shader samples the texture at the coordinates `(X, Y, Z)`, but in CPR
+   mode, the shader transforms these coordinates:
+   * - if in STRETCHED mode, the centerline positions are offseted (without mutating the original
+   array): `P.x = P.x + dot(C - P, O.X)` with `P` the current polyline position, `O.X` the X axis of
+   the current polyline orientation and `C` the center point
+   * - it interpolates the polyline position `P` and orientation `O` depending on `Z`
+   * - it create the local vector `V=(X, Y, 0)`
+   * - the vector used for sampling is `V` is transformed using `O` and `P`: `(V * O) + P`
+   *
+   * \warning
+   * \li This method only works with a single volume input.
+   * \li This method redefine `texture` function in the fragment shader. This is not supported in
+   * OpenGL ES.
+
+   * \sa SetCprOrientedPolyLine()
+   */
+  vtkSetMacro(RenderCpr, vtkTypeBool);
+  vtkGetMacro(RenderCpr, vtkTypeBool);
+  vtkBooleanMacro(RenderCpr, vtkTypeBool);
+  ///@}
+
+  ///@{
+  /**
+   * Contains the PolyLine used by the Curved Planar Reformation mode (CPR).
+   * This PolyData should contain a line cell and and an array of quaternions as PointData to orient
+   * each point.
+   * The DataArray containing the orientations can be named "Orientations" and has 4 components. It
+   * is an is an array of quaternions:
+   * - `q = (x, y, z, w)`
+   * - `||q|| = 1.0`
+   * The orientation of each point is relative to the IJK axes.
+   * The position of each point is in normalized IJK coordinates (texture coordinates).
+
+   * \sa GetRenderCpr()
+   */
+  virtual vtkPolyData* GetCprOrientedPolyLine();
+  virtual void SetCprOrientedPolyLine(vtkPolyData*);
+  ///@}
+
+  ///@{
+  /**
+   * An array of size 2, the size of the volume in CPR mode for cross-section (X and Y) axes.
+   * The size of of the volume on the forward (Z) axis is defined by the length of the polyline.
+   */
+  vtkGetVector2Macro(CprVolumeXYDimensions, float);
+  vtkSetVector2Macro(CprVolumeXYDimensions, float);
+  ///@}
+
+  ///@{
+  /**
+   * The center point can be used to create a stretched CPR mode instead of the default straightened
+   * CPR mode. It is expressed in the same coordinate system as the points of the CPR polyline
+   * (texture coordinates, see GetCprOrientedPolyLine).
+   * See GetRenderCpr for an explanation on how CPR works.
+   * Defaults to STRAIGHTENED.
+   */
+  vtkGetVector3Macro(CprCenterPoint, double);
+  vtkSetVector3Macro(CprCenterPoint, double);
+  ///@}
+
+  enum class CprModeType : unsigned int
+  {
+    STRAIGHTENED,
+    STRETCHED
+  };
+
+  ///@{
+  /**
+   * The different modes change the way that the CprVolumeZDimension is computed
+   * The stretched mode uses the center point (see GetCprCenterPoint).
+   * See GetRenderCpr for an explanation on how CPR works.
+   */
+  vtkSetEnumMacro(CprMode, CprModeType);
+  vtkGetEnumMacro(CprMode, CprModeType);
+  ///@}
+
+  ///@{
+  /**
    * Set/Get the scalar type of the depth texture in RenderToImage mode.
    * By default, the type if VTK_FLOAT.
    * \sa SetRenderToImage()
@@ -527,6 +624,28 @@ protected:
 
   // Render to texture mode flag
   vtkTypeBool RenderToImage;
+
+  // Curved Planar Reformation mode flag (CPR)
+  vtkTypeBool RenderCpr;
+
+  // Contains a line cell and a DataArray of quaternions to orient each point
+  vtkPolyData* CprOrientedPolyLine;
+
+  // Size of the volume in CPR mode for x and y axes (a vector 2)
+  float CprVolumeXYDimensions[2];
+
+  // Calling this function updates CprVolumeZDimension, positions and orientations vectors
+  void UpdateCprPolyLine();
+
+  vtkMTimeType LastCprPolyLineUpdate;
+  // The length of the PolyLine
+  float CprVolumeZDimension;
+  std::vector<float> CprPolyLinePositions;
+  std::vector<float> CprPolyLineOrientations;
+
+  // The center point is used to create a "stretch mode" effect
+  double CprCenterPoint[3] = { 0, 0, 0 };
+  CprModeType CprMode = CprModeType::STRAIGHTENED;
 
   // Depth image scalar type
   int DepthImageScalarType;

@@ -19,6 +19,7 @@
 #include <vtkMultiVolume.h>
 #include <vtkObjectFactory.h>
 #include <vtkPointData.h>
+#include <vtkPolyData.h>
 #include <vtkRectilinearGrid.h>
 #include <vtkRenderWindow.h>
 #include <vtkRenderer.h>
@@ -39,6 +40,12 @@ vtkGPUVolumeRayCastMapper::vtkGPUVolumeRayCastMapper()
   this->MinimumImageSampleDistance = 1.0;
   this->MaximumImageSampleDistance = 10.0;
   this->RenderToImage = 0;
+  this->RenderCpr = 0;
+  this->LastCprPolyLineUpdate = 0;
+  this->CprOrientedPolyLine = nullptr;
+  this->CprVolumeXYDimensions[0] = 100.0;
+  this->CprVolumeXYDimensions[1] = 100.0;
+  this->CprVolumeZDimension = 0.0;
   this->DepthImageScalarType = VTK_FLOAT;
   this->ClampDepthToBackface = 0;
   this->UseJittering = 0;
@@ -708,6 +715,19 @@ void vtkGPUVolumeRayCastMapper::SetDepthImageScalarTypeToFloat()
 }
 
 //------------------------------------------------------------------------------
+vtkPolyData* vtkGPUVolumeRayCastMapper::GetCprOrientedPolyLine()
+{
+  vtkDebugMacro(<< " returning vtkPolyData address " << this->CprOrientedPolyLine);
+  return this->CprOrientedPolyLine;
+}
+
+//------------------------------------------------------------------------------
+void vtkGPUVolumeRayCastMapper::SetCprOrientedPolyLine(vtkPolyData* _arg)
+{
+  vtkSetObjectBodyMacro(CprOrientedPolyLine, vtkPolyData, _arg);
+}
+
+//------------------------------------------------------------------------------
 int vtkGPUVolumeRayCastMapper::FillInputPortInformation(int port, vtkInformation* info)
 {
   if (port > 0)
@@ -722,6 +742,174 @@ int vtkGPUVolumeRayCastMapper::FillInputPortInformation(int port, vtkInformation
 vtkDataSet* vtkGPUVolumeRayCastMapper::GetInput(int port)
 {
   return static_cast<vtkDataSet*>(this->GetInputDataObject(port, 0));
+}
+
+//------------------------------------------------------------------------------
+void vtkGPUVolumeRayCastMapper::UpdateCprPolyLine()
+{
+  // Check if an update is needed
+  auto polyData = this->GetCprOrientedPolyLine();
+  auto polyDataTime = polyData ? polyData->GetMTime() : 0;
+  auto imageData = vtkImageData::SafeDownCast(this->GetInput());
+  auto imageDataTime = imageData ? imageData->GetMTime() : 0;
+  // Depends on self time because input polyData, imageData, CprMode and CprCenterPoint can change
+  auto selfTime = this->GetMTime();
+  auto newTime = std::max({ imageDataTime, polyDataTime, selfTime });
+  if (newTime <= this->LastCprPolyLineUpdate)
+  {
+    return;
+  }
+
+  // Update is needed
+  this->LastCprPolyLineUpdate = newTime;
+  this->CprVolumeZDimension = 0;
+  this->CprPolyLineOrientations.clear();
+  this->CprPolyLinePositions.clear();
+
+  if (!polyData || !imageData)
+  {
+    return;
+  }
+
+  auto spacing = imageData->GetSpacing();
+  auto dimensions = imageData->GetDimensions();
+  if (!spacing || !dimensions)
+  {
+    return;
+  }
+
+  // Get the positions of the centerline
+  auto lines = polyData->GetLines();
+  if (!lines)
+  {
+    return;
+  }
+  vtkNew<vtkIdList> lineIds;
+  lines->GetCellAtId(0, lineIds);
+  if (!lineIds)
+  {
+    return;
+  }
+  auto nLinePoints = lineIds->GetNumberOfIds();
+  auto points = polyData->GetPoints();
+  if (!points)
+  {
+    return;
+  }
+
+  // Get the orientations of the centerline
+  auto pointData = polyData->GetPointData();
+  if (!pointData)
+  {
+    return;
+  }
+  auto orientations = vtkArrayDownCast<vtkDataArray>(pointData->GetAbstractArray("Orientations"));
+  if (!orientations && pointData->GetNumberOfArrays() == 1)
+  {
+    orientations = vtkArrayDownCast<vtkDataArray>(pointData->GetAbstractArray(0));
+  }
+  if (!orientations || orientations->GetNumberOfComponents() != 4)
+  {
+    return;
+  }
+  // Compute the vectors for cpr positions and orientations
+  {
+    this->CprPolyLinePositions.resize(nLinePoints * 4);
+    this->CprPolyLineOrientations.resize(nLinePoints * 4);
+    double textureToIndexScale[3];
+    for (int i = 0; i < 3; ++i)
+    {
+      textureToIndexScale[i] = spacing[i] * dimensions[i];
+    }
+    double orientation[4];
+    double totalDistance = 0.0;
+    double positionMC[3];
+    double positionTC[3];
+    double previousModelPoint[3];
+    double* centerPoint = this->CprCenterPoint;
+    for (vtkIdType i = 0; i < nLinePoints; ++i)
+    {
+      auto pointId = lineIds->GetId(i);
+
+      // Copy polyline orientations
+      orientations->GetTuple(pointId, orientation);
+      this->CprPolyLineOrientations[4 * i] = orientation[0];
+      this->CprPolyLineOrientations[4 * i + 1] = orientation[1];
+      this->CprPolyLineOrientations[4 * i + 2] = orientation[2];
+      this->CprPolyLineOrientations[4 * i + 3] = orientation[3];
+
+      // Compute and copy polyline positions
+      points->GetPoint(pointId, positionTC);
+      // Apply X offset if in stretched cpr mode
+      if (this->CprMode == CprModeType::STRETCHED)
+      {
+        // To compute `{1, 0, 0}` rotated by `orientation = {x, y, z, w}`, we use the first vector
+        // of a rotation matrix:
+        // `xAxis = { 2 * (w*w + x*w) - 1, 2 * (x*y + w*z), 2 * (x*z - w*y) }`
+        double qX = orientation[0];
+        double qY = orientation[1];
+        double qZ = orientation[2];
+        double qW = orientation[3];
+        double xAxis[3] = { 2 * (qW * qW + qX * qX) - 1, 2 * (qX * qY + qW * qZ),
+          2 * (qX * qZ - qW * qY) };
+        // Using the following formula, we have `dot(centerPoint - positionTc, xAxis) == 0`:
+        // `positionTC = positionTC + dot(centerPoint - positionTc, xAxis) * xAxis`
+        double positionToCenter[3];
+        vtkMath::Subtract(centerPoint, positionTC, positionToCenter);
+        double offset = vtkMath::Dot(positionToCenter, xAxis);
+        vtkMath::MultiplyScalar(xAxis, offset);
+        vtkMath::Add(positionTC, xAxis, positionTC);
+      }
+      positionMC[0] = textureToIndexScale[0] * positionTC[0];
+      positionMC[1] = textureToIndexScale[1] * positionTC[1];
+      positionMC[2] = textureToIndexScale[2] * positionTC[2];
+      if (i != 0)
+      {
+        vtkMath::Subtract(positionMC, previousModelPoint, previousModelPoint);
+        totalDistance += vtkMath::Norm(previousModelPoint);
+      }
+      vtkMath::Assign(positionMC, previousModelPoint);
+      auto rawOffset = 4 * i;
+      for (int j = 0; j < 3; ++j)
+      {
+        this->CprPolyLinePositions[rawOffset + j] = positionTC[j];
+      }
+      this->CprPolyLinePositions[rawOffset + 3] = totalDistance;
+    }
+
+    // Now that the total distance is computed, set CprVolumeZDimension and normalize 4th component
+    // of polyline positions
+    this->CprVolumeZDimension = totalDistance;
+    if (totalDistance > 0)
+    {
+      for (vtkIdType i = 0; i < nLinePoints; ++i)
+      {
+        this->CprPolyLinePositions[4 * i + 3] /= totalDistance;
+      }
+    }
+  }
+}
+
+//------------------------------------------------------------------------------
+double* vtkGPUVolumeRayCastMapper::GetBounds()
+{
+  if (this->RenderCpr)
+  {
+    this->UpdateCprPolyLine();
+    auto xyDims = this->CprVolumeXYDimensions;
+    auto zDim = this->CprVolumeZDimension;
+    this->Bounds[0] = -xyDims[0] / 2;
+    this->Bounds[1] = +xyDims[0] / 2;
+    this->Bounds[2] = -xyDims[1] / 2;
+    this->Bounds[3] = +xyDims[1] / 2;
+    this->Bounds[4] = -zDim / 2;
+    this->Bounds[5] = +zDim / 2;
+    return this->Bounds;
+  }
+  else
+  {
+    return this->vtkVolumeMapper::GetBounds();
+  }
 }
 
 //------------------------------------------------------------------------------
