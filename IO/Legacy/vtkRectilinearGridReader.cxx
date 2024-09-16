@@ -84,7 +84,14 @@ int vtkRectilinearGridReader::ReadMetaDataSimple(const std::string& fname, vtkIn
         break;
       }
 
-      if (!strncmp(this->LowerCase(line), "dimensions", 10) && !dimsRead)
+      // Have to read field data because it may be binary.
+      if (!strncmp(this->LowerCase(line), "field", 5))
+      {
+        vtkFieldData* fd = this->ReadFieldData();
+        fd->Delete();
+      }
+
+      else if (!strncmp(this->LowerCase(line), "dimensions", 10) && !dimsRead)
       {
         int dim[3];
         if (!(this->Read(dim) && this->Read(dim + 1) && this->Read(dim + 2)))
