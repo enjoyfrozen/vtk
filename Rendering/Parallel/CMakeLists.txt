@@ -58,3 +58,9 @@ vtk_module_definitions(VTK::RenderingParallel
   PRIVATE
     VTK_OPENGL2)
 vtk_add_test_mangling(VTK::RenderingParallel)
+
+set_property(
+  SOURCE
+    vtkTreeCompositer.cxx
+  PROPERTY
+    SKIP_UNITY_BUILD_INCLUSION ON)

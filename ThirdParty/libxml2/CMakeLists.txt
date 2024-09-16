@@ -31,3 +31,6 @@ configure_file(
 
 vtk_module_install_headers(
   FILES "${CMAKE_CURRENT_BINARY_DIR}/vtk_libxml2.h")
+
+# SAX2.c:138:1: error: conflicting types for ‘xmlFatalErrMsg’
+set_property(TARGET libxml2 PROPERTY UNITY_BUILD OFF)

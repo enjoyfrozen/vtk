@@ -38,3 +38,6 @@ configure_file(
 
 vtk_module_install_headers(
   FILES "${CMAKE_CURRENT_BINARY_DIR}/vtk_ioss.h")
+
+# Ioss_TriShell4.C:28:10: error: redefinition of 'struct {anonymous}::Constants'
+set_property(TARGET ioss PROPERTY UNITY_BUILD OFF)

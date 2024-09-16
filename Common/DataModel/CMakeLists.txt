@@ -354,3 +354,6 @@ vtk_module_add_module(VTK::CommonDataModel
   NOWRAP_HEADERS    ${nowrap_headers}
   PRIVATE_TEMPLATES ${private_templates})
 vtk_add_test_mangling(VTK::CommonDataModel)
+
+# vtkQuadraticHexahedron.cxx:295:27: error: reference to 'VTK_DIVERGED' is ambiguous
+set_property(TARGET CommonDataModel PROPERTY UNITY_BUILD OFF)

@@ -32,3 +32,6 @@ configure_file(
 
 vtk_module_install_headers(
   FILES "${CMAKE_CURRENT_BINARY_DIR}/vtk_libharu.h")
+
+# hpdf_font_tt.c:252:1: error: redefinition of ‘TextWidth’
+set_property(TARGET libharu PROPERTY UNITY_BUILD OFF)

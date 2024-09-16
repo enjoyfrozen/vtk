@@ -38,3 +38,6 @@ vtk_module_third_party_internal(
   SPDX_COPYRIGHT_TEXT     "Copyright 2000-2016 Kitware, Inc. and Contributors"
   SPDX_DOWNLOAD_LOCATION  "git+https://gitlab.kitware.com/utils/kwsys.git"
   VERSION                 "master")
+
+# error: #error "kwsysPrivate.h included multiple times.
+set_property(TARGET vtksys PROPERTY UNITY_BUILD OFF)

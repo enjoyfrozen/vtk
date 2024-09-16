@@ -17,3 +17,8 @@ endif ()
 vtk_module_add_module(VTK::CommonMisc
   CLASSES ${classes})
 vtk_add_test_mangling(VTK::CommonMisc)
+
+# FIXME: vtkFunctionParser.cxx:873:12: error: reference to 'vtkParserVectorErrorResult' is ambiguous
+set_property(SOURCE vtkFunctionParser.cxx
+  PROPERTY
+    SKIP_UNITY_BUILD_INCLUSION ON)

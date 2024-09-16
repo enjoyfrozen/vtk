@@ -183,3 +183,10 @@ vtk_module_add_module(VTK::InteractionWidgets
   CLASSES ${classes}
   SOURCES ${serialization_helper_sources})
 vtk_add_test_mangling(VTK::InteractionWidgets)
+
+# FIXME: vtkTexturedButtonRepresentation2D.cxx:26:7: error: redefinition of 'class vtkTextureArray'
+set_property(SOURCE
+  vtkTexturedButtonRepresentation2D.cxx
+  vtkDisplaySizedImplicitPlaneRepresentation.cxx
+  PROPERTY
+    SKIP_UNITY_BUILD_INCLUSION ON)

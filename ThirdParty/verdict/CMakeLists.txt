@@ -23,3 +23,6 @@ configure_file(
 
 vtk_module_install_headers(
   FILES "${CMAKE_CURRENT_BINARY_DIR}/vtk_verdict.h")
+
+# V_TetMetric.cpp:31:21: error: redefinition of ‘const double vtkverdict::one_third’
+set_property(TARGET verdict PROPERTY UNITY_BUILD OFF)

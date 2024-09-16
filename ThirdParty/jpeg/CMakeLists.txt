@@ -24,3 +24,6 @@ configure_file(
 
 vtk_module_install_headers(
   FILES "${CMAKE_CURRENT_BINARY_DIR}/vtk_jpeg.h")
+
+# vtk_jpeg_mangle.h:88:33: error: conflicting types for ‘vtkjpeg_jpeg_make_c_derived_tbl’
+set_property(TARGET jpeg PROPERTY UNITY_BUILD OFF)

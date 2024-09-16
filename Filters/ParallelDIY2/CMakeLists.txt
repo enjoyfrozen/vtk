@@ -43,3 +43,11 @@ vtk_module_add_module(VTK::FiltersParallelDIY2
   SOURCES ${vtk_object_factory_source}
   PRIVATE_HEADERS ${vtk_object_factory_header})
 vtk_add_test_mangling(VTK::FiltersParallelDIY2)
+
+set_property(
+  SOURCE
+    vtkGenerateGlobalIds.cxx
+    vtkPResampleToImage.cxx
+    vtkDIYKdTreeUtilities.cxx
+  PROPERTY
+    SKIP_UNITY_BUILD_INCLUSION ON)

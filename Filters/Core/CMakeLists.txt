@@ -147,3 +147,13 @@ vtk_module_add_module(VTK::FiltersCore
   PRIVATE_HEADERS ${private_headers})
 
 vtk_add_test_mangling(VTK::FiltersCore)
+
+# FIXME: vtkSurfaceNets3D.cxx:150:8: error: redefinition of 'struct {anonymous}::SurfaceNets<T>'
+set_property(SOURCE
+  vtkSurfaceNets3D.cxx
+  vtkPolyDataPlaneCutter.cxx
+  vtkResampleWithDataSet.cxx
+  vtk3DLinearGridPlaneCutter.cxx
+  vtkContour3DLinearGrid.cxx
+  PROPERTY
+    SKIP_UNITY_BUILD_INCLUSION ON)

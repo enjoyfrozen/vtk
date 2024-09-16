@@ -37,3 +37,6 @@ configure_file(
 
 vtk_module_install_headers(
   FILES "${CMAKE_CURRENT_BINARY_DIR}/vtk_netcdf.h")
+
+# ncx.c:194:24: error: ‘X_ALIGN’ undeclared here (not in a function)
+set_property(TARGET netcdf PROPERTY UNITY_BUILD OFF)

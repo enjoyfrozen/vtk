@@ -23,3 +23,6 @@ vtk_module_add_module(VTK::IOIOSS
   PRIVATE_HEADERS ${private_headers}
 )
 vtk_add_test_mangling(VTK::IOIOSS)
+
+# vtkIOSSReaderCommunication.h:76:35: error: redefinition... 
+set_property(TARGET IOIOSS PROPERTY UNITY_BUILD OFF)

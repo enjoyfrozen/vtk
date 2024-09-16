@@ -27,3 +27,6 @@ configure_file(
 
 vtk_module_install_headers(
   FILES "${CMAKE_CURRENT_BINARY_DIR}/vtk_libproj.h")
+
+# aitoff.cpp:41:6: error: multiple definition of ‘enum {anonymous}::Mode’
+set_property(TARGET libproj PROPERTY UNITY_BUILD OFF)

@@ -51,3 +51,8 @@ set(classes
 vtk_module_add_module(VTK::ChartsCore
   CLASSES ${classes})
 vtk_add_test_mangling(VTK::ChartsCore)
+
+# FIXME: vtkAxisExtended.h:25:28: error: redefinition of 'class vtkAxisExtended'
+set_property(SOURCE vtkAxisExtended.cxx
+  PROPERTY
+    SKIP_UNITY_BUILD_INCLUSION ON)

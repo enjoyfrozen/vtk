@@ -42,3 +42,10 @@ vtk_module_add_module(VTK::IOGeometry
   HEADERS ${headers}
   )
 vtk_add_test_mangling(VTK::IOGeometry)
+
+# FIXME: vtkGLTFReader.cxx:35:13: error: redefinition of 'template<class T> std::string {anonymous}::value_to_string(const T&)'
+set_property(SOURCE
+  vtkGLTFReader.cxx
+  vtkGLTFDocumentLoaderInternals.cxx
+  PROPERTY
+    SKIP_UNITY_BUILD_INCLUSION ON)

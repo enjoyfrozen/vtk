@@ -486,3 +486,15 @@ if (NOT ANDROID AND
     MODULES VTK::RenderingOpenGL2)
 endif ()
 vtk_add_test_mangling(VTK::RenderingOpenGL2)
+
+# FIXME: vtkOpenGLPointGaussianMapper.cxx:595:5: error: redefinition of 'int {anonymous}::getPickState(vtkRenderer*)'
+set_property(SOURCE
+  vtkOpenGLPointGaussianMapper.cxx
+  vtkOpenGLPolyDataMapper.cxx
+  vtkOpenGLES30PolyDataMapper2D.cxx
+  vtkEDLShading.cxx
+  vtkRenderingOpenGL2ObjectFactory.cxx
+  vtkHiddenLineRemovalPass.cxx
+  vtkOpenGLLowMemoryBatchedPolyDataMapper.cxx
+  PROPERTY
+    SKIP_UNITY_BUILD_INCLUSION ON)

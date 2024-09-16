@@ -42,3 +42,8 @@ vtk_module_add_module(VTK::RenderingVolume
   CLASSES ${classes}
   HEADERS ${headers})
 vtk_add_test_mangling(VTK::RenderingVolume)
+
+# FIXME: vtkUnstructuredGridPartialPreIntegration.cxx:44:21: error: redefinition of 'const double huebends [6]'
+set_property(SOURCE vtkUnstructuredGridPartialPreIntegration.cxx
+  PROPERTY
+    SKIP_UNITY_BUILD_INCLUSION ON)

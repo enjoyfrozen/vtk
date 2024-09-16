@@ -14,3 +14,6 @@ vtk_module_third_party_internal(
   VERSION
     "unknown"
   STANDARD_INCLUDE_DIRS)
+
+# VPICView.cxx:14:21: error: redefinition of 'const char* Slash'
+set_property(TARGET vpic PROPERTY UNITY_BUILD OFF)

@@ -18,3 +18,5 @@ vtk_module_third_party_internal(
 vtk_module_install_headers(
 #  FILES "${CMAKE_CURRENT_BINARY_DIR}/vtk_exodusII.h")
   FILES "${CMAKE_CURRENT_SOURCE_DIR}/vtk_exodusII.h")
+
+set_property(TARGET exodusII PROPERTY UNITY_BUILD OFF)
