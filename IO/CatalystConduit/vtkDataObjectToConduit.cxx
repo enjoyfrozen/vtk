@@ -476,7 +476,26 @@ bool FillTopology(vtkDataSet* data_set, conduit_cpp::Node& conduit_node)
   }
   else if (auto unstructured_grid = vtkUnstructuredGrid::SafeDownCast(data_set))
   {
-    return FillTopology(unstructured_grid, conduit_node);
+    if (!unstructured_grid->GetNumberOfCells()) // we have an implicit topology
+    {
+      auto coords_node = conduit_node["coordsets/coords"];
+
+      coords_node["type"] = "explicit";
+
+      auto values_node = coords_node["values"];
+      if (!ConvertDataArrayToMCArray(
+            structured_grid->GetPoints()->GetData(), values_node, { "x", "y", "z" }))
+      {
+        vtkLog(ERROR, "Failed ConvertPoints for unstructured grid");
+        return false;
+      }
+
+      auto topologies_node = conduit_node["topologies/mesh"];
+      topologies_node["type"] = "points";
+      topologies_node["coordset"] = "coords";
+    }
+    else
+      return FillTopology(unstructured_grid, conduit_node);
   }
   else if (auto polydata = vtkPolyData::SafeDownCast(data_set))
   {

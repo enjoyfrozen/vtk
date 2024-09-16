@@ -418,6 +418,14 @@ vtkSmartPointer<vtkDataSet> CreateMesh(
     return vtkSmartPointer<vtkUnstructuredGrid>::New();
   }
 
+  if (coords["type"].as_string() == "explicit" && topology["type"].as_string() == "points")
+  {
+    auto unstructured = vtkSmartPointer<vtkUnstructuredGrid>::New();
+    unstructured->SetPoints(CreatePoints(coords));
+    // return with 0 cells, typical of particles-only simulation like SPH
+    return unstructured;
+  }
+
   throw std::runtime_error("unsupported topology or coordset");
 }
 
