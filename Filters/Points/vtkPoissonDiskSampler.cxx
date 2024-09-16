@@ -29,8 +29,8 @@ vtkCxxSetObjectMacro(vtkPoissonDiskSampler, Locator, vtkAbstractPointLocator);
 namespace
 {
 //------------------------------------------------------------------------------
-void DartThrower(
-  vtkPointSet* input, vtkAbstractPointLocator* locator, vtkPointSet* output, double radius)
+void DartThrower(vtkPointSet* input, vtkAbstractPointLocator* locator, vtkPointSet* output,
+  double radius, long unsigned int seed)
 {
   if (!input->GetNumberOfPoints())
   {
@@ -39,7 +39,7 @@ void DartThrower(
 
   std::vector<vtkIdType> candidates(input->GetNumberOfPoints());
   std::iota(candidates.begin(), candidates.end(), 0);
-  auto rng = std::default_random_engine{};
+  auto rng = std::default_random_engine{ seed };
   std::shuffle(candidates.begin(), candidates.end(), rng);
 
   vtkNew<vtkIdList> pickedPoints;
@@ -87,6 +87,8 @@ void DartThrower(
 vtkPoissonDiskSampler::vtkPoissonDiskSampler()
   : Radius(1.0)
   , Locator(nullptr)
+  , Seed(0)
+
 {
   this->SetLocator(vtkNew<vtkKdTreePointLocator>());
 }
@@ -134,7 +136,7 @@ int vtkPoissonDiskSampler::RequestData(vtkInformation* vtkNotUsed(request),
     this->Locator->BuildLocator();
   }
 
-  ::DartThrower(input, this->Locator, output, this->Radius);
+  ::DartThrower(input, this->Locator, output, this->Radius, this->Seed);
 
   return 1;
 }
