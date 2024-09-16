@@ -37,7 +37,13 @@
 #ifndef QVTKOpenGLWindow_h
 #define QVTKOpenGLWindow_h
 
+#include <QtVersionChecks>
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+#include <QtOpenGL/QOpenGLWindow>
+#else
 #include <QOpenGLWindow>
+#endif
+
 #include <QScopedPointer> // for QScopedPointer.
 
 #include "QVTKInteractor.h"        // needed for QVTKInteractor

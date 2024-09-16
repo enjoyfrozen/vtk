@@ -91,7 +91,13 @@
 #ifndef QVTKOpenGLNativeWidget_h
 #define QVTKOpenGLNativeWidget_h
 
+#include <QtVersionChecks>
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+#include <QtOpenGLWidgets/QOpenGLWidget>
+#else
 #include <QOpenGLWidget>
+#endif
+
 #include <QScopedPointer> // for QScopedPointer.
 
 #include "QVTKInteractor.h"        // needed for QVTKInteractor
