@@ -4,6 +4,7 @@ set(classes
   vtkCompositeDataGeometryFilter
   vtkDataSetRegionSurfaceFilter
   vtkDataSetSurfaceFilter
+  vtkDiscoverRegions
   vtkExplicitStructuredGridSurfaceFilter
   vtkGeometryFilter
   vtkHierarchicalDataSetGeometryFilter
