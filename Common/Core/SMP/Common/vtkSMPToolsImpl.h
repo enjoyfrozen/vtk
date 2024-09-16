@@ -94,7 +94,7 @@ public:
 
   //--------------------------------------------------------------------------------
   vtkSMPToolsImpl()
-    : NestedActivated(true)
+    : NestedActivated(Backend == BackendType::TBB)
     , IsParallel(false)
   {
   }
