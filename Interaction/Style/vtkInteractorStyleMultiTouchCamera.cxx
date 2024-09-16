@@ -16,7 +16,10 @@ VTK_ABI_NAMESPACE_BEGIN
 vtkStandardNewMacro(vtkInteractorStyleMultiTouchCamera);
 
 //------------------------------------------------------------------------------
-vtkInteractorStyleMultiTouchCamera::vtkInteractorStyleMultiTouchCamera() = default;
+vtkInteractorStyleMultiTouchCamera::vtkInteractorStyleMultiTouchCamera()
+  : AllowGesturesDuringRotate(false)
+{
+}
 
 //------------------------------------------------------------------------------
 vtkInteractorStyleMultiTouchCamera::~vtkInteractorStyleMultiTouchCamera() = default;
@@ -80,6 +83,20 @@ void vtkInteractorStyleMultiTouchCamera::OnRotate()
   camera->OrthogonalizeViewUp();
 
   this->Interactor->Render();
+}
+
+//------------------------------------------------------------------------------
+void vtkInteractorStyleMultiTouchCamera::StartGesture()
+{
+  if (this->AllowGesturesDuringRotate && this->State == VTKIS_ROTATE)
+  {
+    this->StopState();
+  }
+  if (this->State != VTKIS_NONE)
+  {
+    return;
+  }
+  this->StartState(VTKIS_GESTURE);
 }
 
 //------------------------------------------------------------------------------

@@ -34,6 +34,7 @@ public:
   /**
    * Event bindings for gestures
    */
+  void StartGesture() override;
   void OnStartRotate() override;
   void OnRotate() override;
   void OnEndRotate() override;
@@ -43,12 +44,28 @@ public:
   void OnStartPan() override;
   void OnPan() override;
   void OnEndPan() override;
+  ///@}
 
+  ///@{
+  /**
+   * Flag that enables/disables the recognition of touch gestures during rotation.
+   * The flag may be enabled on systems where multi-touch gesture recognition is not robust
+   * and a mouse event may be triggered right before a multi-touch gesture is detected. Since
+   * transition from rotation to gesture may not be smooth (for example, there may be a jump
+   * from touch position to gesture position) and after the multi-touch gesture the interrupted
+   * rotation state is not restored, it is generally recommended to keep this flag disabled.
+   * Disabled by default.
+   */
+  vtkSetMacro(AllowGesturesDuringRotate, bool);
+  vtkGetMacro(AllowGesturesDuringRotate, bool);
+  vtkBooleanMacro(AllowGesturesDuringRotate, bool);
   ///@}
 
 protected:
   vtkInteractorStyleMultiTouchCamera();
   ~vtkInteractorStyleMultiTouchCamera() override;
+
+  bool AllowGesturesDuringRotate;
 
 private:
   vtkInteractorStyleMultiTouchCamera(const vtkInteractorStyleMultiTouchCamera&) = delete;

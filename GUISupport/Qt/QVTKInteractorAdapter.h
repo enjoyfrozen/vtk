@@ -49,10 +49,26 @@ public:
   // returns whether the event was recognized and processed
   bool ProcessEvent(QEvent* e, vtkRenderWindowInteractor* iren);
 
+  ///@{
+  /**
+   * Enable/disable conversion of touch events to mouse events.
+   * Conversion is not necessary for multi-touch gesture support, because Qt recognizes touch
+   * gestures and this class creates gesture events (PinchEvent, RotateEvent, PanEvent, ...)
+   * from them. Enabling conversion may have negative side effects, because it makes it difficult
+   * to separate real mouse events from those events that are simulated from touch events.
+   * This flag exists to allow access to low-level touch events in VTK (e.g., for implementing
+   * custom gesture recognition in the interactor).
+   * Disabled by default.
+   */
+  void setConvertTouchEventsToMouseEvents(bool convertTouchEventsToMouseEvents);
+  bool convertTouchEventsToMouseEvents() const;
+  ///@}
+
 protected:
   int AccumulatedDelta;
   float DevicePixelRatio;
   static const double DevicePixelRatioTolerance;
+  bool ConvertTouchEventsToMouseEvents;
 };
 
 VTK_ABI_NAMESPACE_END

@@ -38,6 +38,7 @@ QVTKInteractorAdapter::QVTKInteractorAdapter(QObject* parentObject)
   : QObject(parentObject)
   , AccumulatedDelta(0)
   , DevicePixelRatio(1.0)
+  , ConvertTouchEventsToMouseEvents(false)
 {
 }
 
@@ -191,16 +192,19 @@ bool QVTKInteractorAdapter::ProcessEvent(QEvent* e, vtkRenderWindowInteractor* i
     }
     return true;
   }
-  if (t == QEvent::TouchBegin || t == QEvent::TouchUpdate || t == QEvent::TouchEnd)
+  if (this->ConvertTouchEventsToMouseEvents &&
+    (t == QEvent::TouchBegin || t == QEvent::TouchUpdate || t == QEvent::TouchEnd))
   {
     QTouchEvent* e2 = dynamic_cast<QTouchEvent*>(e);
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-    Q_FOREACH (const QTouchEvent::TouchPoint& point, e2->touchPoints())
-#else
-    Q_FOREACH (const QTouchEvent::TouchPoint& point, e2->points())
-#endif
+    for (const QTouchEvent::TouchPoint& point : e2->touchPoints())
     {
-      if (point.id() >= VTKI_MAX_POINTERS)
+#else
+    for (const QTouchEvent::TouchPoint& point : e2->points())
+    {
+#endif
+      int pointIndex = iren->GetPointerIndexForContact(point.id());
+      if (pointIndex < 0)
       {
         break;
       }
@@ -214,22 +218,25 @@ bool QVTKInteractorAdapter::ProcessEvent(QEvent* e, vtkRenderWindowInteractor* i
         static_cast<int>(pos.x() * this->DevicePixelRatio + DevicePixelRatioTolerance),
         static_cast<int>(pos.y() * this->DevicePixelRatio + DevicePixelRatioTolerance),
         (e2->modifiers() & Qt::ControlModifier) > 0 ? 1 : 0,
-        (e2->modifiers() & Qt::ShiftModifier) > 0 ? 1 : 0, 0, 0, nullptr, point.id());
+        (e2->modifiers() & Qt::ShiftModifier) > 0 ? 1 : 0, 0, 0, nullptr, pointIndex);
     }
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-    Q_FOREACH (const QTouchEvent::TouchPoint& point, e2->touchPoints())
-#else
-    Q_FOREACH (const QTouchEvent::TouchPoint& point, e2->points())
-#endif
+    for (const QTouchEvent::TouchPoint& point : e2->touchPoints())
     {
-      if (point.id() >= VTKI_MAX_POINTERS)
+#else
+    for (const QTouchEvent::TouchPoint& point : e2->points())
+    {
+#endif
+      int pointIndex = iren->GetPointerIndexForContact(point.id());
+      if (pointIndex < 0)
       {
         break;
       }
-      iren->SetPointerIndex(point.id());
+      iren->SetPointerIndex(pointIndex);
       if (point.state() & Qt::TouchPointReleased)
       {
         iren->InvokeEvent(vtkCommand::LeftButtonReleaseEvent, nullptr);
+        iren->ClearPointerIndex(pointIndex);
       }
       if (point.state() & Qt::TouchPointPressed)
       {
@@ -581,6 +588,16 @@ bool QVTKInteractorAdapter::ProcessEvent(QEvent* e, vtkRenderWindowInteractor* i
     return true;
   }
   return false;
+}
+
+void QVTKInteractorAdapter::setConvertTouchEventsToMouseEvents(bool convertTouchEventsToMouseEvents)
+{
+  this->ConvertTouchEventsToMouseEvents = convertTouchEventsToMouseEvents;
+}
+
+bool QVTKInteractorAdapter::convertTouchEventsToMouseEvents() const
+{
+  return this->ConvertTouchEventsToMouseEvents;
 }
 
 // ***** keysym stuff below  *****
