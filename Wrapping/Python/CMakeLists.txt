@@ -35,6 +35,11 @@ if (NOT VTK_WHEEL_BUILD)
       VTK::Python
       VTK::vtkpythonmodules
       VTK::vtksys)
+  if (TARGET VTK::TestingRendering)
+    target_link_libraries(vtkpython
+      PRIVATE
+        VTK::TestingRendering)
+  endif ()
   add_executable(VTK::vtkpython ALIAS vtkpython)
   if (VTK_INSTALL_PYTHON_EXES)
     install(
@@ -59,6 +64,11 @@ if (NOT VTK_WHEEL_BUILD)
         VTK::Python
         VTK::mpi
         VTK::vtkpythonmodules)
+    if (TARGET VTK::TestingRendering)
+      target_link_libraries(pvtkpython
+        PRIVATE
+        VTK::TestingRendering)
+    endif ()
     add_executable(VTK::pvtkpython ALIAS pvtkpython)
     if (VTK_INSTALL_PYTHON_EXES)
       install(
